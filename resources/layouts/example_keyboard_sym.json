@@ -1,0 +1,440 @@
+{
+    "schemaVersion":  1,
+    "id":  "example_keyboard_sym",
+    "name":  "Keyboard 123",
+    "description":  "Voice OSK symbols — width units from Voice/js/osk.js.",
+    "window":  {
+                   "anchor":  "bottomCenter",
+                   "widthPx":  1280,
+                   "heightPx":  280,
+                   "marginPx":  6
+               },
+    "grid":  {
+                 "columns":  12,
+                 "rows":  3,
+                 "gapPx":  4,
+                 "marginPx":  8,
+                 "unitRows":  true
+             },
+    "dwell":  {
+                  "enabled":  true,
+                  "ms":  550,
+                  "repeatMs":  0,
+                  "progressStyle":  "radial"
+              },
+    "items":  [
+                  {
+                      "id":  "tab",
+                      "label":  "Tab",
+                      "row":  0,
+                      "col":  0,
+                      "u":  0.9,
+                      "action":  {
+                                     "name":  "tab",
+                                     "type":  "command"
+                                 },
+                      "style":  {
+                                    "background":  "#3d4f66",
+                                    "foreground":  "#ffffff"
+                                }
+                  },
+                  {
+                      "id":  "d1",
+                      "label":  "1",
+                      "row":  0,
+                      "col":  1,
+                      "u":  1,
+                      "action":  {
+                                     "text":  "1",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "d2",
+                      "label":  "2",
+                      "row":  0,
+                      "col":  2,
+                      "u":  1,
+                      "action":  {
+                                     "text":  "2",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "d3",
+                      "label":  "3",
+                      "row":  0,
+                      "col":  3,
+                      "u":  1,
+                      "action":  {
+                                     "text":  "3",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "d4",
+                      "label":  "4",
+                      "row":  0,
+                      "col":  4,
+                      "u":  1,
+                      "action":  {
+                                     "text":  "4",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "d5",
+                      "label":  "5",
+                      "row":  0,
+                      "col":  5,
+                      "u":  1,
+                      "action":  {
+                                     "text":  "5",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "d6",
+                      "label":  "6",
+                      "row":  0,
+                      "col":  6,
+                      "u":  1,
+                      "action":  {
+                                     "text":  "6",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "d7",
+                      "label":  "7",
+                      "row":  0,
+                      "col":  7,
+                      "u":  1,
+                      "action":  {
+                                     "text":  "7",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "d8",
+                      "label":  "8",
+                      "row":  0,
+                      "col":  8,
+                      "u":  1,
+                      "action":  {
+                                     "text":  "8",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "d9",
+                      "label":  "9",
+                      "row":  0,
+                      "col":  9,
+                      "u":  1,
+                      "action":  {
+                                     "text":  "9",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "d10",
+                      "label":  "0",
+                      "row":  0,
+                      "col":  10,
+                      "u":  1,
+                      "action":  {
+                                     "text":  "0",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "bksp",
+                      "label":  "⌫",
+                      "row":  0,
+                      "col":  11,
+                      "u":  1.2,
+                      "action":  {
+                                     "name":  "backspace",
+                                     "type":  "command"
+                                 },
+                      "style":  {
+                                    "background":  "#3d4f66",
+                                    "foreground":  "#ffffff"
+                                }
+                  },
+                  {
+                      "id":  "shift",
+                      "label":  "⇧",
+                      "row":  1,
+                      "col":  0,
+                      "u":  1.3,
+                      "action":  {
+                                     "layoutId":  "example_keyboard_sym_shift",
+                                     "type":  "loadLayout"
+                                 },
+                      "style":  {
+                                    "background":  "#3d4f66",
+                                    "foreground":  "#ffffff"
+                                }
+                  },
+                  {
+                      "id":  "s0",
+                      "label":  "!",
+                      "row":  1,
+                      "col":  1,
+                      "u":  1,
+                      "action":  {
+                                     "text":  "!",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "s1",
+                      "label":  "@",
+                      "row":  1,
+                      "col":  2,
+                      "u":  1,
+                      "action":  {
+                                     "text":  "@",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "s2",
+                      "label":  "#",
+                      "row":  1,
+                      "col":  3,
+                      "u":  1,
+                      "action":  {
+                                     "text":  "#",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "s3",
+                      "label":  "$",
+                      "row":  1,
+                      "col":  4,
+                      "u":  1,
+                      "action":  {
+                                     "text":  "$",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "s4",
+                      "label":  "%",
+                      "row":  1,
+                      "col":  5,
+                      "u":  1,
+                      "action":  {
+                                     "text":  "%",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "s5",
+                      "label":  "\u0026",
+                      "row":  1,
+                      "col":  6,
+                      "u":  1,
+                      "action":  {
+                                     "text":  "\u0026",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "s6",
+                      "label":  "*",
+                      "row":  1,
+                      "col":  7,
+                      "u":  1,
+                      "action":  {
+                                     "text":  "*",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "s7",
+                      "label":  "(",
+                      "row":  1,
+                      "col":  8,
+                      "u":  1,
+                      "action":  {
+                                     "text":  "(",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "comma",
+                      "label":  ",",
+                      "row":  1,
+                      "col":  9,
+                      "u":  0.9,
+                      "action":  {
+                                     "text":  ",",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "quote",
+                      "label":  "\u0027",
+                      "row":  1,
+                      "col":  10,
+                      "u":  0.9,
+                      "action":  {
+                                     "text":  "\u0027",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "cmd",
+                      "label":  "⌘",
+                      "row":  2,
+                      "col":  0,
+                      "u":  0.9,
+                      "action":  {
+                                     "type":  "script",
+                                     "source":  "gazer.log(\u0027cmd\u0027);"
+                                 },
+                      "style":  {
+                                    "background":  "#3d4f66",
+                                    "foreground":  "#ffffff"
+                                }
+                  },
+                  {
+                      "id":  "abc",
+                      "label":  "ABC",
+                      "row":  2,
+                      "col":  1,
+                      "u":  0.9,
+                      "action":  {
+                                     "layoutId":  "example_keyboard",
+                                     "type":  "loadLayout"
+                                 },
+                      "style":  {
+                                    "background":  "#0a7ea4",
+                                    "foreground":  "#ffffff"
+                                }
+                  },
+                  {
+                      "id":  "l2",
+                      "label":  "_",
+                      "row":  2,
+                      "col":  2,
+                      "u":  1,
+                      "action":  {
+                                     "text":  "_",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "l3",
+                      "label":  "=",
+                      "row":  2,
+                      "col":  3,
+                      "u":  1,
+                      "action":  {
+                                     "text":  "=",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "l4",
+                      "label":  "[",
+                      "row":  2,
+                      "col":  4,
+                      "u":  1,
+                      "action":  {
+                                     "text":  "[",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "l5",
+                      "label":  "]",
+                      "row":  2,
+                      "col":  5,
+                      "u":  1,
+                      "action":  {
+                                     "text":  "]",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "space",
+                      "label":  "␣",
+                      "row":  2,
+                      "col":  6,
+                      "u":  1.5,
+                      "action":  {
+                                     "name":  "space",
+                                     "type":  "command"
+                                 },
+                      "style":  {
+                                    "background":  "#3d4f66",
+                                    "foreground":  "#ffffff"
+                                }
+                  },
+                  {
+                      "id":  "r7",
+                      "label":  "-",
+                      "row":  2,
+                      "col":  7,
+                      "u":  1,
+                      "action":  {
+                                     "text":  "-",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "r8",
+                      "label":  "+",
+                      "row":  2,
+                      "col":  8,
+                      "u":  1,
+                      "action":  {
+                                     "text":  "+",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "r9",
+                      "label":  "/",
+                      "row":  2,
+                      "col":  9,
+                      "u":  1,
+                      "action":  {
+                                     "text":  "/",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "period",
+                      "label":  ".",
+                      "row":  2,
+                      "col":  10,
+                      "u":  0.9,
+                      "action":  {
+                                     "text":  ".",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "enter",
+                      "label":  "↵",
+                      "row":  2,
+                      "col":  11,
+                      "u":  1.2,
+                      "action":  {
+                                     "name":  "enter",
+                                     "type":  "command"
+                                 },
+                      "style":  {
+                                    "background":  "#0a7ea4",
+                                    "foreground":  "#ffffff"
+                                }
+                  }
+              ]
+}

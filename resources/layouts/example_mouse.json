@@ -1,0 +1,247 @@
+{
+  "schemaVersion": 1,
+  "id": "example_mouse",
+  "name": "Mouse",
+  "description": "OptiKey-style mouse — clicks, holds, cursor, scroll, tools.",
+  "window": {
+    "anchor": "bottomCenter",
+    "widthPx": 1020,
+    "heightPx": 320,
+    "marginPx": 8
+  },
+  "grid": {
+    "columns": 6,
+    "rows": 5,
+    "gapPx": 6,
+    "marginPx": 10
+  },
+  "dwell": {
+    "enabled": true,
+    "ms": 600,
+    "repeatMs": 0,
+    "progressStyle": "radial"
+  },
+  "items": [
+    {
+      "id": "lclick",
+      "label": "L Click",
+      "row": 0,
+      "col": 0,
+      "style": { "background": "#2d6a4f", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "mouseLeftClick" }
+    },
+    {
+      "id": "ldbl",
+      "label": "L Dbl",
+      "row": 0,
+      "col": 1,
+      "style": { "background": "#2d6a4f", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "mouseLeftDoubleClick" }
+    },
+    {
+      "id": "rclick",
+      "label": "R Click",
+      "row": 0,
+      "col": 2,
+      "style": { "background": "#40916c", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "mouseRightClick" }
+    },
+    {
+      "id": "rdbl",
+      "label": "R Dbl",
+      "row": 0,
+      "col": 3,
+      "style": { "background": "#40916c", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "mouseRightDoubleClick" }
+    },
+    {
+      "id": "mclick",
+      "label": "Mid",
+      "row": 0,
+      "col": 4,
+      "style": { "background": "#52b788", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "mouseMiddleClick" }
+    },
+    {
+      "id": "mdownup",
+      "label": "M Hold",
+      "activeState": "mouse.middleHold",
+      "row": 0,
+      "col": 5,
+      "style": { "background": "#bc4749", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "mouseMiddleDownUp" }
+    },
+
+    {
+      "id": "ldownup",
+      "label": "L Hold",
+      "activeState": "mouse.leftHold",
+      "row": 1,
+      "col": 0,
+      "style": { "background": "#bc4749", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "mouseLeftDownUp" }
+    },
+    {
+      "id": "rdownup",
+      "label": "R Hold",
+      "activeState": "mouse.rightHold",
+      "row": 1,
+      "col": 1,
+      "style": { "background": "#bc4749", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "mouseRightDownUp" }
+    },
+    {
+      "id": "dwell_move",
+      "label": "Move to…",
+      "activeState": "mouseDwellMove",
+      "row": 1,
+      "col": 2,
+      "style": { "background": "#e9c46a", "foreground": "#1a1a1a" },
+      "action": { "type": "command", "name": "mouseDwellMove" }
+    },
+    {
+      "id": "movestep",
+      "label": "Move ±",
+      "row": 1,
+      "col": 3,
+      "style": { "background": "#3d4f66", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "cycleMouseMoveAmount" }
+    },
+    {
+      "id": "mag",
+      "label": "Magnifier",
+      "activeState": "magnifier",
+      "row": 1,
+      "col": 4,
+      "style": { "background": "#6a4c93", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "toggleMagnifier" }
+    },
+    {
+      "id": "lts",
+      "label": "Look↕Scroll\n(place+scroll)",
+      "activeState": "lookToScroll",
+      "row": 1,
+      "col": 5,
+      "style": { "background": "#0a7ea4", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "toggleLookToScroll" }
+    },
+
+    {
+      "id": "edge_top",
+      "label": "↕ Top",
+      "row": 2,
+      "col": 0,
+      "style": { "background": "#495057", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "mouseMoveToTop" }
+    },
+    {
+      "id": "nudge_up",
+      "label": "↑",
+      "row": 2,
+      "col": 1,
+      "style": { "background": "#3d4f66", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "mouseMoveUp" }
+    },
+    {
+      "id": "edge_bottom",
+      "label": "↕ Bot",
+      "row": 2,
+      "col": 2,
+      "style": { "background": "#495057", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "mouseMoveToBottom" }
+    },
+    {
+      "id": "sc_up",
+      "label": "Scr ↑",
+      "row": 2,
+      "col": 3,
+      "colSpan": 3,
+      "style": { "background": "#1b4332", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "mouseScrollUp" }
+    },
+
+    {
+      "id": "nudge_left",
+      "label": "←",
+      "row": 3,
+      "col": 0,
+      "style": { "background": "#3d4f66", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "mouseMoveLeft" }
+    },
+    {
+      "id": "edge_left",
+      "label": "↕ Left",
+      "row": 3,
+      "col": 1,
+      "style": { "background": "#495057", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "mouseMoveToLeft" }
+    },
+    {
+      "id": "nudge_right",
+      "label": "→",
+      "row": 3,
+      "col": 2,
+      "style": { "background": "#3d4f66", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "mouseMoveRight" }
+    },
+    {
+      "id": "sc_left",
+      "label": "Scr ←",
+      "row": 3,
+      "col": 3,
+      "style": { "background": "#1b4332", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "mouseScrollLeft" }
+    },
+    {
+      "id": "edge_right",
+      "label": "↕ Right",
+      "row": 3,
+      "col": 4,
+      "style": { "background": "#495057", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "mouseMoveToRight" }
+    },
+    {
+      "id": "sc_right",
+      "label": "Scr →",
+      "row": 3,
+      "col": 5,
+      "style": { "background": "#1b4332", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "mouseScrollRight" }
+    },
+
+    {
+      "id": "nudge_down",
+      "label": "↓",
+      "row": 4,
+      "col": 0,
+      "colSpan": 2,
+      "style": { "background": "#3d4f66", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "mouseMoveDown" }
+    },
+    {
+      "id": "sc_down",
+      "label": "Scr ↓",
+      "row": 4,
+      "col": 2,
+      "style": { "background": "#1b4332", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "mouseScrollDown" }
+    },
+    {
+      "id": "close",
+      "label": "Close",
+      "row": 4,
+      "col": 3,
+      "style": { "background": "#6c757d", "foreground": "#ffffff" },
+      "action": { "type": "closeLayout" }
+    },
+    {
+      "id": "main",
+      "label": "← Main",
+      "row": 4,
+      "col": 4,
+      "colSpan": 2,
+      "style": { "background": "#0a7ea4", "foreground": "#ffffff" },
+      "action": { "type": "loadLayout", "layoutId": "example_main" }
+    }
+  ]
+}

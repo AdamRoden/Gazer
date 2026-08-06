@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "id": "default",
+  "name": "Default Windows",
+  "speak": {
+    "alsoType": true
+  },
+  "commands": {
+    "backspace": [
+      { "type": "keyTap", "key": "Backspace" }
+    ],
+    "tab": [
+      { "type": "keyTap", "key": "Tab" }
+    ],
+    "enter": [
+      { "type": "keyTap", "key": "Enter" }
+    ],
+    "space": [
+      { "type": "keyTap", "key": "Space" }
+    ],
+    "escape": [
+      { "type": "keyTap", "key": "Escape" }
+    ],
+    "clearPhrase": [
+      { "type": "keyCombo", "keys": ["Control", "A"] },
+      { "type": "keyTap", "key": "Backspace" }
+    ],
+    "speakPhrase": [
+      { "type": "keyCombo", "keys": ["Control", "Enter"] }
+    ],
+    "enterMouseControl": [
+      { "type": "mouseClick", "button": "left" }
+    ],
+    "mouseLeftClick": [
+      { "type": "mouseClick", "button": "left" }
+    ],
+    "mouseRightClick": [
+      { "type": "mouseClick", "button": "right" }
+    ],
+    "mouseMiddleClick": [
+      { "type": "mouseClick", "button": "middle" }
+    ],
+    "mouseLeftDoubleClick": [
+      { "type": "mouseDoubleClick", "button": "left" }
+    ],
+    "mouseRightDoubleClick": [
+      { "type": "mouseDoubleClick", "button": "right" }
+    ],
+    "scrollUp": [
+      { "type": "mouseScroll", "notches": 3 }
+    ],
+    "scrollDown": [
+      { "type": "mouseScroll", "notches": -3 }
+    ],
+    "gamepadA": [
+      { "type": "gamepadButton", "button": "A" }
+    ],
+    "gamepadB": [
+      { "type": "gamepadButton", "button": "B" }
+    ],
+    "lookLeft": [
+      { "type": "gamepadAxis", "axis": "lx", "axisValue": -1.0 }
+    ],
+    "lookRight": [
+      { "type": "gamepadAxis", "axis": "lx", "axisValue": 1.0 }
+    ]
+  }
+}

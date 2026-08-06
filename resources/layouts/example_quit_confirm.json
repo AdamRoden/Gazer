@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "id": "example_quit_confirm",
+  "name": "Quit?",
+  "description": "Confirm quit — Yes exits Gazer; No returns to Main.",
+  "session": {
+    "role": "masterShell",
+    "masterGroup": "home",
+    "isHome": false,
+    "expandLayoutId": "example_main"
+  },
+  "window": {
+    "anchor": "center",
+    "widthPx": 480,
+    "heightPx": 220,
+    "marginPx": 16
+  },
+  "grid": {
+    "columns": 2,
+    "rows": 2,
+    "gapPx": 12,
+    "marginPx": 16
+  },
+  "dwell": {
+    "enabled": true,
+    "ms": 800,
+    "repeatMs": 0,
+    "progressStyle": "radial"
+  },
+  "items": [
+    {
+      "id": "prompt",
+      "label": "Quit Gazer?",
+      "row": 0,
+      "col": 0,
+      "colSpan": 2,
+      "style": { "background": "#2b2d42", "foreground": "#edf2f4" },
+      "action": { "type": "script", "source": "gazer.log('quit confirm');" }
+    },
+    {
+      "id": "yes_quit",
+      "label": "Yes",
+      "row": 1,
+      "col": 0,
+      "style": { "background": "#9b2226", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "quitApp" }
+    },
+    {
+      "id": "no_stay",
+      "label": "No",
+      "row": 1,
+      "col": 1,
+      "style": { "background": "#2d6a4f", "foreground": "#ffffff" },
+      "action": { "type": "loadLayout", "layoutId": "example_main" }
+    }
+  ]
+}

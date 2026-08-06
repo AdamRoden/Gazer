@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "id": "example_main_collapsed",
+  "name": "Dock",
+  "description": "Collapsed Main chip at bottom-left. Dwell or click Main ▶ to restore full Main. Edge/off-board unbounded items are not grid cells.",
+  "session": {
+    "role": "masterShell",
+    "masterGroup": "home",
+    "isHome": false,
+    "expandLayoutId": "example_main",
+    "hideUntilGazeReveal": false
+  },
+  "window": {
+    "anchor": "bottomLeft",
+    "widthPx": 280,
+    "heightPx": 140,
+    "marginPx": 10
+  },
+  "grid": {
+    "columns": 1,
+    "rows": 1,
+    "gapPx": 4,
+    "marginPx": 10
+  },
+  "dwell": {
+    "enabled": true,
+    "ms": 500,
+    "repeatMs": 0,
+    "progressStyle": "radial"
+  },
+  "items": [
+    {
+      "id": "expand",
+      "label": "Main ▶",
+      "row": 0,
+      "col": 0,
+      "style": { "background": "#0a7ea4", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "expandMaster" }
+    },
+    {
+      "id": "edge_expand",
+      "label": "Main",
+      "unbounded": true,
+      "dwellRegion": {
+        "screenAnchor": "bottomCenter",
+        "widthPx": 420,
+        "heightPx": 156,
+        "marginPx": 2
+      },
+      "style": { "background": "#1d3557", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "expandMaster" }
+    },
+    {
+      "id": "edge_keyboard",
+      "label": "KB",
+      "unbounded": true,
+      "dwellRegion": {
+        "screenAnchor": "rightCenter",
+        "widthPx": 52,
+        "heightPx": 140,
+        "marginPx": 2
+      },
+      "style": { "background": "#1d3557", "foreground": "#ffffff" },
+      "action": { "type": "openLayout", "layoutId": "example_keyboard" }
+    },
+    {
+      "id": "above_assist",
+      "label": "Assist",
+      "unbounded": true,
+      "dwellRegion": {
+        "x": -40,
+        "y": -110,
+        "widthPx": 200,
+        "heightPx": 96
+      },
+      "style": { "background": "#2d6a4f", "foreground": "#ffffff" },
+      "action": { "type": "openLayout", "layoutId": "example_assist" }
+    }
+  ]
+}

@@ -1,0 +1,451 @@
+{
+    "schemaVersion":  1,
+    "id":  "example_keyboard_shift",
+    "name":  "Keyboard ⇧",
+    "description":  "Voice OSK alpha — width units from Voice/js/osk.js (W + LETTER_U).",
+    "window":  {
+                   "anchor":  "bottomCenter",
+                   "widthPx":  1280,
+                   "heightPx":  280,
+                   "marginPx":  6
+               },
+    "grid":  {
+                 "columns":  12,
+                 "rows":  3,
+                 "gapPx":  4,
+                 "marginPx":  8,
+                 "unitRows":  true
+             },
+    "dwell":  {
+                  "enabled":  true,
+                  "ms":  550,
+                  "repeatMs":  0,
+                  "progressStyle":  "radial"
+              },
+    "items":  [
+                  {
+                      "id":  "tab",
+                      "label":  "Tab",
+                      "row":  0,
+                      "col":  0,
+                      "u":  0.9,
+                      "action":  {
+                                     "name":  "tab",
+                                     "type":  "command"
+                                 },
+                      "style":  {
+                                    "background":  "#3d4f66",
+                                    "foreground":  "#ffffff"
+                                }
+                  },
+                  {
+                      "id":  "ch_81_0_1",
+                      "label":  "Q",
+                      "row":  0,
+                      "col":  1,
+                      "u":  0.9,
+                      "action":  {
+                                     "text":  "Q",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "ch_87_0_2",
+                      "label":  "W",
+                      "row":  0,
+                      "col":  2,
+                      "u":  0.9,
+                      "action":  {
+                                     "text":  "W",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "ch_69_0_3",
+                      "label":  "E",
+                      "row":  0,
+                      "col":  3,
+                      "u":  1.1,
+                      "action":  {
+                                     "text":  "E",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "ch_82_0_4",
+                      "label":  "R",
+                      "row":  0,
+                      "col":  4,
+                      "u":  1.1,
+                      "action":  {
+                                     "text":  "R",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "ch_84_0_5",
+                      "label":  "T",
+                      "row":  0,
+                      "col":  5,
+                      "u":  1.1,
+                      "action":  {
+                                     "text":  "T",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "ch_89_0_6",
+                      "label":  "Y",
+                      "row":  0,
+                      "col":  6,
+                      "u":  0.9,
+                      "action":  {
+                                     "text":  "Y",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "ch_85_0_7",
+                      "label":  "U",
+                      "row":  0,
+                      "col":  7,
+                      "u":  1,
+                      "action":  {
+                                     "text":  "U",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "ch_73_0_8",
+                      "label":  "I",
+                      "row":  0,
+                      "col":  8,
+                      "u":  1,
+                      "action":  {
+                                     "text":  "I",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "ch_79_0_9",
+                      "label":  "O",
+                      "row":  0,
+                      "col":  9,
+                      "u":  1,
+                      "action":  {
+                                     "text":  "O",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "ch_80_0_10",
+                      "label":  "P",
+                      "row":  0,
+                      "col":  10,
+                      "u":  1,
+                      "action":  {
+                                     "text":  "P",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "bksp",
+                      "label":  "⌫",
+                      "row":  0,
+                      "col":  11,
+                      "u":  1.2,
+                      "action":  {
+                                     "name":  "backspace",
+                                     "type":  "command"
+                                 },
+                      "style":  {
+                                    "background":  "#3d4f66",
+                                    "foreground":  "#ffffff"
+                                }
+                  },
+                  {
+                      "id":  "shift",
+                      "label":  "⇧",
+                      "row":  1,
+                      "col":  0,
+                      "u":  1.3,
+                      "action":  {
+                                     "layoutId":  "example_keyboard",
+                                     "type":  "loadLayout"
+                                 },
+                      "style":  {
+                                    "background":  "#e9c46a",
+                                    "foreground":  "#1a1a1a"
+                                }
+                  },
+                  {
+                      "id":  "ch_65_1_1",
+                      "label":  "A",
+                      "row":  1,
+                      "col":  1,
+                      "u":  1.1,
+                      "action":  {
+                                     "text":  "A",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "ch_83_1_2",
+                      "label":  "S",
+                      "row":  1,
+                      "col":  2,
+                      "u":  1,
+                      "action":  {
+                                     "text":  "S",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "ch_68_1_3",
+                      "label":  "D",
+                      "row":  1,
+                      "col":  3,
+                      "u":  0.9,
+                      "action":  {
+                                     "text":  "D",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "ch_70_1_4",
+                      "label":  "F",
+                      "row":  1,
+                      "col":  4,
+                      "u":  0.9,
+                      "action":  {
+                                     "text":  "F",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "ch_71_1_5",
+                      "label":  "G",
+                      "row":  1,
+                      "col":  5,
+                      "u":  1,
+                      "action":  {
+                                     "text":  "G",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "ch_72_1_6",
+                      "label":  "H",
+                      "row":  1,
+                      "col":  6,
+                      "u":  1.1,
+                      "action":  {
+                                     "text":  "H",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "ch_74_1_7",
+                      "label":  "J",
+                      "row":  1,
+                      "col":  7,
+                      "u":  0.9,
+                      "action":  {
+                                     "text":  "J",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "ch_75_1_8",
+                      "label":  "K",
+                      "row":  1,
+                      "col":  8,
+                      "u":  1,
+                      "action":  {
+                                     "text":  "K",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "ch_76_1_9",
+                      "label":  "L",
+                      "row":  1,
+                      "col":  9,
+                      "u":  1.1,
+                      "action":  {
+                                     "text":  "L",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "comma",
+                      "label":  "?",
+                      "row":  1,
+                      "col":  10,
+                      "u":  0.9,
+                      "action":  {
+                                     "text":  "?",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "quote",
+                      "label":  "\"",
+                      "row":  1,
+                      "col":  11,
+                      "u":  0.9,
+                      "action":  {
+                                     "text":  "\"",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "cmd",
+                      "label":  "⌘",
+                      "row":  2,
+                      "col":  0,
+                      "u":  0.9,
+                      "action":  {
+                                     "type":  "script",
+                                     "source":  "gazer.log(\u0027cmd\u0027);"
+                                 },
+                      "style":  {
+                                    "background":  "#3d4f66",
+                                    "foreground":  "#ffffff"
+                                }
+                  },
+                  {
+                      "id":  "sym",
+                      "label":  "123?",
+                      "row":  2,
+                      "col":  1,
+                      "u":  0.9,
+                      "action":  {
+                                     "layoutId":  "example_keyboard_sym_shift",
+                                     "type":  "loadLayout"
+                                 },
+                      "style":  {
+                                    "background":  "#0a7ea4",
+                                    "foreground":  "#ffffff"
+                                }
+                  },
+                  {
+                      "id":  "ch_90_2_2",
+                      "label":  "Z",
+                      "row":  2,
+                      "col":  2,
+                      "u":  0.9,
+                      "action":  {
+                                     "text":  "Z",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "ch_88_2_3",
+                      "label":  "X",
+                      "row":  2,
+                      "col":  3,
+                      "u":  0.9,
+                      "action":  {
+                                     "text":  "X",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "ch_67_2_4",
+                      "label":  "C",
+                      "row":  2,
+                      "col":  4,
+                      "u":  1,
+                      "action":  {
+                                     "text":  "C",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "ch_86_2_5",
+                      "label":  "V",
+                      "row":  2,
+                      "col":  5,
+                      "u":  0.9,
+                      "action":  {
+                                     "text":  "V",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "space",
+                      "label":  "␣",
+                      "row":  2,
+                      "col":  6,
+                      "u":  1.5,
+                      "action":  {
+                                     "name":  "space",
+                                     "type":  "command"
+                                 },
+                      "style":  {
+                                    "background":  "#3d4f66",
+                                    "foreground":  "#ffffff"
+                                }
+                  },
+                  {
+                      "id":  "ch_66_2_7",
+                      "label":  "B",
+                      "row":  2,
+                      "col":  7,
+                      "u":  0.9,
+                      "action":  {
+                                     "text":  "B",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "ch_78_2_8",
+                      "label":  "N",
+                      "row":  2,
+                      "col":  8,
+                      "u":  1.1,
+                      "action":  {
+                                     "text":  "N",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "ch_77_2_9",
+                      "label":  "M",
+                      "row":  2,
+                      "col":  9,
+                      "u":  1,
+                      "action":  {
+                                     "text":  "M",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "period",
+                      "label":  "!",
+                      "row":  2,
+                      "col":  10,
+                      "u":  0.9,
+                      "action":  {
+                                     "text":  "!",
+                                     "type":  "typeText"
+                                 }
+                  },
+                  {
+                      "id":  "enter",
+                      "label":  "↵",
+                      "row":  2,
+                      "col":  11,
+                      "u":  1.2,
+                      "action":  {
+                                     "name":  "enter",
+                                     "type":  "command"
+                                 },
+                      "style":  {
+                                    "background":  "#0a7ea4",
+                                    "foreground":  "#ffffff"
+                                }
+                  }
+              ]
+}

@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "id": "example_main",
+  "name": "Main",
+  "description": "Home — open boards, dock, close others, quit.",
+  "session": {
+    "role": "masterShell",
+    "masterGroup": "home",
+    "isHome": true,
+    "collapseLayoutId": "example_main_collapsed"
+  },
+  "grid": {
+    "columns": 2,
+    "rows": 4,
+    "gapPx": 10,
+    "marginPx": 16
+  },
+  "dwell": {
+    "enabled": true,
+    "ms": 700,
+    "repeatMs": 0,
+    "progressStyle": "radial"
+  },
+  "items": [
+    {
+      "id": "open_keyboard",
+      "label": "Keyboard",
+      "row": 0,
+      "col": 0,
+      "style": { "background": "#1d3557", "foreground": "#ffffff" },
+      "action": { "type": "openLayout", "layoutId": "example_keyboard" }
+    },
+    {
+      "id": "open_mouse",
+      "label": "Mouse",
+      "row": 0,
+      "col": 1,
+      "style": { "background": "#2d6a4f", "foreground": "#ffffff" },
+      "action": { "type": "openLayout", "layoutId": "example_mouse" }
+    },
+    {
+      "id": "open_assist",
+      "label": "Assist ★",
+      "row": 1,
+      "col": 0,
+      "style": { "background": "#6a4c93", "foreground": "#ffffff" },
+      "action": { "type": "openLayout", "layoutId": "example_assist" }
+    },
+    {
+      "id": "open_settings",
+      "label": "Settings ⚙",
+      "row": 1,
+      "col": 1,
+      "style": { "background": "#4a5568", "foreground": "#ffffff" },
+      "action": { "type": "openLayout", "layoutId": "example_settings" }
+    },
+    {
+      "id": "close_others",
+      "label": "Close others",
+      "row": 2,
+      "col": 0,
+      "style": { "background": "#495057", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "closeOtherViews" }
+    },
+    {
+      "id": "collapse",
+      "label": "◀ Dock",
+      "row": 2,
+      "col": 1,
+      "style": { "background": "#3d4f66", "foreground": "#ffffff" },
+      "action": { "type": "loadLayout", "layoutId": "example_main_collapsed" }
+    },
+    {
+      "id": "quit",
+      "label": "Quit",
+      "row": 3,
+      "col": 0,
+      "colSpan": 2,
+      "style": { "background": "#9b2226", "foreground": "#ffffff" },
+      "action": { "type": "loadLayout", "layoutId": "example_quit_confirm" }
+    }
+  ]
+}

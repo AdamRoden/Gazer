@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "id": "example_assist",
+  "name": "Assist",
+  "description": "Phase 4: TTS, scripts, Look-to-Scroll, magnifier toggles.",
+  "grid": {
+    "columns": 3,
+    "rows": 3,
+    "gapPx": 8,
+    "marginPx": 12
+  },
+  "dwell": {
+    "enabled": true,
+    "ms": 600,
+    "repeatMs": 0,
+    "progressStyle": "radial"
+  },
+  "items": [
+    {
+      "id": "hello_tts",
+      "label": "Speak Hello",
+      "row": 0,
+      "col": 0,
+      "action": { "type": "speak", "text": "Hello" }
+    },
+    {
+      "id": "script_hi",
+      "label": "Script Hi",
+      "row": 0,
+      "col": 1,
+      "action": {
+        "type": "script",
+        "source": "gazer.speak('Script says hello'); gazer.log('script ran');"
+      }
+    },
+    {
+      "id": "script_type",
+      "label": "Script Type",
+      "row": 0,
+      "col": 2,
+      "action": {
+        "type": "script",
+        "source": "gazer.typeText('typed-by-script ');"
+      }
+    },
+    {
+      "id": "lts",
+      "label": "Look↕Scroll\n(place+scroll)",
+      "activeState": "lookToScroll",
+      "row": 1,
+      "col": 0,
+      "style": { "background": "#2d6a4f", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "toggleLookToScroll" }
+    },
+    {
+      "id": "mag",
+      "label": "Magnifier",
+      "activeState": "magnifier",
+      "row": 1,
+      "col": 1,
+      "style": { "background": "#6a4c93", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "toggleMagnifier" }
+    },
+    {
+      "id": "script_cmd",
+      "label": "Script ⌫",
+      "row": 1,
+      "col": 2,
+      "action": {
+        "type": "script",
+        "source": "gazer.runCommand('backspace');"
+      }
+    },
+    {
+      "id": "main",
+      "label": "← Main",
+      "row": 2,
+      "col": 0,
+      "colSpan": 2,
+      "style": { "background": "#0a7ea4", "foreground": "#ffffff" },
+      "action": { "type": "loadLayout", "layoutId": "example_main" }
+    },
+    {
+      "id": "close",
+      "label": "Close",
+      "row": 2,
+      "col": 2,
+      "action": { "type": "closeLayout" }
+    }
+  ]
+}

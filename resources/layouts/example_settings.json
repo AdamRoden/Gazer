@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "id": "example_settings",
+  "name": "Settings",
+  "description": "Choose a category — values update live and save automatically",
+  "uiStyle": "fluent",
+  "window": {
+    "anchor": "center",
+    "widthPx": 960,
+    "heightPx": 580,
+    "marginPx": 24
+  },
+  "grid": {
+    "columns": 3,
+    "rows": 3,
+    "gapPx": 14,
+    "marginPx": 56
+  },
+  "dwell": {
+    "enabled": true,
+    "ms": 650,
+    "repeatMs": 0,
+    "progressStyle": "radial"
+  },
+  "items": [
+    {
+      "id": "timing",
+      "label": "Timing",
+      "row": 0,
+      "col": 0,
+      "style": { "background": "#2b4c7e", "foreground": "#f4f6fc" },
+      "action": { "type": "loadLayout", "layoutId": "example_settings_timing" }
+    },
+    {
+      "id": "magnifier",
+      "label": "Magnifier",
+      "row": 0,
+      "col": 1,
+      "style": { "background": "#5c4d7a", "foreground": "#f4f6fc" },
+      "action": { "type": "loadLayout", "layoutId": "example_settings_magnifier" }
+    },
+    {
+      "id": "lts",
+      "label": "Look↕Scroll",
+      "row": 0,
+      "col": 2,
+      "style": { "background": "#1b5e4a", "foreground": "#f4f6fc" },
+      "action": { "type": "loadLayout", "layoutId": "example_settings_lts" }
+    },
+    {
+      "id": "session",
+      "label": "Session",
+      "row": 1,
+      "col": 0,
+      "style": { "background": "#3d4f66", "foreground": "#f4f6fc" },
+      "action": { "type": "loadLayout", "layoutId": "example_settings_session" }
+    },
+    {
+      "id": "speech",
+      "label": "Speech",
+      "row": 1,
+      "col": 1,
+      "style": { "background": "#6b3fa0", "foreground": "#f4f6fc" },
+      "action": { "type": "loadLayout", "layoutId": "example_settings_speech" }
+    },
+    {
+      "id": "appearance",
+      "label": "Progress & flash",
+      "row": 1,
+      "col": 2,
+      "style": { "background": "#5c4d7a", "foreground": "#f4f6fc" },
+      "action": { "type": "loadLayout", "layoutId": "example_settings_appearance" }
+    },
+    {
+      "id": "reset",
+      "label": "Reset defaults",
+      "row": 2,
+      "col": 2,
+      "style": { "background": "#8b2e2e", "foreground": "#f4f6fc" },
+      "action": { "type": "command", "name": "settings.reset" }
+    },
+    {
+      "id": "main",
+      "label": "← Main",
+      "row": 2,
+      "col": 0,
+      "style": { "background": "#0a7ea4", "foreground": "#ffffff" },
+      "action": { "type": "loadLayout", "layoutId": "example_main" }
+    },
+    {
+      "id": "close",
+      "label": "Close",
+      "row": 2,
+      "col": 1,
+      "style": { "background": "#4a5568", "foreground": "#ffffff" },
+      "action": { "type": "closeLayout" }
+    }
+  ]
+}

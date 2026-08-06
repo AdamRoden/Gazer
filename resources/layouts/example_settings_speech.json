@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "example_settings_speech",
+  "name": "Speech",
+  "description": "TTS preferences",
+  "uiStyle": "fluent",
+  "window": { "anchor": "center", "widthPx": 900, "heightPx": 360, "marginPx": 16 },
+  "grid": { "columns": 5, "rows": 2, "gapPx": 10, "marginPx": 56 },
+  "dwell": { "enabled": true, "ms": [650], "progressStyle": "radial" },
+  "items": [
+    { "id": "at_l", "role": "label", "label": "Speak also types", "caption": "Type spoken text into the focused app.", "row": 0, "col": 0 },
+    { "id": "at_v", "role": "value", "settingKey": "speakAlsoType", "label": "—", "row": 0, "col": 2 },
+    { "id": "at_t", "label": "Toggle", "activeState": "setting.speakAlsoType", "row": 0, "col": 3, "colSpan": 2, "style": { "background": "#6b3fa0", "foreground": "#fff" }, "action": { "type": "command", "name": "settings.speech.alsoType.toggle" } },
+    { "id": "back", "label": "← Settings", "row": 1, "col": 0, "colSpan": 3, "style": { "background": "#0a7ea4", "foreground": "#fff" }, "action": { "type": "loadLayout", "layoutId": "example_settings" } },
+    { "id": "close", "label": "Close", "row": 1, "col": 3, "colSpan": 2, "style": { "background": "#4a5568", "foreground": "#fff" }, "action": { "type": "closeLayout" } }
+  ]
+}
