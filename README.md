@@ -17,6 +17,30 @@ one stack.
 | **4** | QJSEngine, TTS, Look-to-Scroll, magnification | Done |
 | **5** | Action series/loops, lifecycle, geometry %, themes, head pose, curves | In progress |
 
+## Beta MSI (Windows)
+
+Build a machine-wide installer for testers (WiX Toolset CLI v7):
+
+```powershell
+# Prerequisites: Qt 6 MinGW, CMake, Ninja (as for normal builds)
+winget install WiXToolset.WiXCLI   # once
+
+.\scripts\build-msi.ps1            # build + stage + MSI
+.\scripts\build-msi.ps1 -SkipBuild # reuse existing build\Gazer.exe
+```
+
+Output: `dist\Gazer-<version>-beta.msi` (≈25–30 MB).
+
+| Install | Command |
+|---------|---------|
+| UI | double-click the MSI, or `msiexec /i dist\Gazer-0.4.0-beta.msi` |
+| Quiet | `msiexec /i dist\Gazer-0.4.0-beta.msi /qn` |
+| Remove | `msiexec /x dist\Gazer-0.4.0-beta.msi` |
+
+Installs to `Program Files\Gazer\` with Start Menu + desktop shortcuts. Layouts/models ship under `resources\`. Settings still live in the user’s AppData.
+
+**Tobii:** the MSI bundles `tobii_stream_engine.dll` when found on the build machine. Testers still need Tobii Eye Tracker drivers/runtime for hardware gaze; without hardware, use the mouse tracker.
+
 ## Architecture
 
 ```

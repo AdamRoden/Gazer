@@ -4,6 +4,9 @@
 build/
 cmake-build-*/
 out/
+dist/
+*.msi
+.wix/
 CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
