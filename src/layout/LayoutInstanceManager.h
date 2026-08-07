@@ -126,6 +126,7 @@ signals:
     void instanceFocused(const QString& instanceId);
     void itemActivated(const QString& instanceId, const QString& itemId);
     void dwellEngagementEnded(const QString& instanceId, const QString& itemId);
+    void dwellSuspendChanged(bool suspended);
     void sessionChanged();
 
 private:

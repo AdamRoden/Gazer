@@ -41,31 +41,18 @@ bool Application::initialize()
 
     m_actions = std::make_unique<ActionDispatcher>(*m_svc);
     m_preview = std::make_unique<PreviewWindow>();
-    m_mappingProps = std::make_unique<MappingPropertiesWindow>();
-    m_mappingProps->setStore(&m_curves);
     m_tray = std::make_unique<TrayIcon>();
     m_dockReveal = std::make_unique<DockRevealOverlay>();
     m_edgeBubbles = std::make_unique<EdgeBubbleOverlay>();
     m_dwellSuspendOverlay = std::make_unique<DwellSuspendOverlay>();
     m_svc->instances().setEdgeBubbleOverlay(m_edgeBubbles.get());
 
-    // Action loops dispatch single steps without re-entering actionLoop toggle.
-    m_svc->actionLoops().setDispatchFn([this](const QVector<LayoutAction>& acts,
-                                              const QString& sourceId) {
+    // Domain owns loops + lifecycle; shell only supplies the dispatcher.
+    m_svc->bindActionDispatch([this](const QVector<LayoutAction>& acts, const QString& sourceId) {
         if (m_actions) {
             m_actions->dispatchAll(acts, sourceId);
         }
     });
-    m_svc->instances().setLifecycleRunner([this](const QVector<LayoutAction>& acts,
-                                                 const QString& sourceId) {
-        if (m_actions) {
-            m_actions->dispatchAll(acts, sourceId);
-        }
-    });
-    connect(&m_svc->instances(), &LayoutInstanceManager::dwellEngagementEnded, this,
-            [this](const QString& instanceId, const QString& itemId) {
-                m_svc->actionLoops().clearEngageLatch(instanceId, itemId);
-            });
 
     m_gazeRouter.setInstances(&m_svc->instances());
     m_gazeRouter.setDockReveal(m_dockReveal.get());
@@ -122,12 +109,6 @@ bool Application::initialize()
         }
         return true;
     });
-    m_svc->commands().registerBuiltin(QStringLiteral("openMappingProperties"), [this](QString*) {
-        if (m_mappingProps) {
-            m_mappingProps->showAndRaise();
-        }
-        return true;
-    });
     m_svc->commands().registerBuiltin(QStringLiteral("openPreview"), [this](QString*) {
         if (m_preview) {
             m_preview->showAndRaise();
@@ -161,6 +142,8 @@ bool Application::initialize()
 
     connect(&m_svc->instances(), &LayoutInstanceManager::sessionChanged, this,
             &Application::syncDwellSuspendOverlay);
+    connect(&m_svc->instances(), &LayoutInstanceManager::dwellSuspendChanged, this,
+            [this](bool) { syncDwellSuspendOverlay(); });
 
     auto statusToTray = [this](const QString& msg) {
         if (m_tray) {
@@ -168,14 +151,7 @@ bool Application::initialize()
         }
     };
     connect(m_actions.get(), &ActionDispatcher::statusMessage, this, statusToTray);
-    connect(&m_svc->commands(), &CommandRegistry::statusMessage, this,
-            [this, statusToTray](const QString& msg) {
-                statusToTray(msg);
-                // Dwell-suspend toggles report via status; refresh border gaps.
-                if (msg.contains(QLatin1String("Dwell"), Qt::CaseInsensitive)) {
-                    syncDwellSuspendOverlay();
-                }
-            });
+    connect(&m_svc->commands(), &CommandRegistry::statusMessage, this, statusToTray);
     connect(&m_svc->scripts(), &ScriptHost::statusMessage, this, statusToTray);
     connect(&m_svc->phrases(), &PhraseService::spoken, this,
             [statusToTray](const QString& t) { statusToTray(QStringLiteral("Said: %1").arg(t)); });
@@ -375,11 +351,6 @@ void Application::wireTracker()
             &PreviewWindow::onGazeUpdated);
     connect(m_tracker.get(), &ITracker::headPoseUpdated, m_preview.get(),
             &PreviewWindow::onHeadPoseUpdated);
-    connect(m_tracker.get(), &ITracker::headPoseUpdated, this, [this](const HeadPose& pose) {
-        if (m_mappingProps && m_mappingProps->isVisible()) {
-            m_mappingProps->setLiveInput(pose.yaw);
-        }
-    });
     connect(m_tracker.get(), &ITracker::trackingLost, m_preview.get(), [this]() {
         if (m_tracker) {
             m_preview->setTrackerName(QStringLiteral("%1 (lost)").arg(m_tracker->name()));

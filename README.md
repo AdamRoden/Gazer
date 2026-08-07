@@ -24,7 +24,7 @@ Tobii / Mouse ──► ITracker ──► GazePoint (+ HeadPose)
                                 │
                     ┌───────────┼───────────┐
                     ▼           ▼           ▼
-              LayoutManager  CurveMapping  Preview (gaze+head)
+              LayoutManager  Stickiness   Preview (head STL)
               + dwell/OSK    profiles
                     │
                     ▼
@@ -185,7 +185,7 @@ One-shot only (no loops). `onOpen`+`onLoad` on create; `onLoad` on document repl
 | `toggleMagnifier`, `toggleLookToScroll`, `toggleGazeReticle`, `toggleGazeMouseFollow` | Assist tools |
 | `mouseDwellMove`, mouse click/move/scroll builtins | Mouse assist |
 | `mouseMoveToGaze` | Move cursor to last valid gaze |
-| `openMappingProperties`, `openPreview` | Curve editor / head+gaze preview |
+| `openPreview` | Head pose STL preview |
 | `theme.light` / `theme.dark` / `theme.custom` | Theme mode |
 | `settings.*` | Settings hub editors |
 
@@ -193,21 +193,10 @@ One-shot only (no loops). `onOpen`+`onLoad` on create; `onLoad` on document repl
 
 Command name → ordered **input** outputs: `keyTap`, `keyCombo`, `text`, `mouseClick`, `mouseMove`, `mouseMoveTo`, `mouseScroll`, `gamepadButton`, `gamepadAxis`. Orthogonal to layout action series.
 
-### Response curves (scaffolding)
+### Stickiness
 
-OpenTrack-style piecewise-linear curve editor (`MappingPropertiesWindow`) can edit
-in-memory control points for:
-
-- `head.yaw` / `pitch` / `roll` / `x` / `y` / `z`
-- `lookToScroll.response`
-- `magnifier.stickiness`
-- `gazeIndicator.stickiness`
-- `gazeMouse.stickiness`
-
-**Runtime note:** stickiness for magnifier / reticle / gaze→mouse currently uses
-the discrete `magFollowProfile` (sticky/balanced/snappy), not these editable curves.
-The graph UI is available via **Settings → Response curves** / `openMappingProperties`
-for authoring; full runtime wiring + persistence is planned.
+Magnifier, gaze reticle, and gaze→mouse share `GazeFollowStickiness` profiles
+driven by settings `magFollowProfile` (sticky / balanced / snappy).
 
 ### Themes
 

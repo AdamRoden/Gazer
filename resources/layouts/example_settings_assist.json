@@ -33,10 +33,7 @@
       "action": { "type": "command", "name": "settings.nudge.ltsAccelPerSec.dec" } },
     { "id": "accel_val", "role": "value", "settingKey": "ltsAccelPerSec", "label": "—", "row": 2, "col": 2 },
 
-    { "id": "curves", "label": "Response curves…", "row": 3, "col": 0,
-      "style": { "background": "#1b5e4a", "foreground": "#fff" },
-      "action": { "type": "command", "name": "openMappingProperties" } },
-    { "id": "preview", "label": "Head & Gaze preview", "row": 3, "col": 1,
+    { "id": "preview", "label": "Head preview", "row": 3, "col": 0, "colSpan": 2,
       "style": { "background": "#2b4c7e", "foreground": "#fff" },
       "action": { "type": "command", "name": "openPreview" } },
     { "id": "mag", "label": "Magnifier", "activeState": "magnifier", "row": 3, "col": 2,

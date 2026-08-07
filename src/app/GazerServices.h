@@ -38,6 +38,11 @@ public:
     [[nodiscard]] bool initialize(const QString& layoutsDir, const QString& mappingPath,
                                   QString* error = nullptr);
 
+    /// Wire action loops + layout lifecycle to a dispatcher (call once after ActionDispatcher exists).
+    using ActionDispatchFn =
+        std::function<void(const QVector<LayoutAction>& actions, const QString& sourceInstanceId)>;
+    void bindActionDispatch(ActionDispatchFn dispatch);
+
     LayoutManager& catalog() { return *m_catalog; }
     LayoutInstanceManager& instances() { return *m_instances; }
     InputService& input() { return *m_input; }

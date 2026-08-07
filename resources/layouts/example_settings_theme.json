@@ -20,10 +20,7 @@
 
     { "id": "hint", "role": "label", "label": "Theme mode", "caption": "Custom starts from the last dark/light bag; progress colors stay under Appearance.", "row": 1, "col": 0, "colSpan": 3 },
 
-    { "id": "curves", "label": "Response curves…", "row": 2, "col": 0, "colSpan": 2,
-      "style": { "background": "#1b5e4a", "foreground": "#f4f6fc" },
-      "action": { "type": "command", "name": "openMappingProperties" } },
-    { "id": "preview", "label": "Head & Gaze preview", "row": 2, "col": 2,
+    { "id": "preview", "label": "Head preview", "row": 2, "col": 0, "colSpan": 3,
       "style": { "background": "#2b4c7e", "foreground": "#f4f6fc" },
       "action": { "type": "command", "name": "openPreview" } },
 

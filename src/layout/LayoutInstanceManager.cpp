@@ -46,6 +46,9 @@ void LayoutInstanceManager::fireLifecycle(const QVector<LayoutAction>& actions,
 
 void LayoutInstanceManager::setDwellSuspended(bool suspended)
 {
+    if (m_dwellSuspended == suspended) {
+        return;
+    }
     m_dwellSuspended = suspended;
     for (const auto& p : m_instances) {
         if (p) {
@@ -59,6 +62,7 @@ void LayoutInstanceManager::setDwellSuspended(bool suspended)
         leaveActiveGaze();
     }
     GAZER_INFO << "Dwell capture" << (suspended ? "SUSPENDED" : "resumed");
+    emit dwellSuspendChanged(m_dwellSuspended);
 }
 
 LayoutInstance* LayoutInstanceManager::instance(const QString& instanceId) const

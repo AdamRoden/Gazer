@@ -68,7 +68,6 @@ set(GAZER_SOURCES
     src/ui/EdgeBubbleOverlay.cpp
     src/ui/MagnifierOverlay.cpp
     src/ui/DwellSuspendOverlay.cpp
-    src/ui/MappingPropertiesWindow.cpp
 )
 
 set(GAZER_HEADERS
@@ -101,7 +100,6 @@ set(GAZER_HEADERS
     src/mapping/MappingTypes.h
     src/mapping/MappingLoader.h
     src/mapping/MappingEngine.h
-    src/mapping/CurveMapping.h
     src/assist/TtsService.h
     src/assist/PhraseService.h
     src/assist/ScriptHost.h
@@ -123,7 +121,6 @@ set(GAZER_HEADERS
     src/ui/EdgeBubbleOverlay.h
     src/ui/MagnifierOverlay.h
     src/ui/DwellSuspendOverlay.h
-    src/ui/MappingPropertiesWindow.h
     src/ui/OverlaySurface.h
     src/ui/MouseIcons.h
     src/ui/Theme.h

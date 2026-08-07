@@ -8,8 +8,10 @@
 
 namespace gazer {
 
-/// Dimension: percent of a reference size (screen or board) or absolute pixels.
-/// JSON: bare/percent field (`x`, `width`, …) = percent; `xPx`/`widthPx` = pixels (wins if both).
+/// Canonical size/offset unit for layouts and dwell regions.
+/// JSON: `x`/`width` = percent of reference (or `"N%"`); `xPx`/`widthPx` = pixels (wins if both).
+/// Board-local bare numbers are forced to pixels at load for legacy layouts.
+/// Legacy `widthPx`/`heightPx` fields on regions/windows are caches filled by the loader.
 struct DimSpec {
     enum class Unit { Unset, Percent, Pixels };
     Unit unit = Unit::Unset;

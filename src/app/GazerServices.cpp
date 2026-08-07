@@ -99,6 +99,10 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
         [this](LayoutDocument& doc) { decorateSettingsDocument(doc); });
     m_instances->setInstanceTeardownHook(
         [this](const QString& instanceId) { m_actionLoops->stopInstance(instanceId); });
+    connect(m_instances.get(), &LayoutInstanceManager::dwellEngagementEnded, this,
+            [this](const QString& instanceId, const QString& itemId) {
+                m_actionLoops->clearEngageLatch(instanceId, itemId);
+            });
 
     registerDomainCommands();
     registerSettingsCommands();
@@ -127,6 +131,12 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
     applySettings(false);
     refreshActiveIndicators();
     return true;
+}
+
+void GazerServices::bindActionDispatch(ActionDispatchFn dispatch)
+{
+    m_actionLoops->setDispatchFn(dispatch);
+    m_instances->setLifecycleRunner(std::move(dispatch));
 }
 
 bool GazerServices::resolveActiveState(const QString& key) const
