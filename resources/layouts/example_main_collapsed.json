@@ -10,25 +10,34 @@
     "expandLayoutId": "example_main",
     "hideUntilGazeReveal": false
   },
-  "dwell": {
-    "enabled": true,
-    "ms": 500,
-    "repeatMs": 0,
-    "progressStyle": "radial"
-  },
   "items": [
     {
-      "id": "edge_expand",
+      "id": "e1",
       "label": "Main",
       "unbounded": true,
+      "dwellExempt": true,
       "dwellRegion": {
         "screenAnchor": "bottomCenter",
-        "widthPx": 420,
-        "heightPx": 156,
-        "marginPx": 20
+        "widthPx": 300,
+        "heightPx": 150,
+        "marginPx": 50
       },
       "style": { "background": "#1d3557", "foreground": "#ffffff" },
       "action": { "type": "command", "name": "expandMaster" }
+    },
+    {
+      "id": "e2",
+      "label": "Sleep",
+      "unbounded": true,
+      "dwellRegion": {
+        "screenAnchor": "bottomRight",
+        "widthPx": 300,
+        "heightPx": 300,
+        "x": -25,
+        "yPx": 325
+      },
+      "style": { "background": "#1d3557", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "toggleDwellSuspend" }
     }
   ]
 }

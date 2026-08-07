@@ -1,5 +1,6 @@
 #pragma once
 
+#include "assist/GazeFollowStickiness.h"
 #include "core/GazePoint.h"
 
 #include <QPixmap>
@@ -40,7 +41,6 @@ protected:
 private:
     void refreshCapture(const QPoint& screenCenter);
     void reposition(const QPoint& screenCenter);
-    [[nodiscard]] double followAlphaForError(double errorPx) const;
 
     bool m_enabled = false;
     double m_zoom = 2.0;
@@ -55,10 +55,7 @@ private:
     QPointF m_smoothCenter;
     QPoint m_lastPlaced;
 
-    double m_jitterPx = 6.0;
-    double m_fullTrackPx = 140.0;
-    double m_alphaMin = 0.05;
-    double m_alphaMax = 0.88;
+    GazeFollowStickiness m_stickiness;
     double m_placeEpsilonPx = 0.75;
     int m_followProfile = 1;
 };

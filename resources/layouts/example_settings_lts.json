@@ -30,7 +30,8 @@
     { "id": "pl_v", "role": "value", "settingKey": "ltsPlaceCursorFirst", "label": "—", "row": 3, "col": 2 },
     { "id": "pl_t", "label": "Toggle", "activeState": "lts.placeCursorFirst", "row": 3, "col": 3, "colSpan": 2, "style": { "background": "#1b5e4a", "foreground": "#fff" }, "action": { "type": "command", "name": "settings.lts.placeCursor.toggle" } },
 
-    { "id": "back", "label": "← Settings", "row": 4, "col": 0, "colSpan": 2, "style": { "background": "#0a7ea4", "foreground": "#fff" }, "action": { "type": "loadLayout", "layoutId": "example_settings" } },
+    { "id": "pause_dwell", "label": "Pause dwell", "activeState": "dwellSuspend", "row": 4, "col": 0, "style": { "background": "#8b5a2b", "foreground": "#fff" }, "action": { "type": "command", "name": "toggleDwellSuspend" } },
+    { "id": "back", "label": "← Settings", "row": 4, "col": 1, "style": { "background": "#0a7ea4", "foreground": "#fff" }, "action": { "type": "loadLayout", "layoutId": "example_settings" } },
     { "id": "tog", "label": "Toggle LTS", "activeState": "lookToScroll", "row": 4, "col": 2, "colSpan": 2, "style": { "background": "#166534", "foreground": "#fff" }, "action": { "type": "command", "name": "toggleLookToScroll" } },
     { "id": "close", "label": "Close", "row": 4, "col": 4, "style": { "background": "#4a5568", "foreground": "#fff" }, "action": { "type": "closeLayout" } }
   ]

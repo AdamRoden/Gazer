@@ -159,8 +159,10 @@ void MouseDwellMove::setPhase(Phase phase)
 
 bool MouseDwellMove::useMagPickThisArm() const
 {
-    // Look↕Scroll placement is always direct — mag-pick is for explicit Move-to only.
-    return m_magPickEnabled && m_purpose == ArmPurpose::CursorMove;
+    // Look↕Scroll placement is always direct — mag-pick is for Move-to / click-loop.
+    return m_magPickEnabled
+           && (m_purpose == ArmPurpose::CursorMove
+               || m_purpose == ArmPurpose::CursorMoveClickLoop);
 }
 
 void MouseDwellMove::setArmed(bool armed, ArmPurpose purpose)
@@ -174,8 +176,13 @@ void MouseDwellMove::setArmed(bool armed, ArmPurpose purpose)
                 m_magOverlay->hide();
             }
             setPhase(useMagPickThisArm() ? Phase::MagRegion : Phase::Direct);
-            GAZER_INFO << "MouseDwellMove purpose →"
-                       << (purpose == ArmPurpose::LookToScrollPlace ? "ltsPlace" : "move");
+            const char* purposeName = "move";
+            if (purpose == ArmPurpose::LookToScrollPlace) {
+                purposeName = "ltsPlace";
+            } else if (purpose == ArmPurpose::CursorMoveClickLoop) {
+                purposeName = "clickLoop";
+            }
+            GAZER_INFO << "MouseDwellMove purpose →" << purposeName;
             emit armedChanged(true);
         }
         return;
@@ -189,9 +196,14 @@ void MouseDwellMove::setArmed(bool armed, ArmPurpose purpose)
     } else {
         setPhase(useMagPickThisArm() ? Phase::MagRegion : Phase::Direct);
     }
+    const char* purposeName = "move";
+    if (m_purpose == ArmPurpose::LookToScrollPlace) {
+        purposeName = "ltsPlace";
+    } else if (m_purpose == ArmPurpose::CursorMoveClickLoop) {
+        purposeName = "clickLoop";
+    }
     GAZER_INFO << "MouseDwellMove" << (m_armed ? "ARMED" : "off")
-               << (useMagPickThisArm() ? "magPick" : "direct")
-               << (m_purpose == ArmPurpose::LookToScrollPlace ? "ltsPlace" : "move");
+               << (useMagPickThisArm() ? "magPick" : "direct") << purposeName;
     emit armedChanged(m_armed);
 }
 
@@ -361,10 +373,11 @@ void MouseDwellMove::finishMagPoint(const QPointF& gaze)
     if (MouseInjector::moveTo(target.x(), target.y(), &err)) {
         GAZER_INFO << "MouseDwellMove mag →" << target;
         emit movedTo(target);
+        completeMoveCycle(target);
     } else {
         GAZER_WARN << "MouseDwellMove mag failed:" << err;
+        setArmed(false);
     }
-    setArmed(false);
 }
 
 void MouseDwellMove::onGaze(const GazePoint& point)
@@ -453,8 +466,31 @@ void MouseDwellMove::onGaze(const GazePoint& point)
     if (MouseInjector::moveTo(target.x(), target.y(), &err)) {
         GAZER_INFO << "MouseDwellMove →" << target;
         emit movedTo(target);
+        completeMoveCycle(target);
     } else {
         GAZER_WARN << "MouseDwellMove failed:" << err;
+        setArmed(false);
+    }
+}
+
+void MouseDwellMove::completeMoveCycle(const QPoint& target)
+{
+    Q_UNUSED(target);
+    if (m_purpose == ArmPurpose::CursorMoveClickLoop) {
+        QString err;
+        if (!MouseInjector::click(QStringLiteral("left"), &err)) {
+            GAZER_WARN << "MouseDwellMove click-loop click failed:" << err;
+        }
+        // Stay armed: re-run same move/mag pipeline for the next cycle.
+        if (m_magOverlay) {
+            m_magOverlay->hide();
+        }
+        if (m_cursor) {
+            m_cursor->hide();
+        }
+        resetDwell();
+        setPhase(useMagPickThisArm() ? Phase::MagRegion : Phase::Direct);
+        return;
     }
     setArmed(false);
 }

@@ -26,7 +26,8 @@
     { "id": "f_b", "label": "Balanced", "activeState": "setting.magFollow.1", "row": 2, "col": 3, "style": { "background": "#4a4768", "foreground": "#fff" }, "action": { "type": "command", "name": "settings.mag.follow.balanced" } },
     { "id": "f_n", "label": "Snappy", "activeState": "setting.magFollow.2", "row": 2, "col": 4, "style": { "background": "#5a5678", "foreground": "#fff" }, "action": { "type": "command", "name": "settings.mag.follow.snappy" } },
 
-    { "id": "back", "label": "← Settings", "row": 3, "col": 0, "colSpan": 2, "style": { "background": "#0a7ea4", "foreground": "#fff" }, "action": { "type": "loadLayout", "layoutId": "example_settings" } },
+    { "id": "pause_dwell", "label": "Pause dwell", "activeState": "dwellSuspend", "row": 3, "col": 0, "style": { "background": "#8b5a2b", "foreground": "#fff" }, "action": { "type": "command", "name": "toggleDwellSuspend" } },
+    { "id": "back", "label": "← Settings", "row": 3, "col": 1, "style": { "background": "#0a7ea4", "foreground": "#fff" }, "action": { "type": "loadLayout", "layoutId": "example_settings" } },
     { "id": "tog", "label": "Toggle lens", "activeState": "magnifier", "row": 3, "col": 2, "colSpan": 2, "style": { "background": "#6b5b95", "foreground": "#fff" }, "action": { "type": "command", "name": "toggleMagnifier" } },
     { "id": "close", "label": "Close", "row": 3, "col": 4, "style": { "background": "#4a5568", "foreground": "#fff" }, "action": { "type": "closeLayout" } }
   ]

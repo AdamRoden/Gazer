@@ -11,7 +11,8 @@
     { "id": "at_l", "role": "label", "label": "Speak also types", "caption": "Type spoken text into the focused app.", "row": 0, "col": 0 },
     { "id": "at_v", "role": "value", "settingKey": "speakAlsoType", "label": "—", "row": 0, "col": 2 },
     { "id": "at_t", "label": "Toggle", "activeState": "setting.speakAlsoType", "row": 0, "col": 3, "colSpan": 2, "style": { "background": "#6b3fa0", "foreground": "#fff" }, "action": { "type": "command", "name": "settings.speech.alsoType.toggle" } },
-    { "id": "back", "label": "← Settings", "row": 1, "col": 0, "colSpan": 3, "style": { "background": "#0a7ea4", "foreground": "#fff" }, "action": { "type": "loadLayout", "layoutId": "example_settings" } },
+    { "id": "pause_dwell", "label": "Pause dwell", "activeState": "dwellSuspend", "row": 1, "col": 0, "style": { "background": "#8b5a2b", "foreground": "#fff" }, "action": { "type": "command", "name": "toggleDwellSuspend" } },
+    { "id": "back", "label": "← Settings", "row": 1, "col": 1, "colSpan": 2, "style": { "background": "#0a7ea4", "foreground": "#fff" }, "action": { "type": "loadLayout", "layoutId": "example_settings" } },
     { "id": "close", "label": "Close", "row": 1, "col": 3, "colSpan": 2, "style": { "background": "#4a5568", "foreground": "#fff" }, "action": { "type": "closeLayout" } }
   ]
 }

@@ -2,12 +2,43 @@
 
 #include <QColor>
 #include <QString>
+#include <QtGlobal>
 #include <QVector>
 #include <optional>
 
 namespace gazer {
 
-/// Action attached to a layout item (schema v1).
+/// Dimension: percent of a reference size (screen or board) or absolute pixels.
+/// JSON: bare/percent field (`x`, `width`, …) = percent; `xPx`/`widthPx` = pixels (wins if both).
+struct DimSpec {
+    enum class Unit { Unset, Percent, Pixels };
+    Unit unit = Unit::Unset;
+    double value = 0.0;
+
+    [[nodiscard]] bool isSet() const { return unit != Unit::Unset; }
+
+    /// Resolve against a reference length (screen/board width or height).
+    [[nodiscard]] double resolve(double reference) const
+    {
+        if (unit == Unit::Pixels) {
+            return value;
+        }
+        if (unit == Unit::Percent) {
+            return reference * (value / 100.0);
+        }
+        return 0.0;
+    }
+
+    [[nodiscard]] int resolveInt(double reference, int fallback = 0) const
+    {
+        if (!isSet()) {
+            return fallback;
+        }
+        return qRound(resolve(reference));
+    }
+};
+
+/// Action attached to a layout item (schema v1+).
 struct LayoutAction {
     enum class Type {
         Speak,
@@ -25,6 +56,8 @@ struct LayoutAction {
     QString layoutId;  // loadLayout / openLayout
     QString name;      // command
     QString source;    // script
+    /// Optional delay before this step runs (ms). Used in action series / loops.
+    int delayMs = 0;
 };
 
 struct LayoutItemStyle {
@@ -51,14 +84,27 @@ struct LayoutDwellRegion {
     };
 
     ScreenAnchor screenAnchor = ScreenAnchor::None;
-    /// Board-local top-left when screenAnchor is None (can be negative / outside board).
-    double x = 0;
-    double y = 0;
+    /// Position relative to screen anchor (or board origin when None). Prefer DimSpec.
+    DimSpec x;
+    DimSpec y;
+    DimSpec width;
+    DimSpec height;
+    /// Deprecated: outward gap when x/y unset for screen anchors (compat).
+    int marginPx = 4;
+    /// Legacy absolute fallbacks when DimSpec unset (loader fills from widthPx etc.).
     int widthPx = 80;
     int heightPx = 80;
-    int marginPx = 4;
 
-    [[nodiscard]] bool isValid() const { return widthPx > 0 && heightPx > 0; }
+    [[nodiscard]] bool isValid() const
+    {
+        if (width.isSet() && width.unit == DimSpec::Unit::Pixels && width.value <= 0) {
+            return false;
+        }
+        if (height.isSet() && height.unit == DimSpec::Unit::Pixels && height.value <= 0) {
+            return false;
+        }
+        return true;
+    }
     [[nodiscard]] bool usesScreenAnchor() const { return screenAnchor != ScreenAnchor::None; }
 };
 
@@ -129,7 +175,12 @@ struct LayoutItem {
     int colSpan = 1;
     /// Voice-style relative width within the row (letter unit = 1). 0 = use equal col cells.
     double widthUnits = 0.0;
+    /// Single action (legacy). Prefer `actions` when non-empty.
     LayoutAction action;
+    /// Ordered series of actions. When non-empty, used instead of `action`.
+    QVector<LayoutAction> actions;
+    /// When true: first activate starts a perpetual series loop; second stops (like magnifier).
+    bool actionLoop = false;
     LayoutItemStyle style;
     /// Optional per-item dwell / progress overrides (item > layout > global).
     LayoutDwellConfig dwell;
@@ -147,6 +198,30 @@ struct LayoutItem {
 
     /// Survives global dwell suspend (set via dwellExempt in JSON / loader).
     [[nodiscard]] bool isDwellExempt() const { return dwellExempt; }
+
+    /// Actions to run on activate: `actions` if non-empty, else single `action` if known.
+    [[nodiscard]] QVector<LayoutAction> effectiveActions() const
+    {
+        if (!actions.isEmpty()) {
+            return actions;
+        }
+        if (action.type != LayoutAction::Type::Unknown) {
+            return {action};
+        }
+        return {};
+    }
+
+    /// Key used for loop active-state accent (activeState, or auto from item id).
+    [[nodiscard]] QString loopActiveStateKey() const
+    {
+        if (!activeState.isEmpty()) {
+            return activeState;
+        }
+        if (actionLoop) {
+            return QStringLiteral("loop.%1").arg(id);
+        }
+        return {};
+    }
 };
 
 struct LayoutGrid {
@@ -174,6 +249,11 @@ struct LayoutWindowPlacement {
     };
 
     Anchor anchor = Anchor::Default;
+    /// Size: percent of available desktop or pixels. Legacy widthPx/heightPx filled when only px set.
+    DimSpec width;
+    DimSpec height;
+    DimSpec x;
+    DimSpec y;
     int widthPx = 0;
     int heightPx = 0;
     int marginPx = 8;
@@ -228,6 +308,12 @@ struct LayoutDocument {
     LayoutWindowPlacement placement;
     LayoutUiStyle uiStyle = LayoutUiStyle::Default;
     QVector<LayoutItem> items;
+    /// Run when an instance is first created/opened (not on in-place load).
+    QVector<LayoutAction> onOpen;
+    /// Run when a document is applied into an instance (open and loadInto).
+    QVector<LayoutAction> onLoad;
+    /// Run before an instance is closed (instance id still valid).
+    QVector<LayoutAction> onClose;
 
     [[nodiscard]] bool isValid() const
     {

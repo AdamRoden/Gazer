@@ -7,6 +7,7 @@
 
 #include "ui/EdgeBubbleOverlay.h"
 #include "ui/ProgressVisuals.h"
+#include "ui/Theme.h"
 
 #include <QObject>
 #include <QString>
@@ -67,6 +68,7 @@ public:
     void applyGlobalDwellOverride(const QVector<int>& dwellSequence, int graceMs);
 
     void applyProgressVisuals(const ProgressVisuals& visuals);
+    void applyTheme(const ThemeColors& theme);
 
     /// Recompute active-state accents for every open board using @p resolver(activeStateKey).
     using ActiveStateResolver = std::function<bool(const QString& activeStateKey)>;
@@ -86,6 +88,18 @@ public:
     /// Optional hook to decorate layouts as they load (settings captions, etc.).
     using DocumentDecorator = std::function<void(LayoutDocument&)>;
     void setDocumentDecorator(DocumentDecorator decorator);
+
+    /// Run layout lifecycle action arrays (onOpen / onLoad / onClose).
+    using LifecycleRunner =
+        std::function<void(const QVector<LayoutAction>& actions, const QString& instanceId)>;
+    void setLifecycleRunner(LifecycleRunner runner) { m_lifecycleRunner = std::move(runner); }
+
+    /// Called when an action-loop owner instance closes (stop loops).
+    using InstanceTeardownHook = std::function<void(const QString& instanceId)>;
+    void setInstanceTeardownHook(InstanceTeardownHook hook)
+    {
+        m_instanceTeardown = std::move(hook);
+    }
 
     [[nodiscard]] QString focusedInstanceId() const { return m_focusedId; }
     [[nodiscard]] QString masterInstanceId() const { return m_masterId; }
@@ -111,6 +125,7 @@ signals:
     void instanceClosed(const QString& instanceId);
     void instanceFocused(const QString& instanceId);
     void itemActivated(const QString& instanceId, const QString& itemId);
+    void dwellEngagementEnded(const QString& instanceId, const QString& itemId);
     void sessionChanged();
 
 private:
@@ -124,6 +139,8 @@ private:
     [[nodiscard]] LayoutInstance* findInstanceAt(const QPointF& screenPoint) const;
     [[nodiscard]] bool applyDocument(LayoutInstance* inst, const QString& layoutId,
                                      QString* error);
+    /// In-place document swap: onClose + stop loops, then setDocument + onLoad.
+    void replaceInstanceDocument(LayoutInstance* inst, LayoutDocument newDoc, bool fireOnLoad);
     [[nodiscard]] const LayoutDocument* requireDoc(const QString& layoutId, QString* error);
     [[nodiscard]] QString homeLayoutIdForMaster() const;
     void wireInstance(LayoutInstance* inst);
@@ -139,10 +156,14 @@ private:
     QVector<int> m_globalDwellSequence;
     int m_globalGraceMs = 0;
     ProgressVisuals m_progressVisuals;
+    ThemeColors m_theme = ThemeColors::darkPreset();
     EdgeBubbleOverlay* m_edgeBubbles = nullptr;
     DocumentDecorator m_documentDecorator;
+    LifecycleRunner m_lifecycleRunner;
+    InstanceTeardownHook m_instanceTeardown;
     bool m_dwellSuspended = false;
     LayoutDocument decorateCopy(const LayoutDocument& src) const;
+    void fireLifecycle(const QVector<LayoutAction>& actions, const QString& instanceId) const;
 };
 
 } // namespace gazer

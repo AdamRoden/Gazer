@@ -7,8 +7,46 @@
 #include <QPainterPath>
 #include <QPaintEvent>
 #include <QScreen>
+#include <QtMath>
 
 namespace gazer {
+
+namespace {
+
+/// Progress fill: starts at the screen edge and grows (offset) until the bubble border.
+/// Intersection of the half-ellipse shape with a depth strip from the edge.
+QPainterPath edgeOffsetFill(const DwellRegionSpace::EdgeBand& band, double progress,
+                            const QPoint& origin)
+{
+    const qreal t = qBound(0.0, progress, 1.0);
+    if (t <= 0.001) {
+        return {};
+    }
+
+    const QRectF full = band.fullEllipse.translated(-origin);
+    const QRectF on = band.onScreen.translated(-origin);
+    if (on.isEmpty() || full.isEmpty()) {
+        return {};
+    }
+
+    QPainterPath shape;
+    shape.addEllipse(full);
+    QPainterPath clip;
+    clip.addRect(on);
+    shape = shape.intersected(clip);
+
+    // Strip from screen edge → interior by fraction t of depth.
+    // ∩ ellipse ⇒ leading edge is a smooth curve that expands to the border.
+    const QRectF strip = DwellRegionSpace::progressStrip(band, t).translated(-origin);
+    if (strip.isEmpty()) {
+        return {};
+    }
+    QPainterPath grow;
+    grow.addRect(strip);
+    return shape.intersected(grow);
+}
+
+} // namespace
 
 EdgeBubbleOverlay::EdgeBubbleOverlay(QObject* parent)
     : OverlaySurface(nullptr)
@@ -65,6 +103,10 @@ void EdgeBubbleOverlay::setBubble(const Bubble& bubble)
 
 void EdgeBubbleOverlay::clearBubble(const QString& key)
 {
+    if (auto* t = m_flashTimers.take(key)) {
+        t->stop();
+        t->deleteLater();
+    }
     if (m_bubbles.remove(key) > 0) {
         if (m_bubbles.isEmpty()) {
             hide();
@@ -76,8 +118,41 @@ void EdgeBubbleOverlay::clearBubble(const QString& key)
 
 void EdgeBubbleOverlay::clearAll()
 {
+    const auto keys = m_flashTimers.keys();
+    for (const QString& k : keys) {
+        if (auto* t = m_flashTimers.take(k)) {
+            t->stop();
+            t->deleteLater();
+        }
+    }
     m_bubbles.clear();
     hide();
+}
+
+void EdgeBubbleOverlay::flashThenClear(const QString& key, const ProgressVisuals& visuals,
+                                       int flashMs)
+{
+    Bubble b = m_bubbles.value(key);
+    b.key = key;
+    b.visuals = visuals;
+    b.flashing = true;
+    b.progress = 1.0;
+    if (b.band.onScreen.isEmpty() && m_bubbles.contains(key)) {
+        b.band = m_bubbles.value(key).band;
+        b.label = m_bubbles.value(key).label;
+    }
+    setBubble(b);
+
+    if (auto* old = m_flashTimers.take(key)) {
+        old->stop();
+        old->deleteLater();
+    }
+    auto* t = new QTimer(this);
+    t->setSingleShot(true);
+    // clearBubble owns timer cleanup (take + deleteLater).
+    connect(t, &QTimer::timeout, this, [this, key]() { clearBubble(key); });
+    m_flashTimers.insert(key, t);
+    t->start(qMax(40, flashMs));
 }
 
 void EdgeBubbleOverlay::showEvent(QShowEvent* event)
@@ -102,44 +177,68 @@ void EdgeBubbleOverlay::paintEvent(QPaintEvent* /*event*/)
             continue;
         }
 
-        const QRectF ellipse = band.fullEllipse.translated(-origin);
+        const QRectF full = band.fullEllipse.translated(-origin);
         const QRectF visible = band.onScreen.translated(-origin);
 
-        QPainterPath ellipsePath;
-        ellipsePath.addEllipse(ellipse);
-        QPainterPath visibleClip;
-        visibleClip.addRect(visible);
-        const QPainterPath shape = ellipsePath.intersected(visibleClip);
+        QPainterPath shape;
+        shape.addEllipse(full);
+        QPainterPath clip;
+        clip.addRect(visible);
+        shape = shape.intersected(clip);
 
         p.save();
 
-        QColor track = b.color;
-        track.setAlpha(40);
-        p.setPen(QPen(QColor(b.color.red(), b.color.green(), b.color.blue(), 90), 2.0));
+        const ProgressVisuals& v = b.visuals;
+        const QColor base = v.progressColor.isValid() ? v.progressColor : QColor(0, 220, 255);
+
+        // Dim track of full affordance
+        QColor track = base;
+        track.setAlpha(36);
+        p.setPen(QPen(QColor(base.red(), base.green(), base.blue(), 80), 2.0));
         p.setBrush(track);
         p.drawPath(shape);
 
-        const double prog = qBound(0.0, b.progress, 1.0);
-        if (prog > 0.005) {
-            const QRectF strip =
-                DwellRegionSpace::progressStrip(band, prog).translated(-origin);
-            QPainterPath fillPath;
-            fillPath.addRect(strip);
-            fillPath = fillPath.intersected(shape);
-
-            QColor fill = b.color;
-            fill.setAlpha(90 + int(120 * prog));
-            p.setPen(Qt::NoPen);
-            p.setBrush(fill);
-            p.drawPath(fillPath);
-
-            p.setBrush(Qt::NoBrush);
-            p.setPen(QPen(QColor(b.color.red(), b.color.green(), b.color.blue(), 200), 2.5));
-            p.drawPath(fillPath);
+        if (b.flashing && v.flashOnComplete) {
+            p.setPen(QPen(v.flashBorderColor, 3.5));
+            p.setBrush(v.flashFillColor);
+            p.drawPath(shape);
+            if (!b.label.isEmpty()) {
+                p.setPen(QColor(240, 248, 255));
+                p.setFont(QFont(QStringLiteral("Segoe UI"), 10, QFont::DemiBold));
+                p.drawText(visible.toRect().adjusted(4, 4, -4, -4),
+                           Qt::AlignCenter | Qt::TextWordWrap, b.label);
+            }
+            p.restore();
+            continue;
         }
 
+        const double prog = qBound(0.0, b.progress, 1.0);
+        if (prog > 0.005) {
+            // From screen edge → offset fill until the bubble border (never a center clock ring).
+            const QPainterPath fillPath = edgeOffsetFill(band, prog, origin);
+            if (!fillPath.isEmpty()) {
+                QColor fill = v.fillColor.isValid() ? v.fillColor : base;
+                fill.setAlpha(qBound(50, int(80 + 140 * prog), 230));
+                p.setPen(Qt::NoPen);
+                p.setBrush(fill);
+                p.drawPath(fillPath);
+
+                // Emphasize the leading offset curve (outer path of the fill)
+                p.setBrush(Qt::NoBrush);
+                p.setPen(QPen(base, 2.2 + prog * 1.5));
+                p.drawPath(fillPath);
+            }
+
+            if (v.border) {
+                p.setBrush(Qt::NoBrush);
+                p.setPen(QPen(v.borderColor.isValid() ? v.borderColor : base, 2.0 + 2.0 * prog));
+                p.drawPath(shape);
+            }
+        }
+
+        // Quiet outer rim at full border
         p.setBrush(Qt::NoBrush);
-        p.setPen(QPen(QColor(b.color.red(), b.color.green(), b.color.blue(), 160), 2.5));
+        p.setPen(QPen(QColor(base.red(), base.green(), base.blue(), 130), 2.0));
         p.drawPath(shape);
 
         if (!b.label.isEmpty()) {

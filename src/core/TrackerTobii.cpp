@@ -55,6 +55,14 @@ void TrackerTobii::gazePointCallback(tobii_gaze_point_t const* gaze_point, void*
     }
 }
 
+void TrackerTobii::headPoseCallback(tobii_head_pose_t const* head_pose, void* user_data)
+{
+    auto* self = static_cast<TrackerTobii*>(user_data);
+    if (self && head_pose) {
+        self->onHeadFromEngine(head_pose);
+    }
+}
+
 void TrackerTobii::cacheScreenGeometry()
 {
     QRect geo;
@@ -98,31 +106,66 @@ void TrackerTobii::onGazeFromEngine(tobii_gaze_point_t const* gp)
     m_samplePending = true;
 }
 
-void TrackerTobii::flushPendingGaze()
+void TrackerTobii::onHeadFromEngine(tobii_head_pose_t const* hp)
 {
-    if (!m_running.load() && !m_samplePending.load()) {
-        return;
+    // Worker thread: convert to OpenTrack-friendly degrees / cm.
+    constexpr double kRadToDeg = 180.0 / 3.14159265358979323846;
+    HeadPose out;
+    out.timestampMs = m_clock.isValid() ? m_clock.elapsed() : 0;
+    out.positionValid = (hp->position_validity == TOBII_VALIDITY_VALID);
+    out.rotationValid = (hp->rotation_validity_xyz[0] == TOBII_VALIDITY_VALID)
+                        || (hp->rotation_validity_xyz[1] == TOBII_VALIDITY_VALID)
+                        || (hp->rotation_validity_xyz[2] == TOBII_VALIDITY_VALID);
+    if (out.positionValid) {
+        out.x = -static_cast<double>(hp->position_xyz[0]) * 0.1; // mm → cm, negate X
+        out.y = static_cast<double>(hp->position_xyz[1]) * 0.1;
+        out.z = static_cast<double>(hp->position_xyz[2]) * 0.1;
     }
-    if (!m_samplePending.exchange(false)) {
-        return;
+    if (out.rotationValid) {
+        out.pitch = static_cast<double>(hp->rotation_xyz[0]) * kRadToDeg;
+        out.yaw = -static_cast<double>(hp->rotation_xyz[1]) * kRadToDeg;
+        out.roll = static_cast<double>(hp->rotation_xyz[2]) * kRadToDeg;
     }
-
-    GazePoint sample;
     {
         QMutexLocker lock(&m_sampleMutex);
-        sample = m_latestSample;
+        m_latestHead = out;
+    }
+    m_headPending = true;
+}
+
+void TrackerTobii::flushPendingGaze()
+{
+    if (!m_running.load() && !m_samplePending.load() && !m_headPending.load()) {
+        return;
     }
 
-    // Validity transitions on GUI thread only (no queued worker lambdas).
-    if (sample.valid && !m_guiHadValid) {
-        m_guiHadValid = true;
-        emit trackingRestored();
-    } else if (!sample.valid && m_guiHadValid) {
-        m_guiHadValid = false;
-        emit trackingLost();
+    if (m_samplePending.exchange(false)) {
+        GazePoint sample;
+        {
+            QMutexLocker lock(&m_sampleMutex);
+            sample = m_latestSample;
+        }
+
+        // Validity transitions on GUI thread only (no queued worker lambdas).
+        if (sample.valid && !m_guiHadValid) {
+            m_guiHadValid = true;
+            emit trackingRestored();
+        } else if (!sample.valid && m_guiHadValid) {
+            m_guiHadValid = false;
+            emit trackingLost();
+        }
+
+        emit gazeUpdated(sample);
     }
 
-    emit gazeUpdated(sample);
+    if (m_headPending.exchange(false)) {
+        HeadPose head;
+        {
+            QMutexLocker lock(&m_sampleMutex);
+            head = m_latestHead;
+        }
+        emit headPoseUpdated(head);
+    }
 }
 
 bool TrackerTobii::start()
@@ -267,6 +310,17 @@ void TrackerTobii::workerMain()
         return;
     }
 
+    m_headPoseSubscribed = false;
+    if (m_lib.head_pose_subscribe) {
+        e = m_lib.head_pose_subscribe(m_device, &TrackerTobii::headPoseCallback, this);
+        if (e == TOBII_ERROR_NO_ERROR) {
+            m_headPoseSubscribed = true;
+            GAZER_INFO << "Tobii head pose stream subscribed";
+        } else {
+            GAZER_WARN << "Tobii head pose subscribe skipped:" << m_lib.errorString(e);
+        }
+    }
+
     {
         std::lock_guard lock(m_setupMutex);
         m_setupOk = true;
@@ -360,6 +414,10 @@ void TrackerTobii::workerMain()
 void TrackerTobii::teardownDeviceUnlocked()
 {
     if (m_device && m_lib.isLoaded()) {
+        if (m_headPoseSubscribed && m_lib.head_pose_unsubscribe) {
+            m_lib.head_pose_unsubscribe(m_device);
+            m_headPoseSubscribed = false;
+        }
         m_lib.gaze_point_unsubscribe(m_device);
         m_lib.device_destroy(m_device);
         m_device = nullptr;

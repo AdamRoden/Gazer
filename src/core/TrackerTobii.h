@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/GazePoint.h"
+#include "core/HeadPose.h"
 #include "core/ITracker.h"
 #include "core/StreamEngineLib.h"
 
@@ -19,6 +20,7 @@
 struct tobii_api_t;
 struct tobii_device_t;
 struct tobii_gaze_point_t;
+struct tobii_head_pose_t;
 
 namespace gazer {
 
@@ -44,10 +46,12 @@ private:
     void onWorkerFinished();
 
     static void gazePointCallback(tobii_gaze_point_t const* gaze_point, void* user_data);
+    static void headPoseCallback(tobii_head_pose_t const* head_pose, void* user_data);
     static void urlReceiver(char const* url, void* user_data);
 
     void workerMain();
     void onGazeFromEngine(tobii_gaze_point_t const* gaze_point);
+    void onHeadFromEngine(tobii_head_pose_t const* head_pose);
     void cacheScreenGeometry();
     void teardownDeviceUnlocked();
 
@@ -55,6 +59,7 @@ private:
     tobii_api_t* m_api = nullptr;
     tobii_device_t* m_device = nullptr;
     std::vector<std::string> m_urls;
+    bool m_headPoseSubscribed = false;
 
     std::unique_ptr<std::thread> m_thread;
     std::atomic<bool> m_stop{false};
@@ -75,7 +80,9 @@ private:
 
     QMutex m_sampleMutex;
     GazePoint m_latestSample;
+    HeadPose m_latestHead;
     std::atomic<bool> m_samplePending{false};
+    std::atomic<bool> m_headPending{false};
     QTimer m_flushTimer;
 
     bool m_guiHadValid = false;

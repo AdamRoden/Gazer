@@ -59,12 +59,16 @@ set(GAZER_SOURCES
     src/assist/GazeMouseFollow.cpp
     src/assist/AssistSession.cpp
     src/assist/AssistCommands.cpp
+    src/assist/ActionLoopService.cpp
     src/ui/PreviewWindow.cpp
+    src/ui/StlMesh.cpp
     src/ui/LayoutWindow.cpp
     src/ui/TrayIcon.cpp
     src/ui/DockRevealOverlay.cpp
     src/ui/EdgeBubbleOverlay.cpp
     src/ui/MagnifierOverlay.cpp
+    src/ui/DwellSuspendOverlay.cpp
+    src/ui/MappingPropertiesWindow.cpp
 )
 
 set(GAZER_HEADERS
@@ -75,6 +79,7 @@ set(GAZER_HEADERS
     src/app/GazerServices.h
     src/app/CommandRegistry.h
     src/core/GazePoint.h
+    src/core/HeadPose.h
     src/core/ITracker.h
     src/core/TrackerMouse.h
     src/core/TrackerTobii.h
@@ -96,6 +101,7 @@ set(GAZER_HEADERS
     src/mapping/MappingTypes.h
     src/mapping/MappingLoader.h
     src/mapping/MappingEngine.h
+    src/mapping/CurveMapping.h
     src/assist/TtsService.h
     src/assist/PhraseService.h
     src/assist/ScriptHost.h
@@ -106,15 +112,21 @@ set(GAZER_HEADERS
     src/assist/GazeMouseFollow.h
     src/assist/AssistSession.h
     src/assist/AssistCommands.h
+    src/assist/ActionLoopService.h
     src/assist/GazeDwellTracker.h
+    src/assist/GazeFollowStickiness.h
     src/ui/PreviewWindow.h
+    src/ui/StlMesh.h
     src/ui/LayoutWindow.h
     src/ui/TrayIcon.h
     src/ui/DockRevealOverlay.h
     src/ui/EdgeBubbleOverlay.h
     src/ui/MagnifierOverlay.h
+    src/ui/DwellSuspendOverlay.h
+    src/ui/MappingPropertiesWindow.h
     src/ui/OverlaySurface.h
     src/ui/MouseIcons.h
+    src/ui/Theme.h
     src/utils/Log.h
     src/utils/WinOverlay.h
 )

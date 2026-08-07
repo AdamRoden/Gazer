@@ -2,6 +2,8 @@
 
 #include "app/AppSettings.h"
 #include "app/CommandRegistry.h"
+#include "core/GazePoint.h"
+#include "assist/ActionLoopService.h"
 #include "assist/AssistCommands.h"
 #include "assist/AssistSession.h"
 #include "assist/GazeMouseFollow.h"
@@ -51,6 +53,11 @@ public:
     GazeReticle& gazeReticle() { return *m_gazeReticle; }
     GazeMouseFollow& gazeMouseFollow() { return *m_gazeMouseFollow; }
     AssistSession& assistSession() { return *m_assistSession; }
+    ActionLoopService& actionLoops() { return *m_actionLoops; }
+
+    /// Last valid gaze sample (for mouseMoveToGaze command / loops).
+    void setLastGaze(const GazePoint& g) { m_lastGaze = g; }
+    [[nodiscard]] GazePoint lastGaze() const { return m_lastGaze; }
 
     AppSettings& settings() { return m_settings; }
     [[nodiscard]] const AppSettings& settings() const { return m_settings; }
@@ -101,9 +108,11 @@ private:
     std::unique_ptr<GazeReticle> m_gazeReticle;
     std::unique_ptr<GazeMouseFollow> m_gazeMouseFollow;
     std::unique_ptr<AssistSession> m_assistSession;
+    std::unique_ptr<ActionLoopService> m_actionLoops;
     /// Heap-owned assist command wiring (must outlive registry handlers).
     std::unique_ptr<AssistCommandContext> m_assistCmdCtx;
     AppSettings m_settings;
+    GazePoint m_lastGaze;
 
     // Numeric editor session (in-place on a settings secondary board).
     bool m_numpadActive = false;

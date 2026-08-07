@@ -7,12 +7,12 @@
   "window": {
     "anchor": "center",
     "widthPx": 960,
-    "heightPx": 580,
+    "heightPx": 620,
     "marginPx": 24
   },
   "grid": {
     "columns": 3,
-    "rows": 3,
+    "rows": 4,
     "gapPx": 14,
     "marginPx": 56
   },
@@ -72,28 +72,53 @@
       "action": { "type": "loadLayout", "layoutId": "example_settings_appearance" }
     },
     {
-      "id": "reset",
-      "label": "Reset defaults",
+      "id": "theme",
+      "label": "Theme",
+      "row": 2,
+      "col": 0,
+      "style": { "background": "#0b57d0", "foreground": "#ffffff" },
+      "action": { "type": "loadLayout", "layoutId": "example_settings_theme" }
+    },
+    {
+      "id": "assist",
+      "label": "Assist tools",
+      "row": 2,
+      "col": 1,
+      "style": { "background": "#134f5c", "foreground": "#f4f6fc" },
+      "action": { "type": "loadLayout", "layoutId": "example_settings_assist" }
+    },
+    {
+      "id": "curves",
+      "label": "Response curves",
       "row": 2,
       "col": 2,
+      "style": { "background": "#38761d", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "openMappingProperties" }
+    },
+    {
+      "id": "pause_dwell",
+      "label": "Pause dwell",
+      "activeState": "dwellSuspend",
+      "row": 3,
+      "col": 0,
+      "style": { "background": "#8b5a2b", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "toggleDwellSuspend" }
+    },
+    {
+      "id": "reset",
+      "label": "Reset defaults",
+      "row": 3,
+      "col": 1,
       "style": { "background": "#8b2e2e", "foreground": "#f4f6fc" },
       "action": { "type": "command", "name": "settings.reset" }
     },
     {
       "id": "main",
       "label": "← Main",
-      "row": 2,
-      "col": 0,
+      "row": 3,
+      "col": 2,
       "style": { "background": "#0a7ea4", "foreground": "#ffffff" },
       "action": { "type": "loadLayout", "layoutId": "example_main" }
-    },
-    {
-      "id": "close",
-      "label": "Close",
-      "row": 2,
-      "col": 1,
-      "style": { "background": "#4a5568", "foreground": "#ffffff" },
-      "action": { "type": "closeLayout" }
     }
   ]
 }

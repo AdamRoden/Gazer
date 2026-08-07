@@ -94,36 +94,7 @@ void MagnifierOverlay::setLensSize(int px)
 void MagnifierOverlay::setFollowProfile(int profile)
 {
     m_followProfile = qBound(0, profile, 2);
-    switch (m_followProfile) {
-    case 0: // sticky — damps small moves hard
-        m_jitterPx = 12.0;
-        m_fullTrackPx = 200.0;
-        m_alphaMin = 0.03;
-        m_alphaMax = 0.72;
-        break;
-    case 2: // snappy — tracks quicker
-        m_jitterPx = 3.0;
-        m_fullTrackPx = 90.0;
-        m_alphaMin = 0.12;
-        m_alphaMax = 0.95;
-        break;
-    default: // balanced
-        m_jitterPx = 6.0;
-        m_fullTrackPx = 140.0;
-        m_alphaMin = 0.05;
-        m_alphaMax = 0.88;
-        break;
-    }
-}
-
-double MagnifierOverlay::followAlphaForError(double errorPx) const
-{
-    const double span = qMax(1.0, m_fullTrackPx - m_jitterPx);
-    double t = (errorPx - m_jitterPx) / span;
-    t = qBound(0.0, t, 1.0);
-    const double s = t * t * (3.0 - 2.0 * t);
-    const double shaped = s * s;
-    return m_alphaMin + (m_alphaMax - m_alphaMin) * shaped;
+    m_stickiness = GazeFollowStickiness::fromProfile(m_followProfile);
 }
 
 void MagnifierOverlay::onGaze(const GazePoint& point)
@@ -133,15 +104,7 @@ void MagnifierOverlay::onGaze(const GazePoint& point)
     }
 
     const QPointF raw(point.x, point.y);
-    if (!m_smoothValid) {
-        m_smoothCenter = raw;
-        m_smoothValid = true;
-    } else {
-        const double err = QLineF(m_smoothCenter, raw).length();
-        const double a = followAlphaForError(err);
-        m_smoothCenter.setX(m_smoothCenter.x() * (1.0 - a) + raw.x() * a);
-        m_smoothCenter.setY(m_smoothCenter.y() * (1.0 - a) + raw.y() * a);
-    }
+    m_stickiness.smoothPoint(m_smoothCenter, m_smoothValid, raw);
 
     const QPoint c(qRound(m_smoothCenter.x()), qRound(m_smoothCenter.y()));
     m_pendingCenter = c;

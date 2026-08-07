@@ -41,6 +41,7 @@
     { "id": "fd_dec", "label": "−", "row": 6, "col": 1, "style": { "background": "#355070", "foreground": "#fff" }, "action": { "type": "command", "name": "settings.nudge.flashMs.dec" } },
     { "id": "fd_val", "role": "value", "settingKey": "flashMs", "label": "—", "row": 6, "col": 2 },
     { "id": "fd_inc", "label": "+", "row": 6, "col": 3, "style": { "background": "#355070", "foreground": "#fff" }, "action": { "type": "command", "name": "settings.nudge.flashMs.inc" } },
-    { "id": "back", "label": "← Settings", "row": 6, "col": 4, "style": { "background": "#0a7ea4", "foreground": "#fff" }, "action": { "type": "loadLayout", "layoutId": "example_settings" } }
+    { "id": "pause_dwell", "label": "Pause", "activeState": "dwellSuspend", "row": 6, "col": 4, "style": { "background": "#8b5a2b", "foreground": "#fff" }, "action": { "type": "command", "name": "toggleDwellSuspend" } },
+    { "id": "back", "label": "← Settings", "row": 5, "col": 4, "style": { "background": "#0a7ea4", "foreground": "#fff" }, "action": { "type": "loadLayout", "layoutId": "example_settings" } }
   ]
 }

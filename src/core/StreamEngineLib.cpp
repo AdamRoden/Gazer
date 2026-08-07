@@ -127,6 +127,14 @@ bool StreamEngineLib::load(QString* error)
     GAZER_BIND(gaze_point_unsubscribe, "tobii_gaze_point_unsubscribe");
 #undef GAZER_BIND
 
+    // Soft-optional head pose (not all builds/devices export these).
+    if (FARPROC hp = GetProcAddress(mod, "tobii_head_pose_subscribe")) {
+        head_pose_subscribe = reinterpret_cast<tobii_head_pose_subscribe_fn>(hp);
+    }
+    if (FARPROC hp = GetProcAddress(mod, "tobii_head_pose_unsubscribe")) {
+        head_pose_unsubscribe = reinterpret_cast<tobii_head_pose_unsubscribe_fn>(hp);
+    }
+
     m_loaded = true;
     return true;
 #else
@@ -151,6 +159,8 @@ void StreamEngineLib::unload()
     get_api_version = nullptr;
     enumerate_local_device_urls = nullptr;
     device_create = nullptr;
+    head_pose_subscribe = nullptr;
+    head_pose_unsubscribe = nullptr;
     device_destroy = nullptr;
     wait_for_callbacks = nullptr;
     device_process_callbacks = nullptr;

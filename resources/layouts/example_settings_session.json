@@ -21,7 +21,8 @@
     { "id": "tr_a", "label": "Auto Tobii", "activeState": "setting.tracker.0", "row": 2, "col": 3, "style": { "background": "#1d3557", "foreground": "#fff" }, "action": { "type": "command", "name": "settings.tracker.auto" } },
     { "id": "tr_m", "label": "Mouse", "activeState": "setting.tracker.1", "row": 2, "col": 4, "style": { "background": "#457b9d", "foreground": "#fff" }, "action": { "type": "command", "name": "settings.tracker.mouse" } },
 
-    { "id": "back", "label": "← Settings", "row": 3, "col": 0, "colSpan": 3, "style": { "background": "#0a7ea4", "foreground": "#fff" }, "action": { "type": "loadLayout", "layoutId": "example_settings" } },
+    { "id": "pause_dwell", "label": "Pause dwell", "activeState": "dwellSuspend", "row": 3, "col": 0, "style": { "background": "#8b5a2b", "foreground": "#fff" }, "action": { "type": "command", "name": "toggleDwellSuspend" } },
+    { "id": "back", "label": "← Settings", "row": 3, "col": 1, "colSpan": 2, "style": { "background": "#0a7ea4", "foreground": "#fff" }, "action": { "type": "loadLayout", "layoutId": "example_settings" } },
     { "id": "close", "label": "Close", "row": 3, "col": 3, "colSpan": 2, "style": { "background": "#4a5568", "foreground": "#fff" }, "action": { "type": "closeLayout" } }
   ]
 }

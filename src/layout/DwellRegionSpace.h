@@ -302,51 +302,106 @@ struct Resolved {
 
 // --- logical placement -------------------------------------------------------
 
-/// All screen anchors place the logical rect fully outside the display edge.
+/// Resolve region size against a reference rect (screen or board).
+[[nodiscard]] inline QSize resolveRegionSize(const LayoutDwellRegion& region, const QRect& ref)
+{
+    const int w = region.width.isSet()
+                      ? region.width.resolveInt(ref.width(), region.widthPx > 0 ? region.widthPx : 80)
+                      : (region.widthPx > 0 ? region.widthPx : 80);
+    const int h = region.height.isSet()
+                      ? region.height.resolveInt(ref.height(),
+                                                 region.heightPx > 0 ? region.heightPx : 80)
+                      : (region.heightPx > 0 ? region.heightPx : 80);
+    return {qMax(1, w), qMax(1, h)};
+}
+
+/// Resolve x/y offsets. Percent uses ref width/height. Unset → 0 (or marginPx legacy).
+[[nodiscard]] inline QPoint resolveRegionOffset(const LayoutDwellRegion& region, const QRect& ref,
+                                                bool useMarginFallback)
+{
+    int ox = region.x.isSet() ? region.x.resolveInt(ref.width(), 0) : 0;
+    int oy = region.y.isSet() ? region.y.resolveInt(ref.height(), 0) : 0;
+    if (useMarginFallback && !region.x.isSet() && !region.y.isSet() && region.marginPx != 0) {
+        // Deprecated marginPx: applied as outward offset on the primary axis in caller.
+        return {0, 0};
+    }
+    return {ox, oy};
+}
+
+/// Screen-anchor placement: x/y are offsets from the anchor origin (screen space +Y down).
+/// When x/y unset, marginPx is used as outward gap from the edge (legacy).
 [[nodiscard]] inline QRect logicalFromAnchor(const LayoutDwellRegion& region, const QRect& screen)
 {
     if (!region.isValid() || !screen.isValid()) {
         return {};
     }
+    const QSize sz = resolveRegionSize(region, screen);
+    const int w = sz.width();
+    const int h = sz.height();
     const int m = qMax(0, region.marginPx);
-    const int w = region.widthPx;
-    const int h = region.heightPx;
+    const bool hasXY = region.x.isSet() || region.y.isSet();
+    const QPoint off = resolveRegionOffset(region, screen, /*useMarginFallback=*/!hasXY);
+
     using SA = LayoutDwellRegion::ScreenAnchor;
+    // Base top-left of the hit rect before x/y offset (legacy centers on edge midpoints).
+    int baseX = 0;
+    int baseY = 0;
     switch (region.screenAnchor) {
     case SA::Top:
     case SA::TopCenter:
-        return QRect(screen.center().x() - w / 2, screen.top() - h - m, w, h);
+        baseX = screen.center().x() - w / 2;
+        baseY = hasXY ? screen.top() : (screen.top() - h - m);
+        break;
     case SA::Bottom:
     case SA::BottomCenter:
-        return QRect(screen.center().x() - w / 2, screen.bottom() + 1 + m, w, h);
+        baseX = screen.center().x() - w / 2;
+        baseY = hasXY ? (screen.bottom() + 1) : (screen.bottom() + 1 + m);
+        break;
     case SA::Left:
     case SA::LeftCenter:
-        return QRect(screen.left() - w - m, screen.center().y() - h / 2, w, h);
+        baseX = hasXY ? screen.left() : (screen.left() - w - m);
+        baseY = screen.center().y() - h / 2;
+        break;
     case SA::Right:
     case SA::RightCenter:
-        return QRect(screen.right() + 1 + m, screen.center().y() - h / 2, w, h);
-    case SA::TopLeft:
-        return QRect(screen.left() - w - m, screen.top() - h - m, w, h);
-    case SA::TopRight:
-        return QRect(screen.right() + 1 + m, screen.top() - h - m, w, h);
-    case SA::BottomLeft:
-        return QRect(screen.left() - w - m, screen.bottom() + 1 + m, w, h);
-    case SA::BottomRight:
-        return QRect(screen.right() + 1 + m, screen.bottom() + 1 + m, w, h);
-    case SA::None:
+        baseX = hasXY ? (screen.right() + 1) : (screen.right() + 1 + m);
+        baseY = screen.center().y() - h / 2;
         break;
+    case SA::TopLeft:
+        baseX = hasXY ? screen.left() : (screen.left() - w - m);
+        baseY = hasXY ? screen.top() : (screen.top() - h - m);
+        break;
+    case SA::TopRight:
+        baseX = hasXY ? (screen.right() + 1 - w) : (screen.right() + 1 + m);
+        baseY = hasXY ? screen.top() : (screen.top() - h - m);
+        break;
+    case SA::BottomLeft:
+        baseX = hasXY ? screen.left() : (screen.left() - w - m);
+        baseY = hasXY ? (screen.bottom() + 1 - h) : (screen.bottom() + 1 + m);
+        break;
+    case SA::BottomRight:
+        baseX = hasXY ? (screen.right() + 1 - w) : (screen.right() + 1 + m);
+        baseY = hasXY ? (screen.bottom() + 1 - h) : (screen.bottom() + 1 + m);
+        break;
+    case SA::None:
+        return {};
     }
-    return {};
+    return QRect(baseX + off.x(), baseY + off.y(), w, h);
 }
 
 [[nodiscard]] inline QRect logicalFromBoardLocal(const LayoutDwellRegion& region,
-                                                 const QPoint& boardOrigin)
+                                                 const QPoint& boardOrigin,
+                                                 const QSize& boardSize = QSize())
 {
     if (!region.isValid()) {
         return {};
     }
-    return QRect(boardOrigin + QPoint(qRound(region.x), qRound(region.y)),
-                 QSize(region.widthPx, region.heightPx));
+    const QRect ref(0, 0, boardSize.width() > 0 ? boardSize.width() : 1,
+                    boardSize.height() > 0 ? boardSize.height() : 1);
+    const QSize sz = resolveRegionSize(region, ref);
+    const int ox = region.x.isSet() ? region.x.resolveInt(ref.width(), 0) : 0;
+    const int oy = region.y.isSet() ? region.y.resolveInt(ref.height(), 0) : 0;
+    return QRect(boardOrigin + QPoint(ox, oy), sz);
 }
 
 // --- resolve -----------------------------------------------------------------
@@ -361,7 +416,71 @@ struct Resolved {
     return makeBand(edge, screen, alongHintFor(edge, target.center()), kDepth);
 }
 
-/// @param preferredEdge  if set (screen-anchor), use it; else nearestEdge(logical).
+/// Clamp a point onto the screen rect (inclusive).
+[[nodiscard]] inline QPoint coercePointOntoScreen(const QPoint& p, const QRect& screen)
+{
+    if (!screen.isValid()) {
+        return p;
+    }
+    return {qBound(screen.left(), p.x(), screen.right()),
+            qBound(screen.top(), p.y(), screen.bottom())};
+}
+
+/// Cardinal edge for progress chrome: based on where the logical center sits relative
+/// to the display (follows dwell-region x/y, not a fixed corner from screenAnchor alone).
+[[nodiscard]] inline Edge progressEdgeFor(const QRect& logical, const QRect& screen)
+{
+    const QPoint c = logical.center();
+    const int outL = qMax(0, screen.left() - c.x());
+    const int outR = qMax(0, c.x() - screen.right());
+    const int outT = qMax(0, screen.top() - c.y());
+    const int outB = qMax(0, c.y() - screen.bottom());
+    const int totalOut = outL + outR + outT + outB;
+    if (totalOut <= 0) {
+        // On-screen: nearest screen edge (cardinal only so along-hint is used).
+        const Edge n = nearestEdge(logical, screen);
+        switch (n) {
+        case Edge::TopLeft:
+        case Edge::TopRight:
+            return Edge::Top;
+        case Edge::BottomLeft:
+        case Edge::BottomRight:
+            return Edge::Bottom;
+        case Edge::Left:
+        case Edge::Right:
+        case Edge::Top:
+        case Edge::Bottom:
+            return n;
+        }
+        return Edge::Bottom;
+    }
+    // Dominant overflow axis → cardinal edge the region is “pushing” through.
+    Edge e = Edge::Bottom;
+    int best = outB;
+    if (outT > best) {
+        best = outT;
+        e = Edge::Top;
+    }
+    if (outL > best) {
+        best = outL;
+        e = Edge::Left;
+    }
+    if (outR > best) {
+        e = Edge::Right;
+    }
+    return e;
+}
+
+/// Progress / bubble band at the coerced-on-screen position of the dwell region.
+[[nodiscard]] inline EdgeBand bandForCoercedProgress(const QRect& logical, const QRect& screen)
+{
+    const QPoint coerced = coercePointOntoScreen(logical.center(), screen);
+    const Edge e = progressEdgeFor(logical, screen);
+    return makeBand(e, screen, alongHintFor(e, coerced), kDepth);
+}
+
+/// @param preferredEdge  if set (screen-anchor), use it for hit/drift classification;
+///                       progress bubble still uses coerced dwell position.
 [[nodiscard]] inline Resolved resolveFromLogical(const QRect& logical,
                                                  const QRect& boardScreenRect,
                                                  bool boardless,
@@ -390,7 +509,8 @@ struct Resolved {
         boardScreenRect.isEmpty() || !boardScreenRect.intersects(logical);
 
     r.edge = hasPreferredEdge ? preferredEdge : nearestEdge(logical, screen);
-    r.band = bandForTarget(r.edge, screen, logical);
+    // Progress chrome tracks coerced dwell-region position (x/y), not only anchor corner.
+    r.band = bandForCoercedProgress(logical, screen);
 
     // Hit is always the logical rect so marginPx fully controls how far off-screen
     // gaze must go. Do not union a free on-screen edge band — that made margin
@@ -422,7 +542,9 @@ struct Resolved {
                                   edgeFromAnchor(item.dwellRegion.screenAnchor));
     }
 
-    const QRect logical = logicalFromBoardLocal(item.dwellRegion, boardOrigin);
+    const QSize boardSize = boardScreenRect.isValid() ? boardScreenRect.size() : QSize();
+    const QRect logical =
+        logicalFromBoardLocal(item.dwellRegion, boardOrigin, boardSize);
     return resolveFromLogical(logical, boardScreenRect, boardless);
 }
 

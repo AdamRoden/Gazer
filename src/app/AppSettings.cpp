@@ -12,6 +12,52 @@
 
 namespace gazer {
 
+namespace {
+
+QJsonObject themeColorsToJson(const ThemeColors& c)
+{
+    QJsonObject o;
+    o.insert(QStringLiteral("bgMain"), AppSettings::colorToHex(c.bgMain));
+    o.insert(QStringLiteral("bgSurface"), AppSettings::colorToHex(c.bgSurface));
+    o.insert(QStringLiteral("bgSurfaceHover"), AppSettings::colorToHex(c.bgSurfaceHover));
+    o.insert(QStringLiteral("bgSurfaceActive"), AppSettings::colorToHex(c.bgSurfaceActive));
+    o.insert(QStringLiteral("border"), AppSettings::colorToHex(c.border));
+    o.insert(QStringLiteral("accent"), AppSettings::colorToHex(c.accent));
+    o.insert(QStringLiteral("accentHover"), AppSettings::colorToHex(c.accentHover));
+    o.insert(QStringLiteral("text"), AppSettings::colorToHex(c.text));
+    o.insert(QStringLiteral("textSecondary"), AppSettings::colorToHex(c.textSecondary));
+    o.insert(QStringLiteral("cellBg"), AppSettings::colorToHex(c.cellBg));
+    o.insert(QStringLiteral("cellHover"), AppSettings::colorToHex(c.cellHover));
+    o.insert(QStringLiteral("cellActive"), AppSettings::colorToHex(c.cellActive));
+    o.insert(QStringLiteral("danger"), AppSettings::colorToHex(c.danger));
+    return o;
+}
+
+void themeColorsFromJson(const QJsonObject& o, ThemeColors& c)
+{
+    auto set = [&](QColor& dest, const char* key) {
+        if (!o.contains(QLatin1String(key))) {
+            return;
+        }
+        dest = AppSettings::parseColor(o.value(QLatin1String(key)).toString(), dest);
+    };
+    set(c.bgMain, "bgMain");
+    set(c.bgSurface, "bgSurface");
+    set(c.bgSurfaceHover, "bgSurfaceHover");
+    set(c.bgSurfaceActive, "bgSurfaceActive");
+    set(c.border, "border");
+    set(c.accent, "accent");
+    set(c.accentHover, "accentHover");
+    set(c.text, "text");
+    set(c.textSecondary, "textSecondary");
+    set(c.cellBg, "cellBg");
+    set(c.cellHover, "cellHover");
+    set(c.cellActive, "cellActive");
+    set(c.danger, "danger");
+}
+
+} // namespace
+
 AppSettings AppSettings::defaults()
 {
     return {};
@@ -151,7 +197,8 @@ bool AppSettings::isNumericKey(const QString& key)
            || key == QLatin1String("dwellGraceMs") || key == QLatin1String("mouseMoveDwellMs")
            || key == QLatin1String("magZoom") || key == QLatin1String("magLensSize")
            || key == QLatin1String("ltsDeadzonePx") || key == QLatin1String("ltsFalloffPx")
-           || key == QLatin1String("ltsMaxNotchesPerSec") || key == QLatin1String("flashMs");
+           || key == QLatin1String("ltsMaxNotchesPerSec") || key == QLatin1String("ltsAccelPerSec")
+           || key == QLatin1String("ltsCenterDwellMs") || key == QLatin1String("flashMs");
 }
 
 QColor AppSettings::colorKey(const QString& key) const
@@ -240,6 +287,12 @@ QString AppSettings::displayValue(const QString& key) const
     }
     if (key == QLatin1String("ltsMaxNotchesPerSec")) {
         return QStringLiteral("%1 n/s").arg(ltsMaxNotchesPerSec, 0, 'f', 1);
+    }
+    if (key == QLatin1String("ltsAccelPerSec")) {
+        return QStringLiteral("%1 /s").arg(ltsAccelPerSec, 0, 'f', 2);
+    }
+    if (key == QLatin1String("ltsCenterDwellMs")) {
+        return QStringLiteral("%1 ms").arg(ltsCenterDwellMs);
     }
     if (key == QLatin1String("ltsPlaceCursorFirst") || key == QLatin1String("autoCollapseMain")
         || key == QLatin1String("startDocked") || key == QLatin1String("speakAlsoType")
@@ -545,6 +598,16 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
     startDocked = o.value(QStringLiteral("startDocked")).toBool(startDocked);
     trackerPref = o.value(QStringLiteral("trackerPref")).toInt(trackerPref);
     speakAlsoType = o.value(QStringLiteral("speakAlsoType")).toBool(speakAlsoType);
+    themeMode = themeModeFromString(o.value(QStringLiteral("themeMode")).toString(QStringLiteral("dark")));
+    if (o.contains(QStringLiteral("lightColors"))) {
+        themeColorsFromJson(o.value(QStringLiteral("lightColors")).toObject(), lightColors);
+    }
+    if (o.contains(QStringLiteral("darkColors"))) {
+        themeColorsFromJson(o.value(QStringLiteral("darkColors")).toObject(), darkColors);
+    }
+    if (o.contains(QStringLiteral("customColors"))) {
+        themeColorsFromJson(o.value(QStringLiteral("customColors")).toObject(), customColors);
+    }
 
     progressRadial = o.value(QStringLiteral("progressRadial")).toBool(progressRadial);
     progressFill = o.value(QStringLiteral("progressFill")).toBool(progressFill);
@@ -602,6 +665,10 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     o.insert(QStringLiteral("startDocked"), copy.startDocked);
     o.insert(QStringLiteral("trackerPref"), copy.trackerPref);
     o.insert(QStringLiteral("speakAlsoType"), copy.speakAlsoType);
+    o.insert(QStringLiteral("themeMode"), themeModeToString(copy.themeMode));
+    o.insert(QStringLiteral("lightColors"), themeColorsToJson(copy.lightColors));
+    o.insert(QStringLiteral("darkColors"), themeColorsToJson(copy.darkColors));
+    o.insert(QStringLiteral("customColors"), themeColorsToJson(copy.customColors));
     o.insert(QStringLiteral("progressRadial"), copy.progressRadial);
     o.insert(QStringLiteral("progressFill"), copy.progressFill);
     o.insert(QStringLiteral("progressBorder"), copy.progressBorder);

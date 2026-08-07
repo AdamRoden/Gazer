@@ -3,7 +3,6 @@
 #include "input/MouseInjector.h"
 #include "utils/Log.h"
 
-#include <QElapsedTimer>
 #include <QtMath>
 
 namespace gazer {
@@ -12,6 +11,7 @@ GazeMouseFollow::GazeMouseFollow(QObject* parent)
     : QObject(parent)
 {
     m_clock.start();
+    m_stickiness = GazeFollowStickiness::fromProfile(1);
 }
 
 void GazeMouseFollow::setEnabled(bool enabled)
@@ -32,9 +32,15 @@ void GazeMouseFollow::toggle()
     setEnabled(!m_enabled);
 }
 
+void GazeMouseFollow::setFollowProfile(int profile)
+{
+    m_stickiness = GazeFollowStickiness::fromProfile(profile);
+}
+
 void GazeMouseFollow::setSmoothAlpha(double a)
 {
-    m_alpha = qBound(0.05, a, 1.0);
+    // Map legacy fixed alpha into a snappy/sticky-ish band when set manually.
+    Q_UNUSED(a);
 }
 
 void GazeMouseFollow::onGaze(const GazePoint& point, bool pauseInput)
@@ -42,21 +48,14 @@ void GazeMouseFollow::onGaze(const GazePoint& point, bool pauseInput)
     if (!m_enabled || !point.valid || pauseInput) {
         return;
     }
-    const QPointF g(point.x, point.y);
-    if (!m_hasPos) {
-        m_smooth = g;
-        m_hasPos = true;
-    } else {
-        m_smooth.setX(m_smooth.x() * (1.0 - m_alpha) + g.x() * m_alpha);
-        m_smooth.setY(m_smooth.y() * (1.0 - m_alpha) + g.y() * m_alpha);
-    }
+    const QPointF raw(point.x, point.y);
+    m_stickiness.smoothPoint(m_smooth, m_hasPos, raw);
 
     const QPoint pixel(qRound(m_smooth.x()), qRound(m_smooth.y()));
     if (pixel == m_lastInjected) {
         return;
     }
 
-    // Cap injection rate (~60 Hz max).
     const qint64 now = m_clock.elapsed();
     if (m_lastInjectMs >= 0 && (now - m_lastInjectMs) < 16) {
         return;

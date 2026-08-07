@@ -1,5 +1,6 @@
 #pragma once
 
+#include "assist/GazeFollowStickiness.h"
 #include "core/GazePoint.h"
 
 #include <QElapsedTimer>
@@ -9,7 +10,7 @@
 
 namespace gazer {
 
-/// Assistant tool: OS cursor smoothly follows gaze (paused over boards).
+/// OS cursor follows gaze using the same stickiness profile as the magnifier.
 class GazeMouseFollow final : public QObject {
     Q_OBJECT
 
@@ -19,9 +20,9 @@ public:
     void setEnabled(bool enabled);
     [[nodiscard]] bool isEnabled() const { return m_enabled; }
     void toggle();
-    void setSmoothAlpha(double a);
-    /// @p pauseInput when true (over board / full-screen aim): do not move cursor.
-    void onGaze(const GazePoint& point, bool pauseInput);
+    void setFollowProfile(int profile);
+    void setSmoothAlpha(double a); // legacy fixed alpha (ignored when stickiness used)
+    void onGaze(const GazePoint& point, bool pauseInput = false);
 
 signals:
     void enabledChanged(bool enabled);
@@ -29,7 +30,7 @@ signals:
 private:
     bool m_enabled = false;
     bool m_hasPos = false;
-    double m_alpha = 0.35;
+    GazeFollowStickiness m_stickiness;
     QPointF m_smooth;
     QElapsedTimer m_clock;
     qint64 m_lastInjectMs = -1;
@@ -37,4 +38,3 @@ private:
 };
 
 } // namespace gazer
-

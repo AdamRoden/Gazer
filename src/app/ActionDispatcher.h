@@ -5,6 +5,7 @@
 
 #include <QObject>
 #include <QString>
+#include <QVector>
 
 namespace gazer {
 
@@ -15,7 +16,18 @@ class ActionDispatcher final : public QObject {
 public:
     explicit ActionDispatcher(GazerServices& services, QObject* parent = nullptr);
 
+    /// Dispatch item (series, optional actionLoop toggle). Preferred entry point.
+    void dispatchItem(const LayoutItem& item, const QString& sourceInstanceId);
+
+    /// Legacy: dispatch single item (uses effectiveActions / loop).
     void dispatch(LayoutItem item, const QString& sourceInstanceId);
+
+    /// Run an ordered list of actions once (no loop). Used by lifecycle hooks and series.
+    void dispatchAll(const QVector<LayoutAction>& actions, const QString& sourceInstanceId);
+
+    /// Run one action immediately.
+    void dispatchOne(const LayoutAction& action, const QString& sourceInstanceId,
+                     const QString& itemId = {});
 
 signals:
     void statusMessage(const QString& message);

@@ -7,6 +7,7 @@
 #include "ui/EdgeBubbleOverlay.h"
 #include "ui/LayoutWindow.h"
 #include "ui/ProgressVisuals.h"
+#include "ui/Theme.h"
 
 #include <QElapsedTimer>
 #include <QObject>
@@ -39,6 +40,7 @@ public:
 
     void setGlobalDwellOverride(const QVector<int>& dwellSequence, int graceMs);
     void setProgressVisuals(const ProgressVisuals& visuals);
+    void setTheme(const ThemeColors& theme);
     void setActiveItemIds(const QSet<QString>& activeIds);
     void setItemText(const QString& itemId, const QString& label, const QString& caption = {});
 
@@ -46,6 +48,8 @@ public:
     [[nodiscard]] bool containsScreenPoint(const QPointF& screenPoint) const;
     [[nodiscard]] QRect screenRect() const;
     [[nodiscard]] QPointF centerScreen() const;
+    /// On-screen affordance for unpause gap (edge band or hit if visible).
+    [[nodiscard]] QRect unpauseGapScreenRect(const LayoutItem& item) const;
 
     void feedGaze(const GazePoint& point, const QString& itemIdUnderGaze);
     void leaveGaze();
@@ -59,6 +63,8 @@ public:
 signals:
     void itemActivated(const QString& instanceId, const QString& itemId);
     void windowCloseRequested(const QString& instanceId);
+    /// Gaze left an item (or board); used so sticky toggles/loops can arm again.
+    void dwellEngagementEnded(const QString& instanceId, const QString& itemId);
 
 private:
     void applyDwellConfig();
@@ -78,6 +84,7 @@ private:
     LayoutDocument m_document;
     std::unique_ptr<LayoutWindow> m_window;
     std::unique_ptr<DwellStateMachine> m_dwell;
+    ProgressVisuals m_progressVisuals;
     QVector<int> m_globalDwellSequence;
     int m_globalGraceMs = 0;
     QString m_activeDwellItemId;

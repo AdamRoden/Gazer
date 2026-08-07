@@ -128,6 +128,7 @@ bool parseAction(const QJsonObject& obj, LayoutAction& out, QString* error)
     out.layoutId = obj.value(QStringLiteral("layoutId")).toString();
     out.name = obj.value(QStringLiteral("name")).toString();
     out.source = obj.value(QStringLiteral("source")).toString();
+    out.delayMs = obj.value(QStringLiteral("delayMs")).toInt(0);
 
     switch (out.type) {
     case LayoutAction::Type::Speak:
@@ -168,6 +169,106 @@ bool parseAction(const QJsonObject& obj, LayoutAction& out, QString* error)
         break;
     }
     return true;
+}
+
+bool parseActionList(const QJsonValue& v, QVector<LayoutAction>& out, QString* error)
+{
+    if (!v.isArray()) {
+        if (error) {
+            *error = QStringLiteral("Expected action array");
+        }
+        return false;
+    }
+    for (const QJsonValue& av : v.toArray()) {
+        if (!av.isObject()) {
+            continue;
+        }
+        LayoutAction a;
+        if (!parseAction(av.toObject(), a, error)) {
+            return false;
+        }
+        out.push_back(std::move(a));
+    }
+    return true;
+}
+
+/// Parse dim: prefer *Px key; else bare key as percent (number or "N%"); optional default.
+void parseDim(const QJsonObject& obj, const QString& baseKey, DimSpec& out)
+{
+    const QString pxKey = baseKey + QStringLiteral("Px");
+    if (obj.contains(pxKey)) {
+        out.unit = DimSpec::Unit::Pixels;
+        out.value = obj.value(pxKey).toDouble(0);
+        return;
+    }
+    if (!obj.contains(baseKey)) {
+        return;
+    }
+    const QJsonValue v = obj.value(baseKey);
+    if (v.isString()) {
+        QString s = v.toString().trimmed();
+        if (s.endsWith(QLatin1Char('%'))) {
+            s.chop(1);
+            out.unit = DimSpec::Unit::Percent;
+            out.value = s.toDouble();
+            return;
+        }
+        // bare numeric string → percent by default
+        bool ok = false;
+        const double n = s.toDouble(&ok);
+        if (ok) {
+            out.unit = DimSpec::Unit::Percent;
+            out.value = n;
+        }
+        return;
+    }
+    if (v.isDouble() || v.isBool()) {
+        out.unit = DimSpec::Unit::Percent;
+        out.value = v.toDouble(0);
+    }
+}
+
+LayoutDwellRegion::ScreenAnchor parseScreenAnchor(const QString& anchor)
+{
+    const QString a = anchor.toLower();
+    using SA = LayoutDwellRegion::ScreenAnchor;
+    if (a == QLatin1String("top")) {
+        return SA::Top;
+    }
+    if (a == QLatin1String("bottom")) {
+        return SA::Bottom;
+    }
+    if (a == QLatin1String("left")) {
+        return SA::Left;
+    }
+    if (a == QLatin1String("right")) {
+        return SA::Right;
+    }
+    if (a == QLatin1String("topleft")) {
+        return SA::TopLeft;
+    }
+    if (a == QLatin1String("topright")) {
+        return SA::TopRight;
+    }
+    if (a == QLatin1String("bottomleft")) {
+        return SA::BottomLeft;
+    }
+    if (a == QLatin1String("bottomright")) {
+        return SA::BottomRight;
+    }
+    if (a == QLatin1String("topcenter")) {
+        return SA::TopCenter;
+    }
+    if (a == QLatin1String("bottomcenter")) {
+        return SA::BottomCenter;
+    }
+    if (a == QLatin1String("leftcenter")) {
+        return SA::LeftCenter;
+    }
+    if (a == QLatin1String("rightcenter")) {
+        return SA::RightCenter;
+    }
+    return SA::None;
 }
 
 } // namespace
@@ -258,7 +359,7 @@ bool LayoutLoader::loadFromJson(const QByteArray& json, LayoutDocument& out, QSt
         parseDwellObject(root.value(QStringLiteral("dwell")).toObject(), layout.dwell);
     }
 
-    // Optional window: { "anchor", "widthPx", "heightPx", "marginPx", "hidden": true }
+    // Optional window: anchor, size/pos as % or *Px, marginPx, hidden.
     // Omit "window": show board if any grid items exist; hide pure items-only layouts.
     // "hidden": true → never show board chrome (edge/unbounded-only shells).
     if (root.contains(QStringLiteral("window"))) {
@@ -290,9 +391,47 @@ bool LayoutLoader::loadFromJson(const QByteArray& json, LayoutDocument& out, QSt
         } else {
             GAZER_WARN << "Unknown window.anchor" << anchor << "— using default";
         }
-        layout.placement.widthPx = win.value(QStringLiteral("widthPx")).toInt(0);
-        layout.placement.heightPx = win.value(QStringLiteral("heightPx")).toInt(0);
+        parseDim(win, QStringLiteral("width"), layout.placement.width);
+        parseDim(win, QStringLiteral("height"), layout.placement.height);
+        parseDim(win, QStringLiteral("x"), layout.placement.x);
+        parseDim(win, QStringLiteral("y"), layout.placement.y);
+        // Legacy: widthPx/heightPx alone (parseDim already set if present).
+        if (!layout.placement.width.isSet() && win.contains(QStringLiteral("widthPx"))) {
+            layout.placement.width.unit = DimSpec::Unit::Pixels;
+            layout.placement.width.value = win.value(QStringLiteral("widthPx")).toDouble(0);
+        }
+        if (!layout.placement.height.isSet() && win.contains(QStringLiteral("heightPx"))) {
+            layout.placement.height.unit = DimSpec::Unit::Pixels;
+            layout.placement.height.value = win.value(QStringLiteral("heightPx")).toDouble(0);
+        }
+        layout.placement.widthPx = layout.placement.width.isSet()
+                                       ? layout.placement.width.resolveInt(0, 0)
+                                       : win.value(QStringLiteral("widthPx")).toInt(0);
+        if (layout.placement.width.unit == DimSpec::Unit::Pixels) {
+            layout.placement.widthPx = qRound(layout.placement.width.value);
+        }
+        layout.placement.heightPx = layout.placement.height.isSet()
+                                        && layout.placement.height.unit == DimSpec::Unit::Pixels
+                                        ? qRound(layout.placement.height.value)
+                                        : win.value(QStringLiteral("heightPx")).toInt(0);
         layout.placement.marginPx = win.value(QStringLiteral("marginPx")).toInt(8);
+    }
+
+    // Lifecycle action arrays
+    if (root.contains(QStringLiteral("onOpen"))) {
+        if (!parseActionList(root.value(QStringLiteral("onOpen")), layout.onOpen, error)) {
+            return false;
+        }
+    }
+    if (root.contains(QStringLiteral("onLoad"))) {
+        if (!parseActionList(root.value(QStringLiteral("onLoad")), layout.onLoad, error)) {
+            return false;
+        }
+    }
+    if (root.contains(QStringLiteral("onClose"))) {
+        if (!parseActionList(root.value(QStringLiteral("onClose")), layout.onClose, error)) {
+            return false;
+        }
     }
 
     const QJsonArray items = root.value(QStringLiteral("items")).toArray();
@@ -355,58 +494,104 @@ bool LayoutLoader::loadFromJson(const QByteArray& json, LayoutDocument& out, QSt
         item.unbounded = io.value(QStringLiteral("unbounded")).toBool(false)
                          || io.value(QStringLiteral("role")).toString().toLower()
                                 == QLatin1String("unbounded");
+        item.actionLoop = io.value(QStringLiteral("actionLoop")).toBool(false)
+                          || io.value(QStringLiteral("loop")).toBool(false);
         if (io.contains(QStringLiteral("dwellRegion"))) {
             const QJsonObject dr = io.value(QStringLiteral("dwellRegion")).toObject();
             item.hasDwellRegion = true;
-            item.dwellRegion.x = dr.value(QStringLiteral("x")).toDouble(0);
-            item.dwellRegion.y = dr.value(QStringLiteral("y")).toDouble(0);
-            item.dwellRegion.widthPx = dr.value(QStringLiteral("widthPx")).toInt(
-                dr.value(QStringLiteral("width")).toInt(80));
-            item.dwellRegion.heightPx = dr.value(QStringLiteral("heightPx")).toInt(
-                dr.value(QStringLiteral("height")).toInt(80));
+            parseDim(dr, QStringLiteral("x"), item.dwellRegion.x);
+            parseDim(dr, QStringLiteral("y"), item.dwellRegion.y);
+            parseDim(dr, QStringLiteral("width"), item.dwellRegion.width);
+            parseDim(dr, QStringLiteral("height"), item.dwellRegion.height);
+            // Legacy: bare x/y as pixels when written as numbers without % intent
+            // — new default is percent; existing layouts used board-local pixel x/y.
+            // If only "x"/"y" numbers and no xPx, treat as pixels when screenAnchor is none
+            // for back-compat with board-local regions (old schema).
             item.dwellRegion.marginPx = dr.value(QStringLiteral("marginPx")).toInt(4);
-            const QString anchor =
-                dr.value(QStringLiteral("screenAnchor")).toString().toLower();
-            if (anchor == QLatin1String("top")) {
-                item.dwellRegion.screenAnchor = LayoutDwellRegion::ScreenAnchor::Top;
-            } else if (anchor == QLatin1String("bottom")) {
-                item.dwellRegion.screenAnchor = LayoutDwellRegion::ScreenAnchor::Bottom;
-            } else if (anchor == QLatin1String("left")) {
-                item.dwellRegion.screenAnchor = LayoutDwellRegion::ScreenAnchor::Left;
-            } else if (anchor == QLatin1String("right")) {
-                item.dwellRegion.screenAnchor = LayoutDwellRegion::ScreenAnchor::Right;
-            } else if (anchor == QLatin1String("topleft")) {
-                item.dwellRegion.screenAnchor = LayoutDwellRegion::ScreenAnchor::TopLeft;
-            } else if (anchor == QLatin1String("topright")) {
-                item.dwellRegion.screenAnchor = LayoutDwellRegion::ScreenAnchor::TopRight;
-            } else if (anchor == QLatin1String("bottomleft")) {
-                item.dwellRegion.screenAnchor = LayoutDwellRegion::ScreenAnchor::BottomLeft;
-            } else if (anchor == QLatin1String("bottomright")) {
-                item.dwellRegion.screenAnchor = LayoutDwellRegion::ScreenAnchor::BottomRight;
-            } else if (anchor == QLatin1String("topcenter")) {
-                item.dwellRegion.screenAnchor = LayoutDwellRegion::ScreenAnchor::TopCenter;
-            } else if (anchor == QLatin1String("bottomcenter")) {
-                item.dwellRegion.screenAnchor = LayoutDwellRegion::ScreenAnchor::BottomCenter;
-            } else if (anchor == QLatin1String("leftcenter")) {
-                item.dwellRegion.screenAnchor = LayoutDwellRegion::ScreenAnchor::LeftCenter;
-            } else if (anchor == QLatin1String("rightcenter")) {
-                item.dwellRegion.screenAnchor = LayoutDwellRegion::ScreenAnchor::RightCenter;
+            // Legacy width/height absolute fields
+            if (!item.dwellRegion.width.isSet()) {
+                const int w = dr.value(QStringLiteral("widthPx"))
+                                  .toInt(dr.value(QStringLiteral("width")).toInt(80));
+                item.dwellRegion.width.unit = DimSpec::Unit::Pixels;
+                item.dwellRegion.width.value = w;
+            }
+            if (!item.dwellRegion.height.isSet()) {
+                const int h = dr.value(QStringLiteral("heightPx"))
+                                  .toInt(dr.value(QStringLiteral("height")).toInt(80));
+                item.dwellRegion.height.unit = DimSpec::Unit::Pixels;
+                item.dwellRegion.height.value = h;
+            }
+            // If x/y were only legacy doubles without unit, parseDim set percent —
+            // for board-local (no anchor) old files used pixel coords: detect legacy.
+            item.dwellRegion.screenAnchor =
+                parseScreenAnchor(dr.value(QStringLiteral("screenAnchor")).toString());
+            if (!item.dwellRegion.usesScreenAnchor()) {
+                // Board-local legacy: bare numeric x/y/width/height are pixels
+                // (percent requires "N%" string or *Px explicit for new schema).
+                auto forcePxIfBareNumber = [&](const QString& key, const QString& pxKey,
+                                               DimSpec& dim) {
+                    if (dr.contains(pxKey)) {
+                        return;
+                    }
+                    if (!dr.contains(key)) {
+                        return;
+                    }
+                    const QJsonValue v = dr.value(key);
+                    if (v.isDouble()) {
+                        dim.unit = DimSpec::Unit::Pixels;
+                        dim.value = v.toDouble(0);
+                    }
+                };
+                forcePxIfBareNumber(QStringLiteral("x"), QStringLiteral("xPx"),
+                                    item.dwellRegion.x);
+                forcePxIfBareNumber(QStringLiteral("y"), QStringLiteral("yPx"),
+                                    item.dwellRegion.y);
+                forcePxIfBareNumber(QStringLiteral("width"), QStringLiteral("widthPx"),
+                                    item.dwellRegion.width);
+                forcePxIfBareNumber(QStringLiteral("height"), QStringLiteral("heightPx"),
+                                    item.dwellRegion.height);
+            }
+            if (item.dwellRegion.width.unit == DimSpec::Unit::Pixels) {
+                item.dwellRegion.widthPx = qRound(item.dwellRegion.width.value);
+            }
+            if (item.dwellRegion.height.unit == DimSpec::Unit::Pixels) {
+                item.dwellRegion.heightPx = qRound(item.dwellRegion.height.value);
             }
             if (item.dwellRegion.usesScreenAnchor()) {
                 item.unbounded = true;
             }
         }
 
+        if (io.contains(QStringLiteral("actions"))) {
+            if (!parseActionList(io.value(QStringLiteral("actions")), item.actions, error)) {
+                return false;
+            }
+            if (!item.actions.isEmpty()) {
+                item.action = item.actions.first();
+            }
+        }
         if (io.contains(QStringLiteral("action"))) {
             if (!parseAction(io.value(QStringLiteral("action")).toObject(), item.action, error)) {
                 return false;
             }
-            // Convenience: suspend/resume controls stay dwellable under global suspend.
-            if (item.action.type == LayoutAction::Type::Command
-                && (item.action.name == QLatin1String("toggleDwellSuspend")
-                    || item.action.name == QLatin1String("suspendDwell")
-                    || item.action.name == QLatin1String("resumeDwell"))) {
+            if (item.actions.isEmpty()) {
+                item.actions.push_back(item.action);
+            }
+        }
+
+        auto isDwellSuspendCmd = [](const LayoutAction& a) {
+            return a.type == LayoutAction::Type::Command
+                   && (a.name == QLatin1String("toggleDwellSuspend")
+                       || a.name == QLatin1String("suspendDwell")
+                       || a.name == QLatin1String("resumeDwell"));
+        };
+        if (isDwellSuspendCmd(item.action)) {
+            item.dwellExempt = true;
+        }
+        for (const LayoutAction& a : item.actions) {
+            if (isDwellSuspendCmd(a)) {
                 item.dwellExempt = true;
+                break;
             }
         }
 

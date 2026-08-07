@@ -1,6 +1,8 @@
 #include "app/GazerServices.h"
 
 #include "assist/AssistCommands.h"
+#include "input/InputTypes.h"
+#include "ui/Theme.h"
 #include "utils/Log.h"
 
 #include <QColor>
@@ -76,6 +78,7 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
     m_gazeReticle = std::make_unique<GazeReticle>();
     m_gazeMouseFollow = std::make_unique<GazeMouseFollow>();
     m_assistSession = std::make_unique<AssistSession>();
+    m_actionLoops = std::make_unique<ActionLoopService>();
     m_scripts = std::make_unique<ScriptHost>(*m_phrases, *m_commands, *m_input, *m_instances);
 
     m_catalog->setLayoutsDirectory(layoutsDir);
@@ -94,6 +97,8 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
 
     m_instances->setDocumentDecorator(
         [this](LayoutDocument& doc) { decorateSettingsDocument(doc); });
+    m_instances->setInstanceTeardownHook(
+        [this](const QString& instanceId) { m_actionLoops->stopInstance(instanceId); });
 
     registerDomainCommands();
     registerSettingsCommands();
@@ -113,6 +118,8 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
             [this](bool) { refreshActiveIndicators(); });
     connect(m_gazeMouseFollow.get(), &GazeMouseFollow::enabledChanged, this,
             [this](bool) { refreshActiveIndicators(); });
+    connect(m_actionLoops.get(), &ActionLoopService::loopsChanged, this,
+            [this]() { refreshActiveIndicators(); });
     connect(this, &GazerServices::settingsChanged, this, [this]() { refreshActiveIndicators(); });
     connect(m_instances.get(), &LayoutInstanceManager::sessionChanged, this,
             [this]() { refreshActiveIndicators(); });
@@ -134,7 +141,11 @@ bool GazerServices::resolveActiveState(const QString& key) const
         return m_lookToScroll && m_lookToScroll->isScrollSuspended();
     }
     if (key == QLatin1String("mouseDwellMove")) {
-        return m_mouseDwellMove && m_mouseDwellMove->isArmed();
+        return m_mouseDwellMove && m_mouseDwellMove->isArmed()
+               && !m_mouseDwellMove->isClickLoop();
+    }
+    if (key == QLatin1String("loop.gazeClick") || key == QLatin1String("mouseDwellClickLoop")) {
+        return m_mouseDwellMove && m_mouseDwellMove->isClickLoop();
     }
     if (key == QLatin1String("mouseMoveMagPick")) {
         return m_settings.mouseMoveMagPick;
@@ -150,6 +161,9 @@ bool GazerServices::resolveActiveState(const QString& key) const
     }
     if (key == QLatin1String("gazeMouseFollow")) {
         return m_gazeMouseFollow && m_gazeMouseFollow->isEnabled();
+    }
+    if (m_actionLoops && m_actionLoops->isActiveState(key)) {
+        return true;
     }
     if (key == QLatin1String("mouse.leftHold")) {
         return m_mouseAssist && m_mouseAssist->isLeftHeld();
@@ -210,6 +224,15 @@ bool GazerServices::resolveActiveState(const QString& key) const
     }
     if (key == QLatin1String("setting.tracker.1")) {
         return m_settings.trackerPref == 1;
+    }
+    if (key == QLatin1String("setting.theme.dark")) {
+        return m_settings.themeMode == ThemeMode::Dark;
+    }
+    if (key == QLatin1String("setting.theme.light")) {
+        return m_settings.themeMode == ThemeMode::Light;
+    }
+    if (key == QLatin1String("setting.theme.custom")) {
+        return m_settings.themeMode == ThemeMode::Custom;
     }
     return false;
 }
@@ -302,6 +325,7 @@ void GazerServices::applySettings(bool persist)
         AppSettings::parseColor(m_settings.flashFillColor, QColor(0, 220, 255, 120));
     boardPv.flashMs = m_settings.flashMs;
     m_instances->applyProgressVisuals(boardPv);
+    m_instances->applyTheme(m_settings.resolvedTheme());
 
     m_mouseDwellMove->setDwellMs(m_settings.mouseMoveDwellMs);
     m_mouseDwellMove->setMagPickEnabled(m_settings.mouseMoveMagPick);
@@ -328,6 +352,8 @@ void GazerServices::applySettings(bool persist)
     m_magnifier->setZoom(m_settings.magZoom);
     m_magnifier->setLensSize(m_settings.magLensSize);
     m_magnifier->setFollowProfile(m_settings.magFollowProfile);
+    m_gazeReticle->setFollowProfile(m_settings.magFollowProfile);
+    m_gazeMouseFollow->setFollowProfile(m_settings.magFollowProfile);
 
     m_mapping->setSpeakAlsoType(m_settings.speakAlsoType);
 
@@ -630,32 +656,21 @@ bool GazerServices::openColorPicker(const QString& colorKey, QString* error)
                                   0, 5, QStringLiteral("Current %1")
                                             .arg(m_settings.displayValue(colorKey))));
 
-    const char* palette[] = {"00DCFF", "FFFFFF", "FFC828", "00FF88", "FF4488",
-                             "8866FF", "FF8800", "33AADD", "AABBCC", "222222"};
-    for (int i = 0; i < 10; ++i) {
-        const int row = 1 + i / 5;
-        const int col = i % 5;
-        const QString hex = QLatin1String(palette[i]);
-        doc.items.push_back(makeItem(
-            QStringLiteral("c%1").arg(i), hex, row, col, LayoutAction::Type::Command,
-            QStringLiteral("settings.color.%1.%2").arg(colorKey, hex),
-            QColor(QStringLiteral("#%1").arg(hex))));
-    }
-    doc.items.push_back(makeItem(QStringLiteral("cancel"), QStringLiteral("Cancel"), 2, 3,
-                                 LayoutAction::Type::Command,
-                                 QStringLiteral("settings.color.cancel"), QColor(90, 50, 55), 2));
-
-    // Fix row occupancy: row 2 has colors 5-9, cancel overlaps - put cancel on its own
-    // Rebuild simpler: row1 5 colors, row2 5 colors is full. Cancel replaces last?
-    // Move cancel to only use after palette - use 4 rows.
-    doc.grid.rows = 4;
+    // Voice-aligned sample palette (first 15 + cancel).
+    doc.grid.rows = 5;
+    doc.grid.columns = 5;
     doc.items.clear();
     doc.items.push_back(makeLabel(QStringLiteral("title"), AppSettings::settingTitle(colorKey), 0,
                                   0, 5, m_settings.displayValue(colorKey)));
-    for (int i = 0; i < 10; ++i) {
+    const QVector<QString> palette = voiceColorPalette();
+    const int nSwatches = qMin(15, palette.size());
+    for (int i = 0; i < nSwatches; ++i) {
         const int row = 1 + i / 5;
         const int col = i % 5;
-        const QString hex = QLatin1String(palette[i]);
+        QString hex = palette[i];
+        if (hex.startsWith(QLatin1Char('#'))) {
+            hex = hex.mid(1);
+        }
         doc.items.push_back(makeItem(
             QStringLiteral("c%1").arg(i), QStringLiteral("■ %1").arg(hex), row, col,
             LayoutAction::Type::Command,
@@ -732,6 +747,35 @@ void GazerServices::registerDomainCommands()
     m_assistCmdCtx->refreshActiveIndicators = [this]() { refreshActiveIndicators(); };
     m_assistCmdCtx->notifyStatus = [this](const QString& msg) { notifyStatus(msg); };
     registerAssistCommands(*m_assistCmdCtx);
+
+    m_commands->registerBuiltin(QStringLiteral("mouseMoveToGaze"), [this](QString* error) {
+        if (!m_lastGaze.valid) {
+            if (error) {
+                *error = QStringLiteral("No valid gaze sample");
+            }
+            return false;
+        }
+        InputOutput o;
+        o.type = InputOutput::Type::MouseMoveTo;
+        o.dx = qRound(m_lastGaze.x);
+        o.dy = qRound(m_lastGaze.y);
+        return m_input->execute(o, error);
+    });
+    // Ensure click works even if mapping profile failed to load.
+    m_commands->registerBuiltin(QStringLiteral("mouseLeftClick"), [this](QString* error) {
+        InputOutput o;
+        o.type = InputOutput::Type::MouseClick;
+        o.button = QStringLiteral("left");
+        return m_input->execute(o, error);
+    });
+    m_commands->registerBuiltin(QStringLiteral("stopAllActionLoops"), [this](QString*) {
+        if (m_actionLoops) {
+            m_actionLoops->stopAll();
+        }
+        refreshActiveIndicators();
+        notifyStatus(QStringLiteral("All action loops stopped"));
+        return true;
+    });
 }
 
 void GazerServices::registerSettingsCommands()
@@ -811,6 +855,12 @@ void GazerServices::registerSettingsCommands()
             } else if (key == QLatin1String("ltsMaxNotchesPerSec")) {
                 m_settings.ltsMaxNotchesPerSec =
                     qBound(0.5, m_settings.ltsMaxNotchesPerSec + dir * 0.5, 24.0);
+            } else if (key == QLatin1String("ltsAccelPerSec")) {
+                m_settings.ltsAccelPerSec =
+                    qBound(0.0, m_settings.ltsAccelPerSec + dir * 0.05, 2.0);
+            } else if (key == QLatin1String("ltsCenterDwellMs")) {
+                m_settings.ltsCenterDwellMs =
+                    qBound(200, m_settings.ltsCenterDwellMs + dir * 50, 2500);
             } else if (key == QLatin1String("flashMs")) {
                 m_settings.flashMs = qBound(40, m_settings.flashMs + dir * 20, 1000);
             }
@@ -823,7 +873,8 @@ void GazerServices::registerSettingsCommands()
 
     for (const char* key :
          {"dwellMs", "dwellGraceMs", "mouseMoveDwellMs", "magZoom", "magLensSize",
-          "ltsDeadzonePx", "ltsFalloffPx", "ltsMaxNotchesPerSec", "flashMs"}) {
+          "ltsDeadzonePx", "ltsFalloffPx", "ltsMaxNotchesPerSec", "ltsAccelPerSec",
+          "ltsCenterDwellMs", "flashMs"}) {
         m_commands->registerBuiltin(QStringLiteral("settings.nudge.%1.dec").arg(QLatin1String(key)),
                                     nudge(QLatin1String(key), -1));
         m_commands->registerBuiltin(QStringLiteral("settings.nudge.%1.inc").arg(QLatin1String(key)),

@@ -52,10 +52,24 @@ LayoutInstance::LayoutInstance(QString instanceId, LayoutDocument document, QObj
             });
     connect(m_dwell.get(), &DwellStateMachine::itemActivated, this,
             [this](const QString& itemId) {
-                if (m_window) {
-                    m_window->flashItem(itemId);
+                const LayoutItem* item = m_document.findItem(itemId);
+                const bool unbounded =
+                    item && (!item->participatesInBoardGrid() || item->hasDwellRegion);
+                if (unbounded && m_edgeBubbles) {
+                    ProgressVisuals v = m_progressVisuals;
+                    if (m_document.dwell.sectionPresent) {
+                        v = v.mergedWith(m_document.dwell);
+                    }
+                    if (item && item->dwell.sectionPresent) {
+                        v = v.mergedWith(item->dwell);
+                    }
+                    m_edgeBubbles->flashThenClear(m_instanceId, v, v.flashMs);
+                } else {
+                    if (m_window) {
+                        m_window->flashItem(itemId);
+                    }
+                    clearEdgeBubble();
                 }
-                clearEdgeBubble();
                 emit itemActivated(m_instanceId, itemId);
             });
 
@@ -106,8 +120,16 @@ void LayoutInstance::setGlobalDwellOverride(const QVector<int>& dwellSequence, i
 
 void LayoutInstance::setProgressVisuals(const ProgressVisuals& visuals)
 {
+    m_progressVisuals = visuals;
     if (m_window) {
         m_window->setProgressVisuals(visuals);
+    }
+}
+
+void LayoutInstance::setTheme(const ThemeColors& theme)
+{
+    if (m_window) {
+        m_window->setTheme(theme);
     }
 }
 
@@ -191,26 +213,34 @@ void LayoutInstance::applyPlacement(int cascadeOffset)
 
     m_window->setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
 
-    if (p.widthPx > 0 && p.heightPx > 0) {
-        m_window->setMinimumSize(qMax(40, qMin(p.widthPx, 80)), qMax(40, qMin(p.heightPx, 80)));
-        m_window->resize(p.widthPx, p.heightPx);
-    } else {
-        m_window->setMinimumSize(320, 160);
-        m_window->resize(1000, 560);
-    }
+    QScreen* screen = QGuiApplication::primaryScreen();
+    const QRect avail = screen ? screen->availableGeometry() : QRect(0, 0, 1920, 1080);
 
-    if (p.anchor == LayoutWindowPlacement::Anchor::Default) {
+    int winW = 1000;
+    int winH = 560;
+    if (p.width.isSet()) {
+        winW = qMax(40, p.width.resolveInt(avail.width(), p.widthPx > 0 ? p.widthPx : 1000));
+    } else if (p.widthPx > 0) {
+        winW = p.widthPx;
+    }
+    if (p.height.isSet()) {
+        winH = qMax(40, p.height.resolveInt(avail.height(), p.heightPx > 0 ? p.heightPx : 560));
+    } else if (p.heightPx > 0) {
+        winH = p.heightPx;
+    }
+    m_window->setMinimumSize(qMax(40, qMin(winW, 80)), qMax(40, qMin(winH, 80)));
+    m_window->resize(winW, winH);
+
+    if (p.anchor == LayoutWindowPlacement::Anchor::Default && !p.x.isSet() && !p.y.isSet()) {
         placeRelative(cascadeOffset, cascadeOffset);
         return;
     }
 
-    QScreen* screen = QGuiApplication::primaryScreen();
     if (!screen) {
         placeRelative(cascadeOffset, cascadeOffset);
         return;
     }
 
-    const QRect avail = screen->availableGeometry();
     const int margin = qMax(0, p.marginPx);
     const int w = m_window->width();
     const int h = m_window->height();
@@ -254,7 +284,15 @@ void LayoutInstance::applyPlacement(int cascadeOffset)
         break;
     }
 
-    m_window->move(x, y);
+    // Explicit x/y replace or offset from anchor-computed position.
+    if (p.x.isSet()) {
+        x = avail.left() + p.x.resolveInt(avail.width(), 0);
+    }
+    if (p.y.isSet()) {
+        y = avail.top() + p.y.resolveInt(avail.height(), 0);
+    }
+
+    m_window->move(x + cascadeOffset, y + cascadeOffset);
 }
 
 void LayoutInstance::placeRelative(int offsetX, int offsetY)
@@ -306,6 +344,29 @@ QRect LayoutInstance::itemHitRect(const LayoutItem& item) const
     const auto r = resolveItem(item);
     const bool engaged = !m_dwellLipItemId.isEmpty() && m_dwellLipItemId == item.id;
     return r.hitWithDriftLip(engaged);
+}
+
+QRect LayoutInstance::unpauseGapScreenRect(const LayoutItem& item) const
+{
+    if (item.participatesInBoardGrid()) {
+        return gridItemScreenRect(item.id);
+    }
+    const auto r = resolveItem(item);
+    // Prefer visible edge band (coerced progress position); else on-screen part of hit.
+    if (!r.band.onScreen.isEmpty()) {
+        return r.band.onScreen.toRect();
+    }
+    const QRect desktop = DwellRegionSpace::virtualDesktop();
+    const QRect hit = r.hit;
+    if (!hit.isEmpty() && desktop.intersects(hit)) {
+        return desktop.intersected(hit);
+    }
+    // Fallback: small chip at coerced center.
+    if (!hit.isEmpty() && desktop.isValid()) {
+        const QPoint c = DwellRegionSpace::coercePointOntoScreen(hit.center(), desktop);
+        return QRect(c.x() - 40, c.y() - 40, 80, 80).intersected(desktop);
+    }
+    return {};
 }
 
 QRect LayoutInstance::screenRect() const
@@ -434,12 +495,21 @@ void LayoutInstance::syncEdgeBubble(const QString& itemId, double progress)
         return;
     }
 
+    ProgressVisuals v = m_progressVisuals;
+    if (m_document.dwell.sectionPresent) {
+        v = v.mergedWith(m_document.dwell);
+    }
+    if (item->dwell.sectionPresent) {
+        v = v.mergedWith(item->dwell);
+    }
+
     EdgeBubbleOverlay::Bubble b;
     b.key = m_instanceId; // one slot per board instance
     b.label = item->label;
     b.band = resolved.band;
     b.progress = progress;
-    b.color = QColor(0, 220, 255);
+    b.visuals = v;
+    b.flashing = false;
     m_edgeBubbles->setBubble(b);
 }
 
@@ -455,6 +525,7 @@ void LayoutInstance::feedGaze(const GazePoint& point, const QString& itemIdUnder
     if (itemIdUnderGaze != m_activeDwellItemId) {
         if (!m_activeDwellItemId.isEmpty()) {
             clearEdgeBubble();
+            emit dwellEngagementEnded(m_instanceId, m_activeDwellItemId);
         }
         // Target change: drop drift lip until new item dwells long enough.
         m_dwellLipItemId.clear();
@@ -468,6 +539,9 @@ void LayoutInstance::feedGaze(const GazePoint& point, const QString& itemIdUnder
 void LayoutInstance::leaveGaze()
 {
     clearEdgeBubble();
+    if (!m_activeDwellItemId.isEmpty()) {
+        emit dwellEngagementEnded(m_instanceId, m_activeDwellItemId);
+    }
     m_dwellLipItemId.clear();
     m_dwellLipTrackItemId.clear();
     m_activeDwellItemId.clear();

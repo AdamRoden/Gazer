@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ui/Theme.h"
+
 #include <QColor>
 #include <QString>
 #include <QVector>
@@ -57,6 +59,25 @@ struct AppSettings {
 
     // --- Speech ---
     bool speakAlsoType = true;
+
+    // --- Theme (Voice-aligned) ---
+    ThemeMode themeMode = ThemeMode::Dark;
+    ThemeColors lightColors = ThemeColors::lightPreset();
+    ThemeColors darkColors = ThemeColors::darkPreset();
+    ThemeColors customColors = ThemeColors::darkPreset();
+
+    [[nodiscard]] ThemeColors resolvedTheme() const
+    {
+        switch (themeMode) {
+        case ThemeMode::Light:
+            return lightColors;
+        case ThemeMode::Custom:
+            return customColors;
+        case ThemeMode::Dark:
+        default:
+            return darkColors;
+        }
+    }
 
     [[nodiscard]] static AppSettings defaults();
     [[nodiscard]] static QString defaultFilePath();

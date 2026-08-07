@@ -36,6 +36,9 @@ public:
     tobii_system_clock_fn system_clock = nullptr;
     tobii_gaze_point_subscribe_fn gaze_point_subscribe = nullptr;
     tobii_gaze_point_unsubscribe_fn gaze_point_unsubscribe = nullptr;
+    /// Optional — may be null if DLL export missing.
+    tobii_head_pose_subscribe_fn head_pose_subscribe = nullptr;
+    tobii_head_pose_unsubscribe_fn head_pose_unsubscribe = nullptr;
 
     [[nodiscard]] QString errorString(tobii_error_t err) const;
 

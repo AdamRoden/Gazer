@@ -40,14 +40,16 @@ void GazeRouter::dispatch(const GazePoint& point)
         }
     }
 
-    // Pause LTS / gaze-follow while over UI or while full-screen aiming.
+    // Pause LTS while over UI or while full-screen aiming.
+    // Gaze→mouse keeps tracking over boards (product intent); still pause during
+    // free-aim mouse-dwell / mag-pick so those tools own the cursor.
     const bool pauseBackgroundAssist = overBoard || overDockReveal || freeAim;
 
     if (m_gazeReticle) {
         m_gazeReticle->onGaze(point);
     }
     if (m_gazeFollow) {
-        m_gazeFollow->onGaze(point, pauseBackgroundAssist);
+        m_gazeFollow->onGaze(point, /*pauseInput=*/freeAim);
     }
     if (m_lookToScroll) {
         m_lookToScroll->onGaze(point, pauseBackgroundAssist);

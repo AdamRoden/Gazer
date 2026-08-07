@@ -26,9 +26,22 @@ void LayoutInstanceManager::wireInstance(LayoutInstance* inst)
         inst->setEdgeBubbleOverlay(m_edgeBubbles);
     }
     inst->setDwellSuspended(m_dwellSuspended);
+    inst->setTheme(m_theme);
+    inst->setProgressVisuals(m_progressVisuals);
     connect(inst, &LayoutInstance::itemActivated, this, &LayoutInstanceManager::itemActivated);
     connect(inst, &LayoutInstance::windowCloseRequested, this,
             &LayoutInstanceManager::onWindowCloseRequested);
+    connect(inst, &LayoutInstance::dwellEngagementEnded, this,
+            &LayoutInstanceManager::dwellEngagementEnded);
+}
+
+void LayoutInstanceManager::fireLifecycle(const QVector<LayoutAction>& actions,
+                                          const QString& instanceId) const
+{
+    if (actions.isEmpty() || !m_lifecycleRunner) {
+        return;
+    }
+    m_lifecycleRunner(actions, instanceId);
 }
 
 void LayoutInstanceManager::setDwellSuspended(bool suspended)
@@ -114,6 +127,29 @@ const LayoutDocument* LayoutInstanceManager::requireDoc(const QString& layoutId,
     return doc;
 }
 
+void LayoutInstanceManager::replaceInstanceDocument(LayoutInstance* inst, LayoutDocument newDoc,
+                                                    bool fireOnLoad)
+{
+    if (!inst) {
+        return;
+    }
+    const QString instanceId = inst->instanceId();
+    // Outgoing layout lifecycle + stop sticky loops for this instance.
+    fireLifecycle(inst->document().onClose, instanceId);
+    if (m_instanceTeardown) {
+        m_instanceTeardown(instanceId);
+    }
+    inst->setDocument(std::move(newDoc));
+    if (!m_globalDwellSequence.isEmpty() || m_globalGraceMs > 0) {
+        inst->setGlobalDwellOverride(m_globalDwellSequence, m_globalGraceMs);
+    }
+    inst->setProgressVisuals(m_progressVisuals);
+    inst->setTheme(m_theme);
+    if (fireOnLoad) {
+        fireLifecycle(inst->document().onLoad, instanceId);
+    }
+}
+
 bool LayoutInstanceManager::applyDocument(LayoutInstance* inst, const QString& layoutId,
                                           QString* error)
 {
@@ -121,10 +157,7 @@ bool LayoutInstanceManager::applyDocument(LayoutInstance* inst, const QString& l
     if (!doc) {
         return false;
     }
-    inst->setDocument(decorateCopy(*doc));
-    if (!m_globalDwellSequence.isEmpty() || m_globalGraceMs > 0) {
-        inst->setGlobalDwellOverride(m_globalDwellSequence, m_globalGraceMs);
-    }
+    replaceInstanceDocument(inst, decorateCopy(*doc), /*fireOnLoad=*/true);
     return true;
 }
 
@@ -205,6 +238,14 @@ bool LayoutInstanceManager::eraseSecondary(const QString& instanceId, QString* e
         m_focusedId = m_masterId;
     }
 
+    // onClose while instance still valid
+    if (*it) {
+        fireLifecycle((*it)->document().onClose, instanceId);
+    }
+    if (m_instanceTeardown) {
+        m_instanceTeardown(instanceId);
+    }
+
     m_instances.erase(it);
     emit instanceClosed(instanceId);
     return true;
@@ -269,10 +310,7 @@ bool LayoutInstanceManager::loadInto(const QString& instanceId, const QString& l
         return false;
     }
 
-    inst->setDocument(decorateCopy(*doc));
-    if (!m_globalDwellSequence.isEmpty() || m_globalGraceMs > 0) {
-        inst->setGlobalDwellOverride(m_globalDwellSequence, m_globalGraceMs);
-    }
+    replaceInstanceDocument(inst, decorateCopy(*doc), /*fireOnLoad=*/true);
     setFocused(instanceId, true);
     emit sessionChanged();
     return true;
@@ -299,10 +337,7 @@ bool LayoutInstanceManager::navigateMaster(const QString& layoutId, QString* err
             }
             return false;
         }
-        master->setDocument(decorateCopy(*doc));
-        if (!m_globalDwellSequence.isEmpty() || m_globalGraceMs > 0) {
-            master->setGlobalDwellOverride(m_globalDwellSequence, m_globalGraceMs);
-        }
+        replaceInstanceDocument(master, decorateCopy(*doc), /*fireOnLoad=*/true);
         // Always show after navigation (e.g. dock → Main must leave hidden state).
         // Application::syncMasterChrome may hide again only for gaze-reveal docks.
         master->raise();
@@ -324,10 +359,14 @@ bool LayoutInstanceManager::navigateMaster(const QString& layoutId, QString* err
     }
     inst->applyPlacement(0);
     wireInstance(inst.get());
+    const QVector<LayoutAction> onOpen = inst->document().onOpen;
+    const QVector<LayoutAction> onLoad = inst->document().onLoad;
     m_masterId = id;
     m_masterGroup = doc->session.masterGroup;
     m_instances.push_back(std::move(inst));
     setFocused(id, true);
+    fireLifecycle(onOpen, id);
+    fireLifecycle(onLoad, id);
     GAZER_INFO << "Opened master" << id << layoutId << "group" << m_masterGroup;
     emit instanceOpened(id, layoutId);
     emit sessionChanged();
@@ -357,8 +396,12 @@ QString LayoutInstanceManager::openSecondary(const QString& layoutId, QString* e
     const int offset = static_cast<int>(m_instances.size()) * 40;
     inst->applyPlacement(offset);
     wireInstance(inst.get());
+    const QVector<LayoutAction> onOpen = inst->document().onOpen;
+    const QVector<LayoutAction> onLoad = inst->document().onLoad;
     m_instances.push_back(std::move(inst));
     setFocused(id, true);
+    fireLifecycle(onOpen, id);
+    fireLifecycle(onLoad, id);
     GAZER_INFO << "Opened secondary" << id << layoutId;
     emit instanceOpened(id, layoutId);
     emit sessionChanged();
@@ -478,6 +521,16 @@ void LayoutInstanceManager::applyProgressVisuals(const ProgressVisuals& visuals)
     }
 }
 
+void LayoutInstanceManager::applyTheme(const ThemeColors& theme)
+{
+    m_theme = theme;
+    for (const auto& p : m_instances) {
+        if (p) {
+            p->setTheme(theme);
+        }
+    }
+}
+
 void LayoutInstanceManager::refreshActiveIndicators(const ActiveStateResolver& resolver)
 {
     if (!resolver) {
@@ -534,14 +587,7 @@ bool LayoutInstanceManager::setInstanceDocument(const QString& instanceId, Layou
         }
         return false;
     }
-    if (!m_globalDwellSequence.isEmpty() || m_globalGraceMs > 0) {
-        // setDocument then re-apply override
-    }
-    inst->setDocument(std::move(doc));
-    if (!m_globalDwellSequence.isEmpty() || m_globalGraceMs > 0) {
-        inst->setGlobalDwellOverride(m_globalDwellSequence, m_globalGraceMs);
-    }
-    inst->setProgressVisuals(m_progressVisuals);
+    replaceInstanceDocument(inst, std::move(doc), /*fireOnLoad=*/true);
     setFocused(instanceId, true);
     emit sessionChanged();
     return true;

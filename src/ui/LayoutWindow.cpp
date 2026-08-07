@@ -139,12 +139,16 @@ void LayoutWindow::paintProgressChrome(QPainter& p, const QRectF& r, bool hovere
     }
 
     if (visuals.fillBackground) {
+        // Grow from center outward.
         QColor fill = visuals.fillColor;
         fill.setAlpha(qBound(0, int(fill.alpha() * progress + 20 * progress), 255));
         p.setPen(Qt::NoPen);
         p.setBrush(fill);
-        const double h = r.height() * progress;
-        p.drawRoundedRect(QRectF(r.left(), r.bottom() - h, r.width(), h), 12, 12);
+        const double cx = r.center().x();
+        const double cy = r.center().y();
+        const double hw = r.width() * 0.5 * progress;
+        const double hh = r.height() * 0.5 * progress;
+        p.drawRoundedRect(QRectF(cx - hw, cy - hh, hw * 2.0, hh * 2.0), 12, 12);
     }
 
     if (visuals.border) {
@@ -256,15 +260,21 @@ void LayoutWindow::mouseReleaseEvent(QMouseEvent* event)
     }
 }
 
+void LayoutWindow::setTheme(const ThemeColors& theme)
+{
+    m_theme = theme;
+    update();
+}
+
 void LayoutWindow::paintDefault(QPainter& p)
 {
-    p.fillRect(rect(), QColor(18, 20, 26));
-    p.setPen(QPen(QColor(0, 180, 210, 200), 2.0));
+    p.fillRect(rect(), m_theme.bgMain);
+    p.setPen(QPen(m_theme.accent, 2.0));
     p.setBrush(Qt::NoBrush);
     p.drawRoundedRect(QRectF(rect()).adjusted(1.0, 1.0, -1.0, -1.0), 12, 12);
 
     if (!m_layout.isValid()) {
-        p.setPen(QColor(200, 80, 80));
+        p.setPen(m_theme.danger);
         p.drawText(rect(), Qt::AlignCenter, QStringLiteral("No layout loaded"));
         return;
     }
@@ -280,23 +290,23 @@ void LayoutWindow::paintDefault(QPainter& p)
 
         const bool hovered = (item.id == m_hoverId);
         const bool active = m_activeItemIds.contains(item.id);
-        QColor bg = item.style.background.value_or(QColor(40, 48, 62));
-        QColor fg = item.style.foreground.value_or(QColor(230, 236, 245));
+        QColor bg = item.style.background.value_or(m_theme.cellBg);
+        QColor fg = item.style.foreground.value_or(m_theme.text);
         if (active) {
-            bg = QColor(0, 140, 160);
-            fg = QColor(255, 255, 255);
+            bg = m_theme.accent;
+            fg = m_theme.bgMain;
         }
         if (hovered) {
             bg = bg.lighter(120);
         }
 
-        p.setPen(QPen(active ? QColor(0, 240, 255) : QColor(70, 90, 110), active ? 2.5 : 1.5));
+        p.setPen(QPen(active ? m_theme.accentHover : m_theme.border, active ? 2.5 : 1.5));
         p.setBrush(bg);
         p.drawRoundedRect(r, 10, 10);
         if (active) {
             // Corner indicator chip
             p.setPen(Qt::NoPen);
-            p.setBrush(QColor(0, 255, 200));
+            p.setBrush(m_theme.accentHover);
             p.drawEllipse(QRectF(r.right() - 16, r.top() + 6, 10, 10));
         }
         paintProgressChrome(p, r, hovered, m_hoverProgress, visualsForItem(&item));
@@ -319,30 +329,32 @@ void LayoutWindow::paintDefault(QPainter& p)
 
 void LayoutWindow::paintFluent(QPainter& p)
 {
-    // Soft acrylic-like panel
+    // Soft acrylic-like panel from theme
     QLinearGradient bg(0, 0, 0, height());
-    bg.setColorAt(0.0, QColor(32, 36, 48));
-    bg.setColorAt(1.0, QColor(22, 24, 32));
+    bg.setColorAt(0.0, m_theme.bgSurface);
+    bg.setColorAt(1.0, m_theme.bgMain);
     p.fillRect(rect(), bg);
 
-    p.setPen(QPen(QColor(96, 205, 255, 90), 1.5));
+    QColor accentBorder = m_theme.accent;
+    accentBorder.setAlpha(90);
+    p.setPen(QPen(accentBorder, 1.5));
     p.setBrush(Qt::NoBrush);
     p.drawRoundedRect(QRectF(rect()).adjusted(1.5, 1.5, -1.5, -1.5), 18, 18);
 
     // Title strip
     QFont titleFont(QStringLiteral("Segoe UI"), 16, QFont::DemiBold);
     p.setFont(titleFont);
-    p.setPen(QColor(243, 246, 252));
+    p.setPen(m_theme.text);
     p.drawText(QRect(24, 14, width() - 48, 28), Qt::AlignLeft | Qt::AlignVCenter, m_layout.name);
     if (!m_layout.description.isEmpty()) {
         p.setFont(QFont(QStringLiteral("Segoe UI"), 10));
-        p.setPen(QColor(160, 170, 190));
+        p.setPen(m_theme.textSecondary);
         p.drawText(QRect(24, 40, width() - 48, 22), Qt::AlignLeft | Qt::AlignVCenter,
                    m_layout.description);
     }
 
     if (!m_layout.isValid()) {
-        p.setPen(QColor(200, 80, 80));
+        p.setPen(m_theme.danger);
         p.drawText(rect(), Qt::AlignCenter, QStringLiteral("No layout loaded"));
         return;
     }

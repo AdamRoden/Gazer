@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/GazePoint.h"
+#include "core/HeadPose.h"
 
 #include <QObject>
 #include <QString>
@@ -27,6 +28,7 @@ public:
 
 signals:
     void gazeUpdated(const gazer::GazePoint& point);
+    void headPoseUpdated(const gazer::HeadPose& pose);
     void trackingLost();
     void trackingRestored();
 };

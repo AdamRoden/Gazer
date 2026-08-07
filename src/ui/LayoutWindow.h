@@ -2,6 +2,7 @@
 
 #include "layout/LayoutTypes.h"
 #include "ui/ProgressVisuals.h"
+#include "ui/Theme.h"
 
 #include <QHash>
 #include <QRectF>
@@ -34,6 +35,7 @@ public:
 
     void setHoverState(const QString& itemId, double progress);
     void setProgressVisuals(const ProgressVisuals& visuals);
+    void setTheme(const ThemeColors& theme);
     /// Item ids that are currently "on" (held / toggled / selected).
     void setActiveItemIds(const QSet<QString>& activeIds);
     void flashItem(const QString& itemId);
@@ -67,6 +69,7 @@ private:
     QString m_hoverId;
     double m_hoverProgress = 0.0;
     ProgressVisuals m_progressVisuals; // global base from AppSettings
+    ThemeColors m_theme = ThemeColors::darkPreset();
     QSet<QString> m_activeItemIds;
     QString m_flashId;
     QTimer m_flashTimer;

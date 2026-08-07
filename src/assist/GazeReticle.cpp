@@ -12,7 +12,6 @@ class GazeReticle::Overlay final : public OverlaySurface {
 public:
     Overlay()
     {
-        // 150px diameter disk + a little padding for AA.
         resize(156, 156);
         hide();
     }
@@ -31,7 +30,6 @@ protected:
         QPainter p(this);
         p.setRenderHint(QPainter::Antialiasing, true);
         const QPointF c = QRectF(rect()).center();
-        // Soft filled disk, no border — alpha from velocity mapping. Diameter 150px.
         const int a = int(255.0 * m_opacity);
         p.setPen(Qt::NoPen);
         p.setBrush(QColor(0, 220, 255, a));
@@ -47,6 +45,7 @@ GazeReticle::GazeReticle(QObject* parent)
 {
     m_clock.start();
     m_overlay = std::make_unique<Overlay>();
+    m_stickiness = GazeFollowStickiness::fromProfile(1);
 }
 
 GazeReticle::~GazeReticle() = default;
@@ -59,6 +58,7 @@ void GazeReticle::setEnabled(bool enabled)
     m_enabled = enabled;
     m_lastMs = -1;
     m_havePos = false;
+    m_smoothValid = false;
     m_opacity = 0.25;
     if (!m_enabled && m_overlay) {
         m_overlay->hide();
@@ -71,6 +71,11 @@ void GazeReticle::toggle()
     setEnabled(!m_enabled);
 }
 
+void GazeReticle::setFollowProfile(int profile)
+{
+    m_stickiness = GazeFollowStickiness::fromProfile(profile);
+}
+
 void GazeReticle::onGaze(const GazePoint& point)
 {
     if (!m_enabled || !point.valid || !m_overlay) {
@@ -78,17 +83,18 @@ void GazeReticle::onGaze(const GazePoint& point)
             m_overlay->hide();
         }
         m_havePos = false;
+        m_smoothValid = false;
         m_lastMs = -1;
         return;
     }
 
-    const QPointF pos(point.x, point.y);
+    const QPointF raw(point.x, point.y);
+    m_stickiness.smoothPoint(m_smooth, m_smoothValid, raw);
+    const QPointF pos = m_smooth;
     const qint64 now = m_clock.elapsed();
 
-    // Map gaze speed (px/s) → target opacity: hold ≈ 5%, fast ≈ 50%.
     constexpr double kMinOpacity = 0.05;
     constexpr double kMaxOpacity = 0.50;
-    // Speed that reaches max opacity (after smoothing).
     constexpr double kFastPxPerSec = 900.0;
 
     double target = kMinOpacity;
@@ -98,12 +104,10 @@ void GazeReticle::onGaze(const GazePoint& point)
         const double dy = pos.y() - m_lastPos.y();
         const double speed = qSqrt(dx * dx + dy * dy) / dt;
         const double t = qBound(0.0, speed / kFastPxPerSec, 1.0);
-        // Smoothstep so mid speeds don't jump.
         const double s = t * t * (3.0 - 2.0 * t);
         target = kMinOpacity + (kMaxOpacity - kMinOpacity) * s;
     }
 
-    // Slow EMA so fade-down after a fast saccade is gradual.
     constexpr double kAlpha = 0.08;
     m_opacity = m_opacity * (1.0 - kAlpha) + target * kAlpha;
 

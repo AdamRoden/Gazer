@@ -4,6 +4,10 @@
 #include "layout/SessionNavigate.h"
 #include "utils/Log.h"
 
+#include <QTimer>
+#include <functional>
+#include <memory>
+
 namespace gazer {
 
 ActionDispatcher::ActionDispatcher(GazerServices& services, QObject* parent)
@@ -14,12 +18,107 @@ ActionDispatcher::ActionDispatcher(GazerServices& services, QObject* parent)
 
 void ActionDispatcher::dispatch(LayoutItem item, const QString& sourceInstanceId)
 {
-    const auto type = item.action.type;
-    const QString text = item.action.text;
-    const QString layoutId = item.action.layoutId;
-    const QString commandName = item.action.name;
-    const QString script = item.action.source;
-    const QString itemId = item.id;
+    dispatchItem(item, sourceInstanceId);
+}
+
+void ActionDispatcher::dispatchItem(const LayoutItem& item, const QString& sourceInstanceId)
+{
+    if (item.actionLoop) {
+        const bool wasActive = m_svc.actionLoops().isActive(sourceInstanceId, item.id);
+        const bool on = m_svc.actionLoops().toggle(sourceInstanceId, item);
+        const QString name = item.label.isEmpty() ? item.id : item.label;
+        if (on) {
+            emit statusMessage(QStringLiteral("Loop ON: %1").arg(name));
+        } else if (wasActive) {
+            emit statusMessage(QStringLiteral("Loop OFF: %1").arg(name));
+        } else {
+            emit statusMessage(QStringLiteral("Loop failed (no actions): %1").arg(name));
+        }
+        return;
+    }
+
+    const QVector<LayoutAction> acts = item.effectiveActions();
+    if (acts.isEmpty()) {
+        GAZER_WARN << "No actions on item" << item.id;
+        return;
+    }
+    dispatchAll(acts, sourceInstanceId);
+}
+
+void ActionDispatcher::dispatchAll(const QVector<LayoutAction>& actions,
+                                   const QString& sourceInstanceId)
+{
+    if (actions.isEmpty()) {
+        return;
+    }
+
+    // Synchronous fast path when no delays.
+    bool anyDelay = false;
+    for (const LayoutAction& a : actions) {
+        if (a.delayMs > 0) {
+            anyDelay = true;
+            break;
+        }
+    }
+    if (!anyDelay) {
+        for (const LayoutAction& a : actions) {
+            dispatchOne(a, sourceInstanceId);
+        }
+        return;
+    }
+
+    struct State {
+        QVector<LayoutAction> acts;
+        QString sourceId;
+        int index = 0;
+    };
+    auto state = std::make_shared<State>();
+    state->acts = actions;
+    state->sourceId = sourceInstanceId;
+
+    auto runner = std::make_shared<std::function<void()>>();
+    *runner = [this, state, runner]() {
+        if (state->index >= state->acts.size()) {
+            return;
+        }
+        // Drop remaining delayed steps if the source board was closed.
+        if (!state->sourceId.isEmpty() && !m_svc.instances().instance(state->sourceId)) {
+            GAZER_WARN << "Action series aborted — instance gone" << state->sourceId;
+            return;
+        }
+        const LayoutAction act = state->acts.at(state->index);
+        ++state->index;
+        dispatchOne(act, state->sourceId);
+        if (state->index >= state->acts.size()) {
+            return;
+        }
+        if (!state->sourceId.isEmpty() && !m_svc.instances().instance(state->sourceId)) {
+            return;
+        }
+        const int delay = std::max(0, state->acts.at(state->index).delayMs);
+        if (delay > 0) {
+            QTimer::singleShot(delay, this, [runner]() { (*runner)(); });
+        } else {
+            (*runner)();
+        }
+    };
+
+    const int firstDelay = std::max(0, actions.first().delayMs);
+    if (firstDelay > 0) {
+        QTimer::singleShot(firstDelay, this, [runner]() { (*runner)(); });
+    } else {
+        (*runner)();
+    }
+}
+
+void ActionDispatcher::dispatchOne(const LayoutAction& action, const QString& sourceInstanceId,
+                                   const QString& itemId)
+{
+    const auto type = action.type;
+    const QString text = action.text;
+    const QString layoutId = action.layoutId;
+    const QString commandName = action.name;
+    const QString script = action.source;
 
     auto notify = [this](const QString& msg) { emit statusMessage(msg); };
 

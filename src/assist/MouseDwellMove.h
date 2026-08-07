@@ -21,7 +21,8 @@ class MouseDwellMove final : public QObject {
 public:
     enum class ArmPurpose {
         CursorMove,           ///< Normal move-to (honors mag-pick setting).
-        LookToScrollPlace     ///< Place scroll origin for LTS (always direct).
+        LookToScrollPlace,    ///< Place scroll origin for LTS (always direct).
+        CursorMoveClickLoop   ///< Same as CursorMove, then left-click and re-arm until off.
     };
 
     explicit MouseDwellMove(QObject* parent = nullptr);
@@ -33,6 +34,10 @@ public:
     [[nodiscard]] bool isLookToScrollPlace() const
     {
         return m_armed && m_purpose == ArmPurpose::LookToScrollPlace;
+    }
+    [[nodiscard]] bool isClickLoop() const
+    {
+        return m_armed && m_purpose == ArmPurpose::CursorMoveClickLoop;
     }
     void toggle();
 
@@ -69,6 +74,8 @@ private:
     void setPhase(Phase phase);
     void beginMagPick(const QPoint& center);
     void finishMagPoint(const QPointF& gaze);
+    /// After a successful move: click+rearm for click-loop, else disarm.
+    void completeMoveCycle(const QPoint& target);
     [[nodiscard]] bool useMagPickThisArm() const;
 
     bool m_armed = false;

@@ -10,7 +10,7 @@
     "marginPx": 8
   },
   "grid": {
-    "columns": 8,
+    "columns": 9,
     "rows": 3,
     "gapPx": 8,
     "marginPx": 12
@@ -93,15 +93,19 @@
     { "id": "scrstep", "label": "Scroll ±", "icon": "amount", "row": 2, "col": 4,
       "style": { "background": "#3d4f66", "foreground": "#ffffff" },
       "action": { "type": "command", "name": "cycleMouseScrollAmount" } },
-    { "id": "mag", "label": "Lens", "icon": "magnifier", "activeState": "magnifier",
+    { "id": "click_loop", "label": "Gaze click\nloop", "activeState": "loop.gazeClick",
       "row": 2, "col": 5,
+      "style": { "background": "#c1121f", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "mouseDwellClickLoop" } },
+    { "id": "mag", "label": "Lens", "icon": "magnifier", "activeState": "magnifier",
+      "row": 2, "col": 6,
       "style": { "background": "#6a4c93", "foreground": "#ffffff" },
       "action": { "type": "command", "name": "toggleMagnifier" } },
     { "id": "lts", "label": "Look↕Scroll", "icon": "lookToScroll", "activeState": "lookToScroll",
-      "row": 2, "col": 6,
+      "row": 2, "col": 7,
       "style": { "background": "#0a7ea4", "foreground": "#ffffff" },
       "action": { "type": "command", "name": "toggleLookToScroll" } },
-    { "id": "main", "label": "Main", "icon": "main", "row": 2, "col": 7,
+    { "id": "main", "label": "Main", "icon": "main", "row": 2, "col": 8,
       "style": { "background": "#0a7ea4", "foreground": "#ffffff" },
       "action": { "type": "loadLayout", "layoutId": "example_main" } }
   ]

@@ -190,22 +190,51 @@ void registerAssistCommands(AssistCommandContext& ctx)
             return true;
         });
 
-    commands->registerBuiltin(QStringLiteral("toggleMagnifier"), [mag](QString*) {
+    commands->registerBuiltin(QStringLiteral("toggleMagnifier"), [mag, reticle, refresh](QString*) {
+        const bool turningOn = !mag->isEnabledLens();
+        if (turningOn && reticle) {
+            reticle->setEnabled(false); // exclusive with gaze indicator
+        }
         mag->toggle();
+        refresh();
         return true;
     });
+
+    // Used by action series / loops: move OS cursor to last valid gaze sample.
+    // (Registered fully in GazerServices with lastGaze access.)
     commands->registerBuiltin(QStringLiteral("mouseDwellMove"), [mouseDwell](QString*) {
         // Explicit Move-to: normal CursorMove purpose (mag-pick setting applies).
         // Soft handoff keeps LTS enabled if it was already on.
         mouseDwell->toggle();
         return true;
     });
-    commands->registerBuiltin(QStringLiteral("toggleGazeReticle"), [reticle, notify](QString*) {
-        reticle->toggle();
-        notify(reticle->isEnabled() ? QStringLiteral("Gaze reticle ON")
-                                    : QStringLiteral("Gaze reticle OFF"));
-        return true;
-    });
+    commands->registerBuiltin(
+        QStringLiteral("mouseDwellClickLoop"), [mouseDwell, refresh, notify](QString*) {
+            using Purpose = MouseDwellMove::ArmPurpose;
+            if (mouseDwell->isArmed()
+                && mouseDwell->armPurpose() == Purpose::CursorMoveClickLoop) {
+                mouseDwell->setArmed(false);
+                notify(QStringLiteral("Gaze click loop OFF"));
+            } else {
+                mouseDwell->setArmed(true, Purpose::CursorMoveClickLoop);
+                notify(QStringLiteral(
+                    "Gaze click loop ON — dwell to move (mag-pick if enabled), then click"));
+            }
+            refresh();
+            return true;
+        });
+    commands->registerBuiltin(QStringLiteral("toggleGazeReticle"),
+                              [reticle, mag, refresh, notify](QString*) {
+                                  const bool turningOn = !reticle->isEnabled();
+                                  if (turningOn && mag) {
+                                      mag->setEnabledLens(false); // exclusive with magnifier
+                                  }
+                                  reticle->toggle();
+                                  refresh();
+                                  notify(reticle->isEnabled() ? QStringLiteral("Gaze reticle ON")
+                                                              : QStringLiteral("Gaze reticle OFF"));
+                                  return true;
+                              });
     commands->registerBuiltin(QStringLiteral("toggleGazeMouseFollow"), [follow, notify](QString*) {
         follow->toggle();
         notify(follow->isEnabled() ? QStringLiteral("Gaze→mouse ON")

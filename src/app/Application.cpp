@@ -41,10 +41,31 @@ bool Application::initialize()
 
     m_actions = std::make_unique<ActionDispatcher>(*m_svc);
     m_preview = std::make_unique<PreviewWindow>();
+    m_mappingProps = std::make_unique<MappingPropertiesWindow>();
+    m_mappingProps->setStore(&m_curves);
     m_tray = std::make_unique<TrayIcon>();
     m_dockReveal = std::make_unique<DockRevealOverlay>();
     m_edgeBubbles = std::make_unique<EdgeBubbleOverlay>();
+    m_dwellSuspendOverlay = std::make_unique<DwellSuspendOverlay>();
     m_svc->instances().setEdgeBubbleOverlay(m_edgeBubbles.get());
+
+    // Action loops dispatch single steps without re-entering actionLoop toggle.
+    m_svc->actionLoops().setDispatchFn([this](const QVector<LayoutAction>& acts,
+                                              const QString& sourceId) {
+        if (m_actions) {
+            m_actions->dispatchAll(acts, sourceId);
+        }
+    });
+    m_svc->instances().setLifecycleRunner([this](const QVector<LayoutAction>& acts,
+                                                 const QString& sourceId) {
+        if (m_actions) {
+            m_actions->dispatchAll(acts, sourceId);
+        }
+    });
+    connect(&m_svc->instances(), &LayoutInstanceManager::dwellEngagementEnded, this,
+            [this](const QString& instanceId, const QString& itemId) {
+                m_svc->actionLoops().clearEngageLatch(instanceId, itemId);
+            });
 
     m_gazeRouter.setInstances(&m_svc->instances());
     m_gazeRouter.setDockReveal(m_dockReveal.get());
@@ -54,6 +75,8 @@ bool Application::initialize()
     m_gazeRouter.setMagnifier(&m_svc->magnifier());
     m_gazeRouter.setGazeReticle(&m_svc->gazeReticle());
     m_gazeRouter.setGazeMouseFollow(&m_svc->gazeMouseFollow());
+
+    m_preview->setTheme(m_svc->settings().resolvedTheme());
 
     connect(m_tray.get(), &TrayIcon::showPreviewRequested, m_preview.get(),
             &PreviewWindow::showAndRaise);
@@ -99,6 +122,45 @@ bool Application::initialize()
         }
         return true;
     });
+    m_svc->commands().registerBuiltin(QStringLiteral("openMappingProperties"), [this](QString*) {
+        if (m_mappingProps) {
+            m_mappingProps->showAndRaise();
+        }
+        return true;
+    });
+    m_svc->commands().registerBuiltin(QStringLiteral("openPreview"), [this](QString*) {
+        if (m_preview) {
+            m_preview->showAndRaise();
+        }
+        return true;
+    });
+    m_svc->commands().registerBuiltin(QStringLiteral("theme.dark"), [this](QString*) {
+        m_svc->settings().themeMode = ThemeMode::Dark;
+        m_svc->applySettings(true);
+        if (m_preview) {
+            m_preview->setTheme(m_svc->settings().resolvedTheme());
+        }
+        return true;
+    });
+    m_svc->commands().registerBuiltin(QStringLiteral("theme.light"), [this](QString*) {
+        m_svc->settings().themeMode = ThemeMode::Light;
+        m_svc->applySettings(true);
+        if (m_preview) {
+            m_preview->setTheme(m_svc->settings().resolvedTheme());
+        }
+        return true;
+    });
+    m_svc->commands().registerBuiltin(QStringLiteral("theme.custom"), [this](QString*) {
+        m_svc->settings().themeMode = ThemeMode::Custom;
+        m_svc->applySettings(true);
+        if (m_preview) {
+            m_preview->setTheme(m_svc->settings().resolvedTheme());
+        }
+        return true;
+    });
+
+    connect(&m_svc->instances(), &LayoutInstanceManager::sessionChanged, this,
+            &Application::syncDwellSuspendOverlay);
 
     auto statusToTray = [this](const QString& msg) {
         if (m_tray) {
@@ -106,7 +168,14 @@ bool Application::initialize()
         }
     };
     connect(m_actions.get(), &ActionDispatcher::statusMessage, this, statusToTray);
-    connect(&m_svc->commands(), &CommandRegistry::statusMessage, this, statusToTray);
+    connect(&m_svc->commands(), &CommandRegistry::statusMessage, this,
+            [this, statusToTray](const QString& msg) {
+                statusToTray(msg);
+                // Dwell-suspend toggles report via status; refresh border gaps.
+                if (msg.contains(QLatin1String("Dwell"), Qt::CaseInsensitive)) {
+                    syncDwellSuspendOverlay();
+                }
+            });
     connect(&m_svc->scripts(), &ScriptHost::statusMessage, this, statusToTray);
     connect(&m_svc->phrases(), &PhraseService::spoken, this,
             [statusToTray](const QString& t) { statusToTray(QStringLiteral("Said: %1").arg(t)); });
@@ -250,14 +319,67 @@ void Application::onTobiiStreamFailed(const QString& reason)
     syncMasterChrome();
 }
 
+void Application::syncDwellSuspendOverlay()
+{
+    if (!m_dwellSuspendOverlay || !m_svc) {
+        return;
+    }
+    const bool susp = m_svc->instances().isDwellSuspended();
+    m_dwellSuspendOverlay->setSuspended(susp);
+    if (!susp) {
+        return;
+    }
+    // Gap at dwell-exempt unpause targets (toggleDwellSuspend / resumeDwell),
+    // including unbounded edge affordances (coerced on-screen band).
+    QVector<QRect> gaps;
+    for (LayoutInstance* inst : m_svc->instances().instances()) {
+        if (!inst) {
+            continue;
+        }
+        for (const LayoutItem& item : inst->document().items) {
+            bool isUnpause = false;
+            for (const LayoutAction& a : item.effectiveActions()) {
+                if (a.type == LayoutAction::Type::Command
+                    && (a.name == QLatin1String("toggleDwellSuspend")
+                        || a.name == QLatin1String("resumeDwell"))) {
+                    isUnpause = true;
+                    break;
+                }
+            }
+            if (!isUnpause) {
+                continue;
+            }
+            const QRect gap = inst->unpauseGapScreenRect(item);
+            if (!gap.isEmpty()) {
+                // Expand slightly so the border break is obvious.
+                gaps.push_back(gap.adjusted(-16, -16, 16, 16));
+            }
+        }
+    }
+    m_dwellSuspendOverlay->setGapRects(gaps);
+    m_dwellSuspendOverlay->refreshGeometry();
+}
+
 void Application::wireTracker()
 {
     if (!m_tracker) {
         return;
     }
+    // Avoid stacking multiple connections on tracker restart.
+    disconnect(m_tracker.get(), nullptr, this, nullptr);
+    if (m_preview) {
+        disconnect(m_tracker.get(), nullptr, m_preview.get(), nullptr);
+    }
     connect(m_tracker.get(), &ITracker::gazeUpdated, this, &Application::onGaze);
     connect(m_tracker.get(), &ITracker::gazeUpdated, m_preview.get(),
             &PreviewWindow::onGazeUpdated);
+    connect(m_tracker.get(), &ITracker::headPoseUpdated, m_preview.get(),
+            &PreviewWindow::onHeadPoseUpdated);
+    connect(m_tracker.get(), &ITracker::headPoseUpdated, this, [this](const HeadPose& pose) {
+        if (m_mappingProps && m_mappingProps->isVisible()) {
+            m_mappingProps->setLiveInput(pose.yaw);
+        }
+    });
     connect(m_tracker.get(), &ITracker::trackingLost, m_preview.get(), [this]() {
         if (m_tracker) {
             m_preview->setTrackerName(QStringLiteral("%1 (lost)").arg(m_tracker->name()));
@@ -276,6 +398,9 @@ void Application::wireTracker()
 
 void Application::onGaze(const gazer::GazePoint& point)
 {
+    if (point.valid) {
+        m_svc->setLastGaze(point);
+    }
     m_gazeRouter.dispatch(point);
 }
 
@@ -293,19 +418,24 @@ void Application::onItemActivated(const QString& instanceId, const QString& item
 
     const LayoutItem itemCopy = *itemPtr;
     const QString sourceId = instanceId;
+    const auto acts = itemCopy.effectiveActions();
     GAZER_INFO << "Activate:" << sourceId << itemCopy.id << itemCopy.label
-               << "action" << static_cast<int>(itemCopy.action.type)
-               << itemCopy.action.name << itemCopy.action.layoutId;
+               << "actions" << acts.size() << (itemCopy.actionLoop ? "loop" : "");
 
     // expandMaster must run immediately (dock→Main races hide chrome if deferred).
     // All other actions go through ActionDispatcher on the next event-loop tick.
-    const bool immediate =
-        itemCopy.action.type == LayoutAction::Type::Command
-        && itemCopy.action.name == QStringLiteral("expandMaster");
+    bool immediate = false;
+    for (const LayoutAction& a : acts) {
+        if (a.type == LayoutAction::Type::Command
+            && a.name == QStringLiteral("expandMaster")) {
+            immediate = true;
+            break;
+        }
+    }
 
     auto run = [this, itemCopy, sourceId]() {
         if (m_actions) {
-            m_actions->dispatch(itemCopy, sourceId);
+            m_actions->dispatchItem(itemCopy, sourceId);
         }
         if (auto* master = m_svc->instances().masterInstance()) {
             if (!master->document().session.isGazeRevealDock()) {
