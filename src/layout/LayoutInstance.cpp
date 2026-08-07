@@ -216,18 +216,8 @@ void LayoutInstance::applyPlacement(int cascadeOffset)
     QScreen* screen = QGuiApplication::primaryScreen();
     const QRect avail = screen ? screen->availableGeometry() : QRect(0, 0, 1920, 1080);
 
-    int winW = 1000;
-    int winH = 560;
-    if (p.width.isSet()) {
-        winW = qMax(40, p.width.resolveInt(avail.width(), p.widthPx > 0 ? p.widthPx : 1000));
-    } else if (p.widthPx > 0) {
-        winW = p.widthPx;
-    }
-    if (p.height.isSet()) {
-        winH = qMax(40, p.height.resolveInt(avail.height(), p.heightPx > 0 ? p.heightPx : 560));
-    } else if (p.heightPx > 0) {
-        winH = p.heightPx;
-    }
+    const int winW = qMax(40, p.width.resolveInt(avail.width(), 1000));
+    const int winH = qMax(40, p.height.resolveInt(avail.height(), 560));
     m_window->setMinimumSize(qMax(40, qMin(winW, 80)), qMax(40, qMin(winH, 80)));
     m_window->resize(winW, winH);
 

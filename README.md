@@ -152,7 +152,14 @@ Board-local bare numeric `x`/`y` remain **pixels** for back-compat.
 
 Optional per step: `delayMs` — delay before that step in a series.
 
-#### Series and loops
+#### Series and sticky loops
+
+One sticky-mode policy (`ActionLoopService`):
+
+| Kind | How | Active state |
+|------|-----|--------------|
+| Layout `actionLoop` | Timed re-dispatch of `actions[]` until toggled off | `activeState` or auto `loop.<itemId>` |
+| Assist sticky (gaze click loop) | `mouseDwellClickLoop` — dwell move (+ mag-pick) then click, re-arm | `loop.gazeClick` |
 
 ```json
 "actions": [
@@ -160,12 +167,13 @@ Optional per step: `delayMs` — delay before that step in a series.
   { "type": "command", "name": "mouseLeftClick", "delayMs": 80 }
 ],
 "actionLoop": true,
-"activeState": "loop.gazeClick"
+"activeState": "loop.myClick"
 ```
 
 - Without `actionLoop`: run series once on dwell activate.
-- With `actionLoop`: sticky mode; re-activate to stop. Closing the board stops its loops.
-- Commands: `mouseMoveToGaze`, `stopAllActionLoops`.
+- With `actionLoop`: sticky series; re-activate to stop. Closing the board stops its series loops.
+- Gaze click loop (mouse board) uses dwell UX, not timed series; still shares the sticky registry and `stopAllActionLoops`.
+- Commands: `mouseMoveToGaze`, `mouseDwellClickLoop`, `stopAllActionLoops`.
 
 #### Lifecycle arrays
 

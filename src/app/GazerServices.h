@@ -1,5 +1,6 @@
 #pragma once
 
+#include "app/ActiveStateResolver.h"
 #include "app/AppSettings.h"
 #include "app/CommandRegistry.h"
 #include "core/GazePoint.h"
@@ -28,12 +29,15 @@
 
 namespace gazer {
 
+class SettingsUi;
+
 /// Composition root for domain services (not tray/tracker UI shell).
 class GazerServices final : public QObject {
     Q_OBJECT
 
 public:
     explicit GazerServices(QObject* parent = nullptr);
+    ~GazerServices() override;
 
     [[nodiscard]] bool initialize(const QString& layoutsDir, const QString& mappingPath,
                                   QString* error = nullptr);
@@ -75,28 +79,10 @@ signals:
 
 private:
     void registerDomainCommands();
-    void registerSettingsCommands();
     void notifyStatus(const QString& msg);
     void mutateAndApply(const std::function<void(AppSettings&)>& mutator, const QString& status);
-
-    void decorateSettingsDocument(LayoutDocument& doc) const;
-    void refreshOpenSettingsBoards();
     void refreshActiveIndicators();
-    [[nodiscard]] bool resolveActiveState(const QString& key) const;
-
-    [[nodiscard]] bool openNumericEditor(const QString& settingKey, QString* error = nullptr);
-    void refreshNumpadDisplay();
-    [[nodiscard]] LayoutDocument buildNumpadDocument() const;
-    void numpadAppend(const QString& ch);
-    void numpadBackspace();
-    void numpadClear();
-    void numpadReset();
-    void numpadMinus();
-    [[nodiscard]] bool numpadSave(QString* error = nullptr);
-    [[nodiscard]] bool numpadCancel(QString* error = nullptr);
-
-    [[nodiscard]] bool openColorPicker(const QString& colorKey, QString* error = nullptr);
-    void closeColorPicker();
+    [[nodiscard]] ActiveStateContext activeStateContext() const;
 
     std::unique_ptr<LayoutManager> m_catalog;
     std::unique_ptr<LayoutInstanceManager> m_instances;
@@ -114,22 +100,10 @@ private:
     std::unique_ptr<GazeMouseFollow> m_gazeMouseFollow;
     std::unique_ptr<AssistSession> m_assistSession;
     std::unique_ptr<ActionLoopService> m_actionLoops;
-    /// Heap-owned assist command wiring (must outlive registry handlers).
     std::unique_ptr<AssistCommandContext> m_assistCmdCtx;
+    std::unique_ptr<SettingsUi> m_settingsUi;
     AppSettings m_settings;
     GazePoint m_lastGaze;
-
-    // Numeric editor session (in-place on a settings secondary board).
-    bool m_numpadActive = false;
-    QString m_numpadInstanceId;
-    QString m_numpadReturnLayoutId;
-    QString m_numpadKey;
-    QString m_numpadBuffer;
-
-    bool m_colorPickerActive = false;
-    QString m_colorPickerInstanceId;
-    QString m_colorPickerReturnLayoutId;
-    QString m_colorPickerKey;
 };
 
 } // namespace gazer

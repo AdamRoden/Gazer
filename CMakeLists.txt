@@ -32,8 +32,10 @@ set(GAZER_SOURCES
     src/app/Application.cpp
     src/app/ActionDispatcher.cpp
     src/app/AppSettings.cpp
+    src/app/ActiveStateResolver.cpp
     src/app/GazeRouter.cpp
     src/app/GazerServices.cpp
+    src/app/SettingsUi.cpp
     src/app/CommandRegistry.cpp
     src/core/TrackerMouse.cpp
     src/core/TrackerTobii.cpp
@@ -42,6 +44,7 @@ set(GAZER_SOURCES
     src/layout/LayoutManager.cpp
     src/layout/LayoutInstance.cpp
     src/layout/LayoutInstanceManager.cpp
+    src/layout/DwellRegionSpace.cpp
     src/layout/DwellStateMachine.cpp
     src/input/KeyboardInjector.cpp
     src/input/MouseInjector.cpp
@@ -68,14 +71,17 @@ set(GAZER_SOURCES
     src/ui/EdgeBubbleOverlay.cpp
     src/ui/MagnifierOverlay.cpp
     src/ui/DwellSuspendOverlay.cpp
+    src/ui/Theme.cpp
 )
 
 set(GAZER_HEADERS
     src/app/Application.h
     src/app/ActionDispatcher.h
     src/app/AppSettings.h
+    src/app/ActiveStateResolver.h
     src/app/GazeRouter.h
     src/app/GazerServices.h
+    src/app/SettingsUi.h
     src/app/CommandRegistry.h
     src/core/GazePoint.h
     src/core/HeadPose.h

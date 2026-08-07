@@ -12,52 +12,6 @@
 
 namespace gazer {
 
-namespace {
-
-QJsonObject themeColorsToJson(const ThemeColors& c)
-{
-    QJsonObject o;
-    o.insert(QStringLiteral("bgMain"), AppSettings::colorToHex(c.bgMain));
-    o.insert(QStringLiteral("bgSurface"), AppSettings::colorToHex(c.bgSurface));
-    o.insert(QStringLiteral("bgSurfaceHover"), AppSettings::colorToHex(c.bgSurfaceHover));
-    o.insert(QStringLiteral("bgSurfaceActive"), AppSettings::colorToHex(c.bgSurfaceActive));
-    o.insert(QStringLiteral("border"), AppSettings::colorToHex(c.border));
-    o.insert(QStringLiteral("accent"), AppSettings::colorToHex(c.accent));
-    o.insert(QStringLiteral("accentHover"), AppSettings::colorToHex(c.accentHover));
-    o.insert(QStringLiteral("text"), AppSettings::colorToHex(c.text));
-    o.insert(QStringLiteral("textSecondary"), AppSettings::colorToHex(c.textSecondary));
-    o.insert(QStringLiteral("cellBg"), AppSettings::colorToHex(c.cellBg));
-    o.insert(QStringLiteral("cellHover"), AppSettings::colorToHex(c.cellHover));
-    o.insert(QStringLiteral("cellActive"), AppSettings::colorToHex(c.cellActive));
-    o.insert(QStringLiteral("danger"), AppSettings::colorToHex(c.danger));
-    return o;
-}
-
-void themeColorsFromJson(const QJsonObject& o, ThemeColors& c)
-{
-    auto set = [&](QColor& dest, const char* key) {
-        if (!o.contains(QLatin1String(key))) {
-            return;
-        }
-        dest = AppSettings::parseColor(o.value(QLatin1String(key)).toString(), dest);
-    };
-    set(c.bgMain, "bgMain");
-    set(c.bgSurface, "bgSurface");
-    set(c.bgSurfaceHover, "bgSurfaceHover");
-    set(c.bgSurfaceActive, "bgSurfaceActive");
-    set(c.border, "border");
-    set(c.accent, "accent");
-    set(c.accentHover, "accentHover");
-    set(c.text, "text");
-    set(c.textSecondary, "textSecondary");
-    set(c.cellBg, "cellBg");
-    set(c.cellHover, "cellHover");
-    set(c.cellActive, "cellActive");
-    set(c.danger, "danger");
-}
-
-} // namespace
-
 AppSettings AppSettings::defaults()
 {
     return {};
@@ -72,16 +26,12 @@ QString AppSettings::defaultFilePath()
 
 QColor AppSettings::parseColor(const QString& hex, const QColor& fallback)
 {
-    QColor c(hex);
-    return c.isValid() ? c : fallback;
+    return ThemeColors::parseColor(hex, fallback);
 }
 
 QString AppSettings::colorToHex(const QColor& c)
 {
-    if (c.alpha() < 255) {
-        return c.name(QColor::HexArgb);
-    }
-    return c.name(QColor::HexRgb);
+    return ThemeColors::colorToHex(c);
 }
 
 QString AppSettings::dwellSequenceString() const
@@ -600,13 +550,13 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
     speakAlsoType = o.value(QStringLiteral("speakAlsoType")).toBool(speakAlsoType);
     themeMode = themeModeFromString(o.value(QStringLiteral("themeMode")).toString(QStringLiteral("dark")));
     if (o.contains(QStringLiteral("lightColors"))) {
-        themeColorsFromJson(o.value(QStringLiteral("lightColors")).toObject(), lightColors);
+        lightColors.fromJson(o.value(QStringLiteral("lightColors")).toObject());
     }
     if (o.contains(QStringLiteral("darkColors"))) {
-        themeColorsFromJson(o.value(QStringLiteral("darkColors")).toObject(), darkColors);
+        darkColors.fromJson(o.value(QStringLiteral("darkColors")).toObject());
     }
     if (o.contains(QStringLiteral("customColors"))) {
-        themeColorsFromJson(o.value(QStringLiteral("customColors")).toObject(), customColors);
+        customColors.fromJson(o.value(QStringLiteral("customColors")).toObject());
     }
 
     progressRadial = o.value(QStringLiteral("progressRadial")).toBool(progressRadial);
@@ -666,9 +616,9 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     o.insert(QStringLiteral("trackerPref"), copy.trackerPref);
     o.insert(QStringLiteral("speakAlsoType"), copy.speakAlsoType);
     o.insert(QStringLiteral("themeMode"), themeModeToString(copy.themeMode));
-    o.insert(QStringLiteral("lightColors"), themeColorsToJson(copy.lightColors));
-    o.insert(QStringLiteral("darkColors"), themeColorsToJson(copy.darkColors));
-    o.insert(QStringLiteral("customColors"), themeColorsToJson(copy.customColors));
+    o.insert(QStringLiteral("lightColors"), copy.lightColors.toJson());
+    o.insert(QStringLiteral("darkColors"), copy.darkColors.toJson());
+    o.insert(QStringLiteral("customColors"), copy.customColors.toJson());
     o.insert(QStringLiteral("progressRadial"), copy.progressRadial);
     o.insert(QStringLiteral("progressFill"), copy.progressFill);
     o.insert(QStringLiteral("progressBorder"), copy.progressBorder);

@@ -5,6 +5,7 @@
 
 namespace gazer {
 
+class ActionLoopService;
 class AppSettings;
 class AssistSession;
 class CommandRegistry;
@@ -27,6 +28,7 @@ struct AssistCommandContext {
     GazeReticle* gazeReticle = nullptr;
     GazeMouseFollow* gazeMouseFollow = nullptr;
     MouseAssistState* mouseAssist = nullptr;
+    ActionLoopService* actionLoops = nullptr;
     AppSettings* settings = nullptr;
     std::function<void(bool persist)> applySettings;
     std::function<void()> refreshActiveIndicators;

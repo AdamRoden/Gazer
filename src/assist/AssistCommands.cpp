@@ -2,6 +2,7 @@
 
 #include "app/AppSettings.h"
 #include "app/CommandRegistry.h"
+#include "assist/ActionLoopService.h"
 #include "assist/AssistSession.h"
 #include "assist/GazeMouseFollow.h"
 #include "assist/GazeReticle.h"
@@ -14,6 +15,10 @@
 #include <QPoint>
 
 namespace gazer {
+
+namespace {
+const QString kGazeClickLoopKey = QStringLiteral("loop.gazeClick");
+} // namespace
 
 void registerAssistCommands(AssistCommandContext& ctx)
 {
@@ -28,6 +33,7 @@ void registerAssistCommands(AssistCommandContext& ctx)
     auto* mag = ctx.magnifier;
     auto* instances = ctx.instances;
     auto* settings = ctx.settings;
+    auto* actionLoops = ctx.actionLoops;
     auto* commands = ctx.commands;
     auto* mouseAssist = ctx.mouseAssist;
     auto applySettings = ctx.applySettings;
@@ -208,6 +214,17 @@ void registerAssistCommands(AssistCommandContext& ctx)
         mouseDwell->toggle();
         return true;
     });
+    // Keep assist sticky registry in sync whenever click-loop arms/disarms
+    // (toggle, session leave, stopAllActionLoops, etc.).
+    if (actionLoops && mouseDwell) {
+        QObject::connect(mouseDwell, &MouseDwellMove::armedChanged, mouseDwell,
+                         [mouseDwell, actionLoops](bool) {
+                             actionLoops->setAssistSticky(kGazeClickLoopKey,
+                                                          mouseDwell->isClickLoop());
+                         });
+    }
+
+    // Assist sticky: dwell move+click re-arm (not timed actionLoop series steps).
     commands->registerBuiltin(
         QStringLiteral("mouseDwellClickLoop"), [mouseDwell, refresh, notify](QString*) {
             using Purpose = MouseDwellMove::ArmPurpose;

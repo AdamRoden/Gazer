@@ -395,25 +395,14 @@ bool LayoutLoader::loadFromJson(const QByteArray& json, LayoutDocument& out, QSt
         parseDim(win, QStringLiteral("height"), layout.placement.height);
         parseDim(win, QStringLiteral("x"), layout.placement.x);
         parseDim(win, QStringLiteral("y"), layout.placement.y);
-        // Legacy: widthPx/heightPx alone (parseDim already set if present).
+        // Legacy: widthPx/heightPx alone → DimSpec pixels (sole runtime representation).
         if (!layout.placement.width.isSet() && win.contains(QStringLiteral("widthPx"))) {
-            layout.placement.width.unit = DimSpec::Unit::Pixels;
-            layout.placement.width.value = win.value(QStringLiteral("widthPx")).toDouble(0);
+            layout.placement.width = DimSpec::pixels(win.value(QStringLiteral("widthPx")).toDouble(0));
         }
         if (!layout.placement.height.isSet() && win.contains(QStringLiteral("heightPx"))) {
-            layout.placement.height.unit = DimSpec::Unit::Pixels;
-            layout.placement.height.value = win.value(QStringLiteral("heightPx")).toDouble(0);
+            layout.placement.height =
+                DimSpec::pixels(win.value(QStringLiteral("heightPx")).toDouble(0));
         }
-        layout.placement.widthPx = layout.placement.width.isSet()
-                                       ? layout.placement.width.resolveInt(0, 0)
-                                       : win.value(QStringLiteral("widthPx")).toInt(0);
-        if (layout.placement.width.unit == DimSpec::Unit::Pixels) {
-            layout.placement.widthPx = qRound(layout.placement.width.value);
-        }
-        layout.placement.heightPx = layout.placement.height.isSet()
-                                        && layout.placement.height.unit == DimSpec::Unit::Pixels
-                                        ? qRound(layout.placement.height.value)
-                                        : win.value(QStringLiteral("heightPx")).toInt(0);
         layout.placement.marginPx = win.value(QStringLiteral("marginPx")).toInt(8);
     }
 
@@ -508,18 +497,16 @@ bool LayoutLoader::loadFromJson(const QByteArray& json, LayoutDocument& out, QSt
             // If only "x"/"y" numbers and no xPx, treat as pixels when screenAnchor is none
             // for back-compat with board-local regions (old schema).
             item.dwellRegion.marginPx = dr.value(QStringLiteral("marginPx")).toInt(4);
-            // Legacy width/height absolute fields
+            // Legacy width/height absolute fields → DimSpec only.
             if (!item.dwellRegion.width.isSet()) {
                 const int w = dr.value(QStringLiteral("widthPx"))
                                   .toInt(dr.value(QStringLiteral("width")).toInt(80));
-                item.dwellRegion.width.unit = DimSpec::Unit::Pixels;
-                item.dwellRegion.width.value = w;
+                item.dwellRegion.width = DimSpec::pixels(w);
             }
             if (!item.dwellRegion.height.isSet()) {
                 const int h = dr.value(QStringLiteral("heightPx"))
                                   .toInt(dr.value(QStringLiteral("height")).toInt(80));
-                item.dwellRegion.height.unit = DimSpec::Unit::Pixels;
-                item.dwellRegion.height.value = h;
+                item.dwellRegion.height = DimSpec::pixels(h);
             }
             // If x/y were only legacy doubles without unit, parseDim set percent —
             // for board-local (no anchor) old files used pixel coords: detect legacy.
@@ -538,8 +525,7 @@ bool LayoutLoader::loadFromJson(const QByteArray& json, LayoutDocument& out, QSt
                     }
                     const QJsonValue v = dr.value(key);
                     if (v.isDouble()) {
-                        dim.unit = DimSpec::Unit::Pixels;
-                        dim.value = v.toDouble(0);
+                        dim = DimSpec::pixels(v.toDouble(0));
                     }
                 };
                 forcePxIfBareNumber(QStringLiteral("x"), QStringLiteral("xPx"),
@@ -550,12 +536,6 @@ bool LayoutLoader::loadFromJson(const QByteArray& json, LayoutDocument& out, QSt
                                     item.dwellRegion.width);
                 forcePxIfBareNumber(QStringLiteral("height"), QStringLiteral("heightPx"),
                                     item.dwellRegion.height);
-            }
-            if (item.dwellRegion.width.unit == DimSpec::Unit::Pixels) {
-                item.dwellRegion.widthPx = qRound(item.dwellRegion.width.value);
-            }
-            if (item.dwellRegion.height.unit == DimSpec::Unit::Pixels) {
-                item.dwellRegion.heightPx = qRound(item.dwellRegion.height.value);
             }
             if (item.dwellRegion.usesScreenAnchor()) {
                 item.unbounded = true;

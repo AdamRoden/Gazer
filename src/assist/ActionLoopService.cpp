@@ -112,6 +112,30 @@ void ActionLoopService::stopAll()
         eraseKey(k);
     }
     m_engageLatch.clear();
+    if (!m_assistSticky.isEmpty()) {
+        m_assistSticky.clear();
+        emit loopsChanged();
+    }
+}
+
+void ActionLoopService::setAssistSticky(const QString& activeStateKey, bool on)
+{
+    if (activeStateKey.isEmpty()) {
+        return;
+    }
+    const bool had = m_assistSticky.contains(activeStateKey);
+    if (on && !had) {
+        m_assistSticky.insert(activeStateKey);
+        emit loopsChanged();
+    } else if (!on && had) {
+        m_assistSticky.remove(activeStateKey);
+        emit loopsChanged();
+    }
+}
+
+void ActionLoopService::clearAssistSticky(const QString& activeStateKey)
+{
+    setAssistSticky(activeStateKey, false);
 }
 
 bool ActionLoopService::isActive(const QString& instanceId, const QString& itemId) const
@@ -123,6 +147,9 @@ bool ActionLoopService::isActiveState(const QString& activeStateKey) const
 {
     if (activeStateKey.isEmpty()) {
         return false;
+    }
+    if (m_assistSticky.contains(activeStateKey)) {
+        return true;
     }
     for (const LoopEntry& e : m_loops) {
         if (e.activeStateKey == activeStateKey) {

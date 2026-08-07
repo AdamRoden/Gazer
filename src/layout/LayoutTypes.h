@@ -8,16 +8,32 @@
 
 namespace gazer {
 
-/// Canonical size/offset unit for layouts and dwell regions.
+/// Canonical size/offset unit for layouts and dwell regions (sole runtime geometry).
 /// JSON: `x`/`width` = percent of reference (or `"N%"`); `xPx`/`widthPx` = pixels (wins if both).
 /// Board-local bare numbers are forced to pixels at load for legacy layouts.
-/// Legacy `widthPx`/`heightPx` fields on regions/windows are caches filled by the loader.
+/// After load, only DimSpec is used — no parallel widthPx/heightPx runtime fields.
 struct DimSpec {
     enum class Unit { Unset, Percent, Pixels };
     Unit unit = Unit::Unset;
     double value = 0.0;
 
     [[nodiscard]] bool isSet() const { return unit != Unit::Unset; }
+
+    [[nodiscard]] static DimSpec pixels(double px)
+    {
+        DimSpec d;
+        d.unit = Unit::Pixels;
+        d.value = px;
+        return d;
+    }
+
+    [[nodiscard]] static DimSpec percent(double pct)
+    {
+        DimSpec d;
+        d.unit = Unit::Percent;
+        d.value = pct;
+        return d;
+    }
 
     /// Resolve against a reference length (screen/board width or height).
     [[nodiscard]] double resolve(double reference) const
@@ -86,19 +102,17 @@ struct LayoutDwellRegion {
     };
 
     ScreenAnchor screenAnchor = ScreenAnchor::None;
-    /// Position relative to screen anchor (or board origin when None). Prefer DimSpec.
+    /// Position relative to screen anchor (or board origin when None).
     DimSpec x;
     DimSpec y;
     DimSpec width;
     DimSpec height;
     /// Deprecated: outward gap when x/y unset for screen anchors (compat).
     int marginPx = 4;
-    /// Legacy absolute fallbacks when DimSpec unset (loader fills from widthPx etc.).
-    int widthPx = 80;
-    int heightPx = 80;
 
     [[nodiscard]] bool isValid() const
     {
+        // Unset size is allowed (runtime defaults apply). Invalid only if set to non-positive px.
         if (width.isSet() && width.unit == DimSpec::Unit::Pixels && width.value <= 0) {
             return false;
         }
@@ -181,7 +195,8 @@ struct LayoutItem {
     LayoutAction action;
     /// Ordered series of actions. When non-empty, used instead of `action`.
     QVector<LayoutAction> actions;
-    /// When true: first activate starts a perpetual series loop; second stops (like magnifier).
+    /// Sticky series loop: first activate starts ActionLoopService; re-activate stops
+    /// (shared sticky policy with assist modes like gaze click loop).
     bool actionLoop = false;
     LayoutItemStyle style;
     /// Optional per-item dwell / progress overrides (item > layout > global).
@@ -251,13 +266,11 @@ struct LayoutWindowPlacement {
     };
 
     Anchor anchor = Anchor::Default;
-    /// Size: percent of available desktop or pixels. Legacy widthPx/heightPx filled when only px set.
+    /// Size / position as DimSpec only (loader maps legacy widthPx/heightPx into these).
     DimSpec width;
     DimSpec height;
     DimSpec x;
     DimSpec y;
-    int widthPx = 0;
-    int heightPx = 0;
     int marginPx = 8;
     /// True when the layout JSON included a "window" object.
     bool specified = false;
