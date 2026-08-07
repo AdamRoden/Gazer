@@ -258,9 +258,14 @@ bool LayoutLoader::loadFromJson(const QByteArray& json, LayoutDocument& out, QSt
         parseDwellObject(root.value(QStringLiteral("dwell")).toObject(), layout.dwell);
     }
 
-    // Optional window placement: { "anchor": "bottomCenter", "widthPx", "heightPx", "marginPx" }
+    // Optional window: { "anchor", "widthPx", "heightPx", "marginPx", "hidden": true }
+    // Omit "window": show board if any grid items exist; hide pure items-only layouts.
+    // "hidden": true → never show board chrome (edge/unbounded-only shells).
     if (root.contains(QStringLiteral("window"))) {
+        layout.placement.specified = true;
         const QJsonObject win = root.value(QStringLiteral("window")).toObject();
+        layout.placement.hidden = win.value(QStringLiteral("hidden")).toBool(false)
+                                  || win.value(QStringLiteral("visible")).toBool(true) == false;
         const QString anchor = win.value(QStringLiteral("anchor")).toString().toLower();
         if (anchor == QLatin1String("topleft")) {
             layout.placement.anchor = LayoutWindowPlacement::Anchor::TopLeft;
@@ -304,6 +309,7 @@ bool LayoutLoader::loadFromJson(const QByteArray& json, LayoutDocument& out, QSt
         item.tooltip = io.value(QStringLiteral("tooltip")).toString();
         item.settingKey = io.value(QStringLiteral("settingKey")).toString();
         item.activeState = io.value(QStringLiteral("activeState")).toString();
+        item.icon = io.value(QStringLiteral("icon")).toString();
         // role: "label" | interactive: false → static non-activator
         if (io.contains(QStringLiteral("interactive"))) {
             item.interactive = io.value(QStringLiteral("interactive")).toBool(true);
@@ -312,6 +318,9 @@ bool LayoutLoader::loadFromJson(const QByteArray& json, LayoutDocument& out, QSt
             item.interactive = !(role == QLatin1String("label") || role == QLatin1String("display")
                                  || role == QLatin1String("value"));
         }
+        item.dwellExempt = io.value(QStringLiteral("dwellExempt")).toBool(false)
+                           || io.value(QStringLiteral("role")).toString().toLower()
+                                  == QLatin1String("dwellExempt");
         item.row = io.value(QStringLiteral("row")).toInt(0);
         item.col = io.value(QStringLiteral("col")).toInt(0);
         item.rowSpan = io.value(QStringLiteral("rowSpan")).toInt(1);
@@ -391,6 +400,13 @@ bool LayoutLoader::loadFromJson(const QByteArray& json, LayoutDocument& out, QSt
         if (io.contains(QStringLiteral("action"))) {
             if (!parseAction(io.value(QStringLiteral("action")).toObject(), item.action, error)) {
                 return false;
+            }
+            // Convenience: suspend/resume controls stay dwellable under global suspend.
+            if (item.action.type == LayoutAction::Type::Command
+                && (item.action.name == QLatin1String("toggleDwellSuspend")
+                    || item.action.name == QLatin1String("suspendDwell")
+                    || item.action.name == QLatin1String("resumeDwell"))) {
+                item.dwellExempt = true;
             }
         }
 

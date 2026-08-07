@@ -13,6 +13,10 @@ struct AppSettings {
     QVector<int> dwellSequence = {700};
     int dwellGraceMs = 180;
     int mouseMoveDwellMs = 700;
+    /// Mouse dwell-move uses static magnify + second dwell to refine point.
+    bool mouseMoveMagPick = false;
+    /// Place static magnifier centered on the first-dwell point (else screen center).
+    bool mouseMoveMagPickCenterOnDwell = true;
 
     // --- Progress visuals (boards + mouse-move) ---
     bool progressRadial = true;
@@ -41,6 +45,9 @@ struct AppSettings {
     int ltsDeadzonePx = 110;
     int ltsFalloffPx = 360;
     double ltsMaxNotchesPerSec = 6.0;
+    /// Scroll rate grows by this factor each second gaze stays outside deadzone.
+    double ltsAccelPerSec = 0.45;
+    int ltsCenterDwellMs = 650;
     bool ltsPlaceCursorFirst = true;
 
     // --- Session ---

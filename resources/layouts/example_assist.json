@@ -2,10 +2,11 @@
   "schemaVersion": 1,
   "id": "example_assist",
   "name": "Assist",
-  "description": "Phase 4: TTS, scripts, Look-to-Scroll, magnifier toggles.",
+  "description": "Gaze assist: LTS, magnifier, reticle, gaze→mouse, move-to.",
+  "window": { "anchor": "center", "widthPx": 900, "heightPx": 520, "marginPx": 16 },
   "grid": {
     "columns": 3,
-    "rows": 3,
+    "rows": 4,
     "gapPx": 8,
     "marginPx": 12
   },
@@ -17,37 +18,10 @@
   },
   "items": [
     {
-      "id": "hello_tts",
-      "label": "Speak Hello",
-      "row": 0,
-      "col": 0,
-      "action": { "type": "speak", "text": "Hello" }
-    },
-    {
-      "id": "script_hi",
-      "label": "Script Hi",
-      "row": 0,
-      "col": 1,
-      "action": {
-        "type": "script",
-        "source": "gazer.speak('Script says hello'); gazer.log('script ran');"
-      }
-    },
-    {
-      "id": "script_type",
-      "label": "Script Type",
-      "row": 0,
-      "col": 2,
-      "action": {
-        "type": "script",
-        "source": "gazer.typeText('typed-by-script ');"
-      }
-    },
-    {
       "id": "lts",
-      "label": "Look↕Scroll\n(place+scroll)",
+      "label": "Look↕Scroll",
       "activeState": "lookToScroll",
-      "row": 1,
+      "row": 0,
       "col": 0,
       "style": { "background": "#2d6a4f", "foreground": "#ffffff" },
       "action": { "type": "command", "name": "toggleLookToScroll" }
@@ -56,25 +30,76 @@
       "id": "mag",
       "label": "Magnifier",
       "activeState": "magnifier",
-      "row": 1,
+      "row": 0,
       "col": 1,
       "style": { "background": "#6a4c93", "foreground": "#ffffff" },
       "action": { "type": "command", "name": "toggleMagnifier" }
     },
     {
-      "id": "script_cmd",
-      "label": "Script ⌫",
+      "id": "mouse_move",
+      "label": "Move mouse\n(dwell)",
+      "activeState": "mouseDwellMove",
+      "row": 0,
+      "col": 2,
+      "style": { "background": "#0a7ea4", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "mouseDwellMove" }
+    },
+    {
+      "id": "gaze_reticle",
+      "label": "Gaze reticle",
+      "activeState": "gazeReticle",
+      "row": 1,
+      "col": 0,
+      "style": { "background": "#1d3557", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "toggleGazeReticle" }
+    },
+    {
+      "id": "gaze_follow",
+      "label": "Gaze→mouse",
+      "activeState": "gazeMouseFollow",
+      "row": 1,
+      "col": 1,
+      "style": { "background": "#457b9d", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "toggleGazeMouseFollow" }
+    },
+    {
+      "id": "mag_pick",
+      "label": "Move-to\nmagnify pick",
+      "activeState": "mouseMoveMagPick",
       "row": 1,
       "col": 2,
+      "style": { "background": "#4a5568", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "toggleMouseMoveMagPick" }
+    },
+    {
+      "id": "hello_tts",
+      "label": "Speak Hello",
+      "row": 2,
+      "col": 0,
+      "action": { "type": "speak", "text": "Hello" }
+    },
+    {
+      "id": "script_hi",
+      "label": "Script Hi",
+      "row": 2,
+      "col": 1,
       "action": {
         "type": "script",
-        "source": "gazer.runCommand('backspace');"
+        "source": "gazer.speak('Script says hello'); gazer.log('script ran');"
       }
+    },
+    {
+      "id": "lts_hint",
+      "label": "LTS: dwell center ring = pause scroll · hold outside = accelerate",
+      "role": "label",
+      "row": 2,
+      "col": 2,
+      "style": { "background": "#2b2d42", "foreground": "#a0aec0" }
     },
     {
       "id": "main",
       "label": "← Main",
-      "row": 2,
+      "row": 3,
       "col": 0,
       "colSpan": 2,
       "style": { "background": "#0a7ea4", "foreground": "#ffffff" },
@@ -83,7 +108,7 @@
     {
       "id": "close",
       "label": "Close",
-      "row": 2,
+      "row": 3,
       "col": 2,
       "action": { "type": "closeLayout" }
     }

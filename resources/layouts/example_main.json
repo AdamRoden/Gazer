@@ -9,9 +9,15 @@
     "isHome": true,
     "collapseLayoutId": "example_main_collapsed"
   },
+  "window": {
+    "anchor": "center",
+    "widthPx": 960,
+    "heightPx": 580,
+    "marginPx": 24
+  },
   "grid": {
     "columns": 2,
-    "rows": 4,
+    "rows": 5,
     "gapPx": 10,
     "marginPx": 16
   },
@@ -64,7 +70,7 @@
     },
     {
       "id": "collapse",
-      "label": "◀ Dock",
+      "label": "Hide ",
       "row": 2,
       "col": 1,
       "style": { "background": "#3d4f66", "foreground": "#ffffff" },
@@ -75,9 +81,26 @@
       "label": "Quit",
       "row": 3,
       "col": 0,
-      "colSpan": 2,
       "style": { "background": "#9b2226", "foreground": "#ffffff" },
       "action": { "type": "loadLayout", "layoutId": "example_quit_confirm" }
+    },
+    {
+      "id": "dwell_suspend",
+      "label": "Pause dwell",
+      "row": 3,
+      "col": 1,
+      "activeState": "dwellSuspend",
+      "style": { "background": "#5c4d7a", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "toggleDwellSuspend" }
+    },
+    {
+      "id": "dwell_suspend_hint",
+      "label": "When paused, only this control accepts dwell",
+      "role": "label",
+      "row": 4,
+      "col": 0,
+      "colSpan": 2,
+      "style": { "background": "#2b2d42", "foreground": "#a0aec0" }
     }
   ]
 }

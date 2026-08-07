@@ -1,78 +1,99 @@
 #pragma once
 
+#include "assist/GazeDwellTracker.h"
 #include "core/GazePoint.h"
 #include "ui/ProgressVisuals.h"
 
 #include <QElapsedTimer>
 #include <QObject>
+#include <QPixmap>
 #include <QPointF>
-#include <QWidget>
+#include <QRect>
 #include <memory>
 
 namespace gazer {
 
-/// After arming, dwell gaze (outside boards) warps the OS cursor to that point.
-///
-/// Reticle follows gaze smoothly for small moves while the progress ring fills.
-/// Larger drift freezes progress; still larger drift reverses progress — movement
-/// is never hard-snapped/reset the way a pure "stable radius" dwell does.
+/// Dwell gaze to warp the OS cursor. Optional two-step static magnify pick.
+/// Look↕Scroll placement always uses direct dwell (never mag-pick).
 class MouseDwellMove final : public QObject {
     Q_OBJECT
 
 public:
+    enum class ArmPurpose {
+        CursorMove,           ///< Normal move-to (honors mag-pick setting).
+        LookToScrollPlace     ///< Place scroll origin for LTS (always direct).
+    };
+
     explicit MouseDwellMove(QObject* parent = nullptr);
     ~MouseDwellMove() override;
 
-    void setArmed(bool armed);
+    void setArmed(bool armed, ArmPurpose purpose = ArmPurpose::CursorMove);
     [[nodiscard]] bool isArmed() const { return m_armed; }
+    [[nodiscard]] ArmPurpose armPurpose() const { return m_purpose; }
+    [[nodiscard]] bool isLookToScrollPlace() const
+    {
+        return m_armed && m_purpose == ArmPurpose::LookToScrollPlace;
+    }
     void toggle();
 
     void setDwellMs(int ms);
-    /// Radius where progress still fills (reticle may drift slowly inside this).
     void setStableRadiusPx(int px);
-    /// Beyond this, progress freezes (reticle still follows smoothly).
     void setFreezeRadiusPx(int px);
-    /// Beyond this, progress reverses toward zero.
     void setCancelRadiusPx(int px);
     void setProgressVisuals(const ProgressVisuals& visuals);
+    void setMagPickEnabled(bool enabled);
+    [[nodiscard]] bool isMagPickEnabled() const { return m_magPickEnabled; }
+    [[nodiscard]] bool isMagPointPhase() const;
+    void setMagPickZoom(double z);
+    void setMagPickSourcePx(int px);
+    /// When true, static zoom window is centered on the first-dwell point (clamped).
+    void setMagPickCenterOnDwell(bool on);
+    [[nodiscard]] bool isMagPickCenterOnDwell() const { return m_magPickCenterOnDwell; }
 
-    /// overBoard: ignore dwell on Gazer boards so keys don't warp the cursor.
-    void onGaze(const GazePoint& point, bool overBoard);
+    /// Boards are left by GazeRouter while armed; no overBoard cancel path.
+    void onGaze(const GazePoint& point);
 
 signals:
     void armedChanged(bool armed);
+    void magPointPhaseChanged(bool active);
     void movedTo(QPoint pos);
-    void progressChanged(double progress); // 0..1
+    void progressChanged(double progress);
 
 private:
-    class ReticleOverlay;
+    class CursorOverlay;
+    class MagPickOverlay;
+    enum class Phase { Idle, Direct, MagRegion, MagPoint };
+
     void resetDwell();
-    void updateReticle(const QPointF& screen, double progress);
+    void hideUi();
+    void setPhase(Phase phase);
+    void beginMagPick(const QPoint& center);
+    void finishMagPoint(const QPointF& gaze);
+    [[nodiscard]] bool useMagPickThisArm() const;
 
     bool m_armed = false;
-    int m_dwellMs = 700;
-    /// Progress still accrues; commit point slowly tracks gaze.
-    int m_stableRadiusPx = 56;
-    /// Progress holds; reticle keeps following.
-    int m_freezeRadiusPx = 100;
-    /// Progress decays; at 0 commit re-homes to current gaze.
-    int m_cancelRadiusPx = 160;
-    /// EMA for reticle position (smooth small moves).
-    double m_followAlpha = 0.28;
-    /// How fast commit center tracks gaze while inside stable radius.
-    double m_commitTrackAlpha = 0.08;
-    /// Progress reverse rate scale (1 = full dwell time to drain).
-    double m_reverseScale = 1.35;
+    ArmPurpose m_purpose = ArmPurpose::CursorMove;
+    bool m_magPickEnabled = false;
+    bool m_magPickCenterOnDwell = true;
+    double m_magZoom = 2.5;
+    int m_magSourcePx = 220;
+    Phase m_phase = Phase::Idle;
 
+    GazeDwellTracker m_dwell;
     QElapsedTimer m_clock;
     qint64 m_lastSampleMs = -1;
-    bool m_tracking = false;
-    QPointF m_smoothPos;   // reticle / fire target (smooth)
-    QPointF m_commitPos;   // dwell "center" for distance checks
-    double m_progress = 0.0;
+    /// Grace after a brief invalid gaze sample before hard-resetting progress.
+    qint64 m_invalidSinceMs = -1;
+    int m_invalidGraceMs = 220;
     ProgressVisuals m_progressVisuals;
 
-    std::unique_ptr<ReticleOverlay> m_reticle;
+    QPixmap m_magPixmap;
+    QRect m_magSourceRect;
+    QRect m_magDisplayRect;
+    QPointF m_lastMagGaze;
+
+    std::unique_ptr<CursorOverlay> m_cursor;
+    std::unique_ptr<MagPickOverlay> m_magOverlay;
 };
 
 } // namespace gazer

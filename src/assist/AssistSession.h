@@ -1,0 +1,48 @@
+#pragma once
+
+#include <QObject>
+
+namespace gazer {
+
+/// Exclusive assist mode + gaze-routing policy (single owner for board/aim rules).
+class AssistSession final : public QObject {
+    Q_OBJECT
+
+public:
+    enum class Mode {
+        None,
+        LookToScroll,
+        LookToScrollPlaceCursor,
+        MouseDwell,
+        MagPickPoint,
+        GazeFollow
+    };
+
+    explicit AssistSession(QObject* parent = nullptr);
+
+    [[nodiscard]] Mode mode() const { return m_mode; }
+    [[nodiscard]] bool isNone() const { return m_mode == Mode::None; }
+
+    /// Full-screen aim: leave boards, free dock, pause background assist (LTS/follow).
+    [[nodiscard]] bool freesScreenForAim() const;
+    /// Alias used by older call sites — same as freesScreenForAim().
+    [[nodiscard]] bool blocksBoards() const { return freesScreenForAim(); }
+
+    /// Modes that share MouseDwellMove (direct / place-cursor / mag-pick).
+    [[nodiscard]] static bool isMouseDwellFamily(Mode m);
+    [[nodiscard]] static bool sameMouseDwellFamily(Mode a, Mode b);
+
+    void enter(Mode mode);
+    void leave(Mode mode);
+    void clear();
+
+signals:
+    void modeChanged(Mode mode);
+    /// @p next is the mode being entered (None when clearing).
+    void leaving(Mode left, Mode next);
+
+private:
+    Mode m_mode = Mode::None;
+};
+
+} // namespace gazer

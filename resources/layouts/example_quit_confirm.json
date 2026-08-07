@@ -30,6 +30,7 @@
   "items": [
     {
       "id": "prompt",
+      "role": "label", 
       "label": "Quit Gazer?",
       "row": 0,
       "col": 0,

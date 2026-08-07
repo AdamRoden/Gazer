@@ -2,6 +2,10 @@
 
 #include "app/AppSettings.h"
 #include "app/CommandRegistry.h"
+#include "assist/AssistCommands.h"
+#include "assist/AssistSession.h"
+#include "assist/GazeMouseFollow.h"
+#include "assist/GazeReticle.h"
 #include "assist/LookToScroll.h"
 #include "assist/MouseAssistState.h"
 #include "assist/MouseDwellMove.h"
@@ -44,6 +48,9 @@ public:
     MagnifierOverlay& magnifier() { return *m_magnifier; }
     MouseDwellMove& mouseDwellMove() { return *m_mouseDwellMove; }
     MouseAssistState& mouseAssist() { return *m_mouseAssist; }
+    GazeReticle& gazeReticle() { return *m_gazeReticle; }
+    GazeMouseFollow& gazeMouseFollow() { return *m_gazeMouseFollow; }
+    AssistSession& assistSession() { return *m_assistSession; }
 
     AppSettings& settings() { return m_settings; }
     [[nodiscard]] const AppSettings& settings() const { return m_settings; }
@@ -57,7 +64,6 @@ signals:
 private:
     void registerDomainCommands();
     void registerSettingsCommands();
-    void onMouseMovedForLookToScroll(QPoint pos);
     void notifyStatus(const QString& msg);
     void mutateAndApply(const std::function<void(AppSettings&)>& mutator, const QString& status);
 
@@ -92,8 +98,12 @@ private:
     std::unique_ptr<MagnifierOverlay> m_magnifier;
     std::unique_ptr<MouseDwellMove> m_mouseDwellMove;
     std::unique_ptr<MouseAssistState> m_mouseAssist;
+    std::unique_ptr<GazeReticle> m_gazeReticle;
+    std::unique_ptr<GazeMouseFollow> m_gazeMouseFollow;
+    std::unique_ptr<AssistSession> m_assistSession;
+    /// Heap-owned assist command wiring (must outlive registry handlers).
+    std::unique_ptr<AssistCommandContext> m_assistCmdCtx;
     AppSettings m_settings;
-    bool m_armLookToScrollAfterMove = false;
 
     // Numeric editor session (in-place on a settings secondary board).
     bool m_numpadActive = false;

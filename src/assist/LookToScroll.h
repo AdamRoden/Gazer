@@ -11,8 +11,9 @@
 namespace gazer {
 
 /// Circular deadzone around the mouse cursor. Gaze outside scrolls with speed
-/// proportional to distance past the deadzone — soft near the ring (cubic ease),
-/// continuous high-resolution wheel deltas (smooth, not jumpy whole notches).
+/// proportional to distance past the deadzone (cubic ease) and accelerates while
+/// gaze stays outside. Dwell in the center of the deadzone suspends/resumes scroll.
+/// Resume re-requests a mouse-move placement (host arms Move-to).
 class LookToScroll final : public QObject {
     Q_OBJECT
 
@@ -22,18 +23,27 @@ public:
 
     void setEnabled(bool enabled);
     [[nodiscard]] bool isEnabled() const { return m_enabled; }
+    /// Scroll paused while LTS stays armed (center-dwell toggle).
+    [[nodiscard]] bool isScrollSuspended() const { return m_scrollSuspended; }
+    void setScrollSuspended(bool suspended);
 
     void setDeadzonePx(int px);
     void setFalloffPx(int px);
-    /// Peak scroll rate in notches/second at full falloff (smooth via sub-notch deltas).
     void setMaxNotchesPerSec(double n);
+    /// Extra rate multiplier per second of continuous outside-deadzone gaze.
+    void setAccelPerSec(double a);
+    void setCenterDwellMs(int ms);
     void setActiveWhenOverBoard(bool allow);
 
-    void onGaze(const GazePoint& point, bool overBoard);
+    /// @p pauseInput when true: hide overlay and ignore scroll (over board / full-screen aim).
+    void onGaze(const GazePoint& point, bool pauseInput);
 
 signals:
     void enabledChanged(bool enabled);
-    void scrolled(int deltaV, int deltaH); // raw wheel units (WHEEL_DELTA=120)
+    void scrollSuspendedChanged(bool suspended);
+    /// Center-dwell resume: host should arm mouse Move-to to pick a new scroll origin.
+    void placeScrollPointRequested();
+    void scrolled(int deltaV, int deltaH);
 
 public slots:
     void toggle();
@@ -41,27 +51,30 @@ public slots:
 private:
     class RingOverlay;
 
-    void updateOverlay(const QPoint& center, double gazeDist, bool active);
+    void updateOverlay(const QPoint& center, double gazeDist, double dirX, double dirY,
+                       bool active, double centerProg, bool suspended);
     void hideOverlay();
-    /// Map normalized distance past deadzone [0,1] → speed factor [0,1]. Soft near ring.
     [[nodiscard]] static double easeNearDeadzone(double t);
 
     bool m_enabled = false;
     bool m_allowOverBoard = false;
-    /// Larger deadzone = less accidental scroll while aiming near the cursor.
+    bool m_scrollSuspended = false;
     int m_deadzonePx = 110;
-    /// Distance from deadzone edge to full speed.
     int m_falloffPx = 360;
-    /// Peak vertical/horizontal rate at t=1 (notches per second).
     double m_maxNotchesPerSec = 6.0;
-    /// Sample / inject interval (ms). Lower = smoother continuous scroll.
+    double m_accelPerSec = 0.45; // +45%/s outside, capped
+    double m_accelMax = 3.5;
+    int m_centerDwellMs = 650;
     int m_intervalMs = 16;
 
     QElapsedTimer m_clock;
-    qint64 m_lastTickMs = -1;
-    /// Accumulated fractional wheel units (WHEEL_DELTA = 120 per notch).
+    qint64 m_lastTickMs = -1;    // wheel emission gate
+    qint64 m_lastSampleMs = -1;  // center-dwell / decay dt (every sample)
     double m_accumV = 0.0;
     double m_accumH = 0.0;
+    /// Continuous time gaze has been outside the deadzone (for acceleration).
+    double m_outsideSec = 0.0;
+    double m_centerProgress = 0.0;
 
     std::unique_ptr<RingOverlay> m_overlay;
 };

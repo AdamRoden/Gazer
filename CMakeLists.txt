@@ -55,6 +55,10 @@ set(GAZER_SOURCES
     src/assist/LookToScroll.cpp
     src/assist/MouseDwellMove.cpp
     src/assist/MouseAssistState.cpp
+    src/assist/GazeReticle.cpp
+    src/assist/GazeMouseFollow.cpp
+    src/assist/AssistSession.cpp
+    src/assist/AssistCommands.cpp
     src/ui/PreviewWindow.cpp
     src/ui/LayoutWindow.cpp
     src/ui/TrayIcon.cpp
@@ -98,6 +102,11 @@ set(GAZER_HEADERS
     src/assist/LookToScroll.h
     src/assist/MouseDwellMove.h
     src/assist/MouseAssistState.h
+    src/assist/GazeReticle.h
+    src/assist/GazeMouseFollow.h
+    src/assist/AssistSession.h
+    src/assist/AssistCommands.h
+    src/assist/GazeDwellTracker.h
     src/ui/PreviewWindow.h
     src/ui/LayoutWindow.h
     src/ui/TrayIcon.h
@@ -105,6 +114,7 @@ set(GAZER_HEADERS
     src/ui/EdgeBubbleOverlay.h
     src/ui/MagnifierOverlay.h
     src/ui/OverlaySurface.h
+    src/ui/MouseIcons.h
     src/utils/Log.h
     src/utils/WinOverlay.h
 )

@@ -8,6 +8,7 @@
 #include "ui/LayoutWindow.h"
 #include "ui/ProgressVisuals.h"
 
+#include <QElapsedTimer>
 #include <QObject>
 #include <QPointF>
 #include <QRect>
@@ -51,6 +52,10 @@ public:
 
     void setEdgeBubbleOverlay(EdgeBubbleOverlay* overlay) { m_edgeBubbles = overlay; }
 
+    /// When true, only isDwellExempt items are dwell/click hit-tested.
+    void setDwellSuspended(bool suspended) { m_dwellSuspended = suspended; }
+    [[nodiscard]] bool isDwellSuspended() const { return m_dwellSuspended; }
+
 signals:
     void itemActivated(const QString& instanceId, const QString& itemId);
     void windowCloseRequested(const QString& instanceId);
@@ -58,12 +63,15 @@ signals:
 private:
     void applyDwellConfig();
     void applyDwellForItem(const QString& itemId);
+    /// Hit-policy: engage off-screen drift lip after continuous dwell on logical rect.
+    void updateDriftLip(const QString& itemId, double progress);
     void syncEdgeBubble(const QString& itemId, double progress);
     void clearEdgeBubble();
 
     [[nodiscard]] QPoint boardOrigin() const;
     [[nodiscard]] QScreen* boardScreen() const;
     [[nodiscard]] DwellRegionSpace::Resolved resolveItem(const LayoutItem& item) const;
+    [[nodiscard]] QRect itemHitRect(const LayoutItem& item) const;
     [[nodiscard]] QRect gridItemScreenRect(const QString& itemId) const;
 
     QString m_instanceId;
@@ -73,7 +81,16 @@ private:
     QVector<int> m_globalDwellSequence;
     int m_globalGraceMs = 0;
     QString m_activeDwellItemId;
+    /// Off-screen item id for which the on-screen drift lip is active (after engage delay).
+    QString m_dwellLipItemId;
+    /// Item currently accumulating time toward lip engage (may not yet have lip).
+    QString m_dwellLipTrackItemId;
+    QElapsedTimer m_dwellLipClock;
+    bool m_dwellSuspended = false;
     EdgeBubbleOverlay* m_edgeBubbles = nullptr;
+
+    /// Dwell on logical rect this long before extending hit into the edge lip.
+    static constexpr int kOffscreenLipEngageMs = 100;
 };
 
 } // namespace gazer

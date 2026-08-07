@@ -1,0 +1,38 @@
+#pragma once
+
+#include <QString>
+#include <functional>
+
+namespace gazer {
+
+class AppSettings;
+class AssistSession;
+class CommandRegistry;
+class GazeMouseFollow;
+class GazeReticle;
+class LayoutInstanceManager;
+class LookToScroll;
+class MagnifierOverlay;
+class MouseAssistState;
+class MouseDwellMove;
+
+/// Heap-owned command wiring context (must outlive all command/signal handlers).
+struct AssistCommandContext {
+    CommandRegistry* commands = nullptr;
+    AssistSession* session = nullptr;
+    LayoutInstanceManager* instances = nullptr;
+    LookToScroll* lookToScroll = nullptr;
+    MouseDwellMove* mouseDwellMove = nullptr;
+    MagnifierOverlay* magnifier = nullptr;
+    GazeReticle* gazeReticle = nullptr;
+    GazeMouseFollow* gazeMouseFollow = nullptr;
+    MouseAssistState* mouseAssist = nullptr;
+    AppSettings* settings = nullptr;
+    std::function<void(bool persist)> applySettings;
+    std::function<void()> refreshActiveIndicators;
+    std::function<void(const QString&)> notifyStatus;
+};
+
+void registerAssistCommands(AssistCommandContext& ctx);
+
+} // namespace gazer

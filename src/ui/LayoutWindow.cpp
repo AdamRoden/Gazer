@@ -1,6 +1,7 @@
 #include "ui/LayoutWindow.h"
 
 #include "layout/LayoutGeometry.h"
+#include "ui/MouseIcons.h"
 #include "utils/WinOverlay.h"
 
 #include <QCloseEvent>
@@ -301,21 +302,19 @@ void LayoutWindow::paintDefault(QPainter& p)
         paintProgressChrome(p, r, hovered, m_hoverProgress, visualsForItem(&item));
 
         p.setPen(fg);
-        const QString text =
-            item.caption.isEmpty() ? item.label
-                                   : QStringLiteral("%1\n%2").arg(item.label, item.caption);
-        p.drawText(r.adjusted(8, 8, -8, -8), Qt::AlignCenter | Qt::TextWordWrap, text);
+        if (!item.icon.isEmpty()) {
+            const QRectF iconR(r.left() + 6, r.top() + 6, r.width() - 12, r.height() * 0.52);
+            MouseIcons::paint(p, item.icon, iconR, fg);
+            p.setFont(QFont(QStringLiteral("Segoe UI"), 11, QFont::DemiBold));
+            p.drawText(r.adjusted(6, r.height() * 0.52, -6, -6),
+                       Qt::AlignHCenter | Qt::AlignTop | Qt::TextWordWrap, item.label);
+        } else {
+            const QString text =
+                item.caption.isEmpty() ? item.label
+                                       : QStringLiteral("%1\n%2").arg(item.label, item.caption);
+            p.drawText(r.adjusted(8, 8, -8, -8), Qt::AlignCenter | Qt::TextWordWrap, text);
+        }
     }
-
-    p.setPen(QColor(140, 150, 165));
-    p.setFont(QFont(QStringLiteral("Segoe UI"), 10));
-    const QString hud =
-        QStringLiteral("%1  ·  dwell %2 ms  ·  hover: %3")
-            .arg(m_layout.id)
-            .arg(m_layout.dwell.ms)
-            .arg(m_hoverId.isEmpty() ? QStringLiteral("—") : m_hoverId);
-    p.drawText(QRect(12, height() - 28, width() - 24, 20), Qt::AlignLeft | Qt::AlignVCenter,
-               hud);
 }
 
 void LayoutWindow::paintFluent(QPainter& p)
@@ -433,8 +432,17 @@ void LayoutWindow::paintFluent(QPainter& p)
         paintProgressChrome(p, r, hovered, m_hoverProgress, visualsForItem(&item));
 
         p.setPen(active ? QColor(255, 255, 255) : fg);
-        p.setFont(QFont(QStringLiteral("Segoe UI"), 13, QFont::DemiBold));
-        p.drawText(r.adjusted(10, 10, -10, -10), Qt::AlignCenter | Qt::TextWordWrap, item.label);
+        if (!item.icon.isEmpty()) {
+            const QRectF iconR(r.left() + 8, r.top() + 8, r.width() - 16, r.height() * 0.5);
+            MouseIcons::paint(p, item.icon, iconR, active ? QColor(255, 255, 255) : fg);
+            p.setFont(QFont(QStringLiteral("Segoe UI"), 11, QFont::DemiBold));
+            p.drawText(r.adjusted(8, r.height() * 0.52, -8, -8),
+                       Qt::AlignHCenter | Qt::AlignTop | Qt::TextWordWrap, item.label);
+        } else {
+            p.setFont(QFont(QStringLiteral("Segoe UI"), 13, QFont::DemiBold));
+            p.drawText(r.adjusted(10, 10, -10, -10), Qt::AlignCenter | Qt::TextWordWrap,
+                       item.label);
+        }
     }
 }
 

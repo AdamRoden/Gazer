@@ -19,12 +19,33 @@ QString LayoutInstanceManager::makeInstanceId(const QString& layoutId)
 
 void LayoutInstanceManager::wireInstance(LayoutInstance* inst)
 {
-    if (inst && m_edgeBubbles) {
+    if (!inst) {
+        return;
+    }
+    if (m_edgeBubbles) {
         inst->setEdgeBubbleOverlay(m_edgeBubbles);
     }
+    inst->setDwellSuspended(m_dwellSuspended);
     connect(inst, &LayoutInstance::itemActivated, this, &LayoutInstanceManager::itemActivated);
     connect(inst, &LayoutInstance::windowCloseRequested, this,
             &LayoutInstanceManager::onWindowCloseRequested);
+}
+
+void LayoutInstanceManager::setDwellSuspended(bool suspended)
+{
+    m_dwellSuspended = suspended;
+    for (const auto& p : m_instances) {
+        if (p) {
+            p->setDwellSuspended(suspended);
+            if (suspended) {
+                p->leaveGaze();
+            }
+        }
+    }
+    if (suspended) {
+        leaveActiveGaze();
+    }
+    GAZER_INFO << "Dwell capture" << (suspended ? "SUSPENDED" : "resumed");
 }
 
 LayoutInstance* LayoutInstanceManager::instance(const QString& instanceId) const

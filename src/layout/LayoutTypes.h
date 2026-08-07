@@ -117,8 +117,12 @@ struct LayoutItem {
     QString settingKey;
     /// Runtime toggle key for accent "on" state (e.g. mouse.leftHold, lookToScroll).
     QString activeState;
+    /// Built-in glyph key for LayoutWindow (e.g. "leftClick", "moveTo"). Empty = text only.
+    QString icon;
     /// When false, cell is visual-only (not dwell/click hit-tested).
     bool interactive = true;
+    /// When true, remains dwellable while global dwell suspend is on.
+    bool dwellExempt = false;
     int row = 0;
     int col = 0;
     int rowSpan = 1;
@@ -140,6 +144,9 @@ struct LayoutItem {
     {
         return !unbounded && !hasDwellRegion;
     }
+
+    /// Survives global dwell suspend (set via dwellExempt in JSON / loader).
+    [[nodiscard]] bool isDwellExempt() const { return dwellExempt; }
 };
 
 struct LayoutGrid {
@@ -170,6 +177,10 @@ struct LayoutWindowPlacement {
     int widthPx = 0;
     int heightPx = 0;
     int marginPx = 8;
+    /// True when the layout JSON included a "window" object.
+    bool specified = false;
+    /// Explicit "window": { "hidden": true } — force no board chrome.
+    bool hidden = false;
 };
 
 /// Session role — engine never matches content filenames.
@@ -221,6 +232,24 @@ struct LayoutDocument {
     [[nodiscard]] bool isValid() const
     {
         return !id.isEmpty() && grid.columns > 0 && grid.rows > 0;
+    }
+
+    /// Show board HWND? Explicit hidden → no. Explicit window → yes.
+    /// No window block: show if any grid cell item exists; hide items-only layouts.
+    [[nodiscard]] bool showsBoardWindow() const
+    {
+        if (placement.hidden) {
+            return false;
+        }
+        if (placement.specified) {
+            return true;
+        }
+        for (const LayoutItem& item : items) {
+            if (item.participatesInBoardGrid()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     [[nodiscard]] bool isMasterShell() const { return session.isMasterShell(); }

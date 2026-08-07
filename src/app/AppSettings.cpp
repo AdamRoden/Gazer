@@ -91,6 +91,8 @@ void AppSettings::clamp()
     ltsDeadzonePx = qBound(30, ltsDeadzonePx, 400);
     ltsFalloffPx = qBound(80, ltsFalloffPx, 800);
     ltsMaxNotchesPerSec = qBound(0.5, ltsMaxNotchesPerSec, 24.0);
+    ltsAccelPerSec = qBound(0.0, ltsAccelPerSec, 2.0);
+    ltsCenterDwellMs = qBound(200, ltsCenterDwellMs, 2500);
     trackerPref = qBound(0, trackerPref, 1);
     flashMs = qBound(40, flashMs, 1000);
     if (!progressRadial && !progressFill && !progressBorder) {
@@ -525,6 +527,9 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
 
     dwellGraceMs = o.value(QStringLiteral("dwellGraceMs")).toInt(dwellGraceMs);
     mouseMoveDwellMs = o.value(QStringLiteral("mouseMoveDwellMs")).toInt(mouseMoveDwellMs);
+    mouseMoveMagPick = o.value(QStringLiteral("mouseMoveMagPick")).toBool(mouseMoveMagPick);
+    mouseMoveMagPickCenterOnDwell =
+        o.value(QStringLiteral("mouseMoveMagPickCenterOnDwell")).toBool(mouseMoveMagPickCenterOnDwell);
     magZoom = o.value(QStringLiteral("magZoom")).toDouble(magZoom);
     magLensSize = o.value(QStringLiteral("magLensSize")).toInt(magLensSize);
     magFollowProfile = o.value(QStringLiteral("magFollowProfile")).toInt(magFollowProfile);
@@ -532,6 +537,8 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
     ltsFalloffPx = o.value(QStringLiteral("ltsFalloffPx")).toInt(ltsFalloffPx);
     ltsMaxNotchesPerSec =
         o.value(QStringLiteral("ltsMaxNotchesPerSec")).toDouble(ltsMaxNotchesPerSec);
+    ltsAccelPerSec = o.value(QStringLiteral("ltsAccelPerSec")).toDouble(ltsAccelPerSec);
+    ltsCenterDwellMs = o.value(QStringLiteral("ltsCenterDwellMs")).toInt(ltsCenterDwellMs);
     ltsPlaceCursorFirst =
         o.value(QStringLiteral("ltsPlaceCursorFirst")).toBool(ltsPlaceCursorFirst);
     autoCollapseMain = o.value(QStringLiteral("autoCollapseMain")).toBool(autoCollapseMain);
@@ -580,12 +587,16 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     o.insert(QStringLiteral("dwellSequence"), seq);
     o.insert(QStringLiteral("dwellGraceMs"), copy.dwellGraceMs);
     o.insert(QStringLiteral("mouseMoveDwellMs"), copy.mouseMoveDwellMs);
+    o.insert(QStringLiteral("mouseMoveMagPick"), copy.mouseMoveMagPick);
+    o.insert(QStringLiteral("mouseMoveMagPickCenterOnDwell"), copy.mouseMoveMagPickCenterOnDwell);
     o.insert(QStringLiteral("magZoom"), copy.magZoom);
     o.insert(QStringLiteral("magLensSize"), copy.magLensSize);
     o.insert(QStringLiteral("magFollowProfile"), copy.magFollowProfile);
     o.insert(QStringLiteral("ltsDeadzonePx"), copy.ltsDeadzonePx);
     o.insert(QStringLiteral("ltsFalloffPx"), copy.ltsFalloffPx);
     o.insert(QStringLiteral("ltsMaxNotchesPerSec"), copy.ltsMaxNotchesPerSec);
+    o.insert(QStringLiteral("ltsAccelPerSec"), copy.ltsAccelPerSec);
+    o.insert(QStringLiteral("ltsCenterDwellMs"), copy.ltsCenterDwellMs);
     o.insert(QStringLiteral("ltsPlaceCursorFirst"), copy.ltsPlaceCursorFirst);
     o.insert(QStringLiteral("autoCollapseMain"), copy.autoCollapseMain);
     o.insert(QStringLiteral("startDocked"), copy.startDocked);

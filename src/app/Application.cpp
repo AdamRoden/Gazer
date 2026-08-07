@@ -48,9 +48,12 @@ bool Application::initialize()
 
     m_gazeRouter.setInstances(&m_svc->instances());
     m_gazeRouter.setDockReveal(m_dockReveal.get());
+    m_gazeRouter.setAssistSession(&m_svc->assistSession());
     m_gazeRouter.setLookToScroll(&m_svc->lookToScroll());
     m_gazeRouter.setMouseDwellMove(&m_svc->mouseDwellMove());
     m_gazeRouter.setMagnifier(&m_svc->magnifier());
+    m_gazeRouter.setGazeReticle(&m_svc->gazeReticle());
+    m_gazeRouter.setGazeMouseFollow(&m_svc->gazeMouseFollow());
 
     connect(m_tray.get(), &TrayIcon::showPreviewRequested, m_preview.get(),
             &PreviewWindow::showAndRaise);

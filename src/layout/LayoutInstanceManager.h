@@ -74,6 +74,11 @@ public:
 
     void setEdgeBubbleOverlay(EdgeBubbleOverlay* overlay);
 
+    /// Suspend dwell/click capture on all boards except isDwellExempt items.
+    void setDwellSuspended(bool suspended);
+    [[nodiscard]] bool isDwellSuspended() const { return m_dwellSuspended; }
+    void toggleDwellSuspended() { setDwellSuspended(!m_dwellSuspended); }
+
     /// Replace instance document in-place (e.g. dynamic numeric editor board).
     [[nodiscard]] bool setInstanceDocument(const QString& instanceId, LayoutDocument doc,
                                            QString* error = nullptr);
@@ -136,6 +141,7 @@ private:
     ProgressVisuals m_progressVisuals;
     EdgeBubbleOverlay* m_edgeBubbles = nullptr;
     DocumentDecorator m_documentDecorator;
+    bool m_dwellSuspended = false;
     LayoutDocument decorateCopy(const LayoutDocument& src) const;
 };
 

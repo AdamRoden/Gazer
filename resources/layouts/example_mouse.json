@@ -2,246 +2,107 @@
   "schemaVersion": 1,
   "id": "example_mouse",
   "name": "Mouse",
-  "description": "OptiKey-style mouse — clicks, holds, cursor, scroll, tools.",
+  "description": "OptiKey-style mouse keyboard — icons, clicks, scroll, move, tools.",
   "window": {
     "anchor": "bottomCenter",
-    "widthPx": 1020,
-    "heightPx": 320,
+    "widthPx": 1100,
+    "heightPx": 360,
     "marginPx": 8
   },
   "grid": {
-    "columns": 6,
-    "rows": 5,
-    "gapPx": 6,
-    "marginPx": 10
+    "columns": 8,
+    "rows": 3,
+    "gapPx": 8,
+    "marginPx": 12
   },
   "dwell": {
     "enabled": true,
-    "ms": 600,
+    "ms": 550,
     "repeatMs": 0,
     "progressStyle": "radial"
   },
   "items": [
-    {
-      "id": "lclick",
-      "label": "L Click",
-      "row": 0,
-      "col": 0,
+    { "id": "lclick", "label": "Left", "icon": "leftClick", "row": 0, "col": 0,
+      "style": { "background": "#1b4332", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "mouseLeftClick" } },
+    { "id": "ldbl", "label": "L×2", "icon": "leftDbl", "row": 0, "col": 1,
+      "style": { "background": "#1b4332", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "mouseLeftDoubleClick" } },
+    { "id": "rclick", "label": "Right", "icon": "rightClick", "row": 0, "col": 2,
       "style": { "background": "#2d6a4f", "foreground": "#ffffff" },
-      "action": { "type": "command", "name": "mouseLeftClick" }
-    },
-    {
-      "id": "ldbl",
-      "label": "L Dbl",
-      "row": 0,
-      "col": 1,
+      "action": { "type": "command", "name": "mouseRightClick" } },
+    { "id": "rdbl", "label": "R×2", "icon": "rightDbl", "row": 0, "col": 3,
       "style": { "background": "#2d6a4f", "foreground": "#ffffff" },
-      "action": { "type": "command", "name": "mouseLeftDoubleClick" }
-    },
-    {
-      "id": "rclick",
-      "label": "R Click",
-      "row": 0,
-      "col": 2,
+      "action": { "type": "command", "name": "mouseRightDoubleClick" } },
+    { "id": "mclick", "label": "Middle", "icon": "middleClick", "row": 0, "col": 4,
       "style": { "background": "#40916c", "foreground": "#ffffff" },
-      "action": { "type": "command", "name": "mouseRightClick" }
-    },
-    {
-      "id": "rdbl",
-      "label": "R Dbl",
-      "row": 0,
-      "col": 3,
-      "style": { "background": "#40916c", "foreground": "#ffffff" },
-      "action": { "type": "command", "name": "mouseRightDoubleClick" }
-    },
-    {
-      "id": "mclick",
-      "label": "Mid",
-      "row": 0,
-      "col": 4,
-      "style": { "background": "#52b788", "foreground": "#ffffff" },
-      "action": { "type": "command", "name": "mouseMiddleClick" }
-    },
-    {
-      "id": "mdownup",
-      "label": "M Hold",
-      "activeState": "mouse.middleHold",
-      "row": 0,
-      "col": 5,
-      "style": { "background": "#bc4749", "foreground": "#ffffff" },
-      "action": { "type": "command", "name": "mouseMiddleDownUp" }
-    },
+      "action": { "type": "command", "name": "mouseMiddleClick" } },
+    { "id": "ldownup", "label": "L Hold", "icon": "leftHold", "activeState": "mouse.leftHold",
+      "row": 0, "col": 5,
+      "style": { "background": "#9b2226", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "mouseLeftDownUp" } },
+    { "id": "rdownup", "label": "R Hold", "icon": "rightHold", "activeState": "mouse.rightHold",
+      "row": 0, "col": 6,
+      "style": { "background": "#9b2226", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "mouseRightDownUp" } },
+    { "id": "mdownup", "label": "M Hold", "icon": "middleHold", "activeState": "mouse.middleHold",
+      "row": 0, "col": 7,
+      "style": { "background": "#9b2226", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "mouseMiddleDownUp" } },
 
-    {
-      "id": "ldownup",
-      "label": "L Hold",
-      "activeState": "mouse.leftHold",
-      "row": 1,
-      "col": 0,
-      "style": { "background": "#bc4749", "foreground": "#ffffff" },
-      "action": { "type": "command", "name": "mouseLeftDownUp" }
-    },
-    {
-      "id": "rdownup",
-      "label": "R Hold",
-      "activeState": "mouse.rightHold",
-      "row": 1,
-      "col": 1,
-      "style": { "background": "#bc4749", "foreground": "#ffffff" },
-      "action": { "type": "command", "name": "mouseRightDownUp" }
-    },
-    {
-      "id": "dwell_move",
-      "label": "Move to…",
-      "activeState": "mouseDwellMove",
-      "row": 1,
-      "col": 2,
+    { "id": "nudge_up", "label": "Up", "icon": "nudgeUp", "row": 1, "col": 0,
+      "style": { "background": "#264653", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "mouseMoveUp" } },
+    { "id": "nudge_left", "label": "Left", "icon": "nudgeLeft", "row": 1, "col": 1,
+      "style": { "background": "#264653", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "mouseMoveLeft" } },
+    { "id": "nudge_right", "label": "Right", "icon": "nudgeRight", "row": 1, "col": 2,
+      "style": { "background": "#264653", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "mouseMoveRight" } },
+    { "id": "nudge_down", "label": "Down", "icon": "nudgeDown", "row": 1, "col": 3,
+      "style": { "background": "#264653", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "mouseMoveDown" } },
+    { "id": "sc_up", "label": "Scroll ↑", "icon": "scrollUp", "row": 1, "col": 4,
+      "style": { "background": "#1d3557", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "mouseScrollUp" } },
+    { "id": "sc_down", "label": "Scroll ↓", "icon": "scrollDown", "row": 1, "col": 5,
+      "style": { "background": "#1d3557", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "mouseScrollDown" } },
+    { "id": "sc_left", "label": "Scroll ←", "icon": "scrollLeft", "row": 1, "col": 6,
+      "style": { "background": "#1d3557", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "mouseScrollLeft" } },
+    { "id": "sc_right", "label": "Scroll →", "icon": "scrollRight", "row": 1, "col": 7,
+      "style": { "background": "#1d3557", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "mouseScrollRight" } },
+
+    { "id": "dwell_move", "label": "Move to…", "icon": "moveTo", "activeState": "mouseDwellMove",
+      "row": 2, "col": 0,
       "style": { "background": "#e9c46a", "foreground": "#1a1a1a" },
-      "action": { "type": "command", "name": "mouseDwellMove" }
-    },
-    {
-      "id": "movestep",
-      "label": "Move ±",
-      "row": 1,
-      "col": 3,
+      "action": { "type": "command", "name": "mouseDwellMove" } },
+    { "id": "mag_pick", "label": "Mag pick", "icon": "magPick", "activeState": "mouseMoveMagPick",
+      "row": 2, "col": 1,
+      "style": { "background": "#f4a261", "foreground": "#1a1a1a" },
+      "action": { "type": "command", "name": "toggleMouseMoveMagPick" } },
+    { "id": "mag_center", "label": "Mag @dwell", "icon": "magPickCenter", "activeState": "mouseMoveMagPickCenter",
+      "row": 2, "col": 2,
+      "style": { "background": "#e76f51", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "toggleMouseMoveMagPickCenter" } },
+    { "id": "movestep", "label": "Step ±", "icon": "amount", "row": 2, "col": 3,
       "style": { "background": "#3d4f66", "foreground": "#ffffff" },
-      "action": { "type": "command", "name": "cycleMouseMoveAmount" }
-    },
-    {
-      "id": "mag",
-      "label": "Magnifier",
-      "activeState": "magnifier",
-      "row": 1,
-      "col": 4,
+      "action": { "type": "command", "name": "cycleMouseMoveAmount" } },
+    { "id": "scrstep", "label": "Scroll ±", "icon": "amount", "row": 2, "col": 4,
+      "style": { "background": "#3d4f66", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "cycleMouseScrollAmount" } },
+    { "id": "mag", "label": "Lens", "icon": "magnifier", "activeState": "magnifier",
+      "row": 2, "col": 5,
       "style": { "background": "#6a4c93", "foreground": "#ffffff" },
-      "action": { "type": "command", "name": "toggleMagnifier" }
-    },
-    {
-      "id": "lts",
-      "label": "Look↕Scroll\n(place+scroll)",
-      "activeState": "lookToScroll",
-      "row": 1,
-      "col": 5,
+      "action": { "type": "command", "name": "toggleMagnifier" } },
+    { "id": "lts", "label": "Look↕Scroll", "icon": "lookToScroll", "activeState": "lookToScroll",
+      "row": 2, "col": 6,
       "style": { "background": "#0a7ea4", "foreground": "#ffffff" },
-      "action": { "type": "command", "name": "toggleLookToScroll" }
-    },
-
-    {
-      "id": "edge_top",
-      "label": "↕ Top",
-      "row": 2,
-      "col": 0,
-      "style": { "background": "#495057", "foreground": "#ffffff" },
-      "action": { "type": "command", "name": "mouseMoveToTop" }
-    },
-    {
-      "id": "nudge_up",
-      "label": "↑",
-      "row": 2,
-      "col": 1,
-      "style": { "background": "#3d4f66", "foreground": "#ffffff" },
-      "action": { "type": "command", "name": "mouseMoveUp" }
-    },
-    {
-      "id": "edge_bottom",
-      "label": "↕ Bot",
-      "row": 2,
-      "col": 2,
-      "style": { "background": "#495057", "foreground": "#ffffff" },
-      "action": { "type": "command", "name": "mouseMoveToBottom" }
-    },
-    {
-      "id": "sc_up",
-      "label": "Scr ↑",
-      "row": 2,
-      "col": 3,
-      "colSpan": 3,
-      "style": { "background": "#1b4332", "foreground": "#ffffff" },
-      "action": { "type": "command", "name": "mouseScrollUp" }
-    },
-
-    {
-      "id": "nudge_left",
-      "label": "←",
-      "row": 3,
-      "col": 0,
-      "style": { "background": "#3d4f66", "foreground": "#ffffff" },
-      "action": { "type": "command", "name": "mouseMoveLeft" }
-    },
-    {
-      "id": "edge_left",
-      "label": "↕ Left",
-      "row": 3,
-      "col": 1,
-      "style": { "background": "#495057", "foreground": "#ffffff" },
-      "action": { "type": "command", "name": "mouseMoveToLeft" }
-    },
-    {
-      "id": "nudge_right",
-      "label": "→",
-      "row": 3,
-      "col": 2,
-      "style": { "background": "#3d4f66", "foreground": "#ffffff" },
-      "action": { "type": "command", "name": "mouseMoveRight" }
-    },
-    {
-      "id": "sc_left",
-      "label": "Scr ←",
-      "row": 3,
-      "col": 3,
-      "style": { "background": "#1b4332", "foreground": "#ffffff" },
-      "action": { "type": "command", "name": "mouseScrollLeft" }
-    },
-    {
-      "id": "edge_right",
-      "label": "↕ Right",
-      "row": 3,
-      "col": 4,
-      "style": { "background": "#495057", "foreground": "#ffffff" },
-      "action": { "type": "command", "name": "mouseMoveToRight" }
-    },
-    {
-      "id": "sc_right",
-      "label": "Scr →",
-      "row": 3,
-      "col": 5,
-      "style": { "background": "#1b4332", "foreground": "#ffffff" },
-      "action": { "type": "command", "name": "mouseScrollRight" }
-    },
-
-    {
-      "id": "nudge_down",
-      "label": "↓",
-      "row": 4,
-      "col": 0,
-      "colSpan": 2,
-      "style": { "background": "#3d4f66", "foreground": "#ffffff" },
-      "action": { "type": "command", "name": "mouseMoveDown" }
-    },
-    {
-      "id": "sc_down",
-      "label": "Scr ↓",
-      "row": 4,
-      "col": 2,
-      "style": { "background": "#1b4332", "foreground": "#ffffff" },
-      "action": { "type": "command", "name": "mouseScrollDown" }
-    },
-    {
-      "id": "close",
-      "label": "Close",
-      "row": 4,
-      "col": 3,
-      "style": { "background": "#6c757d", "foreground": "#ffffff" },
-      "action": { "type": "closeLayout" }
-    },
-    {
-      "id": "main",
-      "label": "← Main",
-      "row": 4,
-      "col": 4,
-      "colSpan": 2,
+      "action": { "type": "command", "name": "toggleLookToScroll" } },
+    { "id": "main", "label": "Main", "icon": "main", "row": 2, "col": 7,
       "style": { "background": "#0a7ea4", "foreground": "#ffffff" },
-      "action": { "type": "loadLayout", "layoutId": "example_main" }
-    }
+      "action": { "type": "loadLayout", "layoutId": "example_main" } }
   ]
 }

@@ -43,10 +43,20 @@ struct EdgeBand {
 
 struct Resolved {
     QRect logical;   // may be off-screen
-    QRect hit;       // always usable by Tobii/cursor (on-display)
+    QRect hit;       // engage rect (logical; no free edge lip)
     bool showBubble = false;
     Edge edge = Edge::Bottom;
-    EdgeBand band;   // valid when showBubble
+    EdgeBand band;   // edge bubble + optional post-engage drift lip
+
+    /// After dwell has started, expand hit with the on-screen edge band so gaze
+    /// can drift onto the display without losing the target.
+    [[nodiscard]] QRect hitWithDriftLip(bool engaged) const
+    {
+        if (!engaged || band.hit.isEmpty()) {
+            return hit;
+        }
+        return hit.united(band.hit);
+    }
 };
 
 // --- screen helpers ----------------------------------------------------------
@@ -370,7 +380,6 @@ struct Resolved {
         scr = nearestScreen(desktop.center());
     }
     if (!scr) {
-        // No screen metadata — still hit the logical rect (may be off-display).
         r.hit = logical;
         r.showBubble = boardless;
         return r;
@@ -383,16 +392,11 @@ struct Resolved {
     r.edge = hasPreferredEdge ? preferredEdge : nearestEdge(logical, screen);
     r.band = bandForTarget(r.edge, screen, logical);
 
-    // Hit the full logical rect (Tobii is not screen-clamped and can sample past
-    // the bezel). Also union the on-screen edge band so mouse-as-gaze and weakly
-    // extrapolated trackers can still engage off-screen affordances at the edge.
+    // Hit is always the logical rect so marginPx fully controls how far off-screen
+    // gaze must go. Do not union a free on-screen edge band — that made margin
+    // 20/50 behave like the screen edge while only margin > kDepth felt "far".
     r.hit = logical;
-    if (off || outsideBoard || boardless) {
-        r.hit = r.hit.united(r.band.hit);
-        r.showBubble = true;
-    } else {
-        r.showBubble = false;
-    }
+    r.showBubble = boardless || outsideBoard || off;
     return r;
 }
 

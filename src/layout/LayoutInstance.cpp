@@ -20,7 +20,15 @@ LayoutInstance::LayoutInstance(QString instanceId, LayoutDocument document, QObj
     connect(m_window.get(), &LayoutWindow::closeRequested, this,
             [this]() { emit windowCloseRequested(m_instanceId); });
     connect(m_window.get(), &LayoutWindow::itemClicked, this,
-            [this](const QString& itemId) { emit itemActivated(m_instanceId, itemId); });
+            [this](const QString& itemId) {
+                if (m_dwellSuspended) {
+                    const LayoutItem* item = m_document.findItem(itemId);
+                    if (!item || !item->isDwellExempt()) {
+                        return;
+                    }
+                }
+                emit itemActivated(m_instanceId, itemId);
+            });
 
     m_dwell = std::make_unique<DwellStateMachine>();
     applyDwellConfig();
@@ -142,6 +150,13 @@ void LayoutInstance::setDocument(LayoutDocument document)
 
 void LayoutInstance::raise()
 {
+    if (!m_window) {
+        return;
+    }
+    if (!m_document.showsBoardWindow()) {
+        m_window->hide();
+        return;
+    }
     m_window->showAndRaise();
 }
 
@@ -160,6 +175,20 @@ void LayoutInstance::applyPlacement(int cascadeOffset)
     }
 
     const LayoutWindowPlacement& p = m_document.placement;
+
+    // Headless / items-only: no board chrome. Keep a 1×1 HWND for mapToGlobal
+    // when board-local dwell regions are used; screenAnchor does not need it.
+    if (!m_document.showsBoardWindow()) {
+        m_window->setMinimumSize(1, 1);
+        m_window->setMaximumSize(1, 1);
+        m_window->resize(1, 1);
+        if (QScreen* screen = QGuiApplication::primaryScreen()) {
+            m_window->move(screen->geometry().topLeft());
+        }
+        m_window->hide();
+        return;
+    }
+
     m_window->setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
 
     if (p.widthPx > 0 && p.heightPx > 0) {
@@ -272,6 +301,13 @@ DwellRegionSpace::Resolved LayoutInstance::resolveItem(const LayoutItem& item) c
     return DwellRegionSpace::resolveItem(item, boardOrigin(), screenRect(), boardScreen());
 }
 
+QRect LayoutInstance::itemHitRect(const LayoutItem& item) const
+{
+    const auto r = resolveItem(item);
+    const bool engaged = !m_dwellLipItemId.isEmpty() && m_dwellLipItemId == item.id;
+    return r.hitWithDriftLip(engaged);
+}
+
 QRect LayoutInstance::screenRect() const
 {
     if (!m_window) {
@@ -288,20 +324,43 @@ QPointF LayoutInstance::centerScreen() const
 QString LayoutInstance::hitTest(const QPointF& screenPoint) const
 {
     const QPoint pt = screenPoint.toPoint();
+    auto allow = [this](const LayoutItem& item) {
+        if (!item.interactive) {
+            return false;
+        }
+        if (m_dwellSuspended && !item.isDwellExempt()) {
+            return false;
+        }
+        return true;
+    };
+
     QString hit;
     for (const LayoutItem& item : m_document.items) {
-        if (!item.interactive || item.participatesInBoardGrid()) {
+        if (!allow(item) || item.participatesInBoardGrid()) {
             continue;
         }
-        const auto r = resolveItem(item);
-        if (!r.hit.isEmpty() && r.hit.contains(pt)) {
+        const QRect rect = itemHitRect(item);
+        if (!rect.isEmpty() && rect.contains(pt)) {
             hit = item.id; // last match wins
         }
     }
     if (!hit.isEmpty()) {
         return hit;
     }
-    return m_window ? m_window->hitTestGlobal(screenPoint) : QString();
+    if (!m_window) {
+        return {};
+    }
+    const QString boardHit = m_window->hitTestGlobal(screenPoint);
+    if (boardHit.isEmpty()) {
+        return {};
+    }
+    if (m_dwellSuspended) {
+        const LayoutItem* item = m_document.findItem(boardHit);
+        if (!item || !item->isDwellExempt()) {
+            return {};
+        }
+    }
+    return boardHit;
 }
 
 bool LayoutInstance::containsScreenPoint(const QPointF& screenPoint) const
@@ -310,6 +369,7 @@ bool LayoutInstance::containsScreenPoint(const QPointF& screenPoint) const
         return false;
     }
     const QPoint pt = screenPoint.toPoint();
+    // Board chrome: still "over" the window for routing, but hitTest filters cells.
     if (m_window->isVisible() && screenRect().contains(pt)) {
         return true;
     }
@@ -317,16 +377,44 @@ bool LayoutInstance::containsScreenPoint(const QPointF& screenPoint) const
         if (!item.interactive || item.participatesInBoardGrid()) {
             continue;
         }
-        const auto r = resolveItem(item);
-        if (!r.hit.isEmpty() && r.hit.contains(pt)) {
+        if (m_dwellSuspended && !item.isDwellExempt()) {
+            continue;
+        }
+        const QRect rect = itemHitRect(item);
+        if (!rect.isEmpty() && rect.contains(pt)) {
             return true;
         }
     }
     return false;
 }
 
+void LayoutInstance::updateDriftLip(const QString& itemId, double progress)
+{
+    // Off-screen drift lip: only after continuous dwell on the logical rect for
+    // kOffscreenLipEngageMs (then gaze may drift onto the edge band / hit expands).
+    if (itemId.isEmpty()) {
+        m_dwellLipItemId.clear();
+        m_dwellLipTrackItemId.clear();
+        return;
+    }
+    if (progress <= 0.0) {
+        // progress == 0 on same item: keep track/lip (sequence step boundaries).
+        return;
+    }
+    if (m_dwellLipTrackItemId != itemId) {
+        m_dwellLipTrackItemId = itemId;
+        m_dwellLipItemId.clear();
+        m_dwellLipClock.restart();
+    }
+    if (m_dwellLipClock.isValid() && m_dwellLipClock.elapsed() >= kOffscreenLipEngageMs) {
+        m_dwellLipItemId = itemId;
+    }
+}
+
 void LayoutInstance::syncEdgeBubble(const QString& itemId, double progress)
 {
+    updateDriftLip(itemId, progress);
+
     if (!m_edgeBubbles) {
         return;
     }
@@ -368,6 +456,9 @@ void LayoutInstance::feedGaze(const GazePoint& point, const QString& itemIdUnder
         if (!m_activeDwellItemId.isEmpty()) {
             clearEdgeBubble();
         }
+        // Target change: drop drift lip until new item dwells long enough.
+        m_dwellLipItemId.clear();
+        m_dwellLipTrackItemId.clear();
         m_activeDwellItemId = itemIdUnderGaze;
         applyDwellForItem(itemIdUnderGaze);
     }
@@ -377,6 +468,8 @@ void LayoutInstance::feedGaze(const GazePoint& point, const QString& itemIdUnder
 void LayoutInstance::leaveGaze()
 {
     clearEdgeBubble();
+    m_dwellLipItemId.clear();
+    m_dwellLipTrackItemId.clear();
     m_activeDwellItemId.clear();
     m_dwell->leave();
     if (m_window) {

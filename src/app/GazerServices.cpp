@@ -1,5 +1,6 @@
 #include "app/GazerServices.h"
 
+#include "assist/AssistCommands.h"
 #include "utils/Log.h"
 
 #include <QColor>
@@ -72,6 +73,9 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
     m_magnifier = std::make_unique<MagnifierOverlay>();
     m_mouseDwellMove = std::make_unique<MouseDwellMove>();
     m_mouseAssist = std::make_unique<MouseAssistState>(*m_input);
+    m_gazeReticle = std::make_unique<GazeReticle>();
+    m_gazeMouseFollow = std::make_unique<GazeMouseFollow>();
+    m_assistSession = std::make_unique<AssistSession>();
     m_scripts = std::make_unique<ScriptHost>(*m_phrases, *m_commands, *m_input, *m_instances);
 
     m_catalog->setLayoutsDirectory(layoutsDir);
@@ -97,12 +101,18 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
     // Keep accent indicators in sync with toggles / holds.
     connect(m_lookToScroll.get(), &LookToScroll::enabledChanged, this,
             [this](bool) { refreshActiveIndicators(); });
+    connect(m_lookToScroll.get(), &LookToScroll::scrollSuspendedChanged, this,
+            [this](bool) { refreshActiveIndicators(); });
     connect(m_mouseDwellMove.get(), &MouseDwellMove::armedChanged, this,
             [this](bool) { refreshActiveIndicators(); });
     connect(m_magnifier.get(), &MagnifierOverlay::enabledChanged, this,
             [this](bool) { refreshActiveIndicators(); });
     connect(m_mouseAssist.get(), &MouseAssistState::holdsChanged, this,
             [this]() { refreshActiveIndicators(); });
+    connect(m_gazeReticle.get(), &GazeReticle::enabledChanged, this,
+            [this](bool) { refreshActiveIndicators(); });
+    connect(m_gazeMouseFollow.get(), &GazeMouseFollow::enabledChanged, this,
+            [this](bool) { refreshActiveIndicators(); });
     connect(this, &GazerServices::settingsChanged, this, [this]() { refreshActiveIndicators(); });
     connect(m_instances.get(), &LayoutInstanceManager::sessionChanged, this,
             [this]() { refreshActiveIndicators(); });
@@ -114,14 +124,32 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
 
 bool GazerServices::resolveActiveState(const QString& key) const
 {
+    if (key == QLatin1String("dwellSuspend") || key == QLatin1String("dwell.suspended")) {
+        return m_instances && m_instances->isDwellSuspended();
+    }
     if (key == QLatin1String("lookToScroll")) {
         return m_lookToScroll && m_lookToScroll->isEnabled();
+    }
+    if (key == QLatin1String("lookToScroll.suspended")) {
+        return m_lookToScroll && m_lookToScroll->isScrollSuspended();
     }
     if (key == QLatin1String("mouseDwellMove")) {
         return m_mouseDwellMove && m_mouseDwellMove->isArmed();
     }
+    if (key == QLatin1String("mouseMoveMagPick")) {
+        return m_settings.mouseMoveMagPick;
+    }
+    if (key == QLatin1String("mouseMoveMagPickCenter")) {
+        return m_settings.mouseMoveMagPickCenterOnDwell;
+    }
     if (key == QLatin1String("magnifier")) {
         return m_magnifier && m_magnifier->isEnabledLens();
+    }
+    if (key == QLatin1String("gazeReticle")) {
+        return m_gazeReticle && m_gazeReticle->isEnabled();
+    }
+    if (key == QLatin1String("gazeMouseFollow")) {
+        return m_gazeMouseFollow && m_gazeMouseFollow->isEnabled();
     }
     if (key == QLatin1String("mouse.leftHold")) {
         return m_mouseAssist && m_mouseAssist->isLeftHeld();
@@ -276,6 +304,9 @@ void GazerServices::applySettings(bool persist)
     m_instances->applyProgressVisuals(boardPv);
 
     m_mouseDwellMove->setDwellMs(m_settings.mouseMoveDwellMs);
+    m_mouseDwellMove->setMagPickEnabled(m_settings.mouseMoveMagPick);
+    m_mouseDwellMove->setMagPickCenterOnDwell(m_settings.mouseMoveMagPickCenterOnDwell);
+    m_mouseDwellMove->setMagPickZoom(m_settings.magZoom);
     ProgressVisuals mousePv;
     mousePv.radial = m_settings.mouseProgressRadial;
     mousePv.fillBackground = m_settings.mouseProgressFill;
@@ -291,6 +322,8 @@ void GazerServices::applySettings(bool persist)
     m_lookToScroll->setDeadzonePx(m_settings.ltsDeadzonePx);
     m_lookToScroll->setFalloffPx(m_settings.ltsFalloffPx);
     m_lookToScroll->setMaxNotchesPerSec(m_settings.ltsMaxNotchesPerSec);
+    m_lookToScroll->setAccelPerSec(m_settings.ltsAccelPerSec);
+    m_lookToScroll->setCenterDwellMs(m_settings.ltsCenterDwellMs);
 
     m_magnifier->setZoom(m_settings.magZoom);
     m_magnifier->setLensSize(m_settings.magLensSize);
@@ -327,17 +360,6 @@ void GazerServices::resetSettingsToDefaults()
     notifyStatus(QStringLiteral("Settings reset to defaults"));
 }
 
-void GazerServices::onMouseMovedForLookToScroll(QPoint pos)
-{
-    if (!m_armLookToScrollAfterMove) {
-        return;
-    }
-    m_armLookToScrollAfterMove = false;
-    m_lookToScroll->setEnabled(true);
-    GAZER_INFO << "LookToScroll armed after mouse move →" << pos.x() << pos.y();
-    notifyStatus(QStringLiteral("Look↕Scroll ON (cursor placed)"));
-}
-
 LayoutDocument GazerServices::buildNumpadDocument() const
 {
     // Layout:
@@ -362,6 +384,7 @@ LayoutDocument GazerServices::buildNumpadDocument() const
     doc.dwell.enabled = true;
     doc.dwell.msSequence = m_settings.dwellSequence;
     doc.dwell.ms = m_settings.dwellSequence.isEmpty() ? 650 : m_settings.dwellSequence.first();
+    doc.placement.specified = true;
     doc.placement.anchor = LayoutWindowPlacement::Anchor::Center;
     doc.placement.widthPx = 520;
     doc.placement.heightPx = 720;
@@ -598,6 +621,7 @@ bool GazerServices::openColorPicker(const QString& colorKey, QString* error)
     doc.grid.gapPx = 12;
     doc.grid.marginPx = 56;
     doc.dwell.ms = m_settings.dwellSequence.isEmpty() ? 650 : m_settings.dwellSequence.first();
+    doc.placement.specified = true;
     doc.placement.anchor = LayoutWindowPlacement::Anchor::Center;
     doc.placement.widthPx = 720;
     doc.placement.heightPx = 420;
@@ -693,44 +717,21 @@ bool GazerServices::numpadCancel(QString* error)
 
 void GazerServices::registerDomainCommands()
 {
-    connect(m_mouseDwellMove.get(), &MouseDwellMove::movedTo, this,
-            &GazerServices::onMouseMovedForLookToScroll);
-
-    m_commands->registerBuiltin(QStringLiteral("toggleLookToScroll"), [this](QString*) {
-        if (m_lookToScroll->isEnabled()) {
-            m_lookToScroll->setEnabled(false);
-            m_armLookToScrollAfterMove = false;
-            m_mouseDwellMove->setArmed(false);
-            notifyStatus(QStringLiteral("Look↕Scroll OFF"));
-            return true;
-        }
-        if (m_armLookToScrollAfterMove || m_mouseDwellMove->isArmed()) {
-            m_armLookToScrollAfterMove = false;
-            m_mouseDwellMove->setArmed(false);
-            notifyStatus(QStringLiteral("Look↕Scroll cancelled"));
-            return true;
-        }
-        if (m_settings.ltsPlaceCursorFirst) {
-            m_armLookToScrollAfterMove = true;
-            m_mouseDwellMove->setArmed(true);
-            notifyStatus(
-                QStringLiteral("Look↕Scroll: dwell to place cursor, then look to scroll"));
-        } else {
-            m_lookToScroll->setEnabled(true);
-            notifyStatus(QStringLiteral("Look↕Scroll ON"));
-        }
-        return true;
-    });
-    m_commands->registerBuiltin(QStringLiteral("toggleMagnifier"), [this](QString*) {
-        m_magnifier->toggle();
-        return true;
-    });
-    m_commands->registerBuiltin(QStringLiteral("mouseDwellMove"), [this](QString*) {
-        m_armLookToScrollAfterMove = false;
-        m_mouseDwellMove->toggle();
-        return true;
-    });
-    m_mouseAssist->registerCommands(*m_commands);
+    m_assistCmdCtx = std::make_unique<AssistCommandContext>();
+    m_assistCmdCtx->commands = m_commands.get();
+    m_assistCmdCtx->session = m_assistSession.get();
+    m_assistCmdCtx->instances = m_instances.get();
+    m_assistCmdCtx->lookToScroll = m_lookToScroll.get();
+    m_assistCmdCtx->mouseDwellMove = m_mouseDwellMove.get();
+    m_assistCmdCtx->magnifier = m_magnifier.get();
+    m_assistCmdCtx->gazeReticle = m_gazeReticle.get();
+    m_assistCmdCtx->gazeMouseFollow = m_gazeMouseFollow.get();
+    m_assistCmdCtx->mouseAssist = m_mouseAssist.get();
+    m_assistCmdCtx->settings = &m_settings;
+    m_assistCmdCtx->applySettings = [this](bool persist) { applySettings(persist); };
+    m_assistCmdCtx->refreshActiveIndicators = [this]() { refreshActiveIndicators(); };
+    m_assistCmdCtx->notifyStatus = [this](const QString& msg) { notifyStatus(msg); };
+    registerAssistCommands(*m_assistCmdCtx);
 }
 
 void GazerServices::registerSettingsCommands()
