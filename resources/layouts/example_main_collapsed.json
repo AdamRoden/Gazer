@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "example_main_collapsed",
   "name": "Dock",
-  "description": "Collapsed Main chip. Edge items are off-screen affordances; omit window for fully headless layouts.",
+  "description": "Window omitted for fully headless layout.",
   "session": {
     "role": "masterShell",
     "masterGroup": "home",
@@ -10,6 +10,7 @@
     "expandLayoutId": "example_main",
     "hideUntilGazeReveal": false
   },
+  "dwell": { "fillColor": "#00ffff", "borderColor": "#00ffff", "progressColor": "#00ffff" },
   "items": [
     {
       "id": "e1",
@@ -22,7 +23,7 @@
         "heightPx": 150,
         "marginPx": 50
       },
-      "style": { "background": "#1d3557", "foreground": "#ffffff" },
+      "style": { "background": "#000000", "foreground": "#ffffff" },
       "action": { "type": "command", "name": "expandMaster" }
     },
     {
@@ -36,7 +37,7 @@
         "x": -25,
         "yPx": 325
       },
-      "style": { "background": "#1d3557", "foreground": "#ffffff" },
+      "style": { "background": "#000000", "foreground": "#ffffff" },
       "action": { "type": "command", "name": "toggleDwellSuspend" }
     }
   ]

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "example_main",
   "name": "Main",
-  "description": "Home — open boards, dock, close others, quit.",
+  "uiStyle": "fluent",
   "session": {
     "role": "masterShell",
     "masterGroup": "home",
@@ -10,22 +10,16 @@
     "collapseLayoutId": "example_main_collapsed"
   },
   "window": {
-    "anchor": "center",
-    "widthPx": 960,
-    "heightPx": 580,
-    "marginPx": 24
+    "anchor": "bottomCenter",
+    "widthPx": 1080,
+    "heightPx": 150,
+    "marginPx": 0
   },
   "grid": {
-    "columns": 2,
-    "rows": 5,
+    "columns": 8,
+    "rows": 1,
     "gapPx": 10,
-    "marginPx": 16
-  },
-  "dwell": {
-    "enabled": true,
-    "ms": 700,
-    "repeatMs": 0,
-    "progressStyle": "radial"
+    "marginPx": 10
   },
   "items": [
     {
@@ -33,7 +27,7 @@
       "label": "Keyboard",
       "row": 0,
       "col": 0,
-      "style": { "background": "#1d3557", "foreground": "#ffffff" },
+      "style": { "background": "#771d3557", "foreground": "#ffffff" },
       "action": { "type": "openLayout", "layoutId": "example_keyboard" }
     },
     {
@@ -41,66 +35,57 @@
       "label": "Mouse",
       "row": 0,
       "col": 1,
-      "style": { "background": "#2d6a4f", "foreground": "#ffffff" },
+      "style": { "background": "#772d6a4f", "foreground": "#ffffff" },
       "action": { "type": "openLayout", "layoutId": "example_mouse" }
     },
     {
       "id": "open_assist",
       "label": "Assist ★",
-      "row": 1,
-      "col": 0,
-      "style": { "background": "#6a4c93", "foreground": "#ffffff" },
+      "row": 0,
+      "col": 2,
+      "style": { "background": "#776a4c93", "foreground": "#ffffff" },
       "action": { "type": "openLayout", "layoutId": "example_assist" }
     },
     {
       "id": "open_settings",
       "label": "Settings ⚙",
-      "row": 1,
-      "col": 1,
-      "style": { "background": "#4a5568", "foreground": "#ffffff" },
+      "row": 0,
+      "col": 3,
+      "style": { "background": "#774a5568", "foreground": "#ffffff" },
       "action": { "type": "openLayout", "layoutId": "example_settings" }
     },
     {
-      "id": "close_others",
-      "label": "Close others",
-      "row": 2,
-      "col": 0,
-      "style": { "background": "#495057", "foreground": "#ffffff" },
-      "action": { "type": "command", "name": "closeOtherViews" }
-    },
-    {
-      "id": "collapse",
-      "label": "Hide ",
-      "row": 2,
-      "col": 1,
-      "style": { "background": "#3d4f66", "foreground": "#ffffff" },
+      "id": "close",
+      "label": "Close",
+      "row": 0,
+      "col": 4,
+      "style": { "background": "#443d4f66", "foreground": "#ffffff" },
       "action": { "type": "loadLayout", "layoutId": "example_main_collapsed" }
     },
     {
-      "id": "quit",
-      "label": "Quit",
-      "row": 3,
-      "col": 0,
-      "style": { "background": "#9b2226", "foreground": "#ffffff" },
-      "action": { "type": "loadLayout", "layoutId": "example_quit_confirm" }
+      "id": "close_all",
+      "label": "Close All",
+      "row": 0,
+      "col": 5,
+      "style": { "background": "#22495057", "foreground": "#ffffff" },
+      "actions": [{ "type": "command", "name": "closeOtherViews" }, { "type": "loadLayout", "layoutId": "example_main_collapsed" }]
     },
     {
       "id": "dwell_suspend",
       "label": "Pause dwell",
-      "row": 3,
-      "col": 1,
+      "row": 0,
+      "col": 6,
       "activeState": "dwellSuspend",
-      "style": { "background": "#5c4d7a", "foreground": "#ffffff" },
+      "style": { "background": "#995c4d7a", "foreground": "#ffffff" },
       "action": { "type": "command", "name": "toggleDwellSuspend" }
     },
     {
-      "id": "dwell_suspend_hint",
-      "label": "When paused, only this control accepts dwell",
-      "role": "label",
-      "row": 4,
-      "col": 0,
-      "colSpan": 2,
-      "style": { "background": "#2b2d42", "foreground": "#a0aec0" }
+      "id": "quit",
+      "label": "Quit",
+      "row": 0,
+      "col": 7,
+      "style": { "background": "#9b2226", "foreground": "#ffffff" },
+      "action": { "type": "loadLayout", "layoutId": "example_quit_confirm" }
     }
   ]
 }

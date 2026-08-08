@@ -6,23 +6,10 @@
   "uiStyle": "fluent",
   "window": { "anchor": "center", "widthPx": 1000, "heightPx": 520, "marginPx": 16 },
   "grid": { "columns": 5, "rows": 4, "gapPx": 10, "marginPx": 56 },
-  "dwell": { "enabled": true, "ms": [650], "progressStyle": "radial" },
   "items": [
-    { "id": "ac_l", "role": "label", "label": "Auto-collapse Main", "caption": "Collapse Main when opening a board.", "row": 0, "col": 0 },
-    { "id": "ac_v", "role": "value", "settingKey": "autoCollapseMain", "label": "—", "row": 0, "col": 2 },
-    { "id": "ac_t", "label": "Toggle", "activeState": "setting.autoCollapseMain", "row": 0, "col": 3, "colSpan": 2, "style": { "background": "#3d4f66", "foreground": "#fff" }, "action": { "type": "command", "name": "settings.session.autoCollapse.toggle" } },
-
-    { "id": "sd_l", "role": "label", "label": "Start docked", "caption": "Start on dock chip next launch.", "row": 1, "col": 0 },
-    { "id": "sd_v", "role": "value", "settingKey": "startDocked", "label": "—", "row": 1, "col": 2 },
-    { "id": "sd_t", "label": "Toggle", "activeState": "setting.startDocked", "row": 1, "col": 3, "colSpan": 2, "style": { "background": "#495057", "foreground": "#fff" }, "action": { "type": "command", "name": "settings.session.startDocked.toggle" } },
-
     { "id": "tr_l", "role": "label", "label": "Tracker", "caption": "Applies on next app start.", "row": 2, "col": 0 },
     { "id": "tr_v", "role": "value", "settingKey": "trackerPref", "label": "—", "row": 2, "col": 2 },
     { "id": "tr_a", "label": "Auto Tobii", "activeState": "setting.tracker.0", "row": 2, "col": 3, "style": { "background": "#1d3557", "foreground": "#fff" }, "action": { "type": "command", "name": "settings.tracker.auto" } },
-    { "id": "tr_m", "label": "Mouse", "activeState": "setting.tracker.1", "row": 2, "col": 4, "style": { "background": "#457b9d", "foreground": "#fff" }, "action": { "type": "command", "name": "settings.tracker.mouse" } },
-
-    { "id": "pause_dwell", "label": "Pause dwell", "activeState": "dwellSuspend", "row": 3, "col": 0, "style": { "background": "#8b5a2b", "foreground": "#fff" }, "action": { "type": "command", "name": "toggleDwellSuspend" } },
-    { "id": "back", "label": "← Settings", "row": 3, "col": 1, "colSpan": 2, "style": { "background": "#0a7ea4", "foreground": "#fff" }, "action": { "type": "loadLayout", "layoutId": "example_settings" } },
-    { "id": "close", "label": "Close", "row": 3, "col": 3, "colSpan": 2, "style": { "background": "#4a5568", "foreground": "#fff" }, "action": { "type": "closeLayout" } }
+    { "id": "tr_m", "label": "Mouse", "activeState": "setting.tracker.1", "row": 2, "col": 4, "style": { "background": "#457b9d", "foreground": "#fff" }, "action": { "type": "command", "name": "settings.tracker.mouse" } }
   ]
 }
