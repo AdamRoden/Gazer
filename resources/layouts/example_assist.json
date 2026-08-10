@@ -3,114 +3,87 @@
   "id": "example_assist",
   "name": "Assist",
   "description": "Gaze assist: LTS, magnifier, reticle, gaze→mouse, move-to.",
-  "window": { "anchor": "center", "widthPx": 900, "heightPx": 520, "marginPx": 16 },
-  "grid": {
-    "columns": 3,
-    "rows": 4,
-    "gapPx": 8,
-    "marginPx": 12
+  "window": {
+    "anchor": "bottomCenter",
+    "widthPx": 1080,
+    "heightPx": 150
   },
-  "dwell": {
-    "enabled": true,
-    "ms": 600,
-    "repeatMs": 0,
-    "progressStyle": "radial"
+  "grid": {
+    "columns": 8,
+    "rows": 1,
+    "gapPx": 10,
+    "marginPx": 10
   },
   "items": [
-    {
-      "id": "lts",
-      "label": "Look↕Scroll",
-      "activeState": "lookToScroll",
-      "row": 0,
-      "col": 0,
-      "style": { "background": "#2d6a4f", "foreground": "#ffffff" },
-      "action": { "type": "command", "name": "toggleLookToScroll" }
-    },
     {
       "id": "mag",
       "label": "Magnifier",
       "activeState": "magnifier",
       "row": 0,
-      "col": 1,
+      "col": 0,
       "style": { "background": "#6a4c93", "foreground": "#ffffff" },
       "action": { "type": "command", "name": "toggleMagnifier" }
+    },
+    {
+      "id": "gaze_reticle",
+      "label": "Gaze reticle",
+      "activeState": "gazeReticle",
+      "row": 0,
+      "col": 1,
+      "style": { "background": "#1d3557", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "toggleGazeReticle" }
+    },
+    {
+      "id": "gaze_follow",
+      "label": "Gaze mouse",
+      "activeState": "gazeMouseFollow",
+      "row": 0,
+      "col": 2,
+      "style": { "background": "#457b9d", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "toggleGazeMouseFollow" }
     },
     {
       "id": "mouse_move",
       "label": "Move mouse\n(dwell)",
       "activeState": "mouseDwellMove",
       "row": 0,
-      "col": 2,
+      "col": 3,
       "style": { "background": "#0a7ea4", "foreground": "#ffffff" },
       "action": { "type": "command", "name": "mouseDwellMove" }
     },
     {
-      "id": "gaze_reticle",
-      "label": "Gaze reticle",
-      "activeState": "gazeReticle",
-      "row": 1,
-      "col": 0,
-      "style": { "background": "#1d3557", "foreground": "#ffffff" },
-      "action": { "type": "command", "name": "toggleGazeReticle" }
-    },
-    {
-      "id": "gaze_follow",
-      "label": "Gaze→mouse",
-      "activeState": "gazeMouseFollow",
-      "row": 1,
-      "col": 1,
-      "style": { "background": "#457b9d", "foreground": "#ffffff" },
-      "action": { "type": "command", "name": "toggleGazeMouseFollow" }
-    },
-    {
       "id": "mag_pick",
-      "label": "Move-to\nmagnify pick",
+      "label": "Move-to\nZoom",
       "activeState": "mouseMoveMagPick",
-      "row": 1,
-      "col": 2,
+      "row": 0,
+      "col": 4,
       "style": { "background": "#4a5568", "foreground": "#ffffff" },
       "action": { "type": "command", "name": "toggleMouseMoveMagPick" }
     },
     {
-      "id": "hello_tts",
-      "label": "Speak Hello",
-      "row": 2,
-      "col": 0,
-      "action": { "type": "speak", "text": "Hello" }
-    },
-    {
-      "id": "script_hi",
-      "label": "Script Hi",
-      "row": 2,
-      "col": 1,
-      "action": {
-        "type": "script",
-        "source": "gazer.speak('Script says hello'); gazer.log('script ran');"
-      }
+      "id": "lts",
+      "label": "Look↕Scroll",
+      "activeState": "lookToScroll",
+      "row": 0,
+      "col": 5,
+      "style": { "background": "#2d6a4f", "foreground": "#ffffff" },
+      "action": { "type": "command", "name": "toggleLookToScroll" }
     },
     {
       "id": "lts_hint",
-      "label": "LTS: dwell center ring = pause scroll · hold outside = accelerate",
+      "label": "LTS: dwell center = pause/resume · hold outside = accelerate",
       "role": "label",
-      "row": 2,
-      "col": 2,
+      "row": 0,
+      "col": 6,
       "style": { "background": "#2b2d42", "foreground": "#a0aec0" }
     },
     {
       "id": "main",
       "label": "← Main",
-      "row": 3,
-      "col": 0,
-      "colSpan": 2,
+      "row": 0,
+      "col": 7,
       "style": { "background": "#0a7ea4", "foreground": "#ffffff" },
       "action": { "type": "loadLayout", "layoutId": "example_main" }
-    },
-    {
-      "id": "close",
-      "label": "Close",
-      "row": 3,
-      "col": 2,
-      "action": { "type": "closeLayout" }
     }
   ]
 }

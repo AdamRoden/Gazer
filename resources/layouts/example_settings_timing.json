@@ -7,10 +7,11 @@
   "window": { "anchor": "TopCenter", "widthPx": 1260, "height": 100, "marginPx": 0 },
   "grid": { "columns": 5, "rows": 10, "gapPx": 10, "marginPx": 100 },
   "items": [
-    { "id": "timing", "label": "Timing", "row": 0, "col": 0, "style": { "background": "#2b4c7e", "foreground": "#f4f6fc" }, "action": { "type": "loadLayout", "layoutId": "example_settings_timing" } },
+    { "id": "timing", "label": "Timing", "row": 0, "col": 0, "style": { "background": "#332b4c7e", "foreground": "#f4f6fc" } },
     { "id": "magnifier", "label": "Magnifier", "row": 0, "col": 1, "style": { "background": "#5c4d7a", "foreground": "#f4f6fc" }, "action": { "type": "loadLayout", "layoutId": "example_settings_magnifier" } },
     { "id": "lts", "label": "Look↕Scroll", "row": 0, "col": 2, "style": { "background": "#1b5e4a", "foreground": "#f4f6fc" }, "action": { "type": "loadLayout", "layoutId": "example_settings_lts" } },
     {"id": "appearance","label": "Appearance","row": 0,"col": 3,"style": { "background": "#5c4d7a", "foreground": "#f4f6fc" },"action": { "type": "loadLayout", "layoutId": "example_settings_appearance" }},
+    {"id": "assist","label": "Assist tools","row": 0,"col": 4,"style": { "background": "#134f5c", "foreground": "#f4f6fc" },"action": { "type": "loadLayout", "layoutId": "example_settings_assist" }},
   
     { "id": "dwell_label", "role": "label", "label": "Dwell sequence", "caption": "Comma-separated ms steps while holding (e.g. 600,300,100,600). Last step repeats forever.", "row": 2, "col": 0 },
     { "id": "dwell_dec", "label": "−", "row": 2, "col": 1, "style": { "background": "#355070", "foreground": "#fff" }, "action": { "type": "command", "name": "settings.nudge.dwellMs.dec" } },
@@ -34,6 +35,11 @@
     { "id": "p_slow", "label": "Slow", "row": 5, "col": 1, "style": { "background": "#264653", "foreground": "#fff" }, "action": { "type": "command", "name": "settings.dwell.slow" } },
     { "id": "p_norm", "label": "Normal", "row": 5, "col": 2, "style": { "background": "#2a9d8f", "foreground": "#fff" }, "action": { "type": "command", "name": "settings.dwell.normal" } },
     { "id": "p_fast", "label": "Fast", "row": 5, "col": 3, "colSpan": 2, "style": { "background": "#e9c46a", "foreground": "#1a1a1a" }, "action": { "type": "command", "name": "settings.dwell.fast" } },
+
+    { "id": "mag_pick", "label": "Pre-Click Zoom", "activeState": "mouseMoveMagPick", "row": 6, "col": 1, "style": { "background": "#f4a261", "foreground": "#1a1a1a" }, "action": { "type": "command", "name": "toggleMouseMoveMagPick" } },
+    { "id": "mag_center", "label": "Zoom @dwell", "activeState": "mouseMoveMagPickCenter", "row": 6, "col": 2, "style": { "background": "#e76f51", "foreground": "#fff" }, "action": { "type": "command", "name": "toggleMouseMoveMagPickCenter" } },
+    { "id": "click_loop", "label": "Gaze click\nloop", "activeState": "loop.gazeClick", "row": 6, "col": 3, "style": { "background": "#c1121f", "foreground": "#ffffff" }, "action": { "type": "command", "name": "mouseDwellClickLoop" } },
+    { "id": "stop_loops", "label": "Stop action loops", "row": 6, "col": 4, "style": { "background": "#8b2e2e", "foreground": "#fff" }, "action": { "type": "command", "name": "stopAllActionLoops" } },
 
     { "id": "close", "label": "Close", "row": 9, "col": 2, "colSpan": 1, "style": { "background": "#4a5568", "foreground": "#fff" }, "action": { "type": "closeLayout" } }
   ]
