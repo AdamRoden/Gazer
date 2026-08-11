@@ -56,7 +56,7 @@
     <ComponentGroup Id="PayloadFiles" Directory="INSTALLFOLDER">
       <Files Include="!(bindpath.Payload)\**">
         <Exclude Files="!(bindpath.Payload)\**\*.pdb" />
-        <!-- Compiler objects only (not resources/models/*.obj mesh assets). -->
+        <!-- Compiler .obj only at payload root. Keep resources/models/*.obj (Wavefront meshes). -->
         <Exclude Files="!(bindpath.Payload)\*.obj" />
         <Exclude Files="!(bindpath.Payload)\**\*.log" />
       </Files>

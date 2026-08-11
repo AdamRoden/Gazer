@@ -183,7 +183,12 @@ if (-not $TobiiFound) {
     Write-Warning "tobii_stream_engine.dll not found - MSI will use mouse tracker only until Tobii is present."
 }
 
-Get-ChildItem $StageDir -Recurse -Include *.pdb,*.obj,*.ilk,*.exp,*.lib,gazer.log,gazer_*.log -ErrorAction SilentlyContinue |
+# Strip build artifacts only. Do NOT remove resources/models/*.obj — those are
+# Wavefront mesh assets (head preview), not compiler objects.
+Get-ChildItem $StageDir -Recurse -Include *.pdb,*.ilk,*.exp,*.lib,gazer.log,gazer_*.log -ErrorAction SilentlyContinue |
+    Remove-Item -Force -ErrorAction SilentlyContinue
+# Compiler .obj only at stage root (next to Gazer.exe), never under resources/
+Get-ChildItem $StageDir -File -Filter *.obj -ErrorAction SilentlyContinue |
     Remove-Item -Force -ErrorAction SilentlyContinue
 
 if (-not (Test-Path (Join-Path $StageDir "platforms\qwindows.dll"))) {
