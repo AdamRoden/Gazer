@@ -113,7 +113,8 @@ void SettingsUi::refreshOpenBoards()
         LayoutDocument copy = *src;
         decorateDocument(copy);
         inst->setDocument(copy);
-        inst->setGlobalDwellOverride(m_settings.dwellSequence, m_settings.dwellGraceMs);
+        inst->setGlobalDwellOverride(m_settings.dwellSequence, m_settings.dwellGraceMs,
+                                     m_settings.scanGraceMs);
     }
 }
 
@@ -450,8 +451,9 @@ void SettingsUi::registerCommands()
     };
 
     for (const char* key :
-         {"dwellMs", "dwellGraceMs", "mouseMoveDwellMs", "magZoom", "magLensSize",
-          "ltsDeadzonePx", "ltsFalloffPx", "ltsMaxNotchesPerSec"}) {
+         {"dwellMs", "scanGraceMs", "dwellGraceMs", "mouseMoveDwellMs",
+          "mouseMoveSelectTimeoutMs", "magZoom", "magLensSize", "ltsDeadzonePx", "ltsFalloffPx",
+          "ltsMaxNotchesPerSec"}) {
         m_commands.registerBuiltin(QStringLiteral("settings.edit.%1").arg(QLatin1String(key)),
                                    editCmd(QLatin1String(key)));
     }
@@ -498,12 +500,18 @@ void SettingsUi::registerCommands()
                 }
                 m_settings.dwellSequence[0] =
                     qBound(50, m_settings.dwellSequence[0] + dir * 50, 10000);
+            } else if (key == QLatin1String("scanGraceMs")) {
+                m_settings.scanGraceMs =
+                    qBound(0, m_settings.scanGraceMs + dir * 20, 2000);
             } else if (key == QLatin1String("dwellGraceMs")) {
                 m_settings.dwellGraceMs =
                     qBound(0, m_settings.dwellGraceMs + dir * 20, 800);
             } else if (key == QLatin1String("mouseMoveDwellMs")) {
                 m_settings.mouseMoveDwellMs =
                     qBound(200, m_settings.mouseMoveDwellMs + dir * 50, 2500);
+            } else if (key == QLatin1String("mouseMoveSelectTimeoutMs")) {
+                m_settings.mouseMoveSelectTimeoutMs =
+                    qBound(0, m_settings.mouseMoveSelectTimeoutMs + dir * 500, 120000);
             } else if (key == QLatin1String("magZoom")) {
                 m_settings.magZoom = qBound(1.25, m_settings.magZoom + dir * 0.25, 6.0);
             } else if (key == QLatin1String("magLensSize")) {
@@ -535,9 +543,9 @@ void SettingsUi::registerCommands()
     };
 
     for (const char* key :
-         {"dwellMs", "dwellGraceMs", "mouseMoveDwellMs", "magZoom", "magLensSize",
-          "ltsDeadzonePx", "ltsFalloffPx", "ltsMaxNotchesPerSec", "ltsAccelPerSec",
-          "ltsCenterDwellMs", "flashMs"}) {
+         {"dwellMs", "scanGraceMs", "dwellGraceMs", "mouseMoveDwellMs",
+          "mouseMoveSelectTimeoutMs", "magZoom", "magLensSize", "ltsDeadzonePx", "ltsFalloffPx",
+          "ltsMaxNotchesPerSec", "ltsAccelPerSec", "ltsCenterDwellMs", "flashMs"}) {
         m_commands.registerBuiltin(QStringLiteral("settings.nudge.%1.dec").arg(QLatin1String(key)),
                                    nudge(QLatin1String(key), -1));
         m_commands.registerBuiltin(QStringLiteral("settings.nudge.%1.inc").arg(QLatin1String(key)),

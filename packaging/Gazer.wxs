@@ -25,6 +25,10 @@
 
     <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
 
+    <!-- Brand icon: Add/Remove Programs, Start Menu, Desktop shortcuts. -->
+    <Icon Id="GazerIcon" SourceFile="!(bindpath.Payload)\resources\icons\gazer.ico" />
+    <Property Id="ARPPRODUCTICON" Value="GazerIcon" />
+
     <!-- Optional UI (license-free minimal welcome). -->
     <ui:WixUI Id="WixUI_Minimal" />
     <WixVariable Id="WixUILicenseRtf" Value="!(bindpath.Packaging)\License.rtf" />
@@ -52,7 +56,8 @@
     <ComponentGroup Id="PayloadFiles" Directory="INSTALLFOLDER">
       <Files Include="!(bindpath.Payload)\**">
         <Exclude Files="!(bindpath.Payload)\**\*.pdb" />
-        <Exclude Files="!(bindpath.Payload)\**\*.obj" />
+        <!-- Compiler objects only (not resources/models/*.obj mesh assets). -->
+        <Exclude Files="!(bindpath.Payload)\*.obj" />
         <Exclude Files="!(bindpath.Payload)\**\*.log" />
       </Files>
     </ComponentGroup>
@@ -62,7 +67,8 @@
                 Name="Gazer"
                 Description="Gaze input mapper"
                 Target="[INSTALLFOLDER]Gazer.exe"
-                WorkingDirectory="INSTALLFOLDER" />
+                WorkingDirectory="INSTALLFOLDER"
+                Icon="GazerIcon" />
       <RemoveFolder Id="RemoveApplicationProgramsFolder" On="uninstall" />
       <RegistryValue Root="HKCU"
                      Key="Software\Gazer\Installer"
@@ -77,7 +83,8 @@
                 Name="Gazer"
                 Description="Gaze input mapper"
                 Target="[INSTALLFOLDER]Gazer.exe"
-                WorkingDirectory="INSTALLFOLDER" />
+                WorkingDirectory="INSTALLFOLDER"
+                Icon="GazerIcon" />
       <RegistryValue Root="HKCU"
                      Key="Software\Gazer\Installer"
                      Name="DesktopShortcut"

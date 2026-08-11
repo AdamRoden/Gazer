@@ -1,0 +1,3 @@
+// Windows application icon (taskbar, Explorer, Alt+Tab, shortcuts that target the exe).
+// Path is absolute (forward slashes) so MinGW windres and MSVC rc both resolve it.
+IDI_ICON1 ICON "@GAZER_ICON_PATH@"

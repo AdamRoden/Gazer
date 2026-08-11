@@ -24,6 +24,8 @@ public:
     /// Progressive / repeating dwell steps in ms (cycled until leave).
     void setDwellSequence(const QVector<int>& msSteps);
     void setInvalidGraceMs(int ms);
+    /// Time on-target before dwell sequence / progress animation begins (ms).
+    void setScanGraceMs(int ms);
     void reset();
     void leave();
 
@@ -31,6 +33,7 @@ public:
     [[nodiscard]] QString hoveredItemId() const { return m_currentId; }
     [[nodiscard]] double progress() const { return m_progress; }
     [[nodiscard]] int currentStepMs() const;
+    [[nodiscard]] int scanGraceMs() const { return m_scanGraceMs; }
 
 public slots:
     void onGazeSample(const gazer::GazePoint& point, const QString& itemIdUnderGaze);
@@ -47,11 +50,13 @@ private:
     bool m_enabled = true;
     QVector<int> m_sequence = {800};
     int m_invalidGraceMs = 180;
+    int m_scanGraceMs = 100;
 
     QString m_currentId;
     qint64 m_dwellStartMs = 0;
     double m_progress = 0.0;
     int m_stepIndex = 0;
+    bool m_scanGraceComplete = false;
 
     bool m_inInvalidGrace = false;
     QElapsedTimer m_invalidGraceClock;

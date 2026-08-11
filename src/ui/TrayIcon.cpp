@@ -1,5 +1,6 @@
 #include "ui/TrayIcon.h"
 
+#include "ui/AppIcon.h"
 #include "utils/Log.h"
 
 #include <QAction>
@@ -12,21 +13,31 @@ namespace gazer {
 
 namespace {
 
-QIcon makeTrayIcon()
+QIcon makeFallbackTrayIcon()
 {
     QPixmap pm(64, 64);
     pm.fill(Qt::transparent);
     QPainter p(&pm);
     p.setRenderHint(QPainter::Antialiasing, true);
-    p.setBrush(QColor(0, 180, 220));
+    p.setBrush(QColor(0xDD, 0xB7, 0x37));
     p.setPen(Qt::NoPen);
-    p.drawEllipse(4, 4, 56, 56);
-    p.setBrush(QColor(20, 24, 30));
+    p.drawRoundedRect(4, 4, 56, 56, 12, 12);
+    p.setBrush(QColor(0x06, 0x15, 0x2E));
     p.drawEllipse(18, 18, 28, 28);
-    p.setBrush(QColor(0, 220, 255));
+    p.setBrush(QColor(0x77, 0x8E, 0xA4));
     p.drawEllipse(26, 26, 12, 12);
     p.end();
     return QIcon(pm);
+}
+
+QIcon makeTrayIcon()
+{
+    QIcon icon = loadAppIcon();
+    if (!icon.isNull()) {
+        return icon;
+    }
+    GAZER_WARN << "App icon assets missing; using fallback tray glyph";
+    return makeFallbackTrayIcon();
 }
 
 } // namespace

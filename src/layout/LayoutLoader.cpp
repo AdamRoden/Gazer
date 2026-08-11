@@ -26,6 +26,10 @@ void parseDwellObject(const QJsonObject& dwell, LayoutDwellConfig& out)
         out.hasGrace = true;
         out.graceMs = dwell.value(QStringLiteral("graceMs")).toInt(-1);
     }
+    if (dwell.contains(QStringLiteral("scanGraceMs"))) {
+        out.hasScanGrace = true;
+        out.scanGraceMs = dwell.value(QStringLiteral("scanGraceMs")).toInt(-1);
+    }
     if (dwell.contains(QStringLiteral("progressColor"))) {
         out.hasProgressColor = true;
         out.progressColor = dwell.value(QStringLiteral("progressColor")).toString();
@@ -112,6 +116,51 @@ std::optional<QColor> parseColor(const QJsonValue& v)
         return std::nullopt;
     }
     return c;
+}
+
+BoundsMode parseBoundsMode(const QString& s, BoundsMode fallback = BoundsMode::Desktop)
+{
+    const QString m = s.trimmed().toLower();
+    if (m == QLatin1String("screen") || m == QLatin1String("full")
+        || m == QLatin1String("geometry")) {
+        return BoundsMode::Screen;
+    }
+    if (m == QLatin1String("desktop") || m == QLatin1String("available")
+        || m == QLatin1String("workarea") || m == QLatin1String("work")) {
+        return BoundsMode::Desktop;
+    }
+    return fallback;
+}
+
+void parseChromeStyle(const QJsonObject& st, LayoutChromeStyle& out)
+{
+    if (st.contains(QStringLiteral("background"))) {
+        out.background = parseColor(st.value(QStringLiteral("background")));
+    }
+    if (st.contains(QStringLiteral("foreground"))) {
+        out.foreground = parseColor(st.value(QStringLiteral("foreground")));
+    }
+    if (st.contains(QStringLiteral("borderColor")) || st.contains(QStringLiteral("border"))) {
+        const QJsonValue bc = st.contains(QStringLiteral("borderColor"))
+                                  ? st.value(QStringLiteral("borderColor"))
+                                  : st.value(QStringLiteral("border"));
+        out.borderColor = parseColor(bc);
+    }
+    if (st.contains(QStringLiteral("borderWidth")) || st.contains(QStringLiteral("borderThickness"))
+        || st.contains(QStringLiteral("thickness"))) {
+        const QJsonValue v = st.contains(QStringLiteral("borderWidth"))
+                                 ? st.value(QStringLiteral("borderWidth"))
+                                 : (st.contains(QStringLiteral("borderThickness"))
+                                        ? st.value(QStringLiteral("borderThickness"))
+                                        : st.value(QStringLiteral("thickness")));
+        out.borderWidth = v.toDouble(1.5);
+    }
+    if (st.contains(QStringLiteral("radius")) || st.contains(QStringLiteral("borderRadius"))) {
+        const QJsonValue v = st.contains(QStringLiteral("radius"))
+                                 ? st.value(QStringLiteral("radius"))
+                                 : st.value(QStringLiteral("borderRadius"));
+        out.radius = v.toDouble(12.0);
+    }
 }
 
 bool parseAction(const QJsonObject& obj, LayoutAction& out, QString* error)
@@ -340,18 +389,50 @@ bool LayoutLoader::loadFromJson(const QByteArray& json, LayoutDocument& out, QSt
         }
     }
 
-    const QJsonObject grid = root.value(QStringLiteral("grid")).toObject();
-    layout.grid.columns = grid.value(QStringLiteral("columns")).toInt(1);
-    layout.grid.rows = grid.value(QStringLiteral("rows")).toInt(1);
-    layout.grid.gapPx = grid.value(QStringLiteral("gapPx")).toInt(8);
-    layout.grid.marginPx = grid.value(QStringLiteral("marginPx")).toInt(16);
-    layout.grid.unitRows = grid.value(QStringLiteral("unitRows")).toBool(false);
+    // boundsMode: "desktop" (availableGeometry) or "screen" (full geometry)
+    if (root.contains(QStringLiteral("boundsMode")) || root.contains(QStringLiteral("bounds"))) {
+        layout.hasBoundsMode = true;
+        const QString raw = root.contains(QStringLiteral("boundsMode"))
+                                ? root.value(QStringLiteral("boundsMode")).toString()
+                                : root.value(QStringLiteral("bounds")).toString();
+        layout.boundsMode = parseBoundsMode(raw);
+    }
 
-    if (layout.grid.columns < 1 || layout.grid.rows < 1) {
-        if (error) {
-            *error = QStringLiteral("Layout grid columns/rows must be >= 1");
-        }
-        return false;
+    if (root.contains(QStringLiteral("autoClose"))) {
+        layout.autoClose = root.value(QStringLiteral("autoClose")).toBool(true);
+    }
+    if (root.contains(QStringLiteral("autoCloseIdleMs"))) {
+        layout.autoCloseIdleMs = root.value(QStringLiteral("autoCloseIdleMs")).toInt(-1);
+    }
+    if (root.contains(QStringLiteral("autoCloseFadeMs"))) {
+        layout.autoCloseFadeMs = root.value(QStringLiteral("autoCloseFadeMs")).toInt(-1);
+    }
+    // Master shells stay open by default (home / dock).
+    if (layout.session.isMasterShell() && !root.contains(QStringLiteral("autoClose"))) {
+        layout.autoClose = false;
+    }
+
+    // Grid is optional — default 1×1; expanded later to fit items if omitted/undersized.
+    // marginPx defaults to 0 (flush) whether grid is present or omitted.
+    if (root.contains(QStringLiteral("grid"))) {
+        const QJsonObject grid = root.value(QStringLiteral("grid")).toObject();
+        layout.grid.columns = grid.value(QStringLiteral("columns")).toInt(1);
+        layout.grid.rows = grid.value(QStringLiteral("rows")).toInt(1);
+        layout.grid.gapPx = grid.value(QStringLiteral("gapPx")).toInt(8);
+        layout.grid.marginPx = grid.value(QStringLiteral("marginPx")).toInt(0);
+        layout.grid.unitRows = grid.value(QStringLiteral("unitRows")).toBool(false);
+    } else {
+        layout.grid.columns = 1;
+        layout.grid.rows = 1;
+        layout.grid.gapPx = 8;
+        layout.grid.marginPx = 0;
+        layout.grid.unitRows = false;
+    }
+    if (layout.grid.columns < 1) {
+        layout.grid.columns = 1;
+    }
+    if (layout.grid.rows < 1) {
+        layout.grid.rows = 1;
     }
 
     // Optional layout-level dwell override (overrides AppSettings when present).
@@ -403,7 +484,26 @@ bool LayoutLoader::loadFromJson(const QByteArray& json, LayoutDocument& out, QSt
             layout.placement.height =
                 DimSpec::pixels(win.value(QStringLiteral("heightPx")).toDouble(0));
         }
-        layout.placement.marginPx = win.value(QStringLiteral("marginPx")).toInt(8);
+        layout.placement.marginPx = win.value(QStringLiteral("marginPx")).toInt(0);
+
+        if (win.contains(QStringLiteral("boundsMode")) || win.contains(QStringLiteral("bounds"))) {
+            layout.placement.hasBoundsMode = true;
+            const QString raw = win.contains(QStringLiteral("boundsMode"))
+                                    ? win.value(QStringLiteral("boundsMode")).toString()
+                                    : win.value(QStringLiteral("bounds")).toString();
+            layout.placement.boundsMode =
+                parseBoundsMode(raw, layout.effectiveBoundsMode());
+        }
+        if (win.contains(QStringLiteral("style"))) {
+            parseChromeStyle(win.value(QStringLiteral("style")).toObject(), layout.placement.style);
+        } else {
+            parseChromeStyle(win, layout.placement.style);
+        }
+    }
+
+    // Root-level style applies to window chrome when window.style omitted.
+    if (root.contains(QStringLiteral("style")) && !layout.placement.style.hasAny()) {
+        parseChromeStyle(root.value(QStringLiteral("style")).toObject(), layout.placement.style);
     }
 
     // Lifecycle action arrays
@@ -425,6 +525,8 @@ bool LayoutLoader::loadFromJson(const QByteArray& json, LayoutDocument& out, QSt
 
     const QJsonArray items = root.value(QStringLiteral("items")).toArray();
     layout.items.reserve(items.size());
+    int maxRow = 0;
+    int maxCol = 0;
     for (const QJsonValue& iv : items) {
         if (!iv.isObject()) {
             continue;
@@ -474,6 +576,8 @@ bool LayoutLoader::loadFromJson(const QByteArray& json, LayoutDocument& out, QSt
         if (item.colSpan < 1) {
             item.colSpan = 1;
         }
+        maxRow = qMax(maxRow, item.row + item.rowSpan - 1);
+        maxCol = qMax(maxCol, item.col + item.colSpan - 1);
 
         // Optional per-item dwell / progress overrides (item > layout > global).
         if (io.contains(QStringLiteral("dwell"))) {
@@ -512,6 +616,14 @@ bool LayoutLoader::loadFromJson(const QByteArray& json, LayoutDocument& out, QSt
             // for board-local (no anchor) old files used pixel coords: detect legacy.
             item.dwellRegion.screenAnchor =
                 parseScreenAnchor(dr.value(QStringLiteral("screenAnchor")).toString());
+            if (dr.contains(QStringLiteral("boundsMode")) || dr.contains(QStringLiteral("bounds"))) {
+                item.dwellRegion.hasBoundsMode = true;
+                const QString raw = dr.contains(QStringLiteral("boundsMode"))
+                                        ? dr.value(QStringLiteral("boundsMode")).toString()
+                                        : dr.value(QStringLiteral("bounds")).toString();
+                item.dwellRegion.boundsMode =
+                    parseBoundsMode(raw, layout.effectiveBoundsMode());
+            }
             if (!item.dwellRegion.usesScreenAnchor()) {
                 // Board-local legacy: bare numeric x/y/width/height are pixels
                 // (percent requires "N%" string or *Px explicit for new schema).
@@ -576,12 +688,21 @@ bool LayoutLoader::loadFromJson(const QByteArray& json, LayoutDocument& out, QSt
         }
 
         if (io.contains(QStringLiteral("style"))) {
-            const QJsonObject st = io.value(QStringLiteral("style")).toObject();
-            item.style.background = parseColor(st.value(QStringLiteral("background")));
-            item.style.foreground = parseColor(st.value(QStringLiteral("foreground")));
+            parseChromeStyle(io.value(QStringLiteral("style")).toObject(), item.style);
+        } else {
+            parseChromeStyle(io, item.style);
         }
 
         layout.items.push_back(std::move(item));
+    }
+
+    // Expand default / undersized grid so cells fit.
+    if (!root.contains(QStringLiteral("grid"))) {
+        layout.grid.columns = qMax(1, maxCol + 1);
+        layout.grid.rows = qMax(1, maxRow + 1);
+    } else {
+        layout.grid.columns = qMax(layout.grid.columns, maxCol + 1);
+        layout.grid.rows = qMax(layout.grid.rows, maxRow + 1);
     }
 
     out = std::move(layout);

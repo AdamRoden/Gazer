@@ -153,7 +153,10 @@ void GazerServices::applySettings(bool persist)
     m_settings.clamp();
 
     m_instances->setAutoCollapseMain(m_settings.autoCollapseMain);
-    m_instances->applyGlobalDwellOverride(m_settings.dwellSequence, m_settings.dwellGraceMs);
+    m_instances->setAutoCloseDefaults(m_settings.layoutAutoClose, m_settings.layoutAutoCloseIdleMs,
+                                      m_settings.layoutAutoCloseFadeMs);
+    m_instances->applyGlobalDwellOverride(m_settings.dwellSequence, m_settings.dwellGraceMs,
+                                          m_settings.scanGraceMs);
 
     ProgressVisuals boardPv;
     boardPv.radial = m_settings.progressRadial;
@@ -171,6 +174,7 @@ void GazerServices::applySettings(bool persist)
     m_instances->applyTheme(m_settings.resolvedTheme());
 
     m_mouseDwellMove->setDwellMs(m_settings.mouseMoveDwellMs);
+    m_mouseDwellMove->setSelectTimeoutMs(m_settings.mouseMoveSelectTimeoutMs);
     m_mouseDwellMove->setMagPickEnabled(m_settings.mouseMoveMagPick);
     m_mouseDwellMove->setMagPickCenterOnDwell(m_settings.mouseMoveMagPickCenterOnDwell);
     m_mouseDwellMove->setMagPickZoom(m_settings.magZoom);

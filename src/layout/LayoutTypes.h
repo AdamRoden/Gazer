@@ -78,10 +78,30 @@ struct LayoutAction {
     int delayMs = 0;
 };
 
-struct LayoutItemStyle {
+/// Reference rect for % size/position: work area (desktop) vs full screen geometry.
+enum class BoundsMode {
+    Desktop, ///< availableGeometry — typically excludes taskbar (default)
+    Screen   ///< full screen geometry
+};
+
+/// Visual chrome for a board window or item cell. Full transparency via #AARRGGBB (alpha 0).
+struct LayoutChromeStyle {
     std::optional<QColor> background;
     std::optional<QColor> foreground;
+    std::optional<QColor> borderColor;
+    /// Border thickness in px. Unset → 0 for window chrome; item cells use paint defaults.
+    std::optional<double> borderWidth;
+    /// Corner radius in px. Unset → theme/paint default.
+    std::optional<double> radius;
+
+    [[nodiscard]] bool hasAny() const
+    {
+        return background.has_value() || foreground.has_value() || borderColor.has_value()
+               || borderWidth.has_value() || radius.has_value();
+    }
 };
+
+using LayoutItemStyle = LayoutChromeStyle;
 
 /// Optional dwell region for unbounded items (not clipped to board / can sit off-screen).
 struct LayoutDwellRegion {
@@ -109,6 +129,9 @@ struct LayoutDwellRegion {
     DimSpec height;
     /// Deprecated: outward gap when x/y unset for screen anchors (compat).
     int marginPx = 4;
+    /// Optional override for anchor/% resolution reference.
+    bool hasBoundsMode = false;
+    BoundsMode boundsMode = BoundsMode::Desktop;
 
     [[nodiscard]] bool isValid() const
     {
@@ -139,6 +162,9 @@ struct LayoutDwellConfig {
     QString progressStyle = QStringLiteral("radial");
     /// Optional blink grace override (ms). -1 = inherit parent.
     int graceMs = -1;
+    /// Optional scan grace override (ms): time on-target before dwell progress starts.
+    /// -1 = inherit parent / AppSettings (default 100).
+    int scanGraceMs = -1;
     /// Optional color overrides (empty = inherit). Hex #RRGGBB or #AARRGGBB.
     QString progressColor;
     QString fillColor;
@@ -152,6 +178,7 @@ struct LayoutDwellConfig {
     bool hasTiming = false;
     bool hasProgressStyle = false;
     bool hasGrace = false;
+    bool hasScanGrace = false;
     bool hasProgressColor = false;
     bool hasFillColor = false;
     bool hasBorderColor = false;
@@ -245,7 +272,7 @@ struct LayoutGrid {
     int columns = 1;
     int rows = 1;
     int gapPx = 8;
-    int marginPx = 16;
+    int marginPx = 0;
     /// When true (or any item has widthUnits > 0), each row is laid out by widthUnits.
     bool unitRows = false;
 };
@@ -271,11 +298,16 @@ struct LayoutWindowPlacement {
     DimSpec height;
     DimSpec x;
     DimSpec y;
-    int marginPx = 8;
+    int marginPx = 0;
     /// True when the layout JSON included a "window" object.
     bool specified = false;
     /// Explicit "window": { "hidden": true } — force no board chrome.
     bool hidden = false;
+    /// Size/position against available desktop vs full screen geometry.
+    bool hasBoundsMode = false;
+    BoundsMode boundsMode = BoundsMode::Desktop;
+    /// Window panel chrome (fill, border, radius). Alpha 0 = fully transparent board.
+    LayoutChromeStyle style;
 };
 
 /// Session role — engine never matches content filenames.
@@ -329,10 +361,30 @@ struct LayoutDocument {
     QVector<LayoutAction> onLoad;
     /// Run before an instance is closed (instance id still valid).
     QVector<LayoutAction> onClose;
+    /// Layout-level default for window + item placement when not overridden.
+    bool hasBoundsMode = false;
+    BoundsMode boundsMode = BoundsMode::Desktop;
+    /// Secondaries: idle without dwell → instant 50% hold → suck to bottom-center → close.
+    /// Master shells default false.
+    bool autoClose = true;
+    /// -1 = use AppSettings defaults.
+    int autoCloseIdleMs = -1;
+    int autoCloseFadeMs = -1;
 
     [[nodiscard]] bool isValid() const
     {
         return !id.isEmpty() && grid.columns > 0 && grid.rows > 0;
+    }
+
+    [[nodiscard]] BoundsMode effectiveBoundsMode() const
+    {
+        if (placement.hasBoundsMode) {
+            return placement.boundsMode;
+        }
+        if (hasBoundsMode) {
+            return boundsMode;
+        }
+        return BoundsMode::Desktop;
     }
 
     /// Show board HWND? Explicit hidden → no. Explicit window → yes.

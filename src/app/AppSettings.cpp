@@ -79,8 +79,10 @@ void AppSettings::clamp()
     for (int& ms : dwellSequence) {
         ms = qBound(50, ms, 10000);
     }
+    scanGraceMs = qBound(0, scanGraceMs, 2000);
     dwellGraceMs = qBound(0, dwellGraceMs, 800);
     mouseMoveDwellMs = qBound(200, mouseMoveDwellMs, 2500);
+    mouseMoveSelectTimeoutMs = qBound(0, mouseMoveSelectTimeoutMs, 120000);
     magZoom = qBound(1.25, magZoom, 6.0);
     magLensSize = qBound(160, magLensSize, 900);
     magFollowProfile = qBound(0, magFollowProfile, 2);
@@ -91,6 +93,8 @@ void AppSettings::clamp()
     ltsCenterDwellMs = qBound(200, ltsCenterDwellMs, 2500);
     trackerPref = qBound(0, trackerPref, 1);
     flashMs = qBound(40, flashMs, 1000);
+    layoutAutoCloseIdleMs = qBound(500, layoutAutoCloseIdleMs, 120000);
+    layoutAutoCloseFadeMs = qBound(50, layoutAutoCloseFadeMs, 60000);
     if (!progressRadial && !progressFill && !progressBorder) {
         progressRadial = true;
     }
@@ -106,16 +110,19 @@ void AppSettings::setDwellPreset(int preset)
         dwellSequence = {1000};
         mouseMoveDwellMs = 900;
         dwellGraceMs = 220;
+        scanGraceMs = 150;
         break;
     case 2:
         dwellSequence = {450};
         mouseMoveDwellMs = 500;
         dwellGraceMs = 140;
+        scanGraceMs = 80;
         break;
     default:
         dwellSequence = {700};
         mouseMoveDwellMs = 700;
         dwellGraceMs = 180;
+        scanGraceMs = 100;
         break;
     }
 }
@@ -144,7 +151,9 @@ bool AppSettings::isColorKey(const QString& key)
 bool AppSettings::isNumericKey(const QString& key)
 {
     return key == QLatin1String("dwellMs") || key == QLatin1String("dwellSequence")
-           || key == QLatin1String("dwellGraceMs") || key == QLatin1String("mouseMoveDwellMs")
+           || key == QLatin1String("scanGraceMs") || key == QLatin1String("dwellGraceMs")
+           || key == QLatin1String("mouseMoveDwellMs")
+           || key == QLatin1String("mouseMoveSelectTimeoutMs")
            || key == QLatin1String("magZoom") || key == QLatin1String("magLensSize")
            || key == QLatin1String("ltsDeadzonePx") || key == QLatin1String("ltsFalloffPx")
            || key == QLatin1String("ltsMaxNotchesPerSec") || key == QLatin1String("ltsAccelPerSec")
@@ -213,11 +222,20 @@ QString AppSettings::displayValue(const QString& key) const
     if (key == QLatin1String("dwellMs") || key == QLatin1String("dwellSequence")) {
         return dwellSequenceString() + QStringLiteral(" ms");
     }
+    if (key == QLatin1String("scanGraceMs")) {
+        return QStringLiteral("%1 ms").arg(scanGraceMs);
+    }
     if (key == QLatin1String("dwellGraceMs")) {
         return QStringLiteral("%1 ms").arg(dwellGraceMs);
     }
     if (key == QLatin1String("mouseMoveDwellMs")) {
         return QStringLiteral("%1 ms").arg(mouseMoveDwellMs);
+    }
+    if (key == QLatin1String("mouseMoveSelectTimeoutMs")) {
+        if (mouseMoveSelectTimeoutMs <= 0) {
+            return QStringLiteral("Off");
+        }
+        return QStringLiteral("%1 ms").arg(mouseMoveSelectTimeoutMs);
     }
     if (key == QLatin1String("magZoom")) {
         return QStringLiteral("%1×").arg(magZoom, 0, 'f', 2);
@@ -245,14 +263,15 @@ QString AppSettings::displayValue(const QString& key) const
         return QStringLiteral("%1 ms").arg(ltsCenterDwellMs);
     }
     if (key == QLatin1String("ltsPlaceCursorFirst") || key == QLatin1String("autoCollapseMain")
-        || key == QLatin1String("startDocked") || key == QLatin1String("speakAlsoType")
-        || key == QLatin1String("progressRadial") || key == QLatin1String("progressFill")
-        || key == QLatin1String("progressBorder") || key == QLatin1String("mouseProgressRadial")
-        || key == QLatin1String("mouseProgressFill") || key == QLatin1String("mouseProgressBorder")
-        || key == QLatin1String("flashOnComplete")) {
+        || key == QLatin1String("startDocked") || key == QLatin1String("layoutAutoClose")
+        || key == QLatin1String("speakAlsoType") || key == QLatin1String("progressRadial")
+        || key == QLatin1String("progressFill") || key == QLatin1String("progressBorder")
+        || key == QLatin1String("mouseProgressRadial") || key == QLatin1String("mouseProgressFill")
+        || key == QLatin1String("mouseProgressBorder") || key == QLatin1String("flashOnComplete")) {
         const bool on = (key == QLatin1String("ltsPlaceCursorFirst") && ltsPlaceCursorFirst)
                         || (key == QLatin1String("autoCollapseMain") && autoCollapseMain)
                         || (key == QLatin1String("startDocked") && startDocked)
+                        || (key == QLatin1String("layoutAutoClose") && layoutAutoClose)
                         || (key == QLatin1String("speakAlsoType") && speakAlsoType)
                         || (key == QLatin1String("progressRadial") && progressRadial)
                         || (key == QLatin1String("progressFill") && progressFill)
@@ -280,11 +299,17 @@ QString AppSettings::settingTitle(const QString& key)
     if (key == QLatin1String("dwellMs") || key == QLatin1String("dwellSequence")) {
         return QStringLiteral("Dwell sequence");
     }
+    if (key == QLatin1String("scanGraceMs")) {
+        return QStringLiteral("Scan grace");
+    }
     if (key == QLatin1String("dwellGraceMs")) {
         return QStringLiteral("Blink grace");
     }
     if (key == QLatin1String("mouseMoveDwellMs")) {
         return QStringLiteral("Mouse-move dwell");
+    }
+    if (key == QLatin1String("mouseMoveSelectTimeoutMs")) {
+        return QStringLiteral("Mouse-move timeout");
     }
     if (key == QLatin1String("magZoom")) {
         return QStringLiteral("Magnifier zoom");
@@ -339,11 +364,21 @@ QString AppSettings::settingDescription(const QString& key)
             "(e.g. 600,300,100,600). Steps advance until the last value, which "
             "then repeats forever. Replaces single dwell + repeat.");
     }
+    if (key == QLatin1String("scanGraceMs")) {
+        return QStringLiteral(
+            "Time on-target before dwell progress begins (ms). Precursor to the "
+            "dwell sequence; layout/item dwell.scanGraceMs can override.");
+    }
     if (key == QLatin1String("dwellGraceMs")) {
         return QStringLiteral("Blink grace window without canceling dwell (ms).");
     }
     if (key == QLatin1String("mouseMoveDwellMs")) {
         return QStringLiteral("Dwell time for mouse cursor placement (ms).");
+    }
+    if (key == QLatin1String("mouseMoveSelectTimeoutMs")) {
+        return QStringLiteral(
+            "Cancel mouse-move / gaze-click loop if no target is selected within "
+            "this many ms (0 = off). Resets after each successful selection in a loop.");
     }
     if (key == QLatin1String("magZoom")) {
         return QStringLiteral("Magnifier zoom factor (1.25–6).");
@@ -374,11 +409,17 @@ QString AppSettings::numericBufferSeed(const QString& key) const
     if (key == QLatin1String("dwellMs") || key == QLatin1String("dwellSequence")) {
         return dwellSequenceString();
     }
+    if (key == QLatin1String("scanGraceMs")) {
+        return QString::number(scanGraceMs);
+    }
     if (key == QLatin1String("dwellGraceMs")) {
         return QString::number(dwellGraceMs);
     }
     if (key == QLatin1String("mouseMoveDwellMs")) {
         return QString::number(mouseMoveDwellMs);
+    }
+    if (key == QLatin1String("mouseMoveSelectTimeoutMs")) {
+        return QString::number(mouseMoveSelectTimeoutMs);
     }
     if (key == QLatin1String("magZoom")) {
         return QString::number(magZoom, 'f', 2);
@@ -419,7 +460,9 @@ bool AppSettings::applyNumericBuffer(const QString& key, const QString& buffer, 
     }
 
     bool ok = false;
-    if (key == QLatin1String("dwellGraceMs") || key == QLatin1String("mouseMoveDwellMs")
+    if (key == QLatin1String("scanGraceMs") || key == QLatin1String("dwellGraceMs")
+        || key == QLatin1String("mouseMoveDwellMs")
+        || key == QLatin1String("mouseMoveSelectTimeoutMs")
         || key == QLatin1String("magLensSize") || key == QLatin1String("ltsDeadzonePx")
         || key == QLatin1String("ltsFalloffPx") || key == QLatin1String("flashMs")) {
         if (b.contains(QLatin1Char(',')) || b.contains(QLatin1Char('.'))) {
@@ -435,10 +478,14 @@ bool AppSettings::applyNumericBuffer(const QString& key, const QString& buffer, 
             }
             return false;
         }
-        if (key == QLatin1String("dwellGraceMs")) {
+        if (key == QLatin1String("scanGraceMs")) {
+            scanGraceMs = v;
+        } else if (key == QLatin1String("dwellGraceMs")) {
             dwellGraceMs = v;
         } else if (key == QLatin1String("mouseMoveDwellMs")) {
             mouseMoveDwellMs = v;
+        } else if (key == QLatin1String("mouseMoveSelectTimeoutMs")) {
+            mouseMoveSelectTimeoutMs = v;
         } else if (key == QLatin1String("magLensSize")) {
             magLensSize = v;
         } else if (key == QLatin1String("ltsDeadzonePx")) {
@@ -528,8 +575,11 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
         }
     }
 
+    scanGraceMs = o.value(QStringLiteral("scanGraceMs")).toInt(scanGraceMs);
     dwellGraceMs = o.value(QStringLiteral("dwellGraceMs")).toInt(dwellGraceMs);
     mouseMoveDwellMs = o.value(QStringLiteral("mouseMoveDwellMs")).toInt(mouseMoveDwellMs);
+    mouseMoveSelectTimeoutMs =
+        o.value(QStringLiteral("mouseMoveSelectTimeoutMs")).toInt(mouseMoveSelectTimeoutMs);
     mouseMoveMagPick = o.value(QStringLiteral("mouseMoveMagPick")).toBool(mouseMoveMagPick);
     mouseMoveMagPickCenterOnDwell =
         o.value(QStringLiteral("mouseMoveMagPickCenterOnDwell")).toBool(mouseMoveMagPickCenterOnDwell);
@@ -546,6 +596,11 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
         o.value(QStringLiteral("ltsPlaceCursorFirst")).toBool(ltsPlaceCursorFirst);
     autoCollapseMain = o.value(QStringLiteral("autoCollapseMain")).toBool(autoCollapseMain);
     startDocked = o.value(QStringLiteral("startDocked")).toBool(startDocked);
+    layoutAutoClose = o.value(QStringLiteral("layoutAutoClose")).toBool(layoutAutoClose);
+    layoutAutoCloseIdleMs =
+        o.value(QStringLiteral("layoutAutoCloseIdleMs")).toInt(layoutAutoCloseIdleMs);
+    layoutAutoCloseFadeMs =
+        o.value(QStringLiteral("layoutAutoCloseFadeMs")).toInt(layoutAutoCloseFadeMs);
     trackerPref = o.value(QStringLiteral("trackerPref")).toInt(trackerPref);
     speakAlsoType = o.value(QStringLiteral("speakAlsoType")).toBool(speakAlsoType);
     themeMode = themeModeFromString(o.value(QStringLiteral("themeMode")).toString(QStringLiteral("dark")));
@@ -598,8 +653,10 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
         seq.append(ms);
     }
     o.insert(QStringLiteral("dwellSequence"), seq);
+    o.insert(QStringLiteral("scanGraceMs"), copy.scanGraceMs);
     o.insert(QStringLiteral("dwellGraceMs"), copy.dwellGraceMs);
     o.insert(QStringLiteral("mouseMoveDwellMs"), copy.mouseMoveDwellMs);
+    o.insert(QStringLiteral("mouseMoveSelectTimeoutMs"), copy.mouseMoveSelectTimeoutMs);
     o.insert(QStringLiteral("mouseMoveMagPick"), copy.mouseMoveMagPick);
     o.insert(QStringLiteral("mouseMoveMagPickCenterOnDwell"), copy.mouseMoveMagPickCenterOnDwell);
     o.insert(QStringLiteral("magZoom"), copy.magZoom);
@@ -613,6 +670,9 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     o.insert(QStringLiteral("ltsPlaceCursorFirst"), copy.ltsPlaceCursorFirst);
     o.insert(QStringLiteral("autoCollapseMain"), copy.autoCollapseMain);
     o.insert(QStringLiteral("startDocked"), copy.startDocked);
+    o.insert(QStringLiteral("layoutAutoClose"), copy.layoutAutoClose);
+    o.insert(QStringLiteral("layoutAutoCloseIdleMs"), copy.layoutAutoCloseIdleMs);
+    o.insert(QStringLiteral("layoutAutoCloseFadeMs"), copy.layoutAutoCloseFadeMs);
     o.insert(QStringLiteral("trackerPref"), copy.trackerPref);
     o.insert(QStringLiteral("speakAlsoType"), copy.speakAlsoType);
     o.insert(QStringLiteral("themeMode"), themeModeToString(copy.themeMode));

@@ -2,17 +2,24 @@
   "schemaVersion": 1,
   "id": "example_assist",
   "name": "Assist",
-  "description": "Gaze assist: LTS, magnifier, reticle, gaze→mouse, move-to.",
+  "description": "Gaze assist: LTS, magnifier, reticle, gaze mouse, move-to.",  
+  "uiStyle": "default",
+  "boundsMode": "screen",
+  "autoClose": true,
+  "autoCloseIdleMs": 3000,
+  "autoCloseFadeMs": 3000,
   "window": {
     "anchor": "bottomCenter",
     "widthPx": 1080,
-    "heightPx": 150
+    "heightPx": 150,
+    "style": {
+      "background": "#00000000"
+    }
   },
   "grid": {
     "columns": 8,
     "rows": 1,
-    "gapPx": 10,
-    "marginPx": 10
+    "gapPx": 10
   },
   "items": [
     {
@@ -71,7 +78,7 @@
     },
     {
       "id": "lts_hint",
-      "label": "LTS: dwell center = pause/resume · hold outside = accelerate",
+      "label": "LTS: dwell\n@center to pause\n@limit to accelerate",
       "role": "label",
       "row": 0,
       "col": 6,

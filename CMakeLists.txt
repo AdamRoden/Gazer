@@ -128,6 +128,7 @@ set(GAZER_HEADERS
     src/ui/MagnifierOverlay.h
     src/ui/DwellSuspendOverlay.h
     src/ui/OverlaySurface.h
+    src/ui/AppIcon.h
     src/ui/MouseIcons.h
     src/ui/Theme.h
     src/utils/Log.h
@@ -138,6 +139,19 @@ add_executable(Gazer WIN32
     ${GAZER_SOURCES}
     ${GAZER_HEADERS}
 )
+
+# Embed multi-size gazer.ico into the PE so Explorer / taskbar / shortcuts show the brand icon.
+if(WIN32)
+    set(GAZER_ICON_PATH "${CMAKE_SOURCE_DIR}/resources/icons/gazer.ico")
+    file(TO_CMAKE_PATH "${GAZER_ICON_PATH}" GAZER_ICON_PATH)
+    string(REPLACE "\\" "/" GAZER_ICON_PATH "${GAZER_ICON_PATH}")
+    configure_file(
+        "${CMAKE_SOURCE_DIR}/resources/icons/gazer.rc.in"
+        "${CMAKE_CURRENT_BINARY_DIR}/gazer_icon.rc"
+        @ONLY
+    )
+    target_sources(Gazer PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/gazer_icon.rc")
+endif()
 
 target_include_directories(Gazer PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src

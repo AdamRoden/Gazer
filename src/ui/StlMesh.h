@@ -1,35 +1,42 @@
 #pragma once
 
-#include <QColor>
 #include <QString>
 #include <QVector3D>
 #include <QVector>
 
 namespace gazer {
 
-/// Simple triangle mesh loaded from binary or ASCII STL.
+/// Triangle mesh used by the head preview.
+/// Named historically for STL; the loader accepts Wavefront OBJ only.
 struct StlMesh {
     struct Tri {
         QVector3D a, b, c;
-        QVector3D normal; // unit geometric normal
+        QVector3D normal; // unit geometric normal (recomputed on load / orient)
     };
 
     QVector<Tri> tris;
     QVector3D boundsMin;
     QVector3D boundsMax;
-    QVector3D center;
-    float radius = 1.f; // max extent from center after normalize
+    QVector3D center; // zero after normalize
+    float radius = 1.f;
 
     [[nodiscard]] bool isEmpty() const { return tris.isEmpty(); }
 
-    /// Load binary or ASCII .stl. On success, mesh is centered at origin and
-    /// scaled so max |component| ≈ 1 (radius ~1).
-    [[nodiscard]] static bool loadFromFile(const QString& path, StlMesh& out, QString* error = nullptr);
+    /// Load Wavefront .obj (tris/quads/n-gons). On success: centered at origin,
+    /// uniformly scaled so the longest AABB edge is length 2.
+    [[nodiscard]] static bool loadFromFile(const QString& path, StlMesh& out,
+                                           QString* error = nullptr);
 
-    /// Apply a permanent orientation fix (e.g. Z-up → Y-up, face +Z).
-    void bakeRotation(float yawDeg, float pitchDeg, float rollDeg);
+    /// Rebuild per-triangle unit normals from vertex winding.
+    void recomputeNormals();
 
-    /// Rebuild left half (x &lt; 0) as a mirror of the right half so the face is symmetrical.
+    /// Clip to the half-space x ≥ 0 with a planar cut at x = 0. Triangles that
+    /// straddle the plane are split; new vertices lie on the plane so the seam
+    /// has closed edges (no open gaps).
+    void clipKeepPositiveX();
+
+    /// Force bilateral symmetry about the YZ plane (X = 0): planar-cut to x ≥ 0
+    /// (creating midplane edges), then mirror that half to rebuild x < 0.
     void symmetrizeLeftFromRight();
 };
 

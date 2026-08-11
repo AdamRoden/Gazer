@@ -2,24 +2,16 @@
   "schemaVersion": 1,
   "id": "example_mouse",
   "name": "Mouse",
-  "description": "OptiKey-style mouse keyboard — icons, clicks, scroll, move, tools.",
   "window": {
     "anchor": "bottomCenter",
     "widthPx": 1100,
-    "heightPx": 360,
-    "marginPx": 8
+    "heightPx": 360
   },
   "grid": {
     "columns": 9,
     "rows": 3,
     "gapPx": 8,
-    "marginPx": 12
-  },
-  "dwell": {
-    "enabled": true,
-    "ms": 550,
-    "repeatMs": 0,
-    "progressStyle": "radial"
+    "marginPx": 8
   },
   "items": [
     { "id": "lclick", "label": "Left", "icon": "leftClick", "row": 0, "col": 0,

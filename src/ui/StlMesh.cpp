@@ -3,35 +3,12 @@
 #include "utils/Log.h"
 
 #include <QFile>
-#include <QRegularExpression>
-#include <QtMath>
+#include <QTextStream>
 #include <cmath>
-#include <cstring>
-#include <utility>
 
 namespace gazer {
 
 namespace {
-
-QVector3D rotateYpr(const QVector3D& v, float yawDeg, float pitchDeg, float rollDeg)
-{
-    const float y = qDegreesToRadians(yawDeg);
-    const float p = qDegreesToRadians(pitchDeg);
-    const float r = qDegreesToRadians(rollDeg);
-    const float cy = std::cos(y), sy = std::sin(y);
-    const float cp = std::cos(p), sp = std::sin(p);
-    const float cr = std::cos(r), sr = std::sin(r);
-    QVector3D a(v.x(), v.y() * cp - v.z() * sp, v.y() * sp + v.z() * cp);
-    QVector3D b(a.x() * cy + a.z() * sy, a.y(), -a.x() * sy + a.z() * cy);
-    return {b.x() * cr - b.y() * sr, b.x() * sr + b.y() * cr, b.z()};
-}
-
-void recomputeNormals(StlMesh& m)
-{
-    for (StlMesh::Tri& t : m.tris) {
-        t.normal = QVector3D::crossProduct(t.b - t.a, t.c - t.a).normalized();
-    }
-}
 
 void normalizeMesh(StlMesh& m)
 {
@@ -67,78 +44,110 @@ void normalizeMesh(StlMesh& m)
         m.radius = qMax(m.radius, t.c.length());
     }
     m.center = {};
-    recomputeNormals(m);
+    m.recomputeNormals();
 }
 
-bool loadBinary(const QByteArray& data, StlMesh& out, QString* error)
+/// Parse one OBJ face index token: `v`, `v/vt`, `v//vn`, or `v/vt/vn` (1-based).
+bool parseFaceIndex(const QString& token, int vertCount, int* vertIndex, QString* error)
 {
-    if (data.size() < 84) {
+    const QStringList parts = token.split(QLatin1Char('/'));
+    if (parts.isEmpty() || parts[0].isEmpty()) {
         if (error) {
-            *error = QStringLiteral("STL too small");
+            *error = QStringLiteral("Empty face index");
         }
         return false;
     }
-    quint32 count = 0;
-    std::memcpy(&count, data.constData() + 80, 4);
-    const qint64 need = 84 + qint64(count) * 50;
-    if (data.size() < need) {
+    bool ok = false;
+    int idx = parts[0].toInt(&ok);
+    if (!ok) {
         if (error) {
-            *error = QStringLiteral("STL truncated (need %1 bytes for %2 tris)")
-                         .arg(need)
-                         .arg(count);
+            *error = QStringLiteral("Bad face index: %1").arg(token);
         }
         return false;
     }
-    out.tris.resize(int(count));
-    const char* p = data.constData() + 84;
-    for (quint32 i = 0; i < count; ++i) {
-        float f[12];
-        std::memcpy(f, p, 48);
-        p += 50;
-        StlMesh::Tri& t = out.tris[int(i)];
-        t.normal = QVector3D(f[0], f[1], f[2]);
-        t.a = QVector3D(f[3], f[4], f[5]);
-        t.b = QVector3D(f[6], f[7], f[8]);
-        t.c = QVector3D(f[9], f[10], f[11]);
+    if (idx < 0) {
+        idx = vertCount + idx + 1;
     }
+    if (idx < 1 || idx > vertCount) {
+        if (error) {
+            *error = QStringLiteral("Face index out of range: %1").arg(token);
+        }
+        return false;
+    }
+    *vertIndex = idx - 1;
     return true;
 }
 
-bool loadAscii(const QByteArray& data, StlMesh& out, QString* error)
+bool loadObj(const QString& path, StlMesh& out, QString* error)
 {
-    const QString text = QString::fromLatin1(data);
-    const QStringList lines =
-        text.split(QRegularExpression(QStringLiteral("[\\r\\n]+")), Qt::SkipEmptyParts);
-    StlMesh::Tri cur;
-    int vi = 0;
-    for (QString line : lines) {
-        line = line.trimmed();
-        if (!line.startsWith(QLatin1String("vertex"), Qt::CaseInsensitive)) {
-            continue;
-        }
-        const QStringList parts =
-            line.split(QRegularExpression(QStringLiteral("\\s+")), Qt::SkipEmptyParts);
-        if (parts.size() < 4) {
-            continue;
-        }
-        const QVector3D v(parts[1].toFloat(), parts[2].toFloat(), parts[3].toFloat());
-        if (vi == 0) {
-            cur.a = v;
-        } else if (vi == 1) {
-            cur.b = v;
-        } else {
-            cur.c = v;
-            out.tris.push_back(cur);
-            vi = -1;
-        }
-        ++vi;
-    }
-    if (out.tris.isEmpty()) {
+    QFile f(path);
+    if (!f.open(QIODevice::ReadOnly | QIODevice::Text)) {
         if (error) {
-            *error = QStringLiteral("No triangles in ASCII STL");
+            *error = QStringLiteral("Cannot open OBJ: %1").arg(path);
         }
         return false;
     }
+
+    QVector<QVector3D> verts;
+    verts.reserve(8192);
+    out = {};
+
+    QTextStream in(&f);
+    while (!in.atEnd()) {
+        QString line = in.readLine().trimmed();
+        if (line.isEmpty() || line.startsWith(QLatin1Char('#'))) {
+            continue;
+        }
+
+        if (line.startsWith(QLatin1String("v "))) {
+            const QStringList parts = line.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+            if (parts.size() < 4) {
+                continue;
+            }
+            verts.push_back(QVector3D(parts[1].toFloat(), parts[2].toFloat(), parts[3].toFloat()));
+            continue;
+        }
+
+        if (!line.startsWith(QLatin1String("f "))) {
+            continue;
+        }
+
+        const QStringList parts = line.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+        if (parts.size() < 4) {
+            continue;
+        }
+
+        QVector<int> indices;
+        indices.reserve(parts.size() - 1);
+        for (int i = 1; i < parts.size(); ++i) {
+            int vi = 0;
+            if (!parseFaceIndex(parts[i], verts.size(), &vi, error)) {
+                return false;
+            }
+            indices.push_back(vi);
+        }
+
+        // Fan triangulation for tris / quads / n-gons.
+        for (int i = 1; i + 1 < indices.size(); ++i) {
+            StlMesh::Tri t;
+            t.a = verts[indices[0]];
+            t.b = verts[indices[i]];
+            t.c = verts[indices[i + 1]];
+            out.tris.push_back(t);
+        }
+    }
+
+    if (out.tris.isEmpty()) {
+        if (error) {
+            *error = verts.isEmpty() ? QStringLiteral("No vertices in OBJ")
+                                     : QStringLiteral("No faces in OBJ");
+        }
+        return false;
+    }
+
+    normalizeMesh(out);
+    GAZER_INFO << "OBJ loaded" << path << "verts" << verts.size() << "tris" << out.tris.size()
+               << "radius" << out.radius;
     return true;
 }
 
@@ -146,58 +155,130 @@ bool loadAscii(const QByteArray& data, StlMesh& out, QString* error)
 
 bool StlMesh::loadFromFile(const QString& path, StlMesh& out, QString* error)
 {
-    QFile f(path);
-    if (!f.open(QIODevice::ReadOnly)) {
-        if (error) {
-            *error = QStringLiteral("Cannot open STL: %1").arg(path);
-        }
-        return false;
-    }
-    const QByteArray data = f.readAll();
-    out = {};
-
-    const bool looksAscii = data.startsWith("solid") && data.contains("facet")
-                            && data.contains("vertex");
-    const bool ok = looksAscii ? loadAscii(data, out, error) : loadBinary(data, out, error);
-    if (!ok) {
-        return false;
-    }
-    normalizeMesh(out);
-    GAZER_INFO << "STL loaded" << path << "tris" << out.tris.size() << "radius" << out.radius;
-    return true;
+    return loadObj(path, out, error);
 }
 
-void StlMesh::bakeRotation(float yawDeg, float pitchDeg, float rollDeg)
+void StlMesh::recomputeNormals()
 {
     for (Tri& t : tris) {
-        t.a = rotateYpr(t.a, yawDeg, pitchDeg, rollDeg);
-        t.b = rotateYpr(t.b, yawDeg, pitchDeg, rollDeg);
-        t.c = rotateYpr(t.c, yawDeg, pitchDeg, rollDeg);
+        t.normal = QVector3D::crossProduct(t.b - t.a, t.c - t.a).normalized();
     }
-    QVector3D c;
-    for (const Tri& t : tris) {
-        c += t.a + t.b + t.c;
+}
+
+void StlMesh::clipKeepPositiveX()
+{
+    if (tris.isEmpty()) {
+        return;
     }
-    c /= float(tris.size() * 3);
-    float r = 0;
-    for (Tri& t : tris) {
-        t.a -= c;
-        t.b -= c;
-        t.c -= c;
-        r = qMax(r, t.a.length());
-        r = qMax(r, t.b.length());
-        r = qMax(r, t.c.length());
-    }
-    if (r > 1e-6f) {
-        const float s = 1.0f / r;
-        for (Tri& t : tris) {
-            t.a *= s;
-            t.b *= s;
-            t.c *= s;
+
+    constexpr float kEps = 1e-4f;
+
+    auto snap = [](QVector3D v) {
+        if (std::abs(v.x()) < kEps) {
+            v.setX(0.f);
         }
-        radius = 1.f;
+        return v;
+    };
+
+    // -1 = left of plane, 0 = on plane, +1 = right (kept side).
+    auto sideOf = [](const QVector3D& v) -> int {
+        if (v.x() > kEps) {
+            return 1;
+        }
+        if (v.x() < -kEps) {
+            return -1;
+        }
+        return 0;
+    };
+
+    auto intersectEdge = [&](const QVector3D& a, const QVector3D& b) -> QVector3D {
+        const float dx = b.x() - a.x();
+        if (std::abs(dx) < 1e-12f) {
+            return snap(a);
+        }
+        const float t = (0.f - a.x()) / dx;
+        QVector3D p = a + t * (b - a);
+        p.setX(0.f);
+        return p;
+    };
+
+    auto emitTri = [](QVector<Tri>& out, QVector3D a, QVector3D b, QVector3D c) {
+        // Degenerate (zero area) → skip.
+        const QVector3D n = QVector3D::crossProduct(b - a, c - a);
+        if (n.lengthSquared() < 1e-14f) {
+            return;
+        }
+        Tri t;
+        t.a = a;
+        t.b = b;
+        t.c = c;
+        out.push_back(t);
+    };
+
+    QVector<Tri> out;
+    out.reserve(tris.size() * 2);
+
+    for (const Tri& src : tris) {
+        const QVector3D v[3] = {snap(src.a), snap(src.b), snap(src.c)};
+        const int s[3] = {sideOf(v[0]), sideOf(v[1]), sideOf(v[2])};
+
+        // Treat "on plane" as keep-side for classification of fully-on tris.
+        int nPos = 0, nNeg = 0;
+        for (int i = 0; i < 3; ++i) {
+            if (s[i] > 0) {
+                ++nPos;
+            } else if (s[i] < 0) {
+                ++nNeg;
+            }
+        }
+
+        if (nNeg == 0) {
+            // Entirely on keep side or on the plane.
+            emitTri(out, v[0], v[1], v[2]);
+            continue;
+        }
+        if (nPos == 0) {
+            // Entirely on discard side (or only on plane with no positive — drop).
+            // Pure midplane faces (all x=0) are kept once as nNeg==0 above.
+            continue;
+        }
+
+        // Mixed: collect polygon on the keep side (pos + on-plane + intersections).
+        // Walk edges; Sutherland–Hodgman style for one plane.
+        QVector3D poly[8];
+        int nPoly = 0;
+        for (int i = 0; i < 3; ++i) {
+            const int j = (i + 1) % 3;
+            const QVector3D& a = v[i];
+            const QVector3D& b = v[j];
+            const int sa = s[i];
+            const int sb = s[j];
+
+            const bool aKeep = sa >= 0; // on plane or positive
+            const bool bKeep = sb >= 0;
+
+            if (aKeep && bKeep) {
+                poly[nPoly++] = b;
+            } else if (aKeep && !bKeep) {
+                poly[nPoly++] = intersectEdge(a, b);
+            } else if (!aKeep && bKeep) {
+                poly[nPoly++] = intersectEdge(a, b);
+                poly[nPoly++] = b;
+            }
+        }
+
+        // Fan triangulation of keep polygon (3 or 4 verts typically).
+        if (nPoly < 3) {
+            continue;
+        }
+        for (int i = 1; i + 1 < nPoly; ++i) {
+            emitTri(out, poly[0], poly[i], poly[i + 1]);
+        }
     }
-    recomputeNormals(*this);
+
+    tris = std::move(out);
+    recomputeNormals();
+    GAZER_INFO << "Mesh clipped x>=0 tris" << tris.size();
 }
 
 void StlMesh::symmetrizeLeftFromRight()
@@ -205,6 +286,9 @@ void StlMesh::symmetrizeLeftFromRight()
     if (tris.isEmpty()) {
         return;
     }
+
+    // Planar cut first so straddling faces become clean midplane edges.
+    clipKeepPositiveX();
 
     auto mirrorX = [](QVector3D v) {
         v.setX(-v.x());
@@ -217,40 +301,23 @@ void StlMesh::symmetrizeLeftFromRight()
     for (const Tri& t : tris) {
         const float cx = (t.a.x() + t.b.x() + t.c.x()) / 3.0f;
 
-        // Keep right side and midplane (x >= 0). Drop left (replaced by mirrors).
-        if (cx < -1e-4f) {
-            continue;
-        }
+        // Keep every right-half / seam triangle.
+        out.push_back(t);
 
-        // Snap near-midplane verts to x=0 for a clean seam.
-        Tri right = t;
-        auto snap = [](QVector3D& v) {
-            if (std::abs(v.x()) < 1e-3f) {
-                v.setX(0.f);
-            }
-        };
-        snap(right.a);
-        snap(right.b);
-        snap(right.c);
-        out.push_back(right);
-
-        // Mirror of right → left (skip pure midplane so we don't double faces).
-        if (cx > 1e-3f) {
+        // Mirror only tris with volume on the right (not pure midplane).
+        // Midplane faces stay once; their edges already seal the seam.
+        if (cx > 1e-4f) {
             Tri left;
-            // Flip X and reverse winding so normals stay outward.
-            left.a = mirrorX(right.a);
-            left.b = mirrorX(right.c);
-            left.c = mirrorX(right.b);
+            left.a = mirrorX(t.a);
+            left.b = mirrorX(t.c); // reverse winding
+            left.c = mirrorX(t.b);
             out.push_back(left);
         }
     }
 
-    if (out.isEmpty()) {
-        return;
-    }
     tris = std::move(out);
-    recomputeNormals(*this);
-    GAZER_INFO << "STL symmetrized L←R tris" << tris.size();
+    recomputeNormals();
+    GAZER_INFO << "Mesh symmetrized L←R tris" << tris.size();
 }
 
 } // namespace gazer

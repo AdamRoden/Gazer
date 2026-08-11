@@ -2,9 +2,24 @@
 
 #include "utils/Log.h"
 
+#include <QElapsedTimer>
 #include <algorithm>
 
 namespace gazer {
+
+namespace {
+QElapsedTimer g_autoCloseClock;
+bool g_autoCloseClockStarted = false;
+
+qint64 autoCloseNowMs()
+{
+    if (!g_autoCloseClockStarted) {
+        g_autoCloseClock.start();
+        g_autoCloseClockStarted = true;
+    }
+    return g_autoCloseClock.elapsed();
+}
+} // namespace
 
 LayoutInstanceManager::LayoutInstanceManager(LayoutManager& catalog, QObject* parent)
     : QObject(parent)
@@ -28,11 +43,111 @@ void LayoutInstanceManager::wireInstance(LayoutInstance* inst)
     inst->setDwellSuspended(m_dwellSuspended);
     inst->setTheme(m_theme);
     inst->setProgressVisuals(m_progressVisuals);
+    applyAutoClosePolicy(inst);
     connect(inst, &LayoutInstance::itemActivated, this, &LayoutInstanceManager::itemActivated);
     connect(inst, &LayoutInstance::windowCloseRequested, this,
             &LayoutInstanceManager::onWindowCloseRequested);
     connect(inst, &LayoutInstance::dwellEngagementEnded, this,
             &LayoutInstanceManager::dwellEngagementEnded);
+    connect(inst, &LayoutInstance::dwellActivity, this,
+            [this](const QString& instanceId) { noteDwellActivity(instanceId); });
+}
+
+void LayoutInstanceManager::applyAutoClosePolicy(LayoutInstance* inst)
+{
+    if (!inst) {
+        return;
+    }
+    const auto& doc = inst->document();
+    // Opt-out or global off. Master shells may auto-close when layout sets autoClose
+    // (home main fades then collapses via collapseLayoutId).
+    if (!doc.autoClose || !m_autoCloseEnabled) {
+        inst->setAutoCloseEnabled(false);
+        inst->resetAutoCloseClock(autoCloseNowMs());
+        return;
+    }
+    // Dock/non-home master with nowhere to collapse: keep open.
+    if (doc.isMasterShell() && !doc.session.isHome
+        && doc.session.collapseLayoutId.isEmpty()) {
+        inst->setAutoCloseEnabled(false);
+        inst->resetAutoCloseClock(autoCloseNowMs());
+        return;
+    }
+    const int idle = doc.autoCloseIdleMs > 0 ? doc.autoCloseIdleMs : m_autoCloseIdleMs;
+    const int fade = doc.autoCloseFadeMs > 0 ? doc.autoCloseFadeMs : m_autoCloseFadeMs;
+    inst->setAutoCloseEnabled(true);
+    inst->setAutoCloseTiming(idle, fade);
+    inst->resetAutoCloseClock(autoCloseNowMs());
+}
+
+void LayoutInstanceManager::setAutoCloseDefaults(bool enabled, int idleMs, int fadeMs)
+{
+    m_autoCloseEnabled = enabled;
+    m_autoCloseIdleMs = qMax(500, idleMs);
+    m_autoCloseFadeMs = qMax(50, fadeMs);
+    for (const auto& p : m_instances) {
+        applyAutoClosePolicy(p.get());
+    }
+}
+
+void LayoutInstanceManager::noteDwellActivity(const QString& instanceId)
+{
+    if (auto* inst = instance(instanceId)) {
+        inst->resetAutoCloseClock(autoCloseNowMs());
+    }
+}
+
+void LayoutInstanceManager::tickAutoClose(qint64 t)
+{
+    if (!m_autoCloseEnabled) {
+        return;
+    }
+    QVector<QString> toClose;
+    bool collapseMaster = false;
+    for (const auto& p : m_instances) {
+        if (!p || !p->autoCloseEnabled()) {
+            continue;
+        }
+        // Dwelling on this board keeps it alive (also cancels mid-suck).
+        if (m_gazeInstanceId == p->instanceId()) {
+            p->resetAutoCloseClock(t);
+            continue;
+        }
+        p->applyAutoCloseVisuals(t);
+        if (!p->autoCloseFinished(t)) {
+            continue;
+        }
+        if (p->instanceId() == m_masterId) {
+            collapseMaster = true;
+        } else {
+            toClose.push_back(p->instanceId());
+        }
+    }
+    for (const QString& id : toClose) {
+        QString err;
+        if (closeInstance(id, &err)) {
+            GAZER_INFO << "Auto-closed layout instance" << id;
+        }
+    }
+    if (collapseMaster) {
+        auto* master = masterInstance();
+        if (!master) {
+            return;
+        }
+        const QString collapseId = master->document().session.collapseLayoutId;
+        if (!collapseId.isEmpty() && master->layoutId() != collapseId) {
+            QString err;
+            if (navigateMaster(collapseId, &err)) {
+                GAZER_INFO << "Auto-collapsed master →" << collapseId;
+            } else {
+                GAZER_WARN << "Auto-collapse master failed:" << err;
+                master->resetAutoCloseClock(t);
+            }
+        } else {
+            // Already docked / no collapse target — reset so we do not spin.
+            master->resetAutoCloseClock(t);
+        }
+    }
 }
 
 void LayoutInstanceManager::fireLifecycle(const QVector<LayoutAction>& actions,
@@ -144,11 +259,12 @@ void LayoutInstanceManager::replaceInstanceDocument(LayoutInstance* inst, Layout
         m_instanceTeardown(instanceId);
     }
     inst->setDocument(std::move(newDoc));
-    if (!m_globalDwellSequence.isEmpty() || m_globalGraceMs > 0) {
-        inst->setGlobalDwellOverride(m_globalDwellSequence, m_globalGraceMs);
+    if (!m_globalDwellSequence.isEmpty() || m_globalGraceMs > 0 || m_globalScanGraceMs >= 0) {
+        inst->setGlobalDwellOverride(m_globalDwellSequence, m_globalGraceMs, m_globalScanGraceMs);
     }
     inst->setProgressVisuals(m_progressVisuals);
     inst->setTheme(m_theme);
+    applyAutoClosePolicy(inst);
     if (fireOnLoad) {
         fireLifecycle(inst->document().onLoad, instanceId);
     }
@@ -358,8 +474,8 @@ bool LayoutInstanceManager::navigateMaster(const QString& layoutId, QString* err
 
     const QString id = makeInstanceId(layoutId);
     auto inst = std::make_unique<LayoutInstance>(id, decorateCopy(*doc));
-    if (!m_globalDwellSequence.isEmpty() || m_globalGraceMs > 0) {
-        inst->setGlobalDwellOverride(m_globalDwellSequence, m_globalGraceMs);
+    if (!m_globalDwellSequence.isEmpty() || m_globalGraceMs > 0 || m_globalScanGraceMs >= 0) {
+        inst->setGlobalDwellOverride(m_globalDwellSequence, m_globalGraceMs, m_globalScanGraceMs);
     }
     inst->applyPlacement(0);
     wireInstance(inst.get());
@@ -393,12 +509,13 @@ QString LayoutInstanceManager::openSecondary(const QString& layoutId, QString* e
 
     const QString id = makeInstanceId(layoutId);
     auto inst = std::make_unique<LayoutInstance>(id, decorateCopy(*doc));
-    if (!m_globalDwellSequence.isEmpty() || m_globalGraceMs > 0) {
-        inst->setGlobalDwellOverride(m_globalDwellSequence, m_globalGraceMs);
+    if (!m_globalDwellSequence.isEmpty() || m_globalGraceMs > 0 || m_globalScanGraceMs >= 0) {
+        inst->setGlobalDwellOverride(m_globalDwellSequence, m_globalGraceMs, m_globalScanGraceMs);
     }
     inst->setProgressVisuals(m_progressVisuals);
-    const int offset = static_cast<int>(m_instances.size()) * 40;
-    inst->applyPlacement(offset);
+    // Always honor layout window placement (anchor / boundsMode). Do not cascade-
+    // offset secondaries — that broke defined positions when main opened boards.
+    inst->applyPlacement(0);
     wireInstance(inst.get());
     const QVector<LayoutAction> onOpen = inst->document().onOpen;
     const QVector<LayoutAction> onLoad = inst->document().onLoad;
@@ -504,13 +621,14 @@ QString LayoutInstanceManager::openInstance(const QString& layoutId, QString* er
 }
 
 void LayoutInstanceManager::applyGlobalDwellOverride(const QVector<int>& dwellSequence,
-                                                     int graceMs)
+                                                     int graceMs, int scanGraceMs)
 {
     m_globalDwellSequence = dwellSequence;
     m_globalGraceMs = graceMs;
+    m_globalScanGraceMs = scanGraceMs;
     for (const auto& p : m_instances) {
         if (p) {
-            p->setGlobalDwellOverride(dwellSequence, graceMs);
+            p->setGlobalDwellOverride(dwellSequence, graceMs, scanGraceMs);
         }
     }
 }
@@ -685,8 +803,15 @@ void LayoutInstanceManager::focusInstance(const QString& instanceId)
 
 LayoutInstance* LayoutInstanceManager::findInstanceAt(const QPointF& screenPoint) const
 {
-    // Topmost first: m_instances is ordered bottom→top; rbegin is visual/hit top.
-    // Only the first containing board wins — overlapping boards underneath get nothing.
+    // 1) Visible unbounded progress chrome always wins over other boards' windows
+    //    (even if those windows are higher in the HWND / stack z-order). Among
+    //    multiple progress hits, prefer stack-topmost (rbegin).
+    for (auto it = m_instances.rbegin(); it != m_instances.rend(); ++it) {
+        if (*it && (*it)->containsVisibleUnboundedProgress(screenPoint)) {
+            return it->get();
+        }
+    }
+    // 2) Normal hit: stack topmost board that contains the point.
     for (auto it = m_instances.rbegin(); it != m_instances.rend(); ++it) {
         if (*it && (*it)->containsScreenPoint(screenPoint)) {
             return it->get();
@@ -705,6 +830,8 @@ void LayoutInstanceManager::reassertStackTopVisual()
 
 bool LayoutInstanceManager::onGaze(const GazePoint& point)
 {
+    tickAutoClose(autoCloseNowMs());
+
     // Invalid samples: keep last board dwell alive briefly (blinks). Instance
     // dwell machines also apply their own invalid grace.
     if (!point.valid) {
@@ -719,6 +846,7 @@ bool LayoutInstanceManager::onGaze(const GazePoint& point)
         return !m_gazeInstanceId.isEmpty();
     }
 
+    // Topmost first (stack end = drawn on top). Only that board gets dwell.
     LayoutInstance* hit = findInstanceAt(point.toPointF());
     const QString hitId = hit ? hit->instanceId() : QString();
 
@@ -730,12 +858,17 @@ bool LayoutInstanceManager::onGaze(const GazePoint& point)
         if (hit) {
             // Focus id only — do not reorder stack (would desync from HWND z-order).
             setFocused(hitId, false);
+            noteDwellActivity(hitId);
         }
     }
 
     // Strict topmost: only the hit board receives dwell/hover. Others stay idle.
     if (hit) {
-        hit->feedGaze(point, hit->hitTest(point.toPointF()));
+        const QString itemId = hit->hitTest(point.toPointF());
+        if (!itemId.isEmpty()) {
+            noteDwellActivity(hit->instanceId());
+        }
+        hit->feedGaze(point, itemId);
         return true;
     }
     return false;

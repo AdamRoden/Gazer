@@ -64,8 +64,15 @@ public:
     void setAutoCollapseMain(bool enabled) { m_autoCollapseMain = enabled; }
     [[nodiscard]] bool autoCollapseMain() const { return m_autoCollapseMain; }
 
-    /// Apply global dwell sequence to every open instance.
-    void applyGlobalDwellOverride(const QVector<int>& dwellSequence, int graceMs);
+    /// Global auto-close defaults for secondaries (master shells ignore unless layout forces).
+    void setAutoCloseDefaults(bool enabled, int idleMs, int fadeMs);
+    [[nodiscard]] bool autoCloseEnabled() const { return m_autoCloseEnabled; }
+    [[nodiscard]] int autoCloseIdleMs() const { return m_autoCloseIdleMs; }
+    [[nodiscard]] int autoCloseFadeMs() const { return m_autoCloseFadeMs; }
+
+    /// Apply global dwell sequence / grace / scan-grace to every open instance.
+    void applyGlobalDwellOverride(const QVector<int>& dwellSequence, int graceMs,
+                                  int scanGraceMs = 100);
 
     void applyProgressVisuals(const ProgressVisuals& visuals);
     void applyTheme(const ThemeColors& theme);
@@ -154,8 +161,12 @@ private:
     QString m_gazeInstanceId;
     int m_nextSerial = 1;
     bool m_autoCollapseMain = true;
+    bool m_autoCloseEnabled = true;
+    int m_autoCloseIdleMs = 10000;
+    int m_autoCloseFadeMs = 3000;
     QVector<int> m_globalDwellSequence;
     int m_globalGraceMs = 0;
+    int m_globalScanGraceMs = 100;
     ProgressVisuals m_progressVisuals;
     ThemeColors m_theme = ThemeColors::darkPreset();
     EdgeBubbleOverlay* m_edgeBubbles = nullptr;
@@ -165,6 +176,9 @@ private:
     bool m_dwellSuspended = false;
     LayoutDocument decorateCopy(const LayoutDocument& src) const;
     void fireLifecycle(const QVector<LayoutAction>& actions, const QString& instanceId) const;
+    void applyAutoClosePolicy(LayoutInstance* inst);
+    void noteDwellActivity(const QString& instanceId);
+    void tickAutoClose(qint64 nowMs);
 };
 
 } // namespace gazer

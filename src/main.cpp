@@ -1,4 +1,5 @@
 #include "app/Application.h"
+#include "ui/AppIcon.h"
 #include "utils/Log.h"
 
 #include <QApplication>
@@ -60,6 +61,12 @@ int main(int argc, char* argv[])
     QApplication::setApplicationVersion(QStringLiteral("0.4.0"));
     // Tray owns lifetime; closing the preview must not quit.
     QApplication::setQuitOnLastWindowClosed(false);
+
+    // Taskbar / Alt+Tab / window chrome for any QWidget that inherits the app icon.
+    const QIcon appIcon = gazer::loadAppIcon();
+    if (!appIcon.isNull()) {
+        QApplication::setWindowIcon(appIcon);
+    }
 
     gazer::Application app;
     if (!app.initialize()) {

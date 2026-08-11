@@ -2,26 +2,19 @@
     "schemaVersion":  1,
     "id":  "example_keyboard_shift",
     "name":  "Keyboard ⇧",
-    "description":  "Voice OSK alpha — width units from Voice/js/osk.js (W + LETTER_U).",
     "window":  {
                    "anchor":  "bottomCenter",
                    "widthPx":  1280,
-                   "heightPx":  280,
-                   "marginPx":  6
+                   "heightPx":  280
                },
     "grid":  {
                  "columns":  12,
                  "rows":  3,
                  "gapPx":  4,
-                 "marginPx":  8,
+                 "marginPx":  4,
                  "unitRows":  true
              },
-    "dwell":  {
-                  "enabled":  true,
-                  "ms":  550,
-                  "repeatMs":  0,
-                  "progressStyle":  "radial"
-              },
+    "dwell":  { "ms": [400,600,400,300,200,100,50] },
     "items":  [
                   {
                       "id":  "tab",

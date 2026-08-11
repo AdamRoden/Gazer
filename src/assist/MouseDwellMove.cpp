@@ -176,6 +176,7 @@ void MouseDwellMove::setArmed(bool armed, ArmPurpose purpose)
                 m_magOverlay->hide();
             }
             setPhase(useMagPickThisArm() ? Phase::MagRegion : Phase::Direct);
+            markSelectDeadline();
             const char* purposeName = "move";
             if (purpose == ArmPurpose::LookToScrollPlace) {
                 purposeName = "ltsPlace";
@@ -193,8 +194,10 @@ void MouseDwellMove::setArmed(bool armed, ArmPurpose purpose)
     if (!m_armed) {
         hideUi();
         setPhase(Phase::Idle);
+        m_selectDeadlineMs = -1;
     } else {
         setPhase(useMagPickThisArm() ? Phase::MagRegion : Phase::Direct);
+        markSelectDeadline();
     }
     const char* purposeName = "move";
     if (m_purpose == ArmPurpose::LookToScrollPlace) {
@@ -219,6 +222,28 @@ void MouseDwellMove::toggle()
 void MouseDwellMove::setDwellMs(int ms)
 {
     m_dwell.setDwellMs(ms);
+}
+
+void MouseDwellMove::setSelectTimeoutMs(int ms)
+{
+    m_selectTimeoutMs = qMax(0, ms);
+    if (m_armed) {
+        markSelectDeadline();
+    }
+}
+
+void MouseDwellMove::markSelectDeadline()
+{
+    if (!m_armed || m_selectTimeoutMs <= 0) {
+        m_selectDeadlineMs = -1;
+        return;
+    }
+    m_selectDeadlineMs = m_clock.elapsed() + m_selectTimeoutMs;
+}
+
+bool MouseDwellMove::selectTimedOut(qint64 nowMs) const
+{
+    return m_selectDeadlineMs >= 0 && nowMs >= m_selectDeadlineMs;
 }
 
 void MouseDwellMove::setStableRadiusPx(int px)
@@ -343,6 +368,8 @@ void MouseDwellMove::beginMagPick(const QPoint& center)
     m_magOverlay->showCapture(m_magPixmap, m_magDisplayRect);
     setPhase(Phase::MagPoint);
     resetDwell();
+    // Region chosen — give a fresh window for the refined point dwell.
+    markSelectDeadline();
     GAZER_INFO << "MouseDwellMove mag-pick region" << src;
 }
 
@@ -387,6 +414,12 @@ void MouseDwellMove::onGaze(const GazePoint& point)
     }
 
     const qint64 now = m_clock.elapsed();
+
+    if (selectTimedOut(now)) {
+        GAZER_INFO << "MouseDwellMove select timeout — disarming";
+        setArmed(false);
+        return;
+    }
 
     // Brief invalid samples (tracker dropouts) must not wipe dwell; layout dwell uses
     // the same pattern. Mag-point keeps the static capture visible either way.
@@ -490,6 +523,8 @@ void MouseDwellMove::completeMoveCycle(const QPoint& target)
         }
         resetDwell();
         setPhase(useMagPickThisArm() ? Phase::MagRegion : Phase::Direct);
+        // Fresh window to pick the next target; cancel if none selected in time.
+        markSelectDeadline();
         return;
     }
     setArmed(false);

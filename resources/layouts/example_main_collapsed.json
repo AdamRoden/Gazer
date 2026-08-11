@@ -24,21 +24,21 @@
         "marginPx": 50
       },
       "style": { "background": "#000000", "foreground": "#ffffff" },
-      "action": { "type": "command", "name": "expandMaster" }
+      "actions": [{ "type": "command", "name": "resumeDwell" },{ "type": "command", "name": "expandMaster" }]
     },
     {
       "id": "e2",
       "label": "Sleep",
       "unbounded": true,
       "dwellRegion": {
-        "screenAnchor": "bottomRight",
+        "screenAnchor": "bottomCenter",
         "widthPx": 300,
         "heightPx": 300,
-        "x": -25,
-        "yPx": 325
+        "xPx": 400,
+        "marginPx": 50
       },
       "style": { "background": "#000000", "foreground": "#ffffff" },
-      "action": { "type": "command", "name": "toggleDwellSuspend" }
+      "actions": [{ "type": "command", "name": "toggleDwellSuspend" }]
     }
   ]
 }

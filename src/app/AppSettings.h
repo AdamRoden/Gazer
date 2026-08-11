@@ -13,8 +13,13 @@ struct AppSettings {
     // --- Timing ---
     /// Progressive dwell steps (ms), cycled while holding. e.g. 600,300,100,600
     QVector<int> dwellSequence = {700};
+    /// Time on-target before dwell progress animation / sequence begins (ms).
+    int scanGraceMs = 100;
     int dwellGraceMs = 180;
     int mouseMoveDwellMs = 700;
+    /// Cancel armed mouse-move / click-loop if no target is selected within this many ms.
+    /// 0 = disabled.
+    int mouseMoveSelectTimeoutMs = 5000;
     /// Mouse dwell-move uses static magnify + second dwell to refine point.
     bool mouseMoveMagPick = false;
     /// Place static magnifier centered on the first-dwell point (else screen center).
@@ -55,6 +60,11 @@ struct AppSettings {
     // --- Session ---
     bool autoCollapseMain = true;
     bool startDocked = false;
+    /// Secondaries: no dwell for idleMs → instant 50% for fadeMs → 500ms suck → close.
+    /// Master shells exempt unless the layout opts in.
+    bool layoutAutoClose = true;
+    int layoutAutoCloseIdleMs = 10000;
+    int layoutAutoCloseFadeMs = 3000;
     int trackerPref = 0;
 
     // --- Speech ---

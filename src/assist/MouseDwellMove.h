@@ -42,6 +42,8 @@ public:
     void toggle();
 
     void setDwellMs(int ms);
+    /// Cancel arm (including click-loop) if no target selected within this many ms. 0 = off.
+    void setSelectTimeoutMs(int ms);
     void setStableRadiusPx(int px);
     void setFreezeRadiusPx(int px);
     void setCancelRadiusPx(int px);
@@ -76,6 +78,8 @@ private:
     void finishMagPoint(const QPointF& gaze);
     /// After a successful move: click+rearm for click-loop, else disarm.
     void completeMoveCycle(const QPoint& target);
+    void markSelectDeadline();
+    [[nodiscard]] bool selectTimedOut(qint64 nowMs) const;
     [[nodiscard]] bool useMagPickThisArm() const;
 
     bool m_armed = false;
@@ -85,6 +89,9 @@ private:
     double m_magZoom = 2.5;
     int m_magSourcePx = 220;
     Phase m_phase = Phase::Idle;
+    /// 0 = disabled. Otherwise cancel arm if no selection by m_selectDeadlineMs.
+    int m_selectTimeoutMs = 5000;
+    qint64 m_selectDeadlineMs = -1;
 
     GazeDwellTracker m_dwell;
     QElapsedTimer m_clock;

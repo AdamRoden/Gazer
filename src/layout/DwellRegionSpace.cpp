@@ -439,10 +439,19 @@ Resolved resolveItem(const LayoutItem& item, const QPoint& boardOrigin,
     const bool boardless = item.unbounded || item.hasDwellRegion;
 
     if (item.dwellRegion.usesScreenAnchor()) {
-        QRect screenGeo = boardScreen ? boardScreen->geometry() : QRect();
+        // boundsMode: screen = full geometry; desktop = available work area.
+        const BoundsMode mode = item.dwellRegion.hasBoundsMode ? item.dwellRegion.boundsMode
+                                                               : BoundsMode::Desktop;
+        auto geoOf = [mode](QScreen* s) -> QRect {
+            if (!s) {
+                return {};
+            }
+            return mode == BoundsMode::Screen ? s->geometry() : s->availableGeometry();
+        };
+        QRect screenGeo = geoOf(boardScreen);
         if (!screenGeo.isValid()) {
             if (QScreen* s = nearestScreen(boardScreenRect.center())) {
-                screenGeo = s->geometry();
+                screenGeo = geoOf(s);
             }
         }
         const QRect logical = logicalFromAnchor(item.dwellRegion, screenGeo);

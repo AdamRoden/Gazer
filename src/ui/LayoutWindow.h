@@ -40,6 +40,8 @@ public:
     void setActiveItemIds(const QSet<QString>& activeIds);
     void flashItem(const QString& itemId);
     void showAndRaise();
+    /// 0–1 board opacity for auto-close fade; supports fully transparent chrome.
+    void setBoardOpacity(double opacity);
 
 public slots:
     void onActiveLayoutChanged(const gazer::LayoutDocument& layout);
@@ -61,7 +63,9 @@ private:
     void paintDefault(QPainter& p);
     void paintFluent(QPainter& p);
     void paintProgressChrome(QPainter& p, const QRectF& r, bool hovered, double progress,
-                             const ProgressVisuals& visuals);
+                             const ProgressVisuals& visuals, double radius);
+    void paintCell(QPainter& p, const LayoutItem& item, const QRectF& r, bool fluent);
+    void applyTransparencyAttrs();
     [[nodiscard]] ProgressVisuals visualsForItem(const LayoutItem* item) const;
 
     LayoutDocument m_layout;
@@ -73,6 +77,7 @@ private:
     QSet<QString> m_activeItemIds;
     QString m_flashId;
     QTimer m_flashTimer;
+    double m_boardOpacity = 1.0;
 };
 
 } // namespace gazer

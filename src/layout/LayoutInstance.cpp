@@ -5,6 +5,8 @@
 #include <QGuiApplication>
 #include <QScreen>
 
+#include <cmath>
+
 namespace gazer {
 
 LayoutInstance::LayoutInstance(QString instanceId, LayoutDocument document, QObject* parent)
@@ -35,6 +37,10 @@ LayoutInstance::LayoutInstance(QString instanceId, LayoutDocument document, QObj
 
     connect(m_dwell.get(), &DwellStateMachine::dwellProgress, this,
             [this](const QString& itemId, double progress) {
+                m_lastProgress = progress;
+                if (progress > 0.0) {
+                    emit dwellActivity(m_instanceId);
+                }
                 if (m_window) {
                     const LayoutItem* item =
                         itemId.isEmpty() ? nullptr : m_document.findItem(itemId);
@@ -88,6 +94,7 @@ void LayoutInstance::applyDwellForItem(const QString& itemId)
 {
     QVector<int> seq;
     int grace = m_globalGraceMs > 0 ? m_globalGraceMs : 180;
+    int scanGrace = m_globalScanGraceMs >= 0 ? m_globalScanGraceMs : 100;
 
     const LayoutItem* item = itemId.isEmpty() ? nullptr : m_document.findItem(itemId);
 
@@ -107,14 +114,23 @@ void LayoutInstance::applyDwellForItem(const QString& itemId)
         grace = m_document.dwell.graceMs;
     }
 
+    if (item && item->dwell.hasScanGrace && item->dwell.scanGraceMs >= 0) {
+        scanGrace = item->dwell.scanGraceMs;
+    } else if (m_document.dwell.hasScanGrace && m_document.dwell.scanGraceMs >= 0) {
+        scanGrace = m_document.dwell.scanGraceMs;
+    }
+
     m_dwell->setDwellSequence(seq);
     m_dwell->setInvalidGraceMs(qMax(0, grace));
+    m_dwell->setScanGraceMs(qMax(0, scanGrace));
 }
 
-void LayoutInstance::setGlobalDwellOverride(const QVector<int>& dwellSequence, int graceMs)
+void LayoutInstance::setGlobalDwellOverride(const QVector<int>& dwellSequence, int graceMs,
+                                            int scanGraceMs)
 {
     m_globalDwellSequence = dwellSequence;
     m_globalGraceMs = graceMs;
+    m_globalScanGraceMs = scanGraceMs;
     applyDwellConfig();
 }
 
@@ -213,8 +229,7 @@ void LayoutInstance::applyPlacement(int cascadeOffset)
 
     m_window->setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
 
-    QScreen* screen = QGuiApplication::primaryScreen();
-    const QRect avail = screen ? screen->availableGeometry() : QRect(0, 0, 1920, 1080);
+    const QRect avail = boundsRectFor(m_document.effectiveBoundsMode());
 
     const int winW = qMax(40, p.width.resolveInt(avail.width(), 1000));
     const int winH = qMax(40, p.height.resolveInt(avail.height(), 560));
@@ -226,7 +241,7 @@ void LayoutInstance::applyPlacement(int cascadeOffset)
         return;
     }
 
-    if (!screen) {
+    if (!avail.isValid()) {
         placeRelative(cascadeOffset, cascadeOffset);
         return;
     }
@@ -234,41 +249,47 @@ void LayoutInstance::applyPlacement(int cascadeOffset)
     const int margin = qMax(0, p.marginPx);
     const int w = m_window->width();
     const int h = m_window->height();
+    // Use top+height (not inclusive bottom()+1) so flush anchors sit exactly on the
+    // bounds edge when marginPx is 0.
+    const int left = avail.x();
+    const int top = avail.y();
+    const int right = avail.x() + avail.width();   // exclusive
+    const int bottom = avail.y() + avail.height(); // exclusive
 
-    int x = avail.left() + margin;
-    int y = avail.top() + margin;
+    int x = left + margin;
+    int y = top + margin;
 
     switch (p.anchor) {
     case LayoutWindowPlacement::Anchor::TopLeft:
         break;
     case LayoutWindowPlacement::Anchor::TopCenter:
-        x = avail.left() + (avail.width() - w) / 2;
+        x = left + (avail.width() - w) / 2;
         break;
     case LayoutWindowPlacement::Anchor::TopRight:
-        x = avail.right() - w - margin + 1;
+        x = right - w - margin;
         break;
     case LayoutWindowPlacement::Anchor::Center:
-        x = avail.left() + (avail.width() - w) / 2;
-        y = avail.top() + (avail.height() - h) / 2;
+        x = left + (avail.width() - w) / 2;
+        y = top + (avail.height() - h) / 2;
         break;
     case LayoutWindowPlacement::Anchor::LeftCenter:
-        x = avail.left() + margin;
-        y = avail.top() + (avail.height() - h) / 2;
+        x = left + margin;
+        y = top + (avail.height() - h) / 2;
         break;
     case LayoutWindowPlacement::Anchor::RightCenter:
-        x = avail.right() - w - margin + 1;
-        y = avail.top() + (avail.height() - h) / 2;
+        x = right - w - margin;
+        y = top + (avail.height() - h) / 2;
         break;
     case LayoutWindowPlacement::Anchor::BottomLeft:
-        y = avail.bottom() - h - margin + 1;
+        y = bottom - h - margin;
         break;
     case LayoutWindowPlacement::Anchor::BottomCenter:
-        x = avail.left() + (avail.width() - w) / 2;
-        y = avail.bottom() - h - margin + 1;
+        x = left + (avail.width() - w) / 2;
+        y = bottom - h - margin;
         break;
     case LayoutWindowPlacement::Anchor::BottomRight:
-        x = avail.right() - w - margin + 1;
-        y = avail.bottom() - h - margin + 1;
+        x = right - w - margin;
+        y = bottom - h - margin;
         break;
     case LayoutWindowPlacement::Anchor::Default:
         break;
@@ -287,11 +308,21 @@ void LayoutInstance::applyPlacement(int cascadeOffset)
 
 void LayoutInstance::placeRelative(int offsetX, int offsetY)
 {
-    QPoint origin(80, 80);
-    if (QScreen* screen = QGuiApplication::primaryScreen()) {
-        origin = screen->availableGeometry().topLeft() + QPoint(80, 80);
-    }
+    const QRect avail = boundsRectFor(m_document.effectiveBoundsMode());
+    const QPoint origin = avail.isValid() ? (avail.topLeft() + QPoint(80, 80)) : QPoint(80, 80);
     m_window->move(origin + QPoint(offsetX, offsetY));
+}
+
+QRect LayoutInstance::boundsRectFor(BoundsMode mode) const
+{
+    // Placement uses the primary screen's reference rect. Do not use the window's
+    // current QScreen* — cascade/move can pin it to the wrong monitor or a stale
+    // geometry and break boundsMode (screen vs desktop).
+    QScreen* screen = QGuiApplication::primaryScreen();
+    if (!screen) {
+        return QRect(0, 0, 1920, 1080);
+    }
+    return mode == BoundsMode::Screen ? screen->geometry() : screen->availableGeometry();
 }
 
 QPoint LayoutInstance::boardOrigin() const
@@ -326,14 +357,175 @@ QRect LayoutInstance::gridItemScreenRect(const QString& itemId) const
 
 DwellRegionSpace::Resolved LayoutInstance::resolveItem(const LayoutItem& item) const
 {
-    return DwellRegionSpace::resolveItem(item, boardOrigin(), screenRect(), boardScreen());
+    // Apply layout-level boundsMode when the region does not override it.
+    LayoutItem copy = item;
+    if (copy.hasDwellRegion && !copy.dwellRegion.hasBoundsMode && m_document.hasBoundsMode) {
+        copy.dwellRegion.hasBoundsMode = true;
+        copy.dwellRegion.boundsMode = m_document.boundsMode;
+    } else if (copy.hasDwellRegion && !copy.dwellRegion.hasBoundsMode
+               && m_document.placement.hasBoundsMode) {
+        copy.dwellRegion.hasBoundsMode = true;
+        copy.dwellRegion.boundsMode = m_document.placement.boundsMode;
+    }
+    return DwellRegionSpace::resolveItem(copy, boardOrigin(), screenRect(), boardScreen());
 }
 
 QRect LayoutInstance::itemHitRect(const LayoutItem& item) const
 {
     const auto r = resolveItem(item);
     const bool engaged = !m_dwellLipItemId.isEmpty() && m_dwellLipItemId == item.id;
-    return r.hitWithDriftLip(engaged);
+    QRect hit = r.hitWithDriftLip(engaged);
+    // While progress chrome is visible, include the on-screen progress region.
+    if (m_activeDwellItemId == item.id && m_lastProgress > 0.01) {
+        const QRect prog = progressHitRect(item, m_lastProgress);
+        if (!prog.isEmpty()) {
+            hit = hit.united(prog);
+        }
+    }
+    return hit;
+}
+
+QRect LayoutInstance::progressHitRect(const LayoutItem& item, double progress) const
+{
+    if (item.participatesInBoardGrid()) {
+        return {};
+    }
+    const auto resolved = resolveItem(item);
+    if (!resolved.showBubble || resolved.band.onScreen.isEmpty()) {
+        return {};
+    }
+    const QRectF strip = DwellRegionSpace::progressStrip(resolved.band, progress);
+    // Prefer the growing progress strip; fall back to full on-screen band.
+    if (!strip.isEmpty()) {
+        return strip.toRect();
+    }
+    return resolved.band.onScreen.toRect();
+}
+
+bool LayoutInstance::containsVisibleUnboundedProgress(const QPointF& screenPoint) const
+{
+    if (m_activeDwellItemId.isEmpty() || m_lastProgress <= 0.01) {
+        return false;
+    }
+    const LayoutItem* item = m_document.findItem(m_activeDwellItemId);
+    if (!item || item->participatesInBoardGrid()) {
+        return false;
+    }
+    if (m_dwellSuspended && !item->isDwellExempt()) {
+        return false;
+    }
+    const QRect prog = progressHitRect(*item, m_lastProgress);
+    // Also accept full item hit (logical + lip + progress) so drift stays on target.
+    const QRect hit = itemHitRect(*item);
+    const QPoint pt = screenPoint.toPoint();
+    return (!prog.isEmpty() && prog.contains(pt)) || (!hit.isEmpty() && hit.contains(pt));
+}
+
+void LayoutInstance::setAutoCloseTiming(int idleMs, int fadeMs)
+{
+    m_autoCloseIdleMs = qMax(500, idleMs);
+    m_autoCloseFadeMs = qMax(50, fadeMs);
+}
+
+void LayoutInstance::resetAutoCloseClock(qint64 nowMs)
+{
+    m_lastActivityMs = nowMs;
+    if (m_autoCloseSuckActive) {
+        m_autoCloseSuckActive = false;
+        m_autoCloseSuckStartGeom = {};
+        // Restore full board placement after a cancelled suck animation.
+        if (m_window && m_document.showsBoardWindow()) {
+            applyPlacement(0);
+        }
+    }
+    setFadeOpacity(1.0);
+}
+
+double LayoutInstance::autoCloseOpacity(qint64 nowMs) const
+{
+    if (!m_autoCloseEnabled) {
+        return 1.0;
+    }
+    const qint64 idle = nowMs - m_lastActivityMs;
+    if (idle < m_autoCloseIdleMs) {
+        return 1.0;
+    }
+    const qint64 intoFade = idle - m_autoCloseIdleMs;
+    if (intoFade < m_autoCloseFadeMs) {
+        // Instant drop to 50%; hold for the full fade duration.
+        return kAutoCloseFadeFloor;
+    }
+    // Suck phase: 50% → 0 so the board disappears as it shrinks.
+    const qint64 intoSuck = intoFade - m_autoCloseFadeMs;
+    if (intoSuck >= kAutoCloseSuckMs) {
+        return 0.0;
+    }
+    const double t = double(intoSuck) / double(kAutoCloseSuckMs);
+    const double eased = t * t; // ease-in: accelerate into the sink point
+    return kAutoCloseFadeFloor * (1.0 - eased);
+}
+
+bool LayoutInstance::autoCloseFinished(qint64 nowMs) const
+{
+    if (!m_autoCloseEnabled) {
+        return false;
+    }
+    const qint64 idle = nowMs - m_lastActivityMs;
+    return idle >= qint64(m_autoCloseIdleMs) + qint64(m_autoCloseFadeMs) + kAutoCloseSuckMs;
+}
+
+void LayoutInstance::applyAutoCloseVisuals(qint64 nowMs)
+{
+    if (!m_window) {
+        return;
+    }
+
+    setFadeOpacity(autoCloseOpacity(nowMs));
+
+    if (!m_autoCloseEnabled || !m_document.showsBoardWindow()) {
+        return;
+    }
+
+    const qint64 idle = nowMs - m_lastActivityMs;
+    const qint64 suckStart = qint64(m_autoCloseIdleMs) + qint64(m_autoCloseFadeMs);
+    if (idle < suckStart) {
+        // Still in idle or fade — ensure we are not left mid-suck from a prior tick.
+        if (m_autoCloseSuckActive) {
+            m_autoCloseSuckActive = false;
+            m_autoCloseSuckStartGeom = {};
+            applyPlacement(0);
+            setFadeOpacity(autoCloseOpacity(nowMs));
+        }
+        return;
+    }
+
+    if (!m_autoCloseSuckActive) {
+        m_autoCloseSuckActive = true;
+        m_autoCloseSuckStartGeom = m_window->geometry();
+        // Allow shrinking below normal board minimum during the dismiss animation.
+        m_window->setMinimumSize(1, 1);
+    }
+
+    const qint64 intoSuck = idle - suckStart;
+    double t = qBound(0.0, double(intoSuck) / double(kAutoCloseSuckMs), 1.0);
+    t = t * t; // ease-in toward the sink
+
+    const QRect avail = boundsRectFor(m_document.effectiveBoundsMode());
+    // Sink point: bottom center of the placement bounds.
+    const QPoint target(avail.center().x(), avail.bottom());
+    const QPoint startCenter = m_autoCloseSuckStartGeom.center();
+    const double cx = startCenter.x() + (target.x() - startCenter.x()) * t;
+    const double cy = startCenter.y() + (target.y() - startCenter.y()) * t;
+    const int w = qMax(1, int(std::lround(m_autoCloseSuckStartGeom.width() * (1.0 - t))));
+    const int h = qMax(1, int(std::lround(m_autoCloseSuckStartGeom.height() * (1.0 - t))));
+    m_window->setGeometry(int(std::lround(cx - w * 0.5)), int(std::lround(cy - h * 0.5)), w, h);
+}
+
+void LayoutInstance::setFadeOpacity(double opacity)
+{
+    if (m_window) {
+        m_window->setBoardOpacity(qBound(0.0, opacity, 1.0));
+    }
 }
 
 QRect LayoutInstance::unpauseGapScreenRect(const LayoutItem& item) const
@@ -521,6 +713,7 @@ void LayoutInstance::feedGaze(const GazePoint& point, const QString& itemIdUnder
         m_dwellLipItemId.clear();
         m_dwellLipTrackItemId.clear();
         m_activeDwellItemId = itemIdUnderGaze;
+        m_lastProgress = 0.0;
         applyDwellForItem(itemIdUnderGaze);
     }
     m_dwell->onGazeSample(point, itemIdUnderGaze);
@@ -535,6 +728,7 @@ void LayoutInstance::leaveGaze()
     m_dwellLipItemId.clear();
     m_dwellLipTrackItemId.clear();
     m_activeDwellItemId.clear();
+    m_lastProgress = 0.0;
     m_dwell->leave();
     if (m_window) {
         m_window->setHoverState(QString(), 0.0);
