@@ -1,8 +1,10 @@
 #include "layout/LayoutInstanceManager.h"
 
+#include "ui/OverlaySurface.h"
 #include "utils/Log.h"
 
 #include <QElapsedTimer>
+#include <QSet>
 #include <algorithm>
 
 namespace gazer {
@@ -20,6 +22,11 @@ qint64 autoCloseNowMs()
     return g_autoCloseClock.elapsed();
 }
 } // namespace
+
+qint64 LayoutInstanceManager::nowMs() const
+{
+    return autoCloseNowMs();
+}
 
 LayoutInstanceManager::LayoutInstanceManager(LayoutManager& catalog, QObject* parent)
     : QObject(parent)
@@ -43,6 +50,7 @@ void LayoutInstanceManager::wireInstance(LayoutInstance* inst)
     inst->setDwellSuspended(m_dwellSuspended);
     inst->setTheme(m_theme);
     inst->setProgressVisuals(m_progressVisuals);
+    inst->setPropertyContext(m_rootProps);
     applyAutoClosePolicy(inst);
     connect(inst, &LayoutInstance::itemActivated, this, &LayoutInstanceManager::itemActivated);
     connect(inst, &LayoutInstance::windowCloseRequested, this,
@@ -59,16 +67,13 @@ void LayoutInstanceManager::applyAutoClosePolicy(LayoutInstance* inst)
         return;
     }
     const auto& doc = inst->document();
-    // Opt-out or global off. Master shells may auto-close when layout sets autoClose
-    // (home main fades then collapses via collapseLayoutId).
     if (!doc.autoClose || !m_autoCloseEnabled) {
         inst->setAutoCloseEnabled(false);
         inst->resetAutoCloseClock(autoCloseNowMs());
         return;
     }
-    // Dock/non-home master with nowhere to collapse: keep open.
-    if (doc.isMasterShell() && !doc.session.isHome
-        && doc.session.collapseLayoutId.isEmpty()) {
+    // Root never auto-closes. Home child may fade then hide.
+    if (inst->instanceId() == m_masterId || doc.isMaster()) {
         inst->setAutoCloseEnabled(false);
         inst->resetAutoCloseClock(autoCloseNowMs());
         return;
@@ -108,6 +113,24 @@ void LayoutInstanceManager::tickAutoClose(qint64 t)
         if (!p || !p->autoCloseEnabled()) {
             continue;
         }
+        // Hidden children (home/quit) must not keep firing collapse.
+        if (!p->window() || !p->window()->isVisible()) {
+            continue;
+        }
+        if (p->usesDrawerMotion()) {
+            // Gaze on the drawer *or* the dock chips is still using the shell.
+            if (m_gazeInstanceId == p->instanceId() || m_gazeInstanceId == m_masterId) {
+                p->resetAutoCloseClock(t);
+                continue;
+            }
+            if (p->isScaleAnimating()) {
+                continue;
+            }
+            if (p->autoCloseIdleElapsed(t)) {
+                collapseMaster = true;
+            }
+            continue;
+        }
         // Dwelling on this board keeps it alive (also cancels mid-suck).
         if (m_gazeInstanceId == p->instanceId()) {
             p->resetAutoCloseClock(t);
@@ -118,6 +141,8 @@ void LayoutInstanceManager::tickAutoClose(qint64 t)
             continue;
         }
         if (p->instanceId() == m_masterId) {
+            continue;
+        } else if (isChildInstance(p->instanceId())) {
             collapseMaster = true;
         } else {
             toClose.push_back(p->instanceId());
@@ -130,23 +155,8 @@ void LayoutInstanceManager::tickAutoClose(qint64 t)
         }
     }
     if (collapseMaster) {
-        auto* master = masterInstance();
-        if (!master) {
-            return;
-        }
-        const QString collapseId = master->document().session.collapseLayoutId;
-        if (!collapseId.isEmpty() && master->layoutId() != collapseId) {
-            QString err;
-            if (navigateMaster(collapseId, &err)) {
-                GAZER_INFO << "Auto-collapsed master →" << collapseId;
-            } else {
-                GAZER_WARN << "Auto-collapse master failed:" << err;
-                master->resetAutoCloseClock(t);
-            }
-        } else {
-            // Already docked / no collapse target — reset so we do not spin.
-            master->resetAutoCloseClock(t);
-        }
+        collapseHome();
+        GAZER_INFO << "Auto-collapsed home child";
     }
 }
 
@@ -165,9 +175,11 @@ void LayoutInstanceManager::setDwellSuspended(bool suspended)
         return;
     }
     m_dwellSuspended = suspended;
+    m_rootProps.insert(QStringLiteral("dwellSuspend"), suspended);
     for (const auto& p : m_instances) {
         if (p) {
             p->setDwellSuspended(suspended);
+            p->setPropertyContext(m_rootProps);
             if (suspended) {
                 p->leaveGaze();
             }
@@ -178,6 +190,7 @@ void LayoutInstanceManager::setDwellSuspended(bool suspended)
     }
     GAZER_INFO << "Dwell capture" << (suspended ? "SUSPENDED" : "resumed");
     emit dwellSuspendChanged(m_dwellSuspended);
+    restackChrome();
 }
 
 LayoutInstance* LayoutInstanceManager::instance(const QString& instanceId) const
@@ -198,6 +211,24 @@ LayoutInstance* LayoutInstanceManager::focusedInstance() const
 LayoutInstance* LayoutInstanceManager::masterInstance() const
 {
     return instance(m_masterId);
+}
+
+int LayoutInstanceManager::visibleBoardCount() const
+{
+    int n = 0;
+    for (const auto& p : m_instances) {
+        if (!p || !p->window() || !p->window()->isVisible()) {
+            continue;
+        }
+        if (p->instanceId() == m_masterId && !p->document().showsBoardWindow()) {
+            continue;
+        }
+        ++n;
+    }
+    if (n == 0 && masterInstance()) {
+        return 1; // dock root is still the live session
+    }
+    return n;
 }
 
 QVector<LayoutInstance*> LayoutInstanceManager::instances() const
@@ -281,23 +312,6 @@ bool LayoutInstanceManager::applyDocument(LayoutInstance* inst, const QString& l
     return true;
 }
 
-QString LayoutInstanceManager::homeLayoutIdForMaster() const
-{
-    auto* master = masterInstance();
-    if (!master) {
-        return {};
-    }
-    const auto& sess = master->document().session;
-    if (sess.isHome) {
-        return master->layoutId();
-    }
-    if (!sess.expandLayoutId.isEmpty()) {
-        return sess.expandLayoutId;
-    }
-    // Never return the non-home shell id — that would no-op expand.
-    return {};
-}
-
 void LayoutInstanceManager::setFocused(const QString& instanceId, bool raiseWindow)
 {
     auto it = std::find_if(m_instances.begin(), m_instances.end(),
@@ -330,6 +344,12 @@ bool LayoutInstanceManager::eraseSecondary(const QString& instanceId, QString* e
     if (instanceId == m_masterId) {
         if (error) {
             *error = QStringLiteral("Cannot erase master instance");
+        }
+        return false;
+    }
+    if (isChildInstance(instanceId)) {
+        if (error) {
+            *error = QStringLiteral("Cannot erase a declared child instance");
         }
         return false;
     }
@@ -379,22 +399,33 @@ bool LayoutInstanceManager::applyLoadLayout(const QString& sourceInstanceId,
         return false;
     }
 
-    const bool sourceIsMaster = sourceInstanceId == m_masterId;
+    const bool sourceIsRoot = sourceInstanceId == m_masterId;
+    const bool sourceIsChild = isChildInstance(sourceInstanceId);
+    auto* root = masterInstance();
+    const bool targetIsRoot = root && (layoutId == root->layoutId() || target->isMaster());
 
-    if (target->isMasterShell()) {
-        if (sourceIsMaster) {
-            return navigateMaster(layoutId, error);
+    if (targetIsRoot) {
+        if (!sourceIsRoot && !sourceIsChild) {
+            QString err;
+            (void)eraseSecondary(sourceInstanceId, &err);
         }
-        if (!returnToMaster(sourceInstanceId, /*closeSecondary=*/true, error)) {
-            return false;
-        }
-        if (!target->session.isHome) {
-            return navigateMaster(layoutId, error);
-        }
+        collapseHome();
         return true;
     }
 
-    if (sourceIsMaster) {
+    if (isDeclaredChildLayout(layoutId) || !childSpecForLayout(layoutId).layoutId.isEmpty()) {
+        if (!sourceIsRoot && !sourceIsChild) {
+            QString err;
+            (void)eraseSecondary(sourceInstanceId, &err);
+        }
+        if (!showChildLayout(layoutId, error)) {
+            return false;
+        }
+        emit sessionChanged();
+        return true;
+    }
+
+    if (sourceIsRoot || sourceIsChild) {
         return !openSecondary(layoutId, error).isEmpty();
     }
 
@@ -417,15 +448,14 @@ bool LayoutInstanceManager::loadInto(const QString& instanceId, const QString& l
     }
 
     if (instanceId == m_masterId) {
-        if (!doc->isMasterShell() || doc->session.masterGroup != m_masterGroup) {
-            if (error) {
-                *error = QStringLiteral("Cannot load non-master layout into master instance");
-            }
-            return false;
-        }
-    } else if (doc->isMasterShell()) {
         if (error) {
-            *error = QStringLiteral("Use navigateMaster/returnToMaster for master shells");
+            *error = QStringLiteral("Cannot replace the root master document");
+        }
+        return false;
+    }
+    if (doc->isMaster()) {
+        if (error) {
+            *error = QStringLiteral("Cannot load master layout into a secondary instance");
         }
         return false;
     }
@@ -436,40 +466,20 @@ bool LayoutInstanceManager::loadInto(const QString& instanceId, const QString& l
     return true;
 }
 
-bool LayoutInstanceManager::navigateMaster(const QString& layoutId, QString* error)
+bool LayoutInstanceManager::openMaster(const QString& layoutId, QString* error)
 {
     const LayoutDocument* doc = requireDoc(layoutId, error);
     if (!doc) {
         return false;
     }
-    if (!doc->isMasterShell()) {
+    if (auto* existing = masterInstance()) {
+        if (existing->layoutId() == layoutId) {
+            return true;
+        }
         if (error) {
-            *error = QStringLiteral("navigateMaster requires masterShell role: %1").arg(layoutId);
+            *error = QStringLiteral("Root master already open as %1").arg(existing->layoutId());
         }
         return false;
-    }
-
-    if (auto* master = masterInstance()) {
-        if (!doc->session.masterGroup.isEmpty() && !m_masterGroup.isEmpty()
-            && doc->session.masterGroup != m_masterGroup) {
-            if (error) {
-                *error = QStringLiteral("Master group mismatch");
-            }
-            return false;
-        }
-        replaceInstanceDocument(master, decorateCopy(*doc), /*fireOnLoad=*/true);
-        // Always show after navigation (e.g. dock → Main must leave hidden state).
-        // Application::syncMasterChrome may hide again only for gaze-reveal docks.
-        master->raise();
-        setFocused(master->instanceId(), true);
-        emit sessionChanged();
-        // Second raise after chrome handlers: expand must win over a prior hide.
-        if (!doc->session.isGazeRevealDock()) {
-            master->raise();
-        }
-        GAZER_INFO << "navigateMaster →" << layoutId
-                   << (doc->session.isGazeRevealDock() ? "(gaze-dock)" : "(show)");
-        return true;
     }
 
     const QString id = makeInstanceId(layoutId);
@@ -481,13 +491,22 @@ bool LayoutInstanceManager::navigateMaster(const QString& layoutId, QString* err
     wireInstance(inst.get());
     const QVector<LayoutAction> onOpen = inst->document().onOpen;
     const QVector<LayoutAction> onLoad = inst->document().onLoad;
+    const QVector<LayoutChildRef> children = inst->document().children;
     m_masterId = id;
-    m_masterGroup = doc->session.masterGroup;
-    m_instances.push_back(std::move(inst));
+    m_instances.insert(m_instances.begin(), std::move(inst));
     setFocused(id, true);
     fireLifecycle(onOpen, id);
     fireLifecycle(onLoad, id);
-    GAZER_INFO << "Opened master" << id << layoutId << "group" << m_masterGroup;
+    GAZER_INFO << "Opened root master" << id << layoutId;
+
+    for (const LayoutChildRef& child : children) {
+        QString childErr;
+        if (spawnChild(child, &childErr).isEmpty()) {
+            GAZER_WARN << "Failed to spawn child" << child.layoutId << childErr;
+        }
+    }
+    pushPropertyContext();
+    syncChildVisibility();
     emit instanceOpened(id, layoutId);
     emit sessionChanged();
     return true;
@@ -499,12 +518,18 @@ QString LayoutInstanceManager::openSecondary(const QString& layoutId, QString* e
     if (!doc) {
         return {};
     }
-    if (doc->isMasterShell()) {
+    if (doc->isMaster()) {
         if (error) {
-            *error = QStringLiteral(
-                "openSecondary refuses masterShell; use navigateMaster or openInstance");
+            *error = QStringLiteral("openSecondary refuses master; use openMaster");
         }
         return {};
+    }
+    if (isDeclaredChildLayout(layoutId) || !childSpecForLayout(layoutId).layoutId.isEmpty()) {
+        if (!showChildLayout(layoutId, error)) {
+            return {};
+        }
+        emit sessionChanged();
+        return m_childInstanceByLayout.value(layoutId);
     }
 
     const QString id = makeInstanceId(layoutId);
@@ -529,92 +554,30 @@ QString LayoutInstanceManager::openSecondary(const QString& layoutId, QString* e
     return id;
 }
 
-bool LayoutInstanceManager::returnToMaster(const QString& fromInstanceId, bool closeSecondary,
-                                           QString* error)
-{
-    auto* master = masterInstance();
-    if (!master) {
-        if (error) {
-            *error = QStringLiteral("No master instance");
-        }
-        return false;
-    }
-
-    const QString homeId = homeLayoutIdForMaster();
-    if (!homeId.isEmpty() && master->layoutId() != homeId) {
-        if (!applyDocument(master, homeId, error)) {
-            return false;
-        }
-    }
-
-    if (closeSecondary && fromInstanceId != m_masterId) {
-        QString err;
-        if (!eraseSecondary(fromInstanceId, &err)) {
-            if (error) {
-                *error = err;
-            }
-            return false;
-        }
-    }
-
-    setFocused(m_masterId, true);
-    master->raise();
-    emit sessionChanged();
-    return true;
-}
-
-void LayoutInstanceManager::raiseMaster()
-{
-    auto* master = masterInstance();
-    if (!master) {
-        return;
-    }
-    const QString homeId = homeLayoutIdForMaster();
-    if (!homeId.isEmpty() && master->layoutId() != homeId) {
-        QString err;
-        if (!navigateMaster(homeId, &err)) {
-            GAZER_WARN << "raiseMaster navigate failed:" << err << "homeId" << homeId;
-            // Still try to show whatever master we have.
-            setFocused(master->instanceId(), true);
-            master->raise();
-            emit sessionChanged();
-        }
-        return; // navigateMaster already focused/raised/notified
-    }
-    setFocused(master->instanceId(), true);
-    master->raise();
-    emit sessionChanged();
-}
-
 QString LayoutInstanceManager::openInstance(const QString& layoutId, QString* error)
 {
     const LayoutDocument* doc = requireDoc(layoutId, error);
     if (!doc) {
         return {};
     }
-    if (doc->isMasterShell()) {
-        if (!navigateMaster(layoutId, error)) {
+    if (doc->isMaster()) {
+        if (!openMaster(layoutId, error)) {
             return {};
         }
         return m_masterId;
     }
 
-    // Opening a board from Main: optionally collapse master to the dock chip first
-    // so the secondary board ends up focused/on top (collapse does not raise master).
-    if (m_autoCollapseMain) {
-        if (auto* master = masterInstance()) {
-            const auto& sess = master->document().session;
-            if (sess.isHome && !sess.collapseLayoutId.isEmpty()
-                && master->layoutId() != sess.collapseLayoutId) {
-                QString collapseErr;
-                if (!applyDocument(master, sess.collapseLayoutId, &collapseErr)) {
-                    GAZER_WARN << "auto-collapse before openSecondary:" << collapseErr;
-                } else {
-                    GAZER_INFO << "Auto-collapsed master →" << sess.collapseLayoutId
-                               << "before opening" << layoutId;
-                }
-            }
+    if (isDeclaredChildLayout(layoutId) || !childSpecForLayout(layoutId).layoutId.isEmpty()) {
+        if (!showChildLayout(layoutId, error)) {
+            return {};
         }
+        emit sessionChanged();
+        return m_childInstanceByLayout.value(layoutId);
+    }
+
+    if (m_autoCollapseMain && m_rootChrome == RootChrome::Drawer) {
+        setRootChrome(RootChrome::Docked);
+        GAZER_INFO << "Auto-collapsed home before opening" << layoutId;
     }
 
     return openSecondary(layoutId, error);
@@ -677,7 +640,15 @@ void LayoutInstanceManager::refreshActiveIndicators(const ActiveStateResolver& r
 
 void LayoutInstanceManager::setEdgeBubbleOverlay(EdgeBubbleOverlay* overlay)
 {
+    if (m_edgeBubbles) {
+        disconnect(m_edgeBubbles, &OverlaySurface::stackChanged, this,
+                   &LayoutInstanceManager::restackChrome);
+    }
     m_edgeBubbles = overlay;
+    if (m_edgeBubbles) {
+        connect(m_edgeBubbles, &OverlaySurface::stackChanged, this,
+                &LayoutInstanceManager::restackChrome);
+    }
     for (const auto& p : m_instances) {
         if (p) {
             p->setEdgeBubbleOverlay(overlay);
@@ -697,6 +668,11 @@ LayoutDocument LayoutInstanceManager::decorateCopy(const LayoutDocument& src) co
         m_documentDecorator(doc);
     }
     return doc;
+}
+
+QVariant LayoutInstanceManager::rootProperty(const QString& key) const
+{
+    return m_rootProps.value(key);
 }
 
 bool LayoutInstanceManager::setInstanceDocument(const QString& instanceId, LayoutDocument doc,
@@ -719,12 +695,12 @@ int LayoutInstanceManager::closeOtherViews()
 {
     QVector<QString> toClose;
     for (const auto& p : m_instances) {
-        if (p && p->instanceId() != m_masterId) {
+        if (p && p->instanceId() != m_masterId && !isChildInstance(p->instanceId())) {
             toClose.push_back(p->instanceId());
         }
     }
 
-    if (m_gazeInstanceId != m_masterId) {
+    if (m_gazeInstanceId != m_masterId && !isChildInstance(m_gazeInstanceId)) {
         m_gazeInstanceId.clear();
     }
 
@@ -734,17 +710,6 @@ int LayoutInstanceManager::closeOtherViews()
         if (eraseSecondary(id, &err)) {
             ++n;
         }
-    }
-
-    if (auto* master = masterInstance()) {
-        const QString homeId = homeLayoutIdForMaster();
-        if (!homeId.isEmpty() && master->layoutId() != homeId
-            && !master->document().session.isHome) {
-            QString err;
-            (void)applyDocument(master, homeId, &err);
-        }
-        setFocused(master->instanceId(), true);
-        master->raise();
     }
 
     emit sessionChanged();
@@ -763,11 +728,25 @@ bool LayoutInstanceManager::closeInstance(const QString& instanceId, QString* er
 
     if (instanceId == m_masterId) {
         if (error) {
-            *error = QStringLiteral("Cannot close master while other boards are open");
+            *error = QStringLiteral("Cannot close the root master");
         }
         setFocused(m_masterId, true);
         emit sessionChanged();
         return false;
+    }
+    if (isChildInstance(instanceId)) {
+        auto* inst = instance(instanceId);
+        const QString layoutId = inst ? inst->layoutId() : QString();
+        const LayoutChildRef spec = childSpecForLayout(layoutId);
+        if (spec.id == QLatin1String("home")) {
+            setRootChrome(RootChrome::Docked);
+        } else if (spec.id == QLatin1String("quit")) {
+            setRootChrome(RootChrome::Drawer);
+        } else if (inst) {
+            inst->forceHide();
+            emit sessionChanged();
+        }
+        return true;
     }
 
     if (!eraseSecondary(instanceId, error)) {
@@ -775,9 +754,12 @@ bool LayoutInstanceManager::closeInstance(const QString& instanceId, QString* er
     }
 
     if (m_focusedId == m_masterId || m_focusedId.isEmpty()) {
-        if (auto* master = masterInstance()) {
-            setFocused(master->instanceId(), true);
-            master->raise();
+        if (m_rootChrome == RootChrome::Drawer && homeInstance()) {
+            setFocused(homeInstance()->instanceId(), true);
+        } else if (m_rootChrome == RootChrome::Quit && quitInstance()) {
+            setFocused(quitInstance()->instanceId(), true);
+        } else if (auto* master = masterInstance()) {
+            setFocused(master->instanceId(), false);
         } else if (!m_instances.empty()) {
             setFocused(m_instances.back()->instanceId(), true);
         }
@@ -803,16 +785,27 @@ void LayoutInstanceManager::focusInstance(const QString& instanceId)
 
 LayoutInstance* LayoutInstanceManager::findInstanceAt(const QPointF& screenPoint) const
 {
-    // 1) Visible unbounded progress chrome always wins over other boards' windows
-    //    (even if those windows are higher in the HWND / stack z-order). Among
-    //    multiple progress hits, prefer stack-topmost (rbegin).
+    // Root dock chips (Sleep / Main) always beat the drawer and other boards.
+    if (auto* master = masterInstance()) {
+        if (master->containsVisibleUnboundedProgress(screenPoint)
+            || master->containsScreenPoint(screenPoint)) {
+            return master;
+        }
+    }
+    // Visible unbounded progress chrome wins over other boards' windows
+    // (even if those windows are higher in the HWND / stack z-order).
     for (auto it = m_instances.rbegin(); it != m_instances.rend(); ++it) {
+        if (*it && (*it)->instanceId() == m_masterId) {
+            continue;
+        }
         if (*it && (*it)->containsVisibleUnboundedProgress(screenPoint)) {
             return it->get();
         }
     }
-    // 2) Normal hit: stack topmost board that contains the point.
     for (auto it = m_instances.rbegin(); it != m_instances.rend(); ++it) {
+        if (*it && (*it)->instanceId() == m_masterId) {
+            continue;
+        }
         if (*it && (*it)->containsScreenPoint(screenPoint)) {
             return it->get();
         }
@@ -825,7 +818,16 @@ void LayoutInstanceManager::reassertStackTopVisual()
     if (m_instances.empty() || !m_instances.back()) {
         return;
     }
-    m_instances.back()->raise();
+    LayoutInstance* top = m_instances.back().get();
+    if (!top->window() || !top->window()->isVisible()) {
+        return;
+    }
+    // Do not call raise() — that can restart the drawer appear animation.
+    if (top->document().placement.aboveTaskbar || top->usesDrawerMotion()) {
+        top->window()->keepAboveTaskbar();
+        return;
+    }
+    top->window()->showAndRaise();
 }
 
 bool LayoutInstanceManager::onGaze(const GazePoint& point)
@@ -869,6 +871,9 @@ bool LayoutInstanceManager::onGaze(const GazePoint& point)
             noteDwellActivity(hit->instanceId());
         }
         hit->feedGaze(point, itemId);
+        if (hit->instanceId() == m_masterId || hit->document().placement.aboveTaskbar) {
+            restackChrome();
+        }
         return true;
     }
     return false;
@@ -876,30 +881,23 @@ bool LayoutInstanceManager::onGaze(const GazePoint& point)
 
 void LayoutInstanceManager::leaveActiveGaze()
 {
-    if (m_gazeInstanceId.isEmpty()) {
-        return;
+    if (!m_gazeInstanceId.isEmpty()) {
+        if (auto* prev = instance(m_gazeInstanceId)) {
+            prev->leaveGaze();
+        }
+        m_gazeInstanceId.clear();
     }
-    if (auto* prev = instance(m_gazeInstanceId)) {
-        prev->leaveGaze();
-    }
-    m_gazeInstanceId.clear();
+    restackChrome();
 }
 
 void LayoutInstanceManager::onWindowCloseRequested(const QString& instanceId)
 {
-    if (instanceId == m_masterId && m_instances.size() > 1) {
-        auto* master = masterInstance();
-        const QString collapseId =
-            master ? master->document().session.collapseLayoutId : QString();
-        if (!collapseId.isEmpty()) {
-            QString err;
-            if (!navigateMaster(collapseId, &err)) {
-                GAZER_WARN << "collapse master:" << err;
-            }
-        } else {
-            setFocused(m_masterId, true);
-            emit sessionChanged();
-        }
+    if (instanceId == m_masterId) {
+        return;
+    }
+    if (isChildInstance(instanceId)) {
+        QString err;
+        (void)closeInstance(instanceId, &err);
         return;
     }
 
@@ -932,7 +930,11 @@ void LayoutInstanceManager::shutdown()
     m_gazeInstanceId.clear();
     m_focusedId.clear();
     m_masterId.clear();
-    m_masterGroup.clear();
+    m_childInstanceBySlot.clear();
+    m_childInstanceByLayout.clear();
+    m_rootProps.clear();
+    m_rootChrome = RootChrome::Docked;
+    m_homeDismissing = false;
     m_instances.clear();
     emit sessionChanged();
 }

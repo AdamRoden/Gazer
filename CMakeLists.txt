@@ -15,7 +15,7 @@ set(CMAKE_AUTOUIC ON)
 
 option(GAZER_USE_TOBII "Build Tobii Stream Engine integration (runtime DLL load)" ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Qml)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Qml Quick)
 
 set(GAZER_TOBII_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/third_party/tobii/include")
 set(GAZER_TOBII_EFFECTIVE OFF)
@@ -44,6 +44,7 @@ set(GAZER_SOURCES
     src/layout/LayoutManager.cpp
     src/layout/LayoutInstance.cpp
     src/layout/LayoutInstanceManager.cpp
+    src/layout/RootChrome.cpp
     src/layout/DwellRegionSpace.cpp
     src/layout/DwellStateMachine.cpp
     src/input/KeyboardInjector.cpp
@@ -65,7 +66,7 @@ set(GAZER_SOURCES
     src/assist/ActionLoopService.cpp
     src/ui/PreviewWindow.cpp
     src/ui/StlMesh.cpp
-    src/ui/LayoutWindow.cpp
+    src/ui/LayoutQuickWindow.cpp
     src/ui/TrayIcon.cpp
     src/ui/DockRevealOverlay.cpp
     src/ui/EdgeBubbleOverlay.cpp
@@ -90,6 +91,7 @@ set(GAZER_HEADERS
     src/core/TrackerTobii.h
     src/core/StreamEngineLib.h
     src/layout/LayoutTypes.h
+    src/layout/LayoutVisibility.h
     src/layout/LayoutGeometry.h
     src/layout/DwellRegionSpace.h
     src/layout/InstanceTarget.h
@@ -121,7 +123,7 @@ set(GAZER_HEADERS
     src/assist/GazeFollowStickiness.h
     src/ui/PreviewWindow.h
     src/ui/StlMesh.h
-    src/ui/LayoutWindow.h
+    src/ui/LayoutQuickWindow.h
     src/ui/TrayIcon.h
     src/ui/DockRevealOverlay.h
     src/ui/EdgeBubbleOverlay.h
@@ -169,6 +171,7 @@ target_link_libraries(Gazer PRIVATE
     Qt6::Gui
     Qt6::Widgets
     Qt6::Qml
+    Qt6::Quick
 )
 
 if(WIN32)

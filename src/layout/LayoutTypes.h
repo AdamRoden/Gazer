@@ -1,9 +1,11 @@
 #pragma once
 
 #include <QColor>
+#include <QHash>
 #include <QString>
 #include <QtGlobal>
 #include <QVector>
+#include <memory>
 #include <optional>
 
 namespace gazer {
@@ -206,7 +208,7 @@ struct LayoutItem {
     QString settingKey;
     /// Runtime toggle key for accent "on" state (e.g. mouse.leftHold, lookToScroll).
     QString activeState;
-    /// Built-in glyph key for LayoutWindow (e.g. "leftClick", "moveTo"). Empty = text only.
+    /// Built-in glyph key for the board painter (e.g. "leftClick", "moveTo"). Empty = text only.
     QString icon;
     /// When false, cell is visual-only (not dwell/click hit-tested).
     bool interactive = true;
@@ -233,6 +235,20 @@ struct LayoutItem {
     /// Custom dwell rect (board-local or screen-edge). Valid when width/height > 0 and set.
     LayoutDwellRegion dwellRegion;
     bool hasDwellRegion = false;
+    /// Item kind: empty/"cell" (default) or "layout" (embed another file in this cell).
+    QString type;
+    /// When type is "layout", catalog id to embed.
+    QString embedLayoutId;
+    /// Static visibility (default true). Combined with visibleWhen.
+    bool visible = true;
+    /// Visibility predicate: empty, `ident`, or `!ident` (expanded, quitConfirm, dwellSuspend).
+    QString visibleWhen;
+
+    [[nodiscard]] bool isEmbed() const
+    {
+        return type.compare(QLatin1String("layout"), Qt::CaseInsensitive) == 0
+               || !embedLayoutId.isEmpty();
+    }
 
     /// Board-less affordances (edge/off-screen dwell) are not painted or hit-tested as grid cells.
     [[nodiscard]] bool participatesInBoardGrid() const
@@ -308,26 +324,33 @@ struct LayoutWindowPlacement {
     BoundsMode boundsMode = BoundsMode::Desktop;
     /// Window panel chrome (fill, border, radius). Alpha 0 = fully transparent board.
     LayoutChromeStyle style;
+    /// Keep this board in the topmost band above the taskbar while visible.
+    bool aboveTaskbar = false;
+    /// Bottom-anchored scale 0→1 on show and 1→0 on hide.
+    bool drawerMotion = false;
 };
 
-/// Session role — engine never matches content filenames.
+/// Declared child of a parent layout (owned instance; show/hide, not document swap).
+struct LayoutChildRef {
+    QString id;
+    QString layoutId;
+    bool visible = true;
+    QString visibleWhen;
+};
+
+/// Legacy session role — parsed for old files, unused for navigation.
 enum class LayoutRole {
-    Secondary,   // normal multi-instance board
-    MasterShell  // unique instance shared by a masterGroup (main/dock/quit)
+    Secondary,
+    MasterShell
 };
 
-/// Product-agnostic session metadata from layout JSON "session" object.
+/// Legacy session metadata. Ignored for launch / navigation. Prefer `master` + `children`.
 struct LayoutSessionMeta {
     LayoutRole role = LayoutRole::Secondary;
-    /// Shells with the same non-empty group share one live instance.
     QString masterGroup;
-    /// True on the expanded home layout of the group (raiseMaster lands here).
     bool isHome = false;
-    /// From home: layout id used when master window is closed while secondaries exist.
     QString collapseLayoutId;
-    /// From non-home shell: layout id used when expanding/recalling home.
     QString expandLayoutId;
-    /// Dock chip stays hidden until a bottom-edge gaze reveal dwell completes.
     bool hideUntilGazeReveal = false;
 
     [[nodiscard]] bool isMasterShell() const { return role == LayoutRole::MasterShell; }
@@ -349,6 +372,13 @@ struct LayoutDocument {
     QString id;
     QString name;
     QString description;
+    /// True on the never-destroyed process-lifetime root (main_master).
+    bool master = false;
+    /// Dock chips stay hidden until a bottom-edge gaze reveal dwell completes.
+    bool hideUntilGazeReveal = false;
+    QVector<LayoutChildRef> children;
+    /// Nested documents keyed by host item id (filled when the catalog resolves embeds).
+    QHash<QString, std::shared_ptr<LayoutDocument>> embeds;
     LayoutSessionMeta session;
     LayoutGrid grid;
     LayoutDwellConfig dwell;
@@ -405,13 +435,22 @@ struct LayoutDocument {
         return false;
     }
 
-    [[nodiscard]] bool isMasterShell() const { return session.isMasterShell(); }
+    [[nodiscard]] bool isMaster() const { return master; }
+    [[nodiscard]] bool isMasterShell() const { return master; }
+    [[nodiscard]] bool isGazeRevealDock() const { return master && hideUntilGazeReveal; }
 
     [[nodiscard]] const LayoutItem* findItem(const QString& itemId) const
     {
         for (const LayoutItem& it : items) {
             if (it.id == itemId) {
                 return &it;
+            }
+        }
+        for (auto e = embeds.cbegin(); e != embeds.cend(); ++e) {
+            if (e.value() && e.value().get() != this) {
+                if (const LayoutItem* nested = e.value()->findItem(itemId)) {
+                    return nested;
+                }
             }
         }
         return nullptr;

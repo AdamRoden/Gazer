@@ -30,7 +30,7 @@ private:
     void wireTracker();
     void syncMasterChrome();
     void syncDwellSuspendOverlay();
-    /// Navigate master to home (expandLayoutId) and force-show. Used by Main ▶.
+    /// Show the home child of the persistent root. Used by Main ▶.
     [[nodiscard]] bool expandMasterShell(QString* error = nullptr);
 
     void onQuitRequested();

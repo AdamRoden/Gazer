@@ -1,353 +1,301 @@
 # Gazer
 
-**Gaze input mapper** for **Tobii Eye Tracker 5** — C++20 / Qt 6.
+Gaze-driven AAC and system input for Windows. C++20 / Qt 6.
 
-Maps live gaze into on-screen AAC layouts **and** system / virtual-controller
-input. Long-term target: replace **OptiKey + OpenTrack + UCR + AutoHotkey** in
-one stack.
+Gazer turns live gaze (Tobii Eye Tracker 5, or the mouse as a fallback) into on-screen boards you dwell to activate. Boards can speak, type, drive the mouse, and run assist tools (look-to-scroll, magnifier, gaze reticle). The long-term aim is one stack in place of OptiKey + OpenTrack + UCR + AutoHotkey.
 
-## Phases
+Version **0.4.0**. License: [MIT](LICENSE).
 
-| Phase | Scope | Status |
-|-------|--------|--------|
-| **0** | Skeleton: tray, preview, tracker backends | Done |
-| **1** | JSON layouts, layout window, dwell activate | Done |
-| **2** | Multi-instance layouts + off-screen indicators | Done |
-| **3** | Mapping profiles + keyboard/mouse/gamepad injection | Done |
-| **4** | QJSEngine, TTS, Look-to-Scroll, magnification | Done |
-| **5** | Action series/loops, lifecycle, geometry %, themes, head pose, curves | In progress |
+## What you get at launch
 
-## Beta MSI (Windows)
+`main_master` is the process-lifetime root. It never closes and never swaps documents.
 
-Build a machine-wide installer for testers (WiX Toolset CLI v7):
+| Piece | Layout | Role |
+|-------|--------|------|
+| Root dock | `main_master` | Headless. Unbounded **Main** and **Sleep** chips at the bottom of the screen. |
+| Home drawer | `main_drawer` | Keyboard, Mouse, Assist, Settings, Close, Close All, Pause dwell, Quit. |
+| Quit confirm | `main_quit_confirm` | Yes exits; No returns to the drawer. |
+
+Exclusive chrome: **Docked**, **Drawer**, or **Quit**. Only one of those is up at a time. Opening Keyboard / Mouse / Assist / Settings collapses the drawer first (same dismiss animation as Close).
+
+- **Main** is shown only while docked. Dwell it to grow the drawer from the bottom (0 → 100%).
+- **Sleep** stays available while the drawer is open. Master chips hit-test and paint above the drawer.
+- Gaze on the drawer *or* the dock chips counts as using the shell, so the drawer idle timer does not fire while you look at Sleep.
+- The drawer and quit boards sit above the Windows taskbar (`window.aboveTaskbar`).
+
+The tray owns process lifetime. Closing a board does not quit the app.
+
+## Requirements
+
+- Windows
+- CMake ≥ 3.21
+- Qt 6 (Core, Gui, Widgets, Qml, Quick) — tested with 6.11.1 MinGW
+- Optional: [Tobii Stream Engine](https://developer.tobii.com/) headers under `third_party/tobii/include` and `tobii_stream_engine.dll` on the machine. Without hardware, Gazer uses the mouse tracker.
+
+## Build and run
 
 ```powershell
-# Prerequisites: Qt 6 MinGW, CMake, Ninja (as for normal builds)
-winget install WiXToolset.WiXCLI   # once
+cmake -S . -B build -G Ninja `
+  -DCMAKE_PREFIX_PATH="C:/Qt/6.11.1/mingw_64" `
+  -DCMAKE_BUILD_TYPE=Release
+cmake --build build --target Gazer
+.\build\Gazer.exe
+```
 
-.\scripts\build-msi.ps1            # build + stage + MSI
+MinGW `bin` must be on `PATH` when configuring (otherwise AUTOMOC / g++ predefs fail silently).
+
+The post-build step copies `resources/` next to `Gazer.exe` and runs `windeployqt`. If Tobii’s DLL is installed in the usual EyeX folder, it is copied beside the exe as well.
+
+Log: `gazer.log` in the working directory. Settings: `%AppData%\Gazer\settings.json`.
+
+### Beta MSI
+
+```powershell
+winget install WiXToolset.WiXCLI   # once
+.\scripts\build-msi.ps1            # configure, build, stage, MSI
 .\scripts\build-msi.ps1 -SkipBuild # reuse existing build\Gazer.exe
 ```
 
-Output: `dist\Gazer-<version>-beta.msi` (≈25–30 MB).
+Output: `dist\Gazer-<version>-beta.msi`. Installs to `Program Files\Gazer\` with Start Menu and desktop shortcuts. Layouts ship under `resources\`. Settings stay in the user’s AppData.
 
-| Install | Command |
-|---------|---------|
-| UI | double-click the MSI, or `msiexec /i dist\Gazer-0.4.0-beta.msi` |
-| Quiet | `msiexec /i dist\Gazer-0.4.0-beta.msi /qn` |
-| Remove | `msiexec /x dist\Gazer-0.4.0-beta.msi` |
+Testers still need Tobii drivers for hardware gaze. Without a tracker, use the mouse backend (tray / Settings → tracker).
 
-Installs to `Program Files\Gazer\` with Start Menu + desktop shortcuts. Layouts/models ship under `resources\`. Settings still live in the user’s AppData.
+## Using Gazer
 
-**Tobii:** the MSI bundles `tobii_stream_engine.dll` when found on the build machine. Testers still need Tobii Eye Tracker drivers/runtime for hardware gaze; without hardware, use the mouse tracker.
+1. Start Gazer. Unless **start docked** is on, the main drawer opens.
+2. Dwell a cell until progress completes. Last dwell step repeats while gaze holds.
+3. Open Keyboard, Mouse, Assist, or Settings as extra boards. They stay up after the drawer collapses.
+4. **Close** hides the drawer. **Close All** closes other boards and then collapses.
+5. **Pause dwell** / **Sleep** suspends dwell everywhere except `dwellExempt` unlock cells. A dim screen border leaves a gap at those targets.
+6. Tray: show layout (expand drawer), show head-pose preview, quit.
+
+When boards overlap, only the topmost instance receives dwell — except master dock chips, which always win over the drawer.
+
+## Shipped layouts
+
+| Id | Kind |
+|----|------|
+| `main_master` | Root dock |
+| `main_drawer` | Home bar |
+| `main_quit_confirm` | Quit Yes / No |
+| `main_settings*` | Settings hub and sub-boards (appearance, assist, LTS, magnifier, timing) |
+| `example_keyboard` (+ shift / sym variants) | On-screen keyboard |
+| `example_mouse` | Mouse pad |
+| `example_assist` | Assist tools |
+
+Secondaries are independent windows. `loadLayout` on a secondary replaces that board in place.
 
 ## Architecture
 
 ```
 Tobii / Mouse ──► ITracker ──► GazePoint (+ HeadPose)
-                                │
-                    ┌───────────┼───────────┐
-                    ▼           ▼           ▼
-              LayoutManager  Stickiness   Preview (head OBJ)
-              + dwell/OSK    profiles
-                    │
-                    ▼
-              ActionDispatcher / ActionLoopService
-              CommandRegistry → InputService
+                     │
+                     ▼
+              LayoutInstanceManager
+              (root + children + secondaries)
+                     │
+        ┌────────────┼────────────┐
+        ▼            ▼            ▼
+  LayoutQuickWindow  Dwell SM   EdgeBubbleOverlay
+  (Qt Quick board)               (unbounded chips)
+        │
+        ▼
+  ActionDispatcher / ActionLoopService
+  CommandRegistry ──► InputService
+                  └──► ScriptHost (gazer.*)
 ```
 
----
+- Boards are frameless topmost `QQuickWindow` + `QQuickPaintedItem` (software scene graph, alpha buffer).
+- Root chrome is one setter: Docked / Drawer / Quit (`src/layout/RootChrome.cpp`).
+- Mapping profiles (`resources/mappings/default.json`) turn leftover command names into key / mouse / gamepad output.
 
-## Layout JSON reference (complete)
+## Layout JSON
 
-Layouts live in `resources/layouts/*.json`. Parsed by `LayoutLoader` into a `LayoutDocument`.
+Layouts live in `resources/layouts/*.json`. Catalog id should match the filename stem. Parsed by `LayoutLoader` into `LayoutDocument`.
 
-**Runtime behaviors worth knowing:**
+### Runtime rules
 
-| Behavior | Rule |
-|----------|------|
-| **Overlap dwell** | When boards overlap, only the **topmost** instance (hit-stack / raised HWND) receives gaze dwell. |
-| **Auto-close** | Secondaries can fade then close after idle with no dwell; master shells default off. |
-| **Unbounded progress hit** | While dwelling an unbounded item, the visible edge **progress band/strip** is included in the hit rect. |
-| **Dims** | Bare `width` / `x` = **percent** of reference; `widthPx` / `xPx` = pixels (**px wins** if both set). |
+| Rule | Behavior |
+|------|----------|
+| Dims | Bare `width` / `x` = percent of the bounds reference. `widthPx` / `xPx` = pixels. Pixels win if both are set. |
+| Overlap | Topmost board gets dwell, except `main_master` unbounded items (always in front of the drawer). |
+| Auto-close | After idle: opacity snaps to 50% for `autoCloseFadeMs`, then a 500 ms suck to bottom-center, then close. The root never auto-closes. The drawer collapses instead of destroying itself. |
+| Unbounded hit | Logical rect first; after a short engage, the on-screen edge band (“drift lip”) expands. While progress is visible, the progress strip is also hittable. |
 
 ### Root object
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `schemaVersion` | int | no (default `1`) | Schema version |
-| `id` | string | **yes** | Catalog id (filename stem should match) |
-| `name` | string | no | Title on Fluent boards |
-| `description` | string | no | Subtitle under title |
-| `uiStyle` | string | no | `"default"`, `"fluent"`, or `"material"` (material → fluent) |
-| `session` | object | no | Master-shell / dock role (see **Session**) |
-| `window` | object | no | Board placement, size, chrome (see **Window**) |
-| `grid` | object | no | Cell grid (see **Grid**). **Optional** — defaults if omitted |
-| `boundsMode` | string | no | Layout default for % placement: `"desktop"` or `"screen"` (see **Bounds**) |
-| `bounds` | string | no | Alias for `boundsMode` |
-| `style` | object | no | Window chrome if `window.style` omitted (see **Chrome style**) |
-| `dwell` | object | no | Layout-level dwell / progress defaults |
-| `autoClose` | bool | no | Secondary: fade→close when not dwelt on. Master shells default **false** if omitted |
-| `autoCloseIdleMs` | int | no | Idle ms before fade starts (`-1` / omit → AppSettings, default 8000) |
-| `autoCloseFadeMs` | int | no | Fade duration ms (`-1` / omit → AppSettings, default 500) |
-| `items` | array | no | Grid cells and unbounded affordances |
-| `onOpen` | action[] | no | When instance is first created |
-| `onLoad` | action[] | no | When document is applied (open + in-place load) |
-| `onClose` | action[] | no | Before instance is closed |
-
-### Bounds (`boundsMode`)
-
-Controls the **reference rectangle** for percent-based size/position of windows and (when set) dwell regions.
-
-| Value | Also accepted | Meaning |
-|-------|---------------|---------|
-| `"desktop"` | `"available"`, `"work"`, `"workarea"` | `QScreen::availableGeometry()` — typically excludes taskbar (**default**) |
-| `"screen"` | `"full"`, `"geometry"` | `QScreen::geometry()` — full monitor |
-
-**Precedence:** `window.boundsMode` → layout `boundsMode` → `desktop`.  
-**Dwell regions:** `dwellRegion.boundsMode` → layout `boundsMode` / window → `desktop`.
-
-### Session (`session`)
-
-Product policy for the unique master instance (main bar / dock / quit). Not related to assist “session” modes.
-
 | Field | Type | Description |
 |-------|------|-------------|
-| `role` | string | `"masterShell"` / `"master"` → unique shell; anything else → secondary (default) |
-| `masterGroup` | string | Shells with the same group share one live instance (defaults to `"default"` for masters) |
-| `isHome` | bool | Expanded home of the group (`raiseMaster` / restore target) |
-| `collapseLayoutId` | string | Home → collapsed/dock layout id (auto-collapse, window close with secondaries) |
-| `expandLayoutId` | string | Non-home shell → home layout id |
-| `hideUntilGazeReveal` | bool | Dock chip hidden until bottom-edge gaze reveal completes |
+| `schemaVersion` | int | Default `1` |
+| `id` | string | **Required** catalog id |
+| `name`, `description` | string | Title / subtitle on Fluent boards |
+| `uiStyle` | string | `default`, `fluent` (`material` maps to fluent) |
+| `master` | bool | Process-lifetime root. Only one. |
+| `hideUntilGazeReveal` | bool | Hide dock chips until a bottom-edge reveal dwell completes |
+| `children` | array | `{ "id", "layoutId", "visible", "visibleWhen" }` — owned instances, show/hide |
+| `window` | object | Board placement and chrome. Omit for headless / chips-only shells |
+| `grid` | object | Optional. Defaults to 1×1 then grows to fit items |
+| `boundsMode` / `bounds` | string | `desktop` (work area, default) or `screen` (full monitor). Aliases: `available` / `work` / `workarea`, `full` / `geometry` |
+| `style` | object | Window chrome if `window.style` is omitted |
+| `dwell` | object | Layout-level dwell / progress defaults |
+| `autoClose` | bool | Secondaries default true; master defaults false when omitted |
+| `autoCloseIdleMs`, `autoCloseFadeMs` | int | `-1` / omit → AppSettings (10000 / 3000) |
+| `items` | array | Grid cells and unbounded affordances |
+| `onOpen`, `onLoad`, `onClose` | action[] | Lifecycle. One-shot, no loops |
+| `session` | object | Legacy. Parsed, ignored for navigation |
 
-### Window (`window`)
+**Bounds precedence:** `window.boundsMode` → layout `boundsMode` → `desktop`. Dwell regions: `dwellRegion.boundsMode` → layout / window → `desktop`.
 
-Optional board HWND. **Omit** for pure edge/unbounded shells (no chrome). Explicit `"hidden": true` forces headless.
+### Children and visibility
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `hidden` | bool | No board chrome |
-| `visible` | bool | `false` same as `hidden: true` |
-| `anchor` | string | Placement anchor (case-insensitive): `default`, `topLeft`, `topCenter`, `topRight`, `center`, `leftCenter` / `centerLeft`, `rightCenter` / `centerRight`, `bottomLeft`, `bottomCenter`, `bottomRight` |
-| `width` / `height` | number or `"N%"` | Size as **percent** of bounds reference |
-| `widthPx` / `heightPx` | number | Size in pixels (**wins** over percent) |
-| `x` / `y` | number or `"N%"` | Position as percent of bounds (from top-left of reference) |
-| `xPx` / `yPx` | number | Position in pixels |
-| `marginPx` | int | Inset from bounds edge when using anchors (default `8`) |
-| `boundsMode` / `bounds` | string | Override reference for this window (`desktop` / `screen`) |
-| `style` | object | Board panel chrome (see **Chrome style**). Style keys may also sit **inline** on `window` |
-
-If `anchor` is `default` and `x`/`y` unset → cascaded default placement.
-
-**Show rules:** `hidden` → never show board. Explicit `window` → show. No `window` block → show only if any **grid** item exists (unbounded-only layouts stay headless).
-
-### Chrome style (`style` — window or item)
-
-Colors accept `#RRGGBB` or `#AARRGGBB` (alpha `00` = fully transparent). Boards use a translucent window so transparent fills work.
-
-| Field | Type | Aliases | Description |
-|-------|------|---------|-------------|
-| `background` | color | | Fill. Alpha 0 → no fill |
-| `foreground` | color | | Label / icon color |
-| `borderColor` | color | `border` | Outline color |
-| `borderWidth` | number | `borderThickness`, `thickness` | Outline thickness (px) |
-| `radius` | number | `borderRadius` | Corner radius (px) |
-
-Unset fields fall back to theme / paint defaults (Fluent cards use slightly different defaults than `default` style).
-
-**Item styles** may live under `"style": { … }` or (for convenience) as the same keys on the item object.
-
-**Window styles:** prefer `"window": { "style": { … } }`. Root-level `"style"` applies to the board when `window.style` is empty.
+`main_master` declares:
 
 ```json
-"window": {
-  "anchor": "bottomCenter",
-  "widthPx": 1080,
-  "heightPx": 150,
-  "boundsMode": "desktop",
-  "style": {
-    "background": "#e8181c24",
-    "borderColor": "#6600d4ff",
-    "borderWidth": 2,
-    "radius": 18
-  }
-}
+"children": [
+  { "id": "home", "layoutId": "main_drawer", "visibleWhen": "expanded" },
+  { "id": "quit", "layoutId": "main_quit_confirm", "visibleWhen": "quitConfirm" }
+]
 ```
 
-### Grid (`grid`)
+Slot ids `home` and `quit` drive exclusive chrome. `visibleWhen` on items is a tiny predicate, **not** JavaScript:
 
-**Optional.** If omitted: starts as 1×1, then expands to fit the max `row`/`col` (+ spans) of items. If provided but undersized for items, columns/rows grow to fit.
+| Expression | Meaning |
+|------------|---------|
+| omitted / empty | Show |
+| `ident` | Show when that root property is true |
+| `!ident` | Show when it is false |
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `columns` | int | `1` (then expanded) | Column count |
-| `rows` | int | `1` (then expanded) | Row count |
-| `gapPx` | int | `8` | Gap between cells |
-| `marginPx` | int | `16` | Inner board margin |
-| `unitRows` | bool | `false` | Voice OSK-style: each row sized by item `u` / `widthUnits` (also auto-on if any item has `widthUnits` > 0) |
+Known properties: `expanded`, `quitConfirm`, `dwellSuspend`. Unknown syntax fails open.
 
-### Dwell (`dwell` — layout or item)
+`expanded` is true while the drawer or quit is up, and while the drawer is still dismissing (so the Main chip cannot reopen mid-animation).
 
-Progress / timing overrides. **Priority:** item → layout → AppSettings.
+Item `visible` (bool, default true) is ANDed with `visibleWhen`.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `enabled` | bool | Dwell active (default true) |
-| `ms` | int **or** int[] | Single step or progressive sequence; **last step repeats** while gaze holds |
-| `repeatMs` | int | Obsolete (ignored when sequence is used) |
-| `progressStyle` | string | Comma-separated: `radial`, `fill`, `border` |
-| `scanGraceMs` | int | Time on-target before dwell progress / sequence starts; `-1` = inherit AppSettings (default 100) |
-| `graceMs` | int | Blink / invalid-sample grace; `-1` = inherit |
-| `progressColor`, `fillColor`, `borderColor` | color | Progress paint (hex, optional alpha) |
-| `flashBorderColor`, `flashFillColor` | color | Activation flash |
-| `flashMs` | int | Flash duration; `-1` = inherit |
+### Window
 
-### Items (`items[]`)
+Omit `window` for a headless shell (no board HWND). `"hidden": true` (or `"visible": false`) forces that.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | string | **Required** unique id |
-| `label` | string | Primary text |
-| `caption` | string | Secondary line (Fluent labels / default multiline) |
-| `tooltip` | string | Legacy help text (prefer a non-interactive label cell) |
-| `settingKey` | string | Live `AppSettings` value on value/label cells |
-| `activeState` | string | Accent “on” when resolver true (e.g. `magnifier`, `dwellSuspend`, `loop.gazeClick`, `setting.*`) |
-| `icon` | string | Built-in glyph key (`leftClick`, `moveTo`, …) |
-| `interactive` | bool | `false` = visual only, not dwell/click hit-tested |
-| `role` | string | Shorthand: `label` / `display` / `value` → non-interactive; `unbounded` / `dwellExempt` as role names also recognized |
-| `dwellExempt` | bool | Still dwellable while global dwell suspend is on (auto for suspend toggle commands) |
-| `row`, `col` | int | Grid cell (0-based) |
-| `rowSpan`, `colSpan` | int | Span (default 1) |
-| `u` / `widthUnits` | number | Relative width in unit-row mode (letter unit = 1) |
-| `unbounded` | bool | Not a board grid cell; use with `dwellRegion` for edge / off-screen hits |
-| `dwellRegion` | object | Custom hit geometry (see below) |
-| `dwell` | object | Per-item dwell override |
-| `action` | object | Single action (legacy; still supported) |
-| `actions` | action[] | Ordered series (preferred when non-empty) |
-| `actionLoop` / `loop` | bool | Sticky series: first activate starts loop; re-activate stops |
-| `style` | object | Cell chrome (see **Chrome style**) |
+| Field | Description |
+|-------|-------------|
+| `anchor` | `default`, `topLeft`, `topCenter`, `topRight`, `center`, `leftCenter` / `centerLeft`, `rightCenter` / `centerRight`, `bottomLeft`, `bottomCenter`, `bottomRight` |
+| `width` / `height`, `widthPx` / `heightPx` | Size |
+| `x` / `y`, `xPx` / `yPx` | Position from the top-left of the bounds reference |
+| `marginPx` | Inset from the bounds edge when using anchors |
+| `boundsMode` | Override reference for this window |
+| `style` | Panel chrome. Style keys may also sit inline on `window` |
+| `aboveTaskbar` | Keep this board in the topmost band above the taskbar while visible |
+| `drawerMotion` | Bottom-anchored scale 0 → 1 on show, 1 → 0 on hide |
 
-Grid cells participate in board layout only if **not** `unbounded` and **not** carrying a `dwellRegion`.
+Show rules: `hidden` → never. Explicit `window` → show. No `window` block → show only if any grid cell exists.
 
-#### Dwell region (`dwellRegion`)
+### Chrome style (window or item)
 
-Used for unbounded / edge affordances. When `screenAnchor` is set, the item is treated as unbounded.
+Colors: `#RRGGBB` or `#AARRGGBB` (alpha `00` = transparent).
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `screenAnchor` | string | Omit / empty = board-local. Else: `top`, `bottom`, `left`, `right`, `topLeft`, `topRight`, `bottomLeft`, `bottomRight`, `topCenter`, `bottomCenter`, `leftCenter`, `rightCenter` (case-insensitive) |
-| `x`, `y` | DimSpec | Offset: **percent** of bounds reference (or board if local), or `"N%"` |
-| `xPx`, `yPx` | number | Offset in pixels (**wins**) |
-| `width`, `height` | DimSpec | Size as percent of reference |
-| `widthPx`, `heightPx` | number | Size in pixels (**wins**) |
-| `marginPx` | int | **Deprecated** outward gap when x/y unset for screen anchors |
-| `boundsMode` / `bounds` | string | Reference for this region (`desktop` / `screen`) |
+| Field | Aliases | Description |
+|-------|---------|-------------|
+| `background` | | Fill |
+| `foreground` | | Label / icon |
+| `borderColor` | `border` | Outline |
+| `borderWidth` | `borderThickness`, `thickness` | Outline px |
+| `radius` | `borderRadius` | Corner radius px |
 
-**Screen anchor + x/y:** offsets apply in screen space (+Y down) from the anchor origin. Prefer explicit coords over `marginPx`.
+Unset fields fall back to the theme. Item styles may live under `"style"` or as the same keys on the item.
 
-**Board-local legacy:** bare numeric `x`/`y`/`width`/`height` (without `%` string) are forced to **pixels** for back-compat.
+### Grid
 
-**Hit testing:** logical rect first; after a short engage dwell, the on-screen edge band (“drift lip”) expands the hit. While progress is visible, the **progress strip / band** is also hit-tested so gaze can stay on the chrome.
+| Field | Default | Description |
+|-------|---------|-------------|
+| `columns`, `rows` | `1` (then expanded) | Grown to fit max row/col + spans |
+| `gapPx` | `8` | Gap between cells |
+| `marginPx` | `0` | Inner board margin |
+| `unitRows` | `false` | Size each row by item `u` / `widthUnits` (auto-on if any item has `widthUnits` > 0) |
+
+### Dwell (layout or item)
+
+Priority: item → layout → AppSettings.
+
+| Field | Description |
+|-------|-------------|
+| `enabled` | Default true |
+| `ms` | Single step (int) or progressive sequence (int[]). Last step repeats while gaze holds |
+| `progressStyle` | Comma-separated: `radial`, `fill`, `border` |
+| `scanGraceMs` | Time on-target before progress starts. `-1` = inherit (default 100) |
+| `graceMs` | Blink / invalid-sample grace. `-1` = inherit |
+| `progressColor`, `fillColor`, `borderColor` | Progress paint |
+| `flashBorderColor`, `flashFillColor`, `flashMs` | Activation flash |
+
+### Items
+
+| Field | Description |
+|-------|-------------|
+| `id` | **Required** |
+| `label`, `caption` | Primary / secondary text |
+| `settingKey` | Live `AppSettings` value on label cells |
+| `activeState` | Accent on when the resolver is true (`dwellSuspend`, `magnifier`, `loop.gazeClick`, `setting.*`, …) |
+| `icon` | Built-in glyph (`leftClick`, `moveTo`, …) |
+| `interactive` | `false` = visual only |
+| `role` | `label` / `display` / `value` → non-interactive |
+| `dwellExempt` | Still dwellable while global dwell is suspended (auto for suspend-toggle commands) |
+| `row`, `col`, `rowSpan`, `colSpan` | Grid cell |
+| `u` / `widthUnits` | Relative width in unit-row mode |
+| `unbounded` | Not a grid cell; use with `dwellRegion` |
+| `dwellRegion` | Custom hit geometry |
+| `dwell` | Per-item override |
+| `action` | Single action (legacy) |
+| `actions` | Ordered series (preferred when non-empty) |
+| `actionLoop` / `loop` | Sticky series; re-activate to stop |
+| `style` | Cell chrome |
+| `visible`, `visibleWhen` | See visibility |
+
+Grid participation: not `unbounded` and no `dwellRegion`.
+
+#### Dwell region
+
+| Field | Description |
+|-------|-------------|
+| `screenAnchor` | Empty = board-local. Else `top`, `bottom`, `left`, `right`, `topLeft`, `topRight`, `bottomLeft`, `bottomRight`, `topCenter`, `bottomCenter`, `leftCenter`, `rightCenter` |
+| `x` / `y`, `xPx` / `yPx` | Offset from the anchor (screen space, +Y down) or board origin |
+| `width` / `height`, `widthPx` / `heightPx` | Size |
+| `marginPx` | Deprecated outward gap when x/y unset |
+| `boundsMode` | Reference for this region |
+
+Setting `screenAnchor` treats the item as unbounded.
 
 ### Actions
 
-**Types:** `speak` | `typeText` | `loadLayout` | `openLayout` | `closeLayout` | `command` | `script`
+Types: `speak` | `typeText` | `loadLayout` | `openLayout` | `closeLayout` | `command` | `script`
 
-| Type | Required fields | Notes |
-|------|-----------------|--------|
-| `speak` | `text` | TTS (and optional type if settings allow) |
-| `typeText` | `text` | Inject unicode (empty text = no-op) |
-| `loadLayout` | `layoutId` | Navigate / replace per session policy |
-| `openLayout` | `layoutId` | Open another secondary (or master path via `openInstance`) |
-| `closeLayout` | — | Close activating instance (not last / not master alone) |
+| Type | Fields | Notes |
+|------|--------|-------|
+| `speak` | `text` | TTS; also types if settings allow |
+| `typeText` | `text` | Unicode inject |
+| `loadLayout` | `layoutId` | Root → Docked. Declared child → that chrome. Else replace this secondary |
+| `openLayout` | `layoutId` | Open a secondary (or show a declared child) |
+| `closeLayout` | — | Close the activating instance (not the root) |
 | `command` | `name` | Builtin or mapping-profile command |
-| `script` | `source` | JS via `gazer.*` (may be empty in stubs) |
+| `script` | `source` | JS via `gazer.*` |
 
-Optional on any step: `delayMs` — delay before that step in a series.
+Optional on any step: `delayMs`.
 
-#### Series and sticky loops
+**Series:** without `actionLoop`, run once on activate. With `actionLoop`, sticky until toggled off or the board closes. Gaze click loop (`mouseDwellClickLoop`) is a separate sticky assist mode that shares the same registry (`stopAllActionLoops`).
 
-One sticky-mode policy (`ActionLoopService`):
+**Lifecycle:** `onOpen` + `onLoad` on create; `onLoad` on in-place document replace; `onClose` before destroy.
 
-| Kind | How | Active state |
-|------|-----|--------------|
-| Layout `actionLoop` | Timed re-dispatch of `actions[]` until toggled off | `activeState` or auto `loop.<itemId>` |
-| Assist sticky (gaze click loop) | `mouseDwellClickLoop` — dwell move (+ mag-pick) then click, re-arm | `loop.gazeClick` |
-
-```json
-"actions": [
-  { "type": "command", "name": "mouseMoveToGaze" },
-  { "type": "command", "name": "mouseLeftClick", "delayMs": 80 }
-],
-"actionLoop": true,
-"activeState": "loop.myClick"
-```
-
-- Without `actionLoop`: run series once on dwell activate.
-- With `actionLoop`: sticky series; re-activate to stop. Closing the board stops its series loops.
-- Gaze click loop uses dwell UX (not timed series) but shares the sticky registry and `stopAllActionLoops`.
-
-#### Lifecycle arrays
-
-```json
-"onOpen":  [ { "type": "command", "name": "…" } ],
-"onLoad":  [ … ],
-"onClose": [ … ]
-```
-
-One-shot only (no loops). `onOpen`+`onLoad` on create; `onLoad` on document replace; `onClose` before destroy.
-
-### Auto-close
-
-| Level | Fields |
-|-------|--------|
-| AppSettings | `layoutAutoClose` (bool), `layoutAutoCloseIdleMs`, `layoutAutoCloseFadeMs` |
-| Layout | `autoClose`, `autoCloseIdleMs`, `autoCloseFadeMs` |
-
-- Master shells (`session.role` master) default **`autoClose: false`** when the field is omitted.
-- Secondaries default **true** (subject to global setting).
-- While the user dwells the board (or any item), idle resets and opacity returns to full.
-- After idle: opacity fades over `autoCloseFadeMs`, then the instance closes.
-
-### Minimal examples
-
-**Headless edge shell (no grid, no window):**
+### Example
 
 ```json
 {
-  "id": "edge_home",
-  "items": [
-    {
-      "id": "open_main",
-      "label": "Main",
-      "unbounded": true,
-      "dwellRegion": {
-        "screenAnchor": "bottomCenter",
-        "widthPx": 300,
-        "heightPx": 120,
-        "marginPx": 40,
-        "boundsMode": "desktop"
-      },
-      "action": { "type": "command", "name": "expandMaster" }
-    }
-  ]
-}
-```
-
-**Board with chrome and auto-close:**
-
-```json
-{
-  "id": "my_board",
+  "id": "tools",
   "name": "Tools",
   "uiStyle": "fluent",
   "boundsMode": "desktop",
   "autoClose": true,
-  "autoCloseIdleMs": 12000,
   "window": {
     "anchor": "topCenter",
     "widthPx": 800,
     "heightPx": 400,
+    "aboveTaskbar": true,
     "style": {
       "background": "#cc20232a",
       "borderColor": "#00dcff",
@@ -358,20 +306,13 @@ One-shot only (no loops). `onOpen`+`onLoad` on create; `onLoad` on document repl
   "grid": { "columns": 2, "rows": 1, "gapPx": 12, "marginPx": 16 },
   "items": [
     {
-      "id": "a",
+      "id": "hello",
       "label": "Speak",
       "row": 0, "col": 0,
-      "style": {
-        "background": "#772d6a4f",
-        "foreground": "#ffffff",
-        "borderColor": "#88ffffff",
-        "borderWidth": 1.5,
-        "radius": 12
-      },
       "action": { "type": "speak", "text": "Hello" }
     },
     {
-      "id": "b",
+      "id": "close",
       "label": "Close",
       "row": 0, "col": 1,
       "action": { "type": "closeLayout" }
@@ -380,55 +321,63 @@ One-shot only (no loops). `onOpen`+`onLoad` on create; `onLoad` on document repl
 }
 ```
 
-### Notable command names
+## Commands
+
+Builtins first; unknown names fall through to the mapping profile.
 
 | Command | Role |
 |---------|------|
-| `toggleDwellSuspend` / `suspendDwell` / `resumeDwell` | Global dwell pause (items auto-exempt) |
-| `expandMaster` | Navigate master to home shell |
-| `closeOtherViews` | Close all non-master boards |
-| `toggleMagnifier`, `toggleLookToScroll`, `toggleGazeReticle`, `toggleGazeMouseFollow` | Assist tools |
-| `mouseDwellMove`, mouse click/move/scroll builtins | Mouse assist |
-| `mouseMoveToGaze` | Move cursor to last valid gaze |
-| `mouseDwellClickLoop`, `stopAllActionLoops` | Sticky loops |
-| `openPreview` | Head pose OBJ preview |
+| `expandMaster` / `collapseMaster` | Show / hide the drawer |
+| `closeOtherViews` | Close every non-root, non-child board |
+| `quitApp` | Exit |
+| `toggleDwellSuspend` / `suspendDwell` / `resumeDwell` | Global dwell pause |
+| `toggleMagnifier` | Lens (exclusive with gaze reticle) |
+| `toggleLookToScroll` | Gaze-driven scroll |
+| `toggleGazeReticle` | Gaze marker (exclusive with magnifier) |
+| `toggleGazeMouseFollow` | Cursor follows gaze |
+| `mouseDwellMove` | Dwell to place the cursor |
+| `mouseDwellClickLoop` | Sticky dwell-move then click |
+| `mouseMoveToGaze` | Jump cursor to last valid gaze |
+| `mouseLeftClick` | Left click at cursor |
+| `stopAllActionLoops` | Stop sticky series and assist loops |
+| `toggleMouseMoveMagPick` | Mag-pick refine for move-to |
+| `toggleMouseMoveMagPickCenter` | Mag-pick centered on dwell vs screen |
+| `openPreview` | Head-pose preview |
 | `theme.light` / `theme.dark` / `theme.custom` | Theme mode |
-| `quitApp` | Exit application |
-| `settings.*` | Settings hub editors / nudges |
+| `settings.*` | Settings hub editors, nudges, presets |
 
-### Mapping profile (`resources/mappings/*.json`)
+Mouse pad also registers move / scroll / hold helpers (`mouseMoveUp`, `mouseLeftDownUp`, `cycleMouseMoveAmount`, …). Mapping profile adds keys such as `backspace`, `enter`, `scrollUp`, `gamepadA`.
 
-Command name → ordered **input** outputs: `keyTap`, `keyCombo`, `text`, `mouseClick`, `mouseMove`, `mouseMoveTo`, `mouseScroll`, `gamepadButton`, `gamepadAxis`. Orthogonal to layout action series.
+### Scripts (`gazer.*`)
 
-### Stickiness
+Layout `script` actions run in QJSEngine with a global `gazer` object:
 
-Magnifier, gaze reticle, and gaze→mouse share `GazeFollowStickiness` profiles
-driven by settings `magFollowProfile` (sticky / balanced / snappy).
+`log`, `speak`, `typeText`, `runCommand`, `openLayout`, `loadLayout`, `focusedLayoutId`.
 
-### Themes
+Not a sandbox.
 
-`themeMode`: `light` | `dark` | `custom` with Voice-aligned tokens (`bgMain`, `accent`, `text`, …). Color picker uses Voice sample palette. Layout `style` colors override cell/window chrome per layout.
+## Mapping profiles
 
-### Head pose
+`resources/mappings/default.json` maps command names to ordered `InputService` steps:
 
-Tobii head-pose stream (optional soft-bind). Preview shows gaze + planar head + raw yaw/pitch/roll/x/y/z (OpenTrack units).
+`keyTap`, `keyCombo`, `text`, `mouseClick`, `mouseDoubleClick`, `mouseDown`, `mouseUp`, `mouseMove`, `mouseMoveTo`, `mouseScroll`, `mouseScrollH`, `gamepadButton`, `gamepadAxis`.
 
-### Dwell suspend UI
+Orthogonal to layout action series.
 
-When dwell is suspended: semi-transparent border around the screen with a **break** at unpause targets (Pause dwell / `dwellExempt` unpause cells, including unbounded edge bands).
+## Settings
 
----
+Persisted at `%AppData%\Gazer\settings.json`. The in-app Settings boards edit the same file.
 
-## Build & run
-
-See prior docs: CMake ≥ 3.21, Qt 6, optional Tobii Stream Engine.
-
-```powershell
-cmake -S . -B build -G Ninja -DCMAKE_PREFIX_PATH="C:/Qt/6.11.1/mingw_64" -DCMAKE_BUILD_TYPE=Release
-cmake --build build
-.\build\Gazer.exe
-```
+| Area | What |
+|------|------|
+| Timing | Dwell sequence, scan/blink grace, mouse-move dwell, mag-pick |
+| Progress | Radial / fill / border colors for boards and mouse-move |
+| Magnifier | Zoom, lens size, follow profile (sticky / balanced / snappy) |
+| Look-to-scroll | Deadzone, falloff, rate, accel, place-cursor-first |
+| Session | Auto-collapse drawer when opening a secondary, start docked, auto-close timing, tracker pref (auto / mouse) |
+| Speech | Speak also types |
+| Theme | Light / dark / custom |
 
 ## License
 
-TBD.
+[MIT](LICENSE). Copyright © 2026 Adam Roden.

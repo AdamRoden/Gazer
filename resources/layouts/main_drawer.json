@@ -1,14 +1,8 @@
 {
   "schemaVersion": 1,
-  "id": "example_main",
+  "id": "main_drawer",
   "name": "Main",
   "uiStyle": "default",
-  "session": {
-    "role": "masterShell",
-    "masterGroup": "home",
-    "isHome": true,
-    "collapseLayoutId": "example_main_collapsed"
-  },
   "boundsMode": "screen",
   "autoClose": true,
   "autoCloseIdleMs": 3000,
@@ -17,6 +11,8 @@
     "anchor": "bottomCenter",
     "widthPx": 1080,
     "heightPx": 150,
+    "aboveTaskbar": true,
+    "drawerMotion": true,
     "style": {
       "background": "#00000000"
     }
@@ -57,7 +53,7 @@
       "row": 0,
       "col": 3,
       "style": { "background": "#4a5568", "foreground": "#ffffff" },
-      "action": { "type": "openLayout", "layoutId": "example_settings" }
+      "action": { "type": "openLayout", "layoutId": "main_settings" }
     },
     {
       "id": "close",
@@ -65,7 +61,7 @@
       "row": 0,
       "col": 4,
       "style": { "background": "#3d4f66", "foreground": "#ffffff" },
-      "action": { "type": "loadLayout", "layoutId": "example_main_collapsed" }
+      "action": { "type": "command", "name": "collapseMaster" }
     },
     {
       "id": "close_all",
@@ -73,7 +69,7 @@
       "row": 0,
       "col": 5,
       "style": { "background": "#495057", "foreground": "#ffffff" },
-      "actions": [{ "type": "command", "name": "closeOtherViews" }, { "type": "loadLayout", "layoutId": "example_main_collapsed" }]
+      "actions": [{ "type": "command", "name": "closeOtherViews" }, { "type": "command", "name": "collapseMaster" }]
     },
     {
       "id": "dwell_suspend",
@@ -90,7 +86,7 @@
       "row": 0,
       "col": 7,
       "style": { "background": "#9b2226", "foreground": "#ffffff" },
-      "action": { "type": "loadLayout", "layoutId": "example_quit_confirm" }
+      "action": { "type": "loadLayout", "layoutId": "main_quit_confirm" }
     }
   ]
 }

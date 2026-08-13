@@ -1,19 +1,15 @@
 {
   "schemaVersion": 1,
-  "id": "example_quit_confirm",
+  "id": "main_quit_confirm",
   "name": "Quit?",
   "description": "Confirm quit — Yes exits Gazer; No returns to Main.",
-  "session": {
-    "role": "masterShell",
-    "masterGroup": "home",
-    "isHome": false,
-    "expandLayoutId": "example_main"
-  },
+  "autoClose": false,
   "window": {
     "anchor": "center",
     "widthPx": 480,
     "heightPx": 220,
-    "marginPx": 16
+    "marginPx": 16,
+    "aboveTaskbar": true
   },
   "grid": {
     "columns": 2,
@@ -52,7 +48,7 @@
       "row": 1,
       "col": 1,
       "style": { "background": "#2d6a4f", "foreground": "#ffffff" },
-      "action": { "type": "loadLayout", "layoutId": "example_main" }
+      "action": { "type": "loadLayout", "layoutId": "main_drawer" }
     }
   ]
 }

@@ -1,5 +1,6 @@
 #include "layout/LayoutInstance.h"
 
+#include "layout/LayoutVisibility.h"
 #include "ui/ProgressVisuals.h"
 
 #include <QGuiApplication>
@@ -14,14 +15,14 @@ LayoutInstance::LayoutInstance(QString instanceId, LayoutDocument document, QObj
     , m_instanceId(std::move(instanceId))
     , m_document(std::move(document))
 {
-    m_window = std::make_unique<LayoutWindow>();
+    m_window = std::make_unique<LayoutQuickWindow>();
     m_window->setLayout(m_document);
     m_window->setWindowTitle(
         QStringLiteral("Gazer — %1 [%2]").arg(m_document.name, m_instanceId));
 
-    connect(m_window.get(), &LayoutWindow::closeRequested, this,
+    connect(m_window.get(), &LayoutQuickWindow::closeRequested, this,
             [this]() { emit windowCloseRequested(m_instanceId); });
-    connect(m_window.get(), &LayoutWindow::itemClicked, this,
+    connect(m_window.get(), &LayoutQuickWindow::itemClicked, this,
             [this](const QString& itemId) {
                 if (m_dwellSuspended) {
                     const LayoutItem* item = m_document.findItem(itemId);
@@ -33,6 +34,8 @@ LayoutInstance::LayoutInstance(QString instanceId, LayoutDocument document, QObj
             });
 
     m_dwell = std::make_unique<DwellStateMachine>();
+    m_scaleTimer.setInterval(16);
+    connect(&m_scaleTimer, &QTimer::timeout, this, &LayoutInstance::tickScaleAnim);
     applyDwellConfig();
 
     connect(m_dwell.get(), &DwellStateMachine::dwellProgress, this,
@@ -156,6 +159,19 @@ void LayoutInstance::setActiveItemIds(const QSet<QString>& activeIds)
     }
 }
 
+void LayoutInstance::setPropertyContext(const QVariantMap& props)
+{
+    m_props = props;
+    if (m_window) {
+        m_window->setPropertyContext(props);
+    }
+}
+
+bool LayoutInstance::itemShown(const LayoutItem& item) const
+{
+    return itemIsShown(item, m_props);
+}
+
 void LayoutInstance::setItemText(const QString& itemId, const QString& label,
                                  const QString& caption)
 {
@@ -195,15 +211,176 @@ void LayoutInstance::raise()
         m_window->hide();
         return;
     }
+    if (usesDrawerMotion()) {
+        // Dismiss must not be flipped back into appear by z-order restacks.
+        if (isDismissing()) {
+            m_window->keepAboveTaskbar();
+            return;
+        }
+        if (!m_window->isVisible()) {
+            playAppear();
+            return;
+        }
+        if (isScaleAnimating()) {
+            m_window->keepAboveTaskbar();
+            return;
+        }
+        m_window->showAndRaise();
+        return;
+    }
     m_window->showAndRaise();
 }
 
 void LayoutInstance::hide()
 {
+    if (isDismissing()) {
+        return;
+    }
+    if (usesDrawerMotion() && m_window && m_window->isVisible()) {
+        playDismiss([this]() { forceHide(); });
+        return;
+    }
+    forceHide();
+}
+
+void LayoutInstance::forceHide()
+{
+    cancelScaleAnim(false);
     if (m_window) {
         m_window->hide();
     }
     leaveGaze();
+}
+
+bool LayoutInstance::usesDrawerMotion() const
+{
+    return m_document.placement.drawerMotion;
+}
+
+bool LayoutInstance::isScaleAnimating() const
+{
+    return m_scalePhase != ScalePhase::Idle;
+}
+
+bool LayoutInstance::isDismissing() const
+{
+    return m_scalePhase == ScalePhase::Dismiss;
+}
+
+void LayoutInstance::cancelScaleAnim(bool invokeDone)
+{
+    m_scaleTimer.stop();
+    m_scalePhase = ScalePhase::Idle;
+    auto done = std::move(m_scaleDone);
+    m_scaleDone = {};
+    if (invokeDone && done) {
+        done();
+    }
+}
+
+void LayoutInstance::applyDrawerScale(double scale)
+{
+    if (!m_window || !m_scaleTargetGeom.isValid()) {
+        return;
+    }
+    const QRect full = m_scaleTargetGeom;
+    const int w = qMax(1, int(std::lround(full.width() * scale)));
+    const int h = qMax(1, int(std::lround(full.height() * scale)));
+    const int x = full.center().x() - w / 2;
+    const int y = full.bottom() - h;
+    m_window->setGeometry(x, y, w, h);
+}
+
+void LayoutInstance::playAppear()
+{
+    if (!m_window || !m_document.showsBoardWindow()) {
+        if (m_window) {
+            m_window->showAndRaise();
+        }
+        return;
+    }
+    cancelScaleAnim(false);
+    applyPlacement(0);
+    m_scaleTargetGeom = m_window->geometry();
+    if (!m_scaleTargetGeom.isValid() || m_scaleTargetGeom.width() < 2) {
+        m_window->showAndRaise();
+        return;
+    }
+    m_scalePhase = ScalePhase::Appear;
+    m_scaleClock.restart();
+    m_window->setMinimumSize(1, 1);
+    applyDrawerScale(0.02);
+    setFadeOpacity(0.0);
+    m_window->showAndRaise();
+    m_scaleTimer.start();
+}
+
+void LayoutInstance::playDismiss(std::function<void()> onDone)
+{
+    if (!m_window || !m_window->isVisible()) {
+        cancelScaleAnim(false);
+        if (onDone) {
+            onDone();
+        }
+        return;
+    }
+    if (m_scalePhase == ScalePhase::Dismiss) {
+        m_scaleDone = std::move(onDone);
+        return;
+    }
+    cancelScaleAnim(false);
+    m_scaleDone = std::move(onDone);
+    if (!m_scaleTargetGeom.isValid() || m_scaleTargetGeom.width() < 2) {
+        applyPlacement(0);
+        m_scaleTargetGeom = m_window->geometry();
+    }
+    m_scalePhase = ScalePhase::Dismiss;
+    m_scaleClock.restart();
+    m_window->setMinimumSize(1, 1);
+    m_scaleTimer.start();
+}
+
+void LayoutInstance::tickScaleAnim()
+{
+    if (m_scalePhase == ScalePhase::Idle) {
+        m_scaleTimer.stop();
+        return;
+    }
+    const int dur =
+        m_scalePhase == ScalePhase::Appear ? kDrawerAppearMs : kDrawerDismissMs;
+    const double t = qBound(0.0, double(m_scaleClock.elapsed()) / double(dur), 1.0);
+
+    double scale = 1.0;
+    if (m_scalePhase == ScalePhase::Appear) {
+        const double e = 1.0 - (1.0 - t) * (1.0 - t);
+        scale = 0.02 + 0.98 * e;
+        setFadeOpacity(qMin(1.0, t / 0.20));
+    } else {
+        const double e = t * t;
+        scale = 1.0 - 0.98 * e;
+        setFadeOpacity(1.0 - t);
+    }
+    applyDrawerScale(qMax(0.01, scale));
+
+    if (t < 1.0) {
+        return;
+    }
+
+    const bool appearing = m_scalePhase == ScalePhase::Appear;
+    auto done = std::move(m_scaleDone);
+    m_scaleDone = {};
+    m_scalePhase = ScalePhase::Idle;
+    m_scaleTimer.stop();
+    if (appearing) {
+        applyPlacement(0);
+        setFadeOpacity(1.0);
+        if (m_window) {
+            m_window->assertAboveTaskbar();
+        }
+    }
+    if (done) {
+        done();
+    }
 }
 
 void LayoutInstance::applyPlacement(int cascadeOffset)
@@ -227,7 +404,7 @@ void LayoutInstance::applyPlacement(int cascadeOffset)
         return;
     }
 
-    m_window->setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+    m_window->setMaximumSize(16777215, 16777215);
 
     const QRect avail = boundsRectFor(m_document.effectiveBoundsMode());
 
@@ -474,6 +651,14 @@ bool LayoutInstance::autoCloseFinished(qint64 nowMs) const
     return idle >= qint64(m_autoCloseIdleMs) + qint64(m_autoCloseFadeMs) + kAutoCloseSuckMs;
 }
 
+bool LayoutInstance::autoCloseIdleElapsed(qint64 nowMs) const
+{
+    if (!m_autoCloseEnabled) {
+        return false;
+    }
+    return nowMs - m_lastActivityMs >= qint64(m_autoCloseIdleMs);
+}
+
 void LayoutInstance::applyAutoCloseVisuals(qint64 nowMs)
 {
     if (!m_window) {
@@ -579,7 +764,7 @@ QString LayoutInstance::hitTest(const QPointF& screenPoint) const
 
     QString hit;
     for (const LayoutItem& item : m_document.items) {
-        if (!allow(item) || item.participatesInBoardGrid()) {
+        if (!allow(item) || !itemShown(item) || item.participatesInBoardGrid()) {
             continue;
         }
         const QRect rect = itemHitRect(item);
@@ -617,7 +802,7 @@ bool LayoutInstance::containsScreenPoint(const QPointF& screenPoint) const
         return true;
     }
     for (const LayoutItem& item : m_document.items) {
-        if (!item.interactive || item.participatesInBoardGrid()) {
+        if (!item.interactive || !itemShown(item) || item.participatesInBoardGrid()) {
             continue;
         }
         if (m_dwellSuspended && !item.isDwellExempt()) {

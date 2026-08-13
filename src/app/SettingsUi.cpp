@@ -78,7 +78,7 @@ void SettingsUi::apply(bool persist)
 
 void SettingsUi::decorateDocument(LayoutDocument& doc) const
 {
-    if (!doc.id.startsWith(QLatin1String("example_settings"))) {
+    if (!doc.id.startsWith(QLatin1String("main_settings"))) {
         return;
     }
     doc.uiStyle = LayoutUiStyle::Fluent;
@@ -100,7 +100,7 @@ void SettingsUi::refreshOpenBoards()
             continue;
         }
         const QString lid = inst->layoutId();
-        if (!lid.startsWith(QLatin1String("example_settings"))) {
+        if (!lid.startsWith(QLatin1String("main_settings"))) {
             continue;
         }
         if (m_numpadActive && inst->instanceId() == m_numpadInstanceId) {

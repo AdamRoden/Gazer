@@ -1,18 +1,19 @@
-#include "ui/LayoutWindow.h"
+#include "ui/LayoutQuickWindow.h"
 
 #include "layout/LayoutGeometry.h"
+#include "layout/LayoutVisibility.h"
 #include "ui/MouseIcons.h"
 #include "utils/WinOverlay.h"
 
 #include <QCloseEvent>
 #include <QFont>
-#include <QFontMetrics>
 #include <QLinearGradient>
 #include <QMouseEvent>
 #include <QPainter>
-#include <QPaintEvent>
-#include <QResizeEvent>
-#include <QShowEvent>
+#include <QQuickItem>
+#include <QQuickPaintedItem>
+#include <QScreen>
+#include <QTimer>
 
 #ifdef Q_OS_WIN
 #  ifndef WIN32_LEAN_AND_MEAN
@@ -23,90 +24,174 @@
 
 namespace gazer {
 
-LayoutWindow::LayoutWindow(QWidget* parent)
-    : QWidget(parent)
+class LayoutBoardItem final : public QQuickPaintedItem {
+public:
+    explicit LayoutBoardItem(LayoutQuickWindow* host, QQuickItem* parent)
+        : QQuickPaintedItem(parent)
+        , m_host(host)
+    {
+        setAntialiasing(true);
+        setOpaquePainting(false);
+        setFillColor(Qt::transparent);
+        setAcceptedMouseButtons(Qt::LeftButton);
+        setAcceptHoverEvents(false);
+    }
+
+    void paint(QPainter* p) override
+    {
+        if (!p || !m_host) {
+            return;
+        }
+        m_host->paintBoard(*p);
+    }
+
+protected:
+    void mouseReleaseEvent(QMouseEvent* event) override
+    {
+        if (!event || !m_host || event->button() != Qt::LeftButton) {
+            return;
+        }
+        const QPointF global = event->globalPosition();
+        const QString id = m_host->hitTestGlobal(global);
+        if (!id.isEmpty()) {
+            emit m_host->itemClicked(id);
+        }
+    }
+
+private:
+    LayoutQuickWindow* m_host = nullptr;
+};
+
+LayoutQuickWindow::LayoutQuickWindow(QWindow* parent)
+    : QQuickWindow(parent)
 {
-    setWindowFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool
-                   | Qt::WindowDoesNotAcceptFocus);
-    setAttribute(Qt::WA_ShowWithoutActivating);
-    setAttribute(Qt::WA_QuitOnClose, false);
-    applyTransparencyAttrs();
-    setWindowTitle(QStringLiteral("Gazer — Layout"));
-    setMinimumSize(320, 160);
-    resize(1000, 560);
+    setColor(Qt::transparent);
+    setFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool
+             | Qt::WindowDoesNotAcceptFocus);
+    setTitle(QStringLiteral("Gazer — Layout"));
+    QQuickWindow::setMinimumSize(QSize(320, 160));
+    QQuickWindow::resize(QSize(1000, 560));
+
+    m_board = new LayoutBoardItem(this, contentItem());
+    m_board->setSize(QSizeF(width(), height()));
 
     m_flashTimer.setSingleShot(true);
     connect(&m_flashTimer, &QTimer::timeout, this, [this]() {
         m_flashId.clear();
-        update();
+        if (m_board) {
+            m_board->update();
+        }
+    });
+    connect(this, &QQuickWindow::widthChanged, this, &LayoutQuickWindow::syncBoardSize);
+    connect(this, &QQuickWindow::heightChanged, this, &LayoutQuickWindow::syncBoardSize);
+    connect(this, &QQuickWindow::visibleChanged, this, [this]() {
+        if (isVisible()) {
+            applyTopmost();
+        }
     });
 }
 
-void LayoutWindow::applyTransparencyAttrs()
+void LayoutQuickWindow::closeEvent(QCloseEvent* event)
 {
-    // Allow fully transparent board / cell backgrounds (#AARRGGBB alpha 0).
-    setAttribute(Qt::WA_TranslucentBackground, true);
-    setAttribute(Qt::WA_OpaquePaintEvent, false);
+    if (event) {
+        event->ignore();
+    }
+    hide();
+    emit closeRequested();
 }
 
-void LayoutWindow::setBoardOpacity(double opacity)
+void LayoutQuickWindow::syncBoardSize()
+{
+    if (!m_board) {
+        return;
+    }
+    m_board->setSize(QSizeF(width(), height()));
+    rebuildCellGeometry();
+    m_board->update();
+}
+
+void LayoutQuickWindow::setBoardOpacity(double opacity)
 {
     m_boardOpacity = qBound(0.0, opacity, 1.0);
-    setWindowOpacity(m_boardOpacity);
+    setOpacity(m_boardOpacity);
 }
 
-void LayoutWindow::setLayout(const LayoutDocument& layout)
+void LayoutQuickWindow::setLayout(const LayoutDocument& layout)
 {
     m_layout = layout;
     m_hoverId.clear();
     m_hoverProgress = 0.0;
-    setWindowTitle(QStringLiteral("Gazer — %1").arg(
+    setTitle(QStringLiteral("Gazer — %1").arg(
         m_layout.isValid() ? m_layout.name : QStringLiteral("Layout")));
-    applyTransparencyAttrs();
     rebuildCellGeometry();
-    update();
+    if (m_board) {
+        m_board->update();
+    }
 }
 
-void LayoutWindow::clearLayout()
+void LayoutQuickWindow::clearLayout()
 {
     m_layout = {};
     m_itemLocalRects.clear();
     m_hoverId.clear();
     m_hoverProgress = 0.0;
-    update();
+    if (m_board) {
+        m_board->update();
+    }
 }
 
-void LayoutWindow::onActiveLayoutChanged(const gazer::LayoutDocument& layout)
-{
-    setLayout(layout);
-}
-
-void LayoutWindow::setHoverState(const QString& itemId, double progress)
+void LayoutQuickWindow::setHoverState(const QString& itemId, double progress)
 {
     if (m_hoverId == itemId && qFuzzyCompare(m_hoverProgress + 1.0, progress + 1.0)) {
         return;
     }
     m_hoverId = itemId;
     m_hoverProgress = progress;
-    update();
+    if (m_board) {
+        m_board->update();
+    }
 }
 
-void LayoutWindow::setProgressVisuals(const ProgressVisuals& visuals)
+void LayoutQuickWindow::setProgressVisuals(const ProgressVisuals& visuals)
 {
     m_progressVisuals = visuals;
-    update();
+    if (m_board) {
+        m_board->update();
+    }
 }
 
-void LayoutWindow::setActiveItemIds(const QSet<QString>& activeIds)
+void LayoutQuickWindow::setTheme(const ThemeColors& theme)
+{
+    m_theme = theme;
+    if (m_board) {
+        m_board->update();
+    }
+}
+
+void LayoutQuickWindow::setActiveItemIds(const QSet<QString>& activeIds)
 {
     if (m_activeItemIds == activeIds) {
         return;
     }
     m_activeItemIds = activeIds;
-    update();
+    if (m_board) {
+        m_board->update();
+    }
 }
 
-void LayoutWindow::flashItem(const QString& itemId)
+void LayoutQuickWindow::setPropertyContext(const QVariantMap& props)
+{
+    if (m_props == props) {
+        return;
+    }
+    m_props = props;
+    rebuildCellGeometry();
+    if (m_board) {
+        m_board->update();
+    }
+}
+
+void LayoutQuickWindow::flashItem(const QString& itemId)
 {
     if (itemId.isEmpty()) {
         return;
@@ -118,29 +203,96 @@ void LayoutWindow::flashItem(const QString& itemId)
     }
     m_flashId = itemId;
     m_flashTimer.start(qMax(40, v.flashMs));
-    update();
+    if (m_board) {
+        m_board->update();
+    }
 }
 
-ProgressVisuals LayoutWindow::visualsForItem(const LayoutItem* item) const
+ProgressVisuals LayoutQuickWindow::visualsForItem(const LayoutItem* item) const
 {
     ProgressVisuals v = m_progressVisuals;
-    // Layout-level override when dwell section present in JSON.
     if (m_layout.dwell.sectionPresent) {
         v = v.mergedWith(m_layout.dwell);
     }
-    // Item-level override wins over layout.
     if (item && item->dwell.sectionPresent) {
         v = v.mergedWith(item->dwell);
     }
     return v;
 }
 
-void LayoutWindow::paintProgressChrome(QPainter& p, const QRectF& r, bool hovered,
-                                       double progress, const ProgressVisuals& visuals,
-                                       double radius)
+bool LayoutQuickWindow::itemShown(const LayoutItem& item) const
 {
-    const bool flashing = !m_flashId.isEmpty()
-                          && m_itemLocalRects.contains(m_flashId)
+    return itemIsShown(item, m_props);
+}
+
+void LayoutQuickWindow::keepAboveTaskbar()
+{
+    if (!isVisible() || !m_layout.placement.aboveTaskbar) {
+        return;
+    }
+    raiseAboveTaskbar(this);
+}
+
+void LayoutQuickWindow::assertAboveTaskbar()
+{
+    keepAboveTaskbar();
+}
+
+void LayoutQuickWindow::applyTopmost()
+{
+    applyOverlayWindowChrome(this, /*excludeFromCapture=*/false);
+    if (m_layout.placement.aboveTaskbar) {
+        raiseAboveTaskbar(this);
+        return;
+    }
+    raise();
+}
+
+void LayoutQuickWindow::showAndRaise()
+{
+    setVisibility(QWindow::AutomaticVisibility);
+    show();
+    applyTopmost();
+
+#ifdef Q_OS_WIN
+    const HWND hwnd = reinterpret_cast<HWND>(winId());
+    if (hwnd) {
+        ShowWindow(hwnd, SW_SHOWNOACTIVATE);
+    }
+#endif
+    keepAboveTaskbar();
+}
+
+QString LayoutQuickWindow::hitTestGlobal(const QPointF& screenPoint) const
+{
+    if (!m_layout.isValid() || !isVisible()) {
+        return {};
+    }
+    const QPointF local(screenPoint.x() - boardTopLeftGlobal().x(),
+                        screenPoint.y() - boardTopLeftGlobal().y());
+    QString hit;
+    for (const LayoutItem& item : m_layout.items) {
+        if (!itemShown(item) || !item.interactive) {
+            continue;
+        }
+        const QRectF r = m_itemLocalRects.value(item.id);
+        if (!r.isEmpty() && r.contains(local)) {
+            hit = item.id;
+        }
+    }
+    return hit;
+}
+
+void LayoutQuickWindow::rebuildCellGeometry()
+{
+    m_itemLocalRects = LayoutGeometry::itemRects(m_layout, width(), height());
+}
+
+void LayoutQuickWindow::paintProgressChrome(QPainter& p, const QRectF& r, bool hovered,
+                                            double progress, const ProgressVisuals& visuals,
+                                            double radius)
+{
+    const bool flashing = !m_flashId.isEmpty() && m_itemLocalRects.contains(m_flashId)
                           && m_itemLocalRects.value(m_flashId) == r;
 
     if (flashing) {
@@ -154,7 +306,6 @@ void LayoutWindow::paintProgressChrome(QPainter& p, const QRectF& r, bool hovere
     }
 
     if (visuals.fillBackground) {
-        // Grow from center outward.
         QColor fill = visuals.fillColor;
         fill.setAlpha(qBound(0, int(fill.alpha() * progress + 20 * progress), 255));
         p.setPen(Qt::NoPen);
@@ -188,7 +339,7 @@ void LayoutWindow::paintProgressChrome(QPainter& p, const QRectF& r, bool hovere
     }
 }
 
-void LayoutWindow::paintCell(QPainter& p, const LayoutItem& item, const QRectF& r, bool fluent)
+void LayoutQuickWindow::paintCell(QPainter& p, const LayoutItem& item, const QRectF& r, bool fluent)
 {
     const bool hovered = item.interactive && (item.id == m_hoverId);
     const bool active = m_activeItemIds.contains(item.id);
@@ -239,100 +390,7 @@ void LayoutWindow::paintCell(QPainter& p, const LayoutItem& item, const QRectF& 
     }
 }
 
-void LayoutWindow::applyTopmost()
-{
-    applyOverlayWindowChrome(this, /*excludeFromCapture=*/false);
-    raise();
-}
-
-void LayoutWindow::showAndRaise()
-{
-    if (windowState() & Qt::WindowMinimized) {
-        setWindowState(windowState() & ~Qt::WindowMinimized);
-    }
-    setVisible(true);
-    show();
-    applyTopmost();
-
-#ifdef Q_OS_WIN
-    const HWND hwnd = reinterpret_cast<HWND>(winId());
-    if (hwnd) {
-        ShowWindow(hwnd, SW_SHOWNOACTIVATE);
-        SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0,
-                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW);
-    }
-#endif
-}
-
-QString LayoutWindow::hitTestGlobal(const QPointF& screenPoint) const
-{
-    if (!m_layout.isValid() || !isVisible()) {
-        return {};
-    }
-    // Prefer last matching interactive item (paint order ≈ visual stack).
-    const QPointF local(screenPoint.x() - boardTopLeftGlobal().x(),
-                        screenPoint.y() - boardTopLeftGlobal().y());
-    QString hit;
-    for (const LayoutItem& item : m_layout.items) {
-        if (!item.interactive) {
-            continue;
-        }
-        const QRectF r = m_itemLocalRects.value(item.id);
-        if (!r.isEmpty() && r.contains(local)) {
-            hit = item.id;
-        }
-    }
-    return hit;
-}
-
-void LayoutWindow::rebuildCellGeometry()
-{
-    m_itemLocalRects = LayoutGeometry::itemRects(m_layout, width(), height());
-}
-
-void LayoutWindow::resizeEvent(QResizeEvent* event)
-{
-    QWidget::resizeEvent(event);
-    rebuildCellGeometry();
-}
-
-void LayoutWindow::showEvent(QShowEvent* event)
-{
-    QWidget::showEvent(event);
-    applyTopmost();
-}
-
-void LayoutWindow::closeEvent(QCloseEvent* event)
-{
-    hide();
-    event->ignore();
-    emit closeRequested();
-}
-
-void LayoutWindow::mouseReleaseEvent(QMouseEvent* event)
-{
-    QWidget::mouseReleaseEvent(event);
-    if (!event || event->button() != Qt::LeftButton || !m_layout.isValid()) {
-        return;
-    }
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-    const QPointF global = event->globalPosition();
-#else
-    const QPointF global = event->globalPos();
-#endif
-    const QString id = hitTestGlobal(global);
-    if (!id.isEmpty()) {
-        emit itemClicked(id);
-    }
-}
-
-void LayoutWindow::setTheme(const ThemeColors& theme)
-{
-    m_theme = theme;
-    update();
-}
-
-void LayoutWindow::paintDefault(QPainter& p)
+void LayoutQuickWindow::paintDefault(QPainter& p)
 {
     const auto& ws = m_layout.placement.style;
     const double winR = ws.radius.value_or(12.0);
@@ -343,21 +401,26 @@ void LayoutWindow::paintDefault(QPainter& p)
     if (bg.alpha() > 0) {
         p.setBrush(bg);
         p.setPen(Qt::NoPen);
-        p.drawRoundedRect(QRectF(rect()), winR, winR);
+        p.drawRoundedRect(QRectF(0, 0, width(), height()), winR, winR);
     }
     if (border.alpha() > 0 && winBw > 0) {
         p.setBrush(Qt::NoBrush);
         p.setPen(QPen(border, winBw));
-        p.drawRoundedRect(QRectF(rect()).adjusted(1.0, 1.0, -1.0, -1.0), winR, winR);
+        p.drawRoundedRect(QRectF(0, 0, width(), height()).adjusted(1.0, 1.0, -1.0, -1.0), winR,
+                          winR);
     }
 
     if (!m_layout.isValid()) {
         p.setPen(m_theme.danger);
-        p.drawText(rect(), Qt::AlignCenter, QStringLiteral("No layout loaded"));
+        p.drawText(QRect(0, 0, width(), height()), Qt::AlignCenter,
+                   QStringLiteral("No layout loaded"));
         return;
     }
 
     for (const LayoutItem& item : m_layout.items) {
+        if (!itemShown(item)) {
+            continue;
+        }
         const QRectF r = m_itemLocalRects.value(item.id);
         if (r.isEmpty()) {
             continue;
@@ -366,7 +429,7 @@ void LayoutWindow::paintDefault(QPainter& p)
     }
 }
 
-void LayoutWindow::paintFluent(QPainter& p)
+void LayoutQuickWindow::paintFluent(QPainter& p)
 {
     const auto& ws = m_layout.placement.style;
     const double winR = ws.radius.value_or(18.0);
@@ -381,7 +444,7 @@ void LayoutWindow::paintFluent(QPainter& p)
         bg.setColorAt(1.0, bgBot);
         p.setBrush(bg);
         p.setPen(Qt::NoPen);
-        p.drawRoundedRect(QRectF(rect()), winR, winR);
+        p.drawRoundedRect(QRectF(0, 0, width(), height()), winR, winR);
     }
     if (border.alpha() > 0 && winBw > 0) {
         QColor accentBorder = border;
@@ -390,10 +453,10 @@ void LayoutWindow::paintFluent(QPainter& p)
         }
         p.setBrush(Qt::NoBrush);
         p.setPen(QPen(accentBorder, winBw));
-        p.drawRoundedRect(QRectF(rect()).adjusted(1.5, 1.5, -1.5, -1.5), winR, winR);
+        p.drawRoundedRect(QRectF(0, 0, width(), height()).adjusted(1.5, 1.5, -1.5, -1.5), winR,
+                          winR);
     }
 
-    // Title strip
     QFont titleFont(QStringLiteral("Segoe UI"), 16, QFont::DemiBold);
     p.setFont(titleFont);
     p.setPen(m_theme.text);
@@ -407,11 +470,15 @@ void LayoutWindow::paintFluent(QPainter& p)
 
     if (!m_layout.isValid()) {
         p.setPen(m_theme.danger);
-        p.drawText(rect(), Qt::AlignCenter, QStringLiteral("No layout loaded"));
+        p.drawText(QRect(0, 0, width(), height()), Qt::AlignCenter,
+                   QStringLiteral("No layout loaded"));
         return;
     }
 
     for (const LayoutItem& item : m_layout.items) {
+        if (!itemShown(item)) {
+            continue;
+        }
         const QRectF r = m_itemLocalRects.value(item.id);
         if (r.isEmpty()) {
             continue;
@@ -473,16 +540,14 @@ void LayoutWindow::paintFluent(QPainter& p)
     }
 }
 
-void LayoutWindow::paintEvent(QPaintEvent* /*event*/)
+void LayoutQuickWindow::paintBoard(QPainter& p)
 {
-    QPainter p(this);
     p.setRenderHint(QPainter::Antialiasing, true);
     p.setRenderHint(QPainter::TextAntialiasing, true);
     p.setOpacity(m_boardOpacity);
 
-    // Transparent clear so alpha-0 fills work with WA_TranslucentBackground.
     p.setCompositionMode(QPainter::CompositionMode_Source);
-    p.fillRect(rect(), Qt::transparent);
+    p.fillRect(QRect(0, 0, width(), height()), Qt::transparent);
     p.setCompositionMode(QPainter::CompositionMode_SourceOver);
 
     if (m_layout.uiStyle == LayoutUiStyle::Fluent) {

@@ -2,6 +2,7 @@
 
 #include "utils/WinOverlay.h"
 
+#include <QHideEvent>
 #include <QWidget>
 
 namespace gazer {
@@ -22,20 +23,40 @@ public:
         setAttribute(Qt::WA_QuitOnClose, false);
     }
 
+    /// Restack this overlay on top of the TOPMOST band. Does not emit stackChanged.
+    void raiseStack()
+    {
+        applyOverlayWindowChrome(this, /*excludeFromCapture=*/true);
+        raise();
+        if (QWindow* wh = windowHandle()) {
+            raiseAboveTaskbar(wh);
+        }
+    }
+
     void showOverlay()
     {
         if (!isVisible()) {
             show();
         }
-        applyOverlayWindowChrome(this, /*excludeFromCapture=*/true);
-        raise();
+        raiseStack();
+        emit stackChanged();
     }
+
+signals:
+    /// Overlay HWND shown, raised, or hidden — chrome boards may need a restack.
+    void stackChanged();
 
 protected:
     void showEvent(QShowEvent* event) override
     {
         QWidget::showEvent(event);
         applyOverlayWindowChrome(this, /*excludeFromCapture=*/true);
+    }
+
+    void hideEvent(QHideEvent* event) override
+    {
+        QWidget::hideEvent(event);
+        emit stackChanged();
     }
 };
 

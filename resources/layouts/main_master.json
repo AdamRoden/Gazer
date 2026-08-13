@@ -1,15 +1,13 @@
 {
-  "schemaVersion": 1,
-  "id": "example_main_collapsed",
+  "schemaVersion": 2,
+  "id": "main_master",
   "name": "Dock",
-  "description": "Window omitted for fully headless layout.",
-  "session": {
-    "role": "masterShell",
-    "masterGroup": "home",
-    "isHome": false,
-    "expandLayoutId": "example_main",
-    "hideUntilGazeReveal": false
-  },
+  "description": "Persistent root. Window omitted for a headless dock.",
+  "master": true,
+  "children": [
+    { "id": "home", "layoutId": "main_drawer", "visibleWhen": "expanded" },
+    { "id": "quit", "layoutId": "main_quit_confirm", "visibleWhen": "quitConfirm" }
+  ],
   "dwell": { "fillColor": "#00ffff", "borderColor": "#00ffff", "progressColor": "#00ffff" },
   "items": [
     {
@@ -17,11 +15,12 @@
       "label": "Main",
       "unbounded": true,
       "dwellExempt": true,
+      "visibleWhen": "!expanded",
       "dwellRegion": {
         "screenAnchor": "bottomCenter",
         "widthPx": 300,
-        "heightPx": 150,
-        "marginPx": 50
+        "heightPx": 200,
+        "yPx": 100
       },
       "style": { "background": "#000000", "foreground": "#ffffff" },
       "actions": [{ "type": "command", "name": "resumeDwell" },{ "type": "command", "name": "expandMaster" }]
@@ -33,9 +32,9 @@
       "dwellRegion": {
         "screenAnchor": "bottomCenter",
         "widthPx": 300,
-        "heightPx": 300,
+        "heightPx": 200,
         "xPx": 400,
-        "marginPx": 50
+        "yPx": 100
       },
       "style": { "background": "#000000", "foreground": "#ffffff" },
       "actions": [{ "type": "command", "name": "toggleDwellSuspend" }]

@@ -7,6 +7,7 @@
 #include <QIcon>
 #include <QMenu>
 #include <QPainter>
+#include <QPainterPath>
 #include <QPixmap>
 
 namespace gazer {
@@ -19,13 +20,22 @@ QIcon makeFallbackTrayIcon()
     pm.fill(Qt::transparent);
     QPainter p(&pm);
     p.setRenderHint(QPainter::Antialiasing, true);
-    p.setBrush(QColor(0xDD, 0xB7, 0x37));
     p.setPen(Qt::NoPen);
-    p.drawRoundedRect(4, 4, 56, 56, 12, 12);
-    p.setBrush(QColor(0x06, 0x15, 0x2E));
-    p.drawEllipse(18, 18, 28, 28);
-    p.setBrush(QColor(0x77, 0x8E, 0xA4));
-    p.drawEllipse(26, 26, 12, 12);
+    p.setBrush(Qt::black);
+    p.drawRoundedRect(0, 0, 64, 64, 8, 8);
+    p.setBrush(Qt::white);
+    p.drawEllipse(16, 18, 28, 28);
+    p.setBrush(Qt::black);
+    p.drawEllipse(24, 26, 12, 12);
+    QPainterPath lid;
+    lid.moveTo(6, 30);
+    lid.cubicTo(18, 10, 40, 8, 60, 12);
+    lid.cubicTo(44, 16, 22, 22, 6, 30);
+    p.setBrush(Qt::white);
+    p.drawPath(lid);
+    QPolygonF spur;
+    spur << QPointF(36, 36) << QPointF(52, 60) << QPointF(40, 38);
+    p.drawPolygon(spur);
     p.end();
     return QIcon(pm);
 }

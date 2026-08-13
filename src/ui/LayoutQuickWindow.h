@@ -5,23 +5,24 @@
 #include "ui/Theme.h"
 
 #include <QHash>
-#include <QRectF>
+#include <QQuickWindow>
 #include <QSet>
 #include <QTimer>
-#include <QWidget>
+#include <QVariantMap>
 
 class QCloseEvent;
-class QMouseEvent;
-class QShowEvent;
+class QPainter;
 
 namespace gazer {
 
-/// On-screen AAC board: paints grid items and dwell progress.
-class LayoutWindow final : public QWidget {
+class LayoutBoardItem;
+
+/// Frameless topmost Qt Quick board.
+class LayoutQuickWindow final : public QQuickWindow {
     Q_OBJECT
 
 public:
-    explicit LayoutWindow(QWidget* parent = nullptr);
+    explicit LayoutQuickWindow(QWindow* parent = nullptr);
 
     void setLayout(const LayoutDocument& layout);
     void clearLayout();
@@ -36,48 +37,57 @@ public:
     void setHoverState(const QString& itemId, double progress);
     void setProgressVisuals(const ProgressVisuals& visuals);
     void setTheme(const ThemeColors& theme);
-    /// Item ids that are currently "on" (held / toggled / selected).
     void setActiveItemIds(const QSet<QString>& activeIds);
+    void setPropertyContext(const QVariantMap& props);
     void flashItem(const QString& itemId);
     void showAndRaise();
-    /// 0–1 board opacity for auto-close fade; supports fully transparent chrome.
+    void assertAboveTaskbar();
+    /// HWND_TOPMOST only — no restack dip. No-op unless window.aboveTaskbar.
+    void keepAboveTaskbar();
     void setBoardOpacity(double opacity);
 
-public slots:
-    void onActiveLayoutChanged(const gazer::LayoutDocument& layout);
+    void setMinimumSize(int w, int h) { QQuickWindow::setMinimumSize(QSize(w, h)); }
+    void setMaximumSize(int w, int h) { QQuickWindow::setMaximumSize(QSize(w, h)); }
+    void resize(int w, int h) { QQuickWindow::resize(QSize(w, h)); }
+    void move(int x, int y) { setPosition(x, y); }
+    void move(const QPoint& p) { setPosition(p); }
+    void setWindowTitle(const QString& title) { setTitle(title); }
+
+    void rebuildCellGeometry();
 
 signals:
     void closeRequested();
     void itemClicked(const QString& itemId);
 
 protected:
-    void paintEvent(QPaintEvent* event) override;
-    void resizeEvent(QResizeEvent* event) override;
-    void showEvent(QShowEvent* event) override;
     void closeEvent(QCloseEvent* event) override;
-    void mouseReleaseEvent(QMouseEvent* event) override;
 
 private:
-    void rebuildCellGeometry();
     void applyTopmost();
+    void syncBoardSize();
+    void paintBoard(QPainter& p);
     void paintDefault(QPainter& p);
     void paintFluent(QPainter& p);
+    void paintCell(QPainter& p, const LayoutItem& item, const QRectF& r, bool fluent);
     void paintProgressChrome(QPainter& p, const QRectF& r, bool hovered, double progress,
                              const ProgressVisuals& visuals, double radius);
-    void paintCell(QPainter& p, const LayoutItem& item, const QRectF& r, bool fluent);
-    void applyTransparencyAttrs();
     [[nodiscard]] ProgressVisuals visualsForItem(const LayoutItem* item) const;
+    [[nodiscard]] bool itemShown(const LayoutItem& item) const;
 
     LayoutDocument m_layout;
     QHash<QString, QRectF> m_itemLocalRects;
     QString m_hoverId;
     double m_hoverProgress = 0.0;
-    ProgressVisuals m_progressVisuals; // global base from AppSettings
+    ProgressVisuals m_progressVisuals;
     ThemeColors m_theme = ThemeColors::darkPreset();
     QSet<QString> m_activeItemIds;
+    QVariantMap m_props;
     QString m_flashId;
     QTimer m_flashTimer;
     double m_boardOpacity = 1.0;
+    LayoutBoardItem* m_board = nullptr;
+
+    friend class LayoutBoardItem;
 };
 
 } // namespace gazer

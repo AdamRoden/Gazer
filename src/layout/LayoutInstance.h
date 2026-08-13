@@ -5,7 +5,7 @@
 #include "layout/DwellStateMachine.h"
 #include "layout/LayoutTypes.h"
 #include "ui/EdgeBubbleOverlay.h"
-#include "ui/LayoutWindow.h"
+#include "ui/LayoutQuickWindow.h"
 #include "ui/ProgressVisuals.h"
 #include "ui/Theme.h"
 
@@ -15,7 +15,10 @@
 #include <QRect>
 #include <QSet>
 #include <QString>
+#include <QTimer>
+#include <QVariantMap>
 #include <QVector>
+#include <functional>
 #include <memory>
 
 namespace gazer {
@@ -30,11 +33,21 @@ public:
     [[nodiscard]] QString instanceId() const { return m_instanceId; }
     [[nodiscard]] QString layoutId() const { return m_document.id; }
     [[nodiscard]] const LayoutDocument& document() const { return m_document; }
-    [[nodiscard]] LayoutWindow* window() const { return m_window.get(); }
+    [[nodiscard]] LayoutQuickWindow* window() const { return m_window.get(); }
+
+    void setPropertyContext(const QVariantMap& props);
 
     void setDocument(LayoutDocument document);
     void raise();
     void hide();
+    void forceHide();
+
+    /// Bottom-anchored scale, 0 → 1 (drawerMotion boards).
+    void playAppear();
+    void playDismiss(std::function<void()> onDone = {});
+    [[nodiscard]] bool usesDrawerMotion() const;
+    [[nodiscard]] bool isScaleAnimating() const;
+    [[nodiscard]] bool isDismissing() const;
     void applyPlacement(int cascadeOffset = 0);
     void placeRelative(int offsetX, int offsetY);
 
@@ -74,6 +87,7 @@ public:
     [[nodiscard]] double autoCloseOpacity(qint64 nowMs) const;
     /// True when idle+fade+suck have all completed (ready to close/collapse).
     [[nodiscard]] bool autoCloseFinished(qint64 nowMs) const;
+    [[nodiscard]] bool autoCloseIdleElapsed(qint64 nowMs) const;
     /// Applies fade opacity and optional suck geometry for this tick.
     void applyAutoCloseVisuals(qint64 nowMs);
     void setFadeOpacity(double opacity);
@@ -103,9 +117,15 @@ private:
     /// Visible progress strip / band for unbounded items (hit-tested while dwelling).
     [[nodiscard]] QRect progressHitRect(const LayoutItem& item, double progress) const;
 
+    [[nodiscard]] bool itemShown(const LayoutItem& item) const;
+    void cancelScaleAnim(bool invokeDone);
+    void tickScaleAnim();
+    void applyDrawerScale(double scale);
+
     QString m_instanceId;
     LayoutDocument m_document;
-    std::unique_ptr<LayoutWindow> m_window;
+    QVariantMap m_props;
+    std::unique_ptr<LayoutQuickWindow> m_window;
     std::unique_ptr<DwellStateMachine> m_dwell;
     ProgressVisuals m_progressVisuals;
     QVector<int> m_globalDwellSequence;
@@ -131,8 +151,17 @@ private:
 
     /// Dwell on logical rect this long before extending hit into the edge lip.
     static constexpr int kOffscreenLipEngageMs = 100;
+    enum class ScalePhase { Idle, Appear, Dismiss };
+    ScalePhase m_scalePhase = ScalePhase::Idle;
+    QTimer m_scaleTimer;
+    QElapsedTimer m_scaleClock;
+    QRect m_scaleTargetGeom;
+    std::function<void()> m_scaleDone;
+
     /// After fade reaches 50%, shrink into bottom-center over this many ms.
     static constexpr int kAutoCloseSuckMs = 500;
+    static constexpr int kDrawerAppearMs = 420;
+    static constexpr int kDrawerDismissMs = 480;
     /// Opacity while holding after idle (before suck).
     static constexpr double kAutoCloseFadeFloor = 0.5;
 };

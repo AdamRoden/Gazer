@@ -6,6 +6,8 @@
 #include <QDateTime>
 #include <QFile>
 #include <QLoggingCategory>
+#include <QQuickWindow>
+#include <QSGRendererInterface>
 #include <QTextStream>
 
 // Define the logging category declared in Log.h (for GAZER_* macros).
@@ -54,6 +56,11 @@ int main(int argc, char* argv[])
     g_logFile.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text);
     qInstallMessageHandler(gazerMessageHandler);
     qputenv("QT_LOGGING_RULES", "gazer.*=true");
+
+    // Overlay boards need an alpha buffer; software is the reliable path for
+    // frameless translucent QQuickWindows on Windows.
+    QQuickWindow::setGraphicsApi(QSGRendererInterface::Software);
+    QQuickWindow::setDefaultAlphaBuffer(true);
 
     QApplication qapp(argc, argv);
     QApplication::setApplicationName(QStringLiteral("Gazer"));

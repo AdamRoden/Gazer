@@ -99,6 +99,6 @@
       "action": { "type": "command", "name": "toggleLookToScroll" } },
     { "id": "main", "label": "Main", "icon": "main", "row": 2, "col": 8,
       "style": { "background": "#0a7ea4", "foreground": "#ffffff" },
-      "action": { "type": "loadLayout", "layoutId": "example_main" } }
+      "action": { "type": "loadLayout", "layoutId": "main_drawer" } }
   ]
 }

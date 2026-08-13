@@ -9,7 +9,7 @@
   and packs a Vista-style multi-size ICO (PNG frames).
 
 .EXAMPLE
-  .\scripts\generate-icons.ps1 -Source "$env:USERPROFILE\Downloads\gazer.svg"
+  .\scripts\generate-icons.ps1 -Source .\resources\icons\gazer.png
   .\scripts\generate-icons.ps1 -Source .\resources\icons\gazer.svg
 #>
 [CmdletBinding()]
@@ -25,9 +25,10 @@ New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 
 if (-not $Source) {
     $candidates = @(
+        (Join-Path $OutDir "gazer.png"),
         (Join-Path $OutDir "gazer.svg"),
         (Join-Path $env:USERPROFILE "Downloads\gazer.svg"),
-        (Join-Path $env:USERPROFILE "Downloads\gazer_plain.png")
+        (Join-Path $env:USERPROFILE "Downloads\gazer.png")
     )
     foreach ($c in $candidates) {
         if (Test-Path $c) { $Source = $c; break }

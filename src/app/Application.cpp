@@ -1,6 +1,7 @@
 #include "app/Application.h"
 
 #include "app/AppSettings.h"
+#include "ui/OverlaySurface.h"
 #include "core/TrackerMouse.h"
 #include "core/TrackerTobii.h"
 #include "utils/Log.h"
@@ -46,6 +47,10 @@ bool Application::initialize()
     m_edgeBubbles = std::make_unique<EdgeBubbleOverlay>();
     m_dwellSuspendOverlay = std::make_unique<DwellSuspendOverlay>();
     m_svc->instances().setEdgeBubbleOverlay(m_edgeBubbles.get());
+    auto restackChrome = [this]() { m_svc->instances().restackChrome(); };
+    connect(m_edgeBubbles.get(), &OverlaySurface::stackChanged, this, restackChrome);
+    connect(m_dockReveal.get(), &OverlaySurface::stackChanged, this, restackChrome);
+    connect(m_dwellSuspendOverlay.get(), &OverlaySurface::stackChanged, this, restackChrome);
 
     // Domain owns loops + lifecycle; shell only supplies the dispatcher.
     m_svc->bindActionDispatch([this](const QVector<LayoutAction>& acts, const QString& sourceId) {
@@ -76,7 +81,7 @@ bool Application::initialize()
 
     connect(m_dockReveal.get(), &DockRevealOverlay::dockRevealRequested, this, [this]() {
         auto* master = m_svc->instances().masterInstance();
-        if (!master || !master->document().session.isGazeRevealDock()) {
+        if (!master || !master->document().isGazeRevealDock()) {
             GAZER_WARN << "Dock reveal fired but master is not a gaze-reveal dock";
             return;
         }
@@ -96,9 +101,15 @@ bool Application::initialize()
         QTimer::singleShot(0, this, &Application::onQuitRequested);
         return true;
     });
-    // Dock "Main ▶" — navigate to home shell and force-show.
+    // Dock "Main ▶" — show the home child of the persistent root.
     m_svc->commands().registerBuiltin(QStringLiteral("expandMaster"), [this](QString* error) {
         return expandMasterShell(error);
+    });
+    m_svc->commands().registerBuiltin(QStringLiteral("collapseMaster"), [this](QString*) {
+        m_svc->instances().collapseHome();
+        m_dockRevealed = false;
+        syncMasterChrome();
+        return true;
     });
     m_svc->commands().registerBuiltin(QStringLiteral("closeOtherViews"), [this](QString*) {
         const int n = m_svc->instances().closeOtherViews();
@@ -161,7 +172,7 @@ bool Application::initialize()
     connect(&m_svc->instances(), &LayoutInstanceManager::sessionChanged, this, [this]() {
         // Entering a new master document: reset reveal so dock starts hidden again.
         auto* master = m_svc->instances().masterInstance();
-        if (!master || !master->document().session.isGazeRevealDock()) {
+        if (!master || !master->document().isGazeRevealDock()) {
             m_dockRevealed = false;
         } else if (!m_dockRevealed) {
             // Fresh dock mode — keep hidden.
@@ -169,17 +180,14 @@ bool Application::initialize()
         syncMasterChrome();
     });
 
-    if (m_svc->instances().openInstance(QStringLiteral("example_main"), &err).isEmpty()) {
-        GAZER_ERROR << "Failed to open default layout:" << err;
+    if (!m_svc->instances().openMaster(QStringLiteral("main_master"), &err)) {
+        GAZER_ERROR << "Failed to open root layout:" << err;
         return false;
     }
-
-    // Optional: start collapsed to the dock chip.
-    if (m_svc->settings().startDocked) {
-        QString collapseErr;
-        if (!m_svc->instances().navigateMaster(QStringLiteral("example_main_collapsed"),
-                                               &collapseErr)) {
-            GAZER_WARN << "startDocked navigate failed:" << collapseErr;
+    if (!m_svc->settings().startDocked) {
+        QString expandErr;
+        if (!m_svc->instances().expandHome(&expandErr)) {
+            GAZER_WARN << "Initial expand home failed:" << expandErr;
         }
     }
 
@@ -197,9 +205,8 @@ bool Application::initialize()
 void Application::syncMasterChrome()
 {
     auto* master = m_svc ? m_svc->instances().masterInstance() : nullptr;
-    const bool gazeDock = master && master->document().session.isGazeRevealDock();
-    const int boardCount = m_svc ? m_svc->instances().count() : 0;
-    const bool masterIsHome = master && master->document().session.isHome;
+    const bool gazeDock = master && master->document().isGazeRevealDock();
+    const int boardCount = m_svc ? m_svc->instances().visibleBoardCount() : 0;
 
     // Reveal strip only while dock is collapsed *and* still hidden. Once the chip
     // is shown, the strip must not steal gaze from Main ▶.
@@ -210,7 +217,6 @@ void Application::syncMasterChrome()
     if (master && gazeDock) {
         if (m_dockRevealed) {
             master->raise();
-            // Keep secondary boards above the dock chip for both HWND and hit-test.
             if (boardCount > 1) {
                 m_svc->instances().reassertStackTopVisual();
             }
@@ -223,26 +229,14 @@ void Application::syncMasterChrome()
         if (m_dockReveal) {
             m_dockReveal->setEnabledReveal(false);
         }
-
-        // Home Main (or sole board / quit shell alone): bring master to front.
-        // Collapsed dock with other boards open: show chip but do NOT steal z-order
-        // from Keyboard/Mouse/etc. — only the topmost board receives gaze in overlaps.
-        if (masterIsHome || boardCount <= 1) {
-            master->raise();
-            GAZER_INFO << "Master shown layout" << master->layoutId();
-        } else {
-            if (master->window() && !master->window()->isVisible()) {
-                master->raise();
-            }
-            m_svc->instances().reassertStackTopVisual();
-            GAZER_INFO << "Master shell" << master->layoutId()
-                       << "visible under stack top (boards:" << boardCount << ")";
-        }
+        // Root is headless dock chips — restack visible chrome, do not raise it.
+        m_svc->instances().restackChrome();
+        m_svc->instances().reassertStackTopVisual();
     }
 
     if (m_tray && m_tracker) {
         m_tray->setStatus(QStringLiteral("%1 boards · %2")
-                              .arg(m_svc->instances().count())
+                              .arg(m_svc->instances().visibleBoardCount())
                               .arg(m_tracker->name()));
     }
 }
@@ -409,11 +403,11 @@ void Application::onItemActivated(const QString& instanceId, const QString& item
             m_actions->dispatchItem(itemCopy, sourceId);
         }
         if (auto* master = m_svc->instances().masterInstance()) {
-            if (!master->document().session.isGazeRevealDock()) {
+            if (!master->document().isGazeRevealDock()) {
                 m_dockRevealed = false;
-                master->raise();
             }
         }
+        m_svc->instances().restackChrome();
         syncMasterChrome();
     };
 
@@ -431,57 +425,14 @@ bool Application::expandMasterShell(QString* error)
         m_dockReveal->setEnabledReveal(false);
     }
 
-    auto* master = m_svc->instances().masterInstance();
-    if (!master) {
-        if (error) {
-            *error = QStringLiteral("No master instance");
+    if (!m_svc->instances().expandHome(error)) {
+        if (m_tray && error) {
+            m_tray->setStatus(QStringLiteral("Expand failed: %1").arg(*error));
         }
         return false;
     }
 
-    QString homeId = master->document().session.expandLayoutId;
-    if (homeId.isEmpty()) {
-        // Already on a home shell, or missing expandLayoutId — prefer isHome id.
-        if (master->document().session.isHome) {
-            homeId = master->layoutId();
-        } else {
-            homeId = QStringLiteral("example_main");
-        }
-    }
-
-    GAZER_INFO << "expandMasterShell from" << master->layoutId() << "→" << homeId;
-
-    if (master->layoutId() != homeId) {
-        QString err;
-        if (!m_svc->instances().navigateMaster(homeId, &err)) {
-            GAZER_ERROR << "navigateMaster failed:" << err;
-            if (error) {
-                *error = err;
-            }
-            if (m_tray) {
-                m_tray->setStatus(QStringLiteral("Expand failed: %1").arg(err));
-            }
-            return false;
-        }
-    }
-
-    m_dockRevealed = false;
-    if (m_dockReveal) {
-        m_dockReveal->setEnabledReveal(false);
-    }
-    if (auto* m = m_svc->instances().masterInstance()) {
-        m->raise();
-        if (m->window()) {
-            m->window()->showAndRaise();
-        }
-    }
     syncMasterChrome();
-
-    if (auto* m = m_svc->instances().masterInstance()) {
-        GAZER_INFO << "expandMasterShell done layout=" << m->layoutId()
-                   << "visible=" << (m->window() && m->window()->isVisible())
-                   << "size=" << (m->window() ? m->window()->size() : QSize());
-    }
     if (m_tray) {
         m_tray->setStatus(QStringLiteral("Main restored"));
     }

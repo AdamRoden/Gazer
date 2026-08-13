@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QWidget>
+#include <QWindow>
 
 #ifdef Q_OS_WIN
 #  ifndef WIN32_LEAN_AND_MEAN
@@ -24,7 +25,7 @@ namespace gazer {
 ///
 /// @param excludeFromCapture  true for tool overlays (magnifier self-exclude);
 ///                            false for AAC boards so magnifier can show keys.
-inline void applyOverlayWindowChrome(QWidget* w, bool excludeFromCapture = true)
+inline void applyOverlayWindowChrome(QWindow* w, bool excludeFromCapture = true)
 {
     if (!w) {
         return;
@@ -51,6 +52,42 @@ inline void applyOverlayWindowChrome(QWidget* w, bool excludeFromCapture = true)
 #else
     Q_UNUSED(w);
     Q_UNUSED(excludeFromCapture);
+#endif
+}
+
+inline void applyOverlayWindowChrome(QWidget* w, bool excludeFromCapture = true)
+{
+    if (!w) {
+        return;
+    }
+#ifdef Q_OS_WIN
+    // winId() creates the HWND; windowHandle() is then valid.
+    (void)w->winId();
+#endif
+    applyOverlayWindowChrome(w->windowHandle(), excludeFromCapture);
+}
+
+/// Restack a topmost overlay above the Windows taskbar (same TOPMOST band).
+/// Explorer often restacks Shell_TrayWnd after a show; call again on a short delay.
+inline void raiseAboveTaskbar(QWindow* w)
+{
+    if (!w) {
+        return;
+    }
+#ifdef Q_OS_WIN
+    const HWND hwnd = reinterpret_cast<HWND>(w->winId());
+    if (!hwnd) {
+        return;
+    }
+    LONG_PTR ex = GetWindowLongPtr(hwnd, GWL_EXSTYLE);
+    ex |= WS_EX_TOPMOST | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW;
+    ex &= ~WS_EX_APPWINDOW;
+    SetWindowLongPtr(hwnd, GWL_EXSTYLE, ex);
+
+    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0,
+                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW | SWP_FRAMECHANGED);
+#else
+    Q_UNUSED(w);
 #endif
 }
 

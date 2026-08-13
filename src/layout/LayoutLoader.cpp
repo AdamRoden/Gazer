@@ -367,8 +367,36 @@ bool LayoutLoader::loadFromJson(const QByteArray& json, LayoutDocument& out, QSt
         return false;
     }
 
-    // Optional session: { "role": "masterShell"|"secondary", "masterGroup", "isHome",
-    //                     "collapseLayoutId", "expandLayoutId" }
+    // Persistent root: "master": true. hideUntilGazeReveal may sit at root.
+    layout.master = root.value(QStringLiteral("master")).toBool(false);
+    layout.hideUntilGazeReveal = root.value(QStringLiteral("hideUntilGazeReveal")).toBool(false);
+
+    if (root.contains(QStringLiteral("children"))) {
+        const QJsonArray kids = root.value(QStringLiteral("children")).toArray();
+        for (const QJsonValue& kv : kids) {
+            if (!kv.isObject()) {
+                continue;
+            }
+            const QJsonObject ko = kv.toObject();
+            LayoutChildRef child;
+            child.id = ko.value(QStringLiteral("id")).toString();
+            child.layoutId = ko.value(QStringLiteral("layoutId")).toString();
+            child.visible = ko.value(QStringLiteral("visible")).toBool(true);
+            child.visibleWhen = ko.value(QStringLiteral("visibleWhen")).toString();
+            if (child.id.isEmpty()) {
+                child.id = child.layoutId;
+            }
+            if (child.layoutId.isEmpty()) {
+                if (error) {
+                    *error = QStringLiteral("Layout child missing layoutId");
+                }
+                return false;
+            }
+            layout.children.push_back(std::move(child));
+        }
+    }
+
+    // Legacy session object is accepted and ignored for navigation.
     if (root.contains(QStringLiteral("session"))) {
         const QJsonObject sess = root.value(QStringLiteral("session")).toObject();
         const QString role = sess.value(QStringLiteral("role")).toString().toLower();
@@ -384,8 +412,11 @@ bool LayoutLoader::loadFromJson(const QByteArray& json, LayoutDocument& out, QSt
         layout.session.expandLayoutId = sess.value(QStringLiteral("expandLayoutId")).toString();
         layout.session.hideUntilGazeReveal =
             sess.value(QStringLiteral("hideUntilGazeReveal")).toBool(false);
-        if (layout.session.isMasterShell() && layout.session.masterGroup.isEmpty()) {
-            layout.session.masterGroup = QStringLiteral("default");
+        if (!root.contains(QStringLiteral("hideUntilGazeReveal"))) {
+            layout.hideUntilGazeReveal = layout.session.hideUntilGazeReveal;
+        }
+        if (!root.contains(QStringLiteral("master")) && layout.session.isMasterShell()) {
+            layout.master = true;
         }
     }
 
@@ -407,8 +438,8 @@ bool LayoutLoader::loadFromJson(const QByteArray& json, LayoutDocument& out, QSt
     if (root.contains(QStringLiteral("autoCloseFadeMs"))) {
         layout.autoCloseFadeMs = root.value(QStringLiteral("autoCloseFadeMs")).toInt(-1);
     }
-    // Master shells stay open by default (home / dock).
-    if (layout.session.isMasterShell() && !root.contains(QStringLiteral("autoClose"))) {
+    // Root / master layouts stay open by default.
+    if (layout.master && !root.contains(QStringLiteral("autoClose"))) {
         layout.autoClose = false;
     }
 
@@ -499,6 +530,8 @@ bool LayoutLoader::loadFromJson(const QByteArray& json, LayoutDocument& out, QSt
         } else {
             parseChromeStyle(win, layout.placement.style);
         }
+        layout.placement.aboveTaskbar = win.value(QStringLiteral("aboveTaskbar")).toBool(false);
+        layout.placement.drawerMotion = win.value(QStringLiteral("drawerMotion")).toBool(false);
     }
 
     // Root-level style applies to window chrome when window.style omitted.
@@ -584,6 +617,21 @@ bool LayoutLoader::loadFromJson(const QByteArray& json, LayoutDocument& out, QSt
             parseDwellObject(io.value(QStringLiteral("dwell")).toObject(), item.dwell);
         }
 
+        item.type = io.value(QStringLiteral("type")).toString();
+        if (item.type.compare(QLatin1String("layout"), Qt::CaseInsensitive) == 0) {
+            item.embedLayoutId = io.value(QStringLiteral("layoutId")).toString();
+        } else if (io.contains(QStringLiteral("layoutId"))
+                   && !io.contains(QStringLiteral("action"))
+                   && !io.contains(QStringLiteral("actions"))) {
+            item.embedLayoutId = io.value(QStringLiteral("layoutId")).toString();
+            if (item.type.isEmpty()) {
+                item.type = QStringLiteral("layout");
+            }
+        }
+        if (io.contains(QStringLiteral("visible"))) {
+            item.visible = io.value(QStringLiteral("visible")).toBool(true);
+        }
+        item.visibleWhen = io.value(QStringLiteral("visibleWhen")).toString();
         item.unbounded = io.value(QStringLiteral("unbounded")).toBool(false)
                          || io.value(QStringLiteral("role")).toString().toLower()
                                 == QLatin1String("unbounded");

@@ -1,4 +1,4 @@
-﻿{
+{
     "schemaVersion":  1,
     "id":  "example_keyboard",
     "name":  "Keyboard",
@@ -456,7 +456,7 @@
                                 },
                       "action":  {
                                      "type":  "loadLayout",
-                                     "layoutId":  "example_main"
+                                     "layoutId":  "main_drawer"
                                  }
                   }
               ]
