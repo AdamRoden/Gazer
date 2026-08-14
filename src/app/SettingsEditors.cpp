@@ -5,6 +5,7 @@
 #include "layout/LayoutManager.h"
 #include "ui/LayoutQuickWindow.h"
 #include "ui/Theme.h"
+#include "ui/ThemeScheme.h"
 
 #include <QColor>
 #include <QtGlobal>
@@ -446,7 +447,48 @@ bool SettingsUi::applyColorShownValue(const QString& channel, int value)
         m_colorDraft.setAlpha(m_colorA);
         break;
     }
+    if (m_color.active && m_colorDraft.isValid() && !m_colorPickerKey.isEmpty()) {
+        m_colorPending.insert(m_colorPickerKey, m_colorDraft);
+        updateLiveThemeSwatches();
+    }
     return true;
+}
+
+void SettingsUi::updateLiveThemeSwatches()
+{
+    auto* inst = m_instances.instance(m_color.instanceId);
+    if (!inst || !m_color.active) {
+        return;
+    }
+    const AppSettings draft = draftThemeSettings();
+    const struct {
+        const char* id;
+        const char* key;
+        QColor color;
+    } rows[] = {
+        {"use_window", "customBgColor", draft.customColors.bgMain},
+        {"use_surface", "customSurfaceColor", draft.customColors.bgSurface},
+        {"use_accent", "customPrimaryColor", draft.customColors.accent},
+        {"use_progress", "customSecondaryColor", draft.colorKey(QStringLiteral("progressColor"))},
+        {"use_highlight", "customTertiaryColor", draft.customColors.cellActive},
+        {"use_text", "customTextColor", draft.customColors.text},
+        {"use_danger", "customDangerColor", draft.customColors.danger},
+    };
+    inst->mutateItems([&](LayoutItem& item) {
+        for (const auto& row : rows) {
+            if (item.id == QLatin1String(row.id)) {
+                item.style.background = row.color;
+                item.style.foreground = ThemeColors::contrastOn(row.color);
+                break;
+            }
+            if (item.id == QStringLiteral("suggest_%1").arg(QLatin1String(row.key))) {
+                const QColor sug = draft.suggestedThemeColor(QLatin1String(row.key));
+                item.style.background = sug;
+                item.style.foreground = ThemeColors::contrastOn(sug);
+                break;
+            }
+        }
+    });
 }
 
 void SettingsUi::colorSetChannel(const QString& channel, int value)
@@ -456,8 +498,268 @@ void SettingsUi::colorSetChannel(const QString& channel, int value)
 
 void SettingsUi::colorNudge(const QString& channel, int dir)
 {
+    if (m_scrub.active) {
+        endSliderScrub(true);
+    }
     applyColorShownValue(channel, colorShownValue(channel) + dir);
     refreshColorPicker();
+}
+
+namespace {
+
+void colorChannelRange(const QString& channel, int* minV, int* maxV)
+{
+    const QString ch = channel.toLower();
+    if (ch == QLatin1String("h") || ch == QLatin1String("hue")) {
+        *minV = 0;
+        *maxV = 359;
+        return;
+    }
+    if (ch == QLatin1String("s") || ch == QLatin1String("sat") || ch == QLatin1String("v")
+        || ch == QLatin1String("val") || ch == QLatin1String("a") || ch == QLatin1String("alpha")) {
+        *minV = 0;
+        *maxV = 100;
+        return;
+    }
+    *minV = 0;
+    *maxV = 255;
+}
+
+QString colorChannelValueText(const QString& channel, int shown)
+{
+    const QString ch = channel.toLower();
+    if (ch == QLatin1String("s") || ch == QLatin1String("sat") || ch == QLatin1String("v")
+        || ch == QLatin1String("val") || ch == QLatin1String("a") || ch == QLatin1String("alpha")) {
+        return QStringLiteral("%1%").arg(shown);
+    }
+    return QString::number(shown);
+}
+
+} // namespace
+
+AppSettings SettingsUi::draftThemeSettings() const
+{
+    AppSettings tmp = m_settings;
+    QHash<QString, QColor> pending = m_colorPending;
+    if (m_color.active && m_colorDraft.isValid() && !m_colorPickerKey.isEmpty()) {
+        pending.insert(m_colorPickerKey, m_colorDraft);
+    }
+    bool anyTheme = false;
+    for (auto it = pending.constBegin(); it != pending.constEnd(); ++it) {
+        if (!tmp.setColorKey(it.key(), it.value(), /*rebuildPalette=*/false)) {
+            continue;
+        }
+        anyTheme = anyTheme || AppSettings::isThemeSeedKey(it.key());
+    }
+    if (anyTheme) {
+        tmp.applyCustomPalette(false);
+    }
+    return tmp;
+}
+
+ThemePalette SettingsUi::draftThemePalette() const
+{
+    const AppSettings tmp = draftThemeSettings();
+    ThemePalette p;
+    p.colors = tmp.customColors;
+    p.progress = tmp.colorKey(QStringLiteral("progressColor"));
+    p.progressFill = tmp.colorKey(QStringLiteral("progressFillColor"));
+    p.progressBorder = tmp.colorKey(QStringLiteral("progressBorderColor"));
+    return p;
+}
+
+QColor SettingsUi::suggestedDraftColor(const QString& colorKey) const
+{
+    return draftThemeSettings().suggestedThemeColor(colorKey);
+}
+
+void SettingsUi::applySuggestedColor(const QString& colorKey)
+{
+    const QColor sug = suggestedDraftColor(colorKey);
+    if (!sug.isValid()) {
+        return;
+    }
+    if (m_color.active) {
+        m_colorPending.insert(colorKey, sug);
+        if (colorKey == m_colorPickerKey) {
+            loadColorDraft(sug);
+        }
+        refreshColorPicker();
+        notifyStatus(QStringLiteral("Suggested %1").arg(AppSettings::settingTitle(colorKey)));
+        return;
+    }
+    (void)m_settings.setColorKey(colorKey, sug, true);
+    apply(true);
+    notifyStatus(QStringLiteral("%1 = suggested").arg(AppSettings::settingTitle(colorKey)));
+}
+
+bool SettingsUi::beginSliderScrub(const QString& channel)
+{
+    if (m_hexActive || m_numpad.active) {
+        return false;
+    }
+    if (!m_color.active || !findColorAxis(channel)) {
+        return false;
+    }
+    if (m_scrub.active && m_scrub.channel == channel) {
+        return true;
+    }
+    if (m_scrub.active) {
+        endSliderScrub(true);
+    }
+    auto* inst = m_instances.instance(m_color.instanceId);
+    if (!inst) {
+        return false;
+    }
+    m_scrub.active = true;
+    m_scrub.channel = channel;
+    m_scrub.itemId = QStringLiteral("track_%1").arg(channel);
+    m_scrub.instanceId = inst->instanceId();
+    m_scrubRevert = m_colorDraft;
+    m_scrubDwell.reset();
+    m_scrubDwell.setDwellMs(m_settings.mouseMoveDwellMs);
+    m_scrubGrace.reset();
+    m_scrubGrace.graceMs = qMax(0, m_settings.dwellGraceMs);
+    if (!m_scrubClock.isValid()) {
+        m_scrubClock.start();
+    }
+    m_scrubLastSampleMs = -1;
+    m_scrubDeadlineMs = m_settings.mouseMoveSelectTimeoutMs > 0
+                            ? m_scrubClock.elapsed() + m_settings.mouseMoveSelectTimeoutMs
+                            : -1;
+    syncSliderScrubVisuals();
+    notifyStatus(QStringLiteral("Look along the slider — dwell to set, timeout to cancel"));
+    return true;
+}
+
+void SettingsUi::endSliderScrub(bool commit)
+{
+    if (!m_scrub.active) {
+        return;
+    }
+    const QString instId = m_scrub.instanceId;
+    if (!commit) {
+        loadColorDraft(m_scrubRevert);
+    }
+    m_scrub.reset();
+    m_scrubDeadlineMs = -1;
+    m_scrubLastSampleMs = -1;
+    m_scrubDwell.reset();
+    if (auto* inst = m_instances.instance(instId.isEmpty() ? m_color.instanceId : instId)) {
+        if (inst->window()) {
+            inst->window()->clearSliderScrub();
+        }
+    }
+    refreshColorPicker();
+}
+
+int SettingsUi::scrubShownValue() const
+{
+    return colorShownValue(m_scrub.channel);
+}
+
+void SettingsUi::syncSliderScrubVisuals()
+{
+    auto* inst = m_instances.instance(m_scrub.instanceId.isEmpty() ? m_color.instanceId
+                                                                  : m_scrub.instanceId);
+    if (!inst || !inst->window()) {
+        return;
+    }
+    const int shown = scrubShownValue();
+    int minV = 0;
+    int maxV = 255;
+    colorChannelRange(m_scrub.channel, &minV, &maxV);
+    const double t = (maxV > minV) ? (shown - minV) / double(maxV - minV) : 0.0;
+    if (m_color.active) {
+        inst->window()->setPreviewColor(m_colorDraft);
+        updateLiveThemeSwatches();
+    }
+    inst->window()->setSliderScrub(m_scrub.itemId, t, colorChannelValueText(m_scrub.channel, shown),
+                                   m_scrubDwell.progress());
+}
+
+void SettingsUi::onGaze(const GazePoint& point)
+{
+    if (m_scrub.active) {
+        feedSliderGaze(point);
+    }
+}
+
+void SettingsUi::feedSliderGaze(const GazePoint& point)
+{
+    if (!m_scrub.active) {
+        return;
+    }
+    auto* inst = m_instances.instance(m_scrub.instanceId.isEmpty() ? m_color.instanceId
+                                                                  : m_scrub.instanceId);
+    if (!inst || !inst->window()) {
+        endSliderScrub(false);
+        return;
+    }
+
+    const qint64 now = m_scrubClock.isValid() ? m_scrubClock.elapsed() : 0;
+    if (m_scrubDeadlineMs >= 0 && now >= m_scrubDeadlineMs) {
+        notifyStatus(QStringLiteral("Slider timed out — restored previous value"));
+        endSliderScrub(false);
+        return;
+    }
+
+    if (!point.valid) {
+        if (m_scrubGrace.onInvalid() == InvalidGazeGrace::Result::Holding) {
+            return;
+        }
+        return;
+    }
+    m_scrubGrace.onValid();
+
+    const QString hit = inst->hitTest(point.toPointF());
+    const QString editId = QStringLiteral("edit_%1").arg(m_scrub.channel);
+    const QString decId = QStringLiteral("dec_%1").arg(m_scrub.channel);
+    const QString incId = QStringLiteral("inc_%1").arg(m_scrub.channel);
+    const bool companion = hit == m_scrub.itemId || hit == editId || hit == decId || hit == incId;
+    if (!hit.isEmpty() && !companion) {
+        const LayoutItem* other = inst->document().findItem(hit);
+        if (other && other->interactive) {
+            endSliderScrub(true);
+            return;
+        }
+    }
+
+    const QRectF local = inst->window()->itemLocalRects().value(m_scrub.itemId);
+    if (local.isEmpty()) {
+        endSliderScrub(true);
+        return;
+    }
+    const QPoint origin = inst->window()->boardTopLeftGlobal();
+    const double localX = point.x - origin.x();
+    const double localY = point.y - origin.y();
+    const LayoutQuickWindow::SliderVisual geom =
+        LayoutQuickWindow::sliderVisual(local, /*scrubbing=*/true);
+    const QRectF bound = local.adjusted(0, -12, 0, 12);
+    if (!bound.contains(QPointF(localX, localY))) {
+        return;
+    }
+
+    const double t = geom.tAtX(localX);
+    int minV = 0;
+    int maxV = 255;
+    colorChannelRange(m_scrub.channel, &minV, &maxV);
+    const int shown = minV + qRound(t * double(maxV - minV));
+    applyColorShownValue(m_scrub.channel, shown);
+
+    const double dtSec =
+        m_scrubLastSampleMs < 0 ? 0.016
+                                : qBound(0.004, (now - m_scrubLastSampleMs) / 1000.0, 0.08);
+    m_scrubLastSampleMs = now;
+    const QPointF sample(geom.posAt(t).x() + origin.x(), geom.trackCy + origin.y());
+    const bool done = m_scrubDwell.sample(sample, dtSec);
+    syncSliderScrubVisuals();
+    if (done) {
+        notifyStatus(QStringLiteral("%1 = %2")
+                         .arg(QString(m_scrub.channel).toUpper(),
+                              colorChannelValueText(m_scrub.channel, shown)));
+        endSliderScrub(true);
+    }
 }
 
 void SettingsUi::colorUseSaved(const QString& savedKey)
@@ -466,6 +768,7 @@ void SettingsUi::colorUseSaved(const QString& savedKey)
         return;
     }
     loadColorDraft(m_settings.colorKey(savedKey));
+    m_colorPending.insert(m_colorPickerKey, m_colorDraft);
     refreshColorPicker();
 }
 
@@ -488,8 +791,42 @@ bool SettingsUi::openColorPicker(const QString& colorKey, QString* error)
     m_color.instanceId = focused->instanceId();
     m_color.returnLayoutId = focused->layoutId();
     m_colorPickerKey = colorKey;
+    m_colorPending.clear();
     colorUseSaved(colorKey);
+    m_colorPending.insert(colorKey, m_colorDraft);
     notifyStatus(QStringLiteral("Pick color for %1").arg(AppSettings::settingTitle(colorKey)));
+    return true;
+}
+
+bool SettingsUi::selectColorTarget(const QString& colorKey, QString* error)
+{
+    if (!m_color.active) {
+        return openColorPicker(colorKey, error);
+    }
+    if (!AppSettings::isColorKey(colorKey) || !m_settings.colorKey(colorKey).isValid()) {
+        if (error) {
+            *error = QStringLiteral("Not a color setting");
+        }
+        return false;
+    }
+    if (colorKey == m_colorPickerKey) {
+        return true;
+    }
+    if (m_scrub.active) {
+        endSliderScrub(true);
+    }
+    if (m_colorDraft.isValid() && !m_colorPickerKey.isEmpty()) {
+        m_colorPending.insert(m_colorPickerKey, m_colorDraft);
+    }
+    QColor next = m_colorPending.value(colorKey);
+    if (!next.isValid()) {
+        next = m_settings.colorKey(colorKey);
+    }
+    m_colorPickerKey = colorKey;
+    loadColorDraft(next);
+    m_colorPending.insert(colorKey, m_colorDraft);
+    refreshColorPicker();
+    notifyStatus(QStringLiteral("Editing %1").arg(AppSettings::settingTitle(colorKey)));
     return true;
 }
 
@@ -501,99 +838,121 @@ LayoutDocument SettingsUi::buildColorDocument() const
     doc.name = AppSettings::settingTitle(m_colorPickerKey);
     doc.description = QStringLiteral("HSV + RGB + alpha. Save applies this color.");
     SettingsUi::applyLiveEditorChrome(doc);
-    doc.grid.columns = 8;
-    doc.grid.rows = 10;
+    doc.grid.columns = 12;
+    doc.grid.rows = 9;
     doc.grid.gapPx = 8;
     doc.grid.marginPx = 20;
-    doc.placement.width = DimSpec::pixels(1180);
-    doc.placement.height = DimSpec::pixels(880);
-
-    LayoutItem splotch;
-    splotch.id = QStringLiteral("splotch");
-    splotch.role = QStringLiteral("preview");
-    splotch.interactive = false;
-    splotch.row = 0;
-    splotch.col = 0;
-    splotch.rowSpan = 7;
-    splotch.colSpan = 2;
-    splotch.style.background = m_colorDraft;
-    doc.items.push_back(splotch);
+    doc.placement.width = DimSpec::pixels(1400);
+    doc.placement.height = DimSpec::pixels(980);
 
     const EditorSwatch pal = editorSwatch();
-    const QString hex = m_colorDraft.name(QColor::HexArgb).toUpper();
-    doc.items.push_back(cell(QStringLiteral("hex"), hex, 7, 0,
-                             QStringLiteral("settings.color.editHex"), pal.value, 2));
+    const AppSettings draft = draftThemeSettings();
+    ThemePalette themePal;
+    themePal.colors = draft.customColors;
+    themePal.progress = draft.colorKey(QStringLiteral("progressColor"));
+    themePal.progressFill = draft.colorKey(QStringLiteral("progressFillColor"));
+    themePal.progressBorder = draft.colorKey(QStringLiteral("progressBorderColor"));
+    const bool themePicker = AppSettings::isThemeSeedKey(m_colorPickerKey);
 
-    struct Row {
-        const char* id;
-        const char* label;
-        const char* ch;
-        QString value;
-    };
-    QVector<Row> rows;
-    rows.reserve(int(std::size(kColorAxes)));
-    for (const ColorAxis& axis : kColorAxes) {
-        const int shown = colorShownValue(QLatin1String(axis.id));
-        QString value = QString::number(shown);
-        if (axis.kind == ColorAxis::Kind::Sat || axis.kind == ColorAxis::Kind::Val
-            || axis.kind == ColorAxis::Kind::Alpha) {
-            value = QStringLiteral("%1%").arg(shown);
-        }
-        rows.push_back({axis.id, axis.label, axis.id, value});
-    }
+    for (int i = 0; i < int(std::size(kColorAxes)); ++i) {
+        const ColorAxis& axis = kColorAxes[i];
+        LayoutItem edit;
+        edit.id = QStringLiteral("edit_%1").arg(QLatin1String(axis.id));
+        edit.label = QStringLiteral("Edit");
+        edit.icon = QStringLiteral("edit");
+        edit.row = i;
+        edit.col = 0;
+        edit.action.type = LayoutAction::Type::Command;
+        edit.action.name = QStringLiteral("settings.color.scrub.%1").arg(QLatin1String(axis.id));
+        edit.style.background = pal.edit;
+        edit.style.foreground = ThemeColors::contrastOn(pal.edit);
+        doc.items.push_back(edit);
 
-    const QColor decBg = pal.nudge;
-    const QColor valBg = pal.value;
-    const QColor editBg = pal.edit;
+        doc.items.push_back(cell(QStringLiteral("dec_%1").arg(QLatin1String(axis.id)),
+                                 QStringLiteral("−"), i, 1,
+                                 QStringLiteral("settings.color.nudge.%1.dec").arg(QLatin1String(axis.id)),
+                                 pal.nudge));
 
-    for (int i = 0; i < rows.size(); ++i) {
-        const Row& row = rows[i];
         LayoutItem track;
-        track.id = QStringLiteral("track_%1").arg(QLatin1String(row.id));
+        track.id = QStringLiteral("track_%1").arg(QLatin1String(axis.id));
         track.role = QStringLiteral("slider");
-        track.caption = QLatin1String(row.ch);
-        track.label = QLatin1String(row.label);
+        track.caption = QLatin1String(axis.id);
+        track.label = QLatin1String(axis.title);
         track.interactive = false;
         track.row = i;
         track.col = 2;
-        track.colSpan = 2;
+        track.colSpan = themePicker ? 5 : 9;
         doc.items.push_back(track);
 
-        doc.items.push_back(cell(QStringLiteral("dec_%1").arg(QLatin1String(row.id)),
-                                 QStringLiteral("−"), i, 4,
-                                 QStringLiteral("settings.color.nudge.%1.dec").arg(QLatin1String(row.ch)),
-                                 decBg));
-        doc.items.push_back(cell(QStringLiteral("val_%1").arg(QLatin1String(row.id)), row.value, i,
-                                 5, {}, valBg, 1, false, QStringLiteral("value")));
-        doc.items.push_back(cell(QStringLiteral("inc_%1").arg(QLatin1String(row.id)),
-                                 QStringLiteral("+"), i, 6,
-                                 QStringLiteral("settings.color.nudge.%1.inc").arg(QLatin1String(row.ch)),
-                                 decBg));
-        doc.items.push_back(cell(QStringLiteral("edit_%1").arg(QLatin1String(row.id)),
-                                 QStringLiteral("Edit"), i, 7,
-                                 QStringLiteral("settings.color.edit.%1").arg(QLatin1String(row.ch)),
-                                 editBg));
+        doc.items.push_back(cell(QStringLiteral("inc_%1").arg(QLatin1String(axis.id)),
+                                 QStringLiteral("+"), i, themePicker ? 7 : 11,
+                                 QStringLiteral("settings.color.nudge.%1.inc").arg(QLatin1String(axis.id)),
+                                 pal.nudge));
     }
 
-    const int savedCount = int(std::size(SettingsUi::kColorKeys));
-    for (int i = 0; i < savedCount; ++i) {
-        const QString key = QLatin1String(SettingsUi::kColorKeys[i]);
-        const QColor c = m_settings.colorKey(key);
+    struct RoleRow {
+        const char* id;
+        const char* label;
+        const char* caption;
+        const char* colorKey;
+        QColor color;
+        int row;
+    };
+    const RoleRow roles[] = {
+        {"use_window", "Window", "Board background", "customBgColor", themePal.colors.bgMain, 0},
+        {"use_surface", "Surface", "Panels and cells", "customSurfaceColor", themePal.colors.bgSurface,
+         1},
+        {"use_accent", "Accent", "Primary / buttons", "customPrimaryColor", themePal.colors.accent, 2},
+        {"use_progress", "Progress", "Dwell and mouse-move", "customSecondaryColor", themePal.progress,
+         3},
+        {"use_highlight", "Highlight", "Selected / active fill", "customTertiaryColor",
+         themePal.colors.cellActive, 4},
+        {"use_text", "Foreground", "Primary text", "customTextColor", themePal.colors.text, 5},
+        {"use_danger", "Danger", "Cancel / destructive", "customDangerColor", themePal.colors.danger,
+         6},
+    };
+    for (const RoleRow& role : roles) {
+        if (!themePicker) {
+            break;
+        }
         LayoutItem sw;
-        sw.id = QStringLiteral("saved_%1").arg(i);
-        sw.label = AppSettings::settingTitle(key);
-        sw.row = 8;
-        sw.col = i;
-        sw.style.background = c;
-        sw.style.foreground = ThemeColors::contrastOn(c);
+        sw.id = QLatin1String(role.id);
+        sw.role = QStringLiteral("swatch");
+        sw.label = QLatin1String(role.label);
+        sw.caption = QLatin1String(role.caption);
+        sw.settingKey = QLatin1String(role.colorKey);
+        sw.activeState = QStringLiteral("setting.color.editing.%1").arg(QLatin1String(role.colorKey));
+        sw.interactive = true;
+        sw.row = role.row;
+        sw.col = 8;
+        sw.colSpan = 3;
+        sw.style.background = role.color;
+        sw.style.foreground = ThemeColors::contrastOn(role.color);
         sw.action.type = LayoutAction::Type::Command;
-        sw.action.name = QStringLiteral("settings.color.use.%1").arg(key);
+        sw.action.name = QStringLiteral("settings.color.select.%1").arg(QLatin1String(role.colorKey));
         doc.items.push_back(sw);
+
+        const QColor suggested = draft.suggestedThemeColor(QLatin1String(role.colorKey));
+        LayoutItem lock;
+        lock.id = QStringLiteral("suggest_%1").arg(QLatin1String(role.colorKey));
+        lock.role = QStringLiteral("swatch");
+        lock.label = QStringLiteral("Apply Suggested");
+        lock.row = role.row;
+        lock.col = 11;
+        lock.action.type = LayoutAction::Type::Command;
+        lock.action.name =
+            QStringLiteral("settings.color.suggest.%1").arg(QLatin1String(role.colorKey));
+        lock.style.background = suggested;
+        lock.style.foreground = ThemeColors::contrastOn(suggested);
+        doc.items.push_back(lock);
     }
 
-    doc.items.push_back(cell(QStringLiteral("save"), QStringLiteral("Save"), 9, 0,
+    const QString hex = m_colorDraft.name(QColor::HexArgb).toUpper();
+    doc.items.push_back(cell(QStringLiteral("hex"), hex, 7, 0,
+                             QStringLiteral("settings.color.editHex"), pal.value, 8));
+    doc.items.push_back(cell(QStringLiteral("save"), QStringLiteral("Save"), 8, 0,
                              QStringLiteral("settings.color.save"), pal.save, 4));
-    doc.items.push_back(cell(QStringLiteral("cancel"), QStringLiteral("Cancel"), 9, 4,
+    doc.items.push_back(cell(QStringLiteral("cancel"), QStringLiteral("Cancel"), 8, 4,
                              QStringLiteral("settings.color.cancel"), pal.cancel, 4));
     return doc;
 }
@@ -616,9 +975,21 @@ void SettingsUi::closeColorPicker()
     if (!m_color.active) {
         return;
     }
+    if (m_scrub.active) {
+        m_scrub.reset();
+        m_scrubDeadlineMs = -1;
+        m_scrubLastSampleMs = -1;
+        m_scrubDwell.reset();
+        if (auto* inst = m_instances.instance(m_color.instanceId)) {
+            if (inst->window()) {
+                inst->window()->clearSliderScrub();
+            }
+        }
+    }
     const QString instId = m_color.instanceId;
     const QString returnId = m_color.returnLayoutId;
     m_color.reset();
+    m_colorPending.clear();
     m_hexActive = false;
     m_colorPickerKey.clear();
     m_hexBuffer.clear();
@@ -634,11 +1005,21 @@ bool SettingsUi::colorSave(QString* error)
         }
         return false;
     }
-    if (!m_settings.setColorKey(m_colorPickerKey, m_colorDraft)) {
-        if (error) {
-            *error = QStringLiteral("Could not apply color");
+    if (m_colorDraft.isValid()) {
+        m_colorPending.insert(m_colorPickerKey, m_colorDraft);
+    }
+    bool anyTheme = false;
+    for (auto it = m_colorPending.constBegin(); it != m_colorPending.constEnd(); ++it) {
+        if (!m_settings.setColorKey(it.key(), it.value(), /*rebuildPalette=*/false)) {
+            if (error) {
+                *error = QStringLiteral("Could not apply color");
+            }
+            return false;
         }
-        return false;
+        anyTheme = anyTheme || AppSettings::isThemeSeedKey(it.key());
+    }
+    if (anyTheme) {
+        m_settings.applyCustomPalette(false);
     }
     apply(true);
     const QString title = AppSettings::settingTitle(m_colorPickerKey);
@@ -655,6 +1036,9 @@ bool SettingsUi::colorEditChannel(const QString& channel, QString* error)
             *error = QStringLiteral("Color picker is not open");
         }
         return false;
+    }
+    if (m_scrub.active) {
+        endSliderScrub(true);
     }
     const ColorAxis* axis = findColorAxis(channel);
     if (!axis) {
@@ -688,6 +1072,9 @@ bool SettingsUi::openHexEditor(QString* error)
             *error = QStringLiteral("Color picker is not open");
         }
         return false;
+    }
+    if (m_scrub.active) {
+        endSliderScrub(true);
     }
     m_hexActive = true;
     QString hex = m_colorDraft.name(QColor::HexArgb).toUpper();
@@ -798,6 +1185,7 @@ bool SettingsUi::hexSave(QString* error)
     m_hexActive = false;
     m_hexBuffer.clear();
     loadColorDraft(c);
+    m_colorPending.insert(m_colorPickerKey, m_colorDraft);
     refreshColorPicker();
     notifyStatus(QStringLiteral("Hex %1").arg(c.name(QColor::HexArgb).toUpper()));
     return true;

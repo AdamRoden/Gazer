@@ -14,7 +14,11 @@ namespace gazer {
 void GazeRouter::dispatch(const GazePoint& point)
 {
     // Policy lives on AssistSession only (no tool-flag special cases).
-    const bool freeAim = m_session && m_session->freesScreenForAim();
+    // Gaze click loop stays armed over empty desktop, but must not steal board
+    // dwell — otherwise other items cannot progress (or even turn the loop off).
+    const bool magPick = m_mouseDwell && m_mouseDwell->isMagPointPhase();
+    const bool clickLoopYields = m_mouseDwell && m_mouseDwell->isClickLoop() && !magPick;
+    const bool freeAim = m_session && m_session->freesScreenForAim() && !clickLoopYields;
 
     bool overBoard = false;
     if (m_instances) {
@@ -55,7 +59,12 @@ void GazeRouter::dispatch(const GazePoint& point)
         m_lookToScroll->onGaze(point, pauseBackgroundAssist);
     }
     if (m_mouseDwell) {
-        m_mouseDwell->onGaze(point);
+        if (clickLoopYields && overBoard) {
+            m_mouseDwell->setPaused(true);
+        } else {
+            m_mouseDwell->setPaused(false);
+            m_mouseDwell->onGaze(point);
+        }
     }
     if (m_magnifier) {
         m_magnifier->onGaze(point);

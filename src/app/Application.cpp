@@ -1,6 +1,7 @@
 #include "app/Application.h"
 
 #include "app/AppSettings.h"
+#include "app/SettingsUi.h"
 #include "ui/OverlaySurface.h"
 #include "core/TrackerMouse.h"
 #include "core/TrackerTobii.h"
@@ -143,7 +144,7 @@ bool Application::initialize()
         return true;
     });
     m_svc->commands().registerBuiltin(QStringLiteral("theme.custom"), [this](QString*) {
-        m_svc->settings().themeMode = ThemeMode::Custom;
+        m_svc->settings().applyCustomPalette(false);
         m_svc->applySettings(true);
         if (m_preview) {
             m_preview->setTheme(m_svc->settings().resolvedTheme());
@@ -370,6 +371,9 @@ void Application::onGaze(const gazer::GazePoint& point)
     if (point.valid) {
         m_svc->setLastGaze(point);
     }
+    // Commit / follow color sliders before board dwell so leaving a slider can
+    // activate minus/plus on the same sample.
+    m_svc->settingsUi().onGaze(point);
     m_gazeRouter.dispatch(point);
 }
 
@@ -405,6 +409,29 @@ void Application::onItemActivated(const QString& instanceId, const QString& item
     auto run = [this, itemCopy, sourceId]() {
         if (m_actions) {
             m_actions->dispatchItem(itemCopy, sourceId);
+        }
+        if (m_svc->mouseDwellMove().isArmed()) {
+            bool armsMove = false;
+            for (const LayoutAction& a : itemCopy.effectiveActions()) {
+                if (a.type != LayoutAction::Type::Command) {
+                    continue;
+                }
+                if (a.name == QLatin1String("mouseDwellMove")
+                    || a.name == QLatin1String("mouseDwellClickLoop")
+                    || a.name == QLatin1String("mouseMoveAndLeftClick")
+                    || a.name == QLatin1String("mouseMoveAndRightClick")) {
+                    armsMove = true;
+                    break;
+                }
+            }
+            if (armsMove) {
+                if (auto* src = m_svc->instances().instance(sourceId)) {
+                    const QRect r = src->itemScreenRect(itemCopy.id);
+                    if (!r.isEmpty()) {
+                        m_svc->mouseDwellMove().gateUntilGazeLeaves(r);
+                    }
+                }
+            }
         }
         if (auto* master = m_svc->instances().masterInstance()) {
             if (!master->document().isGazeRevealDock()) {

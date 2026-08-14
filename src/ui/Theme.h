@@ -47,8 +47,24 @@ enum class ThemeMode {
     Custom
 };
 
+enum class ThemeContrast {
+    Low,
+    Medium,
+    High
+};
+
+constexpr int kThemeContrastLowPct = 70;
+constexpr int kThemeContrastMediumPct = 85;
+constexpr int kThemeContrastHighPct = 100;
+
 [[nodiscard]] QString themeModeToString(ThemeMode m);
 [[nodiscard]] ThemeMode themeModeFromString(const QString& s);
+
+[[nodiscard]] QString themeContrastToString(ThemeContrast c);
+[[nodiscard]] ThemeContrast themeContrastFromInt(int v);
+[[nodiscard]] int themeContrastToInt(ThemeContrast c);
+[[nodiscard]] int themeContrastToPercent(ThemeContrast c);
+[[nodiscard]] int snapContrastPercent(int v);
 
 /// Voice sample palette (from Voice/js/app.js COLOR_PALETTE).
 [[nodiscard]] QVector<QString> voiceColorPalette();

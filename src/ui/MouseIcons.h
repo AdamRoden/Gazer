@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QColor>
+#include <QFont>
 #include <QPainter>
 #include <QPainterPath>
 #include <QRectF>
@@ -76,7 +77,8 @@ inline void paint(QPainter& p, const QString& icon, const QRectF& r, const QColo
             p.drawText(QRectF(c.x() - s, c.y() + s * 0.2, s * 2, s * 0.5), Qt::AlignCenter,
                        QStringLiteral("↓↑"));
         }
-    } else if (icon == QLatin1String("moveTo")) {
+    } else if (icon == QLatin1String("moveTo") || icon == QLatin1String("moveLeftClick")
+               || icon == QLatin1String("moveRightClick")) {
         // Cursor arrow
         QPainterPath path;
         path.moveTo(c.x() - s * 0.5, c.y() - s * 0.7);
@@ -90,6 +92,14 @@ inline void paint(QPainter& p, const QString& icon, const QRectF& r, const QColo
         p.setBrush(color);
         p.setPen(QPen(color.darker(140), 1.0));
         p.drawPath(path);
+        if (icon == QLatin1String("moveLeftClick") || icon == QLatin1String("moveRightClick")) {
+            p.setPen(QPen(color, 1.6));
+            p.setFont(QFont(QStringLiteral("Segoe UI"), qMax(8, int(s * 0.55)), QFont::DemiBold));
+            p.drawText(QRectF(c.x() - s * 0.15, c.y() + s * 0.35, s * 1.1, s * 0.55),
+                       Qt::AlignCenter,
+                       icon == QLatin1String("moveLeftClick") ? QStringLiteral("L")
+                                                              : QStringLiteral("R"));
+        }
     } else if (icon == QLatin1String("magPick") || icon == QLatin1String("magPickCenter")) {
         p.drawEllipse(c, s * 0.55, s * 0.55);
         p.drawLine(c.x() + s * 0.4, c.y() + s * 0.4, c.x() + s * 0.75, c.y() + s * 0.75);
@@ -178,6 +188,14 @@ inline void paint(QPainter& p, const QString& icon, const QRectF& r, const QColo
                                   << QPointF(c.x() + s * 0.45, c.y() - s * 0.45)
                                   << QPointF(c.x() + s * 0.45, c.y() + s * 0.45));
         p.drawRect(QRectF(c.x() + s * 0.35, c.y() - s * 0.18, s * 0.35, s * 0.36));
+    } else if (icon == QLatin1String("edit")) {
+        const QRectF body(c.x() - s * 0.15, c.y() - s * 0.55, s * 0.55, s * 0.85);
+        p.drawRoundedRect(body, 2.0, 2.0);
+        p.setBrush(color);
+        QPolygonF tip;
+        tip << QPointF(c.x() - s * 0.45, c.y() + s * 0.55) << QPointF(c.x() - s * 0.05, c.y() + s * 0.55)
+            << QPointF(c.x() + s * 0.45, c.y() - s * 0.15) << QPointF(c.x() + s * 0.15, c.y() - s * 0.45);
+        p.drawPolygon(tip);
     } else if (icon == QLatin1String("close")) {
         p.drawLine(c.x() - s * 0.45, c.y() - s * 0.45, c.x() + s * 0.45, c.y() + s * 0.45);
         p.drawLine(c.x() + s * 0.45, c.y() - s * 0.45, c.x() - s * 0.45, c.y() + s * 0.45);

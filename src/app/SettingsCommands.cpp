@@ -2,6 +2,8 @@
 
 #include "app/CommandRegistry.h"
 #include "layout/LayoutInstanceManager.h"
+#include "ui/PickStyle.h"
+#include "ui/Theme.h"
 
 #include <QString>
 
@@ -75,6 +77,9 @@ void SettingsUi::registerCommands()
         return [this, member, label](QString*) {
             m_settings.*member = !(m_settings.*member);
             apply(true);
+            if (m_color.active) {
+                refreshColorPicker();
+            }
             notifyStatus(QStringLiteral("%1: %2")
                              .arg(label, (m_settings.*member) ? QStringLiteral("ON")
                                                               : QStringLiteral("OFF")));
@@ -110,8 +115,16 @@ void SettingsUi::registerCommands()
             QStringLiteral("settings.edit.color.%1").arg(QLatin1String(ck)),
             [this, ck](QString* error) { return openColorPicker(QLatin1String(ck), error); });
         m_commands.registerBuiltin(
+            QStringLiteral("settings.color.select.%1").arg(QLatin1String(ck)),
+            [this, ck](QString* error) { return selectColorTarget(QLatin1String(ck), error); });
+        m_commands.registerBuiltin(
             QStringLiteral("settings.color.use.%1").arg(QLatin1String(ck)), [this, ck](QString*) {
                 colorUseSaved(QLatin1String(ck));
+                return true;
+            });
+        m_commands.registerBuiltin(
+            QStringLiteral("settings.color.suggest.%1").arg(QLatin1String(ck)), [this, ck](QString*) {
+                applySuggestedColor(QLatin1String(ck));
                 return true;
             });
     }
@@ -131,6 +144,9 @@ void SettingsUi::registerCommands()
         m_commands.registerBuiltin(
             QStringLiteral("settings.color.edit.%1").arg(QLatin1String(ch)),
             [this, ch](QString* error) { return colorEditChannel(QLatin1String(ch), error); });
+        m_commands.registerBuiltin(
+            QStringLiteral("settings.color.scrub.%1").arg(QLatin1String(ch)),
+            [this, ch](QString*) { return beginSliderScrub(QLatin1String(ch)); });
     }
     m_commands.registerBuiltin(QStringLiteral("settings.color.editHex"),
                                [this](QString* e) { return openHexEditor(e); });
@@ -259,12 +275,70 @@ void SettingsUi::registerCommands()
         }
         return true;
     });
+    auto togglePick = [this](int AppSettings::*member, int flag, int mask, int fallback,
+                             const char* status) {
+        return [this, member, flag, mask, fallback, status](QString*) {
+            int bits = (m_settings.*member ^ flag) & mask;
+            if (bits == 0) {
+                bits = fallback;
+            }
+            m_settings.*member = bits;
+            apply(true);
+            notifyStatus(QLatin1String(status));
+            return true;
+        };
+    };
+    m_commands.registerBuiltin(
+        QStringLiteral("settings.magPickStyle.cursor.toggle"),
+        togglePick(&AppSettings::magPickStyle, PickStyle::Cursor, PickStyle::kMagPickMask,
+                   PickStyle::kDefaultMagPick, "Magnify pick: cursor"));
+    m_commands.registerBuiltin(
+        QStringLiteral("settings.magPickStyle.dot.toggle"),
+        togglePick(&AppSettings::magPickStyle, PickStyle::Dot, PickStyle::kMagPickMask,
+                   PickStyle::kDefaultMagPick, "Magnify pick: dot"));
+    m_commands.registerBuiltin(
+        QStringLiteral("settings.magPickStyle.crosshair.toggle"),
+        togglePick(&AppSettings::magPickStyle, PickStyle::Crosshair, PickStyle::kMagPickMask,
+                   PickStyle::kDefaultMagPick, "Magnify pick: crosshair"));
+    m_commands.registerBuiltin(
+        QStringLiteral("settings.magPickStyle.gaze.toggle"),
+        togglePick(&AppSettings::magPickStyle, PickStyle::GazeIndicator, PickStyle::kMagPickMask,
+                   PickStyle::kDefaultMagPick, "Magnify pick: gaze indicator"));
+    m_commands.registerBuiltin(
+        QStringLiteral("settings.mousePickStyle.cursor.toggle"),
+        togglePick(&AppSettings::mousePickStyle, PickStyle::Cursor, PickStyle::kMousePickMask,
+                   PickStyle::kDefaultMousePick, "Mouse pick: cursor"));
+    m_commands.registerBuiltin(
+        QStringLiteral("settings.mousePickStyle.dot.toggle"),
+        togglePick(&AppSettings::mousePickStyle, PickStyle::Dot, PickStyle::kMousePickMask,
+                   PickStyle::kDefaultMousePick, "Mouse pick: dot"));
+    m_commands.registerBuiltin(
+        QStringLiteral("settings.mousePickStyle.crosshair.toggle"),
+        togglePick(&AppSettings::mousePickStyle, PickStyle::Crosshair, PickStyle::kMousePickMask,
+                   PickStyle::kDefaultMousePick, "Mouse pick: crosshair"));
+
     m_commands.registerBuiltin(QStringLiteral("settings.reset"), [this](QString*) {
         if (m_reset) {
             m_reset();
         }
         return true;
     });
+
+    auto setContrast = [this](int pct) {
+        return [this, pct](QString*) {
+            m_settings.setCustomContrast(pct);
+            apply(true);
+            notifyStatus(QStringLiteral("Theme contrast: %1")
+                             .arg(themeContrastToString(themeContrastFromInt(pct))));
+            return true;
+        };
+    };
+    m_commands.registerBuiltin(QStringLiteral("settings.theme.contrast.low"),
+                               setContrast(kThemeContrastLowPct));
+    m_commands.registerBuiltin(QStringLiteral("settings.theme.contrast.medium"),
+                               setContrast(kThemeContrastMediumPct));
+    m_commands.registerBuiltin(QStringLiteral("settings.theme.contrast.high"),
+                               setContrast(kThemeContrastHighPct));
 }
 
 } // namespace gazer

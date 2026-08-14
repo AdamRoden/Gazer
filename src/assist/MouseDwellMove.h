@@ -23,7 +23,9 @@ public:
     enum class ArmPurpose {
         CursorMove,           ///< Normal move-to (honors mag-pick setting).
         LookToScrollPlace,    ///< Place scroll origin for LTS (always direct).
-        CursorMoveClickLoop   ///< Same as CursorMove, then left-click and re-arm until off.
+        CursorMoveClickLoop,  ///< Same as CursorMove, then left-click and re-arm until off.
+        CursorMoveLeftClick,  ///< Move-to, then one left click and disarm.
+        CursorMoveRightClick  ///< Move-to, then one right click and disarm.
     };
 
     explicit MouseDwellMove(QObject* parent = nullptr);
@@ -42,7 +44,17 @@ public:
     }
     void toggle();
 
+    /// Pause dwell + select-timeout (click loop over a board). Does not disarm.
+    void setPaused(bool paused);
+    [[nodiscard]] bool isPaused() const { return m_paused; }
+
+    /// Ignore gaze until it leaves @p screenRect (activator cell). Then start dwell.
+    void gateUntilGazeLeaves(const QRect& screenRect);
+
     void setDwellMs(int ms);
+    void setMagPickDwellMs(int ms);
+    void setMagPickStyle(int flags);
+    void setMousePickStyle(int flags);
     /// Cancel arm (including click-loop) if no target selected within this many ms. 0 = off.
     void setSelectTimeoutMs(int ms);
     void setStableRadiusPx(int px);
@@ -82,9 +94,17 @@ private:
     void markSelectDeadline();
     [[nodiscard]] bool selectTimedOut(qint64 nowMs) const;
     [[nodiscard]] bool useMagPickThisArm() const;
+    void applyDwellForPhase();
+    void syncPickOverlayStyle();
+    [[nodiscard]] int styleForPhase() const;
 
     bool m_armed = false;
+    bool m_paused = false;
     ArmPurpose m_purpose = ArmPurpose::CursorMove;
+    int m_moveDwellMs = 700;
+    int m_magPickDwellMs = 700;
+    int m_magPickStyle = 1;
+    int m_mousePickStyle = 1;
     bool m_magPickEnabled = false;
     bool m_magPickCenterOnDwell = true;
     double m_magZoom = 2.5;
@@ -93,6 +113,7 @@ private:
     /// 0 = disabled. Otherwise cancel arm if no selection by m_selectDeadlineMs.
     int m_selectTimeoutMs = 5000;
     qint64 m_selectDeadlineMs = -1;
+    QRect m_gateRect;
 
     GazeDwellTracker m_dwell;
     QElapsedTimer m_clock;

@@ -9,6 +9,8 @@
 #include "assist/MouseDwellMove.h"
 #include "layout/LayoutInstanceManager.h"
 #include "ui/MagnifierOverlay.h"
+#include "app/SettingsUi.h"
+#include "ui/PickStyle.h"
 #include "ui/Theme.h"
 
 namespace gazer {
@@ -26,7 +28,17 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
     }
     if (key == QLatin1String("mouseDwellMove")) {
         return ctx.mouseDwellMove && ctx.mouseDwellMove->isArmed()
-               && !ctx.mouseDwellMove->isClickLoop();
+               && ctx.mouseDwellMove->armPurpose() == MouseDwellMove::ArmPurpose::CursorMove;
+    }
+    if (key == QLatin1String("mouseMoveAndLeftClick")) {
+        return ctx.mouseDwellMove && ctx.mouseDwellMove->isArmed()
+               && ctx.mouseDwellMove->armPurpose()
+                      == MouseDwellMove::ArmPurpose::CursorMoveLeftClick;
+    }
+    if (key == QLatin1String("mouseMoveAndRightClick")) {
+        return ctx.mouseDwellMove && ctx.mouseDwellMove->isArmed()
+               && ctx.mouseDwellMove->armPurpose()
+                      == MouseDwellMove::ArmPurpose::CursorMoveRightClick;
     }
     // Gaze click loop: assist sticky registered on ActionLoopService + live arm state.
     if (key == QLatin1String("loop.gazeClick") || key == QLatin1String("mouseDwellClickLoop")) {
@@ -93,6 +105,27 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
     if (key == QLatin1String("setting.flashOnComplete")) {
         return s.flashOnComplete;
     }
+    if (key == QLatin1String("setting.magPick.cursor")) {
+        return PickStyle::has(s.magPickStyle, PickStyle::Cursor);
+    }
+    if (key == QLatin1String("setting.magPick.dot")) {
+        return PickStyle::has(s.magPickStyle, PickStyle::Dot);
+    }
+    if (key == QLatin1String("setting.magPick.crosshair")) {
+        return PickStyle::has(s.magPickStyle, PickStyle::Crosshair);
+    }
+    if (key == QLatin1String("setting.magPick.gaze")) {
+        return PickStyle::has(s.magPickStyle, PickStyle::GazeIndicator);
+    }
+    if (key == QLatin1String("setting.mousePick.cursor")) {
+        return PickStyle::has(s.mousePickStyle, PickStyle::Cursor);
+    }
+    if (key == QLatin1String("setting.mousePick.dot")) {
+        return PickStyle::has(s.mousePickStyle, PickStyle::Dot);
+    }
+    if (key == QLatin1String("setting.mousePick.crosshair")) {
+        return PickStyle::has(s.mousePickStyle, PickStyle::Crosshair);
+    }
     if (key == QLatin1String("setting.autoCollapseMain")) {
         return s.autoCollapseMain;
     }
@@ -125,6 +158,19 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
     }
     if (key == QLatin1String("setting.theme.custom")) {
         return s.themeMode == ThemeMode::Custom;
+    }
+    if (key == QLatin1String("setting.theme.contrast.low")) {
+        return snapContrastPercent(s.customContrast) == kThemeContrastLowPct;
+    }
+    if (key == QLatin1String("setting.theme.contrast.medium")) {
+        return snapContrastPercent(s.customContrast) == kThemeContrastMediumPct;
+    }
+    if (key == QLatin1String("setting.theme.contrast.high")) {
+        return snapContrastPercent(s.customContrast) == kThemeContrastHighPct;
+    }
+    if (key.startsWith(QLatin1String("setting.color.editing."))) {
+        const QString ck = key.mid(QStringLiteral("setting.color.editing.").size());
+        return ctx.settingsUi && ctx.settingsUi->colorPickerKey() == ck;
     }
     return false;
 }

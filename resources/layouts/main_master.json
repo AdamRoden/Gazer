@@ -8,7 +8,6 @@
     { "id": "home", "layoutId": "main_drawer", "visibleWhen": "expanded" },
     { "id": "quit", "layoutId": "main_quit_confirm", "visibleWhen": "quitConfirm" }
   ],
-  "dwell": { "fillColor": "#00ffff", "borderColor": "#00ffff", "progressColor": "#00ffff" },
   "items": [
     {
       "id": "e1",

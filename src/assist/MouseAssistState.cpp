@@ -108,6 +108,7 @@ void MouseAssistState::registerCommands(CommandRegistry& commands)
         m_moveStepIndex = (m_moveStepIndex + 1) % 6;
         m_moveAmountPx = kSteps[m_moveStepIndex];
         GAZER_INFO << "Mouse move amount:" << m_moveAmountPx << "px";
+        emit amountsChanged();
         return true;
     });
     commands.registerBuiltin(QStringLiteral("cycleMouseScrollAmount"), [this](QString*) {
@@ -115,6 +116,7 @@ void MouseAssistState::registerCommands(CommandRegistry& commands)
         m_scrollStepIndex = (m_scrollStepIndex + 1) % 4;
         m_scrollNotches = kSteps[m_scrollStepIndex];
         GAZER_INFO << "Mouse scroll amount:" << m_scrollNotches;
+        emit amountsChanged();
         return true;
     });
 

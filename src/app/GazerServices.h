@@ -68,6 +68,7 @@ public:
     void setLastGaze(const GazePoint& g) { m_lastGaze = g; }
     [[nodiscard]] GazePoint lastGaze() const { return m_lastGaze; }
 
+    SettingsUi& settingsUi() { return *m_settingsUi; }
     AppSettings& settings() { return m_settings; }
     [[nodiscard]] const AppSettings& settings() const { return m_settings; }
     void applySettings(bool persist = true);
@@ -80,6 +81,8 @@ signals:
 private:
     void registerDomainCommands();
     void notifyStatus(const QString& msg);
+    void decorateMouseAmountLabels(LayoutDocument& doc) const;
+    void refreshMouseAmountLabels();
     void mutateAndApply(const std::function<void(AppSettings&)>& mutator, const QString& status);
     void refreshActiveIndicators();
     [[nodiscard]] ActiveStateContext activeStateContext() const;

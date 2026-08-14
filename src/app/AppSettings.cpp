@@ -1,5 +1,7 @@
 #include "app/AppSettings.h"
 
+#include "ui/PickStyle.h"
+#include "ui/ThemeScheme.h"
 #include "utils/Log.h"
 
 #include <QDir>
@@ -61,6 +63,9 @@ constexpr IntSpec kIntSpecs[] = {
     {"mouseMoveDwellMs", "Mouse-move dwell",
      "Dwell time for mouse cursor placement (ms).", " ms",
      &AppSettings::mouseMoveDwellMs, 200, 2500, 50},
+    {"magPickDwellMs", "Magnify-pick dwell",
+     "Dwell time to choose the region to magnify (ms).", " ms",
+     &AppSettings::magPickDwellMs, 200, 2500, 50},
     {"mouseMoveSelectTimeoutMs", "Mouse-move timeout",
      "Cancel mouse-move / gaze-click loop if no target is selected within this many ms (0 = off).",
      " ms", &AppSettings::mouseMoveSelectTimeoutMs, 0, 120000, 500},
@@ -93,6 +98,14 @@ const ColorSpec kColorSpecs[] = {
     {"progressBorderColor", "Border highlight", &AppSettings::progressBorderColor,
      ThemeColors::defaultProgressColor()},
     {"flashColor", "Flash color", &AppSettings::flashColor, Qt::white},
+    {"customBgColor", "Background", &AppSettings::customBgColor, QColor(10, 10, 11)},
+    {"customPrimaryColor", "Primary", &AppSettings::customPrimaryColor, QColor(138, 180, 248)},
+    {"customSecondaryColor", "Secondary", &AppSettings::customSecondaryColor,
+     ThemeColors::defaultProgressColor()},
+    {"customTertiaryColor", "Tertiary", &AppSettings::customTertiaryColor, QColor(126, 82, 96)},
+    {"customSurfaceColor", "Surface", &AppSettings::customSurfaceColor, QColor(18, 19, 20)},
+    {"customTextColor", "Foreground", &AppSettings::customTextColor, QColor(230, 225, 229)},
+    {"customDangerColor", "Danger", &AppSettings::customDangerColor, QColor(255, 180, 171)},
 };
 
 constexpr BoolSpec kBoolSpecs[] = {
@@ -230,6 +243,9 @@ void AppSettings::clamp()
         this->*s.member = qBound(s.min, this->*s.member, s.max);
     }
     magFollowProfile = qBound(0, magFollowProfile, 2);
+    customContrast = snapContrastPercent(customContrast);
+    magPickStyle = PickStyle::sanitizeMag(magPickStyle);
+    mousePickStyle = PickStyle::sanitizeMouse(mousePickStyle);
     trackerPref = qBound(0, trackerPref, 1);
     layoutAutoCloseIdleMs = qBound(500, layoutAutoCloseIdleMs, 120000);
     layoutAutoCloseFadeMs = qBound(50, layoutAutoCloseFadeMs, 60000);
@@ -267,18 +283,21 @@ void AppSettings::setDwellPreset(int preset)
     case 0:
         dwellSequence = {1000};
         mouseMoveDwellMs = 900;
+        magPickDwellMs = 900;
         dwellGraceMs = 220;
         scanGraceMs = 150;
         break;
     case 2:
         dwellSequence = {450};
         mouseMoveDwellMs = 500;
+        magPickDwellMs = 500;
         dwellGraceMs = 140;
         scanGraceMs = 80;
         break;
     default:
         dwellSequence = defaultDwellSequence();
         mouseMoveDwellMs = 700;
+        magPickDwellMs = 700;
         dwellGraceMs = 180;
         scanGraceMs = 100;
         break;
@@ -332,7 +351,7 @@ QColor AppSettings::colorKey(const QString& key) const
     return ThemeColors::defaultProgressColor();
 }
 
-bool AppSettings::setColorKey(const QString& key, const QColor& c)
+bool AppSettings::setColorKey(const QString& key, const QColor& c, bool rebuildPalette)
 {
     if (!c.isValid()) {
         return false;
@@ -342,7 +361,143 @@ bool AppSettings::setColorKey(const QString& key, const QColor& c)
         return false;
     }
     this->*s->member = colorToHex(c);
+    if (key == QLatin1String("progressColor")) {
+        customSecondaryColor = colorToHex(c);
+    } else if (key == QLatin1String("customSecondaryColor")) {
+        progressColor = colorToHex(c);
+    }
+    if (!rebuildPalette || themeRoleForColorKey(key).isEmpty()) {
+        return true;
+    }
+    applyCustomPalette(false);
     return true;
+}
+
+void AppSettings::setCustomContrast(int contrastPercent)
+{
+    customContrast = snapContrastPercent(contrastPercent);
+    applyCustomPalette(true);
+}
+
+ThemeSeeds AppSettings::themeSeeds() const
+{
+    ThemeSeeds seeds;
+    seeds.background = parseColor(customBgColor, QColor(10, 10, 11));
+    seeds.primary = parseColor(customPrimaryColor, QColor(138, 180, 248));
+    seeds.secondary = parseColor(customSecondaryColor, ThemeColors::defaultProgressColor());
+    seeds.tertiary = parseColor(customTertiaryColor, QColor(126, 82, 96));
+    seeds.contrastPercent = snapContrastPercent(customContrast);
+    return seeds;
+}
+
+void AppSettings::syncThemeSlidersFromSeeds()
+{
+    const ThemeSliders sl = ThemeScheme::inferSliders(
+        parseColor(customBgColor, QColor(10, 10, 11)),
+        parseColor(customPrimaryColor, QColor(138, 180, 248)));
+    customContrast = snapContrastPercent(sl.contrast);
+}
+
+QColor AppSettings::suggestedThemeColor(const QString& key) const
+{
+    return ThemeScheme::suggestColor(themeSeeds(), themeColorRoleForKey(key));
+}
+
+QString AppSettings::themeRoleForColorKey(const QString& key)
+{
+    if (key == QLatin1String("customBgColor")) {
+        return QStringLiteral("window");
+    }
+    if (key == QLatin1String("customSurfaceColor")) {
+        return QStringLiteral("surface");
+    }
+    if (key == QLatin1String("customPrimaryColor")) {
+        return QStringLiteral("accent");
+    }
+    if (key == QLatin1String("customSecondaryColor") || key == QLatin1String("progressColor")
+        || key == QLatin1String("progressFillColor") || key == QLatin1String("progressBorderColor")) {
+        return QStringLiteral("progress");
+    }
+    if (key == QLatin1String("customTertiaryColor")) {
+        return QStringLiteral("highlight");
+    }
+    if (key == QLatin1String("customTextColor")) {
+        return QStringLiteral("foreground");
+    }
+    if (key == QLatin1String("customDangerColor")) {
+        return QStringLiteral("danger");
+    }
+    return {};
+}
+
+ThemeColorRole AppSettings::themeColorRoleForKey(const QString& key)
+{
+    if (key == QLatin1String("customSurfaceColor")) {
+        return ThemeColorRole::Surface;
+    }
+    if (key == QLatin1String("customPrimaryColor")) {
+        return ThemeColorRole::Primary;
+    }
+    if (key == QLatin1String("customSecondaryColor") || key == QLatin1String("progressColor")
+        || key == QLatin1String("progressFillColor") || key == QLatin1String("progressBorderColor")) {
+        return ThemeColorRole::Secondary;
+    }
+    if (key == QLatin1String("customTertiaryColor")) {
+        return ThemeColorRole::Tertiary;
+    }
+    if (key == QLatin1String("customTextColor")) {
+        return ThemeColorRole::Foreground;
+    }
+    if (key == QLatin1String("customDangerColor")) {
+        return ThemeColorRole::Danger;
+    }
+    return ThemeColorRole::Background;
+}
+
+bool AppSettings::isThemeSeedKey(const QString& key)
+{
+    return !themeRoleForColorKey(key).isEmpty();
+}
+
+void AppSettings::applyCustomPalette(bool fitContrast)
+{
+    ThemeSeeds seeds = themeSeeds();
+    if (fitContrast) {
+        seeds = ThemeScheme::fitContrast(seeds);
+        customBgColor = colorToHex(seeds.background);
+        customPrimaryColor = colorToHex(seeds.primary);
+        customSecondaryColor = colorToHex(seeds.secondary);
+        customTertiaryColor = colorToHex(seeds.tertiary);
+    }
+
+    const ThemePalette pal = ThemeScheme::build(seeds, /*fitTones=*/false);
+    customColors = pal.colors;
+
+    if (fitContrast) {
+        customSurfaceColor = colorToHex(customColors.bgSurface);
+        customTextColor = colorToHex(customColors.text);
+        customDangerColor = colorToHex(customColors.danger);
+        progressColor = colorToHex(pal.progress);
+        progressBorderColor = colorToHex(pal.progressBorder);
+        progressFillColor = colorToHex(pal.progressFill);
+    } else {
+        customColors.bgMain = parseColor(customBgColor, customColors.bgMain);
+        const QColor surface = parseColor(customSurfaceColor, customColors.bgSurface);
+        customColors.bgSurface = surface;
+        customColors.cellBg = surface;
+        customColors.accent = parseColor(customPrimaryColor, customColors.accent);
+        customColors.cellActive = parseColor(customTertiaryColor, customColors.cellActive);
+        customColors.bgSurfaceActive = customColors.cellActive;
+        customColors.text = parseColor(customTextColor, customColors.text);
+        customColors.danger = parseColor(customDangerColor, customColors.danger);
+        const QColor sec = parseColor(customSecondaryColor, pal.progress);
+        progressColor = colorToHex(sec);
+        progressBorderColor = colorToHex(sec);
+        QColor fill = sec;
+        fill.setAlpha(70);
+        progressFillColor = colorToHex(fill);
+    }
+    themeMode = ThemeMode::Custom;
 }
 
 QString AppSettings::displayValue(const QString& key) const
@@ -363,6 +518,16 @@ QString AppSettings::displayValue(const QString& key) const
     if (key == QLatin1String("magFollowProfile")) {
         static const char* names[] = {"Sticky", "Balanced", "Snappy"};
         return QLatin1String(names[qBound(0, magFollowProfile, 2)]);
+    }
+    if (key == QLatin1String("customContrast")) {
+        return themeContrastToString(themeContrastFromInt(customContrast));
+    }
+
+    if (key == QLatin1String("magPickStyle")) {
+        return PickStyle::label(magPickStyle);
+    }
+    if (key == QLatin1String("mousePickStyle")) {
+        return PickStyle::label(mousePickStyle);
     }
     for (const BoolSpec& s : kBoolSpecs) {
         if (keyEq(s.key, key)) {
@@ -411,6 +576,18 @@ QString AppSettings::settingDescription(const QString& key)
     }
     if (key == QLatin1String("flashColor")) {
         return QStringLiteral("Color applied to both the flash border and fill.");
+    }
+    if (key == QLatin1String("customBgColor")) {
+        return QStringLiteral("Page background. Variant, foreground, and accent suggestions come from this.");
+    }
+    if (key == QLatin1String("customPrimaryColor")) {
+        return QStringLiteral("Highlighted foreground (active labels, accent).");
+    }
+    if (key == QLatin1String("customSecondaryColor")) {
+        return QStringLiteral("Progress ring / fill / border color.");
+    }
+    if (key == QLatin1String("customTertiaryColor")) {
+        return QStringLiteral("Highlighted background (active cells).");
     }
     if (isColorKey(key)) {
         return QStringLiteral("Color used for dwell progress or completion flash.");
@@ -544,11 +721,14 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
     scanGraceMs = o.value(QStringLiteral("scanGraceMs")).toInt(scanGraceMs);
     dwellGraceMs = o.value(QStringLiteral("dwellGraceMs")).toInt(dwellGraceMs);
     mouseMoveDwellMs = o.value(QStringLiteral("mouseMoveDwellMs")).toInt(mouseMoveDwellMs);
+    magPickDwellMs = o.value(QStringLiteral("magPickDwellMs")).toInt(magPickDwellMs);
     mouseMoveSelectTimeoutMs =
         o.value(QStringLiteral("mouseMoveSelectTimeoutMs")).toInt(mouseMoveSelectTimeoutMs);
     mouseMoveMagPick = o.value(QStringLiteral("mouseMoveMagPick")).toBool(mouseMoveMagPick);
     mouseMoveMagPickCenterOnDwell =
         o.value(QStringLiteral("mouseMoveMagPickCenterOnDwell")).toBool(mouseMoveMagPickCenterOnDwell);
+    magPickStyle = o.value(QStringLiteral("magPickStyle")).toInt(magPickStyle);
+    mousePickStyle = o.value(QStringLiteral("mousePickStyle")).toInt(mousePickStyle);
     magZoom = o.value(QStringLiteral("magZoom")).toDouble(magZoom);
     magLensSize = o.value(QStringLiteral("magLensSize")).toInt(magLensSize);
     magFollowProfile = o.value(QStringLiteral("magFollowProfile")).toInt(magFollowProfile);
@@ -579,7 +759,31 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
     if (o.contains(QStringLiteral("customColors"))) {
         customColors.fromJson(o.value(QStringLiteral("customColors")).toObject());
     }
-
+    customBgColor = o.value(QStringLiteral("customBgColor")).toString(customBgColor);
+    customPrimaryColor = o.value(QStringLiteral("customPrimaryColor")).toString(customPrimaryColor);
+    customSecondaryColor =
+        o.value(QStringLiteral("customSecondaryColor")).toString(customSecondaryColor);
+    customTertiaryColor =
+        o.value(QStringLiteral("customTertiaryColor")).toString(customTertiaryColor);
+    customSurfaceColor = o.value(QStringLiteral("customSurfaceColor")).toString(customSurfaceColor);
+    customTextColor = o.value(QStringLiteral("customTextColor")).toString(customTextColor);
+    customDangerColor = o.value(QStringLiteral("customDangerColor")).toString(customDangerColor);
+    themeBrightness = o.value(QStringLiteral("themeBrightness")).toInt(themeBrightness);
+    if (o.contains(QStringLiteral("customContrast"))) {
+        const QJsonValue cv = o.value(QStringLiteral("customContrast"));
+        if (cv.isString()) {
+            const QString cs = cv.toString().toLower();
+            if (cs == QLatin1String("lowest") || cs == QLatin1String("low")) {
+                customContrast = kThemeContrastLowPct;
+            } else if (cs == QLatin1String("high") || cs == QLatin1String("highest")) {
+                customContrast = kThemeContrastHighPct;
+            } else {
+                customContrast = kThemeContrastMediumPct;
+            }
+        } else {
+            customContrast = snapContrastPercent(cv.toInt(customContrast));
+        }
+    }
     progressRadial = o.value(QStringLiteral("progressRadial")).toBool(progressRadial);
     progressFill = o.value(QStringLiteral("progressFill")).toBool(progressFill);
     progressBorder = o.value(QStringLiteral("progressBorder")).toBool(progressBorder);
@@ -602,6 +806,19 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
     }
     flashMs = o.value(QStringLiteral("flashMs")).toInt(flashMs);
 
+    if (!o.contains(QStringLiteral("customBgColor")) && o.contains(QStringLiteral("customColors"))) {
+        customBgColor = colorToHex(customColors.bgMain);
+        customPrimaryColor = colorToHex(customColors.accent);
+        customSecondaryColor = progressColor;
+        customTertiaryColor = colorToHex(customColors.cellActive);
+        customSurfaceColor = colorToHex(customColors.bgSurface);
+        customTextColor = colorToHex(customColors.text);
+        customDangerColor = colorToHex(customColors.danger);
+    }
+    if (themeMode == ThemeMode::Custom) {
+        applyCustomPalette(false);
+    }
+
     clamp();
     GAZER_INFO << "Loaded settings from" << path;
     return true;
@@ -622,9 +839,12 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     o.insert(QStringLiteral("scanGraceMs"), copy.scanGraceMs);
     o.insert(QStringLiteral("dwellGraceMs"), copy.dwellGraceMs);
     o.insert(QStringLiteral("mouseMoveDwellMs"), copy.mouseMoveDwellMs);
+    o.insert(QStringLiteral("magPickDwellMs"), copy.magPickDwellMs);
     o.insert(QStringLiteral("mouseMoveSelectTimeoutMs"), copy.mouseMoveSelectTimeoutMs);
     o.insert(QStringLiteral("mouseMoveMagPick"), copy.mouseMoveMagPick);
     o.insert(QStringLiteral("mouseMoveMagPickCenterOnDwell"), copy.mouseMoveMagPickCenterOnDwell);
+    o.insert(QStringLiteral("magPickStyle"), copy.magPickStyle);
+    o.insert(QStringLiteral("mousePickStyle"), copy.mousePickStyle);
     o.insert(QStringLiteral("magZoom"), copy.magZoom);
     o.insert(QStringLiteral("magLensSize"), copy.magLensSize);
     o.insert(QStringLiteral("magFollowProfile"), copy.magFollowProfile);
@@ -645,6 +865,15 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     o.insert(QStringLiteral("lightColors"), copy.lightColors.toJson());
     o.insert(QStringLiteral("darkColors"), copy.darkColors.toJson());
     o.insert(QStringLiteral("customColors"), copy.customColors.toJson());
+    o.insert(QStringLiteral("customBgColor"), copy.customBgColor);
+    o.insert(QStringLiteral("customPrimaryColor"), copy.customPrimaryColor);
+    o.insert(QStringLiteral("customSecondaryColor"), copy.customSecondaryColor);
+    o.insert(QStringLiteral("customTertiaryColor"), copy.customTertiaryColor);
+    o.insert(QStringLiteral("customSurfaceColor"), copy.customSurfaceColor);
+    o.insert(QStringLiteral("customTextColor"), copy.customTextColor);
+    o.insert(QStringLiteral("customDangerColor"), copy.customDangerColor);
+    o.insert(QStringLiteral("themeBrightness"), copy.themeBrightness);
+    o.insert(QStringLiteral("customContrast"), copy.customContrast);
     o.insert(QStringLiteral("progressRadial"), copy.progressRadial);
     o.insert(QStringLiteral("progressFill"), copy.progressFill);
     o.insert(QStringLiteral("progressBorder"), copy.progressBorder);

@@ -4,6 +4,7 @@
 #include "layout/LayoutInstance.h"
 #include "layout/LayoutInstanceManager.h"
 #include "layout/LayoutManager.h"
+#include "ui/LayoutQuickWindow.h"
 #include "ui/Theme.h"
 
 #include <QColor>
@@ -120,12 +121,30 @@ void SettingsUi::apply(bool persist)
     }
 }
 
+namespace {
+
+QString colorKeyFromItem(const LayoutItem& item)
+{
+    if (AppSettings::isColorKey(item.settingKey)) {
+        return item.settingKey;
+    }
+    const QString name = item.action.name;
+    const QLatin1String prefix("settings.edit.color.");
+    if (name.startsWith(prefix)) {
+        return name.mid(int(prefix.size()));
+    }
+    return {};
+}
+
+} // namespace
+
 void SettingsUi::decorateDocument(LayoutDocument& doc) const
 {
     if (!doc.id.startsWith(QLatin1String("main_settings"))) {
         return;
     }
     doc.uiStyle = LayoutUiStyle::Fluent;
+    const ThemeColors theme = m_settings.customColors;
     for (LayoutItem& item : doc.items) {
         if (!item.settingKey.isEmpty() && !item.interactive) {
             item.label = m_settings.displayValue(item.settingKey);
@@ -133,6 +152,21 @@ void SettingsUi::decorateDocument(LayoutDocument& doc) const
         if (!item.interactive && item.caption.isEmpty() && !item.settingKey.isEmpty()
             && item.id.contains(QLatin1String("desc"))) {
             item.label = AppSettings::settingDescription(item.settingKey);
+        }
+        QColor sw;
+        if (item.settingKey == QLatin1String("themeVariant")) {
+            sw = theme.bgSurface;
+        } else if (item.settingKey == QLatin1String("themeForeground")) {
+            sw = theme.text;
+        } else {
+            const QString ck = colorKeyFromItem(item);
+            if (!ck.isEmpty()) {
+                sw = m_settings.colorKey(ck);
+            }
+        }
+        if (sw.isValid()) {
+            item.style.background = sw;
+            item.style.foreground = ThemeColors::contrastOn(sw);
         }
     }
 }
@@ -150,11 +184,27 @@ void SettingsUi::refreshOpenBoards()
         if (isLiveEditorInstance(inst->instanceId())) {
             continue;
         }
-        for (const LayoutItem& item : inst->document().items) {
+        const ThemeColors theme = m_settings.customColors;
+        inst->mutateItems([&](LayoutItem& item) {
             if (!item.settingKey.isEmpty() && !item.interactive) {
-                inst->setItemText(item.id, m_settings.displayValue(item.settingKey));
+                item.label = m_settings.displayValue(item.settingKey);
             }
-        }
+            QColor sw;
+            if (item.settingKey == QLatin1String("themeVariant")) {
+                sw = theme.bgSurface;
+            } else if (item.settingKey == QLatin1String("themeForeground")) {
+                sw = theme.text;
+            } else {
+                const QString ck = colorKeyFromItem(item);
+                if (!ck.isEmpty()) {
+                    sw = m_settings.colorKey(ck);
+                }
+            }
+            if (sw.isValid()) {
+                item.style.background = sw;
+                item.style.foreground = ThemeColors::contrastOn(sw);
+            }
+        });
         inst->setGlobalDwellOverride(m_settings.dwellSequence, m_settings.dwellGraceMs,
                                      m_settings.scanGraceMs);
     }

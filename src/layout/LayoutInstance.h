@@ -57,6 +57,7 @@ public:
     void setTheme(const ThemeColors& theme);
     void setActiveItemIds(const QSet<QString>& activeIds);
     void setItemText(const QString& itemId, const QString& label, const QString& caption = {});
+    void mutateItems(const std::function<void(LayoutItem&)>& fn);
 
     [[nodiscard]] QString hitTest(const QPointF& screenPoint) const;
     [[nodiscard]] bool containsScreenPoint(const QPointF& screenPoint) const;
@@ -64,6 +65,8 @@ public:
     /// Used so progress hit beats other boards' windows regardless of z-order.
     [[nodiscard]] bool containsVisibleUnboundedProgress(const QPointF& screenPoint) const;
     [[nodiscard]] QRect screenRect() const;
+    /// Screen-space hit rect for a board item (grid cell or dwell region).
+    [[nodiscard]] QRect itemScreenRect(const QString& itemId) const;
     [[nodiscard]] QPointF centerScreen() const;
     /// On-screen affordance for unpause gap (edge band or hit if visible).
     [[nodiscard]] QRect unpauseGapScreenRect(const LayoutItem& item) const;

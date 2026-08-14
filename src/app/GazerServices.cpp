@@ -65,8 +65,10 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
         });
     m_settingsUi->setResetFn([this]() { resetSettingsToDefaults(); });
 
-    m_instances->setDocumentDecorator(
-        [this](LayoutDocument& doc) { m_settingsUi->decorateDocument(doc); });
+    m_instances->setDocumentDecorator([this](LayoutDocument& doc) {
+        m_settingsUi->decorateDocument(doc);
+        decorateMouseAmountLabels(doc);
+    });
     m_instances->setInstanceTeardownHook(
         [this](const QString& instanceId) { m_actionLoops->stopInstance(instanceId); });
     connect(m_instances.get(), &LayoutInstanceManager::dwellEngagementEnded, this,
@@ -87,6 +89,8 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
             [this](bool) { refreshActiveIndicators(); });
     connect(m_mouseAssist.get(), &MouseAssistState::holdsChanged, this,
             [this]() { refreshActiveIndicators(); });
+    connect(m_mouseAssist.get(), &MouseAssistState::amountsChanged, this,
+            [this]() { refreshMouseAmountLabels(); });
     connect(m_gazeReticle.get(), &GazeReticle::enabledChanged, this,
             [this](bool) { refreshActiveIndicators(); });
     connect(m_gazeMouseFollow.get(), &GazeMouseFollow::enabledChanged, this,
@@ -120,6 +124,7 @@ ActiveStateContext GazerServices::activeStateContext() const
     ctx.gazeMouseFollow = m_gazeMouseFollow.get();
     ctx.mouseAssist = m_mouseAssist.get();
     ctx.actionLoops = m_actionLoops.get();
+    ctx.settingsUi = m_settingsUi.get();
     return ctx;
 }
 
@@ -130,6 +135,53 @@ void GazerServices::refreshActiveIndicators()
     }
     m_instances->refreshActiveIndicators(
         [this](const QString& key) { return resolveActiveState(activeStateContext(), key); });
+}
+
+void GazerServices::decorateMouseAmountLabels(LayoutDocument& doc) const
+{
+    if (!m_mouseAssist) {
+        return;
+    }
+    const QString move = QStringLiteral("Step %1 px").arg(m_mouseAssist->moveAmountPx());
+    const QString scroll = QStringLiteral("Scroll ×%1").arg(m_mouseAssist->scrollNotches());
+    for (LayoutItem& item : doc.items) {
+        const QString name = item.action.name;
+        if (name == QLatin1String("cycleMouseMoveAmount")) {
+            item.label = move;
+        } else if (name == QLatin1String("cycleMouseScrollAmount")) {
+            item.label = scroll;
+        }
+    }
+}
+
+void GazerServices::refreshMouseAmountLabels()
+{
+    if (!m_instances || !m_mouseAssist) {
+        return;
+    }
+    for (LayoutInstance* inst : m_instances->instances()) {
+        if (!inst) {
+            continue;
+        }
+        bool has = false;
+        for (const LayoutItem& item : inst->document().items) {
+            if (item.action.name == QLatin1String("cycleMouseMoveAmount")
+                || item.action.name == QLatin1String("cycleMouseScrollAmount")) {
+                has = true;
+                break;
+            }
+        }
+        if (!has) {
+            continue;
+        }
+        inst->mutateItems([this](LayoutItem& item) {
+            if (item.action.name == QLatin1String("cycleMouseMoveAmount")) {
+                item.label = QStringLiteral("Step %1 px").arg(m_mouseAssist->moveAmountPx());
+            } else if (item.action.name == QLatin1String("cycleMouseScrollAmount")) {
+                item.label = QStringLiteral("Scroll ×%1").arg(m_mouseAssist->scrollNotches());
+            }
+        });
+    }
 }
 
 void GazerServices::notifyStatus(const QString& msg)
@@ -172,6 +224,9 @@ void GazerServices::applySettings(bool persist)
     m_instances->applyTheme(m_settings.resolvedTheme());
 
     m_mouseDwellMove->setDwellMs(m_settings.mouseMoveDwellMs);
+    m_mouseDwellMove->setMagPickDwellMs(m_settings.magPickDwellMs);
+    m_mouseDwellMove->setMagPickStyle(m_settings.magPickStyle);
+    m_mouseDwellMove->setMousePickStyle(m_settings.mousePickStyle);
     m_mouseDwellMove->setSelectTimeoutMs(m_settings.mouseMoveSelectTimeoutMs);
     m_mouseDwellMove->setMagPickEnabled(m_settings.mouseMoveMagPick);
     m_mouseDwellMove->setMagPickCenterOnDwell(m_settings.mouseMoveMagPickCenterOnDwell);

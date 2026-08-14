@@ -27,6 +27,69 @@ ThemeMode themeModeFromString(const QString& s)
     return ThemeMode::Dark;
 }
 
+QString themeContrastToString(ThemeContrast c)
+{
+    switch (c) {
+    case ThemeContrast::Low:
+        return QStringLiteral("Low");
+    case ThemeContrast::High:
+        return QStringLiteral("High");
+    case ThemeContrast::Medium:
+    default:
+        return QStringLiteral("Medium");
+    }
+}
+
+int snapContrastPercent(int v)
+{
+    if (v <= 4) {
+        if (v <= 1) {
+            return kThemeContrastLowPct;
+        }
+        if (v >= 3) {
+            return kThemeContrastHighPct;
+        }
+        return kThemeContrastMediumPct;
+    }
+    if (v < 78) {
+        return kThemeContrastLowPct;
+    }
+    if (v < 93) {
+        return kThemeContrastMediumPct;
+    }
+    return kThemeContrastHighPct;
+}
+
+ThemeContrast themeContrastFromInt(int v)
+{
+    const int pct = snapContrastPercent(v);
+    if (pct <= kThemeContrastLowPct) {
+        return ThemeContrast::Low;
+    }
+    if (pct >= kThemeContrastHighPct) {
+        return ThemeContrast::High;
+    }
+    return ThemeContrast::Medium;
+}
+
+int themeContrastToPercent(ThemeContrast c)
+{
+    switch (c) {
+    case ThemeContrast::Low:
+        return kThemeContrastLowPct;
+    case ThemeContrast::High:
+        return kThemeContrastHighPct;
+    case ThemeContrast::Medium:
+    default:
+        return kThemeContrastMediumPct;
+    }
+}
+
+int themeContrastToInt(ThemeContrast c)
+{
+    return themeContrastToPercent(c);
+}
+
 QVector<QString> voiceColorPalette()
 {
     return {

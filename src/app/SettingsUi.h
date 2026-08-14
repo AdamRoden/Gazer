@@ -1,9 +1,15 @@
 #pragma once
 
 #include "app/AppSettings.h"
+#include "assist/GazeDwellTracker.h"
+#include "core/GazePoint.h"
+#include "layout/InvalidGazeGrace.h"
 #include "layout/LayoutTypes.h"
+#include "ui/ThemeScheme.h"
 
 #include <QColor>
+#include <QElapsedTimer>
+#include <QHash>
 #include <QString>
 #include <QVector>
 #include <functional>
@@ -33,6 +39,10 @@ public:
     void registerCommands();
     void decorateDocument(LayoutDocument& doc) const;
     void refreshOpenBoards();
+    /// Gaze-follow color slider after the track is activated.
+    void onGaze(const GazePoint& point);
+    [[nodiscard]] bool isSliderScrubbing() const { return m_scrub.active; }
+    [[nodiscard]] QString colorPickerKey() const { return m_colorPickerKey; }
 
     [[nodiscard]] bool isNumpadActive() const { return m_numpad.active; }
     [[nodiscard]] QString numpadInstanceId() const { return m_numpad.instanceId; }
@@ -47,8 +57,10 @@ public:
                                 const QString& settingKey = {});
     static void applyLiveEditorChrome(LayoutDocument& doc);
 
-    static constexpr const char* kColorKeys[] = {"progressColor", "progressFillColor",
-                                                 "progressBorderColor", "flashColor"};
+    static constexpr const char* kColorKeys[] = {
+        "progressColor",      "progressFillColor",   "progressBorderColor", "flashColor",
+        "customBgColor",      "customPrimaryColor",  "customSecondaryColor", "customTertiaryColor",
+        "customSurfaceColor", "customTextColor",     "customDangerColor"};
 
     struct EditorSwatch {
         QColor key;
@@ -89,6 +101,7 @@ private:
     [[nodiscard]] bool arrayEditIndex(int index, QString* error = nullptr);
 
     [[nodiscard]] bool openColorPicker(const QString& colorKey, QString* error = nullptr);
+    [[nodiscard]] bool selectColorTarget(const QString& colorKey, QString* error = nullptr);
     void refreshColorPicker();
     [[nodiscard]] LayoutDocument buildColorDocument() const;
     void closeColorPicker();
@@ -100,6 +113,16 @@ private:
     void loadColorDraft(const QColor& c);
     [[nodiscard]] int colorShownValue(const QString& channel) const;
     bool applyColorShownValue(const QString& channel, int value);
+    bool beginSliderScrub(const QString& channel);
+    void endSliderScrub(bool commit);
+    void feedSliderGaze(const GazePoint& point);
+    void syncSliderScrubVisuals();
+    [[nodiscard]] int scrubShownValue() const;
+    [[nodiscard]] ThemePalette draftThemePalette() const;
+    [[nodiscard]] AppSettings draftThemeSettings() const;
+    [[nodiscard]] QColor suggestedDraftColor(const QString& colorKey) const;
+    void applySuggestedColor(const QString& colorKey);
+    void updateLiveThemeSwatches();
     void refreshHexEditor();
     [[nodiscard]] bool colorSave(QString* error = nullptr);
     [[nodiscard]] bool colorEditChannel(const QString& channel, QString* error = nullptr);
@@ -156,6 +179,7 @@ private:
 
     LiveBoard m_color;
     QString m_colorPickerKey;
+    QHash<QString, QColor> m_colorPending;
     QColor m_colorDraft;
     int m_colorH = 180;
     int m_colorS = 255;
@@ -167,6 +191,27 @@ private:
 
     bool m_hexActive = false;
     QString m_hexBuffer;
+
+    struct SliderScrub {
+        bool active = false;
+        QString channel;
+        QString itemId;
+        QString instanceId;
+        void reset()
+        {
+            active = false;
+            channel.clear();
+            itemId.clear();
+            instanceId.clear();
+        }
+    };
+    SliderScrub m_scrub;
+    QColor m_scrubRevert;
+    GazeDwellTracker m_scrubDwell;
+    InvalidGazeGrace m_scrubGrace;
+    QElapsedTimer m_scrubClock;
+    qint64 m_scrubDeadlineMs = -1;
+    qint64 m_scrubLastSampleMs = -1;
 };
 
 } // namespace gazer

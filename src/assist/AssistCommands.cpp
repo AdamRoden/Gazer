@@ -240,6 +240,30 @@ void registerAssistCommands(AssistCommandContext& ctx)
             refresh();
             return true;
         });
+    auto toggleMoveClick = [mouseDwell, refresh, notify](ArmPurpose purpose, const QString& onMsg,
+                                                         const QString& offMsg) {
+        return [mouseDwell, refresh, notify, purpose, onMsg, offMsg](QString*) {
+            if (mouseDwell->isArmed() && mouseDwell->armPurpose() == purpose) {
+                mouseDwell->setArmed(false);
+                notify(offMsg);
+            } else {
+                mouseDwell->setArmed(true, purpose);
+                notify(onMsg);
+            }
+            refresh();
+            return true;
+        };
+    };
+    commands->registerBuiltin(
+        QStringLiteral("mouseMoveAndLeftClick"),
+        toggleMoveClick(ArmPurpose::CursorMoveLeftClick,
+                        QStringLiteral("Move + left click — dwell to place, then click"),
+                        QStringLiteral("Move + left click OFF")));
+    commands->registerBuiltin(
+        QStringLiteral("mouseMoveAndRightClick"),
+        toggleMoveClick(ArmPurpose::CursorMoveRightClick,
+                        QStringLiteral("Move + right click — dwell to place, then click"),
+                        QStringLiteral("Move + right click OFF")));
     commands->registerBuiltin(QStringLiteral("toggleGazeReticle"),
                               [reticle, mag, refresh, notify](QString*) {
                                   const bool turningOn = !reticle->isEnabled();

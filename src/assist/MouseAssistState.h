@@ -30,8 +30,12 @@ public:
         return m_leftHeld || m_rightHeld || m_middleHeld;
     }
 
+    [[nodiscard]] int moveAmountPx() const { return m_moveAmountPx; }
+    [[nodiscard]] int scrollNotches() const { return m_scrollNotches; }
+
 signals:
     void holdsChanged();
+    void amountsChanged();
 
 private:
     [[nodiscard]] bool inject(const InputOutput& o, QString* error);

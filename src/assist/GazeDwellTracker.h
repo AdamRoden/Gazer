@@ -63,21 +63,20 @@ public:
             m_commitPos.setY(m_commitPos.y() * (1.0 - m_commitTrackAlpha)
                              + m_smoothPos.y() * m_commitTrackAlpha);
             m_progress = qBound(0.0, m_progress + dtSec * 1000.0 / double(m_dwellMs), 1.0);
-        } else if (dist <= double(m_freezeRadiusPx)) {
-            // Intentional: hold partial progress through small drift / jitter (no decay).
-            // If already empty, re-anchor so a new dwell can start without a huge jump.
-            if (m_progress <= 0.001) {
-                reanchor();
-            }
-        } else if (dist <= double(m_cancelRadiusPx)) {
-            m_progress = qBound(
-                0.0, m_progress - dtSec * 1000.0 / double(m_dwellMs) * m_reverseScale, 1.0);
-            if (m_progress <= 0.001) {
-                reanchor();
-            }
         } else {
-            m_progress = qBound(
-                0.0, m_progress - dtSec * 1000.0 / double(m_dwellMs) * m_reverseScale * 1.6, 1.0);
+            // Drifted off the commit point. Do not freeze incomplete progress — the
+            // follow indicator has already moved, so a held ring feels stalled.
+            // Bleed progress and walk commit toward the live point so a new dwell
+            // can start as soon as the user settles.
+            const double bleed =
+                dist <= double(m_freezeRadiusPx)
+                    ? m_reverseScale
+                    : dist <= double(m_cancelRadiusPx) ? m_reverseScale * 1.8
+                                                       : m_reverseScale * 2.6;
+            m_progress = qBound(0.0, m_progress - dtSec * 1000.0 / double(m_dwellMs) * bleed, 1.0);
+            const double pull = dist <= double(m_freezeRadiusPx) ? 0.28 : 0.42;
+            m_commitPos.setX(m_commitPos.x() * (1.0 - pull) + m_smoothPos.x() * pull);
+            m_commitPos.setY(m_commitPos.y() * (1.0 - pull) + m_smoothPos.y() * pull);
             if (m_progress <= 0.001) {
                 reanchor();
             }
@@ -95,11 +94,11 @@ private:
     int m_dwellMs = 700;
     // Generous defaults: Tobii noise + natural drift often exceeds ~50px.
     int m_stableRadiusPx = 72;
-    int m_freezeRadiusPx = 130;
-    int m_cancelRadiusPx = 220;
-    double m_followAlpha = 0.28;
-    double m_commitTrackAlpha = 0.08;
-    double m_reverseScale = 1.35;
+    int m_freezeRadiusPx = 100;
+    int m_cancelRadiusPx = 180;
+    double m_followAlpha = 0.36;
+    double m_commitTrackAlpha = 0.16;
+    double m_reverseScale = 1.6;
     bool m_tracking = false;
     double m_progress = 0.0;
     QPointF m_smoothPos;

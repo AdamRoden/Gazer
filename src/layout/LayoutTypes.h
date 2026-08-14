@@ -228,7 +228,7 @@ struct LayoutItem {
     QString activeState;
     /// Built-in glyph key for the board painter (e.g. "leftClick", "moveTo"). Empty = text only.
     QString icon;
-    /// Optional role: label / display / value / slider / preview.
+    /// Optional role: label / display / value / slider / preview / swatch.
     QString role;
     /// When false, cell is visual-only (not dwell/click hit-tested).
     bool interactive = true;

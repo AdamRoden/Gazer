@@ -75,6 +75,8 @@ set(GAZER_SOURCES
     src/ui/MagnifierOverlay.cpp
     src/ui/DwellSuspendOverlay.cpp
     src/ui/Theme.cpp
+    src/ui/ThemeScheme.cpp
+    src/ui/PickStyle.cpp
 )
 
 set(GAZER_HEADERS
@@ -136,6 +138,8 @@ set(GAZER_HEADERS
     src/ui/AppIcon.h
     src/ui/MouseIcons.h
     src/ui/Theme.h
+    src/ui/PickStyle.h
+    src/ui/ThemeScheme.h
     src/utils/Log.h
     src/utils/WinOverlay.h
 )

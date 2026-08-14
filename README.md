@@ -78,7 +78,7 @@ When boards overlap, only the topmost instance receives dwell — except master 
 | `main_master` | Root dock |
 | `main_drawer` | Home bar |
 | `main_quit_confirm` | Quit Yes / No |
-| `main_settings*` | Settings hub and sub-boards (appearance, assist, LTS, magnifier, timing) |
+| `main_settings*` | Settings hub and sub-boards (behavior, theme, assist, LTS, magnifier, timing) |
 | `example_keyboard` (+ shift / sym variants) | On-screen keyboard |
 | `example_mouse` | Mouse pad |
 | `example_assist` | Assist tools |

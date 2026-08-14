@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ui/Theme.h"
+#include "ui/ThemeScheme.h"
 
 #include <QColor>
 #include <QString>
@@ -18,6 +19,8 @@ struct AppSettings {
     int scanGraceMs = 100;
     int dwellGraceMs = 180;
     int mouseMoveDwellMs = 700;
+    /// Dwell for the first mag-pick step (choose region to magnify).
+    int magPickDwellMs = 700;
     /// Cancel armed mouse-move / click-loop if no target is selected within this many ms.
     /// 0 = disabled.
     int mouseMoveSelectTimeoutMs = 5000;
@@ -36,6 +39,9 @@ struct AppSettings {
     bool mouseProgressRadial = true;
     bool mouseProgressFill = false;
     bool mouseProgressBorder = true;
+    /// PickStyle flags: first dwell (region) and final click/move dwell.
+    int magPickStyle = 1;   // Cursor
+    int mousePickStyle = 1; // Cursor
     bool flashOnComplete = true;
     /// Single color for completion flash border and fill.
     QString flashColor = QStringLiteral("#FFFFFF");
@@ -73,6 +79,29 @@ struct AppSettings {
     ThemeColors lightColors = ThemeColors::lightPreset();
     ThemeColors darkColors = ThemeColors::darkPreset();
     ThemeColors customColors = ThemeColors::darkPreset();
+    /// Custom theme seeds (Material 3-style). Contrast remaps tones of all four.
+    QString customBgColor = QStringLiteral("#0A0A0B");
+    QString customPrimaryColor = QStringLiteral("#8AB4F8");
+    QString customSecondaryColor = QStringLiteral("#00DCFF");
+    QString customTertiaryColor = QStringLiteral("#7E5260");
+    QString customSurfaceColor = QStringLiteral("#121314");
+    QString customTextColor = QStringLiteral("#E6E1E5");
+    QString customDangerColor = QStringLiteral("#FFB4AB");
+    /// Contrast intensity: 70 (Low), 85 (Medium), or 100 (High).
+    int customContrast = kThemeContrastMediumPct;
+    /// Unused; kept so older settings files still load.
+    int themeBrightness = 4;
+
+    void setCustomContrast(int contrastPercent);
+    /// Rebuild customColors + progress. When fitContrast is false, stored role colors stay put.
+    void applyCustomPalette(bool fitContrast = false);
+    /// Infer Low/Medium/High from the current background and primary (migration / diagnostics).
+    void syncThemeSlidersFromSeeds();
+    [[nodiscard]] QColor suggestedThemeColor(const QString& key) const;
+    [[nodiscard]] ThemeSeeds themeSeeds() const;
+    [[nodiscard]] static QString themeRoleForColorKey(const QString& key);
+    [[nodiscard]] static ThemeColorRole themeColorRoleForKey(const QString& key);
+    [[nodiscard]] static bool isThemeSeedKey(const QString& key);
 
     [[nodiscard]] ThemeColors resolvedTheme() const
     {
@@ -113,7 +142,8 @@ struct AppSettings {
     [[nodiscard]] bool applyNumericBuffer(const QString& key, const QString& buffer,
                                           QString* error = nullptr);
     [[nodiscard]] QString numericBufferSeed(const QString& key) const;
-    [[nodiscard]] bool setColorKey(const QString& key, const QColor& c);
+    [[nodiscard]] bool setColorKey(const QString& key, const QColor& c,
+                                   bool rebuildPalette = true);
     [[nodiscard]] QColor colorKey(const QString& key) const;
 
     [[nodiscard]] QString dwellSequenceString() const;

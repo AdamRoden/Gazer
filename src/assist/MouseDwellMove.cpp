@@ -2,6 +2,7 @@
 
 #include "input/MouseInjector.h"
 #include "ui/OverlaySurface.h"
+#include "ui/PickStyle.h"
 #include "utils/Log.h"
 
 #include <QGuiApplication>
@@ -17,7 +18,7 @@ class MouseDwellMove::CursorOverlay final : public OverlaySurface {
 public:
     CursorOverlay()
     {
-        resize(72, 72);
+        resize(200, 200);
         hide();
     }
 
@@ -33,9 +34,15 @@ public:
         update();
     }
 
-    void placeTip(const QPoint& tip)
+    void setStyle(int flags)
     {
-        move(tip.x() - 8, tip.y() - 6);
+        m_style = flags;
+        update();
+    }
+
+    void placeCenter(const QPoint& c)
+    {
+        move(c.x() - width() / 2, c.y() - height() / 2);
         showOverlay();
         update();
     }
@@ -44,26 +51,12 @@ protected:
     void paintEvent(QPaintEvent*) override
     {
         QPainter p(this);
-        p.setRenderHint(QPainter::Antialiasing, true);
-        QPainterPath path;
-        path.moveTo(6, 4);
-        path.lineTo(6, 48);
-        path.lineTo(18, 36);
-        path.lineTo(26, 54);
-        path.lineTo(34, 50);
-        path.lineTo(26, 32);
-        path.lineTo(42, 32);
-        path.closeSubpath();
-        p.setPen(QPen(Qt::black, 1.5));
-        p.setBrush(QColor(255, 255, 255, 230));
-        p.drawPath(path);
-        if (m_progress > 0.01) {
-            paintProgress(p, QRectF(2, 2, 28, 28), m_progress, m_visuals, ProgressShape::Ellipse);
-        }
+        PickStyle::paint(p, QRectF(rect()).center(), m_style, m_progress, m_visuals);
     }
 
 private:
     double m_progress = 0.0;
+    int m_style = PickStyle::kDefaultMousePick;
     ProgressVisuals m_visuals;
 };
 
@@ -94,6 +87,12 @@ public:
         update();
     }
 
+    void setStyle(int flags)
+    {
+        m_style = flags;
+        update();
+    }
+
     void setPickLocal(const QPoint& local)
     {
         m_pick = local;
@@ -116,13 +115,7 @@ protected:
         p.setBrush(Qt::NoBrush);
         p.drawRect(rect().adjusted(1, 1, -1, -1));
         if (m_hasPick) {
-            p.setPen(QPen(ring, 2.0));
-            p.drawLine(m_pick.x() - 14, m_pick.y(), m_pick.x() + 14, m_pick.y());
-            p.drawLine(m_pick.x(), m_pick.y() - 14, m_pick.x(), m_pick.y() + 14);
-            if (m_progress > 0.01) {
-                paintProgress(p, QRectF(m_pick.x() - 18, m_pick.y() - 18, 36, 36), m_progress,
-                              m_visuals, ProgressShape::Ellipse);
-            }
+            PickStyle::paint(p, QPointF(m_pick), m_style, m_progress, m_visuals);
         }
         p.setPen(Qt::white);
         p.setFont(QFont(QStringLiteral("Segoe UI"), 11, QFont::DemiBold));
@@ -135,6 +128,7 @@ private:
     QPoint m_pick;
     bool m_hasPick = false;
     double m_progress = 0.0;
+    int m_style = PickStyle::kDefaultMousePick;
     ProgressVisuals m_visuals;
 };
 
@@ -158,6 +152,8 @@ void MouseDwellMove::setPhase(Phase phase)
 {
     const bool wasMag = (m_phase == Phase::MagPoint);
     m_phase = phase;
+    applyDwellForPhase();
+    syncPickOverlayStyle();
     const bool isMag = (m_phase == Phase::MagPoint);
     if (wasMag != isMag) {
         emit magPointPhaseChanged(isMag);
@@ -169,7 +165,9 @@ bool MouseDwellMove::useMagPickThisArm() const
     // Look↕Scroll placement is always direct — mag-pick is for Move-to / click-loop.
     return m_magPickEnabled
            && (m_purpose == ArmPurpose::CursorMove
-               || m_purpose == ArmPurpose::CursorMoveClickLoop);
+               || m_purpose == ArmPurpose::CursorMoveClickLoop
+               || m_purpose == ArmPurpose::CursorMoveLeftClick
+               || m_purpose == ArmPurpose::CursorMoveRightClick);
 }
 
 void MouseDwellMove::setArmed(bool armed, ArmPurpose purpose)
@@ -178,6 +176,7 @@ void MouseDwellMove::setArmed(bool armed, ArmPurpose purpose)
         // Re-arm with a different purpose while already armed (e.g. LTS place).
         if (armed && m_purpose != purpose) {
             m_purpose = purpose;
+            m_paused = false;
             resetDwell();
             if (m_magOverlay) {
                 m_magOverlay->hide();
@@ -189,6 +188,10 @@ void MouseDwellMove::setArmed(bool armed, ArmPurpose purpose)
                 purposeName = "ltsPlace";
             } else if (purpose == ArmPurpose::CursorMoveClickLoop) {
                 purposeName = "clickLoop";
+            } else if (purpose == ArmPurpose::CursorMoveLeftClick) {
+                purposeName = "moveLeftClick";
+            } else if (purpose == ArmPurpose::CursorMoveRightClick) {
+                purposeName = "moveRightClick";
             }
             GAZER_INFO << "MouseDwellMove purpose →" << purposeName;
             emit armedChanged(true);
@@ -196,6 +199,8 @@ void MouseDwellMove::setArmed(bool armed, ArmPurpose purpose)
         return;
     }
     m_armed = armed;
+    m_paused = false;
+    m_gateRect = {};
     m_purpose = armed ? purpose : ArmPurpose::CursorMove;
     resetDwell();
     if (!m_armed) {
@@ -211,6 +216,10 @@ void MouseDwellMove::setArmed(bool armed, ArmPurpose purpose)
         purposeName = "ltsPlace";
     } else if (m_purpose == ArmPurpose::CursorMoveClickLoop) {
         purposeName = "clickLoop";
+    } else if (m_purpose == ArmPurpose::CursorMoveLeftClick) {
+        purposeName = "moveLeftClick";
+    } else if (m_purpose == ArmPurpose::CursorMoveRightClick) {
+        purposeName = "moveRightClick";
     }
     GAZER_INFO << "MouseDwellMove" << (m_armed ? "ARMED" : "off")
                << (useMagPickThisArm() ? "magPick" : "direct") << purposeName;
@@ -226,9 +235,80 @@ void MouseDwellMove::toggle()
     }
 }
 
+void MouseDwellMove::gateUntilGazeLeaves(const QRect& screenRect)
+{
+    if (!m_armed || screenRect.isEmpty()) {
+        return;
+    }
+    m_gateRect = screenRect.adjusted(-16, -16, 16, 16);
+    hideUi();
+    resetDwell();
+    m_selectDeadlineMs = -1;
+}
+
+void MouseDwellMove::setPaused(bool paused)
+{
+    if (m_paused == paused) {
+        return;
+    }
+    m_paused = paused;
+    if (m_paused) {
+        hideUi();
+        resetDwell();
+        return;
+    }
+    if (m_armed) {
+        resetDwell();
+        markSelectDeadline();
+    }
+}
+
 void MouseDwellMove::setDwellMs(int ms)
 {
+    m_moveDwellMs = qMax(50, ms);
+    applyDwellForPhase();
+}
+
+void MouseDwellMove::setMagPickDwellMs(int ms)
+{
+    m_magPickDwellMs = qMax(50, ms);
+    applyDwellForPhase();
+}
+
+void MouseDwellMove::setMagPickStyle(int flags)
+{
+    m_magPickStyle = PickStyle::sanitizeMag(flags);
+    syncPickOverlayStyle();
+}
+
+void MouseDwellMove::setMousePickStyle(int flags)
+{
+    m_mousePickStyle = PickStyle::sanitizeMouse(flags);
+    syncPickOverlayStyle();
+}
+
+void MouseDwellMove::applyDwellForPhase()
+{
+    const int ms = (m_phase == Phase::MagRegion) ? m_magPickDwellMs : m_moveDwellMs;
     m_dwell.setDwellMs(ms);
+}
+
+void MouseDwellMove::syncPickOverlayStyle()
+{
+    if (m_cursor) {
+        m_cursor->setStyle(styleForPhase());
+    }
+    if (m_magOverlay) {
+        m_magOverlay->setStyle(PickStyle::sanitizeMouse(m_mousePickStyle));
+    }
+}
+
+int MouseDwellMove::styleForPhase() const
+{
+    if (m_phase == Phase::MagRegion) {
+        return PickStyle::sanitizeMag(m_magPickStyle);
+    }
+    return PickStyle::sanitizeMouse(m_mousePickStyle);
 }
 
 void MouseDwellMove::setSelectTimeoutMs(int ms)
@@ -419,8 +499,21 @@ void MouseDwellMove::finishMagPoint(const QPointF& gaze)
 
 void MouseDwellMove::onGaze(const GazePoint& point)
 {
-    if (!m_armed) {
+    if (!m_armed || m_paused) {
         return;
+    }
+
+    if (!m_gateRect.isEmpty()) {
+        if (!point.valid) {
+            return;
+        }
+        if (m_gateRect.contains(QPoint(qRound(point.x), qRound(point.y)))) {
+            hideUi();
+            return;
+        }
+        m_gateRect = {};
+        resetDwell();
+        markSelectDeadline();
     }
 
     const qint64 now = m_clock.elapsed();
@@ -488,7 +581,7 @@ void MouseDwellMove::onGaze(const GazePoint& point)
     emit progressChanged(m_dwell.progress());
     if (m_cursor) {
         m_cursor->setProgress(m_dwell.progress());
-        m_cursor->placeTip(QPoint(qRound(m_dwell.smoothPos().x()), qRound(m_dwell.smoothPos().y())));
+        m_cursor->placeCenter(QPoint(qRound(m_dwell.smoothPos().x()), qRound(m_dwell.smoothPos().y())));
     }
     if (!done) {
         return;
@@ -514,10 +607,18 @@ void MouseDwellMove::onGaze(const GazePoint& point)
 void MouseDwellMove::completeMoveCycle(const QPoint& target)
 {
     Q_UNUSED(target);
-    if (m_purpose == ArmPurpose::CursorMoveClickLoop) {
+    const bool loop = m_purpose == ArmPurpose::CursorMoveClickLoop;
+    const bool leftOnce = m_purpose == ArmPurpose::CursorMoveLeftClick;
+    const bool rightOnce = m_purpose == ArmPurpose::CursorMoveRightClick;
+    if (loop || leftOnce || rightOnce) {
         QString err;
-        if (!MouseInjector::click(QStringLiteral("left"), &err)) {
-            GAZER_WARN << "MouseDwellMove click-loop click failed:" << err;
+        const QString button = rightOnce ? QStringLiteral("right") : QStringLiteral("left");
+        if (!MouseInjector::click(button, &err)) {
+            GAZER_WARN << "MouseDwellMove click failed:" << err;
+        }
+        if (!loop) {
+            setArmed(false);
+            return;
         }
         // Stay armed: re-run same move/mag pipeline for the next cycle.
         if (m_magOverlay) {

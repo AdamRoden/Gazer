@@ -189,6 +189,19 @@ bool LayoutInstance::itemShown(const LayoutItem& item) const
     return itemIsShown(item, m_props);
 }
 
+void LayoutInstance::mutateItems(const std::function<void(LayoutItem&)>& fn)
+{
+    if (!fn) {
+        return;
+    }
+    for (LayoutItem& it : m_document.items) {
+        fn(it);
+    }
+    if (m_window) {
+        m_window->setLayout(m_document);
+    }
+}
+
 void LayoutInstance::setItemText(const QString& itemId, const QString& label,
                                  const QString& caption)
 {
@@ -751,6 +764,15 @@ QRect LayoutInstance::unpauseGapScreenRect(const LayoutItem& item) const
         return QRect(c.x() - 40, c.y() - 40, 80, 80).intersected(desktop);
     }
     return {};
+}
+
+QRect LayoutInstance::itemScreenRect(const QString& itemId) const
+{
+    const LayoutItem* item = m_document.findItem(itemId);
+    if (!item || !itemShown(*item)) {
+        return {};
+    }
+    return itemHitRect(*item);
 }
 
 QRect LayoutInstance::screenRect() const

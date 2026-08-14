@@ -544,7 +544,7 @@ bool LayoutLoader::loadFromJson(const QByteArray& json, LayoutDocument& out, QSt
             const QString role = item.role.toLower();
             item.interactive = !(role == QLatin1String("label") || role == QLatin1String("display")
                                  || role == QLatin1String("value") || role == QLatin1String("slider")
-                                 || role == QLatin1String("preview"));
+                                 || role == QLatin1String("preview") || role == QLatin1String("swatch"));
         }
         item.dwellExempt = io.value(QStringLiteral("dwellExempt")).toBool(false)
                            || item.role.toLower() == QLatin1String("dwellExempt");

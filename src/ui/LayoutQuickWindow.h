@@ -5,6 +5,7 @@
 #include "ui/Theme.h"
 
 #include <QHash>
+#include <QtGlobal>
 #include <QQuickWindow>
 #include <QSet>
 #include <QTimer>
@@ -40,7 +41,37 @@ public:
     void setActiveItemIds(const QSet<QString>& activeIds);
     void setPropertyContext(const QVariantMap& props);
     void setPreviewColor(const QColor& color);
+    /// Color-slider scrub overlay: enlarged value ring that tracks gaze along the track.
+    void setSliderScrub(const QString& itemId, double t, const QString& valueText,
+                        double dwellProgress);
+    void clearSliderScrub();
+    void setSliderReadout(const QString& itemId, double t, const QString& valueText);
     void flashItem(const QString& itemId);
+
+    struct SliderVisual {
+        QRectF track;
+        QRectF header;
+        double valueLeft = 0.0;
+        double valueRight = 0.0;
+        double trackCy = 0.0;
+        double ringDiameter = 16.0;
+        [[nodiscard]] QPointF posAt(double t) const
+        {
+            const double u = qBound(0.0, t, 1.0);
+            return {valueLeft + (valueRight - valueLeft) * u, trackCy};
+        }
+        [[nodiscard]] double tAtX(double localX) const
+        {
+            const double span = valueRight - valueLeft;
+            if (span <= 1.0) {
+                return 0.0;
+            }
+            return qBound(0.0, (localX - valueLeft) / span, 1.0);
+        }
+    };
+    [[nodiscard]] static SliderVisual sliderVisual(const QRectF& cell, bool scrubbing);
+    [[nodiscard]] QRectF sliderActivatorRect(const QRectF& cell, const LayoutItem& item,
+                                             bool scrubbing) const;
     void showAndRaise();
     /// HWND_TOPMOST only — no restack dip. No-op unless window.aboveTaskbar.
     void keepAboveTaskbar();
@@ -71,9 +102,10 @@ private:
     void paintCell(QPainter& p, const LayoutItem& item, const QRectF& r, bool fluent);
     void paintProgressChrome(QPainter& p, const QRectF& r, bool hovered, double progress,
                              const ProgressVisuals& visuals, double radius);
-    void paintSliderTrack(QPainter& p, const QRectF& r, const QString& channel, double radius);
+    void paintSliderTrack(QPainter& p, const QRectF& r, const LayoutItem& item, bool hovered,
+                          double progress);
     void paintPreviewSwatch(QPainter& p, const QRectF& r, double radius);
-    void paintToggleSwitch(QPainter& p, const QRectF& cell, bool on);
+    void paintRadioButton(QPainter& p, const QRectF& cell, bool on);
     [[nodiscard]] ProgressVisuals visualsForItem(const LayoutItem* item) const;
     [[nodiscard]] bool itemShown(const LayoutItem& item) const;
     [[nodiscard]] LayoutItemStyle resolvedItemStyle(const LayoutItem& item) const;
@@ -90,6 +122,12 @@ private:
     QTimer m_flashTimer;
     double m_boardOpacity = 1.0;
     QColor m_previewColor = ThemeColors::defaultProgressColor();
+    QString m_sliderScrubId;
+    double m_sliderScrubT = 0.0;
+    QString m_sliderScrubValue;
+    double m_sliderScrubProgress = 0.0;
+    QHash<QString, double> m_sliderReadoutT;
+    QHash<QString, QString> m_sliderReadoutValue;
     LayoutBoardItem* m_board = nullptr;
 
     friend class LayoutBoardItem;

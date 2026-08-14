@@ -13,6 +13,7 @@ class LookToScroll;
 class MagnifierOverlay;
 class MouseAssistState;
 class MouseDwellMove;
+class SettingsUi;
 
 /// Inputs for resolving layout item `activeState` accent keys.
 struct ActiveStateContext {
@@ -25,6 +26,7 @@ struct ActiveStateContext {
     const GazeMouseFollow* gazeMouseFollow = nullptr;
     const MouseAssistState* mouseAssist = nullptr;
     const ActionLoopService* actionLoops = nullptr;
+    const SettingsUi* settingsUi = nullptr;
 };
 
 /// Shared sticky-loop / toggle accent resolver (boards, settings, assist modes).
