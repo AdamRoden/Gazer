@@ -17,12 +17,6 @@
     "gapPx": 12,
     "marginPx": 16
   },
-  "dwell": {
-    "enabled": true,
-    "ms": 800,
-    "repeatMs": 0,
-    "progressStyle": "radial"
-  },
   "items": [
     {
       "id": "prompt",

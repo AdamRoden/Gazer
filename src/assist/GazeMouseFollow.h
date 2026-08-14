@@ -21,7 +21,6 @@ public:
     [[nodiscard]] bool isEnabled() const { return m_enabled; }
     void toggle();
     void setFollowProfile(int profile);
-    void setSmoothAlpha(double a); // legacy fixed alpha (ignored when stickiness used)
     void onGaze(const GazePoint& point, bool pauseInput = false);
 
 signals:

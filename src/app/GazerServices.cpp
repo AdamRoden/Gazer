@@ -162,13 +162,11 @@ void GazerServices::applySettings(bool persist)
     boardPv.radial = m_settings.progressRadial;
     boardPv.fillBackground = m_settings.progressFill;
     boardPv.border = m_settings.progressBorder;
-    boardPv.progressColor = AppSettings::parseColor(m_settings.progressColor);
-    boardPv.fillColor = AppSettings::parseColor(m_settings.progressFillColor, QColor(0, 180, 220, 70));
-    boardPv.borderColor = AppSettings::parseColor(m_settings.progressBorderColor);
+    boardPv.progressColor = m_settings.colorKey(QStringLiteral("progressColor"));
+    boardPv.fillColor = m_settings.colorKey(QStringLiteral("progressFillColor"));
+    boardPv.borderColor = m_settings.colorKey(QStringLiteral("progressBorderColor"));
     boardPv.flashOnComplete = m_settings.flashOnComplete;
-    boardPv.flashBorderColor = AppSettings::parseColor(m_settings.flashBorderColor, Qt::white);
-    boardPv.flashFillColor =
-        AppSettings::parseColor(m_settings.flashFillColor, QColor(0, 220, 255, 120));
+    boardPv.flashColor = m_settings.colorKey(QStringLiteral("flashColor"));
     boardPv.flashMs = m_settings.flashMs;
     m_instances->applyProgressVisuals(boardPv);
     m_instances->applyTheme(m_settings.resolvedTheme());
@@ -178,17 +176,14 @@ void GazerServices::applySettings(bool persist)
     m_mouseDwellMove->setMagPickEnabled(m_settings.mouseMoveMagPick);
     m_mouseDwellMove->setMagPickCenterOnDwell(m_settings.mouseMoveMagPickCenterOnDwell);
     m_mouseDwellMove->setMagPickZoom(m_settings.magZoom);
-    ProgressVisuals mousePv;
+    ProgressVisuals mousePv = boardPv;
     mousePv.radial = m_settings.mouseProgressRadial;
     mousePv.fillBackground = m_settings.mouseProgressFill;
     mousePv.border = m_settings.mouseProgressBorder;
-    mousePv.progressColor =
-        AppSettings::parseColor(m_settings.mouseProgressColor, QColor(255, 200, 40));
-    mousePv.fillColor =
-        AppSettings::parseColor(m_settings.mouseProgressFillColor, QColor(255, 200, 40, 64));
-    mousePv.borderColor =
-        AppSettings::parseColor(m_settings.mouseProgressBorderColor, QColor(255, 200, 40));
     m_mouseDwellMove->setProgressVisuals(mousePv);
+    m_gazeReticle->setColor(boardPv.progressColor);
+    m_magnifier->setAccent(boardPv.progressColor);
+    m_lookToScroll->setAccent(boardPv.progressColor);
 
     m_lookToScroll->setDeadzonePx(m_settings.ltsDeadzonePx);
     m_lookToScroll->setFalloffPx(m_settings.ltsFalloffPx);

@@ -16,11 +16,6 @@ ActionDispatcher::ActionDispatcher(GazerServices& services, QObject* parent)
 {
 }
 
-void ActionDispatcher::dispatch(LayoutItem item, const QString& sourceInstanceId)
-{
-    dispatchItem(item, sourceInstanceId);
-}
-
 void ActionDispatcher::dispatchItem(const LayoutItem& item, const QString& sourceInstanceId)
 {
     if (item.actionLoop) {

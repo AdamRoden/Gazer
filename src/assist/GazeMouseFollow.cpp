@@ -37,12 +37,6 @@ void GazeMouseFollow::setFollowProfile(int profile)
     m_stickiness = GazeFollowStickiness::fromProfile(profile);
 }
 
-void GazeMouseFollow::setSmoothAlpha(double a)
-{
-    // Map legacy fixed alpha into a snappy/sticky-ish band when set manually.
-    Q_UNUSED(a);
-}
-
 void GazeMouseFollow::onGaze(const GazePoint& point, bool pauseInput)
 {
     if (!m_enabled || !point.valid || pauseInput) {

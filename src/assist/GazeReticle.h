@@ -3,6 +3,7 @@
 #include "assist/GazeFollowStickiness.h"
 #include "core/GazePoint.h"
 
+#include <QColor>
 #include <QElapsedTimer>
 #include <QObject>
 #include <QPointF>
@@ -24,6 +25,7 @@ public:
     [[nodiscard]] bool isEnabled() const { return m_enabled; }
     void toggle();
     void setFollowProfile(int profile);
+    void setColor(const QColor& c);
     void onGaze(const GazePoint& point);
 
 signals:

@@ -39,9 +39,9 @@ public:
     void setTheme(const ThemeColors& theme);
     void setActiveItemIds(const QSet<QString>& activeIds);
     void setPropertyContext(const QVariantMap& props);
+    void setPreviewColor(const QColor& color);
     void flashItem(const QString& itemId);
     void showAndRaise();
-    void assertAboveTaskbar();
     /// HWND_TOPMOST only — no restack dip. No-op unless window.aboveTaskbar.
     void keepAboveTaskbar();
     void setBoardOpacity(double opacity);
@@ -71,8 +71,12 @@ private:
     void paintCell(QPainter& p, const LayoutItem& item, const QRectF& r, bool fluent);
     void paintProgressChrome(QPainter& p, const QRectF& r, bool hovered, double progress,
                              const ProgressVisuals& visuals, double radius);
+    void paintSliderTrack(QPainter& p, const QRectF& r, const QString& channel, double radius);
+    void paintPreviewSwatch(QPainter& p, const QRectF& r, double radius);
+    void paintToggleSwitch(QPainter& p, const QRectF& cell, bool on);
     [[nodiscard]] ProgressVisuals visualsForItem(const LayoutItem* item) const;
     [[nodiscard]] bool itemShown(const LayoutItem& item) const;
+    [[nodiscard]] LayoutItemStyle resolvedItemStyle(const LayoutItem& item) const;
 
     LayoutDocument m_layout;
     QHash<QString, QRectF> m_itemLocalRects;
@@ -85,6 +89,7 @@ private:
     QString m_flashId;
     QTimer m_flashTimer;
     double m_boardOpacity = 1.0;
+    QColor m_previewColor = ThemeColors::defaultProgressColor();
     LayoutBoardItem* m_board = nullptr;
 
     friend class LayoutBoardItem;

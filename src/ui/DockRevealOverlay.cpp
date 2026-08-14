@@ -75,6 +75,14 @@ void DockRevealOverlay::setDwellMs(int ms)
     m_dwell.setDwellMs(qMax(250, ms));
 }
 
+void DockRevealOverlay::setAccent(const QColor& c)
+{
+    if (c.isValid()) {
+        m_accent = c;
+        update();
+    }
+}
+
 void DockRevealOverlay::syncPlacement()
 {
     QScreen* screen = QGuiApplication::primaryScreen();
@@ -162,17 +170,21 @@ void DockRevealOverlay::paintEvent(QPaintEvent* /*event*/)
     const bool hover = !m_hoverId.isEmpty();
     // Visible enough to find while learning; stronger while dwelling.
     const int alpha = hover ? 200 : 70;
-    p.setBrush(QColor(10, 126, 164, alpha));
-    p.setPen(QPen(QColor(0, 220, 255, hover ? 255 : 120), hover ? 3.0 : 1.5));
+    QColor fill = m_accent;
+    fill.setAlpha(alpha);
+    QColor outline = m_accent;
+    outline.setAlpha(hover ? 255 : 120);
+    p.setBrush(fill);
+    p.setPen(QPen(outline, hover ? 3.0 : 1.5));
     p.drawRoundedRect(rect().adjusted(2, 2, -2, -2), 12, 12);
 
-    p.setPen(QColor(240, 248, 255, hover ? 255 : 180));
+    p.setPen(QColor(255, 255, 255, hover ? 255 : 180));
     p.setFont(QFont(QStringLiteral("Segoe UI"), 12, QFont::DemiBold));
     p.drawText(rect(), Qt::AlignCenter,
                hover ? QStringLiteral("Show Dock…") : QStringLiteral("Dock"));
 
     if (hover && m_progress > 0.0) {
-        p.setPen(QPen(QColor(0, 220, 255), 4.0));
+        p.setPen(QPen(m_accent, 4.0));
         p.setBrush(Qt::NoBrush);
         p.drawArc(rect().adjusted(10, 10, -10, -10), 90 * 16,
                   static_cast<int>(-360 * 16 * m_progress));

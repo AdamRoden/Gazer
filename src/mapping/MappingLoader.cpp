@@ -3,6 +3,7 @@
 #include "utils/Log.h"
 
 #include <QFile>
+#include <QHash>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -13,46 +14,22 @@ namespace {
 
 InputOutput::Type parseType(const QString& s)
 {
-    if (s == QLatin1String("keyTap")) {
-        return InputOutput::Type::KeyTap;
-    }
-    if (s == QLatin1String("keyCombo")) {
-        return InputOutput::Type::KeyCombo;
-    }
-    if (s == QLatin1String("text")) {
-        return InputOutput::Type::Text;
-    }
-    if (s == QLatin1String("mouseClick")) {
-        return InputOutput::Type::MouseClick;
-    }
-    if (s == QLatin1String("mouseDoubleClick")) {
-        return InputOutput::Type::MouseDoubleClick;
-    }
-    if (s == QLatin1String("mouseDown")) {
-        return InputOutput::Type::MouseDown;
-    }
-    if (s == QLatin1String("mouseUp")) {
-        return InputOutput::Type::MouseUp;
-    }
-    if (s == QLatin1String("mouseMove")) {
-        return InputOutput::Type::MouseMove;
-    }
-    if (s == QLatin1String("mouseMoveTo")) {
-        return InputOutput::Type::MouseMoveTo;
-    }
-    if (s == QLatin1String("mouseScroll")) {
-        return InputOutput::Type::MouseScroll;
-    }
-    if (s == QLatin1String("mouseScrollH")) {
-        return InputOutput::Type::MouseScrollH;
-    }
-    if (s == QLatin1String("gamepadButton")) {
-        return InputOutput::Type::GamepadButton;
-    }
-    if (s == QLatin1String("gamepadAxis")) {
-        return InputOutput::Type::GamepadAxis;
-    }
-    return InputOutput::Type::Unknown;
+    static const QHash<QString, InputOutput::Type> kTypes = {
+        {QStringLiteral("keyTap"), InputOutput::Type::KeyTap},
+        {QStringLiteral("keyCombo"), InputOutput::Type::KeyCombo},
+        {QStringLiteral("text"), InputOutput::Type::Text},
+        {QStringLiteral("mouseClick"), InputOutput::Type::MouseClick},
+        {QStringLiteral("mouseDoubleClick"), InputOutput::Type::MouseDoubleClick},
+        {QStringLiteral("mouseDown"), InputOutput::Type::MouseDown},
+        {QStringLiteral("mouseUp"), InputOutput::Type::MouseUp},
+        {QStringLiteral("mouseMove"), InputOutput::Type::MouseMove},
+        {QStringLiteral("mouseMoveTo"), InputOutput::Type::MouseMoveTo},
+        {QStringLiteral("mouseScroll"), InputOutput::Type::MouseScroll},
+        {QStringLiteral("mouseScrollH"), InputOutput::Type::MouseScrollH},
+        {QStringLiteral("gamepadButton"), InputOutput::Type::GamepadButton},
+        {QStringLiteral("gamepadAxis"), InputOutput::Type::GamepadAxis},
+    };
+    return kTypes.value(s, InputOutput::Type::Unknown);
 }
 
 bool parseOutput(const QJsonObject& obj, InputOutput& out, QString* error)

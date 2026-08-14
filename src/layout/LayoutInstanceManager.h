@@ -75,7 +75,7 @@ public:
 
     /// Apply global dwell sequence / grace / scan-grace to every open instance.
     void applyGlobalDwellOverride(const QVector<int>& dwellSequence, int graceMs,
-                                  int scanGraceMs = 100);
+                                  int scanGraceMs = DwellStateMachine::kDefaultScanGraceMs);
 
     void applyProgressVisuals(const ProgressVisuals& visuals);
     void applyTheme(const ThemeColors& theme);
@@ -162,7 +162,10 @@ private:
 
     [[nodiscard]] QString homeLayoutIdForMaster() const;
     void wireInstance(LayoutInstance* inst);
-    void pushPropertyContext();
+    void applyInstanceChrome(LayoutInstance* inst);
+    [[nodiscard]] std::unique_ptr<LayoutInstance> makeWiredInstance(const QString& layoutId,
+                                                                   const LayoutDocument& doc);
+    [[nodiscard]] bool isRootChildLayout(const QString& layoutId) const;
     void applyChromeProps();
     void setRootChrome(RootChrome next);
     void syncChildVisibility();
@@ -192,7 +195,7 @@ private:
     int m_autoCloseFadeMs = 3000;
     QVector<int> m_globalDwellSequence;
     int m_globalGraceMs = 0;
-    int m_globalScanGraceMs = 100;
+    int m_globalScanGraceMs = DwellStateMachine::kDefaultScanGraceMs;
     ProgressVisuals m_progressVisuals;
     ThemeColors m_theme = ThemeColors::darkPreset();
     EdgeBubbleOverlay* m_edgeBubbles = nullptr;

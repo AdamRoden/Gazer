@@ -161,6 +161,11 @@ bool Application::initialize()
             m_tray->setStatus(msg);
         }
     };
+    connect(m_svc.get(), &GazerServices::settingsChanged, this, [this]() {
+        if (m_dockReveal) {
+            m_dockReveal->setAccent(m_svc->settings().colorKey(QStringLiteral("progressColor")));
+        }
+    });
     connect(m_actions.get(), &ActionDispatcher::statusMessage, this, statusToTray);
     connect(&m_svc->commands(), &CommandRegistry::statusMessage, this, statusToTray);
     connect(&m_svc->scripts(), &ScriptHost::statusMessage, this, statusToTray);
@@ -229,8 +234,7 @@ void Application::syncMasterChrome()
         if (m_dockReveal) {
             m_dockReveal->setEnabledReveal(false);
         }
-        // Root is headless dock chips — restack visible chrome, do not raise it.
-        m_svc->instances().restackChrome();
+        // Root is headless dock chips — restack visible chrome, do not raise the root.
         m_svc->instances().reassertStackTopVisual();
     }
 

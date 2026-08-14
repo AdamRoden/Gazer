@@ -36,6 +36,8 @@ set(GAZER_SOURCES
     src/app/GazeRouter.cpp
     src/app/GazerServices.cpp
     src/app/SettingsUi.cpp
+    src/app/SettingsEditors.cpp
+    src/app/SettingsCommands.cpp
     src/app/CommandRegistry.cpp
     src/core/TrackerMouse.cpp
     src/core/TrackerTobii.cpp
@@ -100,6 +102,7 @@ set(GAZER_HEADERS
     src/layout/LayoutInstance.h
     src/layout/LayoutInstanceManager.h
     src/layout/DwellStateMachine.h
+    src/layout/InvalidGazeGrace.h
     src/input/InputTypes.h
     src/input/KeyboardInjector.h
     src/input/MouseInjector.h

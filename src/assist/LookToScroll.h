@@ -2,6 +2,7 @@
 
 #include "core/GazePoint.h"
 
+#include <QColor>
 #include <QElapsedTimer>
 #include <QObject>
 #include <QPoint>
@@ -33,6 +34,7 @@ public:
     /// Extra rate multiplier per second of continuous outside-deadzone gaze.
     void setAccelPerSec(double a);
     void setCenterDwellMs(int ms);
+    void setAccent(const QColor& c);
     void setActiveWhenOverBoard(bool allow);
 
     /// @p pauseInput when true: hide overlay and ignore scroll (over board / full-screen aim).

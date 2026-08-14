@@ -22,7 +22,6 @@
         "heightPx": 200,
         "yPx": 100
       },
-      "style": { "background": "#000000", "foreground": "#ffffff" },
       "actions": [{ "type": "command", "name": "resumeDwell" },{ "type": "command", "name": "expandMaster" }]
     },
     {
@@ -36,7 +35,6 @@
         "xPx": 400,
         "yPx": 100
       },
-      "style": { "background": "#000000", "foreground": "#ffffff" },
       "actions": [{ "type": "command", "name": "toggleDwellSuspend" }]
     }
   ]

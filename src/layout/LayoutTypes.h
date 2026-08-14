@@ -101,6 +101,28 @@ struct LayoutChromeStyle {
         return background.has_value() || foreground.has_value() || borderColor.has_value()
                || borderWidth.has_value() || radius.has_value();
     }
+
+    /// Copy, then replace any field set on `ovr` (item over layout, layout over unset).
+    [[nodiscard]] LayoutChromeStyle withOverrides(const LayoutChromeStyle& ovr) const
+    {
+        LayoutChromeStyle out = *this;
+        if (ovr.background) {
+            out.background = ovr.background;
+        }
+        if (ovr.foreground) {
+            out.foreground = ovr.foreground;
+        }
+        if (ovr.borderColor) {
+            out.borderColor = ovr.borderColor;
+        }
+        if (ovr.borderWidth) {
+            out.borderWidth = ovr.borderWidth;
+        }
+        if (ovr.radius) {
+            out.radius = ovr.radius;
+        }
+        return out;
+    }
 };
 
 using LayoutItemStyle = LayoutChromeStyle;
@@ -171,8 +193,7 @@ struct LayoutDwellConfig {
     QString progressColor;
     QString fillColor;
     QString borderColor;
-    QString flashBorderColor;
-    QString flashFillColor;
+    QString flashColor;
     int flashMs = -1; // -1 = inherit
 
     /// True when this config was explicitly present in JSON (layout or item).
@@ -184,8 +205,7 @@ struct LayoutDwellConfig {
     bool hasProgressColor = false;
     bool hasFillColor = false;
     bool hasBorderColor = false;
-    bool hasFlashBorderColor = false;
-    bool hasFlashFillColor = false;
+    bool hasFlashColor = false;
     bool hasFlashMs = false;
 
     [[nodiscard]] QVector<int> effectiveSequence() const
@@ -202,14 +222,14 @@ struct LayoutItem {
     QString label;
     /// Secondary line under the label (e.g. muted description).
     QString caption;
-    /// Optional help text (legacy; prefer a separate non-interactive label cell).
-    QString tooltip;
     /// Optional AppSettings field key for live value text on label cells.
     QString settingKey;
     /// Runtime toggle key for accent "on" state (e.g. mouse.leftHold, lookToScroll).
     QString activeState;
     /// Built-in glyph key for the board painter (e.g. "leftClick", "moveTo"). Empty = text only.
     QString icon;
+    /// Optional role: label / display / value / slider / preview.
+    QString role;
     /// When false, cell is visual-only (not dwell/click hit-tested).
     bool interactive = true;
     /// When true, remains dwellable while global dwell suspend is on.
@@ -338,28 +358,6 @@ struct LayoutChildRef {
     QString visibleWhen;
 };
 
-/// Legacy session role — parsed for old files, unused for navigation.
-enum class LayoutRole {
-    Secondary,
-    MasterShell
-};
-
-/// Legacy session metadata. Ignored for launch / navigation. Prefer `master` + `children`.
-struct LayoutSessionMeta {
-    LayoutRole role = LayoutRole::Secondary;
-    QString masterGroup;
-    bool isHome = false;
-    QString collapseLayoutId;
-    QString expandLayoutId;
-    bool hideUntilGazeReveal = false;
-
-    [[nodiscard]] bool isMasterShell() const { return role == LayoutRole::MasterShell; }
-    [[nodiscard]] bool isGazeRevealDock() const
-    {
-        return isMasterShell() && hideUntilGazeReveal;
-    }
-};
-
 /// Visual chrome for the board window.
 enum class LayoutUiStyle {
     Default,
@@ -379,11 +377,12 @@ struct LayoutDocument {
     QVector<LayoutChildRef> children;
     /// Nested documents keyed by host item id (filled when the catalog resolves embeds).
     QHash<QString, std::shared_ptr<LayoutDocument>> embeds;
-    LayoutSessionMeta session;
     LayoutGrid grid;
     LayoutDwellConfig dwell;
     LayoutWindowPlacement placement;
     LayoutUiStyle uiStyle = LayoutUiStyle::Default;
+    /// Default item chrome. Item `style` wins per field; remaining unset fields use the theme.
+    LayoutChromeStyle style;
     QVector<LayoutItem> items;
     /// Run when an instance is first created/opened (not on in-place load).
     QVector<LayoutAction> onOpen;
@@ -436,7 +435,6 @@ struct LayoutDocument {
     }
 
     [[nodiscard]] bool isMaster() const { return master; }
-    [[nodiscard]] bool isMasterShell() const { return master; }
     [[nodiscard]] bool isGazeRevealDock() const { return master && hideUntilGazeReveal; }
 
     [[nodiscard]] const LayoutItem* findItem(const QString& itemId) const

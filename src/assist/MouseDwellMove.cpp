@@ -57,10 +57,8 @@ protected:
         p.setPen(QPen(Qt::black, 1.5));
         p.setBrush(QColor(255, 255, 255, 230));
         p.drawPath(path);
-        if (m_progress > 0.01 && m_visuals.radial) {
-            p.setBrush(Qt::NoBrush);
-            p.setPen(QPen(m_visuals.progressColor, 3.0));
-            p.drawArc(QRect(2, 2, 28, 28), 90 * 16, int(-360 * 16 * m_progress));
+        if (m_progress > 0.01) {
+            paintProgress(p, QRectF(2, 2, 28, 28), m_progress, m_visuals, ProgressShape::Ellipse);
         }
     }
 
@@ -90,6 +88,12 @@ public:
         update();
     }
 
+    void setVisuals(const ProgressVisuals& v)
+    {
+        m_visuals = v;
+        update();
+    }
+
     void setPickLocal(const QPoint& local)
     {
         m_pick = local;
@@ -102,24 +106,25 @@ protected:
     {
         QPainter p(this);
         p.setRenderHint(QPainter::SmoothPixmapTransform, true);
+        p.setRenderHint(QPainter::Antialiasing, true);
         p.fillRect(rect(), QColor(0, 0, 0, 180));
         if (!m_pm.isNull()) {
             p.drawPixmap(rect(), m_pm);
         }
-        p.setPen(QPen(QColor(0, 220, 255), 3.0));
+        const QColor ring = m_visuals.progressColor;
+        p.setPen(QPen(m_visuals.borderColor.isValid() ? m_visuals.borderColor : ring, 3.0));
         p.setBrush(Qt::NoBrush);
         p.drawRect(rect().adjusted(1, 1, -1, -1));
         if (m_hasPick) {
-            p.setPen(QPen(QColor(255, 200, 40), 2.0));
+            p.setPen(QPen(ring, 2.0));
             p.drawLine(m_pick.x() - 14, m_pick.y(), m_pick.x() + 14, m_pick.y());
             p.drawLine(m_pick.x(), m_pick.y() - 14, m_pick.x(), m_pick.y() + 14);
             if (m_progress > 0.01) {
-                p.setPen(QPen(QColor(255, 200, 40), 3.0));
-                p.drawArc(QRect(m_pick.x() - 18, m_pick.y() - 18, 36, 36), 90 * 16,
-                          int(-360 * 16 * m_progress));
+                paintProgress(p, QRectF(m_pick.x() - 18, m_pick.y() - 18, 36, 36), m_progress,
+                              m_visuals, ProgressShape::Ellipse);
             }
         }
-        p.setPen(QColor(240, 248, 255));
+        p.setPen(Qt::white);
         p.setFont(QFont(QStringLiteral("Segoe UI"), 11, QFont::DemiBold));
         p.drawText(rect().adjusted(12, 10, -12, -10), Qt::AlignTop | Qt::AlignHCenter,
                    QStringLiteral("Dwell to pick point (static zoom)"));
@@ -130,12 +135,14 @@ private:
     QPoint m_pick;
     bool m_hasPick = false;
     double m_progress = 0.0;
+    ProgressVisuals m_visuals;
 };
 
 MouseDwellMove::MouseDwellMove(QObject* parent)
     : QObject(parent)
 {
     m_clock.start();
+    m_invalidGrace.graceMs = 220;
     m_cursor = std::make_unique<CursorOverlay>();
     m_magOverlay = std::make_unique<MagPickOverlay>();
 }
@@ -267,6 +274,9 @@ void MouseDwellMove::setProgressVisuals(const ProgressVisuals& visuals)
     if (m_cursor) {
         m_cursor->setVisuals(visuals);
     }
+    if (m_magOverlay) {
+        m_magOverlay->setVisuals(visuals);
+    }
 }
 
 void MouseDwellMove::setMagPickEnabled(bool enabled)
@@ -308,7 +318,7 @@ void MouseDwellMove::resetDwell()
 {
     m_dwell.reset();
     m_lastSampleMs = -1;
-    m_invalidSinceMs = -1;
+    m_invalidGrace.reset();
     emit progressChanged(0.0);
 }
 
@@ -421,13 +431,8 @@ void MouseDwellMove::onGaze(const GazePoint& point)
         return;
     }
 
-    // Brief invalid samples (tracker dropouts) must not wipe dwell; layout dwell uses
-    // the same pattern. Mag-point keeps the static capture visible either way.
     if (!point.valid) {
-        if (m_invalidSinceMs < 0) {
-            m_invalidSinceMs = now;
-        }
-        if ((now - m_invalidSinceMs) < m_invalidGraceMs) {
+        if (m_invalidGrace.onInvalid() == InvalidGazeGrace::Result::Holding) {
             return;
         }
         if (m_phase == Phase::MagPoint) {
@@ -441,7 +446,7 @@ void MouseDwellMove::onGaze(const GazePoint& point)
         }
         return;
     }
-    m_invalidSinceMs = -1;
+    m_invalidGrace.onValid();
 
     const QPointF g(point.x, point.y);
     const double dtSec =

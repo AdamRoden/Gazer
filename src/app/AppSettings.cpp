@@ -10,7 +10,151 @@
 #include <QRegularExpression>
 #include <QStandardPaths>
 
+
+
 namespace gazer {
+
+namespace {
+
+struct IntSpec {
+    const char* key;
+    const char* title;
+    const char* hint;
+    const char* suffix;
+    int AppSettings::* member;
+    int min;
+    int max;
+    int step;
+};
+
+struct DoubleSpec {
+    const char* key;
+    const char* title;
+    const char* hint;
+    const char* suffix;
+    double AppSettings::* member;
+    double min;
+    double max;
+    double step;
+    int decimals;
+};
+
+struct ColorSpec {
+    const char* key;
+    const char* title;
+    QString AppSettings::* member;
+    QColor fallback;
+};
+
+struct BoolSpec {
+    const char* key;
+    bool AppSettings::* member;
+};
+
+constexpr IntSpec kIntSpecs[] = {
+    {"scanGraceMs", "Scan grace",
+     "Time on-target before dwell progress begins (ms).", " ms",
+     &AppSettings::scanGraceMs, 0, 2000, 20},
+    {"dwellGraceMs", "Blink grace",
+     "Blink grace window without canceling dwell (ms).", " ms",
+     &AppSettings::dwellGraceMs, 0, 800, 20},
+    {"mouseMoveDwellMs", "Mouse-move dwell",
+     "Dwell time for mouse cursor placement (ms).", " ms",
+     &AppSettings::mouseMoveDwellMs, 200, 2500, 50},
+    {"mouseMoveSelectTimeoutMs", "Mouse-move timeout",
+     "Cancel mouse-move / gaze-click loop if no target is selected within this many ms (0 = off).",
+     " ms", &AppSettings::mouseMoveSelectTimeoutMs, 0, 120000, 500},
+    {"magLensSize", "Lens size", "Lens diameter in pixels (160–900).", " px",
+     &AppSettings::magLensSize, 160, 900, 20},
+    {"ltsDeadzonePx", "LTS deadzone", "No-scroll radius around cursor (px).", " px",
+     &AppSettings::ltsDeadzonePx, 30, 400, 10},
+    {"ltsFalloffPx", "LTS falloff", "Distance to full scroll speed past deadzone (px).", " px",
+     &AppSettings::ltsFalloffPx, 80, 800, 20},
+    {"ltsCenterDwellMs", "LTS center dwell", "Dwell in the deadzone center to pause/resume (ms).",
+     " ms", &AppSettings::ltsCenterDwellMs, 200, 2500, 50},
+    {"flashMs", "Flash duration", "Completion flash duration after activation (ms).", " ms",
+     &AppSettings::flashMs, 40, 1000, 20},
+};
+
+constexpr DoubleSpec kDoubleSpecs[] = {
+    {"magZoom", "Magnifier zoom", "Magnifier zoom factor (1.25–6).", "×",
+     &AppSettings::magZoom, 1.25, 6.0, 0.25, 2},
+    {"ltsMaxNotchesPerSec", "LTS max speed", "Peak scroll rate (notches/second).", " n/s",
+     &AppSettings::ltsMaxNotchesPerSec, 0.5, 24.0, 0.5, 1},
+    {"ltsAccelPerSec", "LTS accel/s", "Speed growth while outside deadzone.", " /s",
+     &AppSettings::ltsAccelPerSec, 0.0, 2.0, 0.05, 2},
+};
+
+const ColorSpec kColorSpecs[] = {
+    {"progressColor", "Progress color", &AppSettings::progressColor,
+     ThemeColors::defaultProgressColor()},
+    {"progressFillColor", "Fill highlight", &AppSettings::progressFillColor,
+     QColor(0, 180, 220, 70)},
+    {"progressBorderColor", "Border highlight", &AppSettings::progressBorderColor,
+     ThemeColors::defaultProgressColor()},
+    {"flashColor", "Flash color", &AppSettings::flashColor, Qt::white},
+};
+
+constexpr BoolSpec kBoolSpecs[] = {
+    {"ltsPlaceCursorFirst", &AppSettings::ltsPlaceCursorFirst},
+    {"autoCollapseMain", &AppSettings::autoCollapseMain},
+    {"startDocked", &AppSettings::startDocked},
+    {"layoutAutoClose", &AppSettings::layoutAutoClose},
+    {"speakAlsoType", &AppSettings::speakAlsoType},
+    {"progressRadial", &AppSettings::progressRadial},
+    {"progressFill", &AppSettings::progressFill},
+    {"progressBorder", &AppSettings::progressBorder},
+    {"mouseProgressRadial", &AppSettings::mouseProgressRadial},
+    {"mouseProgressFill", &AppSettings::mouseProgressFill},
+    {"mouseProgressBorder", &AppSettings::mouseProgressBorder},
+    {"flashOnComplete", &AppSettings::flashOnComplete},
+};
+
+bool keyEq(const char* a, const QString& b)
+{
+    return b == QLatin1String(a);
+}
+
+const IntSpec* findInt(const QString& key)
+{
+    for (const IntSpec& s : kIntSpecs) {
+        if (keyEq(s.key, key)) {
+            return &s;
+        }
+    }
+    return nullptr;
+}
+
+const DoubleSpec* findDouble(const QString& key)
+{
+    for (const DoubleSpec& s : kDoubleSpecs) {
+        if (keyEq(s.key, key)) {
+            return &s;
+        }
+    }
+    return nullptr;
+}
+
+const ColorSpec* findColor(const QString& key)
+{
+    if (key == QLatin1String("flashBorderColor") || key == QLatin1String("flashFillColor")) {
+        return findColor(QStringLiteral("flashColor"));
+    }
+    for (const ColorSpec& s : kColorSpecs) {
+        if (keyEq(s.key, key)) {
+            return &s;
+        }
+    }
+    return nullptr;
+}
+
+bool isSequenceKey(const QString& key)
+{
+    return key == QLatin1String("dwellMs") || key == QLatin1String("dwellSequence");
+}
+
+} // namespace
+
 
 AppSettings AppSettings::defaults()
 {
@@ -74,25 +218,19 @@ QVector<int> AppSettings::parseDwellSequence(const QString& text, QString* error
 void AppSettings::clamp()
 {
     if (dwellSequence.isEmpty()) {
-        dwellSequence = {700};
+        dwellSequence = defaultDwellSequence();
     }
     for (int& ms : dwellSequence) {
         ms = qBound(50, ms, 10000);
     }
-    scanGraceMs = qBound(0, scanGraceMs, 2000);
-    dwellGraceMs = qBound(0, dwellGraceMs, 800);
-    mouseMoveDwellMs = qBound(200, mouseMoveDwellMs, 2500);
-    mouseMoveSelectTimeoutMs = qBound(0, mouseMoveSelectTimeoutMs, 120000);
-    magZoom = qBound(1.25, magZoom, 6.0);
-    magLensSize = qBound(160, magLensSize, 900);
+    for (const IntSpec& s : kIntSpecs) {
+        this->*s.member = qBound(s.min, this->*s.member, s.max);
+    }
+    for (const DoubleSpec& s : kDoubleSpecs) {
+        this->*s.member = qBound(s.min, this->*s.member, s.max);
+    }
     magFollowProfile = qBound(0, magFollowProfile, 2);
-    ltsDeadzonePx = qBound(30, ltsDeadzonePx, 400);
-    ltsFalloffPx = qBound(80, ltsFalloffPx, 800);
-    ltsMaxNotchesPerSec = qBound(0.5, ltsMaxNotchesPerSec, 24.0);
-    ltsAccelPerSec = qBound(0.0, ltsAccelPerSec, 2.0);
-    ltsCenterDwellMs = qBound(200, ltsCenterDwellMs, 2500);
     trackerPref = qBound(0, trackerPref, 1);
-    flashMs = qBound(40, flashMs, 1000);
     layoutAutoCloseIdleMs = qBound(500, layoutAutoCloseIdleMs, 120000);
     layoutAutoCloseFadeMs = qBound(50, layoutAutoCloseFadeMs, 60000);
     if (!progressRadial && !progressFill && !progressBorder) {
@@ -101,6 +239,26 @@ void AppSettings::clamp()
     if (!mouseProgressRadial && !mouseProgressFill && !mouseProgressBorder) {
         mouseProgressRadial = true;
     }
+}
+
+bool AppSettings::nudge(const QString& key, int dir)
+{
+    if (isSequenceKey(key)) {
+        if (dwellSequence.isEmpty()) {
+            dwellSequence = defaultDwellSequence();
+        }
+        dwellSequence[0] = qBound(50, dwellSequence[0] + dir * 50, 10000);
+        return true;
+    }
+    if (const IntSpec* s = findInt(key)) {
+        this->*s->member = qBound(s->min, this->*s->member + dir * s->step, s->max);
+        return true;
+    }
+    if (const DoubleSpec* s = findDouble(key)) {
+        this->*s->member = qBound(s->min, this->*s->member + dir * s->step, s->max);
+        return true;
+    }
+    return false;
 }
 
 void AppSettings::setDwellPreset(int preset)
@@ -119,7 +277,7 @@ void AppSettings::setDwellPreset(int preset)
         scanGraceMs = 80;
         break;
     default:
-        dwellSequence = {700};
+        dwellSequence = defaultDwellSequence();
         mouseMoveDwellMs = 700;
         dwellGraceMs = 180;
         scanGraceMs = 100;
@@ -150,43 +308,28 @@ bool AppSettings::isColorKey(const QString& key)
 
 bool AppSettings::isNumericKey(const QString& key)
 {
-    return key == QLatin1String("dwellMs") || key == QLatin1String("dwellSequence")
-           || key == QLatin1String("scanGraceMs") || key == QLatin1String("dwellGraceMs")
-           || key == QLatin1String("mouseMoveDwellMs")
-           || key == QLatin1String("mouseMoveSelectTimeoutMs")
-           || key == QLatin1String("magZoom") || key == QLatin1String("magLensSize")
-           || key == QLatin1String("ltsDeadzonePx") || key == QLatin1String("ltsFalloffPx")
-           || key == QLatin1String("ltsMaxNotchesPerSec") || key == QLatin1String("ltsAccelPerSec")
-           || key == QLatin1String("ltsCenterDwellMs") || key == QLatin1String("flashMs");
+    return isSequenceKey(key) || findInt(key) || findDouble(key);
+}
+
+QStringList AppSettings::numericKeys()
+{
+    QStringList keys;
+    keys << QStringLiteral("dwellMs");
+    for (const IntSpec& s : kIntSpecs) {
+        keys << QLatin1String(s.key);
+    }
+    for (const DoubleSpec& s : kDoubleSpecs) {
+        keys << QLatin1String(s.key);
+    }
+    return keys;
 }
 
 QColor AppSettings::colorKey(const QString& key) const
 {
-    if (key == QLatin1String("progressColor")) {
-        return parseColor(progressColor);
+    if (const ColorSpec* s = findColor(key)) {
+        return parseColor(this->*s->member, s->fallback);
     }
-    if (key == QLatin1String("progressFillColor")) {
-        return parseColor(progressFillColor, QColor(0, 180, 220, 70));
-    }
-    if (key == QLatin1String("progressBorderColor")) {
-        return parseColor(progressBorderColor);
-    }
-    if (key == QLatin1String("mouseProgressColor")) {
-        return parseColor(mouseProgressColor, QColor(255, 200, 40));
-    }
-    if (key == QLatin1String("mouseProgressFillColor")) {
-        return parseColor(mouseProgressFillColor, QColor(255, 200, 40, 64));
-    }
-    if (key == QLatin1String("mouseProgressBorderColor")) {
-        return parseColor(mouseProgressBorderColor, QColor(255, 200, 40));
-    }
-    if (key == QLatin1String("flashBorderColor")) {
-        return parseColor(flashBorderColor, Qt::white);
-    }
-    if (key == QLatin1String("flashFillColor")) {
-        return parseColor(flashFillColor, QColor(0, 220, 255, 120));
-    }
-    return QColor(0, 220, 255);
+    return ThemeColors::defaultProgressColor();
 }
 
 bool AppSettings::setColorKey(const QString& key, const QColor& c)
@@ -194,99 +337,40 @@ bool AppSettings::setColorKey(const QString& key, const QColor& c)
     if (!c.isValid()) {
         return false;
     }
-    const QString hex = colorToHex(c);
-    if (key == QLatin1String("progressColor")) {
-        progressColor = hex;
-    } else if (key == QLatin1String("progressFillColor")) {
-        progressFillColor = hex;
-    } else if (key == QLatin1String("progressBorderColor")) {
-        progressBorderColor = hex;
-    } else if (key == QLatin1String("mouseProgressColor")) {
-        mouseProgressColor = hex;
-    } else if (key == QLatin1String("mouseProgressFillColor")) {
-        mouseProgressFillColor = hex;
-    } else if (key == QLatin1String("mouseProgressBorderColor")) {
-        mouseProgressBorderColor = hex;
-    } else if (key == QLatin1String("flashBorderColor")) {
-        flashBorderColor = hex;
-    } else if (key == QLatin1String("flashFillColor")) {
-        flashFillColor = hex;
-    } else {
+    const ColorSpec* s = findColor(key);
+    if (!s) {
         return false;
     }
+    this->*s->member = colorToHex(c);
     return true;
 }
 
 QString AppSettings::displayValue(const QString& key) const
 {
-    if (key == QLatin1String("dwellMs") || key == QLatin1String("dwellSequence")) {
+    if (isSequenceKey(key)) {
         return dwellSequenceString() + QStringLiteral(" ms");
     }
-    if (key == QLatin1String("scanGraceMs")) {
-        return QStringLiteral("%1 ms").arg(scanGraceMs);
-    }
-    if (key == QLatin1String("dwellGraceMs")) {
-        return QStringLiteral("%1 ms").arg(dwellGraceMs);
-    }
-    if (key == QLatin1String("mouseMoveDwellMs")) {
-        return QStringLiteral("%1 ms").arg(mouseMoveDwellMs);
-    }
-    if (key == QLatin1String("mouseMoveSelectTimeoutMs")) {
-        if (mouseMoveSelectTimeoutMs <= 0) {
+    if (const IntSpec* s = findInt(key)) {
+        const int v = this->*s->member;
+        if (keyEq(s->key, QStringLiteral("mouseMoveSelectTimeoutMs")) && v <= 0) {
             return QStringLiteral("Off");
         }
-        return QStringLiteral("%1 ms").arg(mouseMoveSelectTimeoutMs);
+        return QString::number(v) + QLatin1String(s->suffix);
     }
-    if (key == QLatin1String("magZoom")) {
-        return QStringLiteral("%1×").arg(magZoom, 0, 'f', 2);
-    }
-    if (key == QLatin1String("magLensSize")) {
-        return QStringLiteral("%1 px").arg(magLensSize);
+    if (const DoubleSpec* s = findDouble(key)) {
+        return QString::number(this->*s->member, 'f', s->decimals) + QLatin1String(s->suffix);
     }
     if (key == QLatin1String("magFollowProfile")) {
         static const char* names[] = {"Sticky", "Balanced", "Snappy"};
         return QLatin1String(names[qBound(0, magFollowProfile, 2)]);
     }
-    if (key == QLatin1String("ltsDeadzonePx")) {
-        return QStringLiteral("%1 px").arg(ltsDeadzonePx);
-    }
-    if (key == QLatin1String("ltsFalloffPx")) {
-        return QStringLiteral("%1 px").arg(ltsFalloffPx);
-    }
-    if (key == QLatin1String("ltsMaxNotchesPerSec")) {
-        return QStringLiteral("%1 n/s").arg(ltsMaxNotchesPerSec, 0, 'f', 1);
-    }
-    if (key == QLatin1String("ltsAccelPerSec")) {
-        return QStringLiteral("%1 /s").arg(ltsAccelPerSec, 0, 'f', 2);
-    }
-    if (key == QLatin1String("ltsCenterDwellMs")) {
-        return QStringLiteral("%1 ms").arg(ltsCenterDwellMs);
-    }
-    if (key == QLatin1String("ltsPlaceCursorFirst") || key == QLatin1String("autoCollapseMain")
-        || key == QLatin1String("startDocked") || key == QLatin1String("layoutAutoClose")
-        || key == QLatin1String("speakAlsoType") || key == QLatin1String("progressRadial")
-        || key == QLatin1String("progressFill") || key == QLatin1String("progressBorder")
-        || key == QLatin1String("mouseProgressRadial") || key == QLatin1String("mouseProgressFill")
-        || key == QLatin1String("mouseProgressBorder") || key == QLatin1String("flashOnComplete")) {
-        const bool on = (key == QLatin1String("ltsPlaceCursorFirst") && ltsPlaceCursorFirst)
-                        || (key == QLatin1String("autoCollapseMain") && autoCollapseMain)
-                        || (key == QLatin1String("startDocked") && startDocked)
-                        || (key == QLatin1String("layoutAutoClose") && layoutAutoClose)
-                        || (key == QLatin1String("speakAlsoType") && speakAlsoType)
-                        || (key == QLatin1String("progressRadial") && progressRadial)
-                        || (key == QLatin1String("progressFill") && progressFill)
-                        || (key == QLatin1String("progressBorder") && progressBorder)
-                        || (key == QLatin1String("mouseProgressRadial") && mouseProgressRadial)
-                        || (key == QLatin1String("mouseProgressFill") && mouseProgressFill)
-                        || (key == QLatin1String("mouseProgressBorder") && mouseProgressBorder)
-                        || (key == QLatin1String("flashOnComplete") && flashOnComplete);
-        return on ? QStringLiteral("ON") : QStringLiteral("OFF");
+    for (const BoolSpec& s : kBoolSpecs) {
+        if (keyEq(s.key, key)) {
+            return (this->*s.member) ? QStringLiteral("ON") : QStringLiteral("OFF");
+        }
     }
     if (key == QLatin1String("trackerPref")) {
         return trackerPref == 1 ? QStringLiteral("Mouse only") : QStringLiteral("Auto Tobii");
-    }
-    if (key == QLatin1String("flashMs")) {
-        return QStringLiteral("%1 ms").arg(flashMs);
     }
     if (isColorKey(key)) {
         return colorKey(key).name(QColor::HexArgb).toUpper();
@@ -296,107 +380,37 @@ QString AppSettings::displayValue(const QString& key) const
 
 QString AppSettings::settingTitle(const QString& key)
 {
-    if (key == QLatin1String("dwellMs") || key == QLatin1String("dwellSequence")) {
+    if (isSequenceKey(key)) {
         return QStringLiteral("Dwell sequence");
     }
-    if (key == QLatin1String("scanGraceMs")) {
-        return QStringLiteral("Scan grace");
+    if (const IntSpec* s = findInt(key)) {
+        return QLatin1String(s->title);
     }
-    if (key == QLatin1String("dwellGraceMs")) {
-        return QStringLiteral("Blink grace");
+    if (const DoubleSpec* s = findDouble(key)) {
+        return QLatin1String(s->title);
     }
-    if (key == QLatin1String("mouseMoveDwellMs")) {
-        return QStringLiteral("Mouse-move dwell");
-    }
-    if (key == QLatin1String("mouseMoveSelectTimeoutMs")) {
-        return QStringLiteral("Mouse-move timeout");
-    }
-    if (key == QLatin1String("magZoom")) {
-        return QStringLiteral("Magnifier zoom");
-    }
-    if (key == QLatin1String("magLensSize")) {
-        return QStringLiteral("Lens size");
-    }
-    if (key == QLatin1String("ltsDeadzonePx")) {
-        return QStringLiteral("LTS deadzone");
-    }
-    if (key == QLatin1String("ltsFalloffPx")) {
-        return QStringLiteral("LTS falloff");
-    }
-    if (key == QLatin1String("ltsMaxNotchesPerSec")) {
-        return QStringLiteral("LTS max speed");
-    }
-    if (key == QLatin1String("flashMs")) {
-        return QStringLiteral("Flash duration");
-    }
-    if (key == QLatin1String("progressColor")) {
-        return QStringLiteral("Progress color");
-    }
-    if (key == QLatin1String("progressFillColor")) {
-        return QStringLiteral("Fill highlight");
-    }
-    if (key == QLatin1String("progressBorderColor")) {
-        return QStringLiteral("Border highlight");
-    }
-    if (key == QLatin1String("mouseProgressColor")) {
-        return QStringLiteral("Mouse progress color");
-    }
-    if (key == QLatin1String("mouseProgressFillColor")) {
-        return QStringLiteral("Mouse fill color");
-    }
-    if (key == QLatin1String("mouseProgressBorderColor")) {
-        return QStringLiteral("Mouse border color");
-    }
-    if (key == QLatin1String("flashBorderColor")) {
-        return QStringLiteral("Flash border");
-    }
-    if (key == QLatin1String("flashFillColor")) {
-        return QStringLiteral("Flash fill");
+    if (const ColorSpec* s = findColor(key)) {
+        return QLatin1String(s->title);
     }
     return key;
 }
 
 QString AppSettings::settingDescription(const QString& key)
 {
-    if (key == QLatin1String("dwellMs") || key == QLatin1String("dwellSequence")) {
+    if (isSequenceKey(key)) {
         return QStringLiteral(
             "Comma-separated dwell times in ms while you keep gazing "
             "(e.g. 600,300,100,600). Steps advance until the last value, which "
-            "then repeats forever. Replaces single dwell + repeat.");
+            "then repeats forever.");
     }
-    if (key == QLatin1String("scanGraceMs")) {
-        return QStringLiteral(
-            "Time on-target before dwell progress begins (ms). Precursor to the "
-            "dwell sequence; layout/item dwell.scanGraceMs can override.");
+    if (const IntSpec* s = findInt(key)) {
+        return QLatin1String(s->hint);
     }
-    if (key == QLatin1String("dwellGraceMs")) {
-        return QStringLiteral("Blink grace window without canceling dwell (ms).");
+    if (const DoubleSpec* s = findDouble(key)) {
+        return QLatin1String(s->hint);
     }
-    if (key == QLatin1String("mouseMoveDwellMs")) {
-        return QStringLiteral("Dwell time for mouse cursor placement (ms).");
-    }
-    if (key == QLatin1String("mouseMoveSelectTimeoutMs")) {
-        return QStringLiteral(
-            "Cancel mouse-move / gaze-click loop if no target is selected within "
-            "this many ms (0 = off). Resets after each successful selection in a loop.");
-    }
-    if (key == QLatin1String("magZoom")) {
-        return QStringLiteral("Magnifier zoom factor (1.25–6).");
-    }
-    if (key == QLatin1String("magLensSize")) {
-        return QStringLiteral("Lens diameter in pixels (160–900).");
-    }
-    if (key == QLatin1String("ltsDeadzonePx")) {
-        return QStringLiteral("No-scroll radius around cursor (px).");
-    }
-    if (key == QLatin1String("ltsFalloffPx")) {
-        return QStringLiteral("Distance to full scroll speed past deadzone (px).");
-    }
-    if (key == QLatin1String("ltsMaxNotchesPerSec")) {
-        return QStringLiteral("Peak scroll rate (notches/second).");
-    }
-    if (key == QLatin1String("flashMs")) {
-        return QStringLiteral("Completion flash duration after activation (ms).");
+    if (key == QLatin1String("flashColor")) {
+        return QStringLiteral("Color applied to both the flash border and fill.");
     }
     if (isColorKey(key)) {
         return QStringLiteral("Color used for dwell progress or completion flash.");
@@ -406,38 +420,14 @@ QString AppSettings::settingDescription(const QString& key)
 
 QString AppSettings::numericBufferSeed(const QString& key) const
 {
-    if (key == QLatin1String("dwellMs") || key == QLatin1String("dwellSequence")) {
+    if (isSequenceKey(key)) {
         return dwellSequenceString();
     }
-    if (key == QLatin1String("scanGraceMs")) {
-        return QString::number(scanGraceMs);
+    if (const IntSpec* s = findInt(key)) {
+        return QString::number(this->*s->member);
     }
-    if (key == QLatin1String("dwellGraceMs")) {
-        return QString::number(dwellGraceMs);
-    }
-    if (key == QLatin1String("mouseMoveDwellMs")) {
-        return QString::number(mouseMoveDwellMs);
-    }
-    if (key == QLatin1String("mouseMoveSelectTimeoutMs")) {
-        return QString::number(mouseMoveSelectTimeoutMs);
-    }
-    if (key == QLatin1String("magZoom")) {
-        return QString::number(magZoom, 'f', 2);
-    }
-    if (key == QLatin1String("magLensSize")) {
-        return QString::number(magLensSize);
-    }
-    if (key == QLatin1String("ltsDeadzonePx")) {
-        return QString::number(ltsDeadzonePx);
-    }
-    if (key == QLatin1String("ltsFalloffPx")) {
-        return QString::number(ltsFalloffPx);
-    }
-    if (key == QLatin1String("ltsMaxNotchesPerSec")) {
-        return QString::number(ltsMaxNotchesPerSec, 'f', 1);
-    }
-    if (key == QLatin1String("flashMs")) {
-        return QString::number(flashMs);
+    if (const DoubleSpec* s = findDouble(key)) {
+        return QString::number(this->*s->member, 'f', s->decimals);
     }
     return {};
 }
@@ -445,7 +435,7 @@ QString AppSettings::numericBufferSeed(const QString& key) const
 bool AppSettings::applyNumericBuffer(const QString& key, const QString& buffer, QString* error)
 {
     const QString b = buffer.trimmed();
-    if (key == QLatin1String("dwellMs") || key == QLatin1String("dwellSequence")) {
+    if (isSequenceKey(key)) {
         QString err;
         const QVector<int> seq = parseDwellSequence(b, &err);
         if (seq.isEmpty()) {
@@ -458,19 +448,14 @@ bool AppSettings::applyNumericBuffer(const QString& key, const QString& buffer, 
         clamp();
         return true;
     }
-
-    bool ok = false;
-    if (key == QLatin1String("scanGraceMs") || key == QLatin1String("dwellGraceMs")
-        || key == QLatin1String("mouseMoveDwellMs")
-        || key == QLatin1String("mouseMoveSelectTimeoutMs")
-        || key == QLatin1String("magLensSize") || key == QLatin1String("ltsDeadzonePx")
-        || key == QLatin1String("ltsFalloffPx") || key == QLatin1String("flashMs")) {
+    if (const IntSpec* s = findInt(key)) {
         if (b.contains(QLatin1Char(',')) || b.contains(QLatin1Char('.'))) {
             if (error) {
                 *error = QStringLiteral("Enter a whole number only");
             }
             return false;
         }
+        bool ok = false;
         const int v = b.toInt(&ok);
         if (!ok) {
             if (error) {
@@ -478,45 +463,26 @@ bool AppSettings::applyNumericBuffer(const QString& key, const QString& buffer, 
             }
             return false;
         }
-        if (key == QLatin1String("scanGraceMs")) {
-            scanGraceMs = v;
-        } else if (key == QLatin1String("dwellGraceMs")) {
-            dwellGraceMs = v;
-        } else if (key == QLatin1String("mouseMoveDwellMs")) {
-            mouseMoveDwellMs = v;
-        } else if (key == QLatin1String("mouseMoveSelectTimeoutMs")) {
-            mouseMoveSelectTimeoutMs = v;
-        } else if (key == QLatin1String("magLensSize")) {
-            magLensSize = v;
-        } else if (key == QLatin1String("ltsDeadzonePx")) {
-            ltsDeadzonePx = v;
-        } else if (key == QLatin1String("ltsFalloffPx")) {
-            ltsFalloffPx = v;
-        } else {
-            flashMs = v;
-        }
+        this->*s->member = v;
         clamp();
         return true;
     }
-    if (key == QLatin1String("magZoom") || key == QLatin1String("ltsMaxNotchesPerSec")) {
+    if (const DoubleSpec* s = findDouble(key)) {
         if (b.count(QLatin1Char('.')) > 1 || b.contains(QLatin1Char(','))) {
             if (error) {
                 *error = QStringLiteral("Use a single decimal number (period, not comma)");
             }
             return false;
         }
+        bool ok = false;
         const double v = b.toDouble(&ok);
-        if (!ok || v <= 0) {
+        if (!ok) {
             if (error) {
-                *error = QStringLiteral("Enter a positive number");
+                *error = QStringLiteral("Enter a number");
             }
             return false;
         }
-        if (key == QLatin1String("magZoom")) {
-            magZoom = v;
-        } else {
-            ltsMaxNotchesPerSec = v;
-        }
+        this->*s->member = v;
         clamp();
         return true;
     }
@@ -626,14 +592,14 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
     mouseProgressFill = o.value(QStringLiteral("mouseProgressFill")).toBool(mouseProgressFill);
     mouseProgressBorder =
         o.value(QStringLiteral("mouseProgressBorder")).toBool(mouseProgressBorder);
-    mouseProgressColor = o.value(QStringLiteral("mouseProgressColor")).toString(mouseProgressColor);
-    mouseProgressFillColor =
-        o.value(QStringLiteral("mouseProgressFillColor")).toString(mouseProgressFillColor);
-    mouseProgressBorderColor =
-        o.value(QStringLiteral("mouseProgressBorderColor")).toString(mouseProgressBorderColor);
     flashOnComplete = o.value(QStringLiteral("flashOnComplete")).toBool(flashOnComplete);
-    flashBorderColor = o.value(QStringLiteral("flashBorderColor")).toString(flashBorderColor);
-    flashFillColor = o.value(QStringLiteral("flashFillColor")).toString(flashFillColor);
+    if (o.contains(QStringLiteral("flashColor"))) {
+        flashColor = o.value(QStringLiteral("flashColor")).toString(flashColor);
+    } else if (o.contains(QStringLiteral("flashBorderColor"))) {
+        flashColor = o.value(QStringLiteral("flashBorderColor")).toString(flashColor);
+    } else if (o.contains(QStringLiteral("flashFillColor"))) {
+        flashColor = o.value(QStringLiteral("flashFillColor")).toString(flashColor);
+    }
     flashMs = o.value(QStringLiteral("flashMs")).toInt(flashMs);
 
     clamp();
@@ -688,12 +654,8 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     o.insert(QStringLiteral("mouseProgressRadial"), copy.mouseProgressRadial);
     o.insert(QStringLiteral("mouseProgressFill"), copy.mouseProgressFill);
     o.insert(QStringLiteral("mouseProgressBorder"), copy.mouseProgressBorder);
-    o.insert(QStringLiteral("mouseProgressColor"), copy.mouseProgressColor);
-    o.insert(QStringLiteral("mouseProgressFillColor"), copy.mouseProgressFillColor);
-    o.insert(QStringLiteral("mouseProgressBorderColor"), copy.mouseProgressBorderColor);
     o.insert(QStringLiteral("flashOnComplete"), copy.flashOnComplete);
-    o.insert(QStringLiteral("flashBorderColor"), copy.flashBorderColor);
-    o.insert(QStringLiteral("flashFillColor"), copy.flashFillColor);
+    o.insert(QStringLiteral("flashColor"), copy.flashColor);
     o.insert(QStringLiteral("flashMs"), copy.flashMs);
 
     QFile f(path);

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "core/GazePoint.h"
+#include "layout/InvalidGazeGrace.h"
 
-#include <QElapsedTimer>
 #include <QObject>
 #include <QString>
 #include <QVector>
@@ -10,8 +10,9 @@
 namespace gazer {
 
 /// Hold gaze on one item; activate using a dwell-time sequence while gaze remains
-/// (e.g. 600,300,100,600 ms). Steps advance until the last value, which then
-/// repeats forever until leave. Replaces legacy single ms + repeatMs.
+/// (e.g. 800,600,400,200,100,50 ms). Steps advance until the last value, which
+/// then repeats until leave. A brief miss / invalid sample does not rewind the
+/// step index (blink / layout-refresh grace).
 class DwellStateMachine final : public QObject {
     Q_OBJECT
 
@@ -35,6 +36,9 @@ public:
     [[nodiscard]] int currentStepMs() const;
     [[nodiscard]] int scanGraceMs() const { return m_scanGraceMs; }
 
+    static constexpr int kDefaultInvalidGraceMs = 180;
+    static constexpr int kDefaultScanGraceMs = 100;
+
 public slots:
     void onGazeSample(const gazer::GazePoint& point, const QString& itemIdUnderGaze);
 
@@ -49,17 +53,14 @@ private:
 
     bool m_enabled = true;
     QVector<int> m_sequence = {800};
-    int m_invalidGraceMs = 180;
-    int m_scanGraceMs = 100;
+    int m_scanGraceMs = kDefaultScanGraceMs;
 
     QString m_currentId;
     qint64 m_dwellStartMs = 0;
     double m_progress = 0.0;
     int m_stepIndex = 0;
     bool m_scanGraceComplete = false;
-
-    bool m_inInvalidGrace = false;
-    QElapsedTimer m_invalidGraceClock;
+    InvalidGazeGrace m_invalidGrace;
 };
 
 } // namespace gazer

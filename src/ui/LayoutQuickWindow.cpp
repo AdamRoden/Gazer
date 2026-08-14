@@ -10,6 +10,7 @@
 #include <QLinearGradient>
 #include <QMouseEvent>
 #include <QPainter>
+#include <QPainterPath>
 #include <QQuickItem>
 #include <QQuickPaintedItem>
 #include <QScreen>
@@ -179,6 +180,17 @@ void LayoutQuickWindow::setActiveItemIds(const QSet<QString>& activeIds)
     }
 }
 
+void LayoutQuickWindow::setPreviewColor(const QColor& color)
+{
+    if (m_previewColor == color) {
+        return;
+    }
+    m_previewColor = color.isValid() ? color : ThemeColors::defaultProgressColor();
+    if (m_board) {
+        m_board->update();
+    }
+}
+
 void LayoutQuickWindow::setPropertyContext(const QVariantMap& props)
 {
     if (m_props == props) {
@@ -225,17 +237,17 @@ bool LayoutQuickWindow::itemShown(const LayoutItem& item) const
     return itemIsShown(item, m_props);
 }
 
+LayoutItemStyle LayoutQuickWindow::resolvedItemStyle(const LayoutItem& item) const
+{
+    return m_layout.style.withOverrides(item.style);
+}
+
 void LayoutQuickWindow::keepAboveTaskbar()
 {
     if (!isVisible() || !m_layout.placement.aboveTaskbar) {
         return;
     }
     raiseAboveTaskbar(this);
-}
-
-void LayoutQuickWindow::assertAboveTaskbar()
-{
-    keepAboveTaskbar();
 }
 
 void LayoutQuickWindow::applyTopmost()
@@ -296,61 +308,158 @@ void LayoutQuickWindow::paintProgressChrome(QPainter& p, const QRectF& r, bool h
                           && m_itemLocalRects.value(m_flashId) == r;
 
     if (flashing) {
-        p.setPen(QPen(visuals.flashBorderColor, 3.5));
-        p.setBrush(visuals.flashFillColor);
+        p.setPen(QPen(visuals.flashColor, 3.5));
+        p.setBrush(visuals.flashColor);
         p.drawRoundedRect(r, radius, radius);
     }
 
     if (!hovered || progress <= 0.0) {
         return;
     }
+    paintProgress(p, r, progress, visuals, ProgressShape::RoundedRect, radius);
+}
 
-    if (visuals.fillBackground) {
-        QColor fill = visuals.fillColor;
-        fill.setAlpha(qBound(0, int(fill.alpha() * progress + 20 * progress), 255));
-        p.setPen(Qt::NoPen);
-        p.setBrush(fill);
-        const double cx = r.center().x();
-        const double cy = r.center().y();
-        const double hw = r.width() * 0.5 * progress;
-        const double hh = r.height() * 0.5 * progress;
-        p.drawRoundedRect(QRectF(cx - hw, cy - hh, hw * 2.0, hh * 2.0), radius, radius);
+void LayoutQuickWindow::paintPreviewSwatch(QPainter& p, const QRectF& r, double radius)
+{
+    QPainterPath clip;
+    clip.addRoundedRect(r, radius, radius);
+    p.save();
+    p.setClipPath(clip);
+    const int cell = 10;
+    for (int y = int(r.top()); y < int(r.bottom()); y += cell) {
+        for (int x = int(r.left()); x < int(r.right()); x += cell) {
+            const bool lite = ((x / cell) + (y / cell)) % 2 == 0;
+            p.fillRect(x, y, cell, cell, lite ? QColor(200, 200, 200) : QColor(140, 140, 140));
+        }
+    }
+    p.setPen(Qt::NoPen);
+    p.setBrush(m_previewColor);
+    p.drawRoundedRect(r, radius, radius);
+    p.restore();
+    p.setBrush(Qt::NoBrush);
+    p.setPen(QPen(QColor(255, 255, 255, 80), 1.5));
+    p.drawRoundedRect(r.adjusted(1, 1, -1, -1), radius, radius);
+}
+
+void LayoutQuickWindow::paintToggleSwitch(QPainter& p, const QRectF& cell, bool on)
+{
+    const qreal h = 20.0;
+    const qreal w = 36.0;
+    const qreal m = 8.0;
+    const QRectF track(cell.right() - m - w, cell.top() + m, w, h);
+    const qreal cr = h * 0.5;
+
+    const QColor trackC = on ? m_theme.accentHover : m_theme.cellActive;
+    const QColor thumbC = on ? m_theme.bgMain : m_theme.bgSurface;
+
+    p.setPen(QPen(m_theme.border, 1.0));
+    p.setBrush(trackC);
+    p.drawRoundedRect(track, cr, cr);
+
+    const qreal inset = 2.0;
+    const qreal th = h - inset * 2.0;
+    const qreal x = on ? (track.right() - inset - th) : (track.left() + inset);
+    p.setPen(QPen(m_theme.border, 1.0));
+    p.setBrush(thumbC);
+    p.drawEllipse(QRectF(x, track.top() + inset, th, th));
+}
+
+void LayoutQuickWindow::paintSliderTrack(QPainter& p, const QRectF& r, const QString& channel,
+                                         double radius)
+{
+    QColor base = m_previewColor.isValid() ? m_previewColor : ThemeColors::defaultProgressColor();
+    int h = 0, s = 0, v = 0, a = 255;
+    base.getHsv(&h, &s, &v, &a);
+    if (h < 0) {
+        h = 0;
+    }
+    const int cr = base.red();
+    const int cg = base.green();
+    const int cb = base.blue();
+
+    QPainterPath clip;
+    clip.addRoundedRect(r, radius, radius);
+    p.save();
+    p.setClipPath(clip);
+
+    const QString ch = channel.toLower();
+    if (ch == QLatin1String("a") || ch == QLatin1String("alpha")) {
+        const int cell = 8;
+        for (int y = int(r.top()); y < int(r.bottom()); y += cell) {
+            for (int x = int(r.left()); x < int(r.right()); x += cell) {
+                const bool lite = ((x / cell) + (y / cell)) % 2 == 0;
+                p.fillRect(x, y, cell, cell, lite ? QColor(210, 210, 210) : QColor(150, 150, 150));
+            }
+        }
     }
 
-    if (visuals.border) {
-        p.setBrush(Qt::NoBrush);
-        p.setPen(QPen(visuals.borderColor, 2.0 + 2.0 * progress));
-        p.drawRoundedRect(r.adjusted(2, 2, -2, -2), radius, radius);
+    QLinearGradient g(r.left(), r.center().y(), r.right(), r.center().y());
+    if (ch == QLatin1String("h") || ch == QLatin1String("hue")) {
+        for (int i = 0; i <= 6; ++i) {
+            g.setColorAt(i / 6.0, QColor::fromHsv(qMin(359, i * 60), 255, 255));
+        }
+    } else if (ch == QLatin1String("s") || ch == QLatin1String("sat")) {
+        g.setColorAt(0.0, QColor::fromHsv(h, 0, v));
+        g.setColorAt(1.0, QColor::fromHsv(h, 255, v));
+    } else if (ch == QLatin1String("v") || ch == QLatin1String("val")) {
+        g.setColorAt(0.0, QColor::fromHsv(h, s, 0));
+        g.setColorAt(1.0, QColor::fromHsv(h, s, 255));
+    } else if (ch == QLatin1String("r") || ch == QLatin1String("red")) {
+        g.setColorAt(0.0, QColor(0, cg, cb));
+        g.setColorAt(1.0, QColor(255, cg, cb));
+    } else if (ch == QLatin1String("g") || ch == QLatin1String("green")) {
+        g.setColorAt(0.0, QColor(cr, 0, cb));
+        g.setColorAt(1.0, QColor(cr, 255, cb));
+    } else if (ch == QLatin1String("b") || ch == QLatin1String("blue")) {
+        g.setColorAt(0.0, QColor(cr, cg, 0));
+        g.setColorAt(1.0, QColor(cr, cg, 255));
+    } else {
+        QColor clear = base;
+        clear.setAlpha(0);
+        QColor solid = base;
+        solid.setAlpha(255);
+        g.setColorAt(0.0, clear);
+        g.setColorAt(1.0, solid);
     }
-
-    if (visuals.radial) {
-        const double pad = 8.0;
-        QRectF arcRect = r.adjusted(pad, pad, -pad, -pad);
-        const double side = qMin(arcRect.width(), arcRect.height()) * 0.45;
-        arcRect = QRectF(r.center().x() - side / 2.0, r.center().y() - side / 2.0, side, side);
-        p.setBrush(Qt::NoBrush);
-        QColor ring = visuals.progressColor;
-        ring.setAlpha(80);
-        p.setPen(QPen(ring, 4.0));
-        p.drawEllipse(arcRect);
-        p.setPen(QPen(visuals.progressColor, 4.0));
-        const int span = static_cast<int>(-360 * 16 * progress);
-        p.drawArc(arcRect, 90 * 16, span);
-    }
+    p.setPen(Qt::NoPen);
+    p.setBrush(g);
+    p.drawRoundedRect(r, radius, radius);
+    p.restore();
+    p.setBrush(Qt::NoBrush);
+    p.setPen(QPen(QColor(255, 255, 255, 70), 1.2));
+    p.drawRoundedRect(r.adjusted(1, 1, -1, -1), radius, radius);
 }
 
 void LayoutQuickWindow::paintCell(QPainter& p, const LayoutItem& item, const QRectF& r, bool fluent)
 {
+    const LayoutItemStyle st = resolvedItemStyle(item);
+    const QString role = item.role.toLower();
+    const double radius = st.radius.value_or(fluent ? 14.0 : 10.0);
+    if (role == QLatin1String("slider")) {
+        paintSliderTrack(p, r, item.caption.isEmpty() ? item.id : item.caption, radius);
+        if (!item.label.isEmpty()) {
+            p.setPen(QColor(255, 255, 255, 230));
+            p.setFont(QFont(QStringLiteral("Segoe UI"), 11, QFont::DemiBold));
+            p.drawText(r.adjusted(8, 4, -8, -4), Qt::AlignLeft | Qt::AlignVCenter, item.label);
+        }
+        return;
+    }
+    if (role == QLatin1String("preview")) {
+        paintPreviewSwatch(p, r, radius);
+        return;
+    }
+
     const bool hovered = item.interactive && (item.id == m_hoverId);
     const bool active = m_activeItemIds.contains(item.id);
-    const double radius = item.style.radius.value_or(fluent ? 14.0 : 10.0);
-    const double borderW = item.style.borderWidth.value_or(active ? 2.5 : 1.5);
+    const double borderW = st.borderWidth.value_or(active ? 2.5 : 1.5);
 
-    QColor bg = item.style.background.value_or(fluent ? QColor(48, 54, 72) : m_theme.cellBg);
-    QColor fg = item.style.foreground.value_or(m_theme.text);
-    QColor border = item.style.borderColor.value_or(active ? m_theme.accentHover : m_theme.border);
+    const bool hasSwitch = !item.activeState.isEmpty();
+    QColor bg = st.background.value_or(m_theme.cellBg);
+    QColor fg = st.foreground.value_or(m_theme.text);
+    QColor border = st.borderColor.value_or((active && !hasSwitch) ? m_theme.accentHover
+                                                                   : m_theme.border);
 
-    if (active) {
+    if (active && !hasSwitch) {
         bg = m_theme.accent;
         fg = m_theme.bgMain;
     }
@@ -366,27 +475,27 @@ void LayoutQuickWindow::paintCell(QPainter& p, const LayoutItem& item, const QRe
     p.setPen(QPen(border, borderW));
     p.drawRoundedRect(r, radius, radius);
 
-    if (active) {
-        p.setPen(Qt::NoPen);
-        p.setBrush(m_theme.accentHover);
-        p.drawEllipse(QRectF(r.right() - 16, r.top() + 6, 10, 10));
+    if (hasSwitch) {
+        paintToggleSwitch(p, r, active);
     }
 
     paintProgressChrome(p, r, hovered, m_hoverProgress, visualsForItem(&item), radius);
 
+    const qreal textRight = hasSwitch ? 48.0 : 8.0;
     p.setPen(fg);
     if (!item.icon.isEmpty()) {
-        const QRectF iconR(r.left() + 6, r.top() + 6, r.width() - 12, r.height() * 0.52);
+        const QRectF iconR(r.left() + 6, r.top() + 6, r.width() - 12 - (hasSwitch ? 40.0 : 0.0),
+                           r.height() * 0.52);
         MouseIcons::paint(p, item.icon, iconR, fg);
         p.setFont(QFont(QStringLiteral("Segoe UI"), 11, QFont::DemiBold));
-        p.drawText(r.adjusted(6, r.height() * 0.52, -6, -6),
+        p.drawText(r.adjusted(6, r.height() * 0.52, -textRight, -6),
                    Qt::AlignHCenter | Qt::AlignTop | Qt::TextWordWrap, item.label);
     } else {
         p.setFont(QFont(QStringLiteral("Segoe UI"), fluent ? 13 : 14, QFont::DemiBold));
         const QString text =
             item.caption.isEmpty() ? item.label
                                    : QStringLiteral("%1\n%2").arg(item.label, item.caption);
-        p.drawText(r.adjusted(8, 8, -8, -8), Qt::AlignCenter | Qt::TextWordWrap, text);
+        p.drawText(r.adjusted(8, 8, -textRight, -8), Qt::AlignCenter | Qt::TextWordWrap, text);
     }
 }
 
@@ -484,32 +593,36 @@ void LayoutQuickWindow::paintFluent(QPainter& p)
             continue;
         }
 
+        if (item.role.compare(QLatin1String("slider"), Qt::CaseInsensitive) == 0
+            || item.role.compare(QLatin1String("preview"), Qt::CaseInsensitive) == 0) {
+            paintCell(p, item, r, true);
+            continue;
+        }
+
         if (!item.interactive) {
-            QColor fg = item.style.foreground.value_or(QColor(244, 246, 252));
-            const double radius = item.style.radius.value_or(12.0);
-            if (item.style.background && item.style.background->alpha() > 0) {
-                p.setBrush(*item.style.background);
-                p.setPen(QPen(item.style.borderColor.value_or(QColor(96, 205, 255, 120)),
-                              item.style.borderWidth.value_or(1.5)));
+            const LayoutItemStyle st = resolvedItemStyle(item);
+            const QString role = item.role.toLower();
+            const bool isInput = role == QLatin1String("display") || role == QLatin1String("input");
+            const bool isValue = role == QLatin1String("value") || !item.settingKey.isEmpty();
+            QColor fg = st.foreground.value_or(isInput || isValue ? m_theme.accent : m_theme.text);
+            const double radius = st.radius.value_or(12.0);
+            if (st.background && st.background->alpha() > 0) {
+                p.setBrush(*st.background);
+                p.setPen(QPen(st.borderColor.value_or(m_theme.accent),
+                              st.borderWidth.value_or(1.5)));
+                p.drawRoundedRect(r, radius, radius);
+            } else if (isInput) {
+                p.setPen(QPen(m_theme.accent, 1.5));
+                p.setBrush(m_theme.bgMain);
                 p.drawRoundedRect(r, radius, radius);
             }
-            const bool isValue = !item.settingKey.isEmpty()
-                                 || item.id.contains(QLatin1String("value"))
-                                 || item.id.contains(QLatin1String("display"));
-            const bool isInputBox = item.id.contains(QLatin1String("display"))
-                                    || item.id.contains(QLatin1String("input"));
-            if (isInputBox) {
-                if (!item.style.background) {
-                    p.setPen(QPen(QColor(96, 205, 255, 120), 1.5));
-                    p.setBrush(QColor(16, 20, 30));
-                    p.drawRoundedRect(r, radius, radius);
-                }
-                p.setPen(QColor(120, 230, 255));
+            if (isInput) {
+                p.setPen(fg);
                 p.setFont(QFont(QStringLiteral("Segoe UI Semibold"), 22, QFont::Bold));
                 p.drawText(r.adjusted(12, 8, -12, -8), Qt::AlignCenter | Qt::TextWordWrap,
                            item.label);
             } else if (isValue) {
-                p.setPen(QColor(120, 210, 255));
+                p.setPen(fg);
                 p.setFont(QFont(QStringLiteral("Segoe UI Semibold"), 16, QFont::Bold));
                 p.drawText(r.adjusted(8, 6, -8, -6), Qt::AlignCenter | Qt::TextWordWrap,
                            item.label);
@@ -521,13 +634,13 @@ void LayoutQuickWindow::paintFluent(QPainter& p)
                                         r.height() * 0.42);
                     p.drawText(titleR, Qt::AlignLeft | Qt::AlignVCenter | Qt::TextWordWrap,
                                item.label);
-                    p.setPen(QColor(150, 160, 180));
+                    p.setPen(m_theme.textSecondary);
                     p.setFont(QFont(QStringLiteral("Segoe UI"), 10));
                     const QRectF capR(r.left() + 10, r.center().y(), r.width() - 20,
                                       r.height() * 0.45);
                     p.drawText(capR, Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap, item.caption);
                 } else {
-                    p.setPen(QColor(170, 180, 200));
+                    p.setPen(m_theme.textSecondary);
                     p.setFont(QFont(QStringLiteral("Segoe UI"), 11));
                     p.drawText(r.adjusted(10, 6, -10, -6),
                                Qt::AlignLeft | Qt::AlignVCenter | Qt::TextWordWrap, item.label);

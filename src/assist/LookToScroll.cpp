@@ -2,6 +2,7 @@
 
 #include "input/MouseInjector.h"
 #include "ui/OverlaySurface.h"
+#include "ui/Theme.h"
 #include "utils/Log.h"
 
 #include <QCursor>
@@ -54,6 +55,14 @@ public:
         update();
     }
 
+    void setAccent(const QColor& c)
+    {
+        if (c.isValid()) {
+            m_accent = c;
+            update();
+        }
+    }
+
 protected:
     void paintEvent(QPaintEvent*) override
     {
@@ -61,7 +70,7 @@ protected:
         p.setRenderHint(QPainter::Antialiasing, true);
         const QPointF c(rect().center());
         const int r = m_deadzone;
-        const QColor cyan(0, 220, 255);
+        const QColor cyan = m_accent.isValid() ? m_accent : ThemeColors::defaultProgressColor();
         const QColor amber(255, 160, 40);
         const QColor accent = m_suspended ? amber : cyan;
 
@@ -136,6 +145,7 @@ private:
     double m_dirX = 0.0;
     double m_dirY = 0.0;
     bool m_suspended = false;
+    QColor m_accent = ThemeColors::defaultProgressColor();
 };
 
 LookToScroll::LookToScroll(QObject* parent)
@@ -209,6 +219,13 @@ void LookToScroll::setFalloffPx(int px)
 void LookToScroll::setMaxNotchesPerSec(double n)
 {
     m_maxNotchesPerSec = qBound(0.5, n, 30.0);
+}
+
+void LookToScroll::setAccent(const QColor& c)
+{
+    if (m_overlay) {
+        m_overlay->setAccent(c);
+    }
 }
 
 void LookToScroll::setAccelPerSec(double a)

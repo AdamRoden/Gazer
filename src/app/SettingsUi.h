@@ -3,7 +3,9 @@
 #include "app/AppSettings.h"
 #include "layout/LayoutTypes.h"
 
+#include <QColor>
 #include <QString>
+#include <QVector>
 #include <functional>
 
 namespace gazer {
@@ -32,10 +34,35 @@ public:
     void decorateDocument(LayoutDocument& doc) const;
     void refreshOpenBoards();
 
-    [[nodiscard]] bool isNumpadActive() const { return m_numpadActive; }
-    [[nodiscard]] QString numpadInstanceId() const { return m_numpadInstanceId; }
+    [[nodiscard]] bool isNumpadActive() const { return m_numpad.active; }
+    [[nodiscard]] QString numpadInstanceId() const { return m_numpad.instanceId; }
+
+    static LayoutItem makeItem(const QString& id, const QString& label, int row, int col,
+                               LayoutAction::Type type, const QString& payload,
+                               const QColor& bg = QColor(), int colSpan = 1,
+                               bool interactive = true, const QString& caption = {},
+                               const QString& settingKey = {}, const QString& role = {});
+    static LayoutItem makeLabel(const QString& id, const QString& label, int row, int col,
+                                int colSpan = 1, const QString& caption = {},
+                                const QString& settingKey = {});
+    static void applyLiveEditorChrome(LayoutDocument& doc);
+
+    static constexpr const char* kColorKeys[] = {"progressColor", "progressFillColor",
+                                                 "progressBorderColor", "flashColor"};
+
+    struct EditorSwatch {
+        QColor key;
+        QColor save;
+        QColor cancel;
+        QColor nudge;
+        QColor warn;
+        QColor add;
+        QColor value;
+        QColor edit;
+    };
 
 private:
+    [[nodiscard]] EditorSwatch editorSwatch() const;
     [[nodiscard]] bool openNumericEditor(const QString& settingKey, QString* error = nullptr);
     void refreshNumpadDisplay();
     [[nodiscard]] LayoutDocument buildNumpadDocument() const;
@@ -46,12 +73,62 @@ private:
     void numpadMinus();
     [[nodiscard]] bool numpadSave(QString* error = nullptr);
     [[nodiscard]] bool numpadCancel(QString* error = nullptr);
+    void resetNumpad();
+    [[nodiscard]] bool presentNumpad(QString* error);
+
+    [[nodiscard]] bool openArrayEditor(const QString& settingKey, QString* error = nullptr);
+    void refreshArrayEditor();
+    [[nodiscard]] LayoutDocument buildArrayDocument() const;
+    void arrayNudge(int index, int dir);
+    void arrayNudgeAll(int dir);
+    void arrayRemove(int index);
+    void arrayAdd();
+    void arrayReset();
+    [[nodiscard]] bool arraySave(QString* error = nullptr);
+    [[nodiscard]] bool arrayCancel(QString* error = nullptr);
+    [[nodiscard]] bool arrayEditIndex(int index, QString* error = nullptr);
 
     [[nodiscard]] bool openColorPicker(const QString& colorKey, QString* error = nullptr);
+    void refreshColorPicker();
+    [[nodiscard]] LayoutDocument buildColorDocument() const;
     void closeColorPicker();
+    void colorNudge(const QString& channel, int dir);
+    void colorSetChannel(const QString& channel, int value);
+    void colorUseSaved(const QString& savedKey);
+    void colorSyncFromHsv();
+    void colorSyncFromRgb();
+    void loadColorDraft(const QColor& c);
+    [[nodiscard]] int colorShownValue(const QString& channel) const;
+    bool applyColorShownValue(const QString& channel, int value);
+    void refreshHexEditor();
+    [[nodiscard]] bool colorSave(QString* error = nullptr);
+    [[nodiscard]] bool colorEditChannel(const QString& channel, QString* error = nullptr);
+    [[nodiscard]] bool openHexEditor(QString* error = nullptr);
+    [[nodiscard]] LayoutDocument buildHexDocument() const;
+    void hexAppend(QChar ch);
+    void hexBackspace();
+    [[nodiscard]] bool hexSave(QString* error = nullptr);
+    [[nodiscard]] bool hexCancel(QString* error = nullptr);
+
+    void applyPreviewColor();
+    [[nodiscard]] bool returnEditorInstance(const QString& instId, const QString& layoutId,
+                                            QString* error);
+    [[nodiscard]] bool isLiveEditorInstance(const QString& instanceId) const;
 
     void notifyStatus(const QString& msg);
     void apply(bool persist);
+
+    struct LiveBoard {
+        bool active = false;
+        QString instanceId;
+        QString returnLayoutId;
+        void reset()
+        {
+            active = false;
+            instanceId.clear();
+            returnLayoutId.clear();
+        }
+    };
 
     AppSettings& m_settings;
     LayoutInstanceManager& m_instances;
@@ -62,16 +139,34 @@ private:
     MutateFn m_mutate;
     ResetFn m_reset;
 
-    bool m_numpadActive = false;
-    QString m_numpadInstanceId;
-    QString m_numpadReturnLayoutId;
+    LiveBoard m_numpad;
     QString m_numpadKey;
+    QString m_numpadTitle;
+    QString m_numpadHint;
+    QString m_numpadResetSeed;
     QString m_numpadBuffer;
+    enum class NumpadReturn { Catalog, Array, Color };
+    NumpadReturn m_numpadReturn = NumpadReturn::Catalog;
+    QString m_numpadColorChannel;
+    int m_numpadArrayIndex = -1;
 
-    bool m_colorPickerActive = false;
-    QString m_colorPickerInstanceId;
-    QString m_colorPickerReturnLayoutId;
+    LiveBoard m_array;
+    QString m_arrayKey;
+    QVector<int> m_arrayDraft;
+
+    LiveBoard m_color;
     QString m_colorPickerKey;
+    QColor m_colorDraft;
+    int m_colorH = 180;
+    int m_colorS = 255;
+    int m_colorV = 255;
+    int m_colorR = 0;
+    int m_colorG = 220;
+    int m_colorB = 255;
+    int m_colorA = 255;
+
+    bool m_hexActive = false;
+    QString m_hexBuffer;
 };
 
 } // namespace gazer

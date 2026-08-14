@@ -3,7 +3,9 @@
 #include "core/GazePoint.h"
 #include "layout/DwellStateMachine.h"
 #include "ui/OverlaySurface.h"
+#include "ui/Theme.h"
 
+#include <QColor>
 #include <QRect>
 
 namespace gazer {
@@ -20,6 +22,7 @@ public:
     [[nodiscard]] bool isEnabledReveal() const { return m_enabled; }
 
     void setDwellMs(int ms);
+    void setAccent(const QColor& c);
 
     /// Screen-space hit test (does not require looking only at taskbar pixels).
     [[nodiscard]] bool containsGaze(const GazePoint& point) const;
@@ -46,6 +49,7 @@ private:
     DwellStateMachine m_dwell;
     QString m_hoverId;
     double m_progress = 0.0;
+    QColor m_accent = ThemeColors::defaultProgressColor();
 };
 
 } // namespace gazer

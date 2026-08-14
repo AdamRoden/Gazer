@@ -14,7 +14,6 @@
                  "marginPx": 4,
                  "unitRows": true
             },
-    "dwell": { "ms": [400,600,400,300,200,100,50] },
     "items": [
                   {
                       "id": "tab",

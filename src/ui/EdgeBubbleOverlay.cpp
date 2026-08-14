@@ -189,7 +189,7 @@ void EdgeBubbleOverlay::paintEvent(QPaintEvent* /*event*/)
         p.save();
 
         const ProgressVisuals& v = b.visuals;
-        const QColor base = v.progressColor.isValid() ? v.progressColor : QColor(0, 220, 255);
+        const QColor base = v.progressColor;
 
         // Dim track of full affordance
         QColor track = base;
@@ -199,8 +199,8 @@ void EdgeBubbleOverlay::paintEvent(QPaintEvent* /*event*/)
         p.drawPath(shape);
 
         if (b.flashing && v.flashOnComplete) {
-            p.setPen(QPen(v.flashBorderColor, 3.5));
-            p.setBrush(v.flashFillColor);
+            p.setPen(QPen(v.flashColor, 3.5));
+            p.setBrush(v.flashColor);
             p.drawPath(shape);
             if (!b.label.isEmpty()) {
                 p.setPen(QColor(240, 248, 255));

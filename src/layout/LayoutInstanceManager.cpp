@@ -39,6 +39,19 @@ QString LayoutInstanceManager::makeInstanceId(const QString& layoutId)
     return QStringLiteral("%1#%2").arg(layoutId).arg(m_nextSerial++);
 }
 
+void LayoutInstanceManager::applyInstanceChrome(LayoutInstance* inst)
+{
+    if (!inst) {
+        return;
+    }
+    inst->setTheme(m_theme);
+    inst->setProgressVisuals(m_progressVisuals);
+    if (!m_globalDwellSequence.isEmpty() || m_globalGraceMs > 0 || m_globalScanGraceMs >= 0) {
+        inst->setGlobalDwellOverride(m_globalDwellSequence, m_globalGraceMs, m_globalScanGraceMs);
+    }
+    inst->setPropertyContext(m_rootProps);
+}
+
 void LayoutInstanceManager::wireInstance(LayoutInstance* inst)
 {
     if (!inst) {
@@ -48,9 +61,7 @@ void LayoutInstanceManager::wireInstance(LayoutInstance* inst)
         inst->setEdgeBubbleOverlay(m_edgeBubbles);
     }
     inst->setDwellSuspended(m_dwellSuspended);
-    inst->setTheme(m_theme);
-    inst->setProgressVisuals(m_progressVisuals);
-    inst->setPropertyContext(m_rootProps);
+    applyInstanceChrome(inst);
     applyAutoClosePolicy(inst);
     connect(inst, &LayoutInstance::itemActivated, this, &LayoutInstanceManager::itemActivated);
     connect(inst, &LayoutInstance::windowCloseRequested, this,
@@ -61,27 +72,34 @@ void LayoutInstanceManager::wireInstance(LayoutInstance* inst)
             [this](const QString& instanceId) { noteDwellActivity(instanceId); });
 }
 
+std::unique_ptr<LayoutInstance> LayoutInstanceManager::makeWiredInstance(const QString& layoutId,
+                                                                        const LayoutDocument& doc)
+{
+    auto inst = std::make_unique<LayoutInstance>(makeInstanceId(layoutId), decorateCopy(doc));
+    inst->applyPlacement();
+    wireInstance(inst.get());
+    return inst;
+}
+
+bool LayoutInstanceManager::isRootChildLayout(const QString& layoutId) const
+{
+    return isDeclaredChildLayout(layoutId) || !childSpecForLayout(layoutId).layoutId.isEmpty();
+}
+
 void LayoutInstanceManager::applyAutoClosePolicy(LayoutInstance* inst)
 {
     if (!inst) {
         return;
     }
     const auto& doc = inst->document();
-    if (!doc.autoClose || !m_autoCloseEnabled) {
-        inst->setAutoCloseEnabled(false);
-        inst->resetAutoCloseClock(autoCloseNowMs());
-        return;
+    const bool on = doc.autoClose && m_autoCloseEnabled && inst->instanceId() != m_masterId
+                    && !doc.isMaster();
+    inst->setAutoCloseEnabled(on);
+    if (on) {
+        const int idle = doc.autoCloseIdleMs > 0 ? doc.autoCloseIdleMs : m_autoCloseIdleMs;
+        const int fade = doc.autoCloseFadeMs > 0 ? doc.autoCloseFadeMs : m_autoCloseFadeMs;
+        inst->setAutoCloseTiming(idle, fade);
     }
-    // Root never auto-closes. Home child may fade then hide.
-    if (inst->instanceId() == m_masterId || doc.isMaster()) {
-        inst->setAutoCloseEnabled(false);
-        inst->resetAutoCloseClock(autoCloseNowMs());
-        return;
-    }
-    const int idle = doc.autoCloseIdleMs > 0 ? doc.autoCloseIdleMs : m_autoCloseIdleMs;
-    const int fade = doc.autoCloseFadeMs > 0 ? doc.autoCloseFadeMs : m_autoCloseFadeMs;
-    inst->setAutoCloseEnabled(true);
-    inst->setAutoCloseTiming(idle, fade);
     inst->resetAutoCloseClock(autoCloseNowMs());
 }
 
@@ -290,11 +308,7 @@ void LayoutInstanceManager::replaceInstanceDocument(LayoutInstance* inst, Layout
         m_instanceTeardown(instanceId);
     }
     inst->setDocument(std::move(newDoc));
-    if (!m_globalDwellSequence.isEmpty() || m_globalGraceMs > 0 || m_globalScanGraceMs >= 0) {
-        inst->setGlobalDwellOverride(m_globalDwellSequence, m_globalGraceMs, m_globalScanGraceMs);
-    }
-    inst->setProgressVisuals(m_progressVisuals);
-    inst->setTheme(m_theme);
+    applyInstanceChrome(inst);
     applyAutoClosePolicy(inst);
     if (fireOnLoad) {
         fireLifecycle(inst->document().onLoad, instanceId);
@@ -413,7 +427,7 @@ bool LayoutInstanceManager::applyLoadLayout(const QString& sourceInstanceId,
         return true;
     }
 
-    if (isDeclaredChildLayout(layoutId) || !childSpecForLayout(layoutId).layoutId.isEmpty()) {
+    if (isRootChildLayout(layoutId)) {
         if (!sourceIsRoot && !sourceIsChild) {
             QString err;
             (void)eraseSecondary(sourceInstanceId, &err);
@@ -482,13 +496,8 @@ bool LayoutInstanceManager::openMaster(const QString& layoutId, QString* error)
         return false;
     }
 
-    const QString id = makeInstanceId(layoutId);
-    auto inst = std::make_unique<LayoutInstance>(id, decorateCopy(*doc));
-    if (!m_globalDwellSequence.isEmpty() || m_globalGraceMs > 0 || m_globalScanGraceMs >= 0) {
-        inst->setGlobalDwellOverride(m_globalDwellSequence, m_globalGraceMs, m_globalScanGraceMs);
-    }
-    inst->applyPlacement(0);
-    wireInstance(inst.get());
+    auto inst = makeWiredInstance(layoutId, *doc);
+    const QString id = inst->instanceId();
     const QVector<LayoutAction> onOpen = inst->document().onOpen;
     const QVector<LayoutAction> onLoad = inst->document().onLoad;
     const QVector<LayoutChildRef> children = inst->document().children;
@@ -505,7 +514,7 @@ bool LayoutInstanceManager::openMaster(const QString& layoutId, QString* error)
             GAZER_WARN << "Failed to spawn child" << child.layoutId << childErr;
         }
     }
-    pushPropertyContext();
+    applyChromeProps();
     syncChildVisibility();
     emit instanceOpened(id, layoutId);
     emit sessionChanged();
@@ -524,7 +533,7 @@ QString LayoutInstanceManager::openSecondary(const QString& layoutId, QString* e
         }
         return {};
     }
-    if (isDeclaredChildLayout(layoutId) || !childSpecForLayout(layoutId).layoutId.isEmpty()) {
+    if (isRootChildLayout(layoutId)) {
         if (!showChildLayout(layoutId, error)) {
             return {};
         }
@@ -532,16 +541,8 @@ QString LayoutInstanceManager::openSecondary(const QString& layoutId, QString* e
         return m_childInstanceByLayout.value(layoutId);
     }
 
-    const QString id = makeInstanceId(layoutId);
-    auto inst = std::make_unique<LayoutInstance>(id, decorateCopy(*doc));
-    if (!m_globalDwellSequence.isEmpty() || m_globalGraceMs > 0 || m_globalScanGraceMs >= 0) {
-        inst->setGlobalDwellOverride(m_globalDwellSequence, m_globalGraceMs, m_globalScanGraceMs);
-    }
-    inst->setProgressVisuals(m_progressVisuals);
-    // Always honor layout window placement (anchor / boundsMode). Do not cascade-
-    // offset secondaries — that broke defined positions when main opened boards.
-    inst->applyPlacement(0);
-    wireInstance(inst.get());
+    auto inst = makeWiredInstance(layoutId, *doc);
+    const QString id = inst->instanceId();
     const QVector<LayoutAction> onOpen = inst->document().onOpen;
     const QVector<LayoutAction> onLoad = inst->document().onLoad;
     m_instances.push_back(std::move(inst));
@@ -567,7 +568,7 @@ QString LayoutInstanceManager::openInstance(const QString& layoutId, QString* er
         return m_masterId;
     }
 
-    if (isDeclaredChildLayout(layoutId) || !childSpecForLayout(layoutId).layoutId.isEmpty()) {
+    if (isRootChildLayout(layoutId)) {
         if (!showChildLayout(layoutId, error)) {
             return {};
         }
@@ -815,6 +816,7 @@ LayoutInstance* LayoutInstanceManager::findInstanceAt(const QPointF& screenPoint
 
 void LayoutInstanceManager::reassertStackTopVisual()
 {
+    restackChrome();
     if (m_instances.empty() || !m_instances.back()) {
         return;
     }
@@ -822,9 +824,9 @@ void LayoutInstanceManager::reassertStackTopVisual()
     if (!top->window() || !top->window()->isVisible()) {
         return;
     }
-    // Do not call raise() — that can restart the drawer appear animation.
+    // Do not call raise() on drawer / above-taskbar — restackChrome already
+    // used keepAboveTaskbar. Regular secondaries still need a visual raise.
     if (top->document().placement.aboveTaskbar || top->usesDrawerMotion()) {
-        top->window()->keepAboveTaskbar();
         return;
     }
     top->window()->showAndRaise();

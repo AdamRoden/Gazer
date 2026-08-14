@@ -1,7 +1,6 @@
 #include "ui/MagnifierOverlay.h"
 
 #include "utils/Log.h"
-#include "utils/WinOverlay.h"
 
 #include <QGuiApplication>
 #include <QImage>
@@ -35,14 +34,8 @@ QRect mapLogicalLocalToPixmap(const QRect& localLogical, const QSize& pixmapSize
 } // namespace
 
 MagnifierOverlay::MagnifierOverlay(QWidget* parent)
-    : QWidget(parent)
+    : OverlaySurface(parent)
 {
-    setWindowFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool
-                   | Qt::WindowDoesNotAcceptFocus | Qt::WindowTransparentForInput);
-    setAttribute(Qt::WA_TranslucentBackground);
-    setAttribute(Qt::WA_ShowWithoutActivating);
-    setAttribute(Qt::WA_TransparentForMouseEvents);
-    setAttribute(Qt::WA_QuitOnClose, false);
     resize(m_lensSize, m_lensSize);
     hide();
 
@@ -60,8 +53,7 @@ void MagnifierOverlay::setEnabledLens(bool enabled)
     m_enabled = enabled;
     m_smoothValid = false;
     if (m_enabled) {
-        show();
-        applyOverlayWindowChrome(this, /*excludeFromCapture=*/true);
+        showOverlay();
         m_captureTimer.start();
     } else {
         m_captureTimer.stop();
@@ -95,6 +87,14 @@ void MagnifierOverlay::setFollowProfile(int profile)
 {
     m_followProfile = qBound(0, profile, 2);
     m_stickiness = GazeFollowStickiness::fromProfile(m_followProfile);
+}
+
+void MagnifierOverlay::setAccent(const QColor& c)
+{
+    if (c.isValid()) {
+        m_accent = c;
+        update();
+    }
 }
 
 void MagnifierOverlay::onGaze(const GazePoint& point)
@@ -166,8 +166,7 @@ void MagnifierOverlay::refreshCapture(const QPoint& screenCenter)
 void MagnifierOverlay::reposition(const QPoint& screenCenter)
 {
     move(screenCenter.x() - m_lensSize / 2, screenCenter.y() - m_lensSize / 2);
-    raise();
-    applyOverlayWindowChrome(this, /*excludeFromCapture=*/true);
+    raiseStack();
 }
 
 void MagnifierOverlay::paintEvent(QPaintEvent* /*event*/)
@@ -187,12 +186,14 @@ void MagnifierOverlay::paintEvent(QPaintEvent* /*event*/)
     }
 
     p.setClipping(false);
-    p.setPen(QPen(QColor(0, 220, 255), 3.0));
+    p.setPen(QPen(m_accent, 3.0));
     p.setBrush(Qt::NoBrush);
     p.drawEllipse(rect().adjusted(2, 2, -2, -2));
 
     const QPoint c = rect().center();
-    p.setPen(QPen(QColor(0, 220, 255, 180), 1.5));
+    QColor hair = m_accent;
+    hair.setAlpha(180);
+    p.setPen(QPen(hair, 1.5));
     p.drawLine(c.x() - 10, c.y(), c.x() + 10, c.y());
     p.drawLine(c.x(), c.y() - 10, c.x(), c.y() + 10);
 }

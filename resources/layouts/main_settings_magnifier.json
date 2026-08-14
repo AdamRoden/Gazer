@@ -7,32 +7,32 @@
   "window": { "anchor": "TopCenter", "widthPx": 1260, "height": 100, "marginPx": 0 },
   "grid": { "columns": 5, "rows": 10, "gapPx": 10, "marginPx": 100 },
   "items": [
-    { "id": "timing", "label": "Timing", "row": 0, "col": 0, "style": { "background": "#2b4c7e", "foreground": "#f4f6fc" }, "action": { "type": "loadLayout", "layoutId": "main_settings_timing" } },
-    { "id": "magnifier", "label": "Magnifier", "row": 0, "col": 1, "style": { "background": "#335c4d7a", "foreground": "#f4f6fc" }, "action": { "type": "loadLayout", "layoutId": "main_settings_magnifier" } },
-    { "id": "lts", "label": "Look↕Scroll", "row": 0, "col": 2, "style": { "background": "#1b5e4a", "foreground": "#f4f6fc" }, "action": { "type": "loadLayout", "layoutId": "main_settings_lts" } },
-    {"id": "appearance","label": "Appearance","row": 0,"col": 3,"style": { "background": "#5c4d7a", "foreground": "#f4f6fc" },"action": { "type": "loadLayout", "layoutId": "main_settings_appearance" }},
-    {"id": "assist","label": "Assist tools","row": 0,"col": 4,"style": { "background": "#134f5c", "foreground": "#f4f6fc" },"action": { "type": "loadLayout", "layoutId": "main_settings_assist" }},
+    { "id": "timing", "label": "Timing", "row": 0, "col": 0, "action": { "type": "loadLayout", "layoutId": "main_settings_timing" } },
+    { "id": "magnifier", "label": "Magnifier", "row": 0, "col": 1, "action": { "type": "loadLayout", "layoutId": "main_settings_magnifier" } },
+    { "id": "lts", "label": "Look↕Scroll", "row": 0, "col": 2, "action": { "type": "loadLayout", "layoutId": "main_settings_lts" } },
+    {"id": "appearance","label": "Appearance","row": 0,"col": 3,"action": { "type": "loadLayout", "layoutId": "main_settings_appearance" }},
+    {"id": "assist","label": "Assist tools","row": 0,"col": 4,"action": { "type": "loadLayout", "layoutId": "main_settings_assist" }},
     
     { "id": "z_l", "role": "label", "label": "Zoom", "caption": "Magnification factor under gaze.", "row": 2, "col": 0 },
-    { "id": "z_d", "label": "−", "row": 2, "col": 1, "style": { "background": "#355070", "foreground": "#fff" }, "action": { "type": "command", "name": "settings.nudge.magZoom.dec" } },
+    { "id": "z_d", "label": "−", "row": 2, "col": 1, "action": { "type": "command", "name": "settings.nudge.magZoom.dec" } },
     { "id": "z_v", "role": "value", "settingKey": "magZoom", "label": "—", "row": 2, "col": 2 },
-    { "id": "z_i", "label": "+", "row": 2, "col": 3, "style": { "background": "#355070", "foreground": "#fff" }, "action": { "type": "command", "name": "settings.nudge.magZoom.inc" } },
-    { "id": "z_e", "label": "Edit…", "row": 2, "col": 4, "style": { "background": "#0a7ea4", "foreground": "#fff" }, "action": { "type": "command", "name": "settings.edit.magZoom" } },
+    { "id": "z_i", "label": "+", "row": 2, "col": 3, "action": { "type": "command", "name": "settings.nudge.magZoom.inc" } },
+    { "id": "z_e", "label": "Edit…", "row": 2, "col": 4, "action": { "type": "command", "name": "settings.edit.magZoom" } },
 
     { "id": "l_l", "role": "label", "label": "Lens size", "caption": "Lens diameter in pixels.", "row": 3, "col": 0 },
-    { "id": "l_d", "label": "−", "row": 3, "col": 1, "style": { "background": "#355070", "foreground": "#fff" }, "action": { "type": "command", "name": "settings.nudge.magLensSize.dec" } },
+    { "id": "l_d", "label": "−", "row": 3, "col": 1, "action": { "type": "command", "name": "settings.nudge.magLensSize.dec" } },
     { "id": "l_v", "role": "value", "settingKey": "magLensSize", "label": "—", "row": 3, "col": 2 },
-    { "id": "l_i", "label": "+", "row": 3, "col": 3, "style": { "background": "#355070", "foreground": "#fff" }, "action": { "type": "command", "name": "settings.nudge.magLensSize.inc" } },
-    { "id": "l_e", "label": "Edit…", "row": 3, "col": 4, "style": { "background": "#0a7ea4", "foreground": "#fff" }, "action": { "type": "command", "name": "settings.edit.magLensSize" } },
+    { "id": "l_i", "label": "+", "row": 3, "col": 3, "action": { "type": "command", "name": "settings.nudge.magLensSize.inc" } },
+    { "id": "l_e", "label": "Edit…", "row": 3, "col": 4, "action": { "type": "command", "name": "settings.edit.magLensSize" } },
 
     { "id": "f_l", "role": "label", "label": "Follow", "caption": "Sticky / Balanced / Snappy tracking.", "row": 4, "col": 0 },
-    { "id": "f_s", "label": "Sticky", "activeState": "setting.magFollow.0", "row": 4, "col": 1, "style": { "background": "#3d3a5c", "foreground": "#fff" }, "action": { "type": "command", "name": "settings.mag.follow.sticky" } },
+    { "id": "f_s", "label": "Sticky", "activeState": "setting.magFollow.0", "row": 4, "col": 1, "action": { "type": "command", "name": "settings.mag.follow.sticky" } },
     { "id": "f_v", "role": "value", "settingKey": "magFollowProfile", "label": "—", "row": 4, "col": 2 },
-    { "id": "f_b", "label": "Balanced", "activeState": "setting.magFollow.1", "row": 4, "col": 3, "style": { "background": "#4a4768", "foreground": "#fff" }, "action": { "type": "command", "name": "settings.mag.follow.balanced" } },
-    { "id": "f_n", "label": "Snappy", "activeState": "setting.magFollow.2", "row": 4, "col": 4, "style": { "background": "#5a5678", "foreground": "#fff" }, "action": { "type": "command", "name": "settings.mag.follow.snappy" } },
+    { "id": "f_b", "label": "Balanced", "activeState": "setting.magFollow.1", "row": 4, "col": 3, "action": { "type": "command", "name": "settings.mag.follow.balanced" } },
+    { "id": "f_n", "label": "Snappy", "activeState": "setting.magFollow.2", "row": 4, "col": 4, "action": { "type": "command", "name": "settings.mag.follow.snappy" } },
 
-    { "id": "tog", "label": "Toggle lens", "activeState": "magnifier", "row": 5, "col": 3, "colSpan": 2, "style": { "background": "#6b5b95", "foreground": "#fff" }, "action": { "type": "command", "name": "toggleMagnifier" } },
+    { "id": "tog", "label": "Toggle lens", "activeState": "magnifier", "row": 5, "col": 3, "colSpan": 2, "action": { "type": "command", "name": "toggleMagnifier" } },
     
-    { "id": "close", "label": "Close", "row": 9, "col": 2, "colSpan": 1, "style": { "background": "#4a5568", "foreground": "#fff" }, "action": { "type": "closeLayout" } }
+    { "id": "close", "label": "Close", "row": 9, "col": 2, "colSpan": 1, "action": { "type": "closeLayout" } }
   ]
 }

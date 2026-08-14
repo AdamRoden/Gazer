@@ -1,8 +1,10 @@
 #include "layout/LayoutLoader.h"
 
+#include "ui/Theme.h"
 #include "utils/Log.h"
 
 #include <QFile>
+#include <QHash>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -42,13 +44,15 @@ void parseDwellObject(const QJsonObject& dwell, LayoutDwellConfig& out)
         out.hasBorderColor = true;
         out.borderColor = dwell.value(QStringLiteral("borderColor")).toString();
     }
-    if (dwell.contains(QStringLiteral("flashBorderColor"))) {
-        out.hasFlashBorderColor = true;
-        out.flashBorderColor = dwell.value(QStringLiteral("flashBorderColor")).toString();
-    }
-    if (dwell.contains(QStringLiteral("flashFillColor"))) {
-        out.hasFlashFillColor = true;
-        out.flashFillColor = dwell.value(QStringLiteral("flashFillColor")).toString();
+    if (dwell.contains(QStringLiteral("flashColor"))) {
+        out.hasFlashColor = true;
+        out.flashColor = dwell.value(QStringLiteral("flashColor")).toString();
+    } else if (dwell.contains(QStringLiteral("flashBorderColor"))) {
+        out.hasFlashColor = true;
+        out.flashColor = dwell.value(QStringLiteral("flashBorderColor")).toString();
+    } else if (dwell.contains(QStringLiteral("flashFillColor"))) {
+        out.hasFlashColor = true;
+        out.flashColor = dwell.value(QStringLiteral("flashFillColor")).toString();
     }
     if (dwell.contains(QStringLiteral("flashMs"))) {
         out.hasFlashMs = true;
@@ -82,28 +86,16 @@ void parseDwellObject(const QJsonObject& dwell, LayoutDwellConfig& out)
 
 LayoutAction::Type parseActionType(const QString& s)
 {
-    if (s == QLatin1String("speak")) {
-        return LayoutAction::Type::Speak;
-    }
-    if (s == QLatin1String("typeText")) {
-        return LayoutAction::Type::TypeText;
-    }
-    if (s == QLatin1String("loadLayout")) {
-        return LayoutAction::Type::LoadLayout;
-    }
-    if (s == QLatin1String("openLayout")) {
-        return LayoutAction::Type::OpenLayout;
-    }
-    if (s == QLatin1String("closeLayout")) {
-        return LayoutAction::Type::CloseLayout;
-    }
-    if (s == QLatin1String("command")) {
-        return LayoutAction::Type::Command;
-    }
-    if (s == QLatin1String("script")) {
-        return LayoutAction::Type::Script;
-    }
-    return LayoutAction::Type::Unknown;
+    static const QHash<QString, LayoutAction::Type> kTypes = {
+        {QStringLiteral("speak"), LayoutAction::Type::Speak},
+        {QStringLiteral("typeText"), LayoutAction::Type::TypeText},
+        {QStringLiteral("loadLayout"), LayoutAction::Type::LoadLayout},
+        {QStringLiteral("openLayout"), LayoutAction::Type::OpenLayout},
+        {QStringLiteral("closeLayout"), LayoutAction::Type::CloseLayout},
+        {QStringLiteral("command"), LayoutAction::Type::Command},
+        {QStringLiteral("script"), LayoutAction::Type::Script},
+    };
+    return kTypes.value(s, LayoutAction::Type::Unknown);
 }
 
 std::optional<QColor> parseColor(const QJsonValue& v)
@@ -111,7 +103,7 @@ std::optional<QColor> parseColor(const QJsonValue& v)
     if (!v.isString()) {
         return std::nullopt;
     }
-    const QColor c(v.toString());
+    const QColor c = ThemeColors::parseColor(v.toString(), QColor());
     if (!c.isValid()) {
         return std::nullopt;
     }
@@ -279,45 +271,48 @@ void parseDim(const QJsonObject& obj, const QString& baseKey, DimSpec& out)
 
 LayoutDwellRegion::ScreenAnchor parseScreenAnchor(const QString& anchor)
 {
-    const QString a = anchor.toLower();
     using SA = LayoutDwellRegion::ScreenAnchor;
-    if (a == QLatin1String("top")) {
-        return SA::Top;
+    static const QHash<QString, SA> kAnchors = {
+        {QStringLiteral("top"), SA::Top},
+        {QStringLiteral("bottom"), SA::Bottom},
+        {QStringLiteral("left"), SA::Left},
+        {QStringLiteral("right"), SA::Right},
+        {QStringLiteral("topleft"), SA::TopLeft},
+        {QStringLiteral("topright"), SA::TopRight},
+        {QStringLiteral("bottomleft"), SA::BottomLeft},
+        {QStringLiteral("bottomright"), SA::BottomRight},
+        {QStringLiteral("topcenter"), SA::TopCenter},
+        {QStringLiteral("bottomcenter"), SA::BottomCenter},
+        {QStringLiteral("leftcenter"), SA::LeftCenter},
+        {QStringLiteral("rightcenter"), SA::RightCenter},
+    };
+    return kAnchors.value(anchor.toLower(), SA::None);
+}
+
+LayoutWindowPlacement::Anchor parseWindowAnchor(const QString& anchor)
+{
+    using A = LayoutWindowPlacement::Anchor;
+    static const QHash<QString, A> kAnchors = {
+        {QStringLiteral("topleft"), A::TopLeft},
+        {QStringLiteral("topcenter"), A::TopCenter},
+        {QStringLiteral("topright"), A::TopRight},
+        {QStringLiteral("center"), A::Center},
+        {QStringLiteral("leftcenter"), A::LeftCenter},
+        {QStringLiteral("centerleft"), A::LeftCenter},
+        {QStringLiteral("rightcenter"), A::RightCenter},
+        {QStringLiteral("centerright"), A::RightCenter},
+        {QStringLiteral("bottomleft"), A::BottomLeft},
+        {QStringLiteral("bottomcenter"), A::BottomCenter},
+        {QStringLiteral("bottomright"), A::BottomRight},
+        {QStringLiteral("default"), A::Default},
+        {QString(), A::Default},
+    };
+    const QString a = anchor.toLower();
+    if (!kAnchors.contains(a) && !a.isEmpty()) {
+        GAZER_WARN << "Unknown window.anchor" << anchor << "— using default";
+        return A::Default;
     }
-    if (a == QLatin1String("bottom")) {
-        return SA::Bottom;
-    }
-    if (a == QLatin1String("left")) {
-        return SA::Left;
-    }
-    if (a == QLatin1String("right")) {
-        return SA::Right;
-    }
-    if (a == QLatin1String("topleft")) {
-        return SA::TopLeft;
-    }
-    if (a == QLatin1String("topright")) {
-        return SA::TopRight;
-    }
-    if (a == QLatin1String("bottomleft")) {
-        return SA::BottomLeft;
-    }
-    if (a == QLatin1String("bottomright")) {
-        return SA::BottomRight;
-    }
-    if (a == QLatin1String("topcenter")) {
-        return SA::TopCenter;
-    }
-    if (a == QLatin1String("bottomcenter")) {
-        return SA::BottomCenter;
-    }
-    if (a == QLatin1String("leftcenter")) {
-        return SA::LeftCenter;
-    }
-    if (a == QLatin1String("rightcenter")) {
-        return SA::RightCenter;
-    }
-    return SA::None;
+    return kAnchors.value(a, A::Default);
 }
 
 } // namespace
@@ -396,27 +391,18 @@ bool LayoutLoader::loadFromJson(const QByteArray& json, LayoutDocument& out, QSt
         }
     }
 
-    // Legacy session object is accepted and ignored for navigation.
+    // Legacy "session" only seeds master / hideUntilGazeReveal when those keys
+    // are omitted at the root.
     if (root.contains(QStringLiteral("session"))) {
         const QJsonObject sess = root.value(QStringLiteral("session")).toObject();
         const QString role = sess.value(QStringLiteral("role")).toString().toLower();
-        if (role == QLatin1String("mastershell") || role == QLatin1String("master")) {
-            layout.session.role = LayoutRole::MasterShell;
-        } else {
-            layout.session.role = LayoutRole::Secondary;
-        }
-        layout.session.masterGroup = sess.value(QStringLiteral("masterGroup")).toString();
-        layout.session.isHome = sess.value(QStringLiteral("isHome")).toBool(false);
-        layout.session.collapseLayoutId =
-            sess.value(QStringLiteral("collapseLayoutId")).toString();
-        layout.session.expandLayoutId = sess.value(QStringLiteral("expandLayoutId")).toString();
-        layout.session.hideUntilGazeReveal =
-            sess.value(QStringLiteral("hideUntilGazeReveal")).toBool(false);
-        if (!root.contains(QStringLiteral("hideUntilGazeReveal"))) {
-            layout.hideUntilGazeReveal = layout.session.hideUntilGazeReveal;
-        }
-        if (!root.contains(QStringLiteral("master")) && layout.session.isMasterShell()) {
+        if (!root.contains(QStringLiteral("master"))
+            && (role == QLatin1String("mastershell") || role == QLatin1String("master"))) {
             layout.master = true;
+        }
+        if (!root.contains(QStringLiteral("hideUntilGazeReveal"))
+            && sess.contains(QStringLiteral("hideUntilGazeReveal"))) {
+            layout.hideUntilGazeReveal = sess.value(QStringLiteral("hideUntilGazeReveal")).toBool(false);
         }
     }
 
@@ -479,30 +465,8 @@ bool LayoutLoader::loadFromJson(const QByteArray& json, LayoutDocument& out, QSt
         const QJsonObject win = root.value(QStringLiteral("window")).toObject();
         layout.placement.hidden = win.value(QStringLiteral("hidden")).toBool(false)
                                   || win.value(QStringLiteral("visible")).toBool(true) == false;
-        const QString anchor = win.value(QStringLiteral("anchor")).toString().toLower();
-        if (anchor == QLatin1String("topleft")) {
-            layout.placement.anchor = LayoutWindowPlacement::Anchor::TopLeft;
-        } else if (anchor == QLatin1String("topcenter")) {
-            layout.placement.anchor = LayoutWindowPlacement::Anchor::TopCenter;
-        } else if (anchor == QLatin1String("topright")) {
-            layout.placement.anchor = LayoutWindowPlacement::Anchor::TopRight;
-        } else if (anchor == QLatin1String("center")) {
-            layout.placement.anchor = LayoutWindowPlacement::Anchor::Center;
-        } else if (anchor == QLatin1String("leftcenter") || anchor == QLatin1String("centerleft")) {
-            layout.placement.anchor = LayoutWindowPlacement::Anchor::LeftCenter;
-        } else if (anchor == QLatin1String("rightcenter") || anchor == QLatin1String("centerright")) {
-            layout.placement.anchor = LayoutWindowPlacement::Anchor::RightCenter;
-        } else if (anchor == QLatin1String("bottomleft")) {
-            layout.placement.anchor = LayoutWindowPlacement::Anchor::BottomLeft;
-        } else if (anchor == QLatin1String("bottomcenter")) {
-            layout.placement.anchor = LayoutWindowPlacement::Anchor::BottomCenter;
-        } else if (anchor == QLatin1String("bottomright")) {
-            layout.placement.anchor = LayoutWindowPlacement::Anchor::BottomRight;
-        } else if (anchor == QLatin1String("default") || anchor.isEmpty()) {
-            layout.placement.anchor = LayoutWindowPlacement::Anchor::Default;
-        } else {
-            GAZER_WARN << "Unknown window.anchor" << anchor << "— using default";
-        }
+        layout.placement.anchor =
+            parseWindowAnchor(win.value(QStringLiteral("anchor")).toString());
         parseDim(win, QStringLiteral("width"), layout.placement.width);
         parseDim(win, QStringLiteral("height"), layout.placement.height);
         parseDim(win, QStringLiteral("x"), layout.placement.x);
@@ -534,9 +498,9 @@ bool LayoutLoader::loadFromJson(const QByteArray& json, LayoutDocument& out, QSt
         layout.placement.drawerMotion = win.value(QStringLiteral("drawerMotion")).toBool(false);
     }
 
-    // Root-level style applies to window chrome when window.style omitted.
-    if (root.contains(QStringLiteral("style")) && !layout.placement.style.hasAny()) {
-        parseChromeStyle(root.value(QStringLiteral("style")).toObject(), layout.placement.style);
+    // Root-level style is the default for every item (item.style overrides per field).
+    if (root.contains(QStringLiteral("style"))) {
+        parseChromeStyle(root.value(QStringLiteral("style")).toObject(), layout.style);
     }
 
     // Lifecycle action arrays
@@ -569,21 +533,21 @@ bool LayoutLoader::loadFromJson(const QByteArray& json, LayoutDocument& out, QSt
         item.id = io.value(QStringLiteral("id")).toString();
         item.label = io.value(QStringLiteral("label")).toString();
         item.caption = io.value(QStringLiteral("caption")).toString();
-        item.tooltip = io.value(QStringLiteral("tooltip")).toString();
         item.settingKey = io.value(QStringLiteral("settingKey")).toString();
         item.activeState = io.value(QStringLiteral("activeState")).toString();
         item.icon = io.value(QStringLiteral("icon")).toString();
+        item.role = io.value(QStringLiteral("role")).toString();
         // role: "label" | interactive: false → static non-activator
         if (io.contains(QStringLiteral("interactive"))) {
             item.interactive = io.value(QStringLiteral("interactive")).toBool(true);
         } else {
-            const QString role = io.value(QStringLiteral("role")).toString().toLower();
+            const QString role = item.role.toLower();
             item.interactive = !(role == QLatin1String("label") || role == QLatin1String("display")
-                                 || role == QLatin1String("value"));
+                                 || role == QLatin1String("value") || role == QLatin1String("slider")
+                                 || role == QLatin1String("preview"));
         }
         item.dwellExempt = io.value(QStringLiteral("dwellExempt")).toBool(false)
-                           || io.value(QStringLiteral("role")).toString().toLower()
-                                  == QLatin1String("dwellExempt");
+                           || item.role.toLower() == QLatin1String("dwellExempt");
         item.row = io.value(QStringLiteral("row")).toInt(0);
         item.col = io.value(QStringLiteral("col")).toInt(0);
         item.rowSpan = io.value(QStringLiteral("rowSpan")).toInt(1);

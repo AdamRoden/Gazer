@@ -65,13 +65,7 @@ LayoutInstance::LayoutInstance(QString instanceId, LayoutDocument document, QObj
                 const bool unbounded =
                     item && (!item->participatesInBoardGrid() || item->hasDwellRegion);
                 if (unbounded && m_edgeBubbles) {
-                    ProgressVisuals v = m_progressVisuals;
-                    if (m_document.dwell.sectionPresent) {
-                        v = v.mergedWith(m_document.dwell);
-                    }
-                    if (item && item->dwell.sectionPresent) {
-                        v = v.mergedWith(item->dwell);
-                    }
+                    const ProgressVisuals v = resolvedProgressVisuals(item);
                     m_edgeBubbles->flashThenClear(m_instanceId, v, v.flashMs);
                 } else {
                     if (m_window) {
@@ -82,7 +76,7 @@ LayoutInstance::LayoutInstance(QString instanceId, LayoutDocument document, QObj
                 emit itemActivated(m_instanceId, itemId);
             });
 
-    applyPlacement(0);
+    applyPlacement();
 }
 
 void LayoutInstance::applyDwellConfig()
@@ -95,33 +89,40 @@ void LayoutInstance::applyDwellConfig()
 
 void LayoutInstance::applyDwellForItem(const QString& itemId)
 {
-    QVector<int> seq;
-    int grace = m_globalGraceMs > 0 ? m_globalGraceMs : 180;
-    int scanGrace = m_globalScanGraceMs >= 0 ? m_globalScanGraceMs : 100;
-
     const LayoutItem* item = itemId.isEmpty() ? nullptr : m_document.findItem(itemId);
+    const LayoutDwellConfig* itemDwell = item ? &item->dwell : nullptr;
 
-    if (item && item->dwell.hasTiming) {
-        seq = item->dwell.effectiveSequence();
-    } else if (m_document.dwell.hasTiming) {
-        seq = m_document.dwell.effectiveSequence();
+    const auto pickMs = [](bool itemHas, int itemVal, bool useGlobal, int globalVal, bool docHas,
+                           int docVal, int fallback) {
+        if (itemHas && itemVal >= 0) {
+            return itemVal;
+        }
+        if (useGlobal) {
+            return globalVal;
+        }
+        if (docHas && docVal >= 0) {
+            return docVal;
+        }
+        return fallback;
+    };
+
+    QVector<int> seq;
+    if (itemDwell && itemDwell->hasTiming) {
+        seq = itemDwell->effectiveSequence();
     } else if (!m_globalDwellSequence.isEmpty()) {
         seq = m_globalDwellSequence;
     } else {
         seq = m_document.dwell.effectiveSequence();
     }
 
-    if (item && item->dwell.hasGrace && item->dwell.graceMs >= 0) {
-        grace = item->dwell.graceMs;
-    } else if (m_document.dwell.hasGrace && m_document.dwell.graceMs >= 0) {
-        grace = m_document.dwell.graceMs;
-    }
-
-    if (item && item->dwell.hasScanGrace && item->dwell.scanGraceMs >= 0) {
-        scanGrace = item->dwell.scanGraceMs;
-    } else if (m_document.dwell.hasScanGrace && m_document.dwell.scanGraceMs >= 0) {
-        scanGrace = m_document.dwell.scanGraceMs;
-    }
+    const int grace = pickMs(itemDwell && itemDwell->hasGrace, itemDwell ? itemDwell->graceMs : -1,
+                             m_globalGraceMs > 0, m_globalGraceMs,
+                             m_document.dwell.hasGrace, m_document.dwell.graceMs,
+                             DwellStateMachine::kDefaultInvalidGraceMs);
+    const int scanGrace =
+        pickMs(itemDwell && itemDwell->hasScanGrace, itemDwell ? itemDwell->scanGraceMs : -1,
+               m_globalScanGraceMs >= 0, m_globalScanGraceMs, m_document.dwell.hasScanGrace,
+               m_document.dwell.scanGraceMs, DwellStateMachine::kDefaultScanGraceMs);
 
     m_dwell->setDwellSequence(seq);
     m_dwell->setInvalidGraceMs(qMax(0, grace));
@@ -131,10 +132,14 @@ void LayoutInstance::applyDwellForItem(const QString& itemId)
 void LayoutInstance::setGlobalDwellOverride(const QVector<int>& dwellSequence, int graceMs,
                                             int scanGraceMs)
 {
+    if (m_globalDwellSequence == dwellSequence && m_globalGraceMs == graceMs
+        && m_globalScanGraceMs == scanGraceMs) {
+        return;
+    }
     m_globalDwellSequence = dwellSequence;
     m_globalGraceMs = graceMs;
     m_globalScanGraceMs = scanGraceMs;
-    applyDwellConfig();
+    applyDwellForItem(m_activeDwellItemId);
 }
 
 void LayoutInstance::setProgressVisuals(const ProgressVisuals& visuals)
@@ -143,6 +148,18 @@ void LayoutInstance::setProgressVisuals(const ProgressVisuals& visuals)
     if (m_window) {
         m_window->setProgressVisuals(visuals);
     }
+}
+
+ProgressVisuals LayoutInstance::resolvedProgressVisuals(const LayoutItem* item) const
+{
+    ProgressVisuals v = m_progressVisuals;
+    if (m_document.dwell.sectionPresent) {
+        v = v.mergedWith(m_document.dwell);
+    }
+    if (item && item->dwell.sectionPresent) {
+        v = v.mergedWith(item->dwell);
+    }
+    return v;
 }
 
 void LayoutInstance::setTheme(const ThemeColors& theme)
@@ -195,8 +212,8 @@ void LayoutInstance::setDocument(LayoutDocument document)
     m_window->setLayout(m_document);
     m_window->setWindowTitle(
         QStringLiteral("Gazer — %1 [%2]").arg(m_document.name, m_instanceId));
-    applyDwellConfig();
-    applyPlacement(0);
+    applyDwellForItem(m_activeDwellItemId);
+    applyPlacement();
     if (m_window) {
         m_window->update();
     }
@@ -300,7 +317,7 @@ void LayoutInstance::playAppear()
         return;
     }
     cancelScaleAnim(false);
-    applyPlacement(0);
+    applyPlacement();
     m_scaleTargetGeom = m_window->geometry();
     if (!m_scaleTargetGeom.isValid() || m_scaleTargetGeom.width() < 2) {
         m_window->showAndRaise();
@@ -331,7 +348,7 @@ void LayoutInstance::playDismiss(std::function<void()> onDone)
     cancelScaleAnim(false);
     m_scaleDone = std::move(onDone);
     if (!m_scaleTargetGeom.isValid() || m_scaleTargetGeom.width() < 2) {
-        applyPlacement(0);
+        applyPlacement();
         m_scaleTargetGeom = m_window->geometry();
     }
     m_scalePhase = ScalePhase::Dismiss;
@@ -372,10 +389,10 @@ void LayoutInstance::tickScaleAnim()
     m_scalePhase = ScalePhase::Idle;
     m_scaleTimer.stop();
     if (appearing) {
-        applyPlacement(0);
+        applyPlacement();
         setFadeOpacity(1.0);
         if (m_window) {
-            m_window->assertAboveTaskbar();
+            m_window->keepAboveTaskbar();
         }
     }
     if (done) {
@@ -383,7 +400,7 @@ void LayoutInstance::tickScaleAnim()
     }
 }
 
-void LayoutInstance::applyPlacement(int cascadeOffset)
+void LayoutInstance::applyPlacement()
 {
     if (!m_window) {
         return;
@@ -414,12 +431,12 @@ void LayoutInstance::applyPlacement(int cascadeOffset)
     m_window->resize(winW, winH);
 
     if (p.anchor == LayoutWindowPlacement::Anchor::Default && !p.x.isSet() && !p.y.isSet()) {
-        placeRelative(cascadeOffset, cascadeOffset);
+        placeRelative(0, 0);
         return;
     }
 
     if (!avail.isValid()) {
-        placeRelative(cascadeOffset, cascadeOffset);
+        placeRelative(0, 0);
         return;
     }
 
@@ -480,7 +497,7 @@ void LayoutInstance::applyPlacement(int cascadeOffset)
         y = avail.top() + p.y.resolveInt(avail.height(), 0);
     }
 
-    m_window->move(x + cascadeOffset, y + cascadeOffset);
+    m_window->move(x, y);
 }
 
 void LayoutInstance::placeRelative(int offsetX, int offsetY)
@@ -612,7 +629,7 @@ void LayoutInstance::resetAutoCloseClock(qint64 nowMs)
         m_autoCloseSuckStartGeom = {};
         // Restore full board placement after a cancelled suck animation.
         if (m_window && m_document.showsBoardWindow()) {
-            applyPlacement(0);
+            applyPlacement();
         }
     }
     setFadeOpacity(1.0);
@@ -678,7 +695,7 @@ void LayoutInstance::applyAutoCloseVisuals(qint64 nowMs)
         if (m_autoCloseSuckActive) {
             m_autoCloseSuckActive = false;
             m_autoCloseSuckStartGeom = {};
-            applyPlacement(0);
+            applyPlacement();
             setFadeOpacity(autoCloseOpacity(nowMs));
         }
         return;
@@ -862,13 +879,7 @@ void LayoutInstance::syncEdgeBubble(const QString& itemId, double progress)
         return;
     }
 
-    ProgressVisuals v = m_progressVisuals;
-    if (m_document.dwell.sectionPresent) {
-        v = v.mergedWith(m_document.dwell);
-    }
-    if (item->dwell.sectionPresent) {
-        v = v.mergedWith(item->dwell);
-    }
+    const ProgressVisuals v = resolvedProgressVisuals(item);
 
     EdgeBubbleOverlay::Bubble b;
     b.key = m_instanceId; // one slot per board instance

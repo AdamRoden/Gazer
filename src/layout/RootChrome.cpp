@@ -27,11 +27,6 @@ void LayoutInstanceManager::applyChromeProps()
     }
 }
 
-void LayoutInstanceManager::pushPropertyContext()
-{
-    applyChromeProps();
-}
-
 void LayoutInstanceManager::setRootProperty(const QString& key, const QVariant& value)
 {
     if (key == QLatin1String("expanded")) {
@@ -53,8 +48,10 @@ void LayoutInstanceManager::setRootProperty(const QString& key, const QVariant& 
 void LayoutInstanceManager::restackChrome()
 {
     for (const auto& p : m_instances) {
-        if (p && p->window() && p->window()->isVisible()
-            && p->document().placement.aboveTaskbar) {
+        if (!p || !p->window() || !p->window()->isVisible()) {
+            continue;
+        }
+        if (p->document().placement.aboveTaskbar || p->usesDrawerMotion()) {
             p->window()->keepAboveTaskbar();
         }
     }
@@ -240,15 +237,9 @@ QString LayoutInstanceManager::spawnChild(const LayoutChildRef& child, QString* 
         }
         return {};
     }
-    const QString id = makeInstanceId(child.layoutId);
-    auto inst = std::make_unique<LayoutInstance>(id, decorateCopy(*doc));
-    if (!m_globalDwellSequence.isEmpty() || m_globalGraceMs > 0 || m_globalScanGraceMs >= 0) {
-        inst->setGlobalDwellOverride(m_globalDwellSequence, m_globalGraceMs, m_globalScanGraceMs);
-    }
-    inst->setProgressVisuals(m_progressVisuals);
-    inst->applyPlacement(0);
+    auto inst = makeWiredInstance(child.layoutId, *doc);
+    const QString id = inst->instanceId();
     inst->hide();
-    wireInstance(inst.get());
     const QVector<LayoutAction> onOpen = inst->document().onOpen;
     const QVector<LayoutAction> onLoad = inst->document().onLoad;
     m_instances.push_back(std::move(inst));

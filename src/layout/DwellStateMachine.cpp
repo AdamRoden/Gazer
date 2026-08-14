@@ -24,20 +24,27 @@ void DwellStateMachine::setDwellMs(int ms)
 
 void DwellStateMachine::setDwellSequence(const QVector<int>& msSteps)
 {
-    m_sequence.clear();
+    QVector<int> next;
     for (int ms : msSteps) {
         if (ms > 0) {
-            m_sequence.push_back(ms);
+            next.push_back(ms);
         }
     }
-    if (m_sequence.isEmpty()) {
-        m_sequence = {800};
+    if (next.isEmpty()) {
+        next = {800};
+    }
+    if (next == m_sequence) {
+        return;
+    }
+    m_sequence = std::move(next);
+    if (m_stepIndex >= m_sequence.size()) {
+        m_stepIndex = m_sequence.size() - 1;
     }
 }
 
 void DwellStateMachine::setInvalidGraceMs(int ms)
 {
-    m_invalidGraceMs = qMax(0, ms);
+    m_invalidGrace.graceMs = qMax(0, ms);
 }
 
 void DwellStateMachine::setScanGraceMs(int ms)
@@ -71,7 +78,7 @@ void DwellStateMachine::leave()
 
 void DwellStateMachine::clearHover()
 {
-    m_inInvalidGrace = false;
+    m_invalidGrace.reset();
     m_stepIndex = 0;
     m_scanGraceComplete = false;
     if (!m_currentId.isEmpty()) {
@@ -92,28 +99,20 @@ void DwellStateMachine::onGazeSample(const gazer::GazePoint& point,
         return;
     }
 
-    if (!point.valid) {
+    // Empty hit (layout refresh, one-frame miss) uses the same grace as an
+    // invalid sample so we do not rewind the sequence after each activation.
+    if (!point.valid || itemIdUnderGaze.isEmpty()) {
         if (m_currentId.isEmpty()) {
             return;
         }
-        if (!m_inInvalidGrace) {
-            m_inInvalidGrace = true;
-            m_invalidGraceClock.start();
-            return;
-        }
-        if (m_invalidGraceClock.elapsed() < m_invalidGraceMs) {
+        if (m_invalidGrace.onInvalid() == InvalidGazeGrace::Result::Holding) {
             return;
         }
         clearHover();
         return;
     }
 
-    m_inInvalidGrace = false;
-
-    if (itemIdUnderGaze.isEmpty()) {
-        clearHover();
-        return;
-    }
+    m_invalidGrace.onValid();
 
     if (itemIdUnderGaze != m_currentId) {
         m_currentId = itemIdUnderGaze;

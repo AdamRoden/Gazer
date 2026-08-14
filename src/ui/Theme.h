@@ -33,6 +33,12 @@ struct ThemeColors {
     /// Hex helpers used by settings persistence and UI.
     [[nodiscard]] static QColor parseColor(const QString& hex, const QColor& fallback = Qt::cyan);
     [[nodiscard]] static QString colorToHex(const QColor& c);
+
+    /// Progress / overlay accent when a setting or theme color is missing.
+    [[nodiscard]] static QColor defaultProgressColor() { return QColor(0, 220, 255); }
+
+    /// Readable text color for a fill (theme light/dark text).
+    [[nodiscard]] static QColor contrastOn(const QColor& fill);
 };
 
 enum class ThemeMode {

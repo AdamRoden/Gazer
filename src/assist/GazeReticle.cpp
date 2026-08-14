@@ -1,6 +1,7 @@
 #include "assist/GazeReticle.h"
 
 #include "ui/OverlaySurface.h"
+#include "ui/Theme.h"
 
 #include <QPainter>
 #include <QPaintEvent>
@@ -24,6 +25,14 @@ public:
         update();
     }
 
+    void setColor(const QColor& c)
+    {
+        if (c.isValid()) {
+            m_color = c;
+        }
+        update();
+    }
+
 protected:
     void paintEvent(QPaintEvent*) override
     {
@@ -32,12 +41,15 @@ protected:
         const QPointF c = QRectF(rect()).center();
         const int a = int(255.0 * m_opacity);
         p.setPen(Qt::NoPen);
-        p.setBrush(QColor(0, 220, 255, a));
+        QColor fill = m_color;
+        fill.setAlpha(a);
+        p.setBrush(fill);
         p.drawEllipse(c, 75.0, 75.0);
     }
 
 private:
     double m_opacity = 0.25;
+    QColor m_color = ThemeColors::defaultProgressColor();
 };
 
 GazeReticle::GazeReticle(QObject* parent)
@@ -74,6 +86,13 @@ void GazeReticle::toggle()
 void GazeReticle::setFollowProfile(int profile)
 {
     m_stickiness = GazeFollowStickiness::fromProfile(profile);
+}
+
+void GazeReticle::setColor(const QColor& c)
+{
+    if (m_overlay) {
+        m_overlay->setColor(c);
+    }
 }
 
 void GazeReticle::onGaze(const GazePoint& point)

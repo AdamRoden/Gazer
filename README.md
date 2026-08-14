@@ -136,13 +136,13 @@ Layouts live in `resources/layouts/*.json`. Catalog id should match the filename
 | `window` | object | Board placement and chrome. Omit for headless / chips-only shells |
 | `grid` | object | Optional. Defaults to 1×1 then grows to fit items |
 | `boundsMode` / `bounds` | string | `desktop` (work area, default) or `screen` (full monitor). Aliases: `available` / `work` / `workarea`, `full` / `geometry` |
-| `style` | object | Window chrome if `window.style` is omitted |
+| `style` | object | Default item chrome (per-field). Overrides the theme; item `style` wins. Use `window.style` for the board panel |
 | `dwell` | object | Layout-level dwell / progress defaults |
 | `autoClose` | bool | Secondaries default true; master defaults false when omitted |
 | `autoCloseIdleMs`, `autoCloseFadeMs` | int | `-1` / omit → AppSettings (10000 / 3000) |
 | `items` | array | Grid cells and unbounded affordances |
 | `onOpen`, `onLoad`, `onClose` | action[] | Lifecycle. One-shot, no loops |
-| `session` | object | Legacy. Parsed, ignored for navigation |
+| `session` | object | Legacy. Only `role` / `hideUntilGazeReveal` seed root `master` / `hideUntilGazeReveal` when those keys are omitted |
 
 **Bounds precedence:** `window.boundsMode` → layout `boundsMode` → `desktop`. Dwell regions: `dwellRegion.boundsMode` → layout / window → `desktop`.
 
@@ -200,7 +200,7 @@ Colors: `#RRGGBB` or `#AARRGGBB` (alpha `00` = transparent).
 | `borderWidth` | `borderThickness`, `thickness` | Outline px |
 | `radius` | `borderRadius` | Corner radius px |
 
-Unset fields fall back to the theme. Item styles may live under `"style"` or as the same keys on the item.
+Unset fields fall back to layout `style`, then the theme. Item styles may live under `"style"` or as the same keys on the item.
 
 ### Grid
 
@@ -213,7 +213,7 @@ Unset fields fall back to the theme. Item styles may live under `"style"` or as 
 
 ### Dwell (layout or item)
 
-Priority: item → layout → AppSettings.
+Priority: item override → AppSettings (when set) → layout leftover. Layout `ms` is unused when AppSettings has a dwell sequence.
 
 | Field | Description |
 |-------|-------------|
@@ -223,7 +223,7 @@ Priority: item → layout → AppSettings.
 | `scanGraceMs` | Time on-target before progress starts. `-1` = inherit (default 100) |
 | `graceMs` | Blink / invalid-sample grace. `-1` = inherit |
 | `progressColor`, `fillColor`, `borderColor` | Progress paint |
-| `flashBorderColor`, `flashFillColor`, `flashMs` | Activation flash |
+| `flashColor`, `flashMs` | Activation flash (one color for border and fill). `flashBorderColor` / `flashFillColor` still load as `flashColor` |
 
 ### Items
 

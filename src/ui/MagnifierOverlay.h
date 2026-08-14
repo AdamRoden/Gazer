@@ -2,16 +2,18 @@
 
 #include "assist/GazeFollowStickiness.h"
 #include "core/GazePoint.h"
+#include "ui/OverlaySurface.h"
+#include "ui/Theme.h"
 
+#include <QColor>
 #include <QPixmap>
 #include <QPointF>
 #include <QTimer>
-#include <QWidget>
 
 namespace gazer {
 
 /// Floating zoom lens following gaze (screen capture + scale).
-class MagnifierOverlay final : public QWidget {
+class MagnifierOverlay final : public OverlaySurface {
     Q_OBJECT
 
 public:
@@ -23,6 +25,7 @@ public:
     void setZoom(double factor);
     void setLensSize(int px);
     void setFollowProfile(int profile);
+    void setAccent(const QColor& c);
     [[nodiscard]] double zoom() const { return m_zoom; }
     [[nodiscard]] int lensSize() const { return m_lensSize; }
     [[nodiscard]] int followProfile() const { return m_followProfile; }
@@ -58,6 +61,7 @@ private:
     GazeFollowStickiness m_stickiness;
     double m_placeEpsilonPx = 0.75;
     int m_followProfile = 1;
+    QColor m_accent = ThemeColors::defaultProgressColor();
 };
 
 } // namespace gazer

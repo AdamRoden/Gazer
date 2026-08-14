@@ -48,11 +48,11 @@ public:
     [[nodiscard]] bool usesDrawerMotion() const;
     [[nodiscard]] bool isScaleAnimating() const;
     [[nodiscard]] bool isDismissing() const;
-    void applyPlacement(int cascadeOffset = 0);
+    void applyPlacement();
     void placeRelative(int offsetX, int offsetY);
 
     void setGlobalDwellOverride(const QVector<int>& dwellSequence, int graceMs,
-                                int scanGraceMs = 100);
+                                int scanGraceMs = DwellStateMachine::kDefaultScanGraceMs);
     void setProgressVisuals(const ProgressVisuals& visuals);
     void setTheme(const ThemeColors& theme);
     void setActiveItemIds(const QSet<QString>& activeIds);
@@ -116,6 +116,7 @@ private:
     [[nodiscard]] QRect gridItemScreenRect(const QString& itemId) const;
     /// Visible progress strip / band for unbounded items (hit-tested while dwelling).
     [[nodiscard]] QRect progressHitRect(const LayoutItem& item, double progress) const;
+    [[nodiscard]] ProgressVisuals resolvedProgressVisuals(const LayoutItem* item) const;
 
     [[nodiscard]] bool itemShown(const LayoutItem& item) const;
     void cancelScaleAnim(bool invokeDone);
@@ -130,7 +131,7 @@ private:
     ProgressVisuals m_progressVisuals;
     QVector<int> m_globalDwellSequence;
     int m_globalGraceMs = 0;
-    int m_globalScanGraceMs = 100;
+    int m_globalScanGraceMs = DwellStateMachine::kDefaultScanGraceMs;
     QString m_activeDwellItemId;
     /// Off-screen item id for which the on-screen drift lip is active (after engage delay).
     QString m_dwellLipItemId;

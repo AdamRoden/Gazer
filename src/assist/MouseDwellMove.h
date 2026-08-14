@@ -2,6 +2,7 @@
 
 #include "assist/GazeDwellTracker.h"
 #include "core/GazePoint.h"
+#include "layout/InvalidGazeGrace.h"
 #include "ui/ProgressVisuals.h"
 
 #include <QElapsedTimer>
@@ -96,9 +97,7 @@ private:
     GazeDwellTracker m_dwell;
     QElapsedTimer m_clock;
     qint64 m_lastSampleMs = -1;
-    /// Grace after a brief invalid gaze sample before hard-resetting progress.
-    qint64 m_invalidSinceMs = -1;
-    int m_invalidGraceMs = 220;
+    InvalidGazeGrace m_invalidGrace;
     ProgressVisuals m_progressVisuals;
 
     QPixmap m_magPixmap;

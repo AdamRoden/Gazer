@@ -4,6 +4,7 @@
 
 #include <QColor>
 #include <QString>
+#include <QStringList>
 #include <QVector>
 
 namespace gazer {
@@ -11,8 +12,8 @@ namespace gazer {
 /// User preferences persisted to JSON under AppData.
 struct AppSettings {
     // --- Timing ---
-    /// Progressive dwell steps (ms), cycled while holding. e.g. 600,300,100,600
-    QVector<int> dwellSequence = {700};
+    /// Progressive dwell steps (ms). Last step repeats while gaze holds.
+    QVector<int> dwellSequence = defaultDwellSequence();
     /// Time on-target before dwell progress animation / sequence begins (ms).
     int scanGraceMs = 100;
     int dwellGraceMs = 180;
@@ -35,12 +36,9 @@ struct AppSettings {
     bool mouseProgressRadial = true;
     bool mouseProgressFill = false;
     bool mouseProgressBorder = true;
-    QString mouseProgressColor = QStringLiteral("#FFC828");
-    QString mouseProgressFillColor = QStringLiteral("#FFC82840");
-    QString mouseProgressBorderColor = QStringLiteral("#FFC828");
     bool flashOnComplete = true;
-    QString flashBorderColor = QStringLiteral("#FFFFFF");
-    QString flashFillColor = QStringLiteral("#00DCFF78");
+    /// Single color for completion flash border and fill.
+    QString flashColor = QStringLiteral("#FFFFFF");
     int flashMs = 140;
 
     // --- Magnifier ---
@@ -89,6 +87,10 @@ struct AppSettings {
         }
     }
 
+    [[nodiscard]] static QVector<int> defaultDwellSequence()
+    {
+        return {800, 600, 400, 200, 100, 50};
+    }
     [[nodiscard]] static AppSettings defaults();
     [[nodiscard]] static QString defaultFilePath();
 
@@ -99,11 +101,14 @@ struct AppSettings {
     [[nodiscard]] int dwellPreset() const;
     void setMagFollowProfile(int profile);
     void clamp();
+    /// Nudge a numeric field by one step. Returns false if key is not numeric.
+    bool nudge(const QString& key, int dir);
 
     [[nodiscard]] QString displayValue(const QString& key) const;
     [[nodiscard]] static QString settingTitle(const QString& key);
     [[nodiscard]] static QString settingDescription(const QString& key);
     [[nodiscard]] static bool isNumericKey(const QString& key);
+    [[nodiscard]] static QStringList numericKeys();
     [[nodiscard]] static bool isColorKey(const QString& key);
     [[nodiscard]] bool applyNumericBuffer(const QString& key, const QString& buffer,
                                           QString* error = nullptr);

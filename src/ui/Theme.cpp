@@ -90,6 +90,14 @@ QColor ThemeColors::parseColor(const QString& hex, const QColor& fallback)
     return c.isValid() ? c : fallback;
 }
 
+QColor ThemeColors::contrastOn(const QColor& fill)
+{
+    if (!fill.isValid() || fill.alpha() == 0) {
+        return darkPreset().text;
+    }
+    return fill.lightness() > 140 ? lightPreset().text : darkPreset().text;
+}
+
 QString ThemeColors::colorToHex(const QColor& c)
 {
     if (!c.isValid()) {

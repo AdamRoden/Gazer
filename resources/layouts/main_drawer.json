@@ -28,7 +28,6 @@
       "label": "Keyboard",
       "row": 0,
       "col": 0,
-      "style": { "background": "#1d3557", "foreground": "#ffffff" },
       "action": { "type": "openLayout", "layoutId": "example_keyboard" }
     },
     {
@@ -36,7 +35,6 @@
       "label": "Mouse",
       "row": 0,
       "col": 1,
-      "style": { "background": "#2d6a4f", "foreground": "#ffffff" },
       "action": { "type": "openLayout", "layoutId": "example_mouse" }
     },
     {
@@ -44,7 +42,6 @@
       "label": "Assist ★",
       "row": 0,
       "col": 2,
-      "style": { "background": "#6a4c93", "foreground": "#ffffff" },
       "action": { "type": "openLayout", "layoutId": "example_assist" }
     },
     {
@@ -52,7 +49,6 @@
       "label": "Settings ⚙",
       "row": 0,
       "col": 3,
-      "style": { "background": "#4a5568", "foreground": "#ffffff" },
       "action": { "type": "openLayout", "layoutId": "main_settings" }
     },
     {
@@ -60,7 +56,6 @@
       "label": "Close",
       "row": 0,
       "col": 4,
-      "style": { "background": "#3d4f66", "foreground": "#ffffff" },
       "action": { "type": "command", "name": "collapseMaster" }
     },
     {
@@ -68,7 +63,6 @@
       "label": "Close All",
       "row": 0,
       "col": 5,
-      "style": { "background": "#495057", "foreground": "#ffffff" },
       "actions": [{ "type": "command", "name": "closeOtherViews" }, { "type": "command", "name": "collapseMaster" }]
     },
     {
@@ -77,7 +71,6 @@
       "row": 0,
       "col": 6,
       "activeState": "dwellSuspend",
-      "style": { "background": "#5c4d7a", "foreground": "#ffffff" },
       "action": { "type": "command", "name": "toggleDwellSuspend" }
     },
     {
@@ -85,7 +78,6 @@
       "label": "Quit",
       "row": 0,
       "col": 7,
-      "style": { "background": "#9b2226", "foreground": "#ffffff" },
       "action": { "type": "loadLayout", "layoutId": "main_quit_confirm" }
     }
   ]

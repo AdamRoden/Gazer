@@ -7,42 +7,42 @@
   "window": { "anchor": "TopCenter", "widthPx": 1260, "height": 100, "marginPx": 0 },
   "grid": { "columns": 5, "rows": 10, "gapPx": 10, "marginPx": 100 },
   "items": [
-    { "id": "timing", "label": "Timing", "row": 0, "col": 0, "style": { "background": "#2b4c7e", "foreground": "#f4f6fc" }, "action": { "type": "loadLayout", "layoutId": "main_settings_timing" } },
-    { "id": "magnifier", "label": "Magnifier", "row": 0, "col": 1, "style": { "background": "#5c4d7a", "foreground": "#f4f6fc" }, "action": { "type": "loadLayout", "layoutId": "main_settings_magnifier" } },
-    { "id": "lts", "label": "Look↕Scroll", "row": 0, "col": 2, "style": { "background": "#331b5e4a", "foreground": "#f4f6fc" }, "action": { "type": "loadLayout", "layoutId": "main_settings_lts" } },
-    {"id": "appearance","label": "Appearance","row": 0,"col": 3,"style": { "background": "#5c4d7a", "foreground": "#f4f6fc" },"action": { "type": "loadLayout", "layoutId": "main_settings_appearance" }},
-    {"id": "assist","label": "Assist tools","row": 0,"col": 4,"style": { "background": "#134f5c", "foreground": "#f4f6fc" },"action": { "type": "loadLayout", "layoutId": "main_settings_assist" }},
+    { "id": "timing", "label": "Timing", "row": 0, "col": 0, "action": { "type": "loadLayout", "layoutId": "main_settings_timing" } },
+    { "id": "magnifier", "label": "Magnifier", "row": 0, "col": 1, "action": { "type": "loadLayout", "layoutId": "main_settings_magnifier" } },
+    { "id": "lts", "label": "Look↕Scroll", "row": 0, "col": 2, "action": { "type": "loadLayout", "layoutId": "main_settings_lts" } },
+    {"id": "appearance","label": "Appearance","row": 0,"col": 3,"action": { "type": "loadLayout", "layoutId": "main_settings_appearance" }},
+    {"id": "assist","label": "Assist tools","row": 0,"col": 4,"action": { "type": "loadLayout", "layoutId": "main_settings_assist" }},
   
     { "id": "dz_l", "role": "label", "label": "Deadzone", "caption": "No-scroll radius around cursor (px).", "row": 2, "col": 0 },
-    { "id": "dz_d", "label": "−", "row": 2, "col": 1, "style": { "background": "#355070", "foreground": "#fff" }, "action": { "type": "command", "name": "settings.nudge.ltsDeadzonePx.dec" } },
+    { "id": "dz_d", "label": "−", "row": 2, "col": 1, "action": { "type": "command", "name": "settings.nudge.ltsDeadzonePx.dec" } },
     { "id": "dz_v", "role": "value", "settingKey": "ltsDeadzonePx", "label": "—", "row": 2, "col": 2 },
-    { "id": "dz_i", "label": "+", "row": 2, "col": 3, "style": { "background": "#355070", "foreground": "#fff" }, "action": { "type": "command", "name": "settings.nudge.ltsDeadzonePx.inc" } },
-    { "id": "dz_e", "label": "Edit…", "row": 2, "col": 4, "style": { "background": "#0a7ea4", "foreground": "#fff" }, "action": { "type": "command", "name": "settings.edit.ltsDeadzonePx" } },
+    { "id": "dz_i", "label": "+", "row": 2, "col": 3, "action": { "type": "command", "name": "settings.nudge.ltsDeadzonePx.inc" } },
+    { "id": "dz_e", "label": "Edit…", "row": 2, "col": 4, "action": { "type": "command", "name": "settings.edit.ltsDeadzonePx" } },
 
     { "id": "fo_l", "role": "label", "label": "Falloff", "caption": "Distance to full speed past deadzone (px).", "row": 3, "col": 0 },
-    { "id": "fo_d", "label": "−", "row": 3, "col": 1, "style": { "background": "#355070", "foreground": "#fff" }, "action": { "type": "command", "name": "settings.nudge.ltsFalloffPx.dec" } },
+    { "id": "fo_d", "label": "−", "row": 3, "col": 1, "action": { "type": "command", "name": "settings.nudge.ltsFalloffPx.dec" } },
     { "id": "fo_v", "role": "value", "settingKey": "ltsFalloffPx", "label": "—", "row": 3, "col": 2 },
-    { "id": "fo_i", "label": "+", "row": 3, "col": 3, "style": { "background": "#355070", "foreground": "#fff" }, "action": { "type": "command", "name": "settings.nudge.ltsFalloffPx.inc" } },
-    { "id": "fo_e", "label": "Edit…", "row": 3, "col": 4, "style": { "background": "#0a7ea4", "foreground": "#fff" }, "action": { "type": "command", "name": "settings.edit.ltsFalloffPx" } },
+    { "id": "fo_i", "label": "+", "row": 3, "col": 3, "action": { "type": "command", "name": "settings.nudge.ltsFalloffPx.inc" } },
+    { "id": "fo_e", "label": "Edit…", "row": 3, "col": 4, "action": { "type": "command", "name": "settings.edit.ltsFalloffPx" } },
 
     { "id": "sp_l", "role": "label", "label": "Max speed", "caption": "Peak notches per second.", "row": 4, "col": 0 },
-    { "id": "sp_d", "label": "−", "row": 4, "col": 1, "style": { "background": "#355070", "foreground": "#fff" }, "action": { "type": "command", "name": "settings.nudge.ltsMaxNotchesPerSec.dec" } },
+    { "id": "sp_d", "label": "−", "row": 4, "col": 1, "action": { "type": "command", "name": "settings.nudge.ltsMaxNotchesPerSec.dec" } },
     { "id": "sp_v", "role": "value", "settingKey": "ltsMaxNotchesPerSec", "label": "—", "row": 4, "col": 2 },
-    { "id": "sp_i", "label": "+", "row": 4, "col": 3, "style": { "background": "#355070", "foreground": "#fff" }, "action": { "type": "command", "name": "settings.nudge.ltsMaxNotchesPerSec.inc" } },
-    { "id": "sp_e", "label": "Edit…", "row": 4, "col": 4, "style": { "background": "#0a7ea4", "foreground": "#fff" }, "action": { "type": "command", "name": "settings.edit.ltsMaxNotchesPerSec" } },
+    { "id": "sp_i", "label": "+", "row": 4, "col": 3, "action": { "type": "command", "name": "settings.nudge.ltsMaxNotchesPerSec.inc" } },
+    { "id": "sp_e", "label": "Edit…", "row": 4, "col": 4, "action": { "type": "command", "name": "settings.edit.ltsMaxNotchesPerSec" } },
 
     { "id": "accel_label", "role": "label", "label": "LTS accel/s", "caption": "Speed growth while outside deadzone", "row": 5, "col": 0 },
-    { "id": "accel_dec", "label": "−", "row": 5, "col": 1, "style": { "background": "#355070", "foreground": "#fff" }, "action": { "type": "command", "name": "settings.nudge.ltsAccelPerSec.dec" } },
+    { "id": "accel_dec", "label": "−", "row": 5, "col": 1, "action": { "type": "command", "name": "settings.nudge.ltsAccelPerSec.dec" } },
     { "id": "accel_val", "role": "value", "settingKey": "ltsAccelPerSec", "label": "—", "row": 5, "col": 2 },
-    { "id": "accel_inc", "label": "+", "row": 5, "col": 3, "style": { "background": "#355070", "foreground": "#fff" }, "action": { "type": "command", "name": "settings.nudge.ltsAccelPerSec.inc" } },
-    { "id": "accel_e", "label": "Edit…", "row": 5, "col": 4, "style": { "background": "#0a7ea4", "foreground": "#fff" }, "action": { "type": "command", "name": "settings.edit.ltsAccelPerSec" } },
+    { "id": "accel_inc", "label": "+", "row": 5, "col": 3, "action": { "type": "command", "name": "settings.nudge.ltsAccelPerSec.inc" } },
+    { "id": "accel_e", "label": "Edit…", "row": 5, "col": 4, "action": { "type": "command", "name": "settings.edit.ltsAccelPerSec" } },
 
     { "id": "pl_l", "role": "label", "label": "Place cursor first", "caption": "Arm mouse-move before enabling scroll.", "row": 6, "col": 0 },
     { "id": "pl_v", "role": "value", "settingKey": "ltsPlaceCursorFirst", "label": "—", "row": 6, "col": 2 },
-    { "id": "pl_t", "label": "Toggle", "activeState": "lts.placeCursorFirst", "row": 6, "col": 3, "colSpan": 2, "style": { "background": "#1b5e4a", "foreground": "#fff" }, "action": { "type": "command", "name": "settings.lts.placeCursor.toggle" } },
+    { "id": "pl_t", "label": "Toggle", "activeState": "lts.placeCursorFirst", "row": 6, "col": 3, "colSpan": 2, "action": { "type": "command", "name": "settings.lts.placeCursor.toggle" } },
 
-    { "id": "tog", "label": "Toggle LTS", "activeState": "lookToScroll", "row": 7, "col": 3, "colSpan": 2, "style": { "background": "#166534", "foreground": "#fff" }, "action": { "type": "command", "name": "toggleLookToScroll" } },
+    { "id": "tog", "label": "Toggle LTS", "activeState": "lookToScroll", "row": 7, "col": 3, "colSpan": 2, "action": { "type": "command", "name": "toggleLookToScroll" } },
     
-    { "id": "close", "label": "Close", "row": 9, "col": 2, "colSpan": 1, "style": { "background": "#4a5568", "foreground": "#fff" }, "action": { "type": "closeLayout" } }
+    { "id": "close", "label": "Close", "row": 9, "col": 2, "colSpan": 1, "action": { "type": "closeLayout" } }
   ]
 }
