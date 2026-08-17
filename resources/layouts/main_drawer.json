@@ -13,13 +13,13 @@
     "heightPx": 150,
     "aboveTaskbar": true,
     "drawerMotion": true,
-    "style": {
-      "background": "#00000000"
-    }
+    "style": { "background": "#00000000" }
   },
+  "style": { "glass": true},
   "grid": {
     "columns": 8,
     "rows": 1,
+    "marginPx": 10,
     "gapPx": 10
   },
   "items": [

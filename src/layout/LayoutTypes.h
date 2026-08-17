@@ -95,11 +95,19 @@ struct LayoutChromeStyle {
     std::optional<double> borderWidth;
     /// Corner radius in px. Unset → theme/paint default.
     std::optional<double> radius;
+    /// Frosted-glass blur of content behind this chrome, in px. 0 / unset = off.
+    /// JSON: `blur`, `blurRadius`, or `glass` (true → kDefaultBlur, or a number).
+    std::optional<double> blur;
+
+    static constexpr double kDefaultBlur = 15.0;
+    static constexpr double kMaxBlur = 64.0;
+
+    [[nodiscard]] bool hasBlur() const { return blur.has_value() && *blur > 0.0; }
 
     [[nodiscard]] bool hasAny() const
     {
         return background.has_value() || foreground.has_value() || borderColor.has_value()
-               || borderWidth.has_value() || radius.has_value();
+               || borderWidth.has_value() || radius.has_value() || blur.has_value();
     }
 
     /// Copy, then replace any field set on `ovr` (item over layout, layout over unset).
@@ -120,6 +128,9 @@ struct LayoutChromeStyle {
         }
         if (ovr.radius) {
             out.radius = ovr.radius;
+        }
+        if (ovr.blur) {
+            out.blur = ovr.blur;
         }
         return out;
     }
@@ -432,6 +443,15 @@ struct LayoutDocument {
             }
         }
         return false;
+    }
+
+    [[nodiscard]] double maxChromeBlur() const
+    {
+        double r = qMax(placement.style.blur.value_or(0.0), style.blur.value_or(0.0));
+        for (const LayoutItem& item : items) {
+            r = qMax(r, style.withOverrides(item.style).blur.value_or(0.0));
+        }
+        return r;
     }
 
     [[nodiscard]] bool isMaster() const { return master; }

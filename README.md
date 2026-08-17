@@ -199,8 +199,9 @@ Colors: `#RRGGBB` or `#AARRGGBB` (alpha `00` = transparent).
 | `borderColor` | `border` | Outline |
 | `borderWidth` | `borderThickness`, `thickness` | Outline px |
 | `radius` | `borderRadius` | Corner radius px |
+| `blur` | `blurRadius`, `glass` | Frosted glass: blur the desktop behind this fill (px). `true` → 15. `0` / `false` turns it off. `background` is painted as-authored on top of the frost — use `#AARRGGBB` for a tint; opaque fills hide the blur |
 
-Unset fields fall back to layout `style`, then the theme. Item styles may live under `"style"` or as the same keys on the item.
+Unset fields fall back to layout `style`, then the theme. Item styles may live under `"style"` or as the same keys on the item. A layout-level `"style": { "blur": 15 }` frosts every cell; `window.style.blur` frosts the board panel.
 
 ### Grid
 
@@ -297,10 +298,11 @@ Optional on any step: `delayMs`.
     "heightPx": 400,
     "aboveTaskbar": true,
     "style": {
-      "background": "#cc20232a",
+      "background": "#3320232a",
       "borderColor": "#00dcff",
       "borderWidth": 2,
-      "radius": 16
+      "radius": 16,
+      "blur": 15
     }
   },
   "grid": { "columns": 2, "rows": 1, "gapPx": 12, "marginPx": 16 },

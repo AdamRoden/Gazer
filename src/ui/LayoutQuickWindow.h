@@ -1,6 +1,7 @@
 #pragma once
 
 #include "layout/LayoutTypes.h"
+#include "ui/GlassBackdrop.h"
 #include "ui/ProgressVisuals.h"
 #include "ui/Theme.h"
 
@@ -106,6 +107,8 @@ private:
                           double progress);
     void paintPreviewSwatch(QPainter& p, const QRectF& r, double radius);
     void paintRadioButton(QPainter& p, const QRectF& cell, bool on);
+    [[nodiscard]] bool fillChrome(QPainter& p, const QRectF& r, double radius, const QColor& bg,
+                                  const LayoutChromeStyle& st, const QColor& bgBot = QColor());
     [[nodiscard]] ProgressVisuals visualsForItem(const LayoutItem* item) const;
     [[nodiscard]] bool itemShown(const LayoutItem& item) const;
     [[nodiscard]] LayoutItemStyle resolvedItemStyle(const LayoutItem& item) const;
@@ -129,6 +132,7 @@ private:
     QHash<QString, double> m_sliderReadoutT;
     QHash<QString, QString> m_sliderReadoutValue;
     LayoutBoardItem* m_board = nullptr;
+    GlassBackdrop m_glass;
 
     friend class LayoutBoardItem;
 };

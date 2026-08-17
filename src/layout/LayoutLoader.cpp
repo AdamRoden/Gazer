@@ -8,6 +8,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QtGlobal>
 
 namespace gazer {
 
@@ -152,6 +153,20 @@ void parseChromeStyle(const QJsonObject& st, LayoutChromeStyle& out)
                                  ? st.value(QStringLiteral("radius"))
                                  : st.value(QStringLiteral("borderRadius"));
         out.radius = v.toDouble(12.0);
+    }
+    if (st.contains(QStringLiteral("blur")) || st.contains(QStringLiteral("blurRadius"))
+        || st.contains(QStringLiteral("glass"))) {
+        const QJsonValue v = st.contains(QStringLiteral("blur"))
+                                 ? st.value(QStringLiteral("blur"))
+                                 : (st.contains(QStringLiteral("blurRadius"))
+                                        ? st.value(QStringLiteral("blurRadius"))
+                                        : st.value(QStringLiteral("glass")));
+        if (v.isBool()) {
+            out.blur = v.toBool() ? LayoutChromeStyle::kDefaultBlur : 0.0;
+        } else {
+            out.blur = qBound(0.0, v.toDouble(LayoutChromeStyle::kDefaultBlur),
+                              LayoutChromeStyle::kMaxBlur);
+        }
     }
 }
 

@@ -1,9 +1,9 @@
 #include "ui/MagnifierOverlay.h"
 
 #include "utils/Log.h"
+#include "utils/ScreenGrab.h"
 
 #include <QGuiApplication>
-#include <QImage>
 #include <QLineF>
 #include <QPainter>
 #include <QPainterPath>
@@ -12,26 +12,6 @@
 #include <QtMath>
 
 namespace gazer {
-
-namespace {
-
-QRect mapLogicalLocalToPixmap(const QRect& localLogical, const QSize& pixmapSize,
-                              const QSize& screenLogicalSize)
-{
-    if (localLogical.isEmpty() || pixmapSize.isEmpty() || screenLogicalSize.isEmpty()) {
-        return {};
-    }
-    if (pixmapSize == screenLogicalSize) {
-        return localLogical;
-    }
-    const qreal sx = qreal(pixmapSize.width()) / qreal(screenLogicalSize.width());
-    const qreal sy = qreal(pixmapSize.height()) / qreal(screenLogicalSize.height());
-    return QRect(qRound(localLogical.x() * sx), qRound(localLogical.y() * sy),
-                 qMax(1, qRound(localLogical.width() * sx)),
-                 qMax(1, qRound(localLogical.height() * sy)));
-}
-
-} // namespace
 
 MagnifierOverlay::MagnifierOverlay(QWidget* parent)
     : OverlaySurface(parent)
@@ -127,39 +107,15 @@ void MagnifierOverlay::refreshCapture(const QPoint& screenCenter)
         return;
     }
 
-    const QRect screenGeo = screen->geometry();
     const int side = m_sourceRadius * 2;
     const QRect srcGlobal(screenCenter.x() - m_sourceRadius, screenCenter.y() - m_sourceRadius,
                           side, side);
-
-    const QPixmap desk = screen->grabWindow(0);
-    if (desk.isNull()) {
+    const QPixmap shot = grabScreenRect(screen, srcGlobal, QColor(12, 14, 18));
+    if (shot.isNull()) {
         return;
     }
-
-    const QSize bufferSize = desk.size();
-    QImage canvas(side, side, QImage::Format_ARGB32_Premultiplied);
-    canvas.fill(QColor(12, 14, 18));
-
-    const QRect visibleGlobal = srcGlobal.intersected(screenGeo);
-    if (!visibleGlobal.isEmpty()) {
-        const QRect srcLocal = visibleGlobal.translated(-screenGeo.topLeft());
-        const QRect srcInPixmap =
-            (bufferSize != screenGeo.size())
-                ? mapLogicalLocalToPixmap(srcLocal, bufferSize, screenGeo.size())
-                : srcLocal;
-
-        const int dx = visibleGlobal.x() - srcGlobal.x();
-        const int dy = visibleGlobal.y() - srcGlobal.y();
-
-        const QPixmap piece = desk.copy(srcInPixmap);
-        QPainter painter(&canvas);
-        painter.drawPixmap(QRect(dx, dy, visibleGlobal.width(), visibleGlobal.height()), piece);
-        painter.end();
-    }
-
-    m_capture = QPixmap::fromImage(canvas).scaled(m_lensSize, m_lensSize, Qt::IgnoreAspectRatio,
-                                                  Qt::SmoothTransformation);
+    m_capture = shot.scaled(m_lensSize, m_lensSize, Qt::IgnoreAspectRatio,
+                            Qt::SmoothTransformation);
     m_capture.setDevicePixelRatio(1.0);
 }
 

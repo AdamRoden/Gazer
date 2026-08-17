@@ -69,6 +69,7 @@ set(GAZER_SOURCES
     src/ui/PreviewWindow.cpp
     src/ui/StlMesh.cpp
     src/ui/LayoutQuickWindow.cpp
+    src/ui/GlassBackdrop.cpp
     src/ui/TrayIcon.cpp
     src/ui/DockRevealOverlay.cpp
     src/ui/EdgeBubbleOverlay.cpp
@@ -129,6 +130,7 @@ set(GAZER_HEADERS
     src/ui/PreviewWindow.h
     src/ui/StlMesh.h
     src/ui/LayoutQuickWindow.h
+    src/ui/GlassBackdrop.h
     src/ui/TrayIcon.h
     src/ui/DockRevealOverlay.h
     src/ui/EdgeBubbleOverlay.h
@@ -142,6 +144,7 @@ set(GAZER_HEADERS
     src/ui/ThemeScheme.h
     src/utils/Log.h
     src/utils/WinOverlay.h
+    src/utils/ScreenGrab.h
 )
 
 add_executable(Gazer WIN32

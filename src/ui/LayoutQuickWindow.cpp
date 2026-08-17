@@ -65,6 +65,7 @@ private:
 
 LayoutQuickWindow::LayoutQuickWindow(QWindow* parent)
     : QQuickWindow(parent)
+    , m_glass(this)
 {
     setColor(Qt::transparent);
     setFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool
@@ -79,6 +80,11 @@ LayoutQuickWindow::LayoutQuickWindow(QWindow* parent)
     m_flashTimer.setSingleShot(true);
     connect(&m_flashTimer, &QTimer::timeout, this, [this]() {
         m_flashId.clear();
+        if (m_board) {
+            m_board->update();
+        }
+    });
+    connect(&m_glass, &GlassBackdrop::updated, this, [this]() {
         if (m_board) {
             m_board->update();
         }
@@ -125,6 +131,7 @@ void LayoutQuickWindow::setLayout(const LayoutDocument& layout)
     setTitle(QStringLiteral("Gazer — %1").arg(
         m_layout.isValid() ? m_layout.name : QStringLiteral("Layout")));
     rebuildCellGeometry();
+    m_glass.setActive(m_layout.maxChromeBlur());
     if (m_board) {
         m_board->update();
     }
@@ -136,6 +143,7 @@ void LayoutQuickWindow::clearLayout()
     m_itemLocalRects.clear();
     m_hoverId.clear();
     m_hoverProgress = 0.0;
+    m_glass.setActive(0.0);
     if (m_board) {
         m_board->update();
     }
@@ -301,6 +309,31 @@ bool LayoutQuickWindow::itemShown(const LayoutItem& item) const
 LayoutItemStyle LayoutQuickWindow::resolvedItemStyle(const LayoutItem& item) const
 {
     return m_layout.style.withOverrides(item.style);
+}
+
+bool LayoutQuickWindow::fillChrome(QPainter& p, const QRectF& r, double radius, const QColor& bg,
+                                   const LayoutChromeStyle& st, const QColor& bgBot)
+{
+    if (st.hasBlur()) {
+        m_glass.paint(p, r, radius, st.background ? bg : QColor());
+        return true;
+    }
+    if (bgBot.isValid() && (bg.alpha() > 0 || bgBot.alpha() > 0)) {
+        QLinearGradient g(r.topLeft(), r.bottomLeft());
+        g.setColorAt(0.0, bg);
+        g.setColorAt(1.0, bgBot);
+        p.setPen(Qt::NoPen);
+        p.setBrush(g);
+        p.drawRoundedRect(r, radius, radius);
+        return true;
+    }
+    if (bg.alpha() <= 0) {
+        return false;
+    }
+    p.setPen(Qt::NoPen);
+    p.setBrush(bg);
+    p.drawRoundedRect(r, radius, radius);
+    return true;
 }
 
 void LayoutQuickWindow::keepAboveTaskbar()
@@ -649,11 +682,8 @@ void LayoutQuickWindow::paintCell(QPainter& p, const LayoutItem& item, const QRe
         bg = bg.lighter(118);
     }
 
-    if (bg.alpha() > 0) {
-        p.setBrush(bg);
-    } else {
-        p.setBrush(Qt::NoBrush);
-    }
+    fillChrome(p, r, radius, bg, st);
+    p.setBrush(Qt::NoBrush);
     p.setPen(QPen(border, borderW));
     p.drawRoundedRect(r, radius, radius);
 
@@ -687,11 +717,7 @@ void LayoutQuickWindow::paintDefault(QPainter& p)
     QColor bg = ws.background.value_or(m_theme.bgMain);
     QColor border = ws.borderColor.value_or(m_theme.accent);
 
-    if (bg.alpha() > 0) {
-        p.setBrush(bg);
-        p.setPen(Qt::NoPen);
-        p.drawRoundedRect(QRectF(0, 0, width(), height()), winR, winR);
-    }
+    fillChrome(p, QRectF(0, 0, width(), height()), winR, bg, ws);
     if (border.alpha() > 0 && winBw > 0) {
         p.setBrush(Qt::NoBrush);
         p.setPen(QPen(border, winBw));
@@ -727,14 +753,7 @@ void LayoutQuickWindow::paintFluent(QPainter& p)
     QColor bgBot = ws.background.value_or(m_theme.bgMain);
     QColor border = ws.borderColor.value_or(m_theme.accent);
 
-    if (bgTop.alpha() > 0 || bgBot.alpha() > 0) {
-        QLinearGradient bg(0, 0, 0, height());
-        bg.setColorAt(0.0, bgTop);
-        bg.setColorAt(1.0, bgBot);
-        p.setBrush(bg);
-        p.setPen(Qt::NoPen);
-        p.drawRoundedRect(QRectF(0, 0, width(), height()), winR, winR);
-    }
+    fillChrome(p, QRectF(0, 0, width(), height()), winR, bgTop, ws, bgBot);
     if (border.alpha() > 0 && winBw > 0) {
         QColor accentBorder = border;
         if (!ws.borderColor) {
@@ -786,8 +805,8 @@ void LayoutQuickWindow::paintFluent(QPainter& p)
             const bool isValue = role == QLatin1String("value") || !item.settingKey.isEmpty();
             QColor fg = st.foreground.value_or(isInput || isValue ? m_theme.accent : m_theme.text);
             const double radius = st.radius.value_or(12.0);
-            if (st.background && st.background->alpha() > 0) {
-                p.setBrush(*st.background);
+            if (fillChrome(p, r, radius, st.background.value_or(QColor()), st)) {
+                p.setBrush(Qt::NoBrush);
                 p.setPen(QPen(st.borderColor.value_or(m_theme.accent),
                               st.borderWidth.value_or(1.5)));
                 p.drawRoundedRect(r, radius, radius);

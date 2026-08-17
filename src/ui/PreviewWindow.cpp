@@ -100,7 +100,7 @@ PreviewWindow::PreviewWindow(QWidget* parent)
 {
     setWindowTitle(QStringLiteral("Gazer — Head Preview"));
     setMinimumSize(480, 400);
-    resize(720, 600);
+    resize(900, 720);
     setAttribute(Qt::WA_OpaquePaintEvent);
 }
 

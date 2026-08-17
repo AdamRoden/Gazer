@@ -67,6 +67,47 @@ inline void applyOverlayWindowChrome(QWidget* w, bool excludeFromCapture = true)
     applyOverlayWindowChrome(w->windowHandle(), excludeFromCapture);
 }
 
+/// Temporarily exclude `w` from screen capture; restores the previous affinity.
+class CaptureExclusion {
+public:
+    explicit CaptureExclusion(QWindow* w)
+    {
+#ifdef Q_OS_WIN
+        if (!w) {
+            return;
+        }
+        m_hwnd = reinterpret_cast<HWND>(w->winId());
+        if (!m_hwnd) {
+            return;
+        }
+        if (!GetWindowDisplayAffinity(m_hwnd, &m_prev)) {
+            m_prev = WDA_NONE;
+        }
+        SetWindowDisplayAffinity(m_hwnd, WDA_EXCLUDEFROMCAPTURE);
+#else
+        Q_UNUSED(w);
+#endif
+    }
+
+    ~CaptureExclusion()
+    {
+#ifdef Q_OS_WIN
+        if (m_hwnd) {
+            SetWindowDisplayAffinity(m_hwnd, m_prev);
+        }
+#endif
+    }
+
+    CaptureExclusion(const CaptureExclusion&) = delete;
+    CaptureExclusion& operator=(const CaptureExclusion&) = delete;
+
+private:
+#ifdef Q_OS_WIN
+    HWND m_hwnd = nullptr;
+    DWORD m_prev = WDA_NONE;
+#endif
+};
+
 /// Restack a topmost overlay above the Windows taskbar (same TOPMOST band).
 /// Explorer often restacks Shell_TrayWnd after a show; call again on a short delay.
 inline void raiseAboveTaskbar(QWindow* w)
