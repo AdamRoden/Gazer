@@ -42,8 +42,11 @@ struct AppSettings {
     /// PickStyle flags: first dwell (region) and final click/move dwell.
     int magPickStyle = 1;   // Cursor
     int mousePickStyle = 1; // Cursor
-    bool flashOnComplete = true;
-    /// Single color for completion flash border and fill.
+    /// When true, flash uses the item foreground at flashForegroundOpacity.
+    bool flashUseForeground = true;
+    /// Opacity percent (0–100) when flashUseForeground is on.
+    int flashForegroundOpacity = 60;
+    /// Custom flash fill/border when flashUseForeground is off.
     QString flashColor = QStringLiteral("#FFFFFF");
     int flashMs = 140;
 

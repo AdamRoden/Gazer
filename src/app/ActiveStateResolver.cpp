@@ -102,8 +102,11 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
     if (key == QLatin1String("setting.mouseProgressBorder")) {
         return s.mouseProgressBorder;
     }
-    if (key == QLatin1String("setting.flashOnComplete")) {
-        return s.flashOnComplete;
+    if (key == QLatin1String("setting.flashUseForeground")) {
+        return s.flashUseForeground;
+    }
+    if (key == QLatin1String("setting.flashUseCustom")) {
+        return !s.flashUseForeground;
     }
     if (key == QLatin1String("setting.magPick.cursor")) {
         return PickStyle::has(s.magPickStyle, PickStyle::Cursor);

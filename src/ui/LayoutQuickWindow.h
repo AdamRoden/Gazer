@@ -39,6 +39,7 @@ public:
     void setHoverState(const QString& itemId, double progress);
     void setProgressVisuals(const ProgressVisuals& visuals);
     void setTheme(const ThemeColors& theme);
+    [[nodiscard]] const ThemeColors& theme() const { return m_theme; }
     void setActiveItemIds(const QSet<QString>& activeIds);
     void setPropertyContext(const QVariantMap& props);
     void setPreviewColor(const QColor& color);

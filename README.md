@@ -224,7 +224,7 @@ Priority: item override → AppSettings (when set) → layout leftover. Layout `
 | `scanGraceMs` | Time on-target before progress starts. `-1` = inherit (default 100) |
 | `graceMs` | Blink / invalid-sample grace. `-1` = inherit |
 | `progressColor`, `fillColor`, `borderColor` | Progress paint |
-| `flashColor`, `flashMs` | Activation flash (one color for border and fill). `flashBorderColor` / `flashFillColor` still load as `flashColor` |
+| `flashColor`, `flashMs` | Activation flash. Default is the item foreground at 60% opacity (`flashUseForeground`). A layout `flashColor` overrides that. `flashBorderColor` / `flashFillColor` still load as `flashColor` |
 
 ### Items
 

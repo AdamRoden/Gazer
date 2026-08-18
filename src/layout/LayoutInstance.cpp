@@ -159,6 +159,11 @@ ProgressVisuals LayoutInstance::resolvedProgressVisuals(const LayoutItem* item) 
     if (item && item->dwell.sectionPresent) {
         v = v.mergedWith(item->dwell);
     }
+    if (item) {
+        const QColor fallback = m_window ? m_window->theme().text : QColor(255, 255, 255);
+        const QColor fg = m_document.style.withOverrides(item->style).foreground.value_or(fallback);
+        return v.withItemFlash(fg);
+    }
     return v;
 }
 

@@ -79,6 +79,9 @@ constexpr IntSpec kIntSpecs[] = {
      " ms", &AppSettings::ltsCenterDwellMs, 200, 2500, 50},
     {"flashMs", "Flash duration", "Completion flash duration after activation (ms).", " ms",
      &AppSettings::flashMs, 40, 1000, 20},
+    {"flashForegroundOpacity", "Flash opacity",
+     "Opacity of the completion flash when using the item foreground color.", "%",
+     &AppSettings::flashForegroundOpacity, 0, 100, 5},
 };
 
 constexpr DoubleSpec kDoubleSpecs[] = {
@@ -120,7 +123,7 @@ constexpr BoolSpec kBoolSpecs[] = {
     {"mouseProgressRadial", &AppSettings::mouseProgressRadial},
     {"mouseProgressFill", &AppSettings::mouseProgressFill},
     {"mouseProgressBorder", &AppSettings::mouseProgressBorder},
-    {"flashOnComplete", &AppSettings::flashOnComplete},
+    {"flashUseForeground", &AppSettings::flashUseForeground},
 };
 
 bool keyEq(const char* a, const QString& b)
@@ -575,7 +578,10 @@ QString AppSettings::settingDescription(const QString& key)
         return QLatin1String(s->hint);
     }
     if (key == QLatin1String("flashColor")) {
-        return QStringLiteral("Color applied to both the flash border and fill.");
+        return QStringLiteral("Custom color for the completion flash border and fill.");
+    }
+    if (key == QLatin1String("flashUseForeground")) {
+        return QStringLiteral("Flash the activating item's foreground color.");
     }
     if (key == QLatin1String("customBgColor")) {
         return QStringLiteral("Page background. Variant, foreground, and accent suggestions come from this.");
@@ -796,7 +802,9 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
     mouseProgressFill = o.value(QStringLiteral("mouseProgressFill")).toBool(mouseProgressFill);
     mouseProgressBorder =
         o.value(QStringLiteral("mouseProgressBorder")).toBool(mouseProgressBorder);
-    flashOnComplete = o.value(QStringLiteral("flashOnComplete")).toBool(flashOnComplete);
+    flashUseForeground = o.value(QStringLiteral("flashUseForeground")).toBool(flashUseForeground);
+    flashForegroundOpacity =
+        o.value(QStringLiteral("flashForegroundOpacity")).toInt(flashForegroundOpacity);
     if (o.contains(QStringLiteral("flashColor"))) {
         flashColor = o.value(QStringLiteral("flashColor")).toString(flashColor);
     } else if (o.contains(QStringLiteral("flashBorderColor"))) {
@@ -883,7 +891,8 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     o.insert(QStringLiteral("mouseProgressRadial"), copy.mouseProgressRadial);
     o.insert(QStringLiteral("mouseProgressFill"), copy.mouseProgressFill);
     o.insert(QStringLiteral("mouseProgressBorder"), copy.mouseProgressBorder);
-    o.insert(QStringLiteral("flashOnComplete"), copy.flashOnComplete);
+    o.insert(QStringLiteral("flashUseForeground"), copy.flashUseForeground);
+    o.insert(QStringLiteral("flashForegroundOpacity"), copy.flashForegroundOpacity);
     o.insert(QStringLiteral("flashColor"), copy.flashColor);
     o.insert(QStringLiteral("flashMs"), copy.flashMs);
 

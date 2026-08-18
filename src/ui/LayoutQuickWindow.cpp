@@ -279,9 +279,6 @@ void LayoutQuickWindow::flashItem(const QString& itemId)
     }
     const LayoutItem* item = m_layout.findItem(itemId);
     const ProgressVisuals v = visualsForItem(item);
-    if (!v.flashOnComplete) {
-        return;
-    }
     m_flashId = itemId;
     m_flashTimer.start(qMax(40, v.flashMs));
     if (m_board) {
@@ -297,6 +294,10 @@ ProgressVisuals LayoutQuickWindow::visualsForItem(const LayoutItem* item) const
     }
     if (item && item->dwell.sectionPresent) {
         v = v.mergedWith(item->dwell);
+    }
+    if (item) {
+        const QColor fg = resolvedItemStyle(*item).foreground.value_or(m_theme.text);
+        return v.withItemFlash(fg);
     }
     return v;
 }

@@ -100,6 +100,14 @@ private:
     [[nodiscard]] bool arrayCancel(QString* error = nullptr);
     [[nodiscard]] bool arrayEditIndex(int index, QString* error = nullptr);
 
+    [[nodiscard]] bool openFlashForeground(QString* error = nullptr);
+    [[nodiscard]] bool openFlashCustom(QString* error = nullptr);
+    [[nodiscard]] bool openOpacityEditor(QString* error = nullptr);
+    void refreshOpacityEditor();
+    [[nodiscard]] LayoutDocument buildOpacityDocument() const;
+    void closeOpacityEditor();
+    void opacityNudge(int dir);
+    [[nodiscard]] bool opacitySave(QString* error = nullptr);
     [[nodiscard]] bool openColorPicker(const QString& colorKey, QString* error = nullptr);
     [[nodiscard]] bool selectColorTarget(const QString& colorKey, QString* error = nullptr);
     void refreshColorPicker();
@@ -137,6 +145,7 @@ private:
     [[nodiscard]] bool returnEditorInstance(const QString& instId, const QString& layoutId,
                                             QString* error);
     [[nodiscard]] bool isLiveEditorInstance(const QString& instanceId) const;
+    [[nodiscard]] QColor flashOpacityPreview() const;
 
     void notifyStatus(const QString& msg);
     void apply(bool persist);
@@ -152,6 +161,8 @@ private:
             returnLayoutId.clear();
         }
     };
+
+    [[nodiscard]] bool claimFocusedBoard(LiveBoard& board, QString* error);
 
     AppSettings& m_settings;
     LayoutInstanceManager& m_instances;
@@ -177,7 +188,13 @@ private:
     QString m_arrayKey;
     QVector<int> m_arrayDraft;
 
+    LiveBoard m_opacity;
+    int m_opacityDraft = 60;
+    int m_opacityRevert = 60;
+    bool m_opacitySetMode = false;
+
     LiveBoard m_color;
+    bool m_flashCustomSetMode = false;
     QString m_colorPickerKey;
     QHash<QString, QColor> m_colorPending;
     QColor m_colorDraft;
@@ -207,6 +224,7 @@ private:
     };
     SliderScrub m_scrub;
     QColor m_scrubRevert;
+    int m_scrubOpacityRevert = 60;
     GazeDwellTracker m_scrubDwell;
     InvalidGazeGrace m_scrubGrace;
     QElapsedTimer m_scrubClock;

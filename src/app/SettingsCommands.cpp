@@ -97,7 +97,6 @@ void SettingsUi::registerCommands()
         {"settings.mouseProgress.radial.toggle", &AppSettings::mouseProgressRadial, "Mouse radial"},
         {"settings.mouseProgress.fill.toggle", &AppSettings::mouseProgressFill, "Mouse fill"},
         {"settings.mouseProgress.border.toggle", &AppSettings::mouseProgressBorder, "Mouse border"},
-        {"settings.flash.toggle", &AppSettings::flashOnComplete, "Completion flash"},
         {"settings.lts.placeCursor.toggle", &AppSettings::ltsPlaceCursorFirst,
          "LTS place cursor first"},
         {"settings.session.autoCollapse.toggle", &AppSettings::autoCollapseMain,
@@ -109,6 +108,28 @@ void SettingsUi::registerCommands()
         m_commands.registerBuiltin(QLatin1String(t.cmd),
                                    toggleBool(t.member, QLatin1String(t.label)));
     }
+
+    m_commands.registerBuiltin(QStringLiteral("settings.flash.foreground"),
+                               [this](QString* e) { return openFlashForeground(e); });
+    m_commands.registerBuiltin(QStringLiteral("settings.flash.custom"),
+                               [this](QString* e) { return openFlashCustom(e); });
+    m_commands.registerBuiltin(QStringLiteral("settings.opacity.scrub"),
+                               [this](QString*) { return beginSliderScrub(QStringLiteral("opacity")); });
+    m_commands.registerBuiltin(QStringLiteral("settings.opacity.nudge.dec"), [this](QString*) {
+        opacityNudge(-5);
+        return true;
+    });
+    m_commands.registerBuiltin(QStringLiteral("settings.opacity.nudge.inc"), [this](QString*) {
+        opacityNudge(+5);
+        return true;
+    });
+    m_commands.registerBuiltin(QStringLiteral("settings.opacity.save"),
+                               [this](QString* e) { return opacitySave(e); });
+    m_commands.registerBuiltin(QStringLiteral("settings.opacity.cancel"), [this](QString*) {
+        closeOpacityEditor();
+        notifyStatus(QStringLiteral("Flash opacity cancelled"));
+        return true;
+    });
 
     for (const char* ck : kColorKeys) {
         m_commands.registerBuiltin(

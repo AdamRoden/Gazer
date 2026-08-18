@@ -78,7 +78,30 @@ bool SettingsUi::isLiveEditorInstance(const QString& instanceId) const
     }
     return (m_numpad.active && instanceId == m_numpad.instanceId)
            || (m_array.active && instanceId == m_array.instanceId)
-           || (m_color.active && instanceId == m_color.instanceId);
+           || (m_color.active && instanceId == m_color.instanceId)
+           || (m_opacity.active && instanceId == m_opacity.instanceId);
+}
+
+bool SettingsUi::claimFocusedBoard(LiveBoard& board, QString* error)
+{
+    auto* focused = m_instances.focusedInstance();
+    if (!focused) {
+        if (error) {
+            *error = QStringLiteral("No focused board");
+        }
+        return false;
+    }
+    board.active = true;
+    board.instanceId = focused->instanceId();
+    board.returnLayoutId = focused->layoutId();
+    return true;
+}
+
+QColor SettingsUi::flashOpacityPreview() const
+{
+    QColor c = m_settings.resolvedTheme().text;
+    c.setAlpha(qBound(0, qRound(255.0 * double(m_opacityDraft) / 100.0), 255));
+    return c;
 }
 
 bool SettingsUi::returnEditorInstance(const QString& instId, const QString& layoutId,
@@ -516,7 +539,8 @@ void colorChannelRange(const QString& channel, int* minV, int* maxV)
         return;
     }
     if (ch == QLatin1String("s") || ch == QLatin1String("sat") || ch == QLatin1String("v")
-        || ch == QLatin1String("val") || ch == QLatin1String("a") || ch == QLatin1String("alpha")) {
+        || ch == QLatin1String("val") || ch == QLatin1String("a") || ch == QLatin1String("alpha")
+        || ch == QLatin1String("opacity")) {
         *minV = 0;
         *maxV = 100;
         return;
@@ -529,7 +553,8 @@ QString colorChannelValueText(const QString& channel, int shown)
 {
     const QString ch = channel.toLower();
     if (ch == QLatin1String("s") || ch == QLatin1String("sat") || ch == QLatin1String("v")
-        || ch == QLatin1String("val") || ch == QLatin1String("a") || ch == QLatin1String("alpha")) {
+        || ch == QLatin1String("val") || ch == QLatin1String("a") || ch == QLatin1String("alpha")
+        || ch == QLatin1String("opacity")) {
         return QStringLiteral("%1%").arg(shown);
     }
     return QString::number(shown);
@@ -598,7 +623,9 @@ bool SettingsUi::beginSliderScrub(const QString& channel)
     if (m_hexActive || m_numpad.active) {
         return false;
     }
-    if (!m_color.active || !findColorAxis(channel)) {
+    const bool opacity = m_opacity.active
+                         && channel.compare(QLatin1String("opacity"), Qt::CaseInsensitive) == 0;
+    if (!opacity && (!m_color.active || !findColorAxis(channel))) {
         return false;
     }
     if (m_scrub.active && m_scrub.channel == channel) {
@@ -607,7 +634,7 @@ bool SettingsUi::beginSliderScrub(const QString& channel)
     if (m_scrub.active) {
         endSliderScrub(true);
     }
-    auto* inst = m_instances.instance(m_color.instanceId);
+    auto* inst = m_instances.instance(opacity ? m_opacity.instanceId : m_color.instanceId);
     if (!inst) {
         return false;
     }
@@ -615,6 +642,7 @@ bool SettingsUi::beginSliderScrub(const QString& channel)
     m_scrub.channel = channel;
     m_scrub.itemId = QStringLiteral("track_%1").arg(channel);
     m_scrub.instanceId = inst->instanceId();
+    m_scrubOpacityRevert = m_opacityDraft;
     m_scrubRevert = m_colorDraft;
     m_scrubDwell.reset();
     m_scrubDwell.setDwellMs(m_settings.mouseMoveDwellMs);
@@ -639,22 +667,33 @@ void SettingsUi::endSliderScrub(bool commit)
     }
     const QString instId = m_scrub.instanceId;
     if (!commit) {
-        loadColorDraft(m_scrubRevert);
+        if (m_opacity.active) {
+            m_opacityDraft = m_scrubOpacityRevert;
+        } else {
+            loadColorDraft(m_scrubRevert);
+        }
     }
     m_scrub.reset();
     m_scrubDeadlineMs = -1;
     m_scrubLastSampleMs = -1;
     m_scrubDwell.reset();
-    if (auto* inst = m_instances.instance(instId.isEmpty() ? m_color.instanceId : instId)) {
+    if (auto* inst = m_instances.instance(instId)) {
         if (inst->window()) {
             inst->window()->clearSliderScrub();
         }
     }
-    refreshColorPicker();
+    if (m_opacity.active) {
+        refreshOpacityEditor();
+    } else {
+        refreshColorPicker();
+    }
 }
 
 int SettingsUi::scrubShownValue() const
 {
+    if (m_opacity.active) {
+        return m_opacityDraft;
+    }
     return colorShownValue(m_scrub.channel);
 }
 
@@ -670,7 +709,9 @@ void SettingsUi::syncSliderScrubVisuals()
     int maxV = 255;
     colorChannelRange(m_scrub.channel, &minV, &maxV);
     const double t = (maxV > minV) ? (shown - minV) / double(maxV - minV) : 0.0;
-    if (m_color.active) {
+    if (m_opacity.active) {
+        inst->window()->setPreviewColor(flashOpacityPreview());
+    } else if (m_color.active) {
         inst->window()->setPreviewColor(m_colorDraft);
         updateLiveThemeSwatches();
     }
@@ -745,7 +786,11 @@ void SettingsUi::feedSliderGaze(const GazePoint& point)
     int maxV = 255;
     colorChannelRange(m_scrub.channel, &minV, &maxV);
     const int shown = minV + qRound(t * double(maxV - minV));
-    applyColorShownValue(m_scrub.channel, shown);
+    if (m_opacity.active) {
+        m_opacityDraft = qBound(0, shown, 100);
+    } else {
+        applyColorShownValue(m_scrub.channel, shown);
+    }
 
     const double dtSec =
         m_scrubLastSampleMs < 0 ? 0.016
@@ -770,6 +815,173 @@ void SettingsUi::colorUseSaved(const QString& savedKey)
     loadColorDraft(m_settings.colorKey(savedKey));
     m_colorPending.insert(m_colorPickerKey, m_colorDraft);
     refreshColorPicker();
+}
+
+bool SettingsUi::openFlashForeground(QString* error)
+{
+    if (!openOpacityEditor(error)) {
+        return false;
+    }
+    if (!m_settings.flashUseForeground) {
+        m_settings.flashUseForeground = true;
+        m_opacitySetMode = true;
+        apply(true);
+    }
+    return true;
+}
+
+bool SettingsUi::openFlashCustom(QString* error)
+{
+    if (!openColorPicker(QStringLiteral("flashColor"), error)) {
+        return false;
+    }
+    m_flashCustomSetMode = false;
+    if (m_settings.flashUseForeground) {
+        m_settings.flashUseForeground = false;
+        m_flashCustomSetMode = true;
+        apply(true);
+    }
+    return true;
+}
+
+bool SettingsUi::openOpacityEditor(QString* error)
+{
+    if (!claimFocusedBoard(m_opacity, error)) {
+        return false;
+    }
+    m_opacityDraft = qBound(0, m_settings.flashForegroundOpacity, 100);
+    m_opacityRevert = m_opacityDraft;
+    m_opacitySetMode = false;
+    if (!m_instances.setInstanceDocument(m_opacity.instanceId, buildOpacityDocument(), error)) {
+        m_opacity.reset();
+        return false;
+    }
+    if (auto* inst = m_instances.instance(m_opacity.instanceId)) {
+        if (inst->window()) {
+            inst->window()->setPreviewColor(flashOpacityPreview());
+        }
+    }
+    notifyStatus(QStringLiteral("Edit flash opacity"));
+    return true;
+}
+
+LayoutDocument SettingsUi::buildOpacityDocument() const
+{
+    LayoutDocument doc;
+    doc.schemaVersion = 1;
+    doc.id = QStringLiteral("settings_opacity_live");
+    doc.name = QStringLiteral("Flash opacity");
+    doc.description = QStringLiteral("How solid the foreground-colored flash is.");
+    applyLiveEditorChrome(doc);
+    doc.grid.columns = 12;
+    doc.grid.rows = 3;
+    doc.grid.gapPx = 8;
+    doc.grid.marginPx = 72;
+    doc.placement.width = DimSpec::pixels(1100);
+    doc.placement.height = DimSpec::pixels(500);
+
+    const EditorSwatch pal = editorSwatch();
+    doc.items.push_back(cell(QStringLiteral("edit_opacity"), QStringLiteral("Edit"), 0, 0,
+                             QStringLiteral("settings.opacity.scrub"), pal.edit));
+    doc.items.back().icon = QStringLiteral("edit");
+    doc.items.push_back(cell(QStringLiteral("dec_opacity"), QStringLiteral("−"), 0, 1,
+                             QStringLiteral("settings.opacity.nudge.dec"), pal.nudge));
+    LayoutItem track;
+    track.id = QStringLiteral("track_opacity");
+    track.role = QStringLiteral("slider");
+    track.caption = QStringLiteral("opacity");
+    track.label = QStringLiteral("Opacity");
+    track.interactive = false;
+    track.row = 0;
+    track.col = 2;
+    track.colSpan = 9;
+    doc.items.push_back(track);
+    doc.items.push_back(cell(QStringLiteral("inc_opacity"), QStringLiteral("+"), 0, 11,
+                             QStringLiteral("settings.opacity.nudge.inc"), pal.nudge));
+
+    LayoutItem preview;
+    preview.id = QStringLiteral("preview");
+    preview.role = QStringLiteral("preview");
+    preview.label = QStringLiteral("Preview");
+    preview.caption = QStringLiteral("%1%").arg(m_opacityDraft);
+    preview.interactive = false;
+    preview.row = 1;
+    preview.col = 0;
+    preview.colSpan = 12;
+    doc.items.push_back(preview);
+
+    doc.items.push_back(cell(QStringLiteral("save"), QStringLiteral("Save"), 2, 0,
+                             QStringLiteral("settings.opacity.save"), pal.save, 6));
+    doc.items.push_back(cell(QStringLiteral("cancel"), QStringLiteral("Cancel"), 2, 6,
+                             QStringLiteral("settings.opacity.cancel"), pal.cancel, 6));
+    return doc;
+}
+
+void SettingsUi::refreshOpacityEditor()
+{
+    if (!m_opacity.active || m_numpad.active) {
+        return;
+    }
+    QString err;
+    if (!m_instances.setInstanceDocument(m_opacity.instanceId, buildOpacityDocument(), &err)) {
+        notifyStatus(err);
+        return;
+    }
+    if (auto* inst = m_instances.instance(m_opacity.instanceId)) {
+        if (inst->window()) {
+            inst->window()->setPreviewColor(flashOpacityPreview());
+        }
+    }
+}
+
+void SettingsUi::closeOpacityEditor()
+{
+    if (!m_opacity.active) {
+        return;
+    }
+    if (m_scrub.active) {
+        endSliderScrub(true);
+    }
+    if (m_opacitySetMode) {
+        m_settings.flashUseForeground = false;
+        apply(true);
+    }
+    const QString instId = m_opacity.instanceId;
+    const QString returnId = m_opacity.returnLayoutId;
+    m_opacity.reset();
+    m_opacitySetMode = false;
+    QString err;
+    (void)returnEditorInstance(instId, returnId, &err);
+}
+
+void SettingsUi::opacityNudge(int dir)
+{
+    if (!m_opacity.active) {
+        return;
+    }
+    if (m_scrub.active) {
+        endSliderScrub(true);
+    }
+    m_opacityDraft = qBound(0, m_opacityDraft + dir, 100);
+    refreshOpacityEditor();
+}
+
+bool SettingsUi::opacitySave(QString* error)
+{
+    if (!m_opacity.active) {
+        if (error) {
+            *error = QStringLiteral("Opacity editor is not open");
+        }
+        return false;
+    }
+    m_settings.flashUseForeground = true;
+    m_settings.flashForegroundOpacity = m_opacityDraft;
+    m_opacitySetMode = false;
+    apply(true);
+    const int pct = m_opacityDraft;
+    closeOpacityEditor();
+    notifyStatus(QStringLiteral("Flash opacity = %1%").arg(pct));
+    return true;
 }
 
 bool SettingsUi::openColorPicker(const QString& colorKey, QString* error)
@@ -835,17 +1047,18 @@ LayoutDocument SettingsUi::buildColorDocument() const
     LayoutDocument doc;
     doc.schemaVersion = 1;
     doc.id = QStringLiteral("settings_color_live");
+    SettingsUi::applyLiveEditorChrome(doc);
+    doc.grid.gapPx = 8;
+    const EditorSwatch pal = editorSwatch();
+
     doc.name = AppSettings::settingTitle(m_colorPickerKey);
     doc.description = QStringLiteral("HSV + RGB + alpha. Save applies this color.");
-    SettingsUi::applyLiveEditorChrome(doc);
     doc.grid.columns = 12;
     doc.grid.rows = 9;
-    doc.grid.gapPx = 8;
     doc.grid.marginPx = 20;
     doc.placement.width = DimSpec::pixels(1400);
     doc.placement.height = DimSpec::pixels(980);
 
-    const EditorSwatch pal = editorSwatch();
     const AppSettings draft = draftThemeSettings();
     ThemePalette themePal;
     themePal.colors = draft.customColors;
@@ -986,11 +1199,16 @@ void SettingsUi::closeColorPicker()
             }
         }
     }
+    if (m_flashCustomSetMode) {
+        m_settings.flashUseForeground = true;
+        apply(true);
+    }
     const QString instId = m_color.instanceId;
     const QString returnId = m_color.returnLayoutId;
     m_color.reset();
     m_colorPending.clear();
     m_hexActive = false;
+    m_flashCustomSetMode = false;
     m_colorPickerKey.clear();
     m_hexBuffer.clear();
     QString err;
@@ -1024,6 +1242,7 @@ bool SettingsUi::colorSave(QString* error)
     apply(true);
     const QString title = AppSettings::settingTitle(m_colorPickerKey);
     const QString hex = m_colorDraft.name(QColor::HexArgb).toUpper();
+    m_flashCustomSetMode = false;
     closeColorPicker();
     notifyStatus(QStringLiteral("%1 = %2").arg(title, hex));
     return true;

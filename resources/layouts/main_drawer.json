@@ -15,7 +15,7 @@
     "drawerMotion": true,
     "style": { "background": "#00000000" }
   },
-  "style": { "glass": true},
+  "style": { "background":"#99000000", "glass": true},
   "grid": {
     "columns": 8,
     "rows": 1,

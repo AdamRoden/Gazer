@@ -24,9 +24,9 @@
     { "id": "mr_f", "label": "Fill", "activeState": "setting.mouseProgressFill", "row": 3, "col": 3, "action": { "type": "command", "name": "settings.mouseProgress.fill.toggle" } },
     { "id": "mr_b", "label": "Border", "activeState": "setting.mouseProgressBorder", "row": 3, "col": 4, "action": { "type": "command", "name": "settings.mouseProgress.border.toggle" } },
 
-    { "id": "fl_name", "role": "label", "label": "Completion flash", "caption": "Brief flash after activation.", "row": 4, "col": 0 },
-    { "id": "fl_tog", "label": "Toggle", "activeState": "setting.flashOnComplete", "row": 4, "col": 2, "action": { "type": "command", "name": "settings.flash.toggle" } },
-    { "id": "fl_col", "label": "Color", "row": 4, "col": 3, "colSpan": 2, "action": { "type": "command", "name": "settings.edit.color.flashColor" } },
+    { "id": "fl_name", "role": "label", "label": "Completion flash", "caption": "Flash after activation. Foreground uses the item text color; Custom picks a color.", "row": 4, "col": 0 },
+    { "id": "fl_fg", "label": "Use Foreground", "activeState": "setting.flashUseForeground", "row": 4, "col": 2, "colSpan": 2, "action": { "type": "command", "name": "settings.flash.foreground" } },
+    { "id": "fl_custom", "label": "Custom", "activeState": "setting.flashUseCustom", "row": 4, "col": 4, "action": { "type": "command", "name": "settings.flash.custom" } },
 
     { "id": "fd_label", "role": "label", "label": "Flash duration", "caption": "How long the completion flash is shown (ms).", "row": 5, "col": 0 },
     { "id": "fd_dec", "label": "−", "row": 5, "col": 2, "action": { "type": "command", "name": "settings.nudge.flashMs.dec" } },

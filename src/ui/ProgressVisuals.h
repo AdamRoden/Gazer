@@ -20,9 +20,27 @@ struct ProgressVisuals {
     QColor fillColor = QColor(0, 180, 220, 70);
     QColor borderColor = ThemeColors::defaultProgressColor();
 
-    bool flashOnComplete = true;
+    bool flashUseForeground = true;
+    int flashForegroundOpacity = 60;
     QColor flashColor = QColor(255, 255, 255);
     int flashMs = 140;
+
+    [[nodiscard]] QColor resolvedFlashColor(const QColor& itemForeground) const
+    {
+        if (!flashUseForeground) {
+            return flashColor;
+        }
+        QColor c = itemForeground.isValid() ? itemForeground : QColor(255, 255, 255);
+        c.setAlpha(qBound(0, qRound(255.0 * double(flashForegroundOpacity) / 100.0), 255));
+        return c;
+    }
+
+    [[nodiscard]] ProgressVisuals withItemFlash(const QColor& itemForeground) const
+    {
+        ProgressVisuals v = *this;
+        v.flashColor = v.resolvedFlashColor(itemForeground);
+        return v;
+    }
 
     void setStylesFromCsv(const QString& csv)
     {
@@ -84,6 +102,7 @@ struct ProgressVisuals {
         }
         if (ovr.hasFlashColor) {
             applyColor(v.flashColor, ovr.flashColor);
+            v.flashUseForeground = false;
         }
         if (ovr.hasFlashMs && ovr.flashMs > 0) {
             v.flashMs = ovr.flashMs;

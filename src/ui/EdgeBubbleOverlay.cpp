@@ -198,7 +198,7 @@ void EdgeBubbleOverlay::paintEvent(QPaintEvent* /*event*/)
         p.setBrush(track);
         p.drawPath(shape);
 
-        if (b.flashing && v.flashOnComplete) {
+        if (b.flashing) {
             p.setPen(QPen(v.flashColor, 3.5));
             p.setBrush(v.flashColor);
             p.drawPath(shape);

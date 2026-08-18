@@ -217,7 +217,8 @@ void GazerServices::applySettings(bool persist)
     boardPv.progressColor = m_settings.colorKey(QStringLiteral("progressColor"));
     boardPv.fillColor = m_settings.colorKey(QStringLiteral("progressFillColor"));
     boardPv.borderColor = m_settings.colorKey(QStringLiteral("progressBorderColor"));
-    boardPv.flashOnComplete = m_settings.flashOnComplete;
+    boardPv.flashUseForeground = m_settings.flashUseForeground;
+    boardPv.flashForegroundOpacity = m_settings.flashForegroundOpacity;
     boardPv.flashColor = m_settings.colorKey(QStringLiteral("flashColor"));
     boardPv.flashMs = m_settings.flashMs;
     m_instances->applyProgressVisuals(boardPv);
