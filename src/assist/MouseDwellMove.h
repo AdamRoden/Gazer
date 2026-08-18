@@ -1,6 +1,8 @@
 #pragma once
 
+#include "assist/ForesightMemory.h"
 #include "assist/GazeDwellTracker.h"
+#include "assist/MagLayout.h"
 #include "core/GazePoint.h"
 #include "layout/InvalidGazeGrace.h"
 #include "ui/ProgressVisuals.h"
@@ -8,14 +10,16 @@
 #include <QElapsedTimer>
 #include <QObject>
 #include <QPixmap>
+#include <QPoint>
 #include <QPointF>
 #include <QRect>
 #include <memory>
 
 namespace gazer {
 
-/// Dwell gaze to warp the OS cursor. Optional two-step static magnify pick.
-/// Look↕Scroll placement always uses direct dwell (never mag-pick).
+/// Dwell gaze to warp the OS cursor. Optional static magnify pick and Foresight
+/// (remember a recent desktop dwell and magnify immediately).
+/// Look↕Scroll placement always uses direct dwell (never mag-pick / foresight).
 class MouseDwellMove final : public QObject {
     Q_OBJECT
 
@@ -44,18 +48,15 @@ public:
     }
     void toggle();
 
-    /// Pause dwell + select-timeout (click loop over a board). Does not disarm.
     void setPaused(bool paused);
     [[nodiscard]] bool isPaused() const { return m_paused; }
 
-    /// Ignore gaze until it leaves @p screenRect (activator cell). Then start dwell.
     void gateUntilGazeLeaves(const QRect& screenRect);
 
     void setDwellMs(int ms);
     void setMagPickDwellMs(int ms);
     void setMagPickStyle(int flags);
     void setMousePickStyle(int flags);
-    /// Cancel arm (including click-loop) if no target selected within this many ms. 0 = off.
     void setSelectTimeoutMs(int ms);
     void setStableRadiusPx(int px);
     void setFreezeRadiusPx(int px);
@@ -66,11 +67,18 @@ public:
     [[nodiscard]] bool isMagPointPhase() const;
     void setMagPickZoom(double z);
     void setMagPickSourcePx(int px);
-    /// When true, static zoom window is centered on the first-dwell point (clamped).
     void setMagPickCenterOnDwell(bool on);
     [[nodiscard]] bool isMagPickCenterOnDwell() const { return m_magPickCenterOnDwell; }
+    void setMagPickFullScreen(bool on);
+    [[nodiscard]] bool isMagPickFullScreen() const { return m_magPickFullScreen; }
 
-    /// Boards are left by GazeRouter while armed; no overBoard cancel path.
+    void setForesightEnabled(bool enabled);
+    [[nodiscard]] bool isForesightEnabled() const { return m_foresight.isEnabled(); }
+    void setForesightDwellMs(int ms);
+    void setForesightDoubleZoom(bool on);
+    [[nodiscard]] bool isForesightDoubleZoom() const { return m_foresightDoubleZoom; }
+
+    void onBackgroundGaze(const GazePoint& point, bool overUi);
     void onGaze(const GazePoint& point);
 
 signals:
@@ -87,9 +95,17 @@ private:
     void resetDwell();
     void hideUi();
     void setPhase(Phase phase);
-    void beginMagPick(const QPoint& center);
+    void startAimPhase();
+    [[nodiscard]] bool beginMagPick(const MagPresentation& spec, bool outsideSelectsNewRegion);
+    [[nodiscard]] MagPresentation makePreClickSpec(const QPoint& center) const;
+    [[nodiscard]] MagPresentation makeForesightSpec(const QPoint& srcCenter,
+                                                    const QPoint& destCenter, int destSide) const;
+    [[nodiscard]] int destSideFor(bool foresightSized, QScreen* screen) const;
+    [[nodiscard]] QPoint mapDisplayToSource(const QPointF& gaze) const;
     void finishMagPoint(const QPointF& gaze);
-    /// After a successful move: click+rearm for click-loop, else disarm.
+    void placeCursor(const QPoint& target);
+    void onGazeInZoom(const QPointF& g, double dtSec);
+    void onGazeAim(const QPointF& g, double dtSec);
     void completeMoveCycle(const QPoint& target);
     void markSelectDeadline();
     [[nodiscard]] bool selectTimedOut(qint64 nowMs) const;
@@ -97,6 +113,7 @@ private:
     void applyDwellForPhase();
     void syncPickOverlayStyle();
     [[nodiscard]] int styleForPhase() const;
+    static const char* purposeName(ArmPurpose purpose);
 
     bool m_armed = false;
     bool m_paused = false;
@@ -107,10 +124,11 @@ private:
     int m_mousePickStyle = 1;
     bool m_magPickEnabled = false;
     bool m_magPickCenterOnDwell = true;
+    bool m_magPickFullScreen = false;
+    bool m_foresightDoubleZoom = false;
     double m_magZoom = 2.5;
     int m_magSourcePx = 220;
     Phase m_phase = Phase::Idle;
-    /// 0 = disabled. Otherwise cancel arm if no selection by m_selectDeadlineMs.
     int m_selectTimeoutMs = 5000;
     qint64 m_selectDeadlineMs = -1;
     QRect m_gateRect;
@@ -124,7 +142,14 @@ private:
     QPixmap m_magPixmap;
     QRect m_magSourceRect;
     QRect m_magDisplayRect;
+    MagPresentation m_mag;
+    bool m_outsideSelectsNewRegion = false;
     QPointF m_lastMagGaze;
+    bool m_magGazeInside = true;
+
+    ForesightMemory m_foresight;
+    static constexpr double kForesightZoom = 4.0;
+    static constexpr double kForesightSizeScale = 2.0;
 
     std::unique_ptr<CursorOverlay> m_cursor;
     std::unique_ptr<MagPickOverlay> m_magOverlay;

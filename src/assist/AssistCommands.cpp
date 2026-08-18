@@ -303,6 +303,38 @@ void registerAssistCommands(AssistCommandContext& ctx)
                        : QStringLiteral("Mag-pick: center on screen"));
             return true;
         });
+    commands->registerBuiltin(
+        QStringLiteral("toggleMouseMoveMagPickFullScreen"),
+        [settings, mouseDwell, applySettings, notify](QString*) {
+            settings->mouseMoveMagPickFullScreen = !settings->mouseMoveMagPickFullScreen;
+            mouseDwell->setMagPickFullScreen(settings->mouseMoveMagPickFullScreen);
+            applySettings(true);
+            notify(settings->mouseMoveMagPickFullScreen
+                       ? QStringLiteral("Mag-pick: full-screen zoom ON")
+                       : QStringLiteral("Mag-pick: full-screen zoom OFF"));
+            return true;
+        });
+    commands->registerBuiltin(
+        QStringLiteral("toggleMouseMoveForesight"),
+        [settings, mouseDwell, applySettings, notify](QString*) {
+            settings->mouseMoveForesight = !settings->mouseMoveForesight;
+            mouseDwell->setForesightEnabled(settings->mouseMoveForesight);
+            applySettings(true);
+            notify(settings->mouseMoveForesight ? QStringLiteral("Foresight ON")
+                                                : QStringLiteral("Foresight OFF"));
+            return true;
+        });
+    commands->registerBuiltin(
+        QStringLiteral("toggleMouseMoveForesightDoubleZoom"),
+        [settings, mouseDwell, applySettings, notify](QString*) {
+            settings->mouseMoveForesightDoubleZoom = !settings->mouseMoveForesightDoubleZoom;
+            mouseDwell->setForesightDoubleZoom(settings->mouseMoveForesightDoubleZoom);
+            applySettings(true);
+            notify(settings->mouseMoveForesightDoubleZoom
+                       ? QStringLiteral("Foresight double-zoom ON")
+                       : QStringLiteral("Foresight double-zoom OFF"));
+            return true;
+        });
 
     mouseAssist->registerCommands(*commands);
 }

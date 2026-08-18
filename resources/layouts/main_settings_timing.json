@@ -5,7 +5,7 @@
   "description": "Label · − · value · + · Edit  ·  sequence e.g. 600,300,100,600 (last step holds forever)",
   "uiStyle": "fluent",
   "window": { "anchor": "TopCenter", "widthPx": 1260, "height": 100, "marginPx": 0 },
-  "grid": { "columns": 6, "rows": 12, "gapPx": 10, "marginPx": 100 },
+  "grid": { "columns": 6, "rows": 13, "gapPx": 10, "marginPx": 100 },
   "items": [
     { "id": "timing", "label": "Timing", "row": 0, "col": 0 },
     { "id": "magnifier", "label": "Magnifier", "row": 0, "col": 1, "action": { "type": "loadLayout", "layoutId": "main_settings_magnifier" } },
@@ -55,11 +55,21 @@
     { "id": "p_norm", "label": "Normal", "row": 8, "col": 2, "action": { "type": "command", "name": "settings.dwell.normal" } },
     { "id": "p_fast", "label": "Fast", "row": 8, "col": 3, "colSpan": 2, "action": { "type": "command", "name": "settings.dwell.fast" } },
 
-    { "id": "mag_pick", "label": "Pre-Click Zoom", "activeState": "mouseMoveMagPick", "row": 9, "col": 1, "action": { "type": "command", "name": "toggleMouseMoveMagPick" } },
-    { "id": "mag_center", "label": "Zoom @dwell", "activeState": "mouseMoveMagPickCenter", "row": 9, "col": 2, "action": { "type": "command", "name": "toggleMouseMoveMagPickCenter" } },
-    { "id": "click_loop", "label": "Gaze click\nloop", "activeState": "loop.gazeClick", "row": 9, "col": 3, "action": { "type": "command", "name": "mouseDwellClickLoop" } },
-    { "id": "stop_loops", "label": "Stop action loops", "row": 9, "col": 4, "action": { "type": "command", "name": "stopAllActionLoops" } },
+    { "id": "mag_pick", "label": "Pre-Click Zoom", "icon": "magPick", "activeState": "mouseMoveMagPick", "row": 9, "col": 0, "action": { "type": "command", "name": "toggleMouseMoveMagPick" } },
+    { "id": "mag_center", "label": "Zoom @dwell", "icon": "magPickCenter", "caption": "Center the zoom window on the dwell point. Near an edge the window stays on-screen, overlaps the taskbar if needed, and the zoomed edge matches the real screen edge.", "activeState": "mouseMoveMagPickCenter", "row": 9, "col": 1, "action": { "type": "command", "name": "toggleMouseMoveMagPickCenter" } },
+    { "id": "mag_full", "label": "Full-screen zoom", "icon": "magFullScreen", "caption": "Grow the static zoom window to fill the monitor's short axis. Off: window size is source × zoom.", "activeState": "mouseMoveMagPickFullScreen", "row": 9, "col": 2, "action": { "type": "command", "name": "toggleMouseMoveMagPickFullScreen" } },
+    { "id": "foresight", "label": "Foresight", "icon": "foresight", "caption": "Dwell on a desktop point to remember it. If you trigger Move-to within 2 seconds, that area magnifies immediately.", "activeState": "mouseMoveForesight", "row": 9, "col": 3, "action": { "type": "command", "name": "toggleMouseMoveForesight" } },
+    { "id": "foresight_dbl", "label": "Double zoom", "icon": "doubleZoom", "caption": "When Foresight and Pre-Click Zoom are both on: dwell inside the foresight zoom to magnify again. Off: that inside pick places the cursor. A pick outside the foresight region always uses Pre-Click Zoom.", "activeState": "mouseMoveForesightDoubleZoom", "row": 9, "col": 4, "action": { "type": "command", "name": "toggleMouseMoveForesightDoubleZoom" } },
 
-    { "id": "close", "label": "Close", "row": 11, "col": 2, "colSpan": 1, "action": { "type": "closeLayout" } }
+    { "id": "fsd_label", "role": "label", "label": "Foresight dwell", "caption": "How long to gaze at a desktop point before Foresight stores it (ms). The point is kept for 2 seconds.", "row": 10, "col": 0 },
+    { "id": "fsd_dec", "label": "−", "row": 10, "col": 1, "action": { "type": "command", "name": "settings.nudge.mouseMoveForesightDwellMs.dec" } },
+    { "id": "fsd_value", "role": "value", "settingKey": "mouseMoveForesightDwellMs", "label": "—", "row": 10, "col": 2 },
+    { "id": "fsd_inc", "label": "+", "row": 10, "col": 3, "action": { "type": "command", "name": "settings.nudge.mouseMoveForesightDwellMs.inc" } },
+    { "id": "fsd_edit", "label": "Edit…", "row": 10, "col": 4, "action": { "type": "command", "name": "settings.edit.mouseMoveForesightDwellMs" } },
+
+    { "id": "click_loop", "label": "Gaze click\nloop", "activeState": "loop.gazeClick", "row": 11, "col": 1, "action": { "type": "command", "name": "mouseDwellClickLoop" } },
+    { "id": "stop_loops", "label": "Stop action loops", "row": 11, "col": 3, "action": { "type": "command", "name": "stopAllActionLoops" } },
+
+    { "id": "close", "label": "Close", "row": 12, "col": 2, "colSpan": 1, "action": { "type": "closeLayout" } }
   ]
 }

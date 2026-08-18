@@ -28,6 +28,15 @@ struct AppSettings {
     bool mouseMoveMagPick = false;
     /// Place static magnifier centered on the first-dwell point (else screen center).
     bool mouseMoveMagPickCenterOnDwell = true;
+    /// Grow the static zoom window to fill the monitor's short axis.
+    bool mouseMoveMagPickFullScreen = false;
+    /// Remember a desktop dwell and immediately magnify that point when Move-to arms.
+    bool mouseMoveForesight = false;
+    /// Hold gaze this long (ms) to store a foresight point (kept for 2s).
+    int mouseMoveForesightDwellMs = 400;
+    /// When foresight and pre-click zoom both apply: a second zoom inside the
+    /// foresight region. Off = place the cursor if the pick is inside foresight.
+    bool mouseMoveForesightDoubleZoom = false;
 
     // --- Progress visuals (boards + mouse-move) ---
     bool progressRadial = true;

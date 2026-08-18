@@ -231,6 +231,10 @@ void GazerServices::applySettings(bool persist)
     m_mouseDwellMove->setSelectTimeoutMs(m_settings.mouseMoveSelectTimeoutMs);
     m_mouseDwellMove->setMagPickEnabled(m_settings.mouseMoveMagPick);
     m_mouseDwellMove->setMagPickCenterOnDwell(m_settings.mouseMoveMagPickCenterOnDwell);
+    m_mouseDwellMove->setMagPickFullScreen(m_settings.mouseMoveMagPickFullScreen);
+    m_mouseDwellMove->setForesightEnabled(m_settings.mouseMoveForesight);
+    m_mouseDwellMove->setForesightDwellMs(m_settings.mouseMoveForesightDwellMs);
+    m_mouseDwellMove->setForesightDoubleZoom(m_settings.mouseMoveForesightDoubleZoom);
     m_mouseDwellMove->setMagPickZoom(m_settings.magZoom);
     ProgressVisuals mousePv = boardPv;
     mousePv.radial = m_settings.mouseProgressRadial;

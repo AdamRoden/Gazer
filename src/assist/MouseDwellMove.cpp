@@ -4,10 +4,10 @@
 #include "ui/OverlaySurface.h"
 #include "ui/PickStyle.h"
 #include "utils/Log.h"
+#include "utils/ScreenGrab.h"
 
 #include <QGuiApplication>
 #include <QPainter>
-#include <QPainterPath>
 #include <QPaintEvent>
 #include <QScreen>
 #include <QtMath>
@@ -64,14 +64,25 @@ class MouseDwellMove::MagPickOverlay final : public OverlaySurface {
 public:
     MagPickOverlay() { hide(); }
 
-    void showCapture(const QPixmap& pm, const QRect& screenGeom)
+    void showCapture(const QPixmap& pm, const QRect& destGlobal, const QString& hint)
     {
         m_pm = pm;
         m_hasPick = false;
         m_pick = {};
         m_progress = 0.0;
-        setGeometry(screenGeom);
+        m_hint = hint;
+        setGeometry(destGlobal);
         showOverlay();
+        update();
+    }
+
+    void clearPick()
+    {
+        if (!m_hasPick) {
+            return;
+        }
+        m_hasPick = false;
+        m_pick = {};
         update();
     }
 
@@ -119,8 +130,10 @@ protected:
         }
         p.setPen(Qt::white);
         p.setFont(QFont(QStringLiteral("Segoe UI"), 11, QFont::DemiBold));
-        p.drawText(rect().adjusted(12, 10, -12, -10), Qt::AlignTop | Qt::AlignHCenter,
-                   QStringLiteral("Dwell to pick point (static zoom)"));
+        const QString hint = m_hint.isEmpty()
+                                 ? QStringLiteral("Dwell to pick point (static zoom)")
+                                 : m_hint;
+        p.drawText(rect().adjusted(12, 10, -12, -10), Qt::AlignTop | Qt::AlignHCenter, hint);
     }
 
 private:
@@ -130,7 +143,25 @@ private:
     double m_progress = 0.0;
     int m_style = PickStyle::kDefaultMousePick;
     ProgressVisuals m_visuals;
+    QString m_hint;
 };
+
+const char* MouseDwellMove::purposeName(ArmPurpose purpose)
+{
+    switch (purpose) {
+    case ArmPurpose::LookToScrollPlace:
+        return "ltsPlace";
+    case ArmPurpose::CursorMoveClickLoop:
+        return "clickLoop";
+    case ArmPurpose::CursorMoveLeftClick:
+        return "moveLeftClick";
+    case ArmPurpose::CursorMoveRightClick:
+        return "moveRightClick";
+    case ArmPurpose::CursorMove:
+    default:
+        return "move";
+    }
+}
 
 MouseDwellMove::MouseDwellMove(QObject* parent)
     : QObject(parent)
@@ -162,7 +193,6 @@ void MouseDwellMove::setPhase(Phase phase)
 
 bool MouseDwellMove::useMagPickThisArm() const
 {
-    // Look↕Scroll placement is always direct — mag-pick is for Move-to / click-loop.
     return m_magPickEnabled
            && (m_purpose == ArmPurpose::CursorMove
                || m_purpose == ArmPurpose::CursorMoveClickLoop
@@ -173,7 +203,6 @@ bool MouseDwellMove::useMagPickThisArm() const
 void MouseDwellMove::setArmed(bool armed, ArmPurpose purpose)
 {
     if (m_armed == armed) {
-        // Re-arm with a different purpose while already armed (e.g. LTS place).
         if (armed && m_purpose != purpose) {
             m_purpose = purpose;
             m_paused = false;
@@ -181,19 +210,9 @@ void MouseDwellMove::setArmed(bool armed, ArmPurpose purpose)
             if (m_magOverlay) {
                 m_magOverlay->hide();
             }
-            setPhase(useMagPickThisArm() ? Phase::MagRegion : Phase::Direct);
+            startAimPhase();
             markSelectDeadline();
-            const char* purposeName = "move";
-            if (purpose == ArmPurpose::LookToScrollPlace) {
-                purposeName = "ltsPlace";
-            } else if (purpose == ArmPurpose::CursorMoveClickLoop) {
-                purposeName = "clickLoop";
-            } else if (purpose == ArmPurpose::CursorMoveLeftClick) {
-                purposeName = "moveLeftClick";
-            } else if (purpose == ArmPurpose::CursorMoveRightClick) {
-                purposeName = "moveRightClick";
-            }
-            GAZER_INFO << "MouseDwellMove purpose →" << purposeName;
+            GAZER_INFO << "MouseDwellMove purpose →" << purposeName(purpose);
             emit armedChanged(true);
         }
         return;
@@ -208,31 +227,17 @@ void MouseDwellMove::setArmed(bool armed, ArmPurpose purpose)
         setPhase(Phase::Idle);
         m_selectDeadlineMs = -1;
     } else {
-        setPhase(useMagPickThisArm() ? Phase::MagRegion : Phase::Direct);
+        startAimPhase();
         markSelectDeadline();
     }
-    const char* purposeName = "move";
-    if (m_purpose == ArmPurpose::LookToScrollPlace) {
-        purposeName = "ltsPlace";
-    } else if (m_purpose == ArmPurpose::CursorMoveClickLoop) {
-        purposeName = "clickLoop";
-    } else if (m_purpose == ArmPurpose::CursorMoveLeftClick) {
-        purposeName = "moveLeftClick";
-    } else if (m_purpose == ArmPurpose::CursorMoveRightClick) {
-        purposeName = "moveRightClick";
-    }
     GAZER_INFO << "MouseDwellMove" << (m_armed ? "ARMED" : "off")
-               << (useMagPickThisArm() ? "magPick" : "direct") << purposeName;
+               << (useMagPickThisArm() ? "magPick" : "direct") << purposeName(m_purpose);
     emit armedChanged(m_armed);
 }
 
 void MouseDwellMove::toggle()
 {
-    if (m_armed) {
-        setArmed(false);
-    } else {
-        setArmed(true, ArmPurpose::CursorMove);
-    }
+    setArmed(!m_armed, ArmPurpose::CursorMove);
 }
 
 void MouseDwellMove::gateUntilGazeLeaves(const QRect& screenRect)
@@ -241,8 +246,10 @@ void MouseDwellMove::gateUntilGazeLeaves(const QRect& screenRect)
         return;
     }
     m_gateRect = screenRect.adjusted(-16, -16, 16, 16);
-    hideUi();
-    resetDwell();
+    if (m_phase != Phase::MagPoint) {
+        hideUi();
+        resetDwell();
+    }
     m_selectDeadlineMs = -1;
 }
 
@@ -289,8 +296,11 @@ void MouseDwellMove::setMousePickStyle(int flags)
 
 void MouseDwellMove::applyDwellForPhase()
 {
-    const int ms = (m_phase == Phase::MagRegion) ? m_magPickDwellMs : m_moveDwellMs;
-    m_dwell.setDwellMs(ms);
+    const bool choosingRegion = m_phase == Phase::MagRegion
+                                || (m_phase == Phase::MagPoint && m_outsideSelectsNewRegion
+                                    && m_magPickEnabled
+                                    && (!m_magGazeInside || m_foresightDoubleZoom));
+    m_dwell.setDwellMs(choosingRegion ? m_magPickDwellMs : m_moveDwellMs);
 }
 
 void MouseDwellMove::syncPickOverlayStyle()
@@ -365,11 +375,7 @@ void MouseDwellMove::setMagPickEnabled(bool enabled)
         return;
     }
     m_magPickEnabled = enabled;
-    if (!m_armed) {
-        return;
-    }
-    // LTS place ignores mag-pick setting.
-    if (m_purpose == ArmPurpose::LookToScrollPlace) {
+    if (!m_armed || m_purpose == ArmPurpose::LookToScrollPlace || m_phase == Phase::MagPoint) {
         return;
     }
     if (m_magOverlay) {
@@ -394,6 +400,26 @@ void MouseDwellMove::setMagPickCenterOnDwell(bool on)
     m_magPickCenterOnDwell = on;
 }
 
+void MouseDwellMove::setMagPickFullScreen(bool on)
+{
+    m_magPickFullScreen = on;
+}
+
+void MouseDwellMove::setForesightEnabled(bool enabled)
+{
+    m_foresight.setEnabled(enabled);
+}
+
+void MouseDwellMove::setForesightDwellMs(int ms)
+{
+    m_foresight.setDwellMs(ms);
+}
+
+void MouseDwellMove::setForesightDoubleZoom(bool on)
+{
+    m_foresightDoubleZoom = on;
+}
+
 void MouseDwellMove::resetDwell()
 {
     m_dwell.reset();
@@ -412,55 +438,170 @@ void MouseDwellMove::hideUi()
     }
 }
 
-void MouseDwellMove::beginMagPick(const QPoint& center)
+void MouseDwellMove::onBackgroundGaze(const GazePoint& point, bool overUi)
 {
+    if (!m_foresight.isEnabled() || m_armed) {
+        return;
+    }
+    m_foresight.sample(point, overUi, m_clock.elapsed());
+}
+
+int MouseDwellMove::destSideFor(bool foresightSized, QScreen* screen) const
+{
+    const QRect g = screen->geometry();
+    const int maxSide = qMax(80, qMin(g.width(), g.height()));
+    if (m_magPickFullScreen) {
+        return maxSide;
+    }
+    const double scale = foresightSized ? kForesightSizeScale : 1.0;
+    return qMin(qMax(80, qRound(m_magSourcePx * m_magZoom * scale)), maxSide);
+}
+
+MagPresentation MouseDwellMove::makePreClickSpec(const QPoint& center) const
+{
+    MagPresentation spec;
+    spec.srcCenter = center;
+    spec.zoom = m_magZoom;
     QScreen* screen = QGuiApplication::screenAt(center);
     if (!screen) {
         screen = QGuiApplication::primaryScreen();
     }
+    spec.destSide = screen ? destSideFor(false, screen) : 80;
+    spec.destCenter = (m_magPickCenterOnDwell || !screen) ? center : screen->geometry().center();
+    return spec;
+}
+
+MagPresentation MouseDwellMove::makeForesightSpec(const QPoint& srcCenter, const QPoint& destCenter,
+                                                 int destSide) const
+{
+    MagPresentation spec;
+    spec.srcCenter = srcCenter;
+    spec.destCenter = destCenter;
+    spec.zoom = kForesightZoom;
+    spec.destSide = destSide;
+    return spec;
+}
+
+void MouseDwellMove::startAimPhase()
+{
+    m_outsideSelectsNewRegion = false;
+    m_mag = {};
+    if (m_purpose != ArmPurpose::LookToScrollPlace) {
+        if (const auto fs = m_foresight.peek(m_clock.elapsed())) {
+            QScreen* screen = QGuiApplication::screenAt(*fs);
+            if (!screen) {
+                screen = QGuiApplication::primaryScreen();
+            }
+            const int side = screen ? destSideFor(true, screen) : 0;
+            if (side >= 80
+                && beginMagPick(makeForesightSpec(*fs, *fs, side), /*outsideSelectsNewRegion=*/true)) {
+                m_foresight.clear();
+                return;
+            }
+            GAZER_WARN << "MouseDwellMove foresight zoom failed — falling back";
+            m_foresight.clear();
+        }
+    }
+    setPhase(useMagPickThisArm() ? Phase::MagRegion : Phase::Direct);
+}
+
+bool MouseDwellMove::beginMagPick(const MagPresentation& spec, bool outsideSelectsNewRegion)
+{
+    QScreen* screen = QGuiApplication::screenAt(spec.destCenter);
     if (!screen) {
-        setArmed(false);
-        return;
+        screen = QGuiApplication::screenAt(spec.srcCenter);
+    }
+    if (!screen) {
+        screen = QGuiApplication::primaryScreen();
+    }
+    if (!screen) {
+        GAZER_WARN << "MouseDwellMove mag-pick: no screen";
+        return false;
     }
 
-    const int half = m_magSourcePx / 2;
-    QRect src(center.x() - half, center.y() - half, m_magSourcePx, m_magSourcePx);
-    src = src.intersected(screen->geometry());
-    if (src.width() < 40 || src.height() < 40) {
-        setArmed(false);
-        return;
+    QRect src;
+    QRect dest;
+    if (!layoutMagWindow(screen, spec, &src, &dest)) {
+        GAZER_WARN << "MouseDwellMove mag-pick: layout failed at" << spec.srcCenter;
+        return false;
     }
 
-    const QPixmap grab = screen->grabWindow(0, src.x() - screen->geometry().x(),
-                                            src.y() - screen->geometry().y(), src.width(),
-                                            src.height());
+    QPixmap grab = grabScreenRect(screen, src, QColor(12, 14, 18));
+    if (grab.isNull() || grab.width() < 2 || grab.height() < 2) {
+        const QRect local = src.translated(-screen->geometry().topLeft());
+        grab = screen->grabWindow(0, local.x(), local.y(), local.width(), local.height());
+    }
+    if (grab.isNull() || grab.width() < 2 || grab.height() < 2) {
+        GAZER_WARN << "MouseDwellMove mag-pick: grab failed" << src;
+        return false;
+    }
+
+    m_mag = spec;
+    m_mag.destSide = dest.width();
+    m_outsideSelectsNewRegion = outsideSelectsNewRegion;
     m_magSourceRect = src;
-    m_magPixmap = grab.scaled(int(src.width() * m_magZoom), int(src.height() * m_magZoom),
-                              Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+    m_magDisplayRect = dest;
+    m_magPixmap = grab.scaled(dest.size(), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+    m_magGazeInside = true;
 
-    const QRect avail = screen->availableGeometry();
-    const int dw = m_magPixmap.width();
-    const int dh = m_magPixmap.height();
-    QPoint topLeft;
-    if (m_magPickCenterOnDwell) {
-        // Center static magnifier on the first dwell point (where the region was chosen).
-        topLeft = QPoint(center.x() - dw / 2, center.y() - dh / 2);
-        topLeft.setX(qBound(avail.left(), topLeft.x(), avail.right() - dw + 1));
-        topLeft.setY(qBound(avail.top(), topLeft.y(), avail.bottom() - dh + 1));
-    } else {
-        topLeft = QPoint(avail.center().x() - dw / 2, avail.center().y() - dh / 2);
+    QString hint = QStringLiteral("Dwell to pick point (static zoom)");
+    if (outsideSelectsNewRegion) {
+        if (m_magPickEnabled && m_foresightDoubleZoom) {
+            hint = QStringLiteral(
+                "Foresight 4× — dwell inside to zoom again, outside for a new region");
+        } else if (m_magPickEnabled) {
+            hint = QStringLiteral(
+                "Foresight 4× — dwell inside to place, outside for pre-click zoom");
+        } else {
+            hint = QStringLiteral("Foresight 4× — dwell inside to place");
+        }
+    } else if (spec.zoom >= kForesightZoom - 0.01) {
+        hint = QStringLiteral("Foresight 4× — dwell to pick point");
     }
-    m_magDisplayRect = QRect(topLeft, QSize(dw, dh));
 
     if (m_cursor) {
         m_cursor->hide();
     }
-    m_magOverlay->showCapture(m_magPixmap, m_magDisplayRect);
+    m_magOverlay->showCapture(m_magPixmap, dest, hint);
     setPhase(Phase::MagPoint);
     resetDwell();
-    // Region chosen — give a fresh window for the refined point dwell.
     markSelectDeadline();
-    GAZER_INFO << "MouseDwellMove mag-pick region" << src;
+    GAZER_INFO << "MouseDwellMove mag-pick region" << src << "dest" << dest;
+    return true;
+}
+
+QPoint MouseDwellMove::mapDisplayToSource(const QPointF& gaze) const
+{
+    if (m_magSourceRect.isEmpty() || m_magDisplayRect.width() < 1
+        || m_magDisplayRect.height() < 1) {
+        return gaze.toPoint();
+    }
+    const double gx = qBound(double(m_magDisplayRect.left()), gaze.x(),
+                             double(m_magDisplayRect.right()));
+    const double gy = qBound(double(m_magDisplayRect.top()), gaze.y(),
+                             double(m_magDisplayRect.bottom()));
+    const double lx =
+        (gx - m_magDisplayRect.left()) * m_magSourceRect.width() / double(m_magDisplayRect.width());
+    const double ly = (gy - m_magDisplayRect.top()) * m_magSourceRect.height()
+                      / double(m_magDisplayRect.height());
+    const int sx = qBound(m_magSourceRect.left(), m_magSourceRect.left() + qRound(lx),
+                          m_magSourceRect.right());
+    const int sy = qBound(m_magSourceRect.top(), m_magSourceRect.top() + qRound(ly),
+                          m_magSourceRect.bottom());
+    return {sx, sy};
+}
+
+void MouseDwellMove::placeCursor(const QPoint& target)
+{
+    QString err;
+    if (MouseInjector::moveTo(target.x(), target.y(), &err)) {
+        GAZER_INFO << "MouseDwellMove →" << target;
+        emit movedTo(target);
+        completeMoveCycle(target);
+    } else {
+        GAZER_WARN << "MouseDwellMove failed:" << err;
+        setArmed(false);
+    }
 }
 
 void MouseDwellMove::finishMagPoint(const QPointF& gaze)
@@ -471,30 +612,7 @@ void MouseDwellMove::finishMagPoint(const QPointF& gaze)
         setArmed(false);
         return;
     }
-    // Clamp into display (EMA smooth can lag a few px outside).
-    const double gx = qBound(double(m_magDisplayRect.left()), gaze.x(),
-                           double(m_magDisplayRect.right()));
-    const double gy = qBound(double(m_magDisplayRect.top()), gaze.y(),
-                           double(m_magDisplayRect.bottom()));
-    const double lx =
-        (gx - m_magDisplayRect.left()) * m_magSourceRect.width() / double(m_magDisplayRect.width());
-    const double ly = (gy - m_magDisplayRect.top()) * m_magSourceRect.height()
-                      / double(m_magDisplayRect.height());
-    const int sx = qBound(m_magSourceRect.left(), m_magSourceRect.left() + qRound(lx),
-                        m_magSourceRect.right());
-    const int sy = qBound(m_magSourceRect.top(), m_magSourceRect.top() + qRound(ly),
-                        m_magSourceRect.bottom());
-    const QPoint target(sx, sy);
-
-    QString err;
-    if (MouseInjector::moveTo(target.x(), target.y(), &err)) {
-        GAZER_INFO << "MouseDwellMove mag →" << target;
-        emit movedTo(target);
-        completeMoveCycle(target);
-    } else {
-        GAZER_WARN << "MouseDwellMove mag failed:" << err;
-        setArmed(false);
-    }
+    placeCursor(mapDisplayToSource(gaze));
 }
 
 void MouseDwellMove::onGaze(const GazePoint& point)
@@ -508,7 +626,9 @@ void MouseDwellMove::onGaze(const GazePoint& point)
             return;
         }
         if (m_gateRect.contains(QPoint(qRound(point.x), qRound(point.y)))) {
-            hideUi();
+            if (m_phase != Phase::MagPoint) {
+                hideUi();
+            }
             return;
         }
         m_gateRect = {};
@@ -517,7 +637,6 @@ void MouseDwellMove::onGaze(const GazePoint& point)
     }
 
     const qint64 now = m_clock.elapsed();
-
     if (selectTimedOut(now)) {
         GAZER_INFO << "MouseDwellMove select timeout — disarming";
         setArmed(false);
@@ -548,35 +667,93 @@ void MouseDwellMove::onGaze(const GazePoint& point)
     m_lastSampleMs = now;
 
     if (m_phase == Phase::MagPoint) {
-        // Ensure overlay stays shown after invalid-sample dwell reset.
-        if (m_magOverlay && !m_magOverlay->isVisible() && !m_magPixmap.isNull()) {
-            m_magOverlay->showCapture(m_magPixmap, m_magDisplayRect);
+        onGazeInZoom(g, dtSec);
+    } else {
+        onGazeAim(g, dtSec);
+    }
+}
+
+void MouseDwellMove::onGazeInZoom(const QPointF& g, double dtSec)
+{
+    if (m_magOverlay && !m_magOverlay->isVisible() && !m_magPixmap.isNull()) {
+        m_magOverlay->showCapture(m_magPixmap, m_magDisplayRect, {});
+    }
+
+    const bool inside = m_magDisplayRect.contains(g.toPoint());
+    if (inside != m_magGazeInside) {
+        m_magGazeInside = inside;
+        resetDwell();
+        applyDwellForPhase();
+        if (m_magOverlay) {
+            m_magOverlay->setProgress(0.0);
+            if (!inside) {
+                m_magOverlay->clearPick();
+            }
         }
-        if (!m_magDisplayRect.contains(g.toPoint())) {
+        if (inside && m_cursor) {
+            m_cursor->hide();
+        }
+    }
+
+    if (!inside) {
+        if (!m_outsideSelectsNewRegion) {
             resetDwell();
             if (m_magOverlay) {
                 m_magOverlay->setProgress(0.0);
+                m_magOverlay->clearPick();
             }
             return;
         }
-        m_lastMagGaze = g;
         const bool done = m_dwell.sample(g, dtSec);
-        const QPoint local(qRound(g.x() - m_magDisplayRect.left()),
-                           qRound(g.y() - m_magDisplayRect.top()));
-        m_magOverlay->setPickLocal(local);
-        m_magOverlay->setProgress(m_dwell.progress());
         emit progressChanged(m_dwell.progress());
-        if (done) {
-            // Prefer last raw in-rect sample; clamp smooth as fallback.
-            QPointF fire = m_lastMagGaze;
-            if (!m_magDisplayRect.contains(fire.toPoint())) {
-                fire = m_dwell.smoothPos();
+        if (m_cursor) {
+            m_cursor->setProgress(m_dwell.progress());
+            m_cursor->placeCenter(
+                QPoint(qRound(m_dwell.smoothPos().x()), qRound(m_dwell.smoothPos().y())));
+        }
+        if (!done) {
+            return;
+        }
+        const QPoint outside(qRound(m_dwell.smoothPos().x()), qRound(m_dwell.smoothPos().y()));
+        if (m_magPickEnabled) {
+            if (!beginMagPick(makePreClickSpec(outside), /*outsideSelectsNewRegion=*/false)) {
+                GAZER_WARN << "MouseDwellMove outside pre-click zoom failed";
             }
-            finishMagPoint(fire);
+        } else {
+            placeCursor(outside);
         }
         return;
     }
 
+    m_lastMagGaze = g;
+    const bool done = m_dwell.sample(g, dtSec);
+    const QPoint local(qRound(g.x() - m_magDisplayRect.left()),
+                       qRound(g.y() - m_magDisplayRect.top()));
+    m_magOverlay->setPickLocal(local);
+    m_magOverlay->setProgress(m_dwell.progress());
+    emit progressChanged(m_dwell.progress());
+    if (!done) {
+        return;
+    }
+
+    QPointF fire = m_lastMagGaze;
+    if (!m_magDisplayRect.contains(fire.toPoint())) {
+        fire = m_dwell.smoothPos();
+    }
+    if (m_outsideSelectsNewRegion && m_magPickEnabled && m_foresightDoubleZoom) {
+        const int side = m_mag.destSide > 0 ? m_mag.destSide : destSideFor(true, QGuiApplication::primaryScreen());
+        if (!beginMagPick(makeForesightSpec(mapDisplayToSource(fire),
+                                            QPoint(qRound(fire.x()), qRound(fire.y())), side),
+                          /*outsideSelectsNewRegion=*/false)) {
+            finishMagPoint(fire);
+        }
+    } else {
+        finishMagPoint(fire);
+    }
+}
+
+void MouseDwellMove::onGazeAim(const QPointF& g, double dtSec)
+{
     const bool done = m_dwell.sample(g, dtSec);
     emit progressChanged(m_dwell.progress());
     if (m_cursor) {
@@ -587,21 +764,15 @@ void MouseDwellMove::onGaze(const GazePoint& point)
         return;
     }
 
+    const QPoint target(qRound(m_dwell.smoothPos().x()), qRound(m_dwell.smoothPos().y()));
     if (m_phase == Phase::MagRegion) {
-        beginMagPick(QPoint(qRound(m_dwell.smoothPos().x()), qRound(m_dwell.smoothPos().y())));
+        if (!beginMagPick(makePreClickSpec(target), /*outsideSelectsNewRegion=*/false)) {
+            GAZER_WARN << "MouseDwellMove pre-click zoom failed — placing directly";
+            placeCursor(target);
+        }
         return;
     }
-
-    const QPoint target(qRound(m_dwell.smoothPos().x()), qRound(m_dwell.smoothPos().y()));
-    QString err;
-    if (MouseInjector::moveTo(target.x(), target.y(), &err)) {
-        GAZER_INFO << "MouseDwellMove →" << target;
-        emit movedTo(target);
-        completeMoveCycle(target);
-    } else {
-        GAZER_WARN << "MouseDwellMove failed:" << err;
-        setArmed(false);
-    }
+    placeCursor(target);
 }
 
 void MouseDwellMove::completeMoveCycle(const QPoint& target)
@@ -620,7 +791,6 @@ void MouseDwellMove::completeMoveCycle(const QPoint& target)
             setArmed(false);
             return;
         }
-        // Stay armed: re-run same move/mag pipeline for the next cycle.
         if (m_magOverlay) {
             m_magOverlay->hide();
         }
@@ -628,8 +798,7 @@ void MouseDwellMove::completeMoveCycle(const QPoint& target)
             m_cursor->hide();
         }
         resetDwell();
-        setPhase(useMagPickThisArm() ? Phase::MagRegion : Phase::Direct);
-        // Fresh window to pick the next target; cancel if none selected in time.
+        startAimPhase();
         markSelectDeadline();
         return;
     }

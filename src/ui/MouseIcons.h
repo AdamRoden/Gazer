@@ -111,6 +111,25 @@ inline void paint(QPainter& p, const QString& icon, const QRectF& r, const QColo
         } else {
             p.drawRect(QRectF(c.x() - s * 0.25, c.y() - s * 0.15, s * 0.35, s * 0.3));
         }
+    } else if (icon == QLatin1String("magFullScreen")) {
+        const QRectF screen(c.x() - s * 0.7, c.y() - s * 0.48, s * 1.4, s * 0.96);
+        p.drawRect(screen);
+        p.drawEllipse(QPointF(c.x() - s * 0.08, c.y() - s * 0.04), s * 0.32, s * 0.32);
+        p.drawLine(c.x() + s * 0.14, c.y() + s * 0.18, screen.right() - s * 0.08,
+                   screen.bottom() - s * 0.08);
+    } else if (icon == QLatin1String("foresight")) {
+        // Magnifier plus a remembered point (small filled target).
+        p.drawEllipse(c, s * 0.5, s * 0.5);
+        p.drawLine(c.x() + s * 0.36, c.y() + s * 0.36, c.x() + s * 0.72, c.y() + s * 0.72);
+        p.setBrush(color);
+        p.drawEllipse(c, s * 0.12, s * 0.12);
+        p.setBrush(Qt::NoBrush);
+        p.drawArc(QRectF(c.x() - s * 0.78, c.y() - s * 0.78, s * 1.56, s * 1.56), 40 * 16, 100 * 16);
+    } else if (icon == QLatin1String("doubleZoom")) {
+        p.drawEllipse(QPointF(c.x() - s * 0.22, c.y() - s * 0.12), s * 0.38, s * 0.38);
+        p.drawLine(c.x() + s * 0.05, c.y() + s * 0.14, c.x() + s * 0.28, c.y() + s * 0.38);
+        p.drawEllipse(QPointF(c.x() + s * 0.22, c.y() + s * 0.16), s * 0.38, s * 0.38);
+        p.drawLine(c.x() + s * 0.48, c.y() + s * 0.42, c.x() + s * 0.72, c.y() + s * 0.68);
     } else if (icon == QLatin1String("scrollUp") || icon == QLatin1String("scrollDown")
                || icon == QLatin1String("scrollLeft") || icon == QLatin1String("scrollRight")) {
         mouseBody();

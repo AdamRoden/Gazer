@@ -66,6 +66,9 @@ constexpr IntSpec kIntSpecs[] = {
     {"magPickDwellMs", "Magnify-pick dwell",
      "Dwell time to choose the region to magnify (ms).", " ms",
      &AppSettings::magPickDwellMs, 200, 2500, 50},
+    {"mouseMoveForesightDwellMs", "Foresight dwell",
+     "Dwell time to store a foresight point before Move-to (ms).", " ms",
+     &AppSettings::mouseMoveForesightDwellMs, 100, 2500, 50},
     {"mouseMoveSelectTimeoutMs", "Mouse-move timeout",
      "Cancel mouse-move / gaze-click loop if no target is selected within this many ms (0 = off).",
      " ms", &AppSettings::mouseMoveSelectTimeoutMs, 0, 120000, 500},
@@ -733,6 +736,13 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
     mouseMoveMagPick = o.value(QStringLiteral("mouseMoveMagPick")).toBool(mouseMoveMagPick);
     mouseMoveMagPickCenterOnDwell =
         o.value(QStringLiteral("mouseMoveMagPickCenterOnDwell")).toBool(mouseMoveMagPickCenterOnDwell);
+    mouseMoveMagPickFullScreen =
+        o.value(QStringLiteral("mouseMoveMagPickFullScreen")).toBool(mouseMoveMagPickFullScreen);
+    mouseMoveForesight = o.value(QStringLiteral("mouseMoveForesight")).toBool(mouseMoveForesight);
+    mouseMoveForesightDwellMs =
+        o.value(QStringLiteral("mouseMoveForesightDwellMs")).toInt(mouseMoveForesightDwellMs);
+    mouseMoveForesightDoubleZoom =
+        o.value(QStringLiteral("mouseMoveForesightDoubleZoom")).toBool(mouseMoveForesightDoubleZoom);
     magPickStyle = o.value(QStringLiteral("magPickStyle")).toInt(magPickStyle);
     mousePickStyle = o.value(QStringLiteral("mousePickStyle")).toInt(mousePickStyle);
     magZoom = o.value(QStringLiteral("magZoom")).toDouble(magZoom);
@@ -851,6 +861,10 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     o.insert(QStringLiteral("mouseMoveSelectTimeoutMs"), copy.mouseMoveSelectTimeoutMs);
     o.insert(QStringLiteral("mouseMoveMagPick"), copy.mouseMoveMagPick);
     o.insert(QStringLiteral("mouseMoveMagPickCenterOnDwell"), copy.mouseMoveMagPickCenterOnDwell);
+    o.insert(QStringLiteral("mouseMoveMagPickFullScreen"), copy.mouseMoveMagPickFullScreen);
+    o.insert(QStringLiteral("mouseMoveForesight"), copy.mouseMoveForesight);
+    o.insert(QStringLiteral("mouseMoveForesightDwellMs"), copy.mouseMoveForesightDwellMs);
+    o.insert(QStringLiteral("mouseMoveForesightDoubleZoom"), copy.mouseMoveForesightDoubleZoom);
     o.insert(QStringLiteral("magPickStyle"), copy.magPickStyle);
     o.insert(QStringLiteral("mousePickStyle"), copy.mousePickStyle);
     o.insert(QStringLiteral("magZoom"), copy.magZoom);

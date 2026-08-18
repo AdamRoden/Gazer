@@ -59,6 +59,7 @@ void GazeRouter::dispatch(const GazePoint& point)
         m_lookToScroll->onGaze(point, pauseBackgroundAssist);
     }
     if (m_mouseDwell) {
+        m_mouseDwell->onBackgroundGaze(point, overBoard || overDockReveal);
         if (clickLoopYields && overBoard) {
             m_mouseDwell->setPaused(true);
         } else {
