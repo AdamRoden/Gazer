@@ -385,14 +385,14 @@ void MouseDwellMove::setMagPickEnabled(bool enabled)
     setPhase(useMagPickThisArm() ? Phase::MagRegion : Phase::Direct);
 }
 
-void MouseDwellMove::setMagPickZoom(double z)
+void MouseDwellMove::setPickZoom(double z)
 {
-    m_magZoom = qBound(1.5, z, 6.0);
+    m_pickZoom = qBound(1.25, z, 8.0);
 }
 
-void MouseDwellMove::setMagPickSourcePx(int px)
+void MouseDwellMove::setPickWindowPx(int px)
 {
-    m_magSourcePx = qBound(80, px, 600);
+    m_pickWindowPx = qBound(200, px, 1600);
 }
 
 void MouseDwellMove::setMagPickCenterOnDwell(bool on)
@@ -446,27 +446,26 @@ void MouseDwellMove::onBackgroundGaze(const GazePoint& point, bool overUi)
     m_foresight.sample(point, overUi, m_clock.elapsed());
 }
 
-int MouseDwellMove::destSideFor(bool foresightSized, QScreen* screen) const
+int MouseDwellMove::destSideFor(QScreen* screen) const
 {
     const QRect g = screen->geometry();
     const int maxSide = qMax(80, qMin(g.width(), g.height()));
     if (m_magPickFullScreen) {
         return maxSide;
     }
-    const double scale = foresightSized ? kForesightSizeScale : 1.0;
-    return qMin(qMax(80, qRound(m_magSourcePx * m_magZoom * scale)), maxSide);
+    return qMin(qMax(80, m_pickWindowPx), maxSide);
 }
 
 MagPresentation MouseDwellMove::makePreClickSpec(const QPoint& center) const
 {
     MagPresentation spec;
     spec.srcCenter = center;
-    spec.zoom = m_magZoom;
+    spec.zoom = m_pickZoom;
     QScreen* screen = QGuiApplication::screenAt(center);
     if (!screen) {
         screen = QGuiApplication::primaryScreen();
     }
-    spec.destSide = screen ? destSideFor(false, screen) : 80;
+    spec.destSide = screen ? destSideFor(screen) : 80;
     spec.destCenter = (m_magPickCenterOnDwell || !screen) ? center : screen->geometry().center();
     return spec;
 }
@@ -477,7 +476,7 @@ MagPresentation MouseDwellMove::makeForesightSpec(const QPoint& srcCenter, const
     MagPresentation spec;
     spec.srcCenter = srcCenter;
     spec.destCenter = destCenter;
-    spec.zoom = kForesightZoom;
+    spec.zoom = m_pickZoom;
     spec.destSide = destSide;
     return spec;
 }
@@ -492,7 +491,7 @@ void MouseDwellMove::startAimPhase()
             if (!screen) {
                 screen = QGuiApplication::primaryScreen();
             }
-            const int side = screen ? destSideFor(true, screen) : 0;
+            const int side = screen ? destSideFor(screen) : 0;
             if (side >= 80
                 && beginMagPick(makeForesightSpec(*fs, *fs, side), /*outsideSelectsNewRegion=*/true)) {
                 m_foresight.clear();
@@ -547,16 +546,14 @@ bool MouseDwellMove::beginMagPick(const MagPresentation& spec, bool outsideSelec
     QString hint = QStringLiteral("Dwell to pick point (static zoom)");
     if (outsideSelectsNewRegion) {
         if (m_magPickEnabled && m_foresightDoubleZoom) {
-            hint = QStringLiteral(
-                "Foresight 4× — dwell inside to zoom again, outside for a new region");
+            hint = QStringLiteral("Foresight — dwell inside to zoom again, outside for a new region");
         } else if (m_magPickEnabled) {
-            hint = QStringLiteral(
-                "Foresight 4× — dwell inside to place, outside for pre-click zoom");
+            hint = QStringLiteral("Foresight — dwell inside to place, outside for pre-click zoom");
         } else {
-            hint = QStringLiteral("Foresight 4× — dwell inside to place");
+            hint = QStringLiteral("Foresight — dwell inside to place");
         }
-    } else if (spec.zoom >= kForesightZoom - 0.01) {
-        hint = QStringLiteral("Foresight 4× — dwell to pick point");
+    } else if (spec.zoom == m_pickZoom) {
+        hint = QStringLiteral("Foresight — dwell to pick point");
     }
 
     if (m_cursor) {
@@ -741,7 +738,8 @@ void MouseDwellMove::onGazeInZoom(const QPointF& g, double dtSec)
         fire = m_dwell.smoothPos();
     }
     if (m_outsideSelectsNewRegion && m_magPickEnabled && m_foresightDoubleZoom) {
-        const int side = m_mag.destSide > 0 ? m_mag.destSide : destSideFor(true, QGuiApplication::primaryScreen());
+        const int side = m_mag.destSide > 0 ? m_mag.destSide
+                                            : destSideFor(QGuiApplication::primaryScreen());
         if (!beginMagPick(makeForesightSpec(mapDisplayToSource(fire),
                                             QPoint(qRound(fire.x()), qRound(fire.y())), side),
                           /*outsideSelectsNewRegion=*/false)) {

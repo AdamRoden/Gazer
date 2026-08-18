@@ -59,10 +59,13 @@ struct AppSettings {
     QString flashColor = QStringLiteral("#FFFFFF");
     int flashMs = 140;
 
-    // --- Magnifier ---
+    // --- Live lens (assistant magnifier; not used by pre-click / foresight) ---
     double magZoom = 2.0;
     int magLensSize = 440;
     int magFollowProfile = 1;
+    /// Static pick zoom shared by pre-click and foresight (not the live lens).
+    double pickZoom = 4.0;
+    int pickWindowPx = 880;
 
     // --- Look-to-Scroll ---
     int ltsDeadzonePx = 110;

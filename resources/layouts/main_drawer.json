@@ -49,7 +49,7 @@
       "label": "Settings ⚙",
       "row": 0,
       "col": 3,
-      "action": { "type": "openLayout", "layoutId": "main_settings" }
+      "action": { "type": "openLayout", "layoutId": "main_settings_buttons" }
     },
     {
       "id": "close",

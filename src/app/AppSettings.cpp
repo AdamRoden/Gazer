@@ -72,8 +72,11 @@ constexpr IntSpec kIntSpecs[] = {
     {"mouseMoveSelectTimeoutMs", "Mouse-move timeout",
      "Cancel mouse-move / gaze-click loop if no target is selected within this many ms (0 = off).",
      " ms", &AppSettings::mouseMoveSelectTimeoutMs, 0, 120000, 500},
-    {"magLensSize", "Lens size", "Lens diameter in pixels (160–900).", " px",
+    {"magLensSize", "Lens size", "Live lens diameter in pixels (160–900).", " px",
      &AppSettings::magLensSize, 160, 900, 20},
+    {"pickWindowPx", "Pick window",
+     "Static zoom window size for pre-click and foresight (px).", " px",
+     &AppSettings::pickWindowPx, 200, 1600, 40},
     {"ltsDeadzonePx", "LTS deadzone", "No-scroll radius around cursor (px).", " px",
      &AppSettings::ltsDeadzonePx, 30, 400, 10},
     {"ltsFalloffPx", "LTS falloff", "Distance to full scroll speed past deadzone (px).", " px",
@@ -88,8 +91,11 @@ constexpr IntSpec kIntSpecs[] = {
 };
 
 constexpr DoubleSpec kDoubleSpecs[] = {
-    {"magZoom", "Magnifier zoom", "Magnifier zoom factor (1.25–6).", "×",
+    {"magZoom", "Lens zoom", "Live lens magnification (1.25–6). Not used by pick zoom.", "",
      &AppSettings::magZoom, 1.25, 6.0, 0.25, 2},
+    {"pickZoom", "Pick zoom",
+     "Static magnification for pre-click and foresight (1.25–8).", "",
+     &AppSettings::pickZoom, 1.25, 8.0, 0.25, 2},
     {"ltsMaxNotchesPerSec", "LTS max speed", "Peak scroll rate (notches/second).", " n/s",
      &AppSettings::ltsMaxNotchesPerSec, 0.5, 24.0, 0.5, 1},
     {"ltsAccelPerSec", "LTS accel/s", "Speed growth while outside deadzone.", " /s",
@@ -519,7 +525,11 @@ QString AppSettings::displayValue(const QString& key) const
         return QString::number(v) + QLatin1String(s->suffix);
     }
     if (const DoubleSpec* s = findDouble(key)) {
-        return QString::number(this->*s->member, 'f', s->decimals) + QLatin1String(s->suffix);
+        const int places = (keyEq(s->key, QStringLiteral("magZoom"))
+                            || keyEq(s->key, QStringLiteral("pickZoom")))
+                               ? 2
+                               : s->decimals;
+        return QString::number(this->*s->member, 'f', places) + QLatin1String(s->suffix);
     }
     if (key == QLatin1String("magFollowProfile")) {
         static const char* names[] = {"Sticky", "Balanced", "Snappy"};
@@ -613,7 +623,11 @@ QString AppSettings::numericBufferSeed(const QString& key) const
         return QString::number(this->*s->member);
     }
     if (const DoubleSpec* s = findDouble(key)) {
-        return QString::number(this->*s->member, 'f', s->decimals);
+        const int places = (keyEq(s->key, QStringLiteral("magZoom"))
+                            || keyEq(s->key, QStringLiteral("pickZoom")))
+                               ? 2
+                               : s->decimals;
+        return QString::number(this->*s->member, 'f', places);
     }
     return {};
 }
@@ -747,6 +761,8 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
     mousePickStyle = o.value(QStringLiteral("mousePickStyle")).toInt(mousePickStyle);
     magZoom = o.value(QStringLiteral("magZoom")).toDouble(magZoom);
     magLensSize = o.value(QStringLiteral("magLensSize")).toInt(magLensSize);
+    pickZoom = o.value(QStringLiteral("pickZoom")).toDouble(pickZoom);
+    pickWindowPx = o.value(QStringLiteral("pickWindowPx")).toInt(pickWindowPx);
     magFollowProfile = o.value(QStringLiteral("magFollowProfile")).toInt(magFollowProfile);
     ltsDeadzonePx = o.value(QStringLiteral("ltsDeadzonePx")).toInt(ltsDeadzonePx);
     ltsFalloffPx = o.value(QStringLiteral("ltsFalloffPx")).toInt(ltsFalloffPx);
@@ -869,6 +885,8 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     o.insert(QStringLiteral("mousePickStyle"), copy.mousePickStyle);
     o.insert(QStringLiteral("magZoom"), copy.magZoom);
     o.insert(QStringLiteral("magLensSize"), copy.magLensSize);
+    o.insert(QStringLiteral("pickZoom"), copy.pickZoom);
+    o.insert(QStringLiteral("pickWindowPx"), copy.pickWindowPx);
     o.insert(QStringLiteral("magFollowProfile"), copy.magFollowProfile);
     o.insert(QStringLiteral("ltsDeadzonePx"), copy.ltsDeadzonePx);
     o.insert(QStringLiteral("ltsFalloffPx"), copy.ltsFalloffPx);

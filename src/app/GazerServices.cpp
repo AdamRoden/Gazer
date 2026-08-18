@@ -235,7 +235,8 @@ void GazerServices::applySettings(bool persist)
     m_mouseDwellMove->setForesightEnabled(m_settings.mouseMoveForesight);
     m_mouseDwellMove->setForesightDwellMs(m_settings.mouseMoveForesightDwellMs);
     m_mouseDwellMove->setForesightDoubleZoom(m_settings.mouseMoveForesightDoubleZoom);
-    m_mouseDwellMove->setMagPickZoom(m_settings.magZoom);
+    m_mouseDwellMove->setPickZoom(m_settings.pickZoom);
+    m_mouseDwellMove->setPickWindowPx(m_settings.pickWindowPx);
     ProgressVisuals mousePv = boardPv;
     mousePv.radial = m_settings.mouseProgressRadial;
     mousePv.fillBackground = m_settings.mouseProgressFill;

@@ -7,12 +7,11 @@
   "window": { "anchor": "TopCenter", "widthPx": 1260, "height": 100, "marginPx": 0 },
   "grid": { "columns": 6, "rows": 10, "gapPx": 10, "marginPx": 100 },
   "items": [
-    { "id": "timing", "label": "Timing", "row": 0, "col": 0, "action": { "type": "loadLayout", "layoutId": "main_settings_timing" } },
-    { "id": "magnifier", "label": "Magnifier", "row": 0, "col": 1, "action": { "type": "loadLayout", "layoutId": "main_settings_magnifier" } },
+    { "id": "buttons", "label": "Buttons", "row": 0, "col": 0, "action": { "type": "loadLayout", "layoutId": "main_settings_buttons" } },
+    { "id": "pointers", "label": "Pointers", "row": 0, "col": 1, "action": { "type": "loadLayout", "layoutId": "main_settings_pointers" } },
     { "id": "lts", "label": "Look↕Scroll", "row": 0, "col": 2, "action": { "type": "loadLayout", "layoutId": "main_settings_lts" } },
-    { "id": "behavior", "label": "Behavior", "row": 0, "col": 3, "action": { "type": "loadLayout", "layoutId": "main_settings_behavior" } },
-    { "id": "theme", "label": "Theme", "row": 0, "col": 4, "action": { "type": "loadLayout", "layoutId": "main_settings_theme" } },
-    { "id": "assist", "label": "Assist tools", "row": 0, "col": 5, "action": { "type": "loadLayout", "layoutId": "main_settings_assist" } },
+    { "id": "theme", "label": "Theme", "row": 0, "col": 3 },
+    { "id": "assist", "label": "Assist tools", "row": 0, "col": 4, "action": { "type": "loadLayout", "layoutId": "main_settings_assist" } },
 
     { "id": "bg_name", "role": "swatch", "label": "Background", "caption": "Source color. Variant, foreground, and accent suggestions are generated from this.", "settingKey": "customBgColor", "interactive": true, "row": 2, "col": 0, "colSpan": 2, "action": { "type": "command", "name": "settings.edit.color.customBgColor" } },
     { "id": "var_sw", "role": "swatch", "label": "Variant", "caption": "Surface", "settingKey": "customSurfaceColor", "interactive": true, "row": 2, "col": 2, "action": { "type": "command", "name": "settings.edit.color.customSurfaceColor" } },

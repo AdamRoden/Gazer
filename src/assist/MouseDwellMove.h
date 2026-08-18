@@ -65,8 +65,8 @@ public:
     void setMagPickEnabled(bool enabled);
     [[nodiscard]] bool isMagPickEnabled() const { return m_magPickEnabled; }
     [[nodiscard]] bool isMagPointPhase() const;
-    void setMagPickZoom(double z);
-    void setMagPickSourcePx(int px);
+    void setPickZoom(double z);
+    void setPickWindowPx(int px);
     void setMagPickCenterOnDwell(bool on);
     [[nodiscard]] bool isMagPickCenterOnDwell() const { return m_magPickCenterOnDwell; }
     void setMagPickFullScreen(bool on);
@@ -100,7 +100,7 @@ private:
     [[nodiscard]] MagPresentation makePreClickSpec(const QPoint& center) const;
     [[nodiscard]] MagPresentation makeForesightSpec(const QPoint& srcCenter,
                                                     const QPoint& destCenter, int destSide) const;
-    [[nodiscard]] int destSideFor(bool foresightSized, QScreen* screen) const;
+    [[nodiscard]] int destSideFor(QScreen* screen) const;
     [[nodiscard]] QPoint mapDisplayToSource(const QPointF& gaze) const;
     void finishMagPoint(const QPointF& gaze);
     void placeCursor(const QPoint& target);
@@ -126,8 +126,8 @@ private:
     bool m_magPickCenterOnDwell = true;
     bool m_magPickFullScreen = false;
     bool m_foresightDoubleZoom = false;
-    double m_magZoom = 2.5;
-    int m_magSourcePx = 220;
+    double m_pickZoom = 4.0;
+    int m_pickWindowPx = 880;
     Phase m_phase = Phase::Idle;
     int m_selectTimeoutMs = 5000;
     qint64 m_selectDeadlineMs = -1;
@@ -148,8 +148,6 @@ private:
     bool m_magGazeInside = true;
 
     ForesightMemory m_foresight;
-    static constexpr double kForesightZoom = 4.0;
-    static constexpr double kForesightSizeScale = 2.0;
 
     std::unique_ptr<CursorOverlay> m_cursor;
     std::unique_ptr<MagPickOverlay> m_magOverlay;
