@@ -76,7 +76,7 @@ struct AppSettings {
     // --- Session ---
     bool autoCollapseMain = true;
     bool startDocked = false;
-    /// Secondaries: no dwell for idleMs → instant 50% for fadeMs → 500ms suck → close.
+    /// Secondaries: no dwell for idleMs → instant 50% for fadeMs → 500ms dismiss shrink → close.
     /// Master shells exempt unless the layout opts in.
     bool layoutAutoClose = true;
     int layoutAutoCloseIdleMs = 10000;

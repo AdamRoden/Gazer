@@ -404,7 +404,7 @@ struct LayoutDocument {
     /// Layout-level default for window + item placement when not overridden.
     bool hasBoundsMode = false;
     BoundsMode boundsMode = BoundsMode::Desktop;
-    /// Secondaries: idle without dwell → instant 50% hold → suck to bottom-center → close.
+    /// Secondaries: idle without dwell → instant 50% hold → 500ms dismiss shrink → close.
     /// Master shells default false.
     bool autoClose = true;
     /// -1 = use AppSettings defaults.

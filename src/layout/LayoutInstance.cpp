@@ -313,7 +313,7 @@ void LayoutInstance::cancelScaleAnim(bool invokeDone)
     }
 }
 
-void LayoutInstance::applyDrawerScale(double scale)
+void LayoutInstance::applyScale(double scale)
 {
     if (!m_window || !m_scaleTargetGeom.isValid()) {
         return;
@@ -321,8 +321,52 @@ void LayoutInstance::applyDrawerScale(double scale)
     const QRect full = m_scaleTargetGeom;
     const int w = qMax(1, int(std::lround(full.width() * scale)));
     const int h = qMax(1, int(std::lround(full.height() * scale)));
-    const int x = full.center().x() - w / 2;
-    const int y = full.bottom() - h;
+    const int right = full.x() + full.width();
+    const int bottom = full.y() + full.height();
+
+    int x = full.center().x() - w / 2;
+    int y = full.center().y() - h / 2;
+
+    if (usesDrawerMotion()) {
+        m_window->setGeometry(x, bottom - h, w, h);
+        return;
+    }
+
+    using Anchor = LayoutWindowPlacement::Anchor;
+    switch (m_document.placement.anchor) {
+    case Anchor::TopLeft:
+        x = full.x();
+        y = full.y();
+        break;
+    case Anchor::TopCenter:
+        y = full.y();
+        break;
+    case Anchor::TopRight:
+        x = right - w;
+        y = full.y();
+        break;
+    case Anchor::LeftCenter:
+        x = full.x();
+        break;
+    case Anchor::RightCenter:
+        x = right - w;
+        break;
+    case Anchor::BottomLeft:
+        x = full.x();
+        y = bottom - h;
+        break;
+    case Anchor::BottomCenter:
+        y = bottom - h;
+        break;
+    case Anchor::BottomRight:
+        x = right - w;
+        y = bottom - h;
+        break;
+    case Anchor::Center:
+    case Anchor::Default:
+        break;
+    }
+
     m_window->setGeometry(x, y, w, h);
 }
 
@@ -344,8 +388,8 @@ void LayoutInstance::playAppear()
     m_scalePhase = ScalePhase::Appear;
     m_scaleClock.restart();
     m_window->setMinimumSize(1, 1);
-    applyDrawerScale(0.02);
-    setFadeOpacity(0.0);
+    setFadeOpacity(1.0);
+    applyScale(kDrawerMinScale);
     m_window->showAndRaise();
     m_scaleTimer.start();
 }
@@ -388,14 +432,12 @@ void LayoutInstance::tickScaleAnim()
     double scale = 1.0;
     if (m_scalePhase == ScalePhase::Appear) {
         const double e = 1.0 - (1.0 - t) * (1.0 - t);
-        scale = 0.02 + 0.98 * e;
-        setFadeOpacity(qMin(1.0, t / 0.20));
+        scale = kDrawerMinScale + (1.0 - kDrawerMinScale) * e;
     } else {
         const double e = t * t;
-        scale = 1.0 - 0.98 * e;
-        setFadeOpacity(1.0 - t);
+        scale = 1.0 - (1.0 - kDrawerMinScale) * e;
     }
-    applyDrawerScale(qMax(0.01, scale));
+    applyScale(qMax(kDrawerMinScale, scale));
 
     if (t < 1.0) {
         return;
@@ -408,7 +450,6 @@ void LayoutInstance::tickScaleAnim()
     m_scaleTimer.stop();
     if (appearing) {
         applyPlacement();
-        setFadeOpacity(1.0);
         if (m_window) {
             m_window->keepAboveTaskbar();
         }
@@ -642,10 +683,10 @@ void LayoutInstance::setAutoCloseTiming(int idleMs, int fadeMs)
 void LayoutInstance::resetAutoCloseClock(qint64 nowMs)
 {
     m_lastActivityMs = nowMs;
-    if (m_autoCloseSuckActive) {
-        m_autoCloseSuckActive = false;
-        m_autoCloseSuckStartGeom = {};
-        // Restore full board placement after a cancelled suck animation.
+    m_autoCloseDismissDone = false;
+    if (m_autoCloseDismissActive) {
+        m_autoCloseDismissActive = false;
+        cancelScaleAnim(false);
         if (m_window && m_document.showsBoardWindow()) {
             applyPlacement();
         }
@@ -662,28 +703,14 @@ double LayoutInstance::autoCloseOpacity(qint64 nowMs) const
     if (idle < m_autoCloseIdleMs) {
         return 1.0;
     }
-    const qint64 intoFade = idle - m_autoCloseIdleMs;
-    if (intoFade < m_autoCloseFadeMs) {
-        // Instant drop to 50%; hold for the full fade duration.
-        return kAutoCloseFadeFloor;
-    }
-    // Suck phase: 50% → 0 so the board disappears as it shrinks.
-    const qint64 intoSuck = intoFade - m_autoCloseFadeMs;
-    if (intoSuck >= kAutoCloseSuckMs) {
-        return 0.0;
-    }
-    const double t = double(intoSuck) / double(kAutoCloseSuckMs);
-    const double eased = t * t; // ease-in: accelerate into the sink point
-    return kAutoCloseFadeFloor * (1.0 - eased);
+    // Instant 50% after idle; stay there through the hold and the shrink.
+    return kAutoCloseFadeFloor;
 }
 
 bool LayoutInstance::autoCloseFinished(qint64 nowMs) const
 {
-    if (!m_autoCloseEnabled) {
-        return false;
-    }
-    const qint64 idle = nowMs - m_lastActivityMs;
-    return idle >= qint64(m_autoCloseIdleMs) + qint64(m_autoCloseFadeMs) + kAutoCloseSuckMs;
+    Q_UNUSED(nowMs);
+    return m_autoCloseEnabled && m_autoCloseDismissDone;
 }
 
 bool LayoutInstance::autoCloseIdleElapsed(qint64 nowMs) const
@@ -692,6 +719,15 @@ bool LayoutInstance::autoCloseIdleElapsed(qint64 nowMs) const
         return false;
     }
     return nowMs - m_lastActivityMs >= qint64(m_autoCloseIdleMs);
+}
+
+bool LayoutInstance::autoCloseReadyToDismiss(qint64 nowMs) const
+{
+    if (!m_autoCloseEnabled) {
+        return false;
+    }
+    return nowMs - m_lastActivityMs
+           >= qint64(m_autoCloseIdleMs) + qint64(m_autoCloseFadeMs);
 }
 
 void LayoutInstance::applyAutoCloseVisuals(qint64 nowMs)
@@ -706,39 +742,26 @@ void LayoutInstance::applyAutoCloseVisuals(qint64 nowMs)
         return;
     }
 
-    const qint64 idle = nowMs - m_lastActivityMs;
-    const qint64 suckStart = qint64(m_autoCloseIdleMs) + qint64(m_autoCloseFadeMs);
-    if (idle < suckStart) {
-        // Still in idle or fade — ensure we are not left mid-suck from a prior tick.
-        if (m_autoCloseSuckActive) {
-            m_autoCloseSuckActive = false;
-            m_autoCloseSuckStartGeom = {};
+    if (!autoCloseReadyToDismiss(nowMs)) {
+        if (m_autoCloseDismissActive) {
+            m_autoCloseDismissActive = false;
+            m_autoCloseDismissDone = false;
+            cancelScaleAnim(false);
             applyPlacement();
             setFadeOpacity(autoCloseOpacity(nowMs));
         }
         return;
     }
 
-    if (!m_autoCloseSuckActive) {
-        m_autoCloseSuckActive = true;
-        m_autoCloseSuckStartGeom = m_window->geometry();
-        // Allow shrinking below normal board minimum during the dismiss animation.
-        m_window->setMinimumSize(1, 1);
+    // Drawer collapse owns playDismiss so chrome can hide the board when it ends.
+    if (usesDrawerMotion()) {
+        return;
     }
 
-    const qint64 intoSuck = idle - suckStart;
-    double t = qBound(0.0, double(intoSuck) / double(kAutoCloseSuckMs), 1.0);
-    t = t * t; // ease-in toward the sink
-
-    const QRect avail = boundsRectFor(m_document.effectiveBoundsMode());
-    // Sink point: bottom center of the placement bounds.
-    const QPoint target(avail.center().x(), avail.bottom());
-    const QPoint startCenter = m_autoCloseSuckStartGeom.center();
-    const double cx = startCenter.x() + (target.x() - startCenter.x()) * t;
-    const double cy = startCenter.y() + (target.y() - startCenter.y()) * t;
-    const int w = qMax(1, int(std::lround(m_autoCloseSuckStartGeom.width() * (1.0 - t))));
-    const int h = qMax(1, int(std::lround(m_autoCloseSuckStartGeom.height() * (1.0 - t))));
-    m_window->setGeometry(int(std::lround(cx - w * 0.5)), int(std::lround(cy - h * 0.5)), w, h);
+    if (!m_autoCloseDismissActive && !isDismissing()) {
+        m_autoCloseDismissActive = true;
+        playDismiss([this]() { m_autoCloseDismissDone = true; });
+    }
 }
 
 void LayoutInstance::setFadeOpacity(double opacity)

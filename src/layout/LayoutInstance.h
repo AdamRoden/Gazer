@@ -42,7 +42,7 @@ public:
     void hide();
     void forceHide();
 
-    /// Bottom-anchored scale, 0 → 1 (drawerMotion boards).
+    /// Bottom-anchored scale, min → 1 (drawerMotion boards). No opacity animation.
     void playAppear();
     void playDismiss(std::function<void()> onDone = {});
     [[nodiscard]] bool usesDrawerMotion() const;
@@ -81,17 +81,19 @@ public:
     [[nodiscard]] bool isDwellSuspended() const { return m_dwellSuspended; }
 
     // --- Auto-close (secondaries) ---
-    /// Idle → instant 50% → hold fadeMs → 500ms suck into bottom-center → close.
+    /// Idle → instant 50% hold for fadeMs → 500ms dismiss shrink → close.
     void setAutoCloseEnabled(bool on) { m_autoCloseEnabled = on; }
     [[nodiscard]] bool autoCloseEnabled() const { return m_autoCloseEnabled; }
     void setAutoCloseTiming(int idleMs, int fadeMs);
     void resetAutoCloseClock(qint64 nowMs);
-    /// Opacity for the current auto-close phase (instant 0.5 hold, then 0.5 → 0 during suck).
+    /// 1.0 until idle elapses, then 0.5 for the hold and through the shrink.
     [[nodiscard]] double autoCloseOpacity(qint64 nowMs) const;
-    /// True when idle+fade+suck have all completed (ready to close/collapse).
+    /// True when the dismiss shrink has finished (secondaries).
     [[nodiscard]] bool autoCloseFinished(qint64 nowMs) const;
     [[nodiscard]] bool autoCloseIdleElapsed(qint64 nowMs) const;
-    /// Applies fade opacity and optional suck geometry for this tick.
+    /// True after idle + hold; drawer collapse / secondary shrink may start.
+    [[nodiscard]] bool autoCloseReadyToDismiss(qint64 nowMs) const;
+    /// 50% hold, then start dismiss shrink (non-drawer boards).
     void applyAutoCloseVisuals(qint64 nowMs);
     void setFadeOpacity(double opacity);
 
@@ -124,7 +126,8 @@ private:
     [[nodiscard]] bool itemShown(const LayoutItem& item) const;
     void cancelScaleAnim(bool invokeDone);
     void tickScaleAnim();
-    void applyDrawerScale(double scale);
+    /// Scale about the placement pin: drawer / bottom anchors keep the bottom edge.
+    void applyScale(double scale);
 
     QString m_instanceId;
     LayoutDocument m_document;
@@ -149,9 +152,8 @@ private:
     int m_autoCloseIdleMs = 10000;
     int m_autoCloseFadeMs = 3000;
     qint64 m_lastActivityMs = 0;
-    /// Captured once when the suck phase starts so intermediate frames do not compound.
-    bool m_autoCloseSuckActive = false;
-    QRect m_autoCloseSuckStartGeom;
+    bool m_autoCloseDismissActive = false;
+    bool m_autoCloseDismissDone = false;
 
     /// Dwell on logical rect this long before extending hit into the edge lip.
     static constexpr int kOffscreenLipEngageMs = 100;
@@ -162,11 +164,9 @@ private:
     QRect m_scaleTargetGeom;
     std::function<void()> m_scaleDone;
 
-    /// After fade reaches 50%, shrink into bottom-center over this many ms.
-    static constexpr int kAutoCloseSuckMs = 500;
+    static constexpr double kDrawerMinScale = 0.05;
     static constexpr int kDrawerAppearMs = 420;
-    static constexpr int kDrawerDismissMs = 480;
-    /// Opacity while holding after idle (before suck).
+    static constexpr int kDrawerDismissMs = 500;
     static constexpr double kAutoCloseFadeFloor = 0.5;
 };
 

@@ -144,12 +144,13 @@ void LayoutInstanceManager::tickAutoClose(qint64 t)
             if (p->isScaleAnimating()) {
                 continue;
             }
-            if (p->autoCloseIdleElapsed(t)) {
+            p->applyAutoCloseVisuals(t);
+            if (p->autoCloseReadyToDismiss(t)) {
                 collapseMaster = true;
             }
             continue;
         }
-        // Dwelling on this board keeps it alive (also cancels mid-suck).
+        // Dwelling on this board keeps it alive (also cancels mid-dismiss).
         if (m_gazeInstanceId == p->instanceId()) {
             p->resetAutoCloseClock(t);
             continue;
@@ -173,8 +174,14 @@ void LayoutInstanceManager::tickAutoClose(qint64 t)
         }
     }
     if (collapseMaster) {
-        collapseHome();
-        GAZER_INFO << "Auto-collapsed home child";
+        const auto* home = homeInstance();
+        const bool already =
+            m_homeDismissing || m_rootChrome == RootChrome::Docked
+            || (home && home->isDismissing());
+        if (!already) {
+            collapseHome();
+            GAZER_INFO << "Auto-collapsed home drawer";
+        }
     }
 }
 
