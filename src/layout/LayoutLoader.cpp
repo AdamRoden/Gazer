@@ -1,5 +1,6 @@
 #include "layout/LayoutLoader.h"
 
+#include "layout/LayoutSchema.h"
 #include "ui/Theme.h"
 #include "utils/Log.h"
 
@@ -85,20 +86,6 @@ void parseDwellObject(const QJsonObject& dwell, LayoutDwellConfig& out)
     }
 }
 
-LayoutAction::Type parseActionType(const QString& s)
-{
-    static const QHash<QString, LayoutAction::Type> kTypes = {
-        {QStringLiteral("speak"), LayoutAction::Type::Speak},
-        {QStringLiteral("typeText"), LayoutAction::Type::TypeText},
-        {QStringLiteral("loadLayout"), LayoutAction::Type::LoadLayout},
-        {QStringLiteral("openLayout"), LayoutAction::Type::OpenLayout},
-        {QStringLiteral("closeLayout"), LayoutAction::Type::CloseLayout},
-        {QStringLiteral("command"), LayoutAction::Type::Command},
-        {QStringLiteral("script"), LayoutAction::Type::Script},
-    };
-    return kTypes.value(s, LayoutAction::Type::Unknown);
-}
-
 std::optional<QColor> parseColor(const QJsonValue& v)
 {
     if (!v.isString()) {
@@ -109,20 +96,6 @@ std::optional<QColor> parseColor(const QJsonValue& v)
         return std::nullopt;
     }
     return c;
-}
-
-BoundsMode parseBoundsMode(const QString& s, BoundsMode fallback = BoundsMode::Desktop)
-{
-    const QString m = s.trimmed().toLower();
-    if (m == QLatin1String("screen") || m == QLatin1String("full")
-        || m == QLatin1String("geometry")) {
-        return BoundsMode::Screen;
-    }
-    if (m == QLatin1String("desktop") || m == QLatin1String("available")
-        || m == QLatin1String("workarea") || m == QLatin1String("work")) {
-        return BoundsMode::Desktop;
-    }
-    return fallback;
 }
 
 void parseChromeStyle(const QJsonObject& st, LayoutChromeStyle& out)
@@ -173,7 +146,7 @@ void parseChromeStyle(const QJsonObject& st, LayoutChromeStyle& out)
 bool parseAction(const QJsonObject& obj, LayoutAction& out, QString* error)
 {
     const QString typeStr = obj.value(QStringLiteral("type")).toString();
-    out.type = parseActionType(typeStr);
+    out.type = LayoutSchema::actionTypeFromName(typeStr);
     if (out.type == LayoutAction::Type::Unknown) {
         if (error) {
             *error = QStringLiteral("Unknown action type: %1").arg(typeStr);
@@ -284,52 +257,6 @@ void parseDim(const QJsonObject& obj, const QString& baseKey, DimSpec& out)
     }
 }
 
-LayoutDwellRegion::ScreenAnchor parseScreenAnchor(const QString& anchor)
-{
-    using SA = LayoutDwellRegion::ScreenAnchor;
-    static const QHash<QString, SA> kAnchors = {
-        {QStringLiteral("top"), SA::Top},
-        {QStringLiteral("bottom"), SA::Bottom},
-        {QStringLiteral("left"), SA::Left},
-        {QStringLiteral("right"), SA::Right},
-        {QStringLiteral("topleft"), SA::TopLeft},
-        {QStringLiteral("topright"), SA::TopRight},
-        {QStringLiteral("bottomleft"), SA::BottomLeft},
-        {QStringLiteral("bottomright"), SA::BottomRight},
-        {QStringLiteral("topcenter"), SA::TopCenter},
-        {QStringLiteral("bottomcenter"), SA::BottomCenter},
-        {QStringLiteral("leftcenter"), SA::LeftCenter},
-        {QStringLiteral("rightcenter"), SA::RightCenter},
-    };
-    return kAnchors.value(anchor.toLower(), SA::None);
-}
-
-LayoutWindowPlacement::Anchor parseWindowAnchor(const QString& anchor)
-{
-    using A = LayoutWindowPlacement::Anchor;
-    static const QHash<QString, A> kAnchors = {
-        {QStringLiteral("topleft"), A::TopLeft},
-        {QStringLiteral("topcenter"), A::TopCenter},
-        {QStringLiteral("topright"), A::TopRight},
-        {QStringLiteral("center"), A::Center},
-        {QStringLiteral("leftcenter"), A::LeftCenter},
-        {QStringLiteral("centerleft"), A::LeftCenter},
-        {QStringLiteral("rightcenter"), A::RightCenter},
-        {QStringLiteral("centerright"), A::RightCenter},
-        {QStringLiteral("bottomleft"), A::BottomLeft},
-        {QStringLiteral("bottomcenter"), A::BottomCenter},
-        {QStringLiteral("bottomright"), A::BottomRight},
-        {QStringLiteral("default"), A::Default},
-        {QString(), A::Default},
-    };
-    const QString a = anchor.toLower();
-    if (!kAnchors.contains(a) && !a.isEmpty()) {
-        GAZER_WARN << "Unknown window.anchor" << anchor << "— using default";
-        return A::Default;
-    }
-    return kAnchors.value(a, A::Default);
-}
-
 } // namespace
 
 bool LayoutLoader::loadFromFile(const QString& path, LayoutDocument& out, QString* error)
@@ -419,7 +346,7 @@ bool LayoutLoader::loadFromJson(const QByteArray& json, LayoutDocument& out, QSt
         const QString raw = root.contains(QStringLiteral("boundsMode"))
                                 ? root.value(QStringLiteral("boundsMode")).toString()
                                 : root.value(QStringLiteral("bounds")).toString();
-        layout.boundsMode = parseBoundsMode(raw);
+        layout.boundsMode = LayoutSchema::boundsModeFromName(raw);
     }
 
     if (root.contains(QStringLiteral("autoClose"))) {
@@ -475,7 +402,7 @@ bool LayoutLoader::loadFromJson(const QByteArray& json, LayoutDocument& out, QSt
         layout.placement.hidden = win.value(QStringLiteral("hidden")).toBool(false)
                                   || win.value(QStringLiteral("visible")).toBool(true) == false;
         layout.placement.anchor =
-            parseWindowAnchor(win.value(QStringLiteral("anchor")).toString());
+            LayoutSchema::windowAnchorFromName(win.value(QStringLiteral("anchor")).toString());
         parseDim(win, QStringLiteral("width"), layout.placement.width);
         parseDim(win, QStringLiteral("height"), layout.placement.height);
         parseDim(win, QStringLiteral("x"), layout.placement.x);
@@ -496,7 +423,7 @@ bool LayoutLoader::loadFromJson(const QByteArray& json, LayoutDocument& out, QSt
                                     ? win.value(QStringLiteral("boundsMode")).toString()
                                     : win.value(QStringLiteral("bounds")).toString();
             layout.placement.boundsMode =
-                parseBoundsMode(raw, layout.effectiveBoundsMode());
+                LayoutSchema::boundsModeFromName(raw, layout.effectiveBoundsMode());
         }
         if (win.contains(QStringLiteral("style"))) {
             parseChromeStyle(win.value(QStringLiteral("style")).toObject(), layout.placement.style);
@@ -647,14 +574,14 @@ bool LayoutLoader::loadFromJson(const QByteArray& json, LayoutDocument& out, QSt
             // If x/y were only legacy doubles without unit, parseDim set percent —
             // for board-local (no anchor) old files used pixel coords: detect legacy.
             item.dwellRegion.screenAnchor =
-                parseScreenAnchor(dr.value(QStringLiteral("screenAnchor")).toString());
+                LayoutSchema::screenAnchorFromName(dr.value(QStringLiteral("screenAnchor")).toString());
             if (dr.contains(QStringLiteral("boundsMode")) || dr.contains(QStringLiteral("bounds"))) {
                 item.dwellRegion.hasBoundsMode = true;
                 const QString raw = dr.contains(QStringLiteral("boundsMode"))
                                         ? dr.value(QStringLiteral("boundsMode")).toString()
                                         : dr.value(QStringLiteral("bounds")).toString();
                 item.dwellRegion.boundsMode =
-                    parseBoundsMode(raw, layout.effectiveBoundsMode());
+                    LayoutSchema::boundsModeFromName(raw, layout.effectiveBoundsMode());
             }
             if (!item.dwellRegion.usesScreenAnchor()) {
                 // Board-local legacy: bare numeric x/y/width/height are pixels

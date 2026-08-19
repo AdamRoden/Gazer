@@ -407,6 +407,10 @@ bool LayoutInstanceManager::eraseSecondary(const QString& instanceId, QString* e
         m_instanceTeardown(instanceId);
     }
 
+    if (instanceId == m_editorPreviewId) {
+        m_editorPreviewId.clear();
+    }
+
     m_instances.erase(it);
     emit instanceClosed(instanceId);
     return true;
@@ -558,6 +562,48 @@ QString LayoutInstanceManager::openSecondary(const QString& layoutId, QString* e
     fireLifecycle(onLoad, id);
     GAZER_INFO << "Opened secondary" << id << layoutId;
     emit instanceOpened(id, layoutId);
+    emit sessionChanged();
+    return id;
+}
+
+QString LayoutInstanceManager::openEditorPreview(LayoutDocument doc, QString* error)
+{
+    if (doc.master) {
+        if (error) {
+            *error = QStringLiteral("Cannot live-test the master root from the editor");
+        }
+        return {};
+    }
+
+    const QString previewLayoutId = QStringLiteral("__editor_preview");
+    doc.master = false;
+    doc.hideUntilGazeReveal = false;
+    doc.children.clear();
+    doc.id = previewLayoutId;
+    if (!doc.name.contains(QLatin1String("(preview)"))) {
+        doc.name = doc.name.isEmpty() ? QStringLiteral("Preview")
+                                      : doc.name + QStringLiteral(" (preview)");
+    }
+
+    if (!m_editorPreviewId.isEmpty() && instance(m_editorPreviewId)) {
+        if (!setInstanceDocument(m_editorPreviewId, std::move(doc), error)) {
+            return {};
+        }
+        return m_editorPreviewId;
+    }
+    m_editorPreviewId.clear();
+
+    auto inst = makeWiredInstance(previewLayoutId, doc);
+    const QString id = inst->instanceId();
+    const QVector<LayoutAction> onOpen = inst->document().onOpen;
+    const QVector<LayoutAction> onLoad = inst->document().onLoad;
+    m_instances.push_back(std::move(inst));
+    m_editorPreviewId = id;
+    setFocused(id, true);
+    fireLifecycle(onOpen, id);
+    fireLifecycle(onLoad, id);
+    GAZER_INFO << "Opened editor preview" << id;
+    emit instanceOpened(id, previewLayoutId);
     emit sessionChanged();
     return id;
 }

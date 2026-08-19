@@ -3,6 +3,7 @@
 #include "layout/LayoutTypes.h"
 
 #include <QHash>
+#include <QRect>
 #include <QRectF>
 #include <QString>
 #include <QVector>
@@ -182,6 +183,71 @@ inline void equalizeSegmentClusters(const LayoutDocument& layout, QHash<QString,
             rects.insert(ids[i], QRectF(span.left() + w * i, span.top(), w, span.height()));
         }
     }
+}
+
+/// Board size and origin in bounds. Uses exclusive x+width so margin 0 sits on the edge;
+/// Default with no x/y falls back to +80,+80.
+[[nodiscard]] inline QRect boardRectInBounds(const LayoutDocument& layout, const QRect& bounds)
+{
+    const LayoutWindowPlacement& p = layout.placement;
+    const int winW = qMax(40, p.width.resolveInt(bounds.width(), 1000));
+    const int winH = qMax(40, p.height.resolveInt(bounds.height(), 560));
+    if (!bounds.isValid()) {
+        return QRect(80, 80, winW, winH);
+    }
+    if (p.anchor == LayoutWindowPlacement::Anchor::Default && !p.x.isSet() && !p.y.isSet()) {
+        return QRect(bounds.x() + 80, bounds.y() + 80, winW, winH);
+    }
+
+    const int margin = qMax(0, p.marginPx);
+    const int left = bounds.x();
+    const int top = bounds.y();
+    const int right = bounds.x() + bounds.width();
+    const int bottom = bounds.y() + bounds.height();
+    int x = left + margin;
+    int y = top + margin;
+    switch (p.anchor) {
+    case LayoutWindowPlacement::Anchor::TopLeft:
+        break;
+    case LayoutWindowPlacement::Anchor::TopCenter:
+        x = left + (bounds.width() - winW) / 2;
+        break;
+    case LayoutWindowPlacement::Anchor::TopRight:
+        x = right - winW - margin;
+        break;
+    case LayoutWindowPlacement::Anchor::Center:
+        x = left + (bounds.width() - winW) / 2;
+        y = top + (bounds.height() - winH) / 2;
+        break;
+    case LayoutWindowPlacement::Anchor::LeftCenter:
+        x = left + margin;
+        y = top + (bounds.height() - winH) / 2;
+        break;
+    case LayoutWindowPlacement::Anchor::RightCenter:
+        x = right - winW - margin;
+        y = top + (bounds.height() - winH) / 2;
+        break;
+    case LayoutWindowPlacement::Anchor::BottomLeft:
+        y = bottom - winH - margin;
+        break;
+    case LayoutWindowPlacement::Anchor::BottomCenter:
+        x = left + (bounds.width() - winW) / 2;
+        y = bottom - winH - margin;
+        break;
+    case LayoutWindowPlacement::Anchor::BottomRight:
+        x = right - winW - margin;
+        y = bottom - winH - margin;
+        break;
+    case LayoutWindowPlacement::Anchor::Default:
+        break;
+    }
+    if (p.x.isSet()) {
+        x = bounds.left() + p.x.resolveInt(bounds.width(), 0);
+    }
+    if (p.y.isSet()) {
+        y = bounds.top() + p.y.resolveInt(bounds.height(), 0);
+    }
+    return QRect(x, y, winW, winH);
 }
 
 /// Hit-test gaze in board-local coordinates.

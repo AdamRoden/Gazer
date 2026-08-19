@@ -24,6 +24,7 @@ public:
 signals:
     void showLayoutRequested();
     void showPreviewRequested();
+    void layoutEditorRequested();
     void quitRequested();
 
 private:

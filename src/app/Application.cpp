@@ -2,6 +2,7 @@
 
 #include "app/AppSettings.h"
 #include "app/SettingsUi.h"
+#include "editor/LayoutEditorWindow.h"
 #include "ui/OverlaySurface.h"
 #include "core/TrackerMouse.h"
 #include "core/TrackerTobii.h"
@@ -78,7 +79,13 @@ bool Application::initialize()
         m_dockRevealed = false;
         syncMasterChrome();
     });
+    connect(m_tray.get(), &TrayIcon::layoutEditorRequested, this, &Application::openLayoutEditor);
     connect(m_tray.get(), &TrayIcon::quitRequested, this, &Application::onQuitRequested);
+
+    m_svc->commands().registerBuiltin(QStringLiteral("openLayoutEditor"), [this](QString*) {
+        openLayoutEditor();
+        return true;
+    });
 
     connect(m_dockReveal.get(), &DockRevealOverlay::dockRevealRequested, this, [this]() {
         auto* master = m_svc->instances().masterInstance();
@@ -205,6 +212,10 @@ bool Application::initialize()
     GAZER_INFO << "Gazer running. Tracker:" << m_tracker->name()
                << "TTS:" << (m_svc->tts().isAvailable() ? "yes" : "no")
                << "settings:" << AppSettings::defaultFilePath();
+
+    if (QCoreApplication::arguments().contains(QStringLiteral("--editor"))) {
+        openLayoutEditor();
+    }
     return true;
 }
 
@@ -470,6 +481,29 @@ bool Application::expandMasterShell(QString* error)
     return true;
 }
 
+void Application::openLayoutEditor()
+{
+    if (!m_editor) {
+        m_editor = std::make_unique<LayoutEditorWindow>();
+        m_editor->setLayoutsDirectory(m_svc->catalog().layoutsDirectory());
+        m_editor->setTestHandler([this](const LayoutDocument& doc, QString* error) {
+            return testEditedLayout(doc, error);
+        });
+    }
+    m_editor->showAndRaise();
+}
+
+bool Application::testEditedLayout(const LayoutDocument& doc, QString* error)
+{
+    if (!m_svc) {
+        if (error) {
+            *error = QStringLiteral("Gazer is not running");
+        }
+        return false;
+    }
+    return !m_svc->instances().openEditorPreview(doc, error).isEmpty();
+}
+
 void Application::shutdownUi()
 {
     if (m_edgeBubbles) {
@@ -491,6 +525,9 @@ void Application::shutdownUi()
     }
     if (m_preview) {
         m_preview->hide();
+    }
+    if (m_editor) {
+        m_editor->hide();
     }
     if (m_tray) {
         m_tray->hideIcon();

@@ -5,6 +5,7 @@
 
 #include <QDir>
 #include <QFileInfo>
+#include <QStringList>
 
 namespace gazer {
 
@@ -92,6 +93,21 @@ const LayoutDocument* LayoutManager::document(const QString& layoutId) const
         return nullptr;
     }
     return &it.value();
+}
+
+void LayoutManager::putDocument(LayoutDocument doc)
+{
+    if (doc.id.isEmpty()) {
+        return;
+    }
+    m_layouts.insert(doc.id, std::move(doc));
+}
+
+QStringList LayoutManager::layoutIds() const
+{
+    QStringList ids = m_layouts.keys();
+    ids.sort(Qt::CaseInsensitive);
+    return ids;
 }
 
 } // namespace gazer

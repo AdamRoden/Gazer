@@ -25,6 +25,20 @@ Exclusive chrome: **Docked**, **Drawer**, or **Quit**. Only one of those is up a
 
 The tray owns process lifetime. Closing a board does not quit the app.
 
+## Layout editor
+
+Tray → **Layout editor**, command `openLayoutEditor`, or launch with `--editor`.
+
+Three-pane Fluent designer:
+
+| Pane | Contents |
+|------|----------|
+| Left | File / Edit / Window / Layout / Elements |
+| Center | Monitor graphic with the board placed as it would be on a 16:9 desktop. **View → Fit board** zooms the board for cell editing. Click a key to select; drag it to another cell. |
+| Right | Style / Layout / Interaction properties of the selection, plus the item hierarchy |
+
+File: New, Open, Save, Save As, Close, Import, Export. Edit: Undo/Redo, Cut/Copy/Paste, Delete. **Test** (F5) opens a transient preview board (`__editor_preview`) and does not replace shipped catalog layouts. Master roots cannot be live-tested. Layouts are the same JSON as `resources/layouts/*.json`.
+
 ## Requirements
 
 - Windows
@@ -347,6 +361,7 @@ Builtins first; unknown names fall through to the mapping profile.
 | `toggleMouseMoveMagPick` | Mag-pick refine for move-to |
 | `toggleMouseMoveMagPickCenter` | Mag-pick centered on dwell vs screen |
 | `openPreview` | Head-pose preview |
+| `openLayoutEditor` | Fluent layout designer |
 | `theme.light` / `theme.dark` / `theme.custom` | Theme mode |
 | `settings.*` | Settings hub editors, nudges, presets |
 

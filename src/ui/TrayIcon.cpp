@@ -64,11 +64,13 @@ TrayIcon::TrayIcon(QObject* parent)
     m_menu = new QMenu();
     auto* layoutAction = m_menu->addAction(QStringLiteral("Show layout"));
     auto* previewAction = m_menu->addAction(QStringLiteral("Show preview"));
+    auto* editorAction = m_menu->addAction(QStringLiteral("Layout editor"));
     m_menu->addSeparator();
     auto* quitAction = m_menu->addAction(QStringLiteral("Quit Gazer"));
 
     connect(layoutAction, &QAction::triggered, this, &TrayIcon::showLayoutRequested);
     connect(previewAction, &QAction::triggered, this, &TrayIcon::showPreviewRequested);
+    connect(editorAction, &QAction::triggered, this, &TrayIcon::layoutEditorRequested);
     connect(quitAction, &QAction::triggered, this, &TrayIcon::quitRequested);
 
     m_tray = new QSystemTrayIcon(makeTrayIcon(), this);

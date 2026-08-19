@@ -49,7 +49,6 @@ public:
     [[nodiscard]] bool isScaleAnimating() const;
     [[nodiscard]] bool isDismissing() const;
     void applyPlacement();
-    void placeRelative(int offsetX, int offsetY);
 
     void setGlobalDwellOverride(const QVector<int>& dwellSequence, int graceMs,
                                 int scanGraceMs = DwellStateMachine::kDefaultScanGraceMs);

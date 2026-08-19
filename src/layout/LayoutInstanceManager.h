@@ -40,6 +40,9 @@ public:
     /// Open a secondary board. Hard-fails if layout is the root master.
     [[nodiscard]] QString openSecondary(const QString& layoutId, QString* error = nullptr);
 
+    /// Layout-editor live preview. Does not write the catalog. Replaces the previous preview.
+    [[nodiscard]] QString openEditorPreview(LayoutDocument doc, QString* error = nullptr);
+
     /// Show the home child and raise it.
     void raiseMaster();
 
@@ -202,6 +205,7 @@ private:
     DocumentDecorator m_documentDecorator;
     LifecycleRunner m_lifecycleRunner;
     InstanceTeardownHook m_instanceTeardown;
+    QString m_editorPreviewId;
     bool m_dwellSuspended = false;
     RootChrome m_rootChrome = RootChrome::Docked;
     bool m_homeDismissing = false;

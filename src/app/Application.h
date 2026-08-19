@@ -7,6 +7,7 @@
 #include "ui/DockRevealOverlay.h"
 #include "ui/DwellSuspendOverlay.h"
 #include "ui/EdgeBubbleOverlay.h"
+#include "layout/LayoutTypes.h"
 #include "ui/PreviewWindow.h"
 #include "ui/TrayIcon.h"
 
@@ -34,6 +35,8 @@ private:
     [[nodiscard]] bool expandMasterShell(QString* error = nullptr);
 
     void onQuitRequested();
+    void openLayoutEditor();
+    [[nodiscard]] bool testEditedLayout(const LayoutDocument& doc, QString* error);
     void onGaze(const gazer::GazePoint& point);
     void onItemActivated(const QString& instanceId, const QString& itemId);
     void onTobiiStreamFailed(const QString& reason);
@@ -48,6 +51,7 @@ private:
     std::unique_ptr<EdgeBubbleOverlay> m_edgeBubbles;
     std::unique_ptr<DwellSuspendOverlay> m_dwellSuspendOverlay;
     std::unique_ptr<PreviewWindow> m_preview;
+    std::unique_ptr<class LayoutEditorWindow> m_editor;
     std::unique_ptr<TrayIcon> m_tray;
     /// Collapsed dock has been revealed this dock session (not re-hidden until expand).
     bool m_dockRevealed = false;

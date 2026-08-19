@@ -5,6 +5,7 @@
 #include <QObject>
 #include <QHash>
 #include <QString>
+#include <QStringList>
 
 namespace gazer {
 
@@ -24,6 +25,9 @@ public:
 
     [[nodiscard]] const LayoutDocument* document(const QString& layoutId) const;
     [[nodiscard]] bool hasLayout(const QString& layoutId) const;
+    /// Insert or replace a parsed document (does not write disk).
+    void putDocument(LayoutDocument doc);
+    [[nodiscard]] QStringList layoutIds() const;
 
 signals:
     void layoutLoadFailed(const QString& layoutId, const QString& error);

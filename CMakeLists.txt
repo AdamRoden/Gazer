@@ -43,6 +43,7 @@ set(GAZER_SOURCES
     src/core/TrackerTobii.cpp
     src/core/StreamEngineLib.cpp
     src/layout/LayoutLoader.cpp
+    src/layout/LayoutSchema.cpp
     src/layout/LayoutManager.cpp
     src/layout/LayoutInstance.cpp
     src/layout/LayoutInstanceManager.cpp
@@ -79,6 +80,13 @@ set(GAZER_SOURCES
     src/ui/Theme.cpp
     src/ui/ThemeScheme.cpp
     src/ui/PickStyle.cpp
+    src/layout/LayoutWriter.cpp
+    src/editor/LayoutEditorSession.cpp
+    src/editor/LayoutEditorCanvas.cpp
+    src/editor/LayoutEditorToolbox.cpp
+    src/editor/LayoutEditorFields.cpp
+    src/editor/LayoutEditorProperties.cpp
+    src/editor/LayoutEditorWindow.cpp
 )
 
 set(GAZER_HEADERS
@@ -102,6 +110,8 @@ set(GAZER_HEADERS
     src/layout/DwellRegionSpace.h
     src/layout/InstanceTarget.h
     src/layout/LayoutLoader.h
+    src/layout/LayoutSchema.h
+    src/layout/LayoutWriter.h
     src/layout/LayoutManager.h
     src/layout/LayoutInstance.h
     src/layout/LayoutInstanceManager.h
@@ -146,6 +156,12 @@ set(GAZER_HEADERS
     src/ui/Theme.h
     src/ui/PickStyle.h
     src/ui/ThemeScheme.h
+    src/editor/LayoutEditorSession.h
+    src/editor/LayoutEditorCanvas.h
+    src/editor/LayoutEditorToolbox.h
+    src/editor/LayoutEditorFields.h
+    src/editor/LayoutEditorProperties.h
+    src/editor/LayoutEditorWindow.h
     src/utils/Log.h
     src/utils/WinOverlay.h
     src/utils/ScreenGrab.h

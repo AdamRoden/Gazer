@@ -1,5 +1,6 @@
 #include "layout/LayoutInstance.h"
 
+#include "layout/LayoutGeometry.h"
 #include "layout/LayoutVisibility.h"
 #include "ui/ProgressVisuals.h"
 
@@ -465,8 +466,6 @@ void LayoutInstance::applyPlacement()
         return;
     }
 
-    const LayoutWindowPlacement& p = m_document.placement;
-
     // Headless / items-only: no board chrome. Keep a 1×1 HWND for mapToGlobal
     // when board-local dwell regions are used; screenAnchor does not need it.
     if (!m_document.showsBoardWindow()) {
@@ -483,87 +482,9 @@ void LayoutInstance::applyPlacement()
     m_window->setMaximumSize(16777215, 16777215);
 
     const QRect avail = boundsRectFor(m_document.effectiveBoundsMode());
-
-    const int winW = qMax(40, p.width.resolveInt(avail.width(), 1000));
-    const int winH = qMax(40, p.height.resolveInt(avail.height(), 560));
-    m_window->setMinimumSize(qMax(40, qMin(winW, 80)), qMax(40, qMin(winH, 80)));
-    m_window->resize(winW, winH);
-
-    if (p.anchor == LayoutWindowPlacement::Anchor::Default && !p.x.isSet() && !p.y.isSet()) {
-        placeRelative(0, 0);
-        return;
-    }
-
-    if (!avail.isValid()) {
-        placeRelative(0, 0);
-        return;
-    }
-
-    const int margin = qMax(0, p.marginPx);
-    const int w = m_window->width();
-    const int h = m_window->height();
-    // Use top+height (not inclusive bottom()+1) so flush anchors sit exactly on the
-    // bounds edge when marginPx is 0.
-    const int left = avail.x();
-    const int top = avail.y();
-    const int right = avail.x() + avail.width();   // exclusive
-    const int bottom = avail.y() + avail.height(); // exclusive
-
-    int x = left + margin;
-    int y = top + margin;
-
-    switch (p.anchor) {
-    case LayoutWindowPlacement::Anchor::TopLeft:
-        break;
-    case LayoutWindowPlacement::Anchor::TopCenter:
-        x = left + (avail.width() - w) / 2;
-        break;
-    case LayoutWindowPlacement::Anchor::TopRight:
-        x = right - w - margin;
-        break;
-    case LayoutWindowPlacement::Anchor::Center:
-        x = left + (avail.width() - w) / 2;
-        y = top + (avail.height() - h) / 2;
-        break;
-    case LayoutWindowPlacement::Anchor::LeftCenter:
-        x = left + margin;
-        y = top + (avail.height() - h) / 2;
-        break;
-    case LayoutWindowPlacement::Anchor::RightCenter:
-        x = right - w - margin;
-        y = top + (avail.height() - h) / 2;
-        break;
-    case LayoutWindowPlacement::Anchor::BottomLeft:
-        y = bottom - h - margin;
-        break;
-    case LayoutWindowPlacement::Anchor::BottomCenter:
-        x = left + (avail.width() - w) / 2;
-        y = bottom - h - margin;
-        break;
-    case LayoutWindowPlacement::Anchor::BottomRight:
-        x = right - w - margin;
-        y = bottom - h - margin;
-        break;
-    case LayoutWindowPlacement::Anchor::Default:
-        break;
-    }
-
-    // Explicit x/y replace or offset from anchor-computed position.
-    if (p.x.isSet()) {
-        x = avail.left() + p.x.resolveInt(avail.width(), 0);
-    }
-    if (p.y.isSet()) {
-        y = avail.top() + p.y.resolveInt(avail.height(), 0);
-    }
-
-    m_window->move(x, y);
-}
-
-void LayoutInstance::placeRelative(int offsetX, int offsetY)
-{
-    const QRect avail = boundsRectFor(m_document.effectiveBoundsMode());
-    const QPoint origin = avail.isValid() ? (avail.topLeft() + QPoint(80, 80)) : QPoint(80, 80);
-    m_window->move(origin + QPoint(offsetX, offsetY));
+    const QRect r = LayoutGeometry::boardRectInBounds(m_document, avail);
+    m_window->setMinimumSize(qMax(40, qMin(r.width(), 80)), qMax(40, qMin(r.height(), 80)));
+    m_window->setGeometry(r);
 }
 
 QRect LayoutInstance::boundsRectFor(BoundsMode mode) const
