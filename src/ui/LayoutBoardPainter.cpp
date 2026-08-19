@@ -8,12 +8,32 @@
 #include "ui/MouseIcons.h"
 
 #include <QFont>
+#include <QFontMetricsF>
 #include <QLinearGradient>
 #include <QPainter>
 #include <QPainterPath>
 #include <QSet>
 
 namespace gazer {
+
+namespace {
+
+int fontPxToFit(const QString& family, int weight, int startPx, int minPx, const QString& text,
+                const QRectF& box, int flags)
+{
+    int px = startPx;
+    while (px > minPx) {
+        const QRectF br = QFontMetricsF(QFont(family, px, weight)).boundingRect(box, flags, text);
+        if (br.width() <= box.width() + 0.5 && br.height() <= box.height() + 0.5) {
+            break;
+        }
+        --px;
+    }
+    return qMax(minPx, px);
+}
+
+} // namespace
+
 
 LayoutBoardPainter::LayoutBoardPainter(LayoutQuickWindow& host)
     : m_layout(host.m_layout)
@@ -444,11 +464,18 @@ void LayoutBoardPainter::paintStaticItem(QPainter& p, const LayoutItem& item, co
     }
 
     const bool readout = !item.settingKey.isEmpty() && item.caption.isEmpty();
-    const QRectF pad = r.adjusted(12, 8, -12, -8);
+    const QRectF pad = r.adjusted(10, 6, -10, -6);
+    p.save();
+    p.setClipRect(pad);
+    const QString family = QStringLiteral("Segoe UI");
     if (readout) {
+        const int flags = int(Qt::AlignCenter | Qt::TextWordWrap);
+        const int px = fontPxToFit(family, QFont::DemiBold, ts.isEmpty() ? 16 : titlePx, 10,
+                                   item.label, pad, flags);
         p.setPen(st.foreground.value_or(m_theme.accent));
-        p.setFont(QFont(QStringLiteral("Segoe UI"), ts.isEmpty() ? 16 : titlePx, QFont::DemiBold));
-        p.drawText(pad, Qt::AlignCenter | Qt::TextWordWrap, item.label);
+        p.setFont(QFont(family, px, QFont::DemiBold));
+        p.drawText(pad, flags, item.label);
+        p.restore();
         return;
     }
 
@@ -456,22 +483,43 @@ void LayoutBoardPainter::paintStaticItem(QPainter& p, const LayoutItem& item, co
     if (ts == QLatin1String("caption") && !st.foreground) {
         titleFg = m_theme.textSecondary;
     }
-    p.setPen(titleFg);
-    p.setFont(QFont(QStringLiteral("Segoe UI"), titlePx, titleWeight));
     if (item.caption.isEmpty()) {
-        const int align = (ts == QLatin1String("title") || ts == QLatin1String("subtitle"))
-                              ? int(Qt::AlignCenter)
-                              : int(Qt::AlignLeft | Qt::AlignVCenter);
-        p.drawText(pad, align | Qt::TextWordWrap, item.label);
+        const int flags = (ts == QLatin1String("title") || ts == QLatin1String("subtitle"))
+                              ? int(Qt::AlignCenter | Qt::TextWordWrap)
+                              : int(Qt::AlignLeft | Qt::AlignVCenter | Qt::TextWordWrap);
+        const int px = fontPxToFit(family, titleWeight, titlePx, 10, item.label, pad, flags);
+        p.setPen(titleFg);
+        p.setFont(QFont(family, px, titleWeight));
+        p.drawText(pad, flags, item.label);
+        p.restore();
         return;
     }
 
-    const QRectF titleR(pad.left(), pad.top(), pad.width(), pad.height() * 0.48);
-    p.drawText(titleR, Qt::AlignLeft | Qt::AlignVCenter | Qt::TextWordWrap, item.label);
+    const int titleFlags = int(Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap);
+    const int capFlags = int(Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap);
+    int tPx = titlePx;
+    QFont tFont(family, tPx, titleWeight);
+    auto titleH = [&]() {
+        return QFontMetricsF(tFont).boundingRect(pad, titleFlags, item.label).height();
+    };
+    auto capLine = [&]() { return QFontMetricsF(QFont(family, 12, QFont::Normal)).lineSpacing(); };
+    while (tPx > 10 && titleH() + capLine() + 2.0 > pad.height()) {
+        --tPx;
+        tFont.setPixelSize(tPx);
+    }
+    const double th = qBound(QFontMetricsF(tFont).lineSpacing(), titleH(),
+                             qMax(QFontMetricsF(tFont).lineSpacing(), pad.height() - capLine() - 2.0));
+    const QRectF titleR(pad.left(), pad.top(), pad.width(), th);
+    const QRectF capR(pad.left(), titleR.bottom() + 2.0, pad.width(),
+                      qMax(1.0, pad.bottom() - titleR.bottom() - 2.0));
+    const int capPx = fontPxToFit(family, QFont::Normal, 12, 9, item.caption, capR, capFlags);
+    p.setPen(titleFg);
+    p.setFont(tFont);
+    p.drawText(titleR, titleFlags, item.label);
     p.setPen(m_theme.textSecondary);
-    p.setFont(QFont(QStringLiteral("Segoe UI"), 12, QFont::Normal));
-    const QRectF capR(pad.left(), titleR.bottom(), pad.width(), pad.bottom() - titleR.bottom());
-    p.drawText(capR, Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap, item.caption);
+    p.setFont(QFont(family, capPx, QFont::Normal));
+    p.drawText(capR, capFlags, item.caption);
+    p.restore();
 }
 
 void LayoutBoardPainter::paintTab(QPainter& p, const LayoutItem& item, const QRectF& r)

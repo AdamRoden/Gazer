@@ -230,7 +230,7 @@ void LayoutInstance::setDocument(LayoutDocument document)
     m_window->setLayout(m_document);
     m_window->setWindowTitle(
         QStringLiteral("Gazer — %1 [%2]").arg(m_document.name, m_instanceId));
-    applyDwellForItem(m_activeDwellItemId);
+    applyDwellConfig();
     applyPlacement();
     if (m_window) {
         m_window->update();

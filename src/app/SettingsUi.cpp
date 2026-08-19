@@ -9,6 +9,8 @@
 #include "ui/Theme.h"
 
 #include <QColor>
+#include <QKeyEvent>
+#include <QObject>
 #include <QtGlobal>
 #include <QVector>
 
@@ -64,10 +66,14 @@ void SettingsUi::applyLiveEditorChrome(LayoutDocument& doc)
     doc.placement.specified = true;
     doc.placement.anchor = LayoutWindowPlacement::Anchor::Center;
     doc.placement.aboveTaskbar = true;
+    doc.placement.style.background = QColor(0, 0, 0);
+    doc.placement.style.radius = 8.0;
+    doc.placement.style.borderWidth = 1.0;
 }
 
 void SettingsUi::resetNumpad()
 {
+    unbindEditorKeyboard();
     m_numpad.reset();
     m_numpadKey.clear();
     m_numpadTitle.clear();
@@ -79,9 +85,113 @@ void SettingsUi::resetNumpad()
     m_numpadArrayIndex = -1;
 }
 
+void SettingsUi::unbindEditorKeyboard()
+{
+    QObject::disconnect(m_editorKeyConn);
+    m_editorKeyConn = {};
+    if (auto* inst = m_instances.instance(m_numpad.instanceId)) {
+        if (inst->window()) {
+            inst->window()->setInputFocusEnabled(false);
+        }
+    }
+    if (auto* inst = m_instances.instance(m_color.instanceId)) {
+        if (inst->window()) {
+            inst->window()->setInputFocusEnabled(false);
+        }
+    }
+}
+
+void SettingsUi::bindEditorKeyboard(const QString& instanceId)
+{
+    unbindEditorKeyboard();
+    auto* inst = m_instances.instance(instanceId);
+    if (!inst || !inst->window()) {
+        return;
+    }
+    LayoutQuickWindow* w = inst->window();
+    w->setInputFocusEnabled(true);
+    m_editorKeyConn = QObject::connect(w, &LayoutQuickWindow::keyPressed, w,
+                                       [this](int key, const QString& text) {
+                                           handleEditorKey(key, text);
+                                       });
+}
+
+void SettingsUi::handleEditorKey(int key, const QString& text)
+{
+    if (m_numpad.active) {
+        if (key == Qt::Key_Backspace) {
+            numpadBackspace();
+            return;
+        }
+        if (key == Qt::Key_Escape) {
+            QString err;
+            (void)numpadCancel(&err);
+            return;
+        }
+        if (key == Qt::Key_Return || key == Qt::Key_Enter) {
+            QString err;
+            (void)numpadSave(&err);
+            return;
+        }
+        if (key == Qt::Key_Minus) {
+            numpadMinus();
+            return;
+        }
+        if (key == Qt::Key_Period) {
+            numpadAppend(QStringLiteral("."));
+            return;
+        }
+        if (key == Qt::Key_Comma) {
+            numpadAppend(QStringLiteral(","));
+            return;
+        }
+        if (key >= Qt::Key_0 && key <= Qt::Key_9) {
+            numpadAppend(QString::number(key - Qt::Key_0));
+            return;
+        }
+        for (const QChar ch : text) {
+            if (ch.isDigit()) {
+                numpadAppend(QString(ch));
+            }
+        }
+        return;
+    }
+    if (m_hexActive) {
+        if (key == Qt::Key_Backspace) {
+            hexBackspace();
+            return;
+        }
+        if (key == Qt::Key_Escape) {
+            QString err;
+            (void)hexCancel(&err);
+            return;
+        }
+        if (key == Qt::Key_Return || key == Qt::Key_Enter) {
+            QString err;
+            (void)hexSave(&err);
+            return;
+        }
+        if (key >= Qt::Key_0 && key <= Qt::Key_9) {
+            hexAppend(QChar(QLatin1Char('0' + (key - Qt::Key_0))));
+            return;
+        }
+        if (key >= Qt::Key_A && key <= Qt::Key_F) {
+            hexAppend(QChar(QLatin1Char('A' + (key - Qt::Key_A))));
+            return;
+        }
+        for (const QChar ch : text) {
+            if (ch.isDigit()
+                || (ch.toUpper() >= QLatin1Char('A') && ch.toUpper() <= QLatin1Char('F'))) {
+                hexAppend(ch);
+            }
+        }
+    }
+}
+
 bool SettingsUi::presentNumpad(QString* error)
 {
     if (m_instances.setInstanceDocument(m_numpad.instanceId, buildNumpadDocument(), error)) {
+        bindEditorKeyboard(m_numpad.instanceId);
         return true;
     }
     resetNumpad();
@@ -271,60 +381,64 @@ LayoutDocument SettingsUi::buildNumpadDocument() const
     doc.description = QStringLiteral("Enter a value, then Save");
     applyLiveEditorChrome(doc);
     doc.grid.columns = 4;
-    doc.grid.rows = 8;
+    doc.grid.rows = 7;
     doc.grid.gapPx = 10;
     doc.grid.marginPx = 20;
     doc.placement.width = DimSpec::pixels(520);
-    doc.placement.height = DimSpec::pixels(720);
+    doc.placement.height = DimSpec::pixels(640);
 
+    const EditorSwatch sw = editorSwatch();
     const QString savedLine = (m_numpadReturn == NumpadReturn::Catalog && !m_numpadKey.isEmpty())
                                   ? QStringLiteral("Saved: %1").arg(m_settings.displayValue(m_numpadKey))
                                   : QStringLiteral("Current: %1").arg(m_numpadResetSeed);
-    doc.items.push_back(makeLabel(QStringLiteral("title"), m_numpadTitle, 0, 0, 4, savedLine));
-    doc.items.push_back(makeLabel(QStringLiteral("desc"), m_numpadHint, 1, 0, 4));
-    LayoutItem numpadDisplay = makeLabel(
-        QStringLiteral("display"),
-        m_numpadBuffer.isEmpty() ? QStringLiteral("0") : m_numpadBuffer, 2, 0, 4);
-    numpadDisplay.textStyle = QStringLiteral("title");
+    const QString titleCaption =
+        m_numpadHint.isEmpty() ? savedLine
+                               : QStringLiteral("%1\n%2").arg(savedLine, m_numpadHint);
+    doc.items.push_back(makeLabel(QStringLiteral("title"), m_numpadTitle, 0, 0, 4, titleCaption));
+    LayoutItem numpadDisplay =
+        makeItem(QStringLiteral("display"),
+                 m_numpadBuffer.isEmpty() ? QStringLiteral("0") : m_numpadBuffer, 1, 0,
+                 LayoutAction::Type::Unknown, {}, sw.value, 4, /*interactive=*/false);
+    numpadDisplay.role = QStringLiteral("label");
+    numpadDisplay.applyKind();
+    numpadDisplay.interactive = false;
     doc.items.push_back(numpadDisplay);
-
-    const EditorSwatch sw = editorSwatch();
     auto key = [&](const QString& id, const QString& label, int row, int col, const QString& cmd,
                    const QColor& bg = QColor()) {
         doc.items.push_back(makeItem(id, label, row, col, LayoutAction::Type::Command, cmd,
                                      bg.isValid() ? bg : sw.key));
     };
 
-    key(QStringLiteral("d7"), QStringLiteral("7"), 3, 0, QStringLiteral("settings.numpad.digit.7"));
-    key(QStringLiteral("d8"), QStringLiteral("8"), 3, 1, QStringLiteral("settings.numpad.digit.8"));
-    key(QStringLiteral("d9"), QStringLiteral("9"), 3, 2, QStringLiteral("settings.numpad.digit.9"));
-    key(QStringLiteral("back"), QStringLiteral("⌫"), 3, 3,
+    key(QStringLiteral("d7"), QStringLiteral("7"), 2, 0, QStringLiteral("settings.numpad.digit.7"));
+    key(QStringLiteral("d8"), QStringLiteral("8"), 2, 1, QStringLiteral("settings.numpad.digit.8"));
+    key(QStringLiteral("d9"), QStringLiteral("9"), 2, 2, QStringLiteral("settings.numpad.digit.9"));
+    key(QStringLiteral("back"), QStringLiteral("⌫"), 2, 3,
         QStringLiteral("settings.numpad.backspace"), sw.warn);
 
-    key(QStringLiteral("d4"), QStringLiteral("4"), 4, 0, QStringLiteral("settings.numpad.digit.4"));
-    key(QStringLiteral("d5"), QStringLiteral("5"), 4, 1, QStringLiteral("settings.numpad.digit.5"));
-    key(QStringLiteral("d6"), QStringLiteral("6"), 4, 2, QStringLiteral("settings.numpad.digit.6"));
-    key(QStringLiteral("reset"), QStringLiteral("Reset"), 4, 3,
+    key(QStringLiteral("d4"), QStringLiteral("4"), 3, 0, QStringLiteral("settings.numpad.digit.4"));
+    key(QStringLiteral("d5"), QStringLiteral("5"), 3, 1, QStringLiteral("settings.numpad.digit.5"));
+    key(QStringLiteral("d6"), QStringLiteral("6"), 3, 2, QStringLiteral("settings.numpad.digit.6"));
+    key(QStringLiteral("reset"), QStringLiteral("Reset"), 3, 3,
         QStringLiteral("settings.numpad.reset"), sw.nudge);
 
-    key(QStringLiteral("d1"), QStringLiteral("1"), 5, 0, QStringLiteral("settings.numpad.digit.1"));
-    key(QStringLiteral("d2"), QStringLiteral("2"), 5, 1, QStringLiteral("settings.numpad.digit.2"));
-    key(QStringLiteral("d3"), QStringLiteral("3"), 5, 2, QStringLiteral("settings.numpad.digit.3"));
-    key(QStringLiteral("clear"), QStringLiteral("Clear"), 5, 3,
+    key(QStringLiteral("d1"), QStringLiteral("1"), 4, 0, QStringLiteral("settings.numpad.digit.1"));
+    key(QStringLiteral("d2"), QStringLiteral("2"), 4, 1, QStringLiteral("settings.numpad.digit.2"));
+    key(QStringLiteral("d3"), QStringLiteral("3"), 4, 2, QStringLiteral("settings.numpad.digit.3"));
+    key(QStringLiteral("clear"), QStringLiteral("Clear"), 4, 3,
         QStringLiteral("settings.numpad.clear"), sw.warn);
 
-    key(QStringLiteral("minus"), QStringLiteral("−"), 6, 0,
+    key(QStringLiteral("minus"), QStringLiteral("−"), 5, 0,
         QStringLiteral("settings.numpad.minus"), sw.nudge);
-    key(QStringLiteral("d0"), QStringLiteral("0"), 6, 1, QStringLiteral("settings.numpad.digit.0"));
-    key(QStringLiteral("period"), QStringLiteral("."), 6, 2,
+    key(QStringLiteral("d0"), QStringLiteral("0"), 5, 1, QStringLiteral("settings.numpad.digit.0"));
+    key(QStringLiteral("period"), QStringLiteral("."), 5, 2,
         QStringLiteral("settings.numpad.period"), sw.nudge);
-    key(QStringLiteral("comma"), QStringLiteral(","), 6, 3,
+    key(QStringLiteral("comma"), QStringLiteral(","), 5, 3,
         QStringLiteral("settings.numpad.comma"), sw.nudge);
 
-    doc.items.push_back(makeItem(QStringLiteral("save"), QStringLiteral("Save"), 7, 0,
+    doc.items.push_back(makeItem(QStringLiteral("save"), QStringLiteral("Save"), 6, 0,
                                  LayoutAction::Type::Command, QStringLiteral("settings.numpad.save"),
                                  sw.save, 2));
-    doc.items.push_back(makeItem(QStringLiteral("cancel"), QStringLiteral("Cancel"), 7, 2,
+    doc.items.push_back(makeItem(QStringLiteral("cancel"), QStringLiteral("Cancel"), 6, 2,
                                  LayoutAction::Type::Command,
                                  QStringLiteral("settings.numpad.cancel"), sw.cancel, 2));
     return doc;

@@ -1306,6 +1306,7 @@ bool SettingsUi::openHexEditor(QString* error)
         m_hexActive = false;
         return false;
     }
+    bindEditorKeyboard(m_color.instanceId);
     notifyStatus(QStringLiteral("Enter hex color"));
     return true;
 }
@@ -1402,6 +1403,7 @@ bool SettingsUi::hexSave(QString* error)
         }
         return false;
     }
+    unbindEditorKeyboard();
     m_hexActive = false;
     m_hexBuffer.clear();
     loadColorDraft(c);
@@ -1417,6 +1419,7 @@ bool SettingsUi::hexCancel(QString* error)
     if (!m_hexActive) {
         return true;
     }
+    unbindEditorKeyboard();
     m_hexActive = false;
     m_hexBuffer.clear();
     refreshColorPicker();

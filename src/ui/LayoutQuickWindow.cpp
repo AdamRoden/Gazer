@@ -6,6 +6,7 @@
 #include "utils/WinOverlay.h"
 
 #include <QCloseEvent>
+#include <QKeyEvent>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QSet>
@@ -318,11 +319,64 @@ void LayoutQuickWindow::keepAboveTaskbar()
     raiseAboveTaskbar(this);
 }
 
+void LayoutQuickWindow::applyInputFocusChrome()
+{
+#ifdef Q_OS_WIN
+    const HWND hwnd = reinterpret_cast<HWND>(winId());
+    if (!hwnd) {
+        return;
+    }
+    LONG_PTR ex = GetWindowLongPtr(hwnd, GWL_EXSTYLE);
+    if (m_inputFocus) {
+        ex &= ~WS_EX_NOACTIVATE;
+    } else {
+        ex |= WS_EX_NOACTIVATE;
+    }
+    SetWindowLongPtr(hwnd, GWL_EXSTYLE, ex);
+    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0,
+                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+#endif
+}
+
+void LayoutQuickWindow::setInputFocusEnabled(bool on)
+{
+    if (m_inputFocus == on) {
+        if (on) {
+            requestActivate();
+        }
+        return;
+    }
+    m_inputFocus = on;
+    Qt::WindowFlags f = flags();
+    if (on) {
+        f &= ~Qt::WindowDoesNotAcceptFocus;
+    } else {
+        f |= Qt::WindowDoesNotAcceptFocus;
+    }
+    setFlags(f);
+    applyInputFocusChrome();
+    if (on) {
+        requestActivate();
+    }
+}
+
+void LayoutQuickWindow::keyPressEvent(QKeyEvent* event)
+{
+    if (m_inputFocus && event) {
+        emit keyPressed(event->key(), event->text());
+        event->accept();
+        return;
+    }
+    QQuickWindow::keyPressEvent(event);
+}
+
 void LayoutQuickWindow::applyTopmost()
 {
     applyOverlayWindowChrome(this, /*excludeFromCapture=*/false);
+    applyInputFocusChrome();
     if (m_layout.placement.aboveTaskbar) {
         raiseAboveTaskbar(this);
+        applyInputFocusChrome();
         return;
     }
     raise();
@@ -337,10 +391,14 @@ void LayoutQuickWindow::showAndRaise()
 #ifdef Q_OS_WIN
     const HWND hwnd = reinterpret_cast<HWND>(winId());
     if (hwnd) {
-        ShowWindow(hwnd, SW_SHOWNOACTIVATE);
+        ShowWindow(hwnd, m_inputFocus ? SW_SHOW : SW_SHOWNOACTIVATE);
     }
 #endif
     keepAboveTaskbar();
+    applyInputFocusChrome();
+    if (m_inputFocus) {
+        requestActivate();
+    }
 }
 
 QString LayoutQuickWindow::hitTestGlobal(const QPointF& screenPoint) const

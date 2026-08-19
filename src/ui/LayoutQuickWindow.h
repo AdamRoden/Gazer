@@ -13,6 +13,7 @@
 #include <QVariantMap>
 
 class QCloseEvent;
+class QKeyEvent;
 
 namespace gazer {
 
@@ -84,16 +85,21 @@ public:
     void setWindowTitle(const QString& title) { setTitle(title); }
 
     void rebuildCellGeometry();
+    /// Live editors need key events; boards stay NOACTIVATE otherwise.
+    void setInputFocusEnabled(bool on);
 
 signals:
     void closeRequested();
     void itemClicked(const QString& itemId);
+    void keyPressed(int key, const QString& text);
 
 protected:
     void closeEvent(QCloseEvent* event) override;
+    void keyPressEvent(QKeyEvent* event) override;
 
 private:
     void applyTopmost();
+    void applyInputFocusChrome();
     void syncBoardSize();
     [[nodiscard]] ProgressVisuals visualsForItem(const LayoutItem* item) const;
     [[nodiscard]] bool itemShown(const LayoutItem& item) const;
@@ -121,6 +127,7 @@ private:
     QHash<QString, QString> m_sliderReadoutValue;
     LayoutBoardItem* m_board = nullptr;
     GlassBackdrop m_glass;
+    bool m_inputFocus = false;
 
     friend class LayoutBoardItem;
 };

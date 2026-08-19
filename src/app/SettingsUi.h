@@ -10,6 +10,7 @@
 #include <QColor>
 #include <QElapsedTimer>
 #include <QHash>
+#include <QMetaObject>
 #include <QString>
 #include <QVector>
 #include <functional>
@@ -149,6 +150,9 @@ private:
 
     void notifyStatus(const QString& msg);
     void apply(bool persist);
+    void bindEditorKeyboard(const QString& instanceId);
+    void unbindEditorKeyboard();
+    void handleEditorKey(int key, const QString& text);
 
     struct LiveBoard {
         bool active = false;
@@ -208,6 +212,7 @@ private:
 
     bool m_hexActive = false;
     QString m_hexBuffer;
+    QMetaObject::Connection m_editorKeyConn;
 
     struct SliderScrub {
         bool active = false;
