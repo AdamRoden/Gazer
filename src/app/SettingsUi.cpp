@@ -1,6 +1,7 @@
 ﻿#include "app/SettingsUi.h"
 
 #include "app/CommandRegistry.h"
+#include "layout/LayoutTypes.h"
 #include "layout/LayoutInstance.h"
 #include "layout/LayoutInstanceManager.h"
 #include "layout/LayoutManager.h"
@@ -9,6 +10,7 @@
 
 #include <QColor>
 #include <QtGlobal>
+#include <QVector>
 
 namespace gazer {
 
@@ -23,6 +25,7 @@ LayoutItem SettingsUi::makeItem(const QString& id, const QString& label, int row
     it.caption = caption;
     it.settingKey = settingKey;
     it.role = role;
+    it.applyKind();
     it.interactive = interactive;
     it.row = row;
     it.col = col;
@@ -47,13 +50,15 @@ LayoutItem SettingsUi::makeItem(const QString& id, const QString& label, int row
 LayoutItem SettingsUi::makeLabel(const QString& id, const QString& label, int row, int col,
                                  int colSpan, const QString& caption, const QString& settingKey)
 {
-    return makeItem(id, label, row, col, LayoutAction::Type::Unknown, {}, QColor(0, 0, 0, 0),
-                    colSpan, /*interactive=*/false, caption, settingKey);
+    LayoutItem it = makeItem(id, label, row, col, LayoutAction::Type::Unknown, {}, QColor(0, 0, 0, 0),
+                             colSpan, /*interactive=*/false, caption, settingKey);
+    it.role = QStringLiteral("label");
+    it.applyKind();
+    return it;
 }
 
 void SettingsUi::applyLiveEditorChrome(LayoutDocument& doc)
 {
-    doc.uiStyle = LayoutUiStyle::Fluent;
     doc.autoClose = false;
     doc.dwell.enabled = true;
     doc.placement.specified = true;
@@ -143,7 +148,54 @@ void SettingsUi::decorateDocument(LayoutDocument& doc) const
     if (!doc.id.startsWith(QLatin1String("main_settings"))) {
         return;
     }
-    doc.uiStyle = LayoutUiStyle::Fluent;
+
+    static const struct {
+        const char* id;
+        const char* label;
+        const char* layoutId;
+        int col;
+        int span;
+    } kTabs[] = {
+        {"tab_buttons", "Button", "main_settings_button_timing", 0, 3},
+        {"tab_pointers", "Pointer", "main_settings_pointer_timing", 3, 2},
+        {"tab_styles", "Styles", "main_settings_styles", 5, 2},
+        {"tab_assist", "Assist", "main_settings_assist", 7, 3},
+        {"tab_lts", "LTS", "main_settings_lts", 10, 3},
+        {"tab_theme", "Theme", "main_settings_theme", 13, 3},
+    };
+    QVector<LayoutItem> tabs;
+    tabs.reserve(6);
+    for (const auto& spec : kTabs) {
+        LayoutItem t;
+        t.id = QLatin1String(spec.id);
+        t.role = QStringLiteral("tab");
+        t.label = QLatin1String(spec.label);
+        t.row = 0;
+        t.col = spec.col;
+        t.colSpan = spec.span;
+        t.applyKind();
+        if (doc.id == QLatin1String(spec.layoutId)) {
+            t.interactive = false;
+        } else {
+            t.action.type = LayoutAction::Type::LoadLayout;
+            t.action.layoutId = QLatin1String(spec.layoutId);
+        }
+        tabs.push_back(std::move(t));
+    }
+    QVector<LayoutItem> body;
+    body.reserve(doc.items.size());
+    for (LayoutItem& item : doc.items) {
+        if (item.kind == LayoutItemKind::Tab) {
+            continue;
+        }
+        body.push_back(std::move(item));
+    }
+    doc.items = std::move(tabs);
+    doc.items.append(body);
+    if (doc.grid.columns < 16) {
+        doc.grid.columns = 16;
+    }
+
     const ThemeColors theme = m_settings.customColors;
     for (LayoutItem& item : doc.items) {
         if (!item.settingKey.isEmpty() && !item.interactive) {
@@ -230,9 +282,11 @@ LayoutDocument SettingsUi::buildNumpadDocument() const
                                   : QStringLiteral("Current: %1").arg(m_numpadResetSeed);
     doc.items.push_back(makeLabel(QStringLiteral("title"), m_numpadTitle, 0, 0, 4, savedLine));
     doc.items.push_back(makeLabel(QStringLiteral("desc"), m_numpadHint, 1, 0, 4));
-    doc.items.push_back(makeLabel(
+    LayoutItem numpadDisplay = makeLabel(
         QStringLiteral("display"),
-        m_numpadBuffer.isEmpty() ? QStringLiteral("0") : m_numpadBuffer, 2, 0, 4));
+        m_numpadBuffer.isEmpty() ? QStringLiteral("0") : m_numpadBuffer, 2, 0, 4);
+    numpadDisplay.textStyle = QStringLiteral("title");
+    doc.items.push_back(numpadDisplay);
 
     const EditorSwatch sw = editorSwatch();
     auto key = [&](const QString& id, const QString& label, int row, int col, const QString& cmd,

@@ -337,6 +337,18 @@ void SettingsUi::registerCommands()
         QStringLiteral("settings.mousePickStyle.crosshair.toggle"),
         togglePick(&AppSettings::mousePickStyle, PickStyle::Crosshair, PickStyle::kMousePickMask,
                    PickStyle::kDefaultMousePick, "Mouse pick: crosshair"));
+    m_commands.registerBuiltin(QStringLiteral("settings.pickWindow.round"), [this](QString*) {
+        m_settings.pickWindowRound = true;
+        apply(true);
+        notifyStatus(QStringLiteral("Zoom shape: Round"));
+        return true;
+    });
+    m_commands.registerBuiltin(QStringLiteral("settings.pickWindow.square"), [this](QString*) {
+        m_settings.pickWindowRound = false;
+        apply(true);
+        notifyStatus(QStringLiteral("Zoom shape: Square"));
+        return true;
+    });
 
     m_commands.registerBuiltin(QStringLiteral("settings.reset"), [this](QString*) {
         if (m_reset) {

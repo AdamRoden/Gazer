@@ -1,0 +1,302 @@
+{
+  "schemaVersion": 1,
+  "window": {
+    "anchor": "TopCenter",
+    "widthPx": 1600,
+    "height": 100,
+    "marginPx": 0,
+    "style": {
+      "radius": 8,
+      "borderWidth": 1,
+      "background": "#000000"
+    }
+  },
+  "style": {
+    "radius": 4
+  },
+  "grid": {
+    "columns": 16,
+    "rows": 12,
+    "gapPx": 6,
+    "marginPx": 12,
+    "marginX": 5
+  },
+  "id": "main_settings_button_timing",
+  "name": "Button timing",
+  "description": "Board dwell timing, blink/scan grace, and completion flash duration",
+  "items": [
+    {
+      "id": "page_title",
+      "role": "label",
+      "textStyle": "title",
+      "label": "Button timing",
+      "caption": "Board dwell timing, blink/scan grace, and completion flash duration",
+      "row": 1,
+      "col": 0,
+      "colSpan": 16
+    },
+    {
+      "id": "h_timing",
+      "role": "label",
+      "textStyle": "section",
+      "label": "Timing",
+      "row": 2,
+      "col": 0,
+      "colSpan": 16
+    },
+    {
+      "id": "grace_label",
+      "role": "label",
+      "label": "Blink grace",
+      "caption": "Blink window without canceling dwell (ms).",
+      "row": 3,
+      "col": 0,
+      "colSpan": 6
+    },
+    {
+      "id": "grace_dec",
+      "label": "−",
+      "row": 3,
+      "col": 8,
+      "cluster": "stepper.grace",
+      "clusterSlot": "dec",
+      "action": {
+        "type": "command",
+        "name": "settings.nudge.dwellGraceMs.dec"
+      }
+    },
+    {
+      "id": "grace_val",
+      "role": "label",
+      "settingKey": "dwellGraceMs",
+      "label": "—",
+      "row": 3,
+      "col": 9,
+      "colSpan": 2,
+      "cluster": "stepper.grace",
+      "clusterSlot": "value"
+    },
+    {
+      "id": "grace_inc",
+      "label": "+",
+      "row": 3,
+      "col": 11,
+      "cluster": "stepper.grace",
+      "clusterSlot": "inc",
+      "action": {
+        "type": "command",
+        "name": "settings.nudge.dwellGraceMs.inc"
+      }
+    },
+    {
+      "id": "grace_edit",
+      "label": "Edit…",
+      "row": 3,
+      "col": 12,
+      "cluster": "stepper.grace",
+      "clusterSlot": "edit",
+      "action": {
+        "type": "command",
+        "name": "settings.edit.dwellGraceMs"
+      }
+    },
+    {
+      "id": "scan_label",
+      "role": "label",
+      "label": "Scan grace",
+      "caption": "Time on-target before dwell progress starts (ms).",
+      "row": 4,
+      "col": 0,
+      "colSpan": 6
+    },
+    {
+      "id": "scan_dec",
+      "label": "−",
+      "row": 4,
+      "col": 8,
+      "cluster": "stepper.scan",
+      "clusterSlot": "dec",
+      "action": {
+        "type": "command",
+        "name": "settings.nudge.scanGraceMs.dec"
+      }
+    },
+    {
+      "id": "scan_val",
+      "role": "label",
+      "settingKey": "scanGraceMs",
+      "label": "—",
+      "row": 4,
+      "col": 9,
+      "colSpan": 2,
+      "cluster": "stepper.scan",
+      "clusterSlot": "value"
+    },
+    {
+      "id": "scan_inc",
+      "label": "+",
+      "row": 4,
+      "col": 11,
+      "cluster": "stepper.scan",
+      "clusterSlot": "inc",
+      "action": {
+        "type": "command",
+        "name": "settings.nudge.scanGraceMs.inc"
+      }
+    },
+    {
+      "id": "scan_edit",
+      "label": "Edit…",
+      "row": 4,
+      "col": 12,
+      "cluster": "stepper.scan",
+      "clusterSlot": "edit",
+      "action": {
+        "type": "command",
+        "name": "settings.edit.scanGraceMs"
+      }
+    },
+    {
+      "id": "dwell_label",
+      "role": "label",
+      "label": "Dwell sequence",
+      "caption": "Comma-separated ms steps while holding. Last step repeats forever.",
+      "row": 5,
+      "col": 0,
+      "colSpan": 6
+    },
+    {
+      "id": "dwell_value",
+      "role": "label",
+      "settingKey": "dwellMs",
+      "label": "—",
+      "row": 5,
+      "col": 8,
+      "colSpan": 4,
+      "cluster": "stepper.dwell",
+      "clusterSlot": "value"
+    },
+    {
+      "id": "dwell_edit",
+      "label": "Edit…",
+      "row": 5,
+      "col": 12,
+      "cluster": "stepper.dwell",
+      "clusterSlot": "edit",
+      "action": {
+        "type": "command",
+        "name": "settings.edit.dwellMs"
+      }
+    },
+    {
+      "id": "h_flash",
+      "role": "label",
+      "textStyle": "section",
+      "label": "Feedback",
+      "row": 6,
+      "col": 0,
+      "colSpan": 16
+    },
+    {
+      "id": "fd_label",
+      "role": "label",
+      "label": "Completion flash duration",
+      "caption": "How long the completion flash is shown (ms).",
+      "row": 7,
+      "col": 0,
+      "colSpan": 6
+    },
+    {
+      "id": "fd_dec",
+      "label": "−",
+      "row": 7,
+      "col": 8,
+      "cluster": "stepper.fd",
+      "clusterSlot": "dec",
+      "action": {
+        "type": "command",
+        "name": "settings.nudge.flashMs.dec"
+      }
+    },
+    {
+      "id": "fd_val",
+      "role": "label",
+      "settingKey": "flashMs",
+      "label": "—",
+      "row": 7,
+      "col": 9,
+      "colSpan": 2,
+      "cluster": "stepper.fd",
+      "clusterSlot": "value"
+    },
+    {
+      "id": "fd_inc",
+      "label": "+",
+      "row": 7,
+      "col": 11,
+      "cluster": "stepper.fd",
+      "clusterSlot": "inc",
+      "action": {
+        "type": "command",
+        "name": "settings.nudge.flashMs.inc"
+      }
+    },
+    {
+      "id": "h_presets",
+      "role": "label",
+      "textStyle": "section",
+      "label": "Presets",
+      "row": 8,
+      "col": 0,
+      "colSpan": 16
+    },
+    {
+      "id": "p_label",
+      "role": "label",
+      "label": "Quick packages",
+      "caption": "Slow / Normal / Fast single-step dwell.",
+      "row": 9,
+      "col": 0,
+      "colSpan": 5
+    },
+    {
+      "id": "p_slow",
+      "label": "Slow",
+      "row": 9,
+      "col": 8,
+      "cluster": "segment.preset",
+      "activeState": "setting.dwell.slow",
+      "action": {
+        "type": "command",
+        "name": "settings.dwell.slow"
+      },
+      "colSpan": 2
+    },
+    {
+      "id": "p_norm",
+      "label": "Normal",
+      "row": 9,
+      "col": 10,
+      "cluster": "segment.preset",
+      "activeState": "setting.dwell.normal",
+      "action": {
+        "type": "command",
+        "name": "settings.dwell.normal"
+      },
+      "colSpan": 3
+    },
+    {
+      "id": "p_fast",
+      "label": "Fast",
+      "row": 9,
+      "col": 13,
+      "cluster": "segment.preset",
+      "activeState": "setting.dwell.fast",
+      "action": {
+        "type": "command",
+        "name": "settings.dwell.fast"
+      },
+      "colSpan": 3
+    }
+  ]
+}

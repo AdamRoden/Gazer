@@ -889,6 +889,7 @@ LayoutDocument SettingsUi::buildOpacityDocument() const
     LayoutItem track;
     track.id = QStringLiteral("track_opacity");
     track.role = QStringLiteral("slider");
+    track.applyKind();
     track.caption = QStringLiteral("opacity");
     track.label = QStringLiteral("Opacity");
     track.interactive = false;
@@ -902,6 +903,7 @@ LayoutDocument SettingsUi::buildOpacityDocument() const
     LayoutItem preview;
     preview.id = QStringLiteral("preview");
     preview.role = QStringLiteral("preview");
+    preview.applyKind();
     preview.label = QStringLiteral("Preview");
     preview.caption = QStringLiteral("%1%").arg(m_opacityDraft);
     preview.interactive = false;
@@ -1089,6 +1091,7 @@ LayoutDocument SettingsUi::buildColorDocument() const
         LayoutItem track;
         track.id = QStringLiteral("track_%1").arg(QLatin1String(axis.id));
         track.role = QStringLiteral("slider");
+        track.applyKind();
         track.caption = QLatin1String(axis.id);
         track.label = QLatin1String(axis.title);
         track.interactive = false;
@@ -1130,7 +1133,6 @@ LayoutDocument SettingsUi::buildColorDocument() const
         }
         LayoutItem sw;
         sw.id = QLatin1String(role.id);
-        sw.role = QStringLiteral("swatch");
         sw.label = QLatin1String(role.label);
         sw.caption = QLatin1String(role.caption);
         sw.settingKey = QLatin1String(role.colorKey);
@@ -1148,7 +1150,6 @@ LayoutDocument SettingsUi::buildColorDocument() const
         const QColor suggested = draft.suggestedThemeColor(QLatin1String(role.colorKey));
         LayoutItem lock;
         lock.id = QStringLiteral("suggest_%1").arg(QLatin1String(role.colorKey));
-        lock.role = QStringLiteral("swatch");
         lock.label = QStringLiteral("Apply Suggested");
         lock.row = role.row;
         lock.col = 11;

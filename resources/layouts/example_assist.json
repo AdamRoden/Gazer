@@ -3,7 +3,6 @@
   "id": "example_assist",
   "name": "Assist",
   "description": "Gaze assist: LTS, magnifier, reticle, gaze mouse, move-to.",  
-  "uiStyle": "default",
   "boundsMode": "screen",
   "autoClose": true,
   "autoCloseIdleMs": 3000,

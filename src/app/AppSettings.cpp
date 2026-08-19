@@ -60,22 +60,22 @@ constexpr IntSpec kIntSpecs[] = {
     {"dwellGraceMs", "Blink grace",
      "Blink grace window without canceling dwell (ms).", " ms",
      &AppSettings::dwellGraceMs, 0, 800, 20},
-    {"mouseMoveDwellMs", "Mouse-move dwell",
-     "Dwell time for mouse cursor placement (ms).", " ms",
+    {"mouseMoveDwellMs", "Pointer dwell",
+     "Dwell time for the final cursor / click placement (ms).", " ms",
      &AppSettings::mouseMoveDwellMs, 200, 2500, 50},
-    {"magPickDwellMs", "Magnify-pick dwell",
+    {"magPickDwellMs", "Zoom dwell",
      "Dwell time to choose the region to magnify (ms).", " ms",
      &AppSettings::magPickDwellMs, 200, 2500, 50},
     {"mouseMoveForesightDwellMs", "Foresight dwell",
      "Dwell time to store a foresight point before Move-to (ms).", " ms",
      &AppSettings::mouseMoveForesightDwellMs, 100, 2500, 50},
-    {"mouseMoveSelectTimeoutMs", "Mouse-move timeout",
-     "Cancel mouse-move / gaze-click loop if no target is selected within this many ms (0 = off).",
+    {"mouseMoveSelectTimeoutMs", "Pointer grace",
+     "Cancel pointer aim if no target is selected within this many ms (0 = off).",
      " ms", &AppSettings::mouseMoveSelectTimeoutMs, 0, 120000, 500},
     {"magLensSize", "Lens size", "Live lens diameter in pixels (160–900).", " px",
      &AppSettings::magLensSize, 160, 900, 20},
-    {"pickWindowPx", "Pick window",
-     "Static zoom window size for pre-click and foresight (px).", " px",
+    {"pickWindowPx", "Zoom size",
+     "Static zoom window size for magnify and foresight (px).", " px",
      &AppSettings::pickWindowPx, 200, 1600, 40},
     {"ltsDeadzonePx", "LTS deadzone", "No-scroll radius around cursor (px).", " px",
      &AppSettings::ltsDeadzonePx, 30, 400, 10},
@@ -83,7 +83,7 @@ constexpr IntSpec kIntSpecs[] = {
      &AppSettings::ltsFalloffPx, 80, 800, 20},
     {"ltsCenterDwellMs", "LTS center dwell", "Dwell in the deadzone center to pause/resume (ms).",
      " ms", &AppSettings::ltsCenterDwellMs, 200, 2500, 50},
-    {"flashMs", "Flash duration", "Completion flash duration after activation (ms).", " ms",
+    {"flashMs", "Completion flash duration", "How long the completion flash is shown (ms).", " ms",
      &AppSettings::flashMs, 40, 1000, 20},
     {"flashForegroundOpacity", "Flash opacity",
      "Opacity of the completion flash when using the item foreground color.", "%",
@@ -93,8 +93,8 @@ constexpr IntSpec kIntSpecs[] = {
 constexpr DoubleSpec kDoubleSpecs[] = {
     {"magZoom", "Lens zoom", "Live lens magnification (1.25–6). Not used by pick zoom.", "",
      &AppSettings::magZoom, 1.25, 6.0, 0.25, 2},
-    {"pickZoom", "Pick zoom",
-     "Static magnification for pre-click and foresight (1.25–8).", "",
+    {"pickZoom", "Zoom level",
+     "Static magnification for magnify and foresight (1.25–8).", "",
      &AppSettings::pickZoom, 1.25, 8.0, 0.25, 2},
     {"ltsMaxNotchesPerSec", "LTS max speed", "Peak scroll rate (notches/second).", " n/s",
      &AppSettings::ltsMaxNotchesPerSec, 0.5, 24.0, 0.5, 1},
@@ -133,6 +133,7 @@ constexpr BoolSpec kBoolSpecs[] = {
     {"mouseProgressFill", &AppSettings::mouseProgressFill},
     {"mouseProgressBorder", &AppSettings::mouseProgressBorder},
     {"flashUseForeground", &AppSettings::flashUseForeground},
+    {"pickWindowRound", &AppSettings::pickWindowRound},
 };
 
 bool keyEq(const char* a, const QString& b)
@@ -763,6 +764,7 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
     magLensSize = o.value(QStringLiteral("magLensSize")).toInt(magLensSize);
     pickZoom = o.value(QStringLiteral("pickZoom")).toDouble(pickZoom);
     pickWindowPx = o.value(QStringLiteral("pickWindowPx")).toInt(pickWindowPx);
+    pickWindowRound = o.value(QStringLiteral("pickWindowRound")).toBool(pickWindowRound);
     magFollowProfile = o.value(QStringLiteral("magFollowProfile")).toInt(magFollowProfile);
     ltsDeadzonePx = o.value(QStringLiteral("ltsDeadzonePx")).toInt(ltsDeadzonePx);
     ltsFalloffPx = o.value(QStringLiteral("ltsFalloffPx")).toInt(ltsFalloffPx);
@@ -887,6 +889,7 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     o.insert(QStringLiteral("magLensSize"), copy.magLensSize);
     o.insert(QStringLiteral("pickZoom"), copy.pickZoom);
     o.insert(QStringLiteral("pickWindowPx"), copy.pickWindowPx);
+    o.insert(QStringLiteral("pickWindowRound"), copy.pickWindowRound);
     o.insert(QStringLiteral("magFollowProfile"), copy.magFollowProfile);
     o.insert(QStringLiteral("ltsDeadzonePx"), copy.ltsDeadzonePx);
     o.insert(QStringLiteral("ltsFalloffPx"), copy.ltsFalloffPx);

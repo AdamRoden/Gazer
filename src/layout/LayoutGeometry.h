@@ -24,18 +24,18 @@ namespace LayoutGeometry {
     const int cols = grid.columns;
     const int rows = grid.rows;
     const int gap = grid.gapPx;
-    const int margin = grid.marginPx;
+    const auto inset = grid.insets(boardW, boardH);
 
-    const double innerW = boardW - 2.0 * margin - gap * (cols - 1);
-    const double innerH = boardH - 2.0 * margin - gap * (rows - 1);
+    const double innerW = boardW - inset.left - inset.right - gap * (cols - 1);
+    const double innerH = boardH - inset.top - inset.bottom - gap * (rows - 1);
     if (cols < 1 || rows < 1 || innerW <= 0 || innerH <= 0) {
         return {};
     }
 
     const double cellW = innerW / cols;
     const double cellH = innerH / rows;
-    const double x = margin + col * (cellW + gap);
-    const double y = margin + row * (cellH + gap);
+    const double x = inset.left + col * (cellW + gap);
+    const double y = inset.top + row * (cellH + gap);
     const double w = cellW * colSpan + gap * (colSpan - 1);
     const double h = cellH * rowSpan + gap * (rowSpan - 1);
     return QRectF(x, y, w, h);
@@ -51,11 +51,11 @@ namespace LayoutGeometry {
         return out;
     }
 
-    const int margin = layout.grid.marginPx;
+    const auto inset = layout.grid.insets(boardW, boardH);
     const int gap = layout.grid.gapPx;
     const int rows = layout.grid.rows > 0 ? layout.grid.rows : 1;
-    const double innerW = boardW - 2.0 * margin;
-    const double innerH = boardH - 2.0 * margin - gap * (rows - 1);
+    const double innerW = boardW - inset.left - inset.right;
+    const double innerH = boardH - inset.top - inset.bottom - gap * (rows - 1);
     if (innerW <= 0 || innerH <= 0) {
         return out;
     }
@@ -91,8 +91,8 @@ namespace LayoutGeometry {
 
         const int n = idxs.size();
         const double usableW = innerW - gap * qMax(0, n - 1);
-        double x = margin;
-        const double y = margin + row * (rowH + gap);
+        double x = inset.left;
+        const double y = inset.top + row * (rowH + gap);
 
         for (int i : idxs) {
             double u = layout.items[i].widthUnits;
@@ -106,6 +106,8 @@ namespace LayoutGeometry {
     }
     return out;
 }
+
+inline void equalizeSegmentClusters(const LayoutDocument& layout, QHash<QString, QRectF>& rects);
 
 [[nodiscard]] inline QHash<QString, QRectF> itemRects(const LayoutDocument& layout,
                                                      int boardW,
@@ -128,7 +130,9 @@ namespace LayoutGeometry {
         }
     }
     if (useUnits) {
-        return itemRectsUnitRows(layout, boardW, boardH);
+        auto out = itemRectsUnitRows(layout, boardW, boardH);
+        equalizeSegmentClusters(layout, out);
+        return out;
     }
 
     QHash<QString, QRectF> out;
@@ -141,7 +145,43 @@ namespace LayoutGeometry {
                    cellRect(layout.grid, boardW, boardH, item.row, item.col, item.rowSpan,
                             item.colSpan));
     }
+    equalizeSegmentClusters(layout, out);
     return out;
+}
+
+inline void equalizeSegmentClusters(const LayoutDocument& layout, QHash<QString, QRectF>& rects)
+{
+    QHash<QString, QVector<QString>> byCluster;
+    for (const LayoutItem& item : layout.items) {
+        if (item.kind != LayoutItemKind::Segment || !item.participatesInBoardGrid()) {
+            continue;
+        }
+        if (rects.value(item.id).isEmpty()) {
+            continue;
+        }
+        byCluster[item.cluster].push_back(item.id);
+    }
+    for (auto it = byCluster.begin(); it != byCluster.end(); ++it) {
+        QVector<QString> ids = it.value();
+        if (ids.size() < 2) {
+            continue;
+        }
+        std::sort(ids.begin(), ids.end(), [&](const QString& a, const QString& b) {
+            return rects.value(a).left() < rects.value(b).left();
+        });
+        QRectF span;
+        for (const QString& id : ids) {
+            const QRectF r = rects.value(id);
+            span = span.isEmpty() ? r : span.united(r);
+        }
+        if (span.width() < 2.0) {
+            continue;
+        }
+        const double w = span.width() / double(ids.size());
+        for (int i = 0; i < ids.size(); ++i) {
+            rects.insert(ids[i], QRectF(span.left() + w * i, span.top(), w, span.height()));
+        }
+    }
 }
 
 /// Hit-test gaze in board-local coordinates.

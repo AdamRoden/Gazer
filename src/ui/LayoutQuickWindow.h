@@ -13,7 +13,6 @@
 #include <QVariantMap>
 
 class QCloseEvent;
-class QPainter;
 
 namespace gazer {
 
@@ -72,8 +71,6 @@ public:
         }
     };
     [[nodiscard]] static SliderVisual sliderVisual(const QRectF& cell, bool scrubbing);
-    [[nodiscard]] QRectF sliderActivatorRect(const QRectF& cell, const LayoutItem& item,
-                                             bool scrubbing) const;
     void showAndRaise();
     /// HWND_TOPMOST only — no restack dip. No-op unless window.aboveTaskbar.
     void keepAboveTaskbar();
@@ -98,21 +95,11 @@ protected:
 private:
     void applyTopmost();
     void syncBoardSize();
-    void paintBoard(QPainter& p);
-    void paintDefault(QPainter& p);
-    void paintFluent(QPainter& p);
-    void paintCell(QPainter& p, const LayoutItem& item, const QRectF& r, bool fluent);
-    void paintProgressChrome(QPainter& p, const QRectF& r, bool hovered, double progress,
-                             const ProgressVisuals& visuals, double radius);
-    void paintSliderTrack(QPainter& p, const QRectF& r, const LayoutItem& item, bool hovered,
-                          double progress);
-    void paintPreviewSwatch(QPainter& p, const QRectF& r, double radius);
-    void paintRadioButton(QPainter& p, const QRectF& cell, bool on);
-    [[nodiscard]] bool fillChrome(QPainter& p, const QRectF& r, double radius, const QColor& bg,
-                                  const LayoutChromeStyle& st, const QColor& bgBot = QColor());
     [[nodiscard]] ProgressVisuals visualsForItem(const LayoutItem* item) const;
     [[nodiscard]] bool itemShown(const LayoutItem& item) const;
     [[nodiscard]] LayoutItemStyle resolvedItemStyle(const LayoutItem& item) const;
+
+    friend class LayoutBoardPainter;
 
     LayoutDocument m_layout;
     QHash<QString, QRectF> m_itemLocalRects;

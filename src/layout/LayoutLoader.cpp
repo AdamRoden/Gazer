@@ -361,14 +361,6 @@ bool LayoutLoader::loadFromJson(const QByteArray& json, LayoutDocument& out, QSt
     layout.id = root.value(QStringLiteral("id")).toString();
     layout.name = root.value(QStringLiteral("name")).toString();
     layout.description = root.value(QStringLiteral("description")).toString();
-    {
-        const QString style = root.value(QStringLiteral("uiStyle")).toString().toLower();
-        if (style == QLatin1String("fluent") || style == QLatin1String("material")) {
-            layout.uiStyle = LayoutUiStyle::Fluent;
-        } else {
-            layout.uiStyle = LayoutUiStyle::Default;
-        }
-    }
 
     if (layout.id.isEmpty()) {
         if (error) {
@@ -452,6 +444,8 @@ bool LayoutLoader::loadFromJson(const QByteArray& json, LayoutDocument& out, QSt
         layout.grid.rows = grid.value(QStringLiteral("rows")).toInt(1);
         layout.grid.gapPx = grid.value(QStringLiteral("gapPx")).toInt(8);
         layout.grid.marginPx = grid.value(QStringLiteral("marginPx")).toInt(0);
+        parseDim(grid, QStringLiteral("marginX"), layout.grid.marginX);
+        parseDim(grid, QStringLiteral("marginY"), layout.grid.marginY);
         layout.grid.unitRows = grid.value(QStringLiteral("unitRows")).toBool(false);
     } else {
         layout.grid.columns = 1;
@@ -551,18 +545,29 @@ bool LayoutLoader::loadFromJson(const QByteArray& json, LayoutDocument& out, QSt
         item.settingKey = io.value(QStringLiteral("settingKey")).toString();
         item.activeState = io.value(QStringLiteral("activeState")).toString();
         item.icon = io.value(QStringLiteral("icon")).toString();
-        item.role = io.value(QStringLiteral("role")).toString();
-        // role: "label" | interactive: false → static non-activator
+        item.role = io.value(QStringLiteral("role")).toString().toLower();
+        item.textStyle = io.value(QStringLiteral("textStyle")).toString();
+        item.cluster = io.value(QStringLiteral("cluster")).toString();
+        item.clusterSlot = io.value(QStringLiteral("clusterSlot")).toString().toLower();
+        if (item.role == QLatin1String("card")) {
+            continue; // row cards are derived at paint time
+        }
+        if ((item.role == QLatin1String("display") || item.role == QLatin1String("input"))
+            && item.textStyle.isEmpty()) {
+            item.textStyle = QStringLiteral("title");
+        }
+        item.applyKind();
         if (io.contains(QStringLiteral("interactive"))) {
             item.interactive = io.value(QStringLiteral("interactive")).toBool(true);
+        } else if (item.kind == LayoutItemKind::Label || item.kind == LayoutItemKind::Slider
+                   || item.kind == LayoutItemKind::Preview
+                   || item.clusterSlot == QLatin1String("value")) {
+            item.interactive = false;
         } else {
-            const QString role = item.role.toLower();
-            item.interactive = !(role == QLatin1String("label") || role == QLatin1String("display")
-                                 || role == QLatin1String("value") || role == QLatin1String("slider")
-                                 || role == QLatin1String("preview") || role == QLatin1String("swatch"));
+            item.interactive = true;
         }
         item.dwellExempt = io.value(QStringLiteral("dwellExempt")).toBool(false)
-                           || item.role.toLower() == QLatin1String("dwellExempt");
+                           || item.role == QLatin1String("dwellExempt");
         item.row = io.value(QStringLiteral("row")).toInt(0);
         item.col = io.value(QStringLiteral("col")).toInt(0);
         item.rowSpan = io.value(QStringLiteral("rowSpan")).toInt(1);

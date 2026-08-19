@@ -69,6 +69,7 @@ set(GAZER_SOURCES
     src/ui/PreviewWindow.cpp
     src/ui/StlMesh.cpp
     src/ui/LayoutQuickWindow.cpp
+    src/ui/LayoutBoardPainter.cpp
     src/ui/GlassBackdrop.cpp
     src/ui/TrayIcon.cpp
     src/ui/DockRevealOverlay.cpp
@@ -132,6 +133,7 @@ set(GAZER_HEADERS
     src/ui/PreviewWindow.h
     src/ui/StlMesh.h
     src/ui/LayoutQuickWindow.h
+    src/ui/LayoutBoardPainter.h
     src/ui/GlassBackdrop.h
     src/ui/TrayIcon.h
     src/ui/DockRevealOverlay.h

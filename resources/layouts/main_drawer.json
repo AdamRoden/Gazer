@@ -2,7 +2,6 @@
   "schemaVersion": 1,
   "id": "main_drawer",
   "name": "Main",
-  "uiStyle": "default",
   "boundsMode": "screen",
   "autoClose": true,
   "autoCloseIdleMs": 3000,
@@ -49,7 +48,7 @@
       "label": "Settings ⚙",
       "row": 0,
       "col": 3,
-      "action": { "type": "openLayout", "layoutId": "main_settings_buttons" }
+      "action": { "type": "openLayout", "layoutId": "main_settings_button_timing" }
     },
     {
       "id": "close",

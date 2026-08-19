@@ -30,6 +30,8 @@ struct AppSettings {
     bool mouseMoveMagPickCenterOnDwell = true;
     /// Grow the static zoom window to fill the monitor's short axis.
     bool mouseMoveMagPickFullScreen = false;
+    /// Inscribe the static zoom window in a circle (else a square).
+    bool pickWindowRound = false;
     /// Remember a desktop dwell and immediately magnify that point when Move-to arms.
     bool mouseMoveForesight = false;
     /// Hold gaze this long (ms) to store a foresight point (kept for 2s).

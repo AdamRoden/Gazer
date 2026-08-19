@@ -67,6 +67,8 @@ public:
     [[nodiscard]] bool isMagPointPhase() const;
     void setPickZoom(double z);
     void setPickWindowPx(int px);
+    void setPickWindowRound(bool on);
+    [[nodiscard]] bool isPickWindowRound() const { return m_pickWindowRound; }
     void setMagPickCenterOnDwell(bool on);
     [[nodiscard]] bool isMagPickCenterOnDwell() const { return m_magPickCenterOnDwell; }
     void setMagPickFullScreen(bool on);
@@ -102,6 +104,7 @@ private:
                                                     const QPoint& destCenter, int destSide) const;
     [[nodiscard]] int destSideFor(QScreen* screen) const;
     [[nodiscard]] QPoint mapDisplayToSource(const QPointF& gaze) const;
+    [[nodiscard]] bool gazeInZoomWindow(const QPointF& gaze) const;
     void finishMagPoint(const QPointF& gaze);
     void placeCursor(const QPoint& target);
     void onGazeInZoom(const QPointF& g, double dtSec);
@@ -128,6 +131,7 @@ private:
     bool m_foresightDoubleZoom = false;
     double m_pickZoom = 4.0;
     int m_pickWindowPx = 880;
+    bool m_pickWindowRound = false;
     Phase m_phase = Phase::Idle;
     int m_selectTimeoutMs = 5000;
     qint64 m_selectDeadlineMs = -1;

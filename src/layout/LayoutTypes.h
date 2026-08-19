@@ -138,6 +138,18 @@ struct LayoutChromeStyle {
 
 using LayoutItemStyle = LayoutChromeStyle;
 
+/// Runtime widget kind. JSON `role` / `cluster` are mapped once at load.
+enum class LayoutItemKind {
+    Button,
+    Label,
+    Tab,
+    Toggle,
+    Slider,
+    Preview,
+    Stepper,
+    Segment
+};
+
 /// Optional dwell region for unbounded items (not clipped to board / can sit off-screen).
 struct LayoutDwellRegion {
     enum class ScreenAnchor {
@@ -239,8 +251,15 @@ struct LayoutItem {
     QString activeState;
     /// Built-in glyph key for the board painter (e.g. "leftClick", "moveTo"). Empty = text only.
     QString icon;
-    /// Optional role: label / display / value / slider / preview / swatch.
+    /// JSON role string (load input). Runtime paint/hit uses `kind`.
     QString role;
+    LayoutItemKind kind = LayoutItemKind::Button;
+    /// Fluent type ramp for labels: caption, body, bodyStrong, subtitle, title, section.
+    QString textStyle;
+    /// Shared group id for stepper/segment members (JSON `cluster`).
+    QString cluster;
+    /// Slot inside the group: dec / value / inc / edit.
+    QString clusterSlot;
     /// When false, cell is visual-only (not dwell/click hit-tested).
     bool interactive = true;
     /// When true, remains dwellable while global dwell suspend is on.
@@ -274,6 +293,46 @@ struct LayoutItem {
     bool visible = true;
     /// Visibility predicate: empty, `ident`, or `!ident` (expanded, quitConfirm, dwellSuspend).
     QString visibleWhen;
+
+    void applyKind()
+    {
+        const QString r = role.toLower();
+        if (cluster.startsWith(QLatin1String("segment"), Qt::CaseInsensitive)) {
+            kind = LayoutItemKind::Segment;
+        } else if (cluster.startsWith(QLatin1String("stepper"), Qt::CaseInsensitive)) {
+            kind = LayoutItemKind::Stepper;
+        } else if (r == QLatin1String("tab")) {
+            kind = LayoutItemKind::Tab;
+        } else if (r == QLatin1String("toggle")) {
+            kind = LayoutItemKind::Toggle;
+        } else if (r == QLatin1String("slider")) {
+            kind = LayoutItemKind::Slider;
+        } else if (r == QLatin1String("preview")) {
+            kind = LayoutItemKind::Preview;
+        } else if (r == QLatin1String("label") || r == QLatin1String("value")
+                   || r == QLatin1String("display") || r == QLatin1String("input")) {
+            kind = LayoutItemKind::Label;
+        } else {
+            kind = LayoutItemKind::Button;
+        }
+    }
+
+    [[nodiscard]] bool isClustered() const
+    {
+        return kind == LayoutItemKind::Stepper || kind == LayoutItemKind::Segment;
+    }
+
+    [[nodiscard]] bool isPageChrome() const
+    {
+        if (kind == LayoutItemKind::Tab) {
+            return true;
+        }
+        if (kind != LayoutItemKind::Label) {
+            return false;
+        }
+        const QString ts = textStyle.toLower();
+        return ts == QLatin1String("section") || ts == QLatin1String("title");
+    }
 
     [[nodiscard]] bool isEmbed() const
     {
@@ -319,9 +378,33 @@ struct LayoutGrid {
     int columns = 1;
     int rows = 1;
     int gapPx = 8;
+    /// Uniform pixel inset when a side DimSpec is unset.
     int marginPx = 0;
+    /// Left/right inset. Bare JSON number = percent of board width.
+    DimSpec marginX;
+    /// Top/bottom inset. Bare JSON number = percent of board height.
+    DimSpec marginY;
     /// When true (or any item has widthUnits > 0), each row is laid out by widthUnits.
     bool unitRows = false;
+
+    struct Insets {
+        double left = 0;
+        double top = 0;
+        double right = 0;
+        double bottom = 0;
+    };
+
+    [[nodiscard]] Insets insets(double boardW, double boardH) const
+    {
+        Insets i;
+        const double hx = marginX.isSet() ? marginX.resolve(boardW) : double(marginPx);
+        const double vy = marginY.isSet() ? marginY.resolve(boardH) : double(marginPx);
+        i.left = hx;
+        i.right = hx;
+        i.top = vy;
+        i.bottom = vy;
+        return i;
+    }
 };
 
 /// Initial board placement on the available desktop (above taskbar).
@@ -369,12 +452,6 @@ struct LayoutChildRef {
     QString visibleWhen;
 };
 
-/// Visual chrome for the board window.
-enum class LayoutUiStyle {
-    Default,
-    Fluent // Material/Fluent-inspired cards, captions, tooltips
-};
-
 /// Parsed layout document (resources/layouts/*.json).
 struct LayoutDocument {
     int schemaVersion = 1;
@@ -391,7 +468,6 @@ struct LayoutDocument {
     LayoutGrid grid;
     LayoutDwellConfig dwell;
     LayoutWindowPlacement placement;
-    LayoutUiStyle uiStyle = LayoutUiStyle::Default;
     /// Default item chrome. Item `style` wins per field; remaining unset fields use the theme.
     LayoutChromeStyle style;
     QVector<LayoutItem> items;

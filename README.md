@@ -78,7 +78,7 @@ When boards overlap, only the topmost instance receives dwell — except master 
 | `main_master` | Root dock |
 | `main_drawer` | Home bar |
 | `main_quit_confirm` | Quit Yes / No |
-| `main_settings*` | Settings hub and sub-boards (behavior, theme, assist, LTS, magnifier, timing) |
+| `main_settings*` | Settings hub: button timing, pointer timing, styles, assist, LTS, theme |
 | `example_keyboard` (+ shift / sym variants) | On-screen keyboard |
 | `example_mouse` | Mouse pad |
 | `example_assist` | Assist tools |
@@ -128,8 +128,7 @@ Layouts live in `resources/layouts/*.json`. Catalog id should match the filename
 |-------|------|-------------|
 | `schemaVersion` | int | Default `1` |
 | `id` | string | **Required** catalog id |
-| `name`, `description` | string | Title / subtitle on Fluent boards |
-| `uiStyle` | string | `default`, `fluent` (`material` maps to fluent) |
+| `name`, `description` | string | Title / subtitle painted in the top grid margin when `grid.marginPx` is at least 42 |
 | `master` | bool | Process-lifetime root. Only one. |
 | `hideUntilGazeReveal` | bool | Hide dock chips until a bottom-edge reveal dwell completes |
 | `children` | array | `{ "id", "layoutId", "visible", "visibleWhen" }` — owned instances, show/hide |
@@ -209,7 +208,8 @@ Unset fields fall back to layout `style`, then the theme. Item styles may live u
 |-------|---------|-------------|
 | `columns`, `rows` | `1` (then expanded) | Grown to fit max row/col + spans |
 | `gapPx` | `8` | Gap between cells |
-| `marginPx` | `0` | Inner board margin |
+| `marginPx` | `0` | Uniform inner inset in px when `marginX` / `marginY` are unset |
+| `marginX` / `marginY` | unset | Horizontal / vertical inset. Bare number or `"N%"` = percent of board size; `marginXPx` / `marginYPx` = pixels |
 | `unitRows` | `false` | Size each row by item `u` / `widthUnits` (auto-on if any item has `widthUnits` > 0) |
 
 ### Dwell (layout or item)
@@ -231,12 +231,15 @@ Priority: item override → AppSettings (when set) → layout leftover. Layout `
 | Field | Description |
 |-------|-------------|
 | `id` | **Required** |
-| `label`, `caption` | Primary / secondary text |
+| `label`, `caption` | Fluent label title + caption (muted second line) |
 | `settingKey` | Live `AppSettings` value on label cells |
-| `activeState` | Accent on when the resolver is true (`dwellSuspend`, `magnifier`, `loop.gazeClick`, `setting.*`, …) |
+| `activeState` | Accent on when the resolver is true (`dwellSuspend`, `magnifier`, `loop.gazeClick`, `setting.*`, …). A leading `!` (whitespace-trimmed after `!`) negates the rest of the key |
 | `icon` | Built-in glyph (`leftClick`, `moveTo`, …) |
 | `interactive` | `false` = visual only |
-| `role` | `label` / `display` / `value` → non-interactive |
+| `role` | Maps to a runtime kind: `label`, `tab`, `toggle`, `slider`, `preview`, or omitted (button). `cluster` starting with `stepper.` / `segment.` wins. `card` is ignored (row cards are derived). |
+| `textStyle` | Label type ramp: `caption`, `body`, `bodyStrong` (default), `subtitle`, `title`, `section` (overline + rule). `settingKey` with no caption paints as an accent readout |
+| `cluster` | `stepper.*` NumberBox or `segment.*` pill. Members share one chrome |
+| `clusterSlot` | `dec` / `value` / `inc` / `edit` for steppers; omitted segments order by `col`. `value` is non-interactive unless JSON sets `interactive` |
 | `dwellExempt` | Still dwellable while global dwell is suspended (auto for suspend-toggle commands) |
 | `row`, `col`, `rowSpan`, `colSpan` | Grid cell |
 | `u` / `widthUnits` | Relative width in unit-row mode |
@@ -289,7 +292,6 @@ Optional on any step: `delayMs`.
 {
   "id": "tools",
   "name": "Tools",
-  "uiStyle": "fluent",
   "boundsMode": "desktop",
   "autoClose": true,
   "window": {

@@ -8,6 +8,7 @@
 
 #include <QGuiApplication>
 #include <QPainter>
+#include <QPainterPath>
 #include <QPaintEvent>
 #include <QScreen>
 #include <QtMath>
@@ -64,15 +65,25 @@ class MouseDwellMove::MagPickOverlay final : public OverlaySurface {
 public:
     MagPickOverlay() { hide(); }
 
-    void showCapture(const QPixmap& pm, const QRect& destGlobal, const QString& hint)
+    void showCapture(const QPixmap& pm, const QRect& destGlobal, const QString& hint, bool round)
     {
         m_pm = pm;
         m_hasPick = false;
         m_pick = {};
         m_progress = 0.0;
         m_hint = hint;
+        m_round = round;
         setGeometry(destGlobal);
         showOverlay();
+        update();
+    }
+
+    void setRound(bool on)
+    {
+        if (m_round == on) {
+            return;
+        }
+        m_round = on;
         update();
     }
 
@@ -117,14 +128,33 @@ protected:
         QPainter p(this);
         p.setRenderHint(QPainter::SmoothPixmapTransform, true);
         p.setRenderHint(QPainter::Antialiasing, true);
+        p.setCompositionMode(QPainter::CompositionMode_Source);
+        p.fillRect(rect(), Qt::transparent);
+        p.setCompositionMode(QPainter::CompositionMode_SourceOver);
+
+        QPainterPath clip;
+        if (m_round) {
+            clip.addEllipse(QRectF(rect()).adjusted(1.5, 1.5, -1.5, -1.5));
+        } else {
+            clip.addRect(QRectF(rect()));
+        }
+        p.save();
+        p.setClipPath(clip);
         p.fillRect(rect(), QColor(0, 0, 0, 180));
         if (!m_pm.isNull()) {
             p.drawPixmap(rect(), m_pm);
         }
+        p.restore();
+
         const QColor ring = m_visuals.progressColor;
         p.setPen(QPen(m_visuals.borderColor.isValid() ? m_visuals.borderColor : ring, 3.0));
         p.setBrush(Qt::NoBrush);
-        p.drawRect(rect().adjusted(1, 1, -1, -1));
+        const QRectF frame = QRectF(rect()).adjusted(1.5, 1.5, -1.5, -1.5);
+        if (m_round) {
+            p.drawEllipse(frame);
+        } else {
+            p.drawRect(frame);
+        }
         if (m_hasPick) {
             PickStyle::paint(p, QPointF(m_pick), m_style, m_progress, m_visuals);
         }
@@ -144,6 +174,7 @@ private:
     int m_style = PickStyle::kDefaultMousePick;
     ProgressVisuals m_visuals;
     QString m_hint;
+    bool m_round = false;
 };
 
 const char* MouseDwellMove::purposeName(ArmPurpose purpose)
@@ -395,6 +426,14 @@ void MouseDwellMove::setPickWindowPx(int px)
     m_pickWindowPx = qBound(200, px, 1600);
 }
 
+void MouseDwellMove::setPickWindowRound(bool on)
+{
+    m_pickWindowRound = on;
+    if (m_magOverlay) {
+        m_magOverlay->setRound(on);
+    }
+}
+
 void MouseDwellMove::setMagPickCenterOnDwell(bool on)
 {
     m_magPickCenterOnDwell = on;
@@ -559,12 +598,31 @@ bool MouseDwellMove::beginMagPick(const MagPresentation& spec, bool outsideSelec
     if (m_cursor) {
         m_cursor->hide();
     }
-    m_magOverlay->showCapture(m_magPixmap, dest, hint);
+    m_magOverlay->showCapture(m_magPixmap, dest, hint, m_pickWindowRound);
     setPhase(Phase::MagPoint);
     resetDwell();
     markSelectDeadline();
     GAZER_INFO << "MouseDwellMove mag-pick region" << src << "dest" << dest;
     return true;
+}
+
+bool MouseDwellMove::gazeInZoomWindow(const QPointF& gaze) const
+{
+    if (m_magDisplayRect.isEmpty()) {
+        return false;
+    }
+    if (!m_pickWindowRound) {
+        return m_magDisplayRect.contains(gaze.toPoint());
+    }
+    const QRectF r = m_magDisplayRect;
+    const double rx = r.width() * 0.5;
+    const double ry = r.height() * 0.5;
+    if (rx <= 0.0 || ry <= 0.0) {
+        return false;
+    }
+    const double nx = (gaze.x() - r.center().x()) / rx;
+    const double ny = (gaze.y() - r.center().y()) / ry;
+    return (nx * nx + ny * ny) <= 1.0;
 }
 
 QPoint MouseDwellMove::mapDisplayToSource(const QPointF& gaze) const
@@ -673,10 +731,10 @@ void MouseDwellMove::onGaze(const GazePoint& point)
 void MouseDwellMove::onGazeInZoom(const QPointF& g, double dtSec)
 {
     if (m_magOverlay && !m_magOverlay->isVisible() && !m_magPixmap.isNull()) {
-        m_magOverlay->showCapture(m_magPixmap, m_magDisplayRect, {});
+        m_magOverlay->showCapture(m_magPixmap, m_magDisplayRect, {}, m_pickWindowRound);
     }
 
-    const bool inside = m_magDisplayRect.contains(g.toPoint());
+    const bool inside = gazeInZoomWindow(g);
     if (inside != m_magGazeInside) {
         m_magGazeInside = inside;
         resetDwell();

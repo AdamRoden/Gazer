@@ -1,73 +1,332 @@
 {
   "schemaVersion": 1,
+  "window": {
+    "anchor": "TopCenter",
+    "widthPx": 1600,
+    "height": 100,
+    "marginPx": 0,
+    "style": {
+      "radius": 8,
+      "borderWidth": 1,
+      "background": "#000000"
+    }
+  },
+  "style": {
+    "radius": 4
+  },
+  "grid": {
+    "columns": 16,
+    "rows": 12,
+    "gapPx": 6,
+    "marginPx": 12,
+    "marginX": 5
+  },
   "id": "main_settings_assist",
   "name": "Assist tools",
-  "description": "Tracker, live lens, gaze helpers, and action loops",
-  "uiStyle": "fluent",
-  "window": { "anchor": "TopCenter", "widthPx": 1600, "height": 100, "marginPx": 0 },
-  "grid": { "columns": 16, "rows": 13, "gapPx": 10, "marginPx": 50 },
+  "description": "Tracker, live lens, and gaze helpers",
   "items": [
-    { "id": "buttons", "label": "Buttons", "row": 1, "col": 0, "colSpan": 2, "action": { "type": "loadLayout", "layoutId": "main_settings_buttons" } },
-    { "id": "pointers", "label": "Pointers", "row": 2, "col": 0, "colSpan": 2, "action": { "type": "loadLayout", "layoutId": "main_settings_pointers" } },
-    { "id": "assist", "label": "Assist tools", "row": 3, "col": 0, "colSpan": 2, "action": { "type": "loadLayout", "layoutId": "main_settings_assist" } },
-    { "id": "theme", "label": "Theme", "row": 4, "col": 0, "colSpan": 2, "action": { "type": "loadLayout", "layoutId": "main_settings_theme" } },
-    { "id": "close", "label": "Close", "row": 11, "col": 0, "colSpan": 2, "action": { "type": "closeLayout" } },
-
-    { "id": "tr_l", "role": "label", "label": "Tracker", "caption": "Applies on next app start.", "row": 1, "col": 3, "colSpan": 4 },
-    { "id": "tr_a", "label": "Auto Tobii", "activeState": "setting.tracker.0", "row": 1, "col": 8, "colSpan": 2, "action": { "type": "command", "name": "settings.tracker.auto" } },
-    { "id": "tr_m", "label": "Mouse", "activeState": "setting.tracker.1", "row": 1, "col": 10, "colSpan": 2, "action": { "type": "command", "name": "settings.tracker.mouse" } },
-    { "id": "preview", "label": "Head preview", "row": 1, "col": 12, "colSpan": 2, "action": { "type": "command", "name": "openPreview" } },
-
-    { "id": "z_l", "role": "label", "label": "Magnifier lens zoom", "caption": "Live lens magnification. Not used by pre-click or foresight.", "row": 2, "col": 3, "colSpan": 4 },
-    { "id": "z_d", "label": "−", "row": 2, "col": 8, "colSpan": 1, "action": { "type": "command", "name": "settings.nudge.magZoom.dec" } },
-    { "id": "z_v", "role": "value", "settingKey": "magZoom", "label": "—", "row": 2, "col": 9, "colSpan": 2 },
-    { "id": "z_i", "label": "+", "row": 2, "col": 11, "colSpan": 1, "action": { "type": "command", "name": "settings.nudge.magZoom.inc" } },
-    { "id": "z_e", "label": "Edit…", "row": 2, "col": 12, "colSpan": 1, "action": { "type": "command", "name": "settings.edit.magZoom" } },
-
-    { "id": "l_l", "role": "label", "label": "Magnifier lens size", "caption": "Live lens diameter in pixels.", "row": 3, "col": 3, "colSpan": 4 },
-    { "id": "l_d", "label": "−", "row": 3, "col": 8, "colSpan": 1, "action": { "type": "command", "name": "settings.nudge.magLensSize.dec" } },
-    { "id": "l_v", "role": "value", "settingKey": "magLensSize", "label": "—", "row": 3, "col": 9, "colSpan": 2 },
-    { "id": "l_i", "label": "+", "row": 3, "col": 11, "colSpan": 1, "action": { "type": "command", "name": "settings.nudge.magLensSize.inc" } },
-    { "id": "l_e", "label": "Edit…", "row": 3, "col": 12, "colSpan": 1, "action": { "type": "command", "name": "settings.edit.magLensSize" } },
-
-    { "id": "f_l", "role": "label", "label": "Magnifier lens follow", "caption": "Sticky / Balanced / Snappy tracking for the live lens.", "row": 4, "col": 3, "colSpan": 4 },
-    { "id": "f_s", "label": "Sticky", "activeState": "setting.magFollow.0", "row": 4, "col": 8, "colSpan": 1, "action": { "type": "command", "name": "settings.mag.follow.sticky" } },
-    { "id": "f_v", "role": "value", "settingKey": "magFollowProfile", "label": "—", "row": 4, "col": 9, "colSpan": 2 },
-    { "id": "f_b", "label": "Balanced", "activeState": "setting.magFollow.1", "row": 4, "col": 11, "colSpan": 1, "action": { "type": "command", "name": "settings.mag.follow.balanced" } },
-    { "id": "f_n", "label": "Snappy", "activeState": "setting.magFollow.2", "row": 4, "col": 12, "colSpan": 1, "action": { "type": "command", "name": "settings.mag.follow.snappy" } },
-
-    { "id": "dz_l", "role": "label", "label": "LTS deadzone", "caption": "No-scroll radius around cursor (px).", "row": 5, "col": 3, "colSpan": 4 },
-    { "id": "dz_d", "label": "−", "row": 5, "col": 8, "colSpan": 1, "action": { "type": "command", "name": "settings.nudge.ltsDeadzonePx.dec" } },
-    { "id": "dz_v", "role": "value", "settingKey": "ltsDeadzonePx", "label": "—", "row": 5, "col": 9, "colSpan": 2 },
-    { "id": "dz_i", "label": "+", "row": 5, "col": 11, "colSpan": 1, "action": { "type": "command", "name": "settings.nudge.ltsDeadzonePx.inc" } },
-    { "id": "dz_e", "label": "Edit…", "row": 5, "col": 12, "colSpan": 1, "action": { "type": "command", "name": "settings.edit.ltsDeadzonePx" } },
-
-    { "id": "fo_l", "role": "label", "label": "LTS falloff", "caption": "Distance to full speed past deadzone (px).", "row": 6, "col": 3, "colSpan": 4 },
-    { "id": "fo_d", "label": "−", "row": 6, "col": 8, "colSpan": 1, "action": { "type": "command", "name": "settings.nudge.ltsFalloffPx.dec" } },
-    { "id": "fo_v", "role": "value", "settingKey": "ltsFalloffPx", "label": "—", "row": 6, "col": 9, "colSpan": 2 },
-    { "id": "fo_i", "label": "+", "row": 6, "col": 11, "colSpan": 1, "action": { "type": "command", "name": "settings.nudge.ltsFalloffPx.inc" } },
-    { "id": "fo_e", "label": "Edit…", "row": 6, "col": 12, "colSpan": 1, "action": { "type": "command", "name": "settings.edit.ltsFalloffPx" } },
-
-    { "id": "sp_l", "role": "label", "label": "LTS max speed", "caption": "Peak notches per second.", "row": 7, "col": 3, "colSpan": 4 },
-    { "id": "sp_d", "label": "−", "row": 7, "col": 8, "colSpan": 1, "action": { "type": "command", "name": "settings.nudge.ltsMaxNotchesPerSec.dec" } },
-    { "id": "sp_v", "role": "value", "settingKey": "ltsMaxNotchesPerSec", "label": "—", "row": 7, "col": 9, "colSpan": 2 },
-    { "id": "sp_i", "label": "+", "row": 7, "col": 11, "colSpan": 1, "action": { "type": "command", "name": "settings.nudge.ltsMaxNotchesPerSec.inc" } },
-    { "id": "sp_e", "label": "Edit…", "row": 7, "col": 12, "colSpan": 1, "action": { "type": "command", "name": "settings.edit.ltsMaxNotchesPerSec" } },
-
-    { "id": "accel_label", "role": "label", "label": "LTS accel/s", "caption": "Speed growth while outside deadzone", "row": 8, "col": 3, "colSpan": 4 },
-    { "id": "accel_dec", "label": "−", "row": 8, "col": 8, "colSpan": 1, "action": { "type": "command", "name": "settings.nudge.ltsAccelPerSec.dec" } },
-    { "id": "accel_val", "role": "value", "settingKey": "ltsAccelPerSec", "label": "—", "row": 8, "col": 9, "colSpan": 2 },
-    { "id": "accel_inc", "label": "+", "row": 8, "col": 11, "colSpan": 1, "action": { "type": "command", "name": "settings.nudge.ltsAccelPerSec.inc" } },
-    { "id": "accel_e", "label": "Edit…", "row": 8, "col": 12, "colSpan": 1, "action": { "type": "command", "name": "settings.edit.ltsAccelPerSec" } },
-
-    { "id": "pl_l", "role": "label", "label": "LTS place cursor first", "caption": "Arm mouse-move before enabling scroll.", "row": 9, "col": 3, "colSpan": 4 },
-    { "id": "pl_v", "role": "value", "settingKey": "ltsPlaceCursorFirst", "label": "—", "row": 9, "col": 8, "colSpan": 2 },
-    { "id": "pl_t", "label": "Toggle", "activeState": "lts.placeCursorFirst", "row": 9, "col": 10, "colSpan": 2, "action": { "type": "command", "name": "settings.lts.placeCursor.toggle" } },
-    
-    { "id": "reticle", "label": "Gaze Indicator", "activeState": "gazeReticle", "row": 10, "col": 3, "colSpan": 2, "action": { "type": "command", "name": "toggleGazeReticle" } },
-    { "id": "follow", "label": "Gaze → mouse", "activeState": "gazeMouseFollow", "row": 10, "col": 5, "colSpan": 2, "action": { "type": "command", "name": "toggleGazeMouseFollow" } },
-    { "id": "magnifier", "label": "Magnifier", "activeState": "magnifier", "row": 10, "col": 7, "colSpan": 2, "action": { "type": "command", "name": "toggleMagnifier" } },
-    { "id": "click_loop", "label": "Gaze click\nloop", "activeState": "loop.gazeClick", "row": 10, "col": 9, "colSpan": 2, "action": { "type": "command", "name": "mouseDwellClickLoop" } },
-    { "id": "stop_loops", "label": "Stop action loops", "row": 10, "col": 11, "colSpan": 2, "action": { "type": "command", "name": "stopAllActionLoops" } }
+    {
+      "id": "page_title",
+      "role": "label",
+      "textStyle": "title",
+      "label": "Assist tools",
+      "caption": "Tracker, live lens, and gaze helpers",
+      "row": 1,
+      "col": 0,
+      "colSpan": 16
+    },
+    {
+      "id": "h_tr",
+      "role": "label",
+      "textStyle": "section",
+      "label": "Tracker",
+      "row": 2,
+      "col": 0,
+      "colSpan": 16
+    },
+    {
+      "id": "tr_l",
+      "role": "label",
+      "label": "Tracker",
+      "caption": "Applies on next app start.",
+      "row": 3,
+      "col": 0,
+      "colSpan": 6
+    },
+    {
+      "id": "tr_a",
+      "label": "Auto Tobii",
+      "activeState": "setting.tracker.0",
+      "row": 3,
+      "col": 8,
+      "colSpan": 2,
+      "cluster": "segment.tracker",
+      "action": {
+        "type": "command",
+        "name": "settings.tracker.auto"
+      }
+    },
+    {
+      "id": "tr_m",
+      "label": "Mouse",
+      "activeState": "setting.tracker.1",
+      "row": 3,
+      "col": 10,
+      "colSpan": 2,
+      "cluster": "segment.tracker",
+      "action": {
+        "type": "command",
+        "name": "settings.tracker.mouse"
+      }
+    },
+    {
+      "id": "preview",
+      "label": "Head preview",
+      "row": 3,
+      "col": 12,
+      "colSpan": 4,
+      "action": {
+        "type": "command",
+        "name": "openPreview"
+      }
+    },
+    {
+      "id": "h_lens",
+      "role": "label",
+      "textStyle": "section",
+      "label": "Live lens",
+      "row": 4,
+      "col": 0,
+      "colSpan": 16
+    },
+    {
+      "id": "z_l",
+      "role": "label",
+      "label": "Magnifier lens zoom",
+      "caption": "Live lens magnification. Not used by pre-click or foresight.",
+      "row": 5,
+      "col": 0,
+      "colSpan": 6
+    },
+    {
+      "id": "z_dec",
+      "label": "−",
+      "row": 5,
+      "col": 8,
+      "cluster": "stepper.z",
+      "clusterSlot": "dec",
+      "action": {
+        "type": "command",
+        "name": "settings.nudge.magZoom.dec"
+      }
+    },
+    {
+      "id": "z_val",
+      "role": "label",
+      "settingKey": "magZoom",
+      "label": "—",
+      "row": 5,
+      "col": 9,
+      "colSpan": 2,
+      "cluster": "stepper.z",
+      "clusterSlot": "value"
+    },
+    {
+      "id": "z_inc",
+      "label": "+",
+      "row": 5,
+      "col": 11,
+      "cluster": "stepper.z",
+      "clusterSlot": "inc",
+      "action": {
+        "type": "command",
+        "name": "settings.nudge.magZoom.inc"
+      }
+    },
+    {
+      "id": "z_edit",
+      "label": "Edit…",
+      "row": 5,
+      "col": 12,
+      "cluster": "stepper.z",
+      "clusterSlot": "edit",
+      "action": {
+        "type": "command",
+        "name": "settings.edit.magZoom"
+      }
+    },
+    {
+      "id": "l_l",
+      "role": "label",
+      "label": "Magnifier lens size",
+      "caption": "Live lens diameter in pixels.",
+      "row": 6,
+      "col": 0,
+      "colSpan": 6
+    },
+    {
+      "id": "l_dec",
+      "label": "−",
+      "row": 6,
+      "col": 8,
+      "cluster": "stepper.l",
+      "clusterSlot": "dec",
+      "action": {
+        "type": "command",
+        "name": "settings.nudge.magLensSize.dec"
+      }
+    },
+    {
+      "id": "l_val",
+      "role": "label",
+      "settingKey": "magLensSize",
+      "label": "—",
+      "row": 6,
+      "col": 9,
+      "colSpan": 2,
+      "cluster": "stepper.l",
+      "clusterSlot": "value"
+    },
+    {
+      "id": "l_inc",
+      "label": "+",
+      "row": 6,
+      "col": 11,
+      "cluster": "stepper.l",
+      "clusterSlot": "inc",
+      "action": {
+        "type": "command",
+        "name": "settings.nudge.magLensSize.inc"
+      }
+    },
+    {
+      "id": "l_edit",
+      "label": "Edit…",
+      "row": 6,
+      "col": 12,
+      "cluster": "stepper.l",
+      "clusterSlot": "edit",
+      "action": {
+        "type": "command",
+        "name": "settings.edit.magLensSize"
+      }
+    },
+    {
+      "id": "f_l",
+      "role": "label",
+      "label": "Magnifier lens follow",
+      "caption": "Sticky / Balanced / Snappy tracking for the live lens.",
+      "row": 7,
+      "col": 0,
+      "colSpan": 6
+    },
+    {
+      "id": "f_s",
+      "label": "Sticky",
+      "activeState": "setting.magFollow.0",
+      "row": 7,
+      "col": 8,
+      "cluster": "segment.follow",
+      "action": {
+        "type": "command",
+        "name": "settings.mag.follow.sticky"
+      }
+    },
+    {
+      "id": "f_v",
+      "role": "label",
+      "settingKey": "magFollowProfile",
+      "label": "—",
+      "row": 7,
+      "col": 9,
+      "colSpan": 2,
+      "cluster": "segment.follow",
+      "clusterSlot": "value"
+    },
+    {
+      "id": "f_b",
+      "label": "Balanced",
+      "activeState": "setting.magFollow.1",
+      "row": 7,
+      "col": 11,
+      "cluster": "segment.follow",
+      "action": {
+        "type": "command",
+        "name": "settings.mag.follow.balanced"
+      }
+    },
+    {
+      "id": "f_n",
+      "label": "Snappy",
+      "activeState": "setting.magFollow.2",
+      "row": 7,
+      "col": 12,
+      "cluster": "segment.follow",
+      "action": {
+        "type": "command",
+        "name": "settings.mag.follow.snappy"
+      }
+    },
+    {
+      "id": "h_help",
+      "role": "label",
+      "textStyle": "section",
+      "label": "Helpers",
+      "row": 8,
+      "col": 0,
+      "colSpan": 16
+    },
+    {
+      "id": "reticle",
+      "role": "toggle",
+      "label": "Gaze Indicator",
+      "activeState": "gazeReticle",
+      "row": 9,
+      "col": 0,
+      "colSpan": 8,
+      "action": {
+        "type": "command",
+        "name": "toggleGazeReticle"
+      }
+    },
+    {
+      "id": "follow",
+      "role": "toggle",
+      "label": "Gaze → mouse",
+      "activeState": "gazeMouseFollow",
+      "row": 9,
+      "col": 8,
+      "colSpan": 8,
+      "action": {
+        "type": "command",
+        "name": "toggleGazeMouseFollow"
+      }
+    },
+    {
+      "id": "magnifier",
+      "role": "toggle",
+      "label": "Magnifier",
+      "activeState": "magnifier",
+      "row": 10,
+      "col": 0,
+      "colSpan": 8,
+      "action": {
+        "type": "command",
+        "name": "toggleMagnifier"
+      }
+    },
+    {
+      "id": "click_loop",
+      "role": "toggle",
+      "label": "Gaze click loop",
+      "activeState": "loop.gazeClick",
+      "row": 10,
+      "col": 8,
+      "colSpan": 8,
+      "action": {
+        "type": "command",
+        "name": "mouseDwellClickLoop"
+      }
+    }
   ]
 }

@@ -17,6 +17,9 @@ namespace gazer {
 
 bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
 {
+    if (key.startsWith(QLatin1Char('!'))) {
+        return !resolveActiveState(ctx, key.mid(1).trimmed());
+    }
     if (key == QLatin1String("dwellSuspend") || key == QLatin1String("dwell.suspended")) {
         return ctx.instances && ctx.instances->isDwellSuspended();
     }
@@ -93,6 +96,15 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
     if (key == QLatin1String("lts.placeCursorFirst")) {
         return s.ltsPlaceCursorFirst;
     }
+    if (key == QLatin1String("setting.dwell.slow")) {
+        return s.dwellPreset() == 0;
+    }
+    if (key == QLatin1String("setting.dwell.normal")) {
+        return s.dwellPreset() == 1;
+    }
+    if (key == QLatin1String("setting.dwell.fast")) {
+        return s.dwellPreset() == 2;
+    }
     if (key == QLatin1String("setting.progressRadial")) {
         return s.progressRadial;
     }
@@ -134,6 +146,12 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
     }
     if (key == QLatin1String("setting.mousePick.dot")) {
         return PickStyle::has(s.mousePickStyle, PickStyle::Dot);
+    }
+    if (key == QLatin1String("setting.pickWindow.round")) {
+        return s.pickWindowRound;
+    }
+    if (key == QLatin1String("setting.pickWindow.square")) {
+        return !s.pickWindowRound;
     }
     if (key == QLatin1String("setting.mousePick.crosshair")) {
         return PickStyle::has(s.mousePickStyle, PickStyle::Crosshair);
