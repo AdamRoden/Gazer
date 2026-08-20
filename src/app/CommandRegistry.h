@@ -5,6 +5,7 @@
 #include <QHash>
 #include <QObject>
 #include <QString>
+#include <QStringList>
 #include <functional>
 
 namespace gazer {
@@ -20,6 +21,7 @@ public:
 
     void registerBuiltin(const QString& name, Handler handler);
     [[nodiscard]] bool isBuiltin(const QString& name) const;
+    [[nodiscard]] QStringList names() const;
 
     /// Builtin if registered, else mapping profile injectors.
     [[nodiscard]] bool run(const QString& commandName, QString* error = nullptr);

@@ -5,6 +5,7 @@
 #include <QColor>
 #include <QString>
 #include <QStringList>
+#include <QVector>
 #include <functional>
 #include <optional>
 
@@ -32,6 +33,9 @@ struct PropertyBinder {
                const std::function<void(bool)>& apply);
     void combo(QFormLayout* form, const QString& label, const QStringList& items,
                const QString& current, const std::function<void(const QString&)>& apply);
+    void comboValues(QFormLayout* form, const QString& label, const QStringList& labels,
+                     const QStringList& values, const QString& currentValue,
+                     const std::function<void(const QString&)>& apply);
     void color(QFormLayout* form, const QString& label, const std::optional<QColor>& value,
                const std::function<void(std::optional<QColor>)>& apply);
     void dim(QFormLayout* form, const QString& label, const DimSpec& value,
@@ -49,7 +53,20 @@ void addChromeFields(PropertyBinder& b, QFormLayout* form, const LayoutChromeSty
                      const ChromeMutate& apply);
 void addDwellFields(PropertyBinder& b, QFormLayout* form, const LayoutDwellConfig& dwell,
                     const DwellMutate& apply);
+struct ActionCatalog {
+    QStringList commands;
+    QStringList commandLabels;
+    QStringList layoutIds;
+    QStringList layoutLabels;
+};
+
 void addActionFields(PropertyBinder& b, QFormLayout* form, const LayoutAction& action,
+                     const QString& itemLabel, const ActionCatalog& catalog,
                      const ActionMutate& apply);
+void addActionSeriesFields(PropertyBinder& b, QFormLayout* form, const QVector<LayoutAction>& acts,
+                           const QString& itemLabel, const ActionCatalog& catalog, int selectedStep,
+                           const std::function<void(int)>& selectStep,
+                           const std::function<void(QVector<LayoutAction>)>& applyAll);
+[[nodiscard]] QString friendlyCommandLabel(const QString& commandId);
 
 } // namespace gazer

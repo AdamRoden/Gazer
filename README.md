@@ -33,11 +33,11 @@ Three-pane Fluent designer:
 
 | Pane | Contents |
 |------|----------|
-| Left | File / Edit / Window / Layout / Elements |
-| Center | Monitor graphic with the board placed as it would be on a 16:9 desktop. **View → Fit board** zooms the board for cell editing. Click a key to select; drag it to another cell. |
-| Right | Style / Layout / Interaction properties of the selection, plus the item hierarchy |
+| Left | Elements to add, plus templates (blank, keyboard row, settings row, edge chip) |
+| Center | **Fit board** (default): keys fill the canvas for editing. Uncheck it to see placement on a 16:9 monitor (a small placement inset stays in Fit). Click / Shift-click to select; drag to move; drag the cyan handles to resize; arrows nudge; Delete removes. |
+| Right | Style / Layout / Interaction. Item actions use presets (type/speak label, command picker, open layout from the catalog). |
 
-File: New, Open, Save, Save As, Close, Import, Export. Edit: Undo/Redo, Cut/Copy/Paste, Delete. **Test** (F5) opens a transient preview board (`__editor_preview`) and does not replace shipped catalog layouts. Master roots cannot be live-tested. Layouts are the same JSON as `resources/layouts/*.json`.
+File → New asks for id, name, and a template (including a full QWERTY with Shift/Sym layers). File → Open lists shipped and user layouts. Saves default to `%AppData%\Gazer\layouts`. The toolbar layer combo switches Base / Shift / Symbols. **Test on canvas** (F6) plays a dwell ring and names the action; **Test on desktop** (F5) still opens a live preview board. Master roots cannot be live-tested. Layouts are the same JSON as `resources/layouts/*.json`.
 
 ## Requirements
 

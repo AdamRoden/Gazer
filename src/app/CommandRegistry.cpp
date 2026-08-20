@@ -2,6 +2,8 @@
 
 #include "utils/Log.h"
 
+#include <QStringList>
+
 namespace gazer {
 
 CommandRegistry::CommandRegistry(MappingEngine& mapping, QObject* parent)
@@ -18,6 +20,15 @@ void CommandRegistry::registerBuiltin(const QString& name, Handler handler)
 bool CommandRegistry::isBuiltin(const QString& name) const
 {
     return m_builtins.contains(name);
+}
+
+QStringList CommandRegistry::names() const
+{
+    QStringList n = m_builtins.keys();
+    n.append(m_mapping.profile().commands.keys());
+    n.removeDuplicates();
+    n.sort(Qt::CaseInsensitive);
+    return n;
 }
 
 bool CommandRegistry::run(const QString& commandName, QString* error)

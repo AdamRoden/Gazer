@@ -12,6 +12,7 @@
 #include <QCoreApplication>
 #include <QDir>
 #include <QSize>
+#include <QStandardPaths>
 #include <QTimer>
 
 #include <cstdlib>
@@ -486,10 +487,24 @@ void Application::openLayoutEditor()
     if (!m_editor) {
         m_editor = std::make_unique<LayoutEditorWindow>();
         m_editor->setLayoutsDirectory(m_svc->catalog().layoutsDirectory());
+        const QString userLayouts =
+            QDir(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation))
+                .filePath(QStringLiteral("layouts"));
+        m_editor->setUserLayoutsDirectory(userLayouts);
         m_editor->setTestHandler([this](const LayoutDocument& doc, QString* error) {
             return testEditedLayout(doc, error);
         });
     }
+    QStringList ids = m_svc->catalog().layoutIds();
+    QStringList labels;
+    for (const QString& id : ids) {
+        const LayoutDocument* d = m_svc->catalog().document(id);
+        const QString name = d && !d->name.isEmpty() ? d->name : id;
+        labels.push_back(QStringLiteral("%1  (%2)").arg(name, id));
+    }
+    m_editor->setCatalog(ids, labels);
+    m_editor->setCommandNames(m_svc->commands().names());
+    m_editor->setTheme(m_svc->settings().resolvedTheme());
     m_editor->showAndRaise();
 }
 

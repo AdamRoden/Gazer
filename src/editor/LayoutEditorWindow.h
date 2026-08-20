@@ -1,14 +1,16 @@
 #pragma once
 
 #include "layout/LayoutTypes.h"
+#include "ui/Theme.h"
 
 #include <QMainWindow>
+#include <QStringList>
 #include <functional>
 
 class QAction;
-class QKeySequence;
-
 class QCloseEvent;
+class QComboBox;
+class QKeySequence;
 
 namespace gazer {
 
@@ -28,6 +30,10 @@ public:
     ~LayoutEditorWindow() override;
 
     void setLayoutsDirectory(const QString& dir);
+    void setUserLayoutsDirectory(const QString& dir);
+    void setCatalog(const QStringList& ids, const QStringList& labels);
+    void setCommandNames(const QStringList& names);
+    void setTheme(const ThemeColors& theme);
     void setTestHandler(TestHandler handler);
     [[nodiscard]] bool openFile(const QString& path, QString* error = nullptr);
     void showAndRaise();
@@ -40,10 +46,14 @@ private:
     void applyFluentTheme();
     void updateTitle();
     void updateActions();
+    void refreshLayers();
+    void syncActionCatalog();
     [[nodiscard]] bool maybeSave();
     QAction* makeAction(const QString& text, const QKeySequence& shortcut,
                         const std::function<void()>& slot);
 
+    [[nodiscard]] bool promptNewBoard();
+    [[nodiscard]] bool promptOpenCatalog();
     void newFile();
     void open();
     void save();
@@ -60,7 +70,12 @@ private:
     LayoutEditorCanvas* m_canvas = nullptr;
     LayoutEditorToolbox* m_toolbox = nullptr;
     LayoutEditorProperties* m_props = nullptr;
+    QComboBox* m_layerCombo = nullptr;
     QString m_layoutsDir;
+    QString m_userDir;
+    QStringList m_catalogIds;
+    QStringList m_catalogLabels;
+    QStringList m_commandNames;
     TestHandler m_test;
 
     QAction* m_undo = nullptr;
@@ -72,6 +87,7 @@ private:
     QAction* m_save = nullptr;
     QAction* m_fit = nullptr;
     QAction* m_grid = nullptr;
+    QAction* m_testMode = nullptr;
 };
 
 } // namespace gazer

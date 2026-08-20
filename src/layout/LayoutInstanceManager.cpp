@@ -409,6 +409,11 @@ bool LayoutInstanceManager::eraseSecondary(const QString& instanceId, QString* e
 
     if (instanceId == m_editorPreviewId) {
         m_editorPreviewId.clear();
+        for (const auto& p : m_instances) {
+            if (p && p->instanceId() != instanceId) {
+                p->setDwellSuspended(m_dwellSuspended);
+            }
+        }
     }
 
     m_instances.erase(it);
@@ -585,10 +590,19 @@ QString LayoutInstanceManager::openEditorPreview(LayoutDocument doc, QString* er
                                       : doc.name + QStringLiteral(" (preview)");
     }
 
+    auto suspendOthers = [this](const QString& keepId) {
+        for (const auto& p : m_instances) {
+            if (p) {
+                p->setDwellSuspended(p->instanceId() != keepId);
+            }
+        }
+    };
+
     if (!m_editorPreviewId.isEmpty() && instance(m_editorPreviewId)) {
         if (!setInstanceDocument(m_editorPreviewId, std::move(doc), error)) {
             return {};
         }
+        suspendOthers(m_editorPreviewId);
         return m_editorPreviewId;
     }
     m_editorPreviewId.clear();
@@ -600,6 +614,7 @@ QString LayoutInstanceManager::openEditorPreview(LayoutDocument doc, QString* er
     m_instances.push_back(std::move(inst));
     m_editorPreviewId = id;
     setFocused(id, true);
+    suspendOthers(id);
     fireLifecycle(onOpen, id);
     fireLifecycle(onLoad, id);
     GAZER_INFO << "Opened editor preview" << id;

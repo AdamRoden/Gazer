@@ -5,6 +5,7 @@
 
 #include <QCheckBox>
 #include <QColorDialog>
+#include <QHash>
 #include <QComboBox>
 #include <QDoubleSpinBox>
 #include <QFormLayout>
@@ -110,6 +111,31 @@ void PropertyBinder::combo(QFormLayout* form, const QString& label, const QStrin
             return;
         }
         apply(t);
+    });
+    form->addRow(label, c);
+}
+
+void PropertyBinder::comboValues(QFormLayout* form, const QString& label, const QStringList& labels,
+                                 const QStringList& values, const QString& currentValue,
+                                 const std::function<void(const QString&)>& apply)
+{
+    auto* c = new QComboBox;
+    const int n = qMin(labels.size(), values.size());
+    for (int i = 0; i < n; ++i) {
+        c->addItem(labels[i], values[i]);
+    }
+    int idx = c->findData(currentValue);
+    if (idx < 0 && !currentValue.isEmpty()) {
+        c->insertItem(0, currentValue, currentValue);
+        idx = 0;
+    }
+    c->setCurrentIndex(idx >= 0 ? idx : 0);
+    bool* const loadingFlag = loading;
+    QObject::connect(c, &QComboBox::currentIndexChanged, host, [loadingFlag, c, apply](int) {
+        if (loadingFlag && *loadingFlag) {
+            return;
+        }
+        apply(c->currentData().toString());
     });
     form->addRow(label, c);
 }
@@ -321,34 +347,226 @@ void addDwellFields(PropertyBinder& b, QFormLayout* form, const LayoutDwellConfi
 }
 
 void addActionFields(PropertyBinder& b, QFormLayout* form, const LayoutAction& action,
+                     const QString& itemLabel, const ActionCatalog& catalog,
                      const ActionMutate& apply)
 {
-    b.heading(form, QStringLiteral("Action"));
-    QStringList types = {QStringLiteral("(none)")};
-    types.append(LayoutSchema::actionTypeNames());
-    const QString cur = action.type == LayoutAction::Type::Unknown
-                            ? QStringLiteral("(none)")
-                            : LayoutSchema::actionTypeName(action.type);
-    b.combo(form, QStringLiteral("Type"), types, cur, [apply](const QString& t) {
-        apply(QStringLiteral("Action type"), [&](LayoutAction& a) {
-            a.type = LayoutSchema::actionTypeFromName(t);
+    b.heading(form, QStringLiteral("Do this"));
+    QString preset = QStringLiteral("Custom");
+    if (action.type == LayoutAction::Type::Unknown) {
+        preset = QStringLiteral("None");
+    } else if (action.type == LayoutAction::Type::TypeText
+               && (action.text == itemLabel || action.text.isEmpty())) {
+        preset = QStringLiteral("Type the label");
+    } else if (action.type == LayoutAction::Type::Speak
+               && (action.text == itemLabel || action.text.isEmpty())) {
+        preset = QStringLiteral("Speak the label");
+    } else if (action.type == LayoutAction::Type::Command) {
+        preset = QStringLiteral("Run command");
+    } else if (action.type == LayoutAction::Type::OpenLayout) {
+        preset = QStringLiteral("Open layout");
+    } else if (action.type == LayoutAction::Type::CloseLayout) {
+        preset = QStringLiteral("Close layout");
+    }
+    const QStringList presets = {QStringLiteral("None"),
+                                 QStringLiteral("Type the label"),
+                                 QStringLiteral("Speak the label"),
+                                 QStringLiteral("Run command"),
+                                 QStringLiteral("Open layout"),
+                                 QStringLiteral("Close layout"),
+                                 QStringLiteral("Custom")};
+    b.combo(form, QStringLiteral("Preset"), presets, preset, [apply, itemLabel](const QString& t) {
+        apply(QStringLiteral("Action preset"), [&](LayoutAction& a) {
+            a = LayoutAction{};
+            if (t == QLatin1String("Type the label")) {
+                a.type = LayoutAction::Type::TypeText;
+                a.text = itemLabel;
+            } else if (t == QLatin1String("Speak the label")) {
+                a.type = LayoutAction::Type::Speak;
+                a.text = itemLabel;
+            } else if (t == QLatin1String("Run command")) {
+                a.type = LayoutAction::Type::Command;
+            } else if (t == QLatin1String("Open layout")) {
+                a.type = LayoutAction::Type::OpenLayout;
+            } else if (t == QLatin1String("Close layout")) {
+                a.type = LayoutAction::Type::CloseLayout;
+            } else if (t == QLatin1String("Custom")) {
+                a.type = LayoutAction::Type::Command;
+            }
         });
     });
-    b.text(form, QStringLiteral("Text"), action.text, [apply](const QString& t) {
-        apply(QStringLiteral("Action text"), [&](LayoutAction& a) { a.text = t; });
-    });
-    b.text(form, QStringLiteral("Command"), action.name, [apply](const QString& t) {
-        apply(QStringLiteral("Command name"), [&](LayoutAction& a) { a.name = t; });
-    });
-    b.text(form, QStringLiteral("Layout id"), action.layoutId, [apply](const QString& t) {
-        apply(QStringLiteral("Action layout"), [&](LayoutAction& a) { a.layoutId = t; });
-    });
-    b.text(form, QStringLiteral("Script"), action.source, [apply](const QString& t) {
-        apply(QStringLiteral("Script"), [&](LayoutAction& a) { a.source = t; });
-    });
-    b.integer(form, QStringLiteral("Delay ms"), action.delayMs, 0, 10000, [apply](int v) {
-        apply(QStringLiteral("Delay"), [&](LayoutAction& a) { a.delayMs = v; });
-    });
+    if (preset == QLatin1String("Run command") || preset == QLatin1String("Custom")) {
+        QStringList ids = catalog.commands;
+        QStringList labels = catalog.commandLabels;
+        if (labels.size() != ids.size()) {
+            labels = ids;
+        }
+        if (!action.name.isEmpty() && !ids.contains(action.name)) {
+            ids.prepend(action.name);
+            labels.prepend(friendlyCommandLabel(action.name));
+        }
+        if (ids.isEmpty()) {
+            b.text(form, QStringLiteral("Command"), action.name, [apply](const QString& t) {
+                apply(QStringLiteral("Command name"), [&](LayoutAction& a) {
+                    a.type = LayoutAction::Type::Command;
+                    a.name = t;
+                });
+            });
+        } else {
+            b.comboValues(form, QStringLiteral("Command"), labels, ids,
+                          action.name.isEmpty() ? ids.first() : action.name,
+                          [apply](const QString& t) {
+                              apply(QStringLiteral("Command name"), [&](LayoutAction& a) {
+                                  a.type = LayoutAction::Type::Command;
+                                  a.name = t;
+                              });
+                          });
+        }
+    }
+    if (preset == QLatin1String("Open layout") || preset == QLatin1String("Custom")) {
+        QStringList ids = catalog.layoutIds;
+        QStringList labels = catalog.layoutLabels;
+        if (labels.size() != ids.size()) {
+            labels = ids;
+        }
+        if (!action.layoutId.isEmpty() && !ids.contains(action.layoutId)) {
+            ids.prepend(action.layoutId);
+            labels.prepend(action.layoutId);
+        }
+        if (ids.isEmpty()) {
+            b.text(form, QStringLiteral("Layout"), action.layoutId, [apply](const QString& t) {
+                apply(QStringLiteral("Action layout"), [&](LayoutAction& a) {
+                    a.type = LayoutAction::Type::OpenLayout;
+                    a.layoutId = t;
+                });
+            });
+        } else {
+            b.comboValues(form, QStringLiteral("Layout"), labels, ids,
+                          action.layoutId.isEmpty() ? ids.first() : action.layoutId,
+                          [apply](const QString& t) {
+                              apply(QStringLiteral("Action layout"), [&](LayoutAction& a) {
+                                  a.type = LayoutAction::Type::OpenLayout;
+                                  a.layoutId = t;
+                              });
+                          });
+        }
+    }
+    if (preset == QLatin1String("Custom") || preset == QLatin1String("Speak the label")
+        || preset == QLatin1String("Type the label")) {
+        b.text(form, QStringLiteral("Text"), action.text, [apply](const QString& t) {
+            apply(QStringLiteral("Action text"), [&](LayoutAction& a) { a.text = t; });
+        });
+    }
+    if (preset == QLatin1String("Custom")) {
+        QStringList types = {QStringLiteral("(none)")};
+        types.append(LayoutSchema::actionTypeNames());
+        const QString cur = action.type == LayoutAction::Type::Unknown
+                                ? QStringLiteral("(none)")
+                                : LayoutSchema::actionTypeName(action.type);
+        b.combo(form, QStringLiteral("Type"), types, cur, [apply](const QString& t) {
+            apply(QStringLiteral("Action type"), [&](LayoutAction& a) {
+                a.type = LayoutSchema::actionTypeFromName(t);
+            });
+        });
+        b.text(form, QStringLiteral("Script"), action.source, [apply](const QString& t) {
+            apply(QStringLiteral("Script"), [&](LayoutAction& a) { a.source = t; });
+        });
+        b.integer(form, QStringLiteral("Delay ms"), action.delayMs, 0, 10000, [apply](int v) {
+            apply(QStringLiteral("Delay"), [&](LayoutAction& a) { a.delayMs = v; });
+        });
+    }
+}
+
+QString friendlyCommandLabel(const QString& commandId)
+{
+    static const QHash<QString, QString> k = {
+        {QStringLiteral("expandMaster"), QStringLiteral("Open drawer")},
+        {QStringLiteral("collapseMaster"), QStringLiteral("Close drawer")},
+        {QStringLiteral("closeOtherViews"), QStringLiteral("Close other boards")},
+        {QStringLiteral("quitApp"), QStringLiteral("Quit Gazer")},
+        {QStringLiteral("toggleDwellSuspend"), QStringLiteral("Pause / resume dwell")},
+        {QStringLiteral("openLayoutEditor"), QStringLiteral("Layout editor")},
+        {QStringLiteral("openPreview"), QStringLiteral("Head preview")},
+        {QStringLiteral("tab"), QStringLiteral("Tab key")},
+        {QStringLiteral("enter"), QStringLiteral("Enter key")},
+        {QStringLiteral("backspace"), QStringLiteral("Backspace")},
+        {QStringLiteral("space"), QStringLiteral("Space")},
+        {QStringLiteral("escape"), QStringLiteral("Escape")},
+        {QStringLiteral("mouseLeftClick"), QStringLiteral("Left click")},
+        {QStringLiteral("mouseRightClick"), QStringLiteral("Right click")},
+        {QStringLiteral("mouseDwellMove"), QStringLiteral("Dwell-move cursor")},
+        {QStringLiteral("toggleMagnifier"), QStringLiteral("Magnifier")},
+        {QStringLiteral("toggleLookToScroll"), QStringLiteral("Look to scroll")},
+        {QStringLiteral("toggleGazeReticle"), QStringLiteral("Gaze reticle")},
+        {QStringLiteral("toggleGazeMouseFollow"), QStringLiteral("Cursor follows gaze")},
+    };
+    return k.value(commandId, commandId);
+}
+
+void addActionSeriesFields(PropertyBinder& b, QFormLayout* form, const QVector<LayoutAction>& acts,
+                           const QString& itemLabel, const ActionCatalog& catalog, int selectedStep,
+                           const std::function<void(int)>& selectStep,
+                           const std::function<void(QVector<LayoutAction>)>& applyAll)
+{
+    b.heading(form, QStringLiteral("Actions"));
+    const int step = acts.isEmpty() ? 0 : qBound(0, selectedStep, acts.size() - 1);
+    if (acts.size() > 1) {
+        QStringList labels;
+        for (int i = 0; i < acts.size(); ++i) {
+            labels.push_back(QStringLiteral("Step %1").arg(i + 1));
+        }
+        b.combo(form, QStringLiteral("Step"), labels, labels[step],
+                [selectStep, labels](const QString& t) {
+                    selectStep(labels.indexOf(t));
+                });
+    }
+
+    const LayoutAction current = acts.isEmpty() ? LayoutAction{} : acts[step];
+    addActionFields(b, form, current, itemLabel, catalog,
+                    [applyAll, acts, step](const QString&, const auto& mut) {
+                        QVector<LayoutAction> next = acts;
+                        if (next.isEmpty()) {
+                            LayoutAction a;
+                            mut(a);
+                            next.push_back(a);
+                        } else {
+                            mut(next[qBound(0, step, next.size() - 1)]);
+                        }
+                        applyAll(next);
+                    });
+
+    auto* row = new QWidget;
+    auto* rowLay = new QHBoxLayout(row);
+    rowLay->setContentsMargins(0, 0, 0, 0);
+    auto* add = new QPushButton(QStringLiteral("Add step"));
+    bool* const loadingFlag = b.loading;
+    QObject::connect(add, &QPushButton::clicked, b.host,
+                     [loadingFlag, applyAll, acts, selectStep]() {
+                         if (loadingFlag && *loadingFlag) {
+                             return;
+                         }
+                         QVector<LayoutAction> next = acts;
+                         LayoutAction a;
+                         a.type = LayoutAction::Type::Command;
+                         next.push_back(a);
+                         selectStep(next.size() - 1);
+                         applyAll(next);
+                     });
+    rowLay->addWidget(add);
+    if (acts.size() > 1) {
+        auto* rm = new QPushButton(QStringLiteral("Remove step"));
+        QObject::connect(rm, &QPushButton::clicked, b.host,
+                         [loadingFlag, applyAll, acts, step, selectStep]() {
+                             if (loadingFlag && *loadingFlag) {
+                                 return;
+                             }
+                             QVector<LayoutAction> next = acts;
+                             next.removeAt(step);
+                             selectStep(qMax(0, step - 1));
+                             applyAll(next);
+                         });
+        rowLay->addWidget(rm);
+    }
+    form->addRow(row);
 }
 
 } // namespace gazer

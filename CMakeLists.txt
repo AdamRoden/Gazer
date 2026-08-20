@@ -82,6 +82,9 @@ set(GAZER_SOURCES
     src/ui/PickStyle.cpp
     src/layout/LayoutWriter.cpp
     src/editor/LayoutEditorSession.cpp
+    src/editor/LayoutEditorSessionIo.cpp
+    src/editor/LayoutEditorSessionEdit.cpp
+    src/editor/LayoutEditorKeyboard.cpp
     src/editor/LayoutEditorCanvas.cpp
     src/editor/LayoutEditorToolbox.cpp
     src/editor/LayoutEditorFields.cpp
@@ -157,6 +160,7 @@ set(GAZER_HEADERS
     src/ui/PickStyle.h
     src/ui/ThemeScheme.h
     src/editor/LayoutEditorSession.h
+    src/editor/LayoutEditorKeyboard.h
     src/editor/LayoutEditorCanvas.h
     src/editor/LayoutEditorToolbox.h
     src/editor/LayoutEditorFields.h

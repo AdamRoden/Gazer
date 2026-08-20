@@ -71,8 +71,10 @@ LayoutEditorProperties::LayoutEditorProperties(LayoutEditorSession& session, QWi
         }
     });
 
-    connect(&m_session, &LayoutEditorSession::selectionChanged, this,
-            &LayoutEditorProperties::rebuild);
+    connect(&m_session, &LayoutEditorSession::selectionChanged, this, [this]() {
+        m_actionStep = 0;
+        rebuild();
+    });
     connect(&m_session, &LayoutEditorSession::documentChanged, this, [this]() {
         if (!m_applying) {
             rebuild();
@@ -165,16 +167,15 @@ void LayoutEditorProperties::rebuildHierarchy()
 void LayoutEditorProperties::applyItem(const std::function<void(LayoutItem&)>& fn,
                                        const QString& undoLabel)
 {
-    const QString id = m_session.selection().itemId;
+    const QStringList ids = m_session.selection().itemIds;
     m_applying = true;
     m_session.edit(undoLabel, [&](LayoutDocument& d) {
         for (LayoutItem& it : d.items) {
-            if (it.id != id) {
+            if (!ids.contains(it.id)) {
                 continue;
             }
             fn(it);
             it.applyKind();
-            break;
         }
     });
     m_applying = false;
@@ -202,6 +203,10 @@ void LayoutEditorProperties::fillStyle(QFormLayout* form)
             b.note(form, QStringLiteral("No item selected."));
             return;
         }
+        if (sel.itemIds.size() > 1) {
+            b.note(form, QStringLiteral("Editing %1 selected items (style applies to all).")
+                             .arg(sel.itemIds.size()));
+        }
         b.heading(form, QStringLiteral("Content"));
         b.text(form, QStringLiteral("Text"), item->label, [this](const QString& t) {
             applyItem([&](LayoutItem& it) { it.label = t; }, QStringLiteral("Label"));
@@ -226,7 +231,8 @@ void LayoutEditorProperties::fillStyle(QFormLayout* form)
                     applyItem([&](LayoutItem& it) { it.textStyle = t; }, QStringLiteral("Text style"));
                 });
         addChromeFields(b, form, item->style, [this](const QString& undo, const auto& mut) {
-            applyItem([&](LayoutItem& it) { mut(it.style); }, undo);
+            m_session.applyChromeToSelected(mut, undo);
+            QTimer::singleShot(0, this, &LayoutEditorProperties::rebuild);
         });
         return;
     }
@@ -514,32 +520,18 @@ void LayoutEditorProperties::fillInteraction(QFormLayout* form)
         });
 
         const QVector<LayoutAction> acts = item->effectiveActions();
-        if (acts.size() > 1) {
-            b.note(form, QStringLiteral("This item has %1 actions; the inspector edits the first.")
-                             .arg(acts.size()));
-        }
-        const LayoutAction act = acts.isEmpty() ? LayoutAction{} : acts.first();
-        addActionFields(b, form, act, [this](const QString& undo, const auto& mut) {
-            applyItem(
-                [&](LayoutItem& it) {
-                    if (it.actions.isEmpty()) {
-                        LayoutAction a = it.action;
-                        mut(a);
-                        it.action = a;
-                        it.actions = a.type == LayoutAction::Type::Unknown
-                                         ? QVector<LayoutAction>{}
-                                         : QVector<LayoutAction>{a};
-                        return;
-                    }
-                    mut(it.actions.first());
-                    it.action = it.actions.first();
-                    if (it.action.type == LayoutAction::Type::Unknown) {
-                        it.actions.removeFirst();
-                        it.action = it.actions.isEmpty() ? LayoutAction{} : it.actions.first();
-                    }
-                },
-                undo);
-        });
+        addActionSeriesFields(b, form, acts, item->label, m_catalog, m_actionStep,
+                              [this](int step) {
+                                  if (m_actionStep == step) {
+                                      return;
+                                  }
+                                  m_actionStep = step;
+                                  QTimer::singleShot(0, this, &LayoutEditorProperties::rebuild);
+                              },
+                              [this, id = item->id](QVector<LayoutAction> next) {
+                                  m_session.setActions(id, std::move(next));
+                                  QTimer::singleShot(0, this, &LayoutEditorProperties::rebuild);
+                              });
         addDwellFields(b, form, item->dwell, [this](const QString& undo, const auto& mut) {
             applyItem([&](LayoutItem& it) { mut(it.dwell); }, undo);
         });

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "editor/LayoutEditorFields.h"
 #include "editor/LayoutEditorSession.h"
 
 #include <QWidget>
@@ -21,6 +22,7 @@ public:
     void showStyleTab();
     void showLayoutTab();
     void showInteractionTab();
+    void setActionCatalog(ActionCatalog catalog) { m_catalog = std::move(catalog); }
 
 private:
     void rebuild();
@@ -41,6 +43,8 @@ private:
     QTreeWidget* m_hierarchy = nullptr;
     bool m_loading = false;
     bool m_applying = false;
+    int m_actionStep = 0;
+    ActionCatalog m_catalog;
 };
 
 } // namespace gazer
