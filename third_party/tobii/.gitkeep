@@ -1,3 +1,0 @@
-# Stream Engine
-# - include/tobii/*.h  — minimal C ABI used by Gazer (runtime-resolved)
-# - Place tobii_stream_engine.dll here optionally, or use Tobii Experience install
