@@ -197,7 +197,8 @@ QJsonObject itemToJson(const LayoutItem& item)
     if (!item.icon.isEmpty()) {
         o.insert(QStringLiteral("icon"), item.icon);
     }
-    if (!item.role.isEmpty()) {
+    if (!item.role.isEmpty()
+        && item.role.compare(QLatin1String("unbounded"), Qt::CaseInsensitive) != 0) {
         o.insert(QStringLiteral("role"), item.role);
     }
     if (!item.textStyle.isEmpty()) {
@@ -215,22 +216,21 @@ QJsonObject itemToJson(const LayoutItem& item)
     if (item.dwellExempt) {
         o.insert(QStringLiteral("dwellExempt"), true);
     }
-    o.insert(QStringLiteral("row"), item.row);
-    o.insert(QStringLiteral("col"), item.col);
-    if (item.rowSpan != 1) {
-        o.insert(QStringLiteral("rowSpan"), item.rowSpan);
-    }
-    if (item.colSpan != 1) {
-        o.insert(QStringLiteral("colSpan"), item.colSpan);
-    }
-    if (item.widthUnits > 0.0) {
-        o.insert(QStringLiteral("u"), item.widthUnits);
+    if (!item.isUnbounded()) {
+        o.insert(QStringLiteral("row"), item.row);
+        o.insert(QStringLiteral("col"), item.col);
+        if (item.rowSpan != 1) {
+            o.insert(QStringLiteral("rowSpan"), item.rowSpan);
+        }
+        if (item.colSpan != 1) {
+            o.insert(QStringLiteral("colSpan"), item.colSpan);
+        }
+        if (item.widthUnits > 0.0) {
+            o.insert(QStringLiteral("u"), item.widthUnits);
+        }
     }
     if (item.actionLoop) {
         o.insert(QStringLiteral("actionLoop"), true);
-    }
-    if (item.unbounded) {
-        o.insert(QStringLiteral("unbounded"), true);
     }
     if (!item.visible) {
         o.insert(QStringLiteral("visible"), false);
@@ -244,8 +244,11 @@ QJsonObject itemToJson(const LayoutItem& item)
     if (!item.embedLayoutId.isEmpty()) {
         o.insert(QStringLiteral("layoutId"), item.embedLayoutId);
     }
-    if (item.hasDwellRegion) {
-        o.insert(QStringLiteral("dwellRegion"), dwellRegionToJson(item.dwellRegion));
+    if (item.isUnbounded()) {
+        const QJsonObject geo = dwellRegionToJson(item.dwellRegion);
+        for (auto it = geo.begin(); it != geo.end(); ++it) {
+            o.insert(it.key(), it.value());
+        }
     }
     if (item.dwell.sectionPresent) {
         o.insert(QStringLiteral("dwell"), dwellToJson(item.dwell));

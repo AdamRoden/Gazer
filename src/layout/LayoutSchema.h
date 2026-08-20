@@ -19,6 +19,10 @@ namespace LayoutSchema {
 [[nodiscard]] QString screenAnchorName(LayoutDwellRegion::ScreenAnchor a);
 [[nodiscard]] LayoutDwellRegion::ScreenAnchor screenAnchorFromName(const QString& s);
 [[nodiscard]] QStringList screenAnchorNames();
+/// `cell` then every free-item anchor point. Item layout is this dropdown, not `role`.
+[[nodiscard]] QStringList itemAnchorNames();
+[[nodiscard]] QString itemAnchorName(const LayoutItem& item);
+[[nodiscard]] LayoutDwellRegion::ScreenAnchor itemAnchorFromName(const QString& s);
 
 [[nodiscard]] QString boundsModeName(BoundsMode m);
 [[nodiscard]] BoundsMode boundsModeFromName(const QString& s,

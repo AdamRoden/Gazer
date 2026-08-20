@@ -80,13 +80,21 @@ bool Application::initialize()
         m_dockRevealed = false;
         syncMasterChrome();
     });
-    connect(m_tray.get(), &TrayIcon::layoutEditorRequested, this, &Application::openLayoutEditor);
+    connect(m_tray.get(), &TrayIcon::layoutEditorRequested, this, [this]() { openLayoutEditor(); });
     connect(m_tray.get(), &TrayIcon::quitRequested, this, &Application::onQuitRequested);
 
-    m_svc->commands().registerBuiltin(QStringLiteral("openLayoutEditor"), [this](QString*) {
-        openLayoutEditor();
-        return true;
-    });
+    m_svc->commands().registerBuiltin(
+        QStringLiteral("openLayoutEditor"),
+        [this](const CommandRegistry::Invocation& inv, QString*) {
+            QString id = inv.layoutId;
+            if (id.isEmpty() && !inv.sourceInstanceId.isEmpty()) {
+                if (const auto* inst = m_svc->instances().instance(inv.sourceInstanceId)) {
+                    id = inst->document().id;
+                }
+            }
+            openLayoutEditor(id);
+            return true;
+        });
 
     connect(m_dockReveal.get(), &DockRevealOverlay::dockRevealRequested, this, [this]() {
         auto* master = m_svc->instances().masterInstance();
@@ -482,7 +490,7 @@ bool Application::expandMasterShell(QString* error)
     return true;
 }
 
-void Application::openLayoutEditor()
+void Application::openLayoutEditor(const QString& layoutId)
 {
     if (!m_editor) {
         m_editor = std::make_unique<LayoutEditorWindow>();
@@ -505,6 +513,16 @@ void Application::openLayoutEditor()
     m_editor->setCatalog(ids, labels);
     m_editor->setCommandNames(m_svc->commands().names());
     m_editor->setTheme(m_svc->settings().resolvedTheme());
+    if (!layoutId.isEmpty()) {
+        QString err;
+        if (!m_editor->openLayoutId(layoutId, &err)) {
+            GAZER_WARN << "Layout editor could not open" << layoutId << err;
+            if (m_tray) {
+                m_tray->setStatus(err.isEmpty() ? QStringLiteral("Could not open %1").arg(layoutId)
+                                                : err);
+            }
+        }
+    }
     m_editor->showAndRaise();
 }
 

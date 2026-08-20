@@ -233,10 +233,49 @@ void PropertyBinder::dim(QFormLayout* form, const QString& label, const DimSpec&
     form->addRow(label, row);
 }
 
+void PropertyBinder::optionalReal(QFormLayout* form, const QString& label,
+                                  const std::optional<double>& value, double min, double max,
+                                  int decimals, const std::function<void(std::optional<double>)>& apply)
+{
+    auto* row = new QWidget;
+    auto* h = new QHBoxLayout(row);
+    h->setContentsMargins(0, 0, 0, 0);
+    h->setSpacing(6);
+    auto* unit = new QComboBox;
+    unit->addItems({QStringLiteral("inherit"), QStringLiteral("set")});
+    unit->setCurrentIndex(value.has_value() ? 1 : 0);
+    auto* spin = new QDoubleSpinBox;
+    spin->setRange(min, max);
+    spin->setDecimals(decimals);
+    spin->setValue(value.value_or(0.0));
+    spin->setButtonSymbols(QAbstractSpinBox::NoButtons);
+    spin->setEnabled(value.has_value());
+    bool* const loadingFlag = loading;
+    auto commit = [loadingFlag, unit, spin, apply]() {
+        if (loadingFlag && *loadingFlag) {
+            return;
+        }
+        if (unit->currentIndex() == 0) {
+            apply(std::nullopt);
+        } else {
+            apply(spin->value());
+        }
+    };
+    QObject::connect(unit, &QComboBox::currentIndexChanged, host, [spin, commit](int idx) {
+        spin->setEnabled(idx != 0);
+        commit();
+    });
+    QObject::connect(spin, &QDoubleSpinBox::editingFinished, host, commit);
+    h->addWidget(unit);
+    h->addWidget(spin, 1);
+    form->addRow(label, row);
+}
+
 void addChromeFields(PropertyBinder& b, QFormLayout* form, const LayoutChromeStyle& st,
                      const ChromeMutate& apply)
 {
-    b.heading(form, QStringLiteral("Appearance"));
+    b.heading(form, QStringLiteral("Look"));
+    b.note(form, QStringLiteral("Empty / inherit uses the board default, then the theme."));
     b.color(form, QStringLiteral("Background"), st.background, [apply](std::optional<QColor> c) {
         apply(QStringLiteral("Background"), [&](LayoutChromeStyle& s) { s.background = c; });
     });
@@ -246,17 +285,19 @@ void addChromeFields(PropertyBinder& b, QFormLayout* form, const LayoutChromeSty
     b.color(form, QStringLiteral("Border"), st.borderColor, [apply](std::optional<QColor> c) {
         apply(QStringLiteral("Border"), [&](LayoutChromeStyle& s) { s.borderColor = c; });
     });
-    b.real(form, QStringLiteral("Border width"), st.borderWidth.value_or(0.0), 0, 32, 1,
-           [apply](double v) {
-               apply(QStringLiteral("Border width"),
-                     [&](LayoutChromeStyle& s) { s.borderWidth = v; });
-           });
-    b.real(form, QStringLiteral("Radius"), st.radius.value_or(14.0), 0, 64, 1, [apply](double v) {
-        apply(QStringLiteral("Radius"), [&](LayoutChromeStyle& s) { s.radius = v; });
-    });
-    b.real(form, QStringLiteral("Blur"), st.blur.value_or(0.0), 0, 64, 1, [apply](double v) {
-        apply(QStringLiteral("Blur"), [&](LayoutChromeStyle& s) { s.blur = v; });
-    });
+    b.optionalReal(form, QStringLiteral("Border width"), st.borderWidth, 0, 32, 1,
+                   [apply](std::optional<double> v) {
+                       apply(QStringLiteral("Border width"),
+                             [&](LayoutChromeStyle& s) { s.borderWidth = v; });
+                   });
+    b.optionalReal(form, QStringLiteral("Corner radius"), st.radius, 0, 64, 1,
+                   [apply](std::optional<double> v) {
+                       apply(QStringLiteral("Radius"), [&](LayoutChromeStyle& s) { s.radius = v; });
+                   });
+    b.optionalReal(form, QStringLiteral("Frosted blur"), st.blur, 0, 64, 1,
+                   [apply](std::optional<double> v) {
+                       apply(QStringLiteral("Blur"), [&](LayoutChromeStyle& s) { s.blur = v; });
+                   });
 }
 
 namespace {
@@ -295,55 +336,76 @@ void applyMsSequence(LayoutDwellConfig& d, const QString& text)
 } // namespace
 
 void addDwellFields(PropertyBinder& b, QFormLayout* form, const LayoutDwellConfig& dwell,
-                    const DwellMutate& apply)
+                    const DwellMutate& apply, bool boardLevel)
 {
-    b.heading(form, QStringLiteral("Dwell"));
-    b.check(form, QStringLiteral("Enabled"), dwell.enabled, [apply](bool on) {
-        apply(QStringLiteral("Dwell enabled"), [&](LayoutDwellConfig& d) {
-            d.sectionPresent = true;
-            d.enabled = on;
-        });
-    });
-    b.text(form, QStringLiteral("Ms sequence"), msSequenceText(dwell), [apply](const QString& t) {
-        apply(QStringLiteral("Dwell ms"), [&](LayoutDwellConfig& d) { applyMsSequence(d, t); });
-    });
-    const QStringList styles = {QStringLiteral("radial"),
-                                QStringLiteral("fill"),
-                                QStringLiteral("border"),
-                                QStringLiteral("radial,fill"),
-                                QStringLiteral("radial,border"),
-                                QStringLiteral("fill,border"),
-                                QStringLiteral("radial,fill,border")};
-    b.combo(form, QStringLiteral("Progress"), styles,
-            dwell.progressStyle.isEmpty() ? QStringLiteral("radial") : dwell.progressStyle,
-            [apply](const QString& t) {
-                apply(QStringLiteral("Progress style"), [&](LayoutDwellConfig& d) {
-                    d.sectionPresent = true;
-                    d.hasProgressStyle = true;
-                    d.progressStyle = t;
-                });
+    b.heading(form, QStringLiteral("Gaze"));
+    if (boardLevel) {
+        b.check(form, QStringLiteral("Gaze can activate keys"), dwell.enabled, [apply](bool on) {
+            apply(QStringLiteral("Gaze activation"), [&](LayoutDwellConfig& d) {
+                d.sectionPresent = true;
+                d.enabled = on;
             });
-    b.integer(form, QStringLiteral("Scan grace ms"), dwell.scanGraceMs, -1, 5000, [apply](int v) {
-        apply(QStringLiteral("Scan grace"), [&](LayoutDwellConfig& d) {
+        });
+        b.note(form, QStringLiteral("Off: looking at this board does not fire actions."));
+    }
+
+    const bool customTiming = dwell.hasTiming || !dwell.msSequence.isEmpty();
+    b.check(form, QStringLiteral("Override hold times"), customTiming, [apply](bool on) {
+        apply(QStringLiteral("Dwell timing"), [&](LayoutDwellConfig& d) {
             d.sectionPresent = true;
-            d.hasScanGrace = true;
-            d.scanGraceMs = v;
+            d.hasTiming = on;
+            if (!on) {
+                d.msSequence.clear();
+                d.ms = 800;
+            } else if (d.msSequence.isEmpty()) {
+                d.msSequence = {d.ms > 0 ? d.ms : 800};
+            }
         });
     });
-    b.integer(form, QStringLiteral("Blink grace ms"), dwell.graceMs, -1, 5000, [apply](int v) {
-        apply(QStringLiteral("Grace"), [&](LayoutDwellConfig& d) {
+    if (customTiming) {
+        b.text(form, QStringLiteral("Hold times (ms)"), msSequenceText(dwell),
+               [apply](const QString& t) {
+                   apply(QStringLiteral("Dwell ms"),
+                         [&](LayoutDwellConfig& d) { applyMsSequence(d, t); });
+               });
+        b.note(form, QStringLiteral("Comma-separated. Last value repeats while gaze holds."));
+    }
+
+    b.check(form, QStringLiteral("Override progress look"), dwell.hasProgressStyle, [apply](bool on) {
+        apply(QStringLiteral("Progress style"), [&](LayoutDwellConfig& d) {
             d.sectionPresent = true;
-            d.hasGrace = true;
-            d.graceMs = v;
+            d.hasProgressStyle = on;
+            if (!on) {
+                d.progressStyle = QStringLiteral("radial");
+            }
         });
     });
-    b.text(form, QStringLiteral("Progress color"), dwell.progressColor, [apply](const QString& t) {
-        apply(QStringLiteral("Progress color"), [&](LayoutDwellConfig& d) {
-            d.sectionPresent = true;
-            d.hasProgressColor = !t.trimmed().isEmpty();
-            d.progressColor = t.trimmed();
-        });
-    });
+    if (dwell.hasProgressStyle) {
+        const QStringList styles = {QStringLiteral("radial"),
+                                    QStringLiteral("fill"),
+                                    QStringLiteral("border"),
+                                    QStringLiteral("radial,fill"),
+                                    QStringLiteral("radial,border"),
+                                    QStringLiteral("fill,border"),
+                                    QStringLiteral("radial,fill,border")};
+        b.combo(form, QStringLiteral("Progress"), styles,
+                dwell.progressStyle.isEmpty() ? QStringLiteral("radial") : dwell.progressStyle,
+                [apply](const QString& t) {
+                    apply(QStringLiteral("Progress style"), [&](LayoutDwellConfig& d) {
+                        d.sectionPresent = true;
+                        d.hasProgressStyle = true;
+                        d.progressStyle = t;
+                    });
+                });
+        b.text(form, QStringLiteral("Progress color"), dwell.progressColor,
+               [apply](const QString& t) {
+                   apply(QStringLiteral("Progress color"), [&](LayoutDwellConfig& d) {
+                       d.sectionPresent = true;
+                       d.hasProgressColor = !t.trimmed().isEmpty();
+                       d.progressColor = t.trimmed();
+                   });
+               });
+    }
 }
 
 void addActionFields(PropertyBinder& b, QFormLayout* form, const LayoutAction& action,

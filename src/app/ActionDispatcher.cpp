@@ -179,7 +179,7 @@ void ActionDispatcher::dispatchOne(const LayoutAction& action, const QString& so
 
     case LayoutAction::Type::Command: {
         QString err;
-        if (!m_svc.commands().run(commandName, &err)) {
+        if (!m_svc.commands().run({commandName, layoutId, sourceInstanceId}, &err)) {
             notify(err.isEmpty() ? QStringLiteral("Command failed: %1").arg(commandName) : err);
         }
         break;

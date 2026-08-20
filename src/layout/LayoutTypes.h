@@ -150,10 +150,11 @@ enum class LayoutItemKind {
     Segment
 };
 
-/// Optional dwell region for unbounded items (not clipped to board / can sit off-screen).
+/// Hit geometry for free items. JSON: `screenAnchor` plus `x`/`xPx`/… on the item
+/// (nested `dwellRegion` still loads). `screenAnchor` omitted / empty = cell.
 struct LayoutDwellRegion {
     enum class ScreenAnchor {
-        None, // use board-local x,y (may extend outside the window)
+        None, // cell (row/col on the board); not a free item
         Top,
         Bottom,
         Left,
@@ -169,7 +170,7 @@ struct LayoutDwellRegion {
     };
 
     ScreenAnchor screenAnchor = ScreenAnchor::None;
-    /// Position relative to screen anchor (or board origin when None).
+    /// Offset from the screen edge when `screenAnchor` is set.
     DimSpec x;
     DimSpec y;
     DimSpec width;
@@ -251,7 +252,7 @@ struct LayoutItem {
     QString activeState;
     /// Built-in glyph key for the board painter (e.g. "leftClick", "moveTo"). Empty = text only.
     QString icon;
-    /// JSON role string (load input). Runtime paint/hit uses `kind`.
+    /// JSON role string. Maps to `kind` (`label`, `tab`, `toggle`, …). Not placement.
     QString role;
     LayoutItemKind kind = LayoutItemKind::Button;
     /// Fluent type ramp for labels: caption, body, bodyStrong, subtitle, title, section.
@@ -280,11 +281,8 @@ struct LayoutItem {
     LayoutItemStyle style;
     /// Optional per-item dwell / progress overrides (item > layout > global).
     LayoutDwellConfig dwell;
-    /// When true, dwell hit-test is not limited to the board window rect.
-    bool unbounded = false;
-    /// Custom dwell rect (board-local or screen-edge). Valid when width/height > 0 and set.
+    /// Free-item placement. `screenAnchor == None` means the item is a cell.
     LayoutDwellRegion dwellRegion;
-    bool hasDwellRegion = false;
     /// Item kind: empty/"cell" (default) or "layout" (embed another file in this cell).
     QString type;
     /// When type is "layout", catalog id to embed.
@@ -317,6 +315,23 @@ struct LayoutItem {
         }
     }
 
+    /// Free item (not a cell). Determined only by `dwellRegion.screenAnchor`.
+    [[nodiscard]] bool isUnbounded() const { return dwellRegion.usesScreenAnchor(); }
+
+    void setAnchor(LayoutDwellRegion::ScreenAnchor a)
+    {
+        dwellRegion.screenAnchor = a;
+        if (a == LayoutDwellRegion::ScreenAnchor::None) {
+            return;
+        }
+        if (!dwellRegion.width.isSet()) {
+            dwellRegion.width = DimSpec::pixels(160);
+        }
+        if (!dwellRegion.height.isSet()) {
+            dwellRegion.height = DimSpec::pixels(48);
+        }
+    }
+
     [[nodiscard]] bool isClustered() const
     {
         return kind == LayoutItemKind::Stepper || kind == LayoutItemKind::Segment;
@@ -340,11 +355,8 @@ struct LayoutItem {
                || !embedLayoutId.isEmpty();
     }
 
-    /// Board-less affordances (edge/off-screen dwell) are not painted or hit-tested as grid cells.
-    [[nodiscard]] bool participatesInBoardGrid() const
-    {
-        return !unbounded && !hasDwellRegion;
-    }
+    /// Cells only. Free items are laid out in screen space.
+    [[nodiscard]] bool participatesInBoardGrid() const { return !isUnbounded(); }
 
     /// Survives global dwell suspend (set via dwellExempt in JSON / loader).
     [[nodiscard]] bool isDwellExempt() const { return dwellExempt; }

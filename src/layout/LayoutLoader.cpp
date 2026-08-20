@@ -9,6 +9,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QStringList>
 #include <QtGlobal>
 
 namespace gazer {
@@ -254,6 +255,72 @@ void parseDim(const QJsonObject& obj, const QString& baseKey, DimSpec& out)
     if (v.isDouble() || v.isBool()) {
         out.unit = DimSpec::Unit::Percent;
         out.value = v.toDouble(0);
+    }
+}
+
+void parseHitGeometry(const QJsonObject& src, LayoutDwellRegion& region, BoundsMode boundsFallback)
+{
+    parseDim(src, QStringLiteral("x"), region.x);
+    parseDim(src, QStringLiteral("y"), region.y);
+    parseDim(src, QStringLiteral("width"), region.width);
+    parseDim(src, QStringLiteral("height"), region.height);
+    if (src.contains(QStringLiteral("marginPx"))) {
+        region.marginPx = src.value(QStringLiteral("marginPx")).toInt(4);
+    }
+    if (!region.width.isSet()
+        && (src.contains(QStringLiteral("widthPx")) || src.contains(QStringLiteral("width")))) {
+        region.width = DimSpec::pixels(
+            src.value(QStringLiteral("widthPx")).toInt(src.value(QStringLiteral("width")).toInt(80)));
+    }
+    if (!region.height.isSet()
+        && (src.contains(QStringLiteral("heightPx")) || src.contains(QStringLiteral("height")))) {
+        region.height = DimSpec::pixels(
+            src.value(QStringLiteral("heightPx"))
+                .toInt(src.value(QStringLiteral("height")).toInt(80)));
+    }
+    if (src.contains(QStringLiteral("screenAnchor"))) {
+        region.screenAnchor =
+            LayoutSchema::screenAnchorFromName(src.value(QStringLiteral("screenAnchor")).toString());
+    }
+    if (src.contains(QStringLiteral("boundsMode")) || src.contains(QStringLiteral("bounds"))) {
+        region.hasBoundsMode = true;
+        const QString raw = src.contains(QStringLiteral("boundsMode"))
+                                ? src.value(QStringLiteral("boundsMode")).toString()
+                                : src.value(QStringLiteral("bounds")).toString();
+        region.boundsMode = LayoutSchema::boundsModeFromName(raw, boundsFallback);
+    }
+}
+
+void parseItemPlacement(const QJsonObject& io, LayoutItem& item, BoundsMode boundsFallback)
+{
+    QJsonObject src;
+    if (io.contains(QStringLiteral("dwellRegion"))) {
+        src = io.value(QStringLiteral("dwellRegion")).toObject();
+    }
+    static const QStringList kKeys = {
+        QStringLiteral("screenAnchor"), QStringLiteral("x"),        QStringLiteral("xPx"),
+        QStringLiteral("y"),            QStringLiteral("yPx"),      QStringLiteral("width"),
+        QStringLiteral("widthPx"),      QStringLiteral("height"),   QStringLiteral("heightPx"),
+        QStringLiteral("marginPx"),     QStringLiteral("boundsMode"), QStringLiteral("bounds")};
+    for (const QString& k : kKeys) {
+        if (io.contains(k)) {
+            src.insert(k, io.value(k));
+        }
+    }
+    if (!src.isEmpty()) {
+        parseHitGeometry(src, item.dwellRegion, boundsFallback);
+    }
+
+    const bool legacyUnbounded =
+        io.value(QStringLiteral("unbounded")).toBool(false)
+        || io.value(QStringLiteral("role")).toString().compare(QLatin1String("unbounded"),
+                                                              Qt::CaseInsensitive)
+               == 0;
+    if (!item.dwellRegion.usesScreenAnchor() && legacyUnbounded) {
+        item.setAnchor(LayoutDwellRegion::ScreenAnchor::BottomCenter);
+    }
+    if (item.role.compare(QLatin1String("unbounded"), Qt::CaseInsensitive) == 0) {
+        item.role.clear();
     }
 }
 
@@ -543,75 +610,9 @@ bool LayoutLoader::loadFromJson(const QByteArray& json, LayoutDocument& out, QSt
             item.visible = io.value(QStringLiteral("visible")).toBool(true);
         }
         item.visibleWhen = io.value(QStringLiteral("visibleWhen")).toString();
-        item.unbounded = io.value(QStringLiteral("unbounded")).toBool(false)
-                         || io.value(QStringLiteral("role")).toString().toLower()
-                                == QLatin1String("unbounded");
         item.actionLoop = io.value(QStringLiteral("actionLoop")).toBool(false)
                           || io.value(QStringLiteral("loop")).toBool(false);
-        if (io.contains(QStringLiteral("dwellRegion"))) {
-            const QJsonObject dr = io.value(QStringLiteral("dwellRegion")).toObject();
-            item.hasDwellRegion = true;
-            parseDim(dr, QStringLiteral("x"), item.dwellRegion.x);
-            parseDim(dr, QStringLiteral("y"), item.dwellRegion.y);
-            parseDim(dr, QStringLiteral("width"), item.dwellRegion.width);
-            parseDim(dr, QStringLiteral("height"), item.dwellRegion.height);
-            // Legacy: bare x/y as pixels when written as numbers without % intent
-            // — new default is percent; existing layouts used board-local pixel x/y.
-            // If only "x"/"y" numbers and no xPx, treat as pixels when screenAnchor is none
-            // for back-compat with board-local regions (old schema).
-            item.dwellRegion.marginPx = dr.value(QStringLiteral("marginPx")).toInt(4);
-            // Legacy width/height absolute fields → DimSpec only.
-            if (!item.dwellRegion.width.isSet()) {
-                const int w = dr.value(QStringLiteral("widthPx"))
-                                  .toInt(dr.value(QStringLiteral("width")).toInt(80));
-                item.dwellRegion.width = DimSpec::pixels(w);
-            }
-            if (!item.dwellRegion.height.isSet()) {
-                const int h = dr.value(QStringLiteral("heightPx"))
-                                  .toInt(dr.value(QStringLiteral("height")).toInt(80));
-                item.dwellRegion.height = DimSpec::pixels(h);
-            }
-            // If x/y were only legacy doubles without unit, parseDim set percent —
-            // for board-local (no anchor) old files used pixel coords: detect legacy.
-            item.dwellRegion.screenAnchor =
-                LayoutSchema::screenAnchorFromName(dr.value(QStringLiteral("screenAnchor")).toString());
-            if (dr.contains(QStringLiteral("boundsMode")) || dr.contains(QStringLiteral("bounds"))) {
-                item.dwellRegion.hasBoundsMode = true;
-                const QString raw = dr.contains(QStringLiteral("boundsMode"))
-                                        ? dr.value(QStringLiteral("boundsMode")).toString()
-                                        : dr.value(QStringLiteral("bounds")).toString();
-                item.dwellRegion.boundsMode =
-                    LayoutSchema::boundsModeFromName(raw, layout.effectiveBoundsMode());
-            }
-            if (!item.dwellRegion.usesScreenAnchor()) {
-                // Board-local legacy: bare numeric x/y/width/height are pixels
-                // (percent requires "N%" string or *Px explicit for new schema).
-                auto forcePxIfBareNumber = [&](const QString& key, const QString& pxKey,
-                                               DimSpec& dim) {
-                    if (dr.contains(pxKey)) {
-                        return;
-                    }
-                    if (!dr.contains(key)) {
-                        return;
-                    }
-                    const QJsonValue v = dr.value(key);
-                    if (v.isDouble()) {
-                        dim = DimSpec::pixels(v.toDouble(0));
-                    }
-                };
-                forcePxIfBareNumber(QStringLiteral("x"), QStringLiteral("xPx"),
-                                    item.dwellRegion.x);
-                forcePxIfBareNumber(QStringLiteral("y"), QStringLiteral("yPx"),
-                                    item.dwellRegion.y);
-                forcePxIfBareNumber(QStringLiteral("width"), QStringLiteral("widthPx"),
-                                    item.dwellRegion.width);
-                forcePxIfBareNumber(QStringLiteral("height"), QStringLiteral("heightPx"),
-                                    item.dwellRegion.height);
-            }
-            if (item.dwellRegion.usesScreenAnchor()) {
-                item.unbounded = true;
-            }
-        }
+        parseItemPlacement(io, item, layout.effectiveBoundsMode());
 
         if (io.contains(QStringLiteral("actions"))) {
             if (!parseActionList(io.value(QStringLiteral("actions")), item.actions, error)) {

@@ -442,13 +442,10 @@
                   {
                       "id":  "edge_main",
                       "label":  "Main",
-                      "unbounded":  true,
-                      "dwellRegion":  {
-                                         "screenAnchor":  "topCenter",
-                                         "widthPx":  420,
-                                         "heightPx":  156,
-                                         "marginPx":  2
-                                     },
+                      "screenAnchor":  "topCenter",
+                      "widthPx":  420,
+                      "heightPx":  156,
+                      "marginPx":  2,
                       "style":  {
                                     "background":  "#0a7ea4",
                                     "foreground":  "#ffffff"

@@ -15,23 +15,32 @@ class CommandRegistry final : public QObject {
     Q_OBJECT
 
 public:
+    struct Invocation {
+        QString name;
+        QString layoutId;
+        QString sourceInstanceId;
+    };
+
     using Handler = std::function<bool(QString* error)>;
+    using InvHandler = std::function<bool(const Invocation&, QString* error)>;
 
     explicit CommandRegistry(MappingEngine& mapping, QObject* parent = nullptr);
 
     void registerBuiltin(const QString& name, Handler handler);
+    void registerBuiltin(const QString& name, InvHandler handler);
     [[nodiscard]] bool isBuiltin(const QString& name) const;
     [[nodiscard]] QStringList names() const;
 
     /// Builtin if registered, else mapping profile injectors.
     [[nodiscard]] bool run(const QString& commandName, QString* error = nullptr);
+    [[nodiscard]] bool run(const Invocation& inv, QString* error = nullptr);
 
 signals:
     void statusMessage(const QString& message);
 
 private:
     MappingEngine& m_mapping;
-    QHash<QString, Handler> m_builtins;
+    QHash<QString, InvHandler> m_builtins;
 };
 
 } // namespace gazer

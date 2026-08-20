@@ -63,9 +63,7 @@ LayoutInstance::LayoutInstance(QString instanceId, LayoutDocument document, QObj
     connect(m_dwell.get(), &DwellStateMachine::itemActivated, this,
             [this](const QString& itemId) {
                 const LayoutItem* item = m_document.findItem(itemId);
-                const bool unbounded =
-                    item && (!item->participatesInBoardGrid() || item->hasDwellRegion);
-                if (unbounded && m_edgeBubbles) {
+                if (item && item->isUnbounded() && m_edgeBubbles) {
                     const ProgressVisuals v = resolvedProgressVisuals(item);
                     m_edgeBubbles->flashThenClear(m_instanceId, v, v.flashMs);
                 } else {
@@ -533,10 +531,10 @@ DwellRegionSpace::Resolved LayoutInstance::resolveItem(const LayoutItem& item) c
 {
     // Apply layout-level boundsMode when the region does not override it.
     LayoutItem copy = item;
-    if (copy.hasDwellRegion && !copy.dwellRegion.hasBoundsMode && m_document.hasBoundsMode) {
+    if (copy.isUnbounded() && !copy.dwellRegion.hasBoundsMode && m_document.hasBoundsMode) {
         copy.dwellRegion.hasBoundsMode = true;
         copy.dwellRegion.boundsMode = m_document.boundsMode;
-    } else if (copy.hasDwellRegion && !copy.dwellRegion.hasBoundsMode
+    } else if (copy.isUnbounded() && !copy.dwellRegion.hasBoundsMode
                && m_document.placement.hasBoundsMode) {
         copy.dwellRegion.hasBoundsMode = true;
         copy.dwellRegion.boundsMode = m_document.placement.boundsMode;

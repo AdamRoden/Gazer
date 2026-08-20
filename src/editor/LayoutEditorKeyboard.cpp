@@ -103,11 +103,7 @@ QVector<EditorLayer> makeTemplateLayers(EditorTemplate tmpl, const QString& id, 
         LayoutItem it;
         it.id = QStringLiteral("edge");
         it.label = QStringLiteral("Main");
-        it.unbounded = true;
-        it.hasDwellRegion = true;
-        it.dwellRegion.screenAnchor = LayoutDwellRegion::ScreenAnchor::Bottom;
-        it.dwellRegion.width = DimSpec::pixels(160);
-        it.dwellRegion.height = DimSpec::pixels(48);
+        it.setAnchor(LayoutDwellRegion::ScreenAnchor::Bottom);
         it.action.type = LayoutAction::Type::Command;
         it.action.name = QStringLiteral("expandMaster");
         it.actions = {it.action};

@@ -35,7 +35,7 @@ private:
     [[nodiscard]] bool expandMasterShell(QString* error = nullptr);
 
     void onQuitRequested();
-    void openLayoutEditor();
+    void openLayoutEditor(const QString& layoutId = {});
     [[nodiscard]] bool testEditedLayout(const LayoutDocument& doc, QString* error);
     void onGaze(const gazer::GazePoint& point);
     void onItemActivated(const QString& instanceId, const QString& itemId);

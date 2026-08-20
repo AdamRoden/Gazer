@@ -1,6 +1,7 @@
 #include "layout/DwellRegionSpace.h"
 
 #include <QGuiApplication>
+#include <QtGlobal>
 #include <QtMath>
 
 #include <climits>
@@ -432,37 +433,29 @@ Resolved resolveFromLogical(const QRect& logical, const QRect& boardScreenRect, 
 Resolved resolveItem(const LayoutItem& item, const QPoint& boardOrigin,
                      const QRect& boardScreenRect, QScreen* boardScreen)
 {
-    if (!item.hasDwellRegion || !item.dwellRegion.isValid()) {
+    Q_UNUSED(boardOrigin);
+    if (!item.isUnbounded() || !item.dwellRegion.isValid()) {
         return {};
     }
 
-    const bool boardless = item.unbounded || item.hasDwellRegion;
-
-    if (item.dwellRegion.usesScreenAnchor()) {
-        // boundsMode: screen = full geometry; desktop = available work area.
-        const BoundsMode mode = item.dwellRegion.hasBoundsMode ? item.dwellRegion.boundsMode
-                                                               : BoundsMode::Desktop;
-        auto geoOf = [mode](QScreen* s) -> QRect {
-            if (!s) {
-                return {};
-            }
-            return mode == BoundsMode::Screen ? s->geometry() : s->availableGeometry();
-        };
-        QRect screenGeo = geoOf(boardScreen);
-        if (!screenGeo.isValid()) {
-            if (QScreen* s = nearestScreen(boardScreenRect.center())) {
-                screenGeo = geoOf(s);
-            }
+    const BoundsMode mode = item.dwellRegion.hasBoundsMode ? item.dwellRegion.boundsMode
+                                                           : BoundsMode::Desktop;
+    auto geoOf = [mode](QScreen* s) -> QRect {
+        if (!s) {
+            return {};
         }
-        const QRect logical = logicalFromAnchor(item.dwellRegion, screenGeo);
-        return resolveFromLogical(logical, boardScreenRect, /*boardless=*/true,
-                                  /*hasPreferredEdge=*/true,
-                                  edgeFromAnchor(item.dwellRegion.screenAnchor));
+        return mode == BoundsMode::Screen ? s->geometry() : s->availableGeometry();
+    };
+    QRect screenGeo = geoOf(boardScreen);
+    if (!screenGeo.isValid()) {
+        if (QScreen* s = nearestScreen(boardScreenRect.center())) {
+            screenGeo = geoOf(s);
+        }
     }
-
-    const QSize boardSize = boardScreenRect.isValid() ? boardScreenRect.size() : QSize();
-    const QRect logical = logicalFromBoardLocal(item.dwellRegion, boardOrigin, boardSize);
-    return resolveFromLogical(logical, boardScreenRect, boardless);
+    const QRect logical = logicalFromAnchor(item.dwellRegion, screenGeo);
+    return resolveFromLogical(logical, boardScreenRect, /*boardless=*/true,
+                              /*hasPreferredEdge=*/true,
+                              edgeFromAnchor(item.dwellRegion.screenAnchor));
 }
 
 } // namespace DwellRegionSpace

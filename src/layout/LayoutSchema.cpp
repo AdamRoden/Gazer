@@ -187,6 +187,31 @@ QStringList screenAnchorNames()
             QStringLiteral("leftCenter"),   QStringLiteral("rightCenter")};
 }
 
+QStringList itemAnchorNames()
+{
+    QStringList names;
+    names.push_back(QStringLiteral("cell"));
+    names += screenAnchorNames();
+    return names;
+}
+
+QString itemAnchorName(const LayoutItem& item)
+{
+    if (!item.isUnbounded()) {
+        return QStringLiteral("cell");
+    }
+    return screenAnchorName(item.dwellRegion.screenAnchor);
+}
+
+LayoutDwellRegion::ScreenAnchor itemAnchorFromName(const QString& s)
+{
+    const QString n = norm(s);
+    if (n == QLatin1String("cell") || n == QLatin1String("grid") || s.trimmed().isEmpty()) {
+        return LayoutDwellRegion::ScreenAnchor::None;
+    }
+    return screenAnchorFromName(s);
+}
+
 QString boundsModeName(BoundsMode m)
 {
     return m == BoundsMode::Screen ? QStringLiteral("screen") : QStringLiteral("desktop");

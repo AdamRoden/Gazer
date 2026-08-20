@@ -7,18 +7,22 @@
 #include <functional>
 
 class QTabWidget;
-class QTreeWidget;
 class QFormLayout;
 
 namespace gazer {
 
-/// Right-hand inspector: Style / Layout / Interaction plus the item hierarchy.
+/// Right-hand inspector. Board selection: Board / Window / Grid / Gaze.
+/// Item selection: Item / Layout / Action.
 class LayoutEditorProperties final : public QWidget {
     Q_OBJECT
 
 public:
     explicit LayoutEditorProperties(LayoutEditorSession& session, QWidget* parent = nullptr);
 
+    void showBoardTab();
+    void showWindowTab();
+    void showGridTab();
+    void showDwellTab();
     void showStyleTab();
     void showLayoutTab();
     void showInteractionTab();
@@ -26,10 +30,14 @@ public:
 
 private:
     void rebuild();
-    void rebuildHierarchy();
-    void fillStyle(QFormLayout* form);
-    void fillLayout(QFormLayout* form);
-    void fillInteraction(QFormLayout* form);
+    void syncTabs(bool itemSelected);
+    void fillBoard(QFormLayout* form);
+    void fillWindow(QFormLayout* form);
+    void fillGrid(QFormLayout* form);
+    void fillBoardDwell(QFormLayout* form);
+    void fillItem(QFormLayout* form);
+    void fillItemLayout(QFormLayout* form);
+    void fillItemAction(QFormLayout* form);
     void clearLayout(QFormLayout* form);
 
     void applyItem(const std::function<void(LayoutItem&)>& fn, const QString& undoLabel);
@@ -37,12 +45,13 @@ private:
 
     LayoutEditorSession& m_session;
     QTabWidget* m_tabs = nullptr;
-    QFormLayout* m_styleForm = nullptr;
-    QFormLayout* m_layoutForm = nullptr;
-    QFormLayout* m_interactForm = nullptr;
-    QTreeWidget* m_hierarchy = nullptr;
+    QFormLayout* m_form0 = nullptr;
+    QFormLayout* m_form1 = nullptr;
+    QFormLayout* m_form2 = nullptr;
+    QFormLayout* m_form3 = nullptr;
     bool m_loading = false;
     bool m_applying = false;
+    bool m_itemMode = false;
     int m_actionStep = 0;
     ActionCatalog m_catalog;
 };

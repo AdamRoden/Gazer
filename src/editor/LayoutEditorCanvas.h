@@ -4,6 +4,7 @@
 #include "ui/Theme.h"
 
 #include <QPoint>
+#include <QRect>
 #include <QRectF>
 #include <QString>
 #include <QWidget>
@@ -42,8 +43,19 @@ private:
         QRectF glass;
         QRectF screen;
         QRectF board;
-        double scale = 1.0;
+        double scaleX = 1.0;
+        double scaleY = 1.0;
         QSize virtualScreen{1920, 1080};
+
+        [[nodiscard]] QPointF fromVirt(QPointF v) const
+        {
+            return {screen.left() + v.x() * scaleX, screen.top() + v.y() * scaleY};
+        }
+        [[nodiscard]] QRectF fromVirt(const QRect& r) const
+        {
+            return QRectF(fromVirt(QPointF(r.x(), r.y())),
+                          QSizeF(r.width() * scaleX, r.height() * scaleY));
+        }
     };
 
     [[nodiscard]] ScreenMap map() const;
@@ -56,6 +68,8 @@ private:
     void paintCell(class QPainter& p, const LayoutItem& item, const QRectF& r, bool selected,
                    bool hovered) const;
     [[nodiscard]] QPoint cellAt(const QPoint& pos, const ScreenMap& m) const;
+    [[nodiscard]] QRectF unboundedCanvasRect(const LayoutItem& item, const ScreenMap& m) const;
+    [[nodiscard]] QString hitUnbounded(const QPoint& pos, const ScreenMap& m) const;
     void applyResize(const QPoint& pos, const ScreenMap& m);
     void commitDrag(const QPoint& pos, const ScreenMap& m);
     void updateDragCursor(const ScreenMap& m, const QPoint& pos);

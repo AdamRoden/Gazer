@@ -17,8 +17,8 @@ QString roleForKind(EditorItemKind kind)
         return QStringLiteral("tab");
     case EditorItemKind::Slider:
         return QStringLiteral("slider");
-    case EditorItemKind::Button:
     case EditorItemKind::Unbounded:
+    case EditorItemKind::Button:
         break;
     }
     return {};
@@ -50,11 +50,11 @@ void LayoutEditorSession::addItem(EditorItemKind kind)
 
 void LayoutEditorSession::addItemAt(EditorItemKind kind, int row, int col)
 {
-    const QString stem = kind == EditorItemKind::Unbounded ? QStringLiteral("edge")
+    const QString stem = kind == EditorItemKind::Unbounded ? QStringLiteral("free")
                                                            : QStringLiteral("item");
     LayoutItem item;
     item.id = uniqueItemId(stem);
-    item.label = kind == EditorItemKind::Unbounded ? QStringLiteral("Edge")
+    item.label = kind == EditorItemKind::Unbounded ? QStringLiteral("Free")
                                                    : QStringLiteral("Button");
     item.role = roleForKind(kind);
     item.applyKind();
@@ -62,12 +62,8 @@ void LayoutEditorSession::addItemAt(EditorItemKind kind, int row, int col)
         item.interactive = false;
     }
     if (kind == EditorItemKind::Unbounded) {
-        item.unbounded = true;
-        item.hasDwellRegion = true;
-        item.dwellRegion.screenAnchor = LayoutDwellRegion::ScreenAnchor::Bottom;
-        item.dwellRegion.width = DimSpec::pixels(160);
-        item.dwellRegion.height = DimSpec::pixels(48);
-        item.label = QStringLiteral("Edge");
+        item.setAnchor(LayoutDwellRegion::ScreenAnchor::Bottom);
+        item.label = QStringLiteral("Free");
     } else {
         item.row = qMax(0, row);
         item.col = qMax(0, col);

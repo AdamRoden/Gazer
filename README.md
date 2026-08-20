@@ -33,9 +33,9 @@ Three-pane Fluent designer:
 
 | Pane | Contents |
 |------|----------|
-| Left | Elements to add, plus templates (blank, keyboard row, settings row, edge chip) |
-| Center | **Fit board** (default): keys fill the canvas for editing. Uncheck it to see placement on a 16:9 monitor (a small placement inset stays in Fit). Click / Shift-click to select; drag to move; drag the cyan handles to resize; arrows nudge; Delete removes. |
-| Right | Style / Layout / Interaction. Item actions use presets (type/speak label, command picker, open layout from the catalog). |
+| Left | Add (keys, free item, templates) and the **element tree** (board → cells / free items) |
+| Center | **Fit board** (default): the preview screen is flush with the canvas (zero margin). Uncheck it to see true placement on a 16:9 screen, including free items that sit outside the display. Click / Shift-click to select; drag to move; drag the cyan handles to resize; arrows nudge; Delete removes. |
+| Right | Board selected: Board / Window / Grid / Gaze. Item selected: Item / Layout / Action. Appearance and dwell timing stay inherited until you override them. |
 
 File → New asks for id, name, and a template (including a full QWERTY with Shift/Sym layers). File → Open lists shipped and user layouts. Saves default to `%AppData%\Gazer\layouts`. The toolbar layer combo switches Base / Shift / Symbols. **Test on canvas** (F6) plays a dwell ring and names the action; **Test on desktop** (F5) still opens a live preview board. Master roots cannot be live-tested. Layouts are the same JSON as `resources/layouts/*.json`.
 
@@ -155,11 +155,11 @@ Layouts live in `resources/layouts/*.json`. Catalog id should match the filename
 | `dwell` | object | Layout-level dwell / progress defaults |
 | `autoClose` | bool | Secondaries default true; master defaults false when omitted |
 | `autoCloseIdleMs`, `autoCloseFadeMs` | int | `-1` / omit → AppSettings (10000 / 3000) |
-| `items` | array | Grid cells and unbounded affordances |
+| `items` | array | Cells and free (screen-anchored) items |
 | `onOpen`, `onLoad`, `onClose` | action[] | Lifecycle. One-shot, no loops |
 | `session` | object | Legacy. Only `role` / `hideUntilGazeReveal` seed root `master` / `hideUntilGazeReveal` when those keys are omitted |
 
-**Bounds precedence:** `window.boundsMode` → layout `boundsMode` → `desktop`. Dwell regions: `dwellRegion.boundsMode` → layout / window → `desktop`.
+**Bounds precedence:** `window.boundsMode` → layout `boundsMode` → `desktop`. Unbounded item `boundsMode` → layout / window → `desktop`.
 
 ### Children and visibility
 
@@ -252,35 +252,35 @@ Priority: item override → AppSettings (when set) → layout leftover. Layout `
 | `activeState` | Accent on when the resolver is true (`dwellSuspend`, `magnifier`, `loop.gazeClick`, `setting.*`, …). A leading `!` (whitespace-trimmed after `!`) negates the rest of the key |
 | `icon` | Built-in glyph (`leftClick`, `moveTo`, …) |
 | `interactive` | `false` = visual only |
-| `role` | Maps to a runtime kind: `label`, `tab`, `toggle`, `slider`, `preview`, or omitted (button). `cluster` starting with `stepper.` / `segment.` wins. `card` is ignored (row cards are derived). |
+| `role` | Paint kind: omit/`button`, `label`, `tab`, `toggle`, `slider`, `preview`. `cluster` starting with `stepper.` / `segment.` wins. `card` is ignored. Placement is `screenAnchor`, not role. |
 | `textStyle` | Label type ramp: `caption`, `body`, `bodyStrong` (default), `subtitle`, `title`, `section` (overline + rule). `settingKey` with no caption paints as an accent readout |
 | `cluster` | `stepper.*` NumberBox or `segment.*` pill. Members share one chrome |
 | `clusterSlot` | `dec` / `value` / `inc` / `edit` for steppers; omitted segments order by `col`. `value` is non-interactive unless JSON sets `interactive` |
 | `dwellExempt` | Still dwellable while global dwell is suspended (auto for suspend-toggle commands) |
-| `row`, `col`, `rowSpan`, `colSpan` | Grid cell |
+| `row`, `col`, `rowSpan`, `colSpan` | Cell |
 | `u` / `widthUnits` | Relative width in unit-row mode |
-| `unbounded` | Not a grid cell; use with `dwellRegion` |
-| `dwellRegion` | Custom hit geometry |
-| `dwell` | Per-item override |
+| `screenAnchor` | Omit / empty = **cell** (`row`/`col`). Else a free item at that anchor point (`top`, `bottomCenter`, …) |
+| `x`/`xPx`, `y`/`yPx`, `width`/`widthPx`, `height`/`heightPx` | Hit geometry when `screenAnchor` is set (also accepted nested under legacy `dwellRegion`) |
+| `dwell` | Per-item override (omit to inherit the board / app settings) |
 | `action` | Single action (legacy) |
 | `actions` | Ordered series (preferred when non-empty) |
 | `actionLoop` / `loop` | Sticky series; re-activate to stop |
 | `style` | Cell chrome |
 | `visible`, `visibleWhen` | See visibility |
 
-Grid participation: not `unbounded` and no `dwellRegion`.
+Cells: `screenAnchor` omitted. Free items: `screenAnchor` set to an anchor point.
 
-#### Dwell region
+#### Free items
+
+`screenAnchor` is the layout switch (legacy: `unbounded: true` or `role: "unbounded"`, which load as `bottomCenter` if no anchor is set). Geometry is on the item:
 
 | Field | Description |
 |-------|-------------|
-| `screenAnchor` | Empty = board-local. Else `top`, `bottom`, `left`, `right`, `topLeft`, `topRight`, `bottomLeft`, `bottomRight`, `topCenter`, `bottomCenter`, `leftCenter`, `rightCenter` |
+| `screenAnchor` | Empty = **cell**. Else `top`, `bottom`, `left`, `right`, `topLeft`, `topRight`, `bottomLeft`, `bottomRight`, `topCenter`, `bottomCenter`, `leftCenter`, `rightCenter` |
 | `x` / `y`, `xPx` / `yPx` | Offset from the anchor (screen space, +Y down) or board origin |
 | `width` / `height`, `widthPx` / `heightPx` | Size |
 | `marginPx` | Deprecated outward gap when x/y unset |
 | `boundsMode` | Reference for this region |
-
-Setting `screenAnchor` treats the item as unbounded.
 
 ### Actions
 

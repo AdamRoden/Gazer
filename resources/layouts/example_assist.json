@@ -10,13 +10,10 @@
   "window": {
     "anchor": "bottomCenter",
     "widthPx": 1080,
-    "heightPx": 150,
-    "style": {
-      "background": "#00000000"
-    }
+    "heightPx": 150
   },
   "grid": {
-    "columns": 8,
+    "columns": 9,
     "rows": 1,
     "gapPx": 10
   },
@@ -77,10 +74,21 @@
       "col": 6
     },
     {
+      "id": "edit_layout",
+      "label": "Edit layout",
+      "row": 0,
+      "col": 7,
+      "action": {
+        "type": "command",
+        "name": "openLayoutEditor",
+        "layoutId": "example_assist"
+      }
+    },
+    {
       "id": "main",
       "label": "← Main",
       "row": 0,
-      "col": 7,
+      "col": 8,
       "action": { "type": "loadLayout", "layoutId": "main_drawer" }
     }
   ]

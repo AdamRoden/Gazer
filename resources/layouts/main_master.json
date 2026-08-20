@@ -12,28 +12,22 @@
     {
       "id": "e1",
       "label": "Main",
-      "unbounded": true,
       "dwellExempt": true,
       "visibleWhen": "!expanded",
-      "dwellRegion": {
-        "screenAnchor": "bottomCenter",
-        "widthPx": 300,
-        "heightPx": 200,
-        "yPx": 100
-      },
+      "screenAnchor": "bottomCenter",
+      "widthPx": 300,
+      "heightPx": 200,
+      "yPx": 100,
       "actions": [{ "type": "command", "name": "resumeDwell" },{ "type": "command", "name": "expandMaster" }]
     },
     {
       "id": "e2",
       "label": "Sleep",
-      "unbounded": true,
-      "dwellRegion": {
-        "screenAnchor": "bottomCenter",
-        "widthPx": 300,
-        "heightPx": 200,
-        "xPx": 400,
-        "yPx": 100
-      },
+      "screenAnchor": "bottomCenter",
+      "widthPx": 300,
+      "heightPx": 200,
+      "xPx": 400,
+      "yPx": 100,
       "actions": [{ "type": "command", "name": "toggleDwellSuspend" }]
     }
   ]

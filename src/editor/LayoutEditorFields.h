@@ -40,6 +40,9 @@ struct PropertyBinder {
                const std::function<void(std::optional<QColor>)>& apply);
     void dim(QFormLayout* form, const QString& label, const DimSpec& value,
              const std::function<void(DimSpec)>& apply);
+    void optionalReal(QFormLayout* form, const QString& label, const std::optional<double>& value,
+                      double min, double max, int decimals,
+                      const std::function<void(std::optional<double>)>& apply);
 };
 
 using ChromeMutate = std::function<void(const QString& undoLabel,
@@ -52,7 +55,7 @@ using ActionMutate = std::function<void(const QString& undoLabel,
 void addChromeFields(PropertyBinder& b, QFormLayout* form, const LayoutChromeStyle& st,
                      const ChromeMutate& apply);
 void addDwellFields(PropertyBinder& b, QFormLayout* form, const LayoutDwellConfig& dwell,
-                    const DwellMutate& apply);
+                    const DwellMutate& apply, bool boardLevel);
 struct ActionCatalog {
     QStringList commands;
     QStringList commandLabels;

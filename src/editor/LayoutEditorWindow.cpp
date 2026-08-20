@@ -240,6 +240,20 @@ bool LayoutEditorWindow::openFile(const QString& path, QString* error)
     return m_session->loadFromFile(path, error);
 }
 
+bool LayoutEditorWindow::openLayoutId(const QString& layoutId, QString* error)
+{
+    if (layoutId.isEmpty()) {
+        if (error) {
+            *error = QStringLiteral("Layout id is empty");
+        }
+        return false;
+    }
+    const QString userPath = QDir(m_userDir).filePath(layoutId + QStringLiteral(".json"));
+    const QString shipPath = QDir(m_layoutsDir).filePath(layoutId + QStringLiteral(".json"));
+    const QString path = QFileInfo::exists(userPath) ? userPath : shipPath;
+    return openFile(path, error);
+}
+
 void LayoutEditorWindow::showAndRaise()
 {
     show();
@@ -330,32 +344,27 @@ void LayoutEditorWindow::buildUi()
     auto* actAddSlider = makeAction(QStringLiteral("Add &slider"), QKeySequence(), [this]() {
         m_session->setPlaceKind(EditorItemKind::Slider);
     });
-    auto* actAddEdge = makeAction(QStringLiteral("Add &unbounded item"), QKeySequence(), [this]() {
+    auto* actAddEdge = makeAction(QStringLiteral("Add &free item"), QKeySequence(), [this]() {
         m_session->addItem(EditorItemKind::Unbounded);
     });
     auto* actDup = makeAction(QStringLiteral("D&uplicate selected"),
                               QKeySequence(QStringLiteral("Ctrl+D")),
                               [this]() { m_session->duplicateSelected(); });
 
-    auto* actDoc = makeAction(QStringLiteral("&Document"), QKeySequence(), [this]() {
-        m_session->selectTarget(EditorTarget::Document);
-        m_props->showLayoutTab();
+    auto* actDoc = makeAction(QStringLiteral("&Board properties"), QKeySequence(), [this]() {
+        m_props->showBoardTab();
     });
     auto* actGrid = makeAction(QStringLiteral("Edit &grid"), QKeySequence(), [this]() {
-        m_session->selectTarget(EditorTarget::Grid);
-        m_props->showLayoutTab();
+        m_props->showGridTab();
     });
-    auto* actDwell = makeAction(QStringLiteral("Edit d&well"), QKeySequence(), [this]() {
-        m_session->selectTarget(EditorTarget::Dwell);
-        m_props->showInteractionTab();
+    auto* actDwell = makeAction(QStringLiteral("Edit &gaze"), QKeySequence(), [this]() {
+        m_props->showDwellTab();
     });
-    auto* actStyle = makeAction(QStringLiteral("Edit st&yle"), QKeySequence(), [this]() {
-        m_session->selectTarget(EditorTarget::Style);
-        m_props->showStyleTab();
+    auto* actStyle = makeAction(QStringLiteral("Window &look"), QKeySequence(), [this]() {
+        m_props->showWindowTab();
     });
-    auto* actWin = makeAction(QStringLiteral("&Edit window"), QKeySequence(), [this]() {
-        m_session->selectTarget(EditorTarget::Window);
-        m_props->showLayoutTab();
+    auto* actWin = makeAction(QStringLiteral("&Window"), QKeySequence(), [this]() {
+        m_props->showWindowTab();
     });
     auto* actTest =
         makeAction(QStringLiteral("&Test on desktop"), QKeySequence(QStringLiteral("F5")), [this]() {
@@ -451,7 +460,8 @@ void LayoutEditorWindow::buildUi()
     m_toolbox = new LayoutEditorToolbox(split);
     m_canvas = new LayoutEditorCanvas(*m_session, split);
     m_props = new LayoutEditorProperties(*m_session, split);
-    m_toolbox->setMinimumWidth(220);
+    m_toolbox->bindSession(*m_session);
+    m_toolbox->setMinimumWidth(240);
     m_props->setMinimumWidth(300);
     split->setStretchFactor(0, 0);
     split->setStretchFactor(1, 1);
@@ -496,12 +506,12 @@ void LayoutEditorWindow::buildUi()
         m_session->newFromTemplate(EditorTemplate::SettingsRow, QStringLiteral("tools"),
                                    QStringLiteral("Tools"));
     });
-    auto* tmplEdge = makeAction(QStringLiteral("Edge chip"), QKeySequence(), [this]() {
+    auto* tmplEdge = makeAction(QStringLiteral("Free chip"), QKeySequence(), [this]() {
         if (!maybeSave()) {
             return;
         }
-        m_session->newFromTemplate(EditorTemplate::EdgeChip, QStringLiteral("edge"),
-                                   QStringLiteral("Edge"));
+        m_session->newFromTemplate(EditorTemplate::EdgeChip, QStringLiteral("free"),
+                                   QStringLiteral("Free"));
     });
     auto* tmplSec = m_toolbox->addSection(QStringLiteral("Templates"));
     m_toolbox->addAction(tmplSec, tmplBlank);
@@ -591,7 +601,7 @@ bool LayoutEditorWindow::promptNewBoard()
     tmpl->addItem(QStringLiteral("Full keyboard (with shift/sym)"), int(EditorTemplate::Keyboard));
     tmpl->addItem(QStringLiteral("Keyboard row"), int(EditorTemplate::KeyboardRow));
     tmpl->addItem(QStringLiteral("Settings row"), int(EditorTemplate::SettingsRow));
-    tmpl->addItem(QStringLiteral("Edge chip"), int(EditorTemplate::EdgeChip));
+    tmpl->addItem(QStringLiteral("Free chip"), int(EditorTemplate::EdgeChip));
     form->addRow(QStringLiteral("Id"), idEdit);
     form->addRow(QStringLiteral("Name"), nameEdit);
     form->addRow(QStringLiteral("Template"), tmpl);
