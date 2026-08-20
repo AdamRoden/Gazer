@@ -337,7 +337,7 @@ void LayoutBoardPainter::paintSliderTrack(QPainter& p, const QRectF& r, const La
     }
 }
 
-void LayoutBoardPainter::paintCell(QPainter& p, const LayoutItem& item, const QRectF& r)
+void LayoutBoardPainter::paintCell(QPainter& p, const LayoutItem& item, const QRectF& r, bool onCard)
 {
     const LayoutItemStyle st = resolvedItemStyle(item);
     const double radius = st.radius.value_or(14.0);
@@ -375,6 +375,8 @@ void LayoutBoardPainter::paintCell(QPainter& p, const LayoutItem& item, const QR
             fg = m_theme.accent;
         } else if (hovered) {
             bg = m_theme.cellHover;
+        } else if (!onCard) {
+            bg = m_theme.cellBg;
         }
     } else if (active && !hasSwitch) {
         bg = m_theme.cellActive;
@@ -761,6 +763,8 @@ void LayoutBoardPainter::paint(QPainter& p)
     QRectF tabBand;
     QSet<QString> clusterFrames;
     QHash<int, QRectF> rowBands;
+    QHash<int, int> rowToolbarButtons;
+    QHash<int, bool> rowCardAnchor;
     for (const LayoutItem& item : m_layout.items) {
         if (!itemShown(item) || item.isPageChrome() || !item.participatesInBoardGrid()) {
             continue;
@@ -771,9 +775,25 @@ void LayoutBoardPainter::paint(QPainter& p)
         }
         auto& band = rowBands[item.row];
         band = band.isEmpty() ? r : band.united(r);
+        if (item.kind == LayoutItemKind::Toggle) {
+            rowCardAnchor[item.row] = true;
+        } else if (item.kind == LayoutItemKind::Label && !item.isClustered()) {
+            const auto bg = item.style.background;
+            if (!bg || !bg->isValid() || bg->alpha() == 0) {
+                rowCardAnchor[item.row] = true;
+            }
+        } else if (item.kind == LayoutItemKind::Button) {
+            rowToolbarButtons[item.row] += 1;
+        }
     }
+    QSet<int> cardRows;
     const auto inset = m_layout.grid.insets(m_width, m_height);
     for (auto it = rowBands.begin(); it != rowBands.end(); ++it) {
+        const int row = it.key();
+        if (!rowCardAnchor.value(row) || rowToolbarButtons.value(row) >= 3) {
+            continue;
+        }
+        cardRows.insert(row);
         QRectF band = it.value();
         band.setLeft(inset.left);
         band.setRight(m_width - inset.right);
@@ -806,7 +826,7 @@ void LayoutBoardPainter::paint(QPainter& p)
         } else if (item.kind == LayoutItemKind::Label) {
             paintStaticItem(p, item, r);
         } else {
-            paintCell(p, item, r);
+            paintCell(p, item, r, cardRows.contains(item.row));
         }
     }
 

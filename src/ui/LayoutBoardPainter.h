@@ -28,7 +28,7 @@ public:
     [[nodiscard]] static QRectF toggleHitRect(const QRectF& cell);
 
 private:
-    void paintCell(QPainter& p, const LayoutItem& item, const QRectF& r);
+    void paintCell(QPainter& p, const LayoutItem& item, const QRectF& r, bool onCard);
     void paintStaticItem(QPainter& p, const LayoutItem& item, const QRectF& r);
     void paintTab(QPainter& p, const LayoutItem& item, const QRectF& r);
     void paintCard(QPainter& p, const QRectF& r);
