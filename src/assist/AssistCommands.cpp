@@ -103,15 +103,17 @@ void registerAssistCommands(AssistCommandContext& ctx)
                          }
                      });
 
-    QObject::connect(lts, &LookToScroll::enabledChanged, session, [session](bool on) {
+    QObject::connect(lts, &LookToScroll::enabledChanged, session, [session, notify](bool on) {
         if (on) {
-            // Prefer place-cursor mode if move is already aiming for LTS.
             if (session->mode() != Mode::LookToScrollPlaceCursor) {
                 session->enter(Mode::LookToScroll);
             }
-        } else if (session->mode() == Mode::LookToScroll) {
+            return;
+        }
+        if (session->mode() == Mode::LookToScroll) {
             session->leave(Mode::LookToScroll);
         }
+        notify(QStringLiteral("Look↕Scroll OFF"));
     });
 
     // Resume / re-place: arm direct Move-to for LTS (never mag-pick).
@@ -177,7 +179,6 @@ void registerAssistCommands(AssistCommandContext& ctx)
                 if (mouseDwell->isLookToScrollPlace()) {
                     mouseDwell->setArmed(false);
                 }
-                notify(QStringLiteral("Look↕Scroll OFF"));
                 return true;
             }
             if (mouseDwell->isLookToScrollPlace()) {

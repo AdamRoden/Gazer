@@ -51,7 +51,11 @@ $Cmake = Find-Tool @(
     "C:\Program Files\CMake\bin\cmake.exe"
 ) "cmake"
 
+# Prefer Ninja 1.13+ (VS 18). Qt Tools ships 1.12.1, which cannot read the v7
+# .ninja_log that 1.13 writes ("build log version is too new; starting over").
 $Ninja = Find-Tool @(
+    "C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja\ninja.exe",
+    "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja\ninja.exe",
     "C:\Qt\Tools\Ninja\ninja.exe"
 ) "ninja"
 

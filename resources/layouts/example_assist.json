@@ -71,7 +71,7 @@
     },
     {
       "id": "lts_hint",
-      "label": "LTS: dwell\n@center to pause\n@limit to accelerate",
+      "label": "LTS: yellow pause\nhold red to quit\ngreen to resume",
       "role": "label",
       "row": 0,
       "col": 6

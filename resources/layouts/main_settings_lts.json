@@ -23,14 +23,14 @@
   },
   "id": "main_settings_lts",
   "name": "Look to scroll",
-  "description": "Deadzone, falloff, speed, and cursor placement for look-to-scroll",
+  "description": "Deadzone, falloff, speed, indicator, and cursor placement for look-to-scroll",
   "items": [
     {
       "id": "page_title",
       "role": "label",
       "textStyle": "title",
       "label": "Look to scroll",
-      "caption": "Deadzone, falloff, speed, and cursor placement for look-to-scroll",
+      "caption": "Deadzone, falloff, speed, indicator, and cursor placement for look-to-scroll",
       "row": 1,
       "col": 0,
       "colSpan": 16
@@ -278,11 +278,68 @@
       }
     },
     {
+      "id": "h_ind",
+      "role": "label",
+      "textStyle": "section",
+      "label": "Indicator",
+      "row": 8,
+      "col": 0,
+      "colSpan": 16
+    },
+    {
+      "id": "ind_l",
+      "role": "label",
+      "label": "Scroll indicator",
+      "caption": "Fan wedge, stretching orb, or pause/resume only.",
+      "row": 9,
+      "col": 0,
+      "colSpan": 6
+    },
+    {
+      "id": "ind_fan",
+      "label": "Fan",
+      "activeState": "setting.ltsIndicator.0",
+      "row": 9,
+      "col": 8,
+      "colSpan": 2,
+      "cluster": "segment.ltsInd",
+      "action": {
+        "type": "command",
+        "name": "settings.lts.indicator.fan"
+      }
+    },
+    {
+      "id": "ind_orb",
+      "label": "Orb",
+      "activeState": "setting.ltsIndicator.1",
+      "row": 9,
+      "col": 10,
+      "colSpan": 3,
+      "cluster": "segment.ltsInd",
+      "action": {
+        "type": "command",
+        "name": "settings.lts.indicator.orb"
+      }
+    },
+    {
+      "id": "ind_pause",
+      "label": "Pause",
+      "activeState": "setting.ltsIndicator.2",
+      "row": 9,
+      "col": 13,
+      "colSpan": 3,
+      "cluster": "segment.ltsInd",
+      "action": {
+        "type": "command",
+        "name": "settings.lts.indicator.pause"
+      }
+    },
+    {
       "id": "h_place",
       "role": "label",
       "textStyle": "section",
       "label": "Placement",
-      "row": 8,
+      "row": 10,
       "col": 0,
       "colSpan": 16
     },
@@ -292,7 +349,7 @@
       "label": "Place cursor first",
       "caption": "Arm mouse-move before enabling scroll.",
       "activeState": "lts.placeCursorFirst",
-      "row": 9,
+      "row": 11,
       "col": 0,
       "colSpan": 16,
       "action": {

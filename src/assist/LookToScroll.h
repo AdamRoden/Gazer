@@ -1,5 +1,6 @@
 #pragma once
 
+#include "assist/LtsIndicator.h"
 #include "core/GazePoint.h"
 
 #include <QColor>
@@ -11,10 +12,7 @@
 
 namespace gazer {
 
-/// Circular deadzone around the mouse cursor. Gaze outside scrolls with speed
-/// proportional to distance past the deadzone (cubic ease) and accelerates while
-/// gaze stays outside. Dwell in the center of the deadzone suspends/resumes scroll.
-/// Resume re-requests a mouse-move placement (host arms Move-to).
+/// Circular deadzone around the cursor. Gaze outside scrolls (cubic ease + accel).
 class LookToScroll final : public QObject {
     Q_OBJECT
 
@@ -36,6 +34,7 @@ public:
     void setCenterDwellMs(int ms);
     void setAccent(const QColor& c);
     void setActiveWhenOverBoard(bool allow);
+    void setIndicatorStyle(LtsIndicator style);
 
     /// @p pauseInput when true: hide overlay and ignore scroll (over board / full-screen aim).
     void onGaze(const GazePoint& point, bool pauseInput);
@@ -53,8 +52,10 @@ public slots:
 private:
     class RingOverlay;
 
+    enum class CenterDwell { Idle, Pause, Quit, Resume };
+
     void updateOverlay(const QPoint& center, double gazeDist, double dirX, double dirY,
-                       bool active, double centerProg, bool suspended);
+                       bool active, double centerProg, bool suspended, CenterDwell dwell);
     void hideOverlay();
     [[nodiscard]] static double easeNearDeadzone(double t);
 
@@ -67,6 +68,7 @@ private:
     double m_accelPerSec = 0.45; // +45%/s outside, capped
     double m_accelMax = 3.5;
     int m_centerDwellMs = 650;
+    LtsIndicator m_indicatorStyle = LtsIndicator::Fan;
     int m_intervalMs = 16;
 
     QElapsedTimer m_clock;
@@ -77,6 +79,9 @@ private:
     /// Continuous time gaze has been outside the deadzone (for acceleration).
     double m_outsideSec = 0.0;
     double m_centerProgress = 0.0;
+    /// True after a pause dwell if gaze has not left the center ring (hold → quit).
+    bool m_holdToQuit = false;
+    CenterDwell m_centerDwell = CenterDwell::Idle;
 
     std::unique_ptr<RingOverlay> m_overlay;
 };

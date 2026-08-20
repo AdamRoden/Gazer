@@ -29,7 +29,7 @@ public:
     }
 
     void setState(int deadzonePx, int falloffPx, double activity, double centerProg, bool suspended,
-                  double dirX, double dirY)
+                  double dirX, double dirY, LtsIndicator style, CenterDwell dwell)
     {
         m_deadzone = deadzonePx;
         m_falloff = qMax(40, falloffPx);
@@ -38,9 +38,21 @@ public:
         m_suspended = suspended;
         m_dirX = dirX;
         m_dirY = dirY;
+        m_style = style;
+        m_dwell = dwell;
 
-        const int maxOuter = m_deadzone + qMax(48, m_falloff / 3);
-        const int side = suspended ? (qMax(14, m_deadzone / 3) * 2 + 36) : (maxOuter * 2 + 24);
+        const int activator = qMax(14, m_deadzone / 3);
+        const bool compact = m_suspended || m_style == LtsIndicator::PauseOnly;
+        int side = activator * 2 + 36;
+        if (!compact) {
+            if (m_style == LtsIndicator::Orb) {
+                const int stretch = qMax(48, m_falloff / 3);
+                side = (m_deadzone + stretch) * 2 + 40;
+            } else {
+                const int maxOuter = m_deadzone + qMax(48, m_falloff / 3);
+                side = maxOuter * 2 + 24;
+            }
+        }
         if (side != m_box) {
             m_box = side;
             resize(m_box, m_box);
@@ -69,66 +81,126 @@ protected:
         QPainter p(this);
         p.setRenderHint(QPainter::Antialiasing, true);
         const QPointF c(rect().center());
-        const int r = m_deadzone;
         const QColor cyan = m_accent.isValid() ? m_accent : ThemeColors::defaultProgressColor();
-        const QColor amber(255, 160, 40);
-        const QColor accent = m_suspended ? amber : cyan;
+        if (!m_suspended) {
+            switch (m_style) {
+            case LtsIndicator::Fan:
+                paintFan(p, c, cyan);
+                break;
+            case LtsIndicator::Orb:
+                paintOrb(p, c, cyan);
+                break;
+            case LtsIndicator::PauseOnly:
+                break;
+            }
+        }
+        paintActivator(p, c, activatorColor(cyan));
+    }
 
-        // Active only: soft translucent deadzone disk — no border.
-        if (!m_suspended && r > 0) {
+private:
+    void paintFan(QPainter& p, const QPointF& c, const QColor& cyan)
+    {
+        const int r = m_deadzone;
+        if (r > 0) {
             p.setPen(Qt::NoPen);
             p.setBrush(QColor(cyan.red(), cyan.green(), cyan.blue(), 16));
             p.drawEllipse(c, double(r), double(r));
         }
-
-        // Speed indicator: annular sector in the gaze/scroll direction only,
-        // growing from the deadzone edge up to a circular falloff bound.
-        if (!m_suspended && m_activity > 0.02) {
-            const double len = qSqrt(m_dirX * m_dirX + m_dirY * m_dirY);
-            if (len > 0.05) {
-                const double nx = m_dirX / len;
-                const double ny = m_dirY / len;
-                const int maxGrow = qMax(48, m_falloff / 3);
-                const int rOuter = r + int(maxGrow * m_activity);
-                const int rInner = r;
-
-                // Qt angles: 0° = east, positive = counter-clockwise; screen Y is down.
-                const double midDeg = qRadiansToDegrees(qAtan2(-ny, nx));
-                // Wider wedge as speed rises (easier to see direction).
-                const double halfSpread = 22.0 + 28.0 * m_activity;
-                const double startDeg = midDeg - halfSpread;
-                const double spanDeg = halfSpread * 2.0;
-
-                QPainterPath pie;
-                pie.moveTo(c);
-                pie.arcTo(QRectF(c.x() - rOuter, c.y() - rOuter, rOuter * 2.0, rOuter * 2.0),
-                          startDeg, spanDeg);
-                pie.closeSubpath();
-
-                QPainterPath hole;
-                hole.addEllipse(c, double(rInner), double(rInner));
-                const QPainterPath wedge = pie.subtracted(hole);
-
-                const int a = int(28 + 90 * m_activity);
-                p.setPen(Qt::NoPen);
-                p.setBrush(QColor(cyan.red(), cyan.green(), cyan.blue(), a));
-                p.drawPath(wedge);
-            }
+        if (m_activity <= 0.02) {
+            return;
         }
+        const double len = qSqrt(m_dirX * m_dirX + m_dirY * m_dirY);
+        if (len <= 0.05) {
+            return;
+        }
+        const double nx = m_dirX / len;
+        const double ny = m_dirY / len;
+        const int maxGrow = qMax(48, m_falloff / 3);
+        const int rOuter = r + int(maxGrow * m_activity);
+        const double midDeg = qRadiansToDegrees(qAtan2(-ny, nx));
+        const double halfSpread = 22.0 + 28.0 * m_activity;
 
-        // Center activator (suspend / resume) — always visible while LTS is shown.
-        const int cr = qMax(14, r / 3);
+        QPainterPath pie;
+        pie.moveTo(c);
+        pie.arcTo(QRectF(c.x() - rOuter, c.y() - rOuter, rOuter * 2.0, rOuter * 2.0),
+                  midDeg - halfSpread, halfSpread * 2.0);
+        pie.closeSubpath();
+        QPainterPath hole;
+        hole.addEllipse(c, double(r), double(r));
+
+        p.setPen(Qt::NoPen);
+        p.setBrush(QColor(cyan.red(), cyan.green(), cyan.blue(), int(28 + 90 * m_activity)));
+        p.drawPath(pie.subtracted(hole));
+    }
+
+    void paintOrb(QPainter& p, const QPointF& c, const QColor& cyan)
+    {
+        const double R = double(qMax(1, m_deadzone));
+        const double thickness = qBound(8.0, R * 0.16, 22.0);
+        double nx = 0.0;
+        double ny = 0.0;
+        double stretch = 0.0;
+        const double len = qSqrt(m_dirX * m_dirX + m_dirY * m_dirY);
+        if (len > 0.05 && m_activity > 0.02) {
+            nx = m_dirX / len;
+            ny = m_dirY / len;
+            stretch = qMax(48.0, m_falloff / 3.0) * m_activity;
+        }
+        const double ang = qRadiansToDegrees(qAtan2(ny, nx));
+        const double midR = qMax(4.0, R - thickness * 0.5);
+
+        auto strokeRing = [&](double extraStretch, double width, int alpha) {
+            const double s = stretch + extraStretch;
+            const double shift = s * 0.5;
+            QPainterPath midline;
+            midline.addEllipse(QPointF(shift, 0), midR + shift, midR);
+            QPainterPathStroker stroker;
+            stroker.setWidth(width);
+            stroker.setCapStyle(Qt::RoundCap);
+            stroker.setJoinStyle(Qt::RoundJoin);
+            p.setPen(Qt::NoPen);
+            p.setBrush(QColor(cyan.red(), cyan.green(), cyan.blue(), alpha));
+            p.drawPath(stroker.createStroke(midline));
+        };
+
+        p.save();
+        p.translate(c);
+        if (stretch > 0.5) {
+            p.rotate(ang);
+        }
+        strokeRing(14.0, thickness + 16.0, int(18 + 28 * m_activity));
+        strokeRing(6.0, thickness + 7.0, int(40 + 50 * m_activity));
+        strokeRing(0.0, thickness, int(90 + 90 * m_activity));
+        strokeRing(0.0, qMax(2.5, thickness * 0.32), int(140 + 80 * m_activity));
+        p.restore();
+    }
+
+    [[nodiscard]] QColor activatorColor(const QColor& cyan) const
+    {
+        switch (m_dwell) {
+        case CenterDwell::Pause:
+            return QColor(255, 196, 40);
+        case CenterDwell::Quit:
+            return QColor(232, 56, 48);
+        case CenterDwell::Resume:
+            return QColor(48, 196, 88);
+        case CenterDwell::Idle:
+            return m_suspended ? QColor(255, 160, 40) : cyan;
+        }
+        return cyan;
+    }
+
+    void paintActivator(QPainter& p, const QPointF& c, const QColor& accent)
+    {
+        const int cr = qMax(14, m_deadzone / 3);
         p.setPen(Qt::NoPen);
         p.setBrush(QColor(0, 0, 0, m_suspended ? 70 : 40));
         p.drawEllipse(c, double(cr), double(cr));
         p.setBrush(QColor(accent.red(), accent.green(), accent.blue(), m_suspended ? 55 : 35));
         p.drawEllipse(c, double(cr), double(cr));
-
-        // Soft ring on activator only (not the deadzone).
         p.setBrush(Qt::NoBrush);
         p.setPen(QPen(QColor(accent.red(), accent.green(), accent.blue(), 140), 2.0));
         p.drawEllipse(c, double(cr), double(cr));
-
         if (m_centerProg > 0.01) {
             p.setPen(QPen(accent, 3.5));
             p.drawArc(QRectF(c.x() - cr, c.y() - cr, cr * 2.0, cr * 2.0), 90 * 16,
@@ -136,7 +208,6 @@ protected:
         }
     }
 
-private:
     int m_deadzone = 110;
     int m_falloff = 360;
     int m_box = 260;
@@ -145,6 +216,8 @@ private:
     double m_dirX = 0.0;
     double m_dirY = 0.0;
     bool m_suspended = false;
+    LtsIndicator m_style = LtsIndicator::Fan;
+    CenterDwell m_dwell = CenterDwell::Idle;
     QColor m_accent = ThemeColors::defaultProgressColor();
 };
 
@@ -178,6 +251,8 @@ void LookToScroll::setEnabled(bool enabled)
     m_accumH = 0.0;
     m_outsideSec = 0.0;
     m_centerProgress = 0.0;
+    m_holdToQuit = false;
+    m_centerDwell = CenterDwell::Idle;
     m_scrollSuspended = false;
     if (!m_enabled) {
         hideOverlay();
@@ -202,6 +277,9 @@ void LookToScroll::setScrollSuspended(bool suspended)
     m_accumV = 0.0;
     m_accumH = 0.0;
     m_centerProgress = 0.0;
+    if (!suspended) {
+        m_holdToQuit = false;
+    }
     GAZER_INFO << "LookToScroll scroll" << (suspended ? "SUSPENDED" : "resumed");
     emit scrollSuspendedChanged(m_scrollSuspended);
 }
@@ -243,6 +321,11 @@ void LookToScroll::setActiveWhenOverBoard(bool allow)
     m_allowOverBoard = allow;
 }
 
+void LookToScroll::setIndicatorStyle(LtsIndicator style)
+{
+    m_indicatorStyle = style;
+}
+
 void LookToScroll::hideOverlay()
 {
     if (m_overlay) {
@@ -251,7 +334,7 @@ void LookToScroll::hideOverlay()
 }
 
 void LookToScroll::updateOverlay(const QPoint& center, double gazeDist, double dirX, double dirY,
-                                 bool active, double centerProg, bool suspended)
+                                 bool active, double centerProg, bool suspended, CenterDwell dwell)
 {
     if (!m_overlay) {
         return;
@@ -261,7 +344,8 @@ void LookToScroll::updateOverlay(const QPoint& center, double gazeDist, double d
         const double t = qBound(0.0, (gazeDist - m_deadzonePx) / double(m_falloffPx), 1.0);
         activity = easeNearDeadzone(t);
     }
-    m_overlay->setState(m_deadzonePx, m_falloffPx, activity, centerProg, suspended, dirX, dirY);
+    m_overlay->setState(m_deadzonePx, m_falloffPx, activity, centerProg, suspended, dirX, dirY,
+                        m_indicatorStyle, dwell);
     m_overlay->placeCenter(center);
 }
 
@@ -274,6 +358,7 @@ void LookToScroll::onGaze(const GazePoint& point, bool pauseInput)
     if (pauseInput && !m_allowOverBoard) {
         hideOverlay();
         m_centerProgress = 0.0;
+        m_holdToQuit = false;
         m_outsideSec = 0.0;
         return;
     }
@@ -293,27 +378,39 @@ void LookToScroll::onGaze(const GazePoint& point, bool pauseInput)
                            : qBound(0.004, (now - m_lastSampleMs) / 1000.0, 0.05);
     m_lastSampleMs = now;
 
-    // Center dwell: suspend scroll, or request a new scroll-point placement on resume.
+    // Center dwell: yellow pause → hold for red quit, or leave and return for green resume.
     if (dist <= double(centerR)) {
         m_outsideSec = 0.0;
         m_accumV *= 0.5;
         m_accumH *= 0.5;
         m_centerProgress =
             qBound(0.0, m_centerProgress + sampleDt * 1000.0 / double(m_centerDwellMs), 1.0);
-        updateOverlay(origin, dist, dirX, dirY, false, m_centerProgress, m_scrollSuspended);
+        m_centerDwell = CenterDwell::Pause;
+        if (m_scrollSuspended) {
+            m_centerDwell = m_holdToQuit ? CenterDwell::Quit : CenterDwell::Resume;
+        }
+        updateOverlay(origin, dist, dirX, dirY, false, m_centerProgress, m_scrollSuspended,
+                      m_centerDwell);
         if (m_centerProgress >= 1.0) {
             m_centerProgress = 0.0;
             if (!m_scrollSuspended) {
                 setScrollSuspended(true);
+                m_holdToQuit = true;
+            } else if (m_holdToQuit) {
+                setEnabled(false);
             } else {
-                // Stay suspended until host places cursor via Move-to.
                 emit placeScrollPointRequested();
             }
         }
         return;
     }
 
+    m_holdToQuit = false;
     m_centerProgress = qMax(0.0, m_centerProgress - sampleDt * 2.5);
+    if (m_centerProgress <= 0.01) {
+        m_centerDwell = CenterDwell::Idle;
+        m_centerProgress = 0.0;
+    }
 
     if (dist <= m_deadzonePx || dist < 1.0) {
         m_outsideSec = 0.0;
@@ -325,13 +422,14 @@ void LookToScroll::onGaze(const GazePoint& point, bool pauseInput)
         if (qAbs(m_accumH) < kMinEmitDelta) {
             m_accumH = 0.0;
         }
-        updateOverlay(origin, dist, dirX, dirY, false, m_centerProgress, m_scrollSuspended);
+        updateOverlay(origin, dist, dirX, dirY, false, m_centerProgress, m_scrollSuspended,
+                      m_centerDwell);
         return;
     }
 
     // Outside deadzone.
     updateOverlay(origin, dist, dirX, dirY, !m_scrollSuspended, m_centerProgress,
-                  m_scrollSuspended);
+                  m_scrollSuspended, m_centerDwell);
 
     if (m_scrollSuspended) {
         m_outsideSec = 0.0;

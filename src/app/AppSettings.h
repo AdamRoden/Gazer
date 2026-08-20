@@ -1,5 +1,6 @@
 #pragma once
 
+#include "assist/LtsIndicator.h"
 #include "ui/Theme.h"
 #include "ui/ThemeScheme.h"
 
@@ -77,6 +78,7 @@ struct AppSettings {
     double ltsAccelPerSec = 0.45;
     int ltsCenterDwellMs = 650;
     bool ltsPlaceCursorFirst = true;
+    LtsIndicator ltsIndicatorStyle = LtsIndicator::Fan;
 
     // --- Session ---
     bool autoCollapseMain = true;
@@ -146,6 +148,7 @@ struct AppSettings {
     void setDwellPreset(int preset);
     [[nodiscard]] int dwellPreset() const;
     void setMagFollowProfile(int profile);
+    void setLtsIndicatorStyle(int style);
     void clamp();
     /// Nudge a numeric field by one step. Returns false if key is not numeric.
     bool nudge(const QString& key, int dir);

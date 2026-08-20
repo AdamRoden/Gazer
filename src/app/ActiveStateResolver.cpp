@@ -15,6 +15,17 @@
 
 namespace gazer {
 
+namespace {
+bool indexKeyEquals(const QString& key, QLatin1String prefix, int value)
+{
+    if (!key.startsWith(prefix)) {
+        return false;
+    }
+    bool ok = false;
+    return key.mid(prefix.size()).toInt(&ok) == value && ok;
+}
+} // namespace
+
 bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
 {
     if (key.startsWith(QLatin1Char('!'))) {
@@ -96,6 +107,9 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
     if (key == QLatin1String("lts.placeCursorFirst")) {
         return s.ltsPlaceCursorFirst;
     }
+    if (indexKeyEquals(key, QLatin1String("setting.ltsIndicator."), int(s.ltsIndicatorStyle))) {
+        return true;
+    }
     if (key == QLatin1String("setting.dwell.slow")) {
         return s.dwellPreset() == 0;
     }
@@ -165,20 +179,11 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
     if (key == QLatin1String("setting.speakAlsoType")) {
         return s.speakAlsoType;
     }
-    if (key == QLatin1String("setting.magFollow.0")) {
-        return s.magFollowProfile == 0;
+    if (indexKeyEquals(key, QLatin1String("setting.magFollow."), s.magFollowProfile)) {
+        return true;
     }
-    if (key == QLatin1String("setting.magFollow.1")) {
-        return s.magFollowProfile == 1;
-    }
-    if (key == QLatin1String("setting.magFollow.2")) {
-        return s.magFollowProfile == 2;
-    }
-    if (key == QLatin1String("setting.tracker.0")) {
-        return s.trackerPref == 0;
-    }
-    if (key == QLatin1String("setting.tracker.1")) {
-        return s.trackerPref == 1;
+    if (indexKeyEquals(key, QLatin1String("setting.tracker."), s.trackerPref)) {
+        return true;
     }
     if (key == QLatin1String("setting.theme.dark")) {
         return s.themeMode == ThemeMode::Dark;

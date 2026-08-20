@@ -252,6 +252,7 @@ void GazerServices::applySettings(bool persist)
     m_lookToScroll->setMaxNotchesPerSec(m_settings.ltsMaxNotchesPerSec);
     m_lookToScroll->setAccelPerSec(m_settings.ltsAccelPerSec);
     m_lookToScroll->setCenterDwellMs(m_settings.ltsCenterDwellMs);
+    m_lookToScroll->setIndicatorStyle(m_settings.ltsIndicatorStyle);
 
     m_magnifier->setZoom(m_settings.magZoom);
     m_magnifier->setLensSize(m_settings.magLensSize);

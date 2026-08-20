@@ -1,11 +1,13 @@
 #include "app/SettingsUi.h"
 
 #include "app/CommandRegistry.h"
+#include "assist/LtsIndicator.h"
 #include "layout/LayoutInstanceManager.h"
 #include "ui/PickStyle.h"
 #include "ui/Theme.h"
 
 #include <QString>
+#include <initializer_list>
 
 namespace gazer {
 
@@ -244,43 +246,45 @@ void SettingsUi::registerCommands()
         QStringLiteral("settings.edit.dwellSequence"),
         [this](QString* e) { return openArrayEditor(QStringLiteral("dwellSequence"), e); });
 
-    const struct {
+    struct IntChoice {
         const char* cmd;
-        int preset;
+        int value;
         const char* status;
-    } dwellPresets[] = {
-        {"settings.dwell.slow", 0, "Dwell: Slow (~1000 ms)"},
-        {"settings.dwell.normal", 1, "Dwell: Normal (800,600,400,200,100,50)"},
-        {"settings.dwell.fast", 2, "Dwell: Fast (~450 ms)"},
     };
-    for (const auto& p : dwellPresets) {
-        m_commands.registerBuiltin(QLatin1String(p.cmd), [this, p](QString*) {
-            if (m_mutate) {
-                m_mutate([preset = p.preset](AppSettings& s) { s.setDwellPreset(preset); },
-                         QLatin1String(p.status));
-            }
-            return true;
-        });
-    }
-
-    const struct {
-        const char* cmd;
-        int profile;
-        const char* status;
-    } magFollow[] = {
-        {"settings.mag.follow.sticky", 0, "Mag follow: Sticky"},
-        {"settings.mag.follow.balanced", 1, "Mag follow: Balanced"},
-        {"settings.mag.follow.snappy", 2, "Mag follow: Snappy"},
+    auto registerIntChoices = [this](std::initializer_list<IntChoice> choices,
+                                     void (AppSettings::*setter)(int)) {
+        for (const auto& p : choices) {
+            m_commands.registerBuiltin(QLatin1String(p.cmd), [this, p, setter](QString*) {
+                if (m_mutate) {
+                    m_mutate([setter, v = p.value](AppSettings& s) { (s.*setter)(v); },
+                             QLatin1String(p.status));
+                }
+                return true;
+            });
+        }
     };
-    for (const auto& p : magFollow) {
-        m_commands.registerBuiltin(QLatin1String(p.cmd), [this, p](QString*) {
-            if (m_mutate) {
-                m_mutate([profile = p.profile](AppSettings& s) { s.setMagFollowProfile(profile); },
-                         QLatin1String(p.status));
-            }
-            return true;
-        });
-    }
+    registerIntChoices(
+        {
+            {"settings.dwell.slow", 0, "Dwell: Slow (~1000 ms)"},
+            {"settings.dwell.normal", 1, "Dwell: Normal (800,600,400,200,100,50)"},
+            {"settings.dwell.fast", 2, "Dwell: Fast (~450 ms)"},
+        },
+        &AppSettings::setDwellPreset);
+    registerIntChoices(
+        {
+            {"settings.mag.follow.sticky", 0, "Mag follow: Sticky"},
+            {"settings.mag.follow.balanced", 1, "Mag follow: Balanced"},
+            {"settings.mag.follow.snappy", 2, "Mag follow: Snappy"},
+        },
+        &AppSettings::setMagFollowProfile);
+    registerIntChoices(
+        {
+            {"settings.lts.indicator.fan", int(LtsIndicator::Fan), "LTS indicator: Fan"},
+            {"settings.lts.indicator.orb", int(LtsIndicator::Orb), "LTS indicator: Orb"},
+            {"settings.lts.indicator.pause", int(LtsIndicator::PauseOnly),
+             "LTS indicator: Pause only"},
+        },
+        &AppSettings::setLtsIndicatorStyle);
 
     m_commands.registerBuiltin(QStringLiteral("settings.tracker.auto"), [this](QString*) {
         if (m_mutate) {

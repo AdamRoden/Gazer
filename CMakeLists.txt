@@ -132,6 +132,7 @@ set(GAZER_HEADERS
     src/assist/PhraseService.h
     src/assist/ScriptHost.h
     src/assist/LookToScroll.h
+    src/assist/LtsIndicator.h
     src/assist/MouseDwellMove.h
     src/assist/MouseAssistState.h
     src/assist/GazeReticle.h

@@ -256,6 +256,7 @@ void AppSettings::clamp()
         this->*s.member = qBound(s.min, this->*s.member, s.max);
     }
     magFollowProfile = qBound(0, magFollowProfile, 2);
+    ltsIndicatorStyle = ltsIndicatorFromInt(int(ltsIndicatorStyle));
     customContrast = snapContrastPercent(customContrast);
     magPickStyle = PickStyle::sanitizeMag(magPickStyle);
     mousePickStyle = PickStyle::sanitizeMouse(mousePickStyle);
@@ -331,6 +332,11 @@ int AppSettings::dwellPreset() const
 void AppSettings::setMagFollowProfile(int profile)
 {
     magFollowProfile = qBound(0, profile, 2);
+}
+
+void AppSettings::setLtsIndicatorStyle(int style)
+{
+    ltsIndicatorStyle = ltsIndicatorFromInt(style);
 }
 
 bool AppSettings::isColorKey(const QString& key)
@@ -536,6 +542,9 @@ QString AppSettings::displayValue(const QString& key) const
         static const char* names[] = {"Sticky", "Balanced", "Snappy"};
         return QLatin1String(names[qBound(0, magFollowProfile, 2)]);
     }
+    if (key == QLatin1String("ltsIndicatorStyle")) {
+        return QLatin1String(ltsIndicatorName(ltsIndicatorStyle));
+    }
     if (key == QLatin1String("customContrast")) {
         return themeContrastToString(themeContrastFromInt(customContrast));
     }
@@ -574,6 +583,9 @@ QString AppSettings::settingTitle(const QString& key)
     if (const ColorSpec* s = findColor(key)) {
         return QLatin1String(s->title);
     }
+    if (key == QLatin1String("ltsIndicatorStyle")) {
+        return QStringLiteral("LTS indicator");
+    }
     return key;
 }
 
@@ -611,6 +623,11 @@ QString AppSettings::settingDescription(const QString& key)
     }
     if (isColorKey(key)) {
         return QStringLiteral("Color used for dwell progress or completion flash.");
+    }
+    if (key == QLatin1String("ltsIndicatorStyle")) {
+        return QStringLiteral(
+            "Look-to-scroll overlay: Fan (deadzone + wedge), Orb (glow that stretches "
+            "in the scroll direction), or Pause (center pause/resume only).");
     }
     return {};
 }
@@ -774,6 +791,8 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
     ltsCenterDwellMs = o.value(QStringLiteral("ltsCenterDwellMs")).toInt(ltsCenterDwellMs);
     ltsPlaceCursorFirst =
         o.value(QStringLiteral("ltsPlaceCursorFirst")).toBool(ltsPlaceCursorFirst);
+    ltsIndicatorStyle =
+        ltsIndicatorFromInt(o.value(QStringLiteral("ltsIndicatorStyle")).toInt(int(ltsIndicatorStyle)));
     autoCollapseMain = o.value(QStringLiteral("autoCollapseMain")).toBool(autoCollapseMain);
     startDocked = o.value(QStringLiteral("startDocked")).toBool(startDocked);
     layoutAutoClose = o.value(QStringLiteral("layoutAutoClose")).toBool(layoutAutoClose);
@@ -897,6 +916,7 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     o.insert(QStringLiteral("ltsAccelPerSec"), copy.ltsAccelPerSec);
     o.insert(QStringLiteral("ltsCenterDwellMs"), copy.ltsCenterDwellMs);
     o.insert(QStringLiteral("ltsPlaceCursorFirst"), copy.ltsPlaceCursorFirst);
+    o.insert(QStringLiteral("ltsIndicatorStyle"), int(copy.ltsIndicatorStyle));
     o.insert(QStringLiteral("autoCollapseMain"), copy.autoCollapseMain);
     o.insert(QStringLiteral("startDocked"), copy.startDocked);
     o.insert(QStringLiteral("layoutAutoClose"), copy.layoutAutoClose);

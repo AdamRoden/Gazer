@@ -56,6 +56,8 @@ cmake --build build --target Gazer
 .\build\Gazer.exe
 ```
 
+Use one Ninja binary for this tree. Qt Tools 1.12.1 cannot read the `.ninja_log` from Visual Studio 18’s 1.13.2 (`build log version is too new; starting over`). `scripts/build-msi.ps1` prefers the 1.13 copy when it is installed.
+
 MinGW `bin` must be on `PATH` when configuring (otherwise AUTOMOC / g++ predefs fail silently).
 
 The post-build step copies `resources/` next to `Gazer.exe` and runs `windeployqt`. If Tobii’s DLL is installed in the usual EyeX folder, it is copied beside the exe as well.
@@ -392,7 +394,7 @@ Persisted at `%AppData%\Gazer\settings.json`. The in-app Settings boards edit th
 | Timing | Dwell sequence, scan/blink grace, mouse-move dwell, mag-pick |
 | Progress | Radial / fill / border colors for boards and mouse-move |
 | Magnifier | Zoom, lens size, follow profile (sticky / balanced / snappy) |
-| Look-to-scroll | Deadzone, falloff, rate, accel, place-cursor-first |
+| Look-to-scroll | Deadzone, falloff, rate, accel, indicator (fan / orb / pause-only), place-cursor-first |
 | Session | Auto-collapse drawer when opening a secondary, start docked, auto-close timing, tracker pref (auto / mouse) |
 | Speech | Speak also types |
 | Theme | Light / dark / custom |
