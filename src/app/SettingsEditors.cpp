@@ -883,7 +883,7 @@ LayoutDocument SettingsUi::buildOpacityDocument() const
     const EditorSwatch pal = editorSwatch();
     doc.items.push_back(cell(QStringLiteral("edit_opacity"), QStringLiteral("Edit"), 0, 0,
                              QStringLiteral("settings.opacity.scrub"), pal.edit));
-    doc.items.back().icon = QStringLiteral("edit");
+    doc.items.back().icon = QStringLiteral("PhysicalKeys");
     doc.items.push_back(cell(QStringLiteral("dec_opacity"), QStringLiteral("−"), 0, 1,
                              QStringLiteral("settings.opacity.nudge.dec"), pal.nudge));
     LayoutItem track;
@@ -1074,7 +1074,7 @@ LayoutDocument SettingsUi::buildColorDocument() const
         LayoutItem edit;
         edit.id = QStringLiteral("edit_%1").arg(QLatin1String(axis.id));
         edit.label = QStringLiteral("Edit");
-        edit.icon = QStringLiteral("edit");
+        edit.icon = QStringLiteral("PhysicalKeys");
         edit.row = i;
         edit.col = 0;
         edit.action.type = LayoutAction::Type::Command;

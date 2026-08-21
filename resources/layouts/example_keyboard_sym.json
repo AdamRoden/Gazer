@@ -17,6 +17,7 @@
     "items": [
                   {
                       "id": "tab",
+                      "icon":  "Tab",
                       "label": "Tab",
                       "row": 0,
                       "col": 0,
@@ -142,6 +143,7 @@
                   },
                   {
                       "id": "bksp",
+                      "icon":  "BackOne",
                       "label": "⌫",
                       "row": 0,
                       "col": 11,
@@ -157,6 +159,7 @@
                   },
                   {
                       "id": "shift",
+                      "icon":  "Shift",
                       "label": "⇧",
                       "row": 1,
                       "col": 0,
@@ -282,6 +285,7 @@
                   },
                   {
                       "id": "cmd",
+                      "icon":  "Win",
                       "label": "⌘",
                       "row": 2,
                       "col": 0,
@@ -297,6 +301,7 @@
                   },
                   {
                       "id": "abc",
+                      "icon":  "Alpha",
                       "label": "ABC",
                       "row": 2,
                       "col": 1,
@@ -356,6 +361,7 @@
                   },
                   {
                       "id": "space",
+                      "icon":  "Space",
                       "label": "␣",
                       "row": 2,
                       "col": 6,
@@ -415,6 +421,7 @@
                   },
                   {
                       "id": "enter",
+                      "icon":  "Enter",
                       "label": "↵",
                       "row": 2,
                       "col": 11,

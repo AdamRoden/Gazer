@@ -233,7 +233,7 @@
         "type": "command",
         "name": "toggleMouseMoveForesight"
       },
-      "icon": "foresight"
+      "icon": "MouseMoveToPoint"
     },
     {
       "id": "fs_dbl",
@@ -247,7 +247,7 @@
         "type": "command",
         "name": "toggleMouseMoveForesightDoubleZoom"
       },
-      "icon": "doubleZoom"
+      "icon": "ZoomToLocation"
     },
     {
       "id": "h_zoom",
@@ -326,7 +326,7 @@
         "type": "command",
         "name": "toggleMouseMoveMagPick"
       },
-      "icon": "magPick"
+      "icon": "ZoomToLocation"
     },
     {
       "id": "z_center",
@@ -340,7 +340,7 @@
         "type": "command",
         "name": "toggleMouseMoveMagPickCenter"
       },
-      "icon": "magPickCenter"
+      "icon": "LookToScrollBoundsScreenPoint"
     }
   ]
 }

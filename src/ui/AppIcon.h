@@ -10,18 +10,21 @@
 
 namespace gazer {
 
-/// Load the Gazer brand icon from the staged `resources/icons` tree (next to the exe).
-/// Prefers the multi-size `.ico`, then individual PNGs. Safe to call after QApplication exists.
-inline QIcon loadAppIcon()
+[[nodiscard]] inline QStringList resourceIconRoots()
 {
-    const QStringList roots = {
+    return {
         QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("resources/icons")),
         QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("../resources/icons")),
         QStringLiteral("resources/icons"),
     };
+}
 
+/// Load the Gazer brand icon from the staged `resources/icons` tree (next to the exe).
+/// Prefers the multi-size `.ico`, then individual PNGs. Safe to call after QApplication exists.
+inline QIcon loadAppIcon()
+{
     QIcon icon;
-    for (const QString& root : roots) {
+    for (const QString& root : resourceIconRoots()) {
         const QString ico = QDir(root).filePath(QStringLiteral("gazer.ico"));
         if (QFile::exists(ico)) {
             icon.addFile(ico);

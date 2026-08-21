@@ -12,9 +12,14 @@
     "heightPx": 150,
     "aboveTaskbar": true,
     "drawerMotion": true,
-    "style": { "background": "#00000000" }
+    "style": {
+      "background": "#00000000"
+    }
   },
-  "style": { "background":"#99000000", "glass": true},
+  "style": {
+    "background": "#99000000",
+    "glass": true
+  },
   "grid": {
     "columns": 8,
     "rows": 1,
@@ -27,42 +32,72 @@
       "label": "Keyboard",
       "row": 0,
       "col": 0,
-      "action": { "type": "openLayout", "layoutId": "example_keyboard" }
+      "action": {
+        "type": "openLayout",
+        "layoutId": "example_keyboard"
+      },
+      "icon": "Keyboard"
     },
     {
       "id": "open_mouse",
       "label": "Mouse",
       "row": 0,
       "col": 1,
-      "action": { "type": "openLayout", "layoutId": "example_mouse" }
+      "action": {
+        "type": "openLayout",
+        "layoutId": "example_mouse"
+      },
+      "icon": "Mouse"
     },
     {
       "id": "open_assist",
-      "label": "Assist ★",
+      "label": "Assist",
       "row": 0,
       "col": 2,
-      "action": { "type": "openLayout", "layoutId": "example_assist" }
+      "action": {
+        "type": "openLayout",
+        "layoutId": "example_assist"
+      },
+      "icon": "Conversation"
     },
     {
       "id": "open_settings",
-      "label": "Settings ⚙",
+      "label": "Settings",
       "row": 0,
       "col": 3,
-      "action": { "type": "openLayout", "layoutId": "main_settings_button_timing" }
+      "action": {
+        "type": "openLayout",
+        "layoutId": "main_settings_button_timing"
+      },
+      "icon": "SizeAndPosition"
     },
     {
       "id": "close",
       "label": "Close",
       "row": 0,
       "col": 4,
-      "action": { "type": "command", "name": "collapseMaster" }
+      "action": {
+        "type": "command",
+        "name": "collapseMaster"
+      },
+      "icon": "MinimizeDown"
     },
     {
       "id": "close_all",
       "label": "Close All",
       "row": 0,
       "col": 5,
-      "actions": [{ "type": "command", "name": "closeOtherViews" }, { "type": "command", "name": "collapseMaster" }]
+      "actions": [
+        {
+          "type": "command",
+          "name": "closeOtherViews"
+        },
+        {
+          "type": "command",
+          "name": "collapseMaster"
+        }
+      ],
+      "icon": "CollapseDock"
     },
     {
       "id": "dwell_suspend",
@@ -70,14 +105,22 @@
       "row": 0,
       "col": 6,
       "activeState": "dwellSuspend",
-      "action": { "type": "command", "name": "toggleDwellSuspend" }
+      "action": {
+        "type": "command",
+        "name": "toggleDwellSuspend"
+      },
+      "icon": "Sleep"
     },
     {
       "id": "quit",
       "label": "Quit",
       "row": 0,
       "col": 7,
-      "action": { "type": "loadLayout", "layoutId": "main_quit_confirm" }
+      "action": {
+        "type": "loadLayout",
+        "layoutId": "main_quit_confirm"
+      },
+      "icon": "Quit"
     }
   ]
 }

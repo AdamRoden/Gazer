@@ -5,8 +5,16 @@
   "description": "Persistent root. Window omitted for a headless dock.",
   "master": true,
   "children": [
-    { "id": "home", "layoutId": "main_drawer", "visibleWhen": "expanded" },
-    { "id": "quit", "layoutId": "main_quit_confirm", "visibleWhen": "quitConfirm" }
+    {
+      "id": "home",
+      "layoutId": "main_drawer",
+      "visibleWhen": "expanded"
+    },
+    {
+      "id": "quit",
+      "layoutId": "main_quit_confirm",
+      "visibleWhen": "quitConfirm"
+    }
   ],
   "items": [
     {
@@ -18,7 +26,17 @@
       "widthPx": 300,
       "heightPx": 200,
       "yPx": 100,
-      "actions": [{ "type": "command", "name": "resumeDwell" },{ "type": "command", "name": "expandMaster" }]
+      "actions": [
+        {
+          "type": "command",
+          "name": "resumeDwell"
+        },
+        {
+          "type": "command",
+          "name": "expandMaster"
+        }
+      ],
+      "icon": "Menu"
     },
     {
       "id": "e2",
@@ -28,7 +46,13 @@
       "heightPx": 200,
       "xPx": 400,
       "yPx": 100,
-      "actions": [{ "type": "command", "name": "toggleDwellSuspend" }]
+      "actions": [
+        {
+          "type": "command",
+          "name": "toggleDwellSuspend"
+        }
+      ],
+      "icon": "Sleep"
     }
   ]
 }

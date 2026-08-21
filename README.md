@@ -4,7 +4,7 @@ Gaze-driven AAC and system input for Windows. C++20 / Qt 6.
 
 Gazer turns live gaze (Tobii Eye Tracker 5, or the mouse as a fallback) into on-screen boards you dwell to activate. Boards can speak, type, drive the mouse, and run assist tools (look-to-scroll, magnifier, gaze reticle). The long-term aim is one stack in place of OptiKey + OpenTrack + UCR + AutoHotkey.
 
-Version **0.4.0**. License: [MIT](LICENSE).
+Version **0.4.0**. License: [MIT](LICENSE). Board icons are OptiKey geometries in `resources/icons/key_symbols.json` (GPL-3.0; see `third_party/optikey/`). Set a layout item’s `icon` to a name such as `Tab`, `MouseLeftClick`, `MinimizeDown`. Unknown names fall back to the item’s label.
 
 ## What you get at launch
 

@@ -54,11 +54,11 @@ public:
     [[nodiscard]] static QRectF toggleHitRect(const QRectF& cell);
 
 private:
-    void paintCell(QPainter& p, const LayoutItem& item, const QRectF& r, bool onCard);
+    void paintCell(QPainter& p, const LayoutItem& item, const QRectF& r, bool onCard, qreal iconSide);
     void paintStaticItem(QPainter& p, const LayoutItem& item, const QRectF& r);
     void paintTab(QPainter& p, const LayoutItem& item, const QRectF& r);
     void paintCard(QPainter& p, const QRectF& r);
-    void paintToggle(QPainter& p, const LayoutItem& item, const QRectF& r);
+    void paintToggle(QPainter& p, const LayoutItem& item, const QRectF& r, qreal iconSide);
     void paintClusterFrame(QPainter& p, const QString& cluster);
     void paintClusterSlot(QPainter& p, const LayoutItem& item, const QRectF& r);
     [[nodiscard]] QRectF clusterBounds(const QString& cluster) const;

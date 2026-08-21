@@ -1,7 +1,7 @@
 #include "editor/LayoutEditorFields.h"
 
 #include "layout/LayoutSchema.h"
-#include "ui/MouseIcons.h"
+#include "ui/KeySymbols.h"
 #include "ui/Theme.h"
 
 #include <QCheckBox>
@@ -558,7 +558,7 @@ QStringList visibleWhenChoices()
 
 QStringList iconChoices()
 {
-    QStringList names = MouseIcons::names();
+    QStringList names = KeySymbols::names();
     names.prepend(QString());
     return names;
 }

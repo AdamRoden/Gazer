@@ -83,10 +83,13 @@ QVector<EditorLayer> makeTemplateLayers(EditorTemplate tmpl, const QString& id, 
                                      QStringLiteral("example_mouse"),
                                      QStringLiteral("example_assist"),
                                      QStringLiteral("main_settings_button_timing")};
+        const QStringList icons = {QStringLiteral("Keyboard"), QStringLiteral("Mouse"),
+                                   QStringLiteral("Conversation"), QStringLiteral("SizeAndPosition")};
         for (int i = 0; i < labels.size(); ++i) {
             LayoutItem it;
             it.id = QStringLiteral("open_%1").arg(i);
             it.label = labels[i];
+            it.icon = icons[i];
             it.row = 0;
             it.col = i;
             it.action.type = LayoutAction::Type::OpenLayout;
@@ -151,6 +154,12 @@ LayoutItem letter(const QString& ch, int row, int col, double u)
     return it;
 }
 
+LayoutItem withIcon(LayoutItem it, const QString& icon)
+{
+    it.icon = icon;
+    return it;
+}
+
 LayoutItem cmdKey(const QString& id, const QString& label, int row, int col, double u,
                   const QString& command, bool accent = false)
 {
@@ -211,78 +220,97 @@ QVector<LayoutDocument> makeKeyboardFamily(const QString& id, const QString& nam
 
     LayoutDocument base = board(id, name);
     const QString row0 = QStringLiteral("qwertyuiop");
-    base.items.push_back(cmdKey(QStringLiteral("tab"), QStringLiteral("Tab"), 0, 0, 0.9,
-                                QStringLiteral("tab")));
+    base.items.push_back(withIcon(
+        cmdKey(QStringLiteral("tab"), QStringLiteral("Tab"), 0, 0, 0.9, QStringLiteral("tab")),
+        QStringLiteral("Tab")));
     for (int i = 0; i < row0.size(); ++i) {
         base.items.push_back(letter(row0.mid(i, 1), 0, i + 1, i < 5 ? 0.95 : 1.0));
     }
-    base.items.push_back(cmdKey(QStringLiteral("bksp"), QStringLiteral("⌫"), 0, 11, 1.2,
-                                QStringLiteral("backspace")));
-    base.items.push_back(layerKey(QStringLiteral("shift"), QStringLiteral("⇧"), 1, 0, 1.3, shiftId));
+    base.items.push_back(withIcon(
+        cmdKey(QStringLiteral("bksp"), QString(), 0, 11, 1.2, QStringLiteral("backspace")),
+        QStringLiteral("BackOne")));
+    base.items.push_back(withIcon(layerKey(QStringLiteral("shift"), QString(), 1, 0, 1.3, shiftId),
+                                 QStringLiteral("Shift")));
     const QString row1 = QStringLiteral("asdfghjkl");
     for (int i = 0; i < row1.size(); ++i) {
         base.items.push_back(letter(row1.mid(i, 1), 1, i + 1, 1.0));
     }
     base.items.push_back(letter(QStringLiteral(","), 1, 10, 0.9));
     base.items.push_back(letter(QStringLiteral("'"), 1, 11, 0.9));
-    base.items.push_back(cmdKey(QStringLiteral("cmd"), QStringLiteral("⌘"), 2, 0, 0.9,
-                                QStringLiteral("escape")));
-    base.items.push_back(layerKey(QStringLiteral("sym"), QStringLiteral("123?"), 2, 1, 0.9, symId, true));
+    base.items.push_back(withIcon(
+        cmdKey(QStringLiteral("cmd"), QString(), 2, 0, 0.9, QStringLiteral("escape")),
+        QStringLiteral("Win")));
+    base.items.push_back(withIcon(
+        layerKey(QStringLiteral("sym"), QStringLiteral("123?"), 2, 1, 0.9, symId, true),
+        QStringLiteral("NumericAndSymbols")));
     const QString row2 = QStringLiteral("zxcv");
     for (int i = 0; i < row2.size(); ++i) {
         base.items.push_back(letter(row2.mid(i, 1), 2, i + 2, 0.9));
     }
-    base.items.push_back(cmdKey(QStringLiteral("space"), QStringLiteral("␣"), 2, 6, 1.5,
-                                QStringLiteral("space")));
+    base.items.push_back(withIcon(
+        cmdKey(QStringLiteral("space"), QString(), 2, 6, 1.5, QStringLiteral("space")),
+        QStringLiteral("Space")));
     base.items.push_back(letter(QStringLiteral("b"), 2, 7, 0.9));
     base.items.push_back(letter(QStringLiteral("n"), 2, 8, 1.0));
     base.items.push_back(letter(QStringLiteral("m"), 2, 9, 1.0));
     base.items.push_back(letter(QStringLiteral("."), 2, 10, 0.9));
-    base.items.push_back(cmdKey(QStringLiteral("enter"), QStringLiteral("↵"), 2, 11, 1.2,
-                                QStringLiteral("enter"), true));
+    base.items.push_back(withIcon(
+        cmdKey(QStringLiteral("enter"), QString(), 2, 11, 1.2, QStringLiteral("enter"), true),
+        QStringLiteral("Enter")));
 
     LayoutDocument shift = board(shiftId, name + QStringLiteral(" (shift)"));
-    shift.items.push_back(cmdKey(QStringLiteral("tab"), QStringLiteral("Tab"), 0, 0, 0.9,
-                                 QStringLiteral("tab")));
+    shift.items.push_back(withIcon(
+        cmdKey(QStringLiteral("tab"), QStringLiteral("Tab"), 0, 0, 0.9, QStringLiteral("tab")),
+        QStringLiteral("Tab")));
     const QString s0 = QStringLiteral("QWERTYUIOP");
     for (int i = 0; i < s0.size(); ++i) {
         shift.items.push_back(letter(s0.mid(i, 1), 0, i + 1, i < 5 ? 0.95 : 1.0));
     }
-    shift.items.push_back(cmdKey(QStringLiteral("bksp"), QStringLiteral("⌫"), 0, 11, 1.2,
-                                 QStringLiteral("backspace")));
-    shift.items.push_back(layerKey(QStringLiteral("shift"), QStringLiteral("⇧"), 1, 0, 1.3, id, true));
+    shift.items.push_back(withIcon(
+        cmdKey(QStringLiteral("bksp"), QString(), 0, 11, 1.2, QStringLiteral("backspace")),
+        QStringLiteral("BackOne")));
+    shift.items.push_back(withIcon(
+        layerKey(QStringLiteral("shift"), QString(), 1, 0, 1.3, id, true), QStringLiteral("Shift")));
     const QString s1 = QStringLiteral("ASDFGHJKL");
     for (int i = 0; i < s1.size(); ++i) {
         shift.items.push_back(letter(s1.mid(i, 1), 1, i + 1, 1.0));
     }
     shift.items.push_back(letter(QStringLiteral("<"), 1, 10, 0.9));
     shift.items.push_back(letter(QStringLiteral("\""), 1, 11, 0.9));
-    shift.items.push_back(cmdKey(QStringLiteral("cmd"), QStringLiteral("⌘"), 2, 0, 0.9,
-                                 QStringLiteral("escape")));
-    shift.items.push_back(layerKey(QStringLiteral("sym"), QStringLiteral("123?"), 2, 1, 0.9, symId, true));
+    shift.items.push_back(withIcon(
+        cmdKey(QStringLiteral("cmd"), QString(), 2, 0, 0.9, QStringLiteral("escape")),
+        QStringLiteral("Win")));
+    shift.items.push_back(withIcon(
+        layerKey(QStringLiteral("sym"), QStringLiteral("123?"), 2, 1, 0.9, symId, true),
+        QStringLiteral("NumericAndSymbols")));
     const QString s2 = QStringLiteral("ZXCV");
     for (int i = 0; i < s2.size(); ++i) {
         shift.items.push_back(letter(s2.mid(i, 1), 2, i + 2, 0.9));
     }
-    shift.items.push_back(cmdKey(QStringLiteral("space"), QStringLiteral("␣"), 2, 6, 1.5,
-                                 QStringLiteral("space")));
+    shift.items.push_back(withIcon(
+        cmdKey(QStringLiteral("space"), QString(), 2, 6, 1.5, QStringLiteral("space")),
+        QStringLiteral("Space")));
     shift.items.push_back(letter(QStringLiteral("B"), 2, 7, 0.9));
     shift.items.push_back(letter(QStringLiteral("N"), 2, 8, 1.0));
     shift.items.push_back(letter(QStringLiteral("M"), 2, 9, 1.0));
     shift.items.push_back(letter(QStringLiteral("?"), 2, 10, 0.9));
-    shift.items.push_back(cmdKey(QStringLiteral("enter"), QStringLiteral("↵"), 2, 11, 1.2,
-                                 QStringLiteral("enter"), true));
+    shift.items.push_back(withIcon(
+        cmdKey(QStringLiteral("enter"), QString(), 2, 11, 1.2, QStringLiteral("enter"), true),
+        QStringLiteral("Enter")));
 
     LayoutDocument sym = board(symId, name + QStringLiteral(" (sym)"));
     const QString n0 = QStringLiteral("1234567890");
-    sym.items.push_back(cmdKey(QStringLiteral("tab"), QStringLiteral("Tab"), 0, 0, 0.9,
-                               QStringLiteral("tab")));
+    sym.items.push_back(withIcon(
+        cmdKey(QStringLiteral("tab"), QStringLiteral("Tab"), 0, 0, 0.9, QStringLiteral("tab")),
+        QStringLiteral("Tab")));
     for (int i = 0; i < n0.size(); ++i) {
         sym.items.push_back(letter(n0.mid(i, 1), 0, i + 1, 1.0));
     }
-    sym.items.push_back(cmdKey(QStringLiteral("bksp"), QStringLiteral("⌫"), 0, 11, 1.2,
-                               QStringLiteral("backspace")));
-    sym.items.push_back(layerKey(QStringLiteral("shift"), QStringLiteral("⇧"), 1, 0, 1.3, shiftId));
+    sym.items.push_back(withIcon(
+        cmdKey(QStringLiteral("bksp"), QString(), 0, 11, 1.2, QStringLiteral("backspace")),
+        QStringLiteral("BackOne")));
+    sym.items.push_back(withIcon(layerKey(QStringLiteral("shift"), QString(), 1, 0, 1.3, shiftId),
+                                QStringLiteral("Shift")));
     const QString n1[] = {QStringLiteral("-"), QStringLiteral("/"), QStringLiteral(":"),
                           QStringLiteral(";"), QStringLiteral("("), QStringLiteral(")"),
                           QStringLiteral("$"), QStringLiteral("&"), QStringLiteral("@")};
@@ -291,20 +319,24 @@ QVector<LayoutDocument> makeKeyboardFamily(const QString& id, const QString& nam
     }
     sym.items.push_back(letter(QStringLiteral("\""), 1, 10, 0.9));
     sym.items.push_back(letter(QStringLiteral("!"), 1, 11, 0.9));
-    sym.items.push_back(layerKey(QStringLiteral("abc"), QStringLiteral("ABC"), 2, 0, 0.9, id, true));
+    sym.items.push_back(withIcon(
+        layerKey(QStringLiteral("abc"), QStringLiteral("ABC"), 2, 0, 0.9, id, true),
+        QStringLiteral("Alpha")));
     const QString n2[] = {QStringLiteral("."), QStringLiteral(","), QStringLiteral("?"),
                           QStringLiteral("'"), QStringLiteral("#")};
     for (int i = 0; i < 5; ++i) {
         sym.items.push_back(letter(n2[i], 2, i + 1, 0.9));
     }
-    sym.items.push_back(cmdKey(QStringLiteral("space"), QStringLiteral("␣"), 2, 6, 1.5,
-                               QStringLiteral("space")));
+    sym.items.push_back(withIcon(
+        cmdKey(QStringLiteral("space"), QString(), 2, 6, 1.5, QStringLiteral("space")),
+        QStringLiteral("Space")));
     sym.items.push_back(letter(QStringLiteral("+"), 2, 7, 0.9));
     sym.items.push_back(letter(QStringLiteral("="), 2, 8, 1.0));
     sym.items.push_back(letter(QStringLiteral("*"), 2, 9, 1.0));
     sym.items.push_back(letter(QStringLiteral("%"), 2, 10, 0.9));
-    sym.items.push_back(cmdKey(QStringLiteral("enter"), QStringLiteral("↵"), 2, 11, 1.2,
-                               QStringLiteral("enter"), true));
+    sym.items.push_back(withIcon(
+        cmdKey(QStringLiteral("enter"), QString(), 2, 11, 1.2, QStringLiteral("enter"), true),
+        QStringLiteral("Enter")));
 
     return {base, shift, sym};
 }

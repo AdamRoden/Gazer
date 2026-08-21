@@ -31,6 +31,7 @@
     {
       "id": "yes_quit",
       "label": "Yes",
+      "icon": "Yes",
       "row": 1,
       "col": 0,
       "style": { "background": "#9b2226", "foreground": "#ffffff" },
@@ -39,6 +40,7 @@
     {
       "id": "no_stay",
       "label": "No",
+      "icon": "No",
       "row": 1,
       "col": 1,
       "style": { "background": "#2d6a4f", "foreground": "#ffffff" },

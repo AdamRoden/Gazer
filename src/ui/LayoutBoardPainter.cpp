@@ -5,7 +5,7 @@
 
 #include "layout/LayoutGeometry.h"
 #include "layout/LayoutVisibility.h"
-#include "ui/MouseIcons.h"
+#include "ui/KeySymbols.h"
 
 #include <QFont>
 #include <QFontMetricsF>
@@ -31,6 +31,34 @@ int fontPxToFit(const QString& family, int weight, int startPx, int minPx, const
         --px;
     }
     return qMax(minPx, px);
+}
+
+qreal gridIconSide(const LayoutDocument& layout, int boardW, int boardH)
+{
+    const auto inset = layout.grid.insets(boardW, boardH);
+    const int cols = qMax(1, layout.grid.columns);
+    const int rows = qMax(1, layout.grid.rows);
+    const int gap = layout.grid.gapPx;
+    const double innerW = boardW - inset.left - inset.right - gap * (cols - 1);
+    const double innerH = boardH - inset.top - inset.bottom - gap * (rows - 1);
+    if (innerW <= 0.0 || innerH <= 0.0) {
+        return 24.0;
+    }
+    const double cell = qMin(innerW / cols, innerH / rows);
+    return qBound(16.0, cell * 0.52, cell - 12.0);
+}
+
+QRectF iconSlot(const QRectF& cell, qreal side, bool hasText)
+{
+    if (cell.isEmpty()) {
+        return cell;
+    }
+    const qreal pad = 6.0;
+    side = qMin(side, qMin(cell.width(), cell.height()) - pad * 2.0);
+    side = qMax(8.0, side);
+    const qreal x = cell.center().x() - side * 0.5;
+    const qreal y = hasText ? cell.top() + pad : cell.center().y() - side * 0.5;
+    return {x, y, side, side};
 }
 
 } // namespace
@@ -343,7 +371,8 @@ void LayoutBoardPainter::paintSliderTrack(QPainter& p, const QRectF& r, const La
     }
 }
 
-void LayoutBoardPainter::paintCell(QPainter& p, const LayoutItem& item, const QRectF& r, bool onCard)
+void LayoutBoardPainter::paintCell(QPainter& p, const LayoutItem& item, const QRectF& r, bool onCard,
+                                   qreal iconSide)
 {
     const LayoutItemStyle st = resolvedItemStyle(item);
     const double radius = st.radius.value_or(14.0);
@@ -408,18 +437,25 @@ void LayoutBoardPainter::paintCell(QPainter& p, const LayoutItem& item, const QR
     paintProgressChrome(p, r, hovered, m.hoverProgress, visualsForItem(&item), radius);
 
     p.setPen(fg);
+    const QString text =
+        item.caption.isEmpty() ? item.label
+                               : QStringLiteral("%1\n%2").arg(item.label, item.caption);
+    const bool hasText = !text.isEmpty();
+    bool drewIcon = false;
+    QRectF iconR;
     if (!item.icon.isEmpty()) {
-        const QRectF iconR(r.left() + 6, r.top() + 6, r.width() - 12, r.height() * 0.52);
-        MouseIcons::paint(p, item.icon, iconR, fg);
+        iconR = iconSlot(r, iconSide, hasText);
+        drewIcon = KeySymbols::paint(p, item.icon, iconR, fg);
+    }
+    if (drewIcon && hasText) {
         p.setFont(QFont(QStringLiteral("Segoe UI"), 11, QFont::DemiBold));
-        p.drawText(r.adjusted(8, r.height() * 0.52, -8, -6),
+        p.drawText(QRectF(r.left() + 6, iconR.bottom() + 2.0, r.width() - 12,
+                          qMax(0.0, r.bottom() - 6.0 - iconR.bottom() - 2.0)),
                    Qt::AlignHCenter | Qt::AlignTop | Qt::TextWordWrap, item.label);
-    } else {
+    } else if (!drewIcon) {
         p.setFont(QFont(QStringLiteral("Segoe UI"), 13, QFont::DemiBold));
-        const QString text =
-            item.caption.isEmpty() ? item.label
-                                   : QStringLiteral("%1\n%2").arg(item.label, item.caption);
-        p.drawText(r.adjusted(8, 8, -8, -8), Qt::AlignCenter | Qt::TextWordWrap, text);
+        const QString fallback = hasText ? text : item.icon;
+        p.drawText(r.adjusted(8, 8, -8, -8), Qt::AlignCenter | Qt::TextWordWrap, fallback);
     }
 
     if (hasSwitch) {
@@ -588,7 +624,8 @@ QRectF LayoutBoardPainter::toggleHitRect(const QRectF& cell)
     return toggleTrackRect(cell).adjusted(-10.0, -10.0, 10.0, 10.0).intersected(cell);
 }
 
-void LayoutBoardPainter::paintToggle(QPainter& p, const LayoutItem& item, const QRectF& r)
+void LayoutBoardPainter::paintToggle(QPainter& p, const LayoutItem& item, const QRectF& r,
+                                     qreal iconSide)
 {
     const bool hovered = item.interactive && item.id == m.hoverId;
     const bool on = m.activeItemIds.contains(item.id);
@@ -610,9 +647,11 @@ void LayoutBoardPainter::paintToggle(QPainter& p, const LayoutItem& item, const 
     QRectF textR = r.adjusted(12, 6, -(r.right() - track.left()) - 8.0, -6);
     p.setPen(theme().text);
     if (!item.icon.isEmpty()) {
-        const QRectF iconR(textR.left(), textR.center().y() - 14.0, 28.0, 28.0);
-        MouseIcons::paint(p, item.icon, iconR, theme().text);
-        textR.setLeft(iconR.right() + 8.0);
+        const qreal s = qBound(16.0, iconSide, 28.0);
+        const QRectF iconR(textR.left(), textR.center().y() - s * 0.5, s, s);
+        if (KeySymbols::paint(p, item.icon, iconR, theme().text)) {
+            textR.setLeft(iconR.right() + 8.0);
+        }
     }
     p.setFont(QFont(QStringLiteral("Segoe UI"), 13, QFont::DemiBold));
     if (item.caption.isEmpty()) {
@@ -770,6 +809,8 @@ void LayoutBoardPainter::paint(QPainter& p)
         return;
     }
 
+    const qreal iconSide = gridIconSide(layout(), m.width, m.height);
+
     QRectF tabBand;
     QSet<QString> clusterFrames;
     QHash<int, QRectF> rowBands;
@@ -832,11 +873,11 @@ void LayoutBoardPainter::paint(QPainter& p)
             continue;
         }
         if (item.kind == LayoutItemKind::Toggle) {
-            paintToggle(p, item, r);
+            paintToggle(p, item, r, iconSide);
         } else if (item.kind == LayoutItemKind::Label) {
             paintStaticItem(p, item, r);
         } else {
-            paintCell(p, item, r, cardRows.contains(item.row));
+            paintCell(p, item, r, cardRows.contains(item.row), iconSide);
         }
     }
 

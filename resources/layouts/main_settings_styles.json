@@ -379,7 +379,7 @@
         "type": "command",
         "name": "toggleMouseMoveMagPickFullScreen"
       },
-      "icon": "magFullScreen"
+      "icon": "BrowserFullscreen"
     },
     {
       "id": "zs_round",

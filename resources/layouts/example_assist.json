@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "example_assist",
   "name": "Assist",
-  "description": "Gaze assist: LTS, magnifier, reticle, gaze mouse, move-to.",  
+  "description": "Gaze assist: LTS, magnifier, reticle, gaze mouse, move-to.",
   "boundsMode": "screen",
   "autoClose": true,
   "autoCloseIdleMs": 3000,
@@ -24,7 +24,11 @@
       "activeState": "magnifier",
       "row": 0,
       "col": 0,
-      "action": { "type": "command", "name": "toggleMagnifier" }
+      "action": {
+        "type": "command",
+        "name": "toggleMagnifier"
+      },
+      "icon": "MouseMagnifier"
     },
     {
       "id": "gaze_reticle",
@@ -32,7 +36,11 @@
       "activeState": "gazeReticle",
       "row": 0,
       "col": 1,
-      "action": { "type": "command", "name": "toggleGazeReticle" }
+      "action": {
+        "type": "command",
+        "name": "toggleGazeReticle"
+      },
+      "icon": "Calibrate"
     },
     {
       "id": "gaze_follow",
@@ -40,7 +48,11 @@
       "activeState": "gazeMouseFollow",
       "row": 0,
       "col": 2,
-      "action": { "type": "command", "name": "toggleGazeMouseFollow" }
+      "action": {
+        "type": "command",
+        "name": "toggleGazeMouseFollow"
+      },
+      "icon": "MouseMagneticCursor"
     },
     {
       "id": "mouse_move",
@@ -48,7 +60,11 @@
       "activeState": "mouseDwellMove",
       "row": 0,
       "col": 3,
-      "action": { "type": "command", "name": "mouseDwellMove" }
+      "action": {
+        "type": "command",
+        "name": "mouseDwellMove"
+      },
+      "icon": "MouseMoveTo"
     },
     {
       "id": "mag_pick",
@@ -56,7 +72,11 @@
       "activeState": "mouseMoveMagPick",
       "row": 0,
       "col": 4,
-      "action": { "type": "command", "name": "toggleMouseMoveMagPick" }
+      "action": {
+        "type": "command",
+        "name": "toggleMouseMoveMagPick"
+      },
+      "icon": "ZoomToLocation"
     },
     {
       "id": "lts",
@@ -64,7 +84,11 @@
       "activeState": "lookToScroll",
       "row": 0,
       "col": 5,
-      "action": { "type": "command", "name": "toggleLookToScroll" }
+      "action": {
+        "type": "command",
+        "name": "toggleLookToScroll"
+      },
+      "icon": "LookToScrollActive"
     },
     {
       "id": "lts_hint",
@@ -82,14 +106,19 @@
         "type": "command",
         "name": "openLayoutEditor",
         "layoutId": "example_assist"
-      }
+      },
+      "icon": "PhysicalKeys"
     },
     {
       "id": "main",
-      "label": "← Main",
+      "label": "Main",
       "row": 0,
       "col": 8,
-      "action": { "type": "loadLayout", "layoutId": "main_drawer" }
+      "action": {
+        "type": "loadLayout",
+        "layoutId": "main_drawer"
+      },
+      "icon": "Menu"
     }
   ]
 }
