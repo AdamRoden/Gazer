@@ -13,6 +13,7 @@
 #include <QPainter>
 #include <QPainterPath>
 #include <QSet>
+#include <utility>
 
 namespace gazer {
 
@@ -36,50 +37,55 @@ int fontPxToFit(const QString& family, int weight, int startPx, int minPx, const
 
 
 LayoutBoardPainter::LayoutBoardPainter(LayoutQuickWindow& host)
-    : m_layout(host.m_layout)
-    , m_itemLocalRects(host.m_itemLocalRects)
-    , m_hoverId(host.m_hoverId)
-    , m_hoverProgress(host.m_hoverProgress)
-    , m_progressVisuals(host.m_progressVisuals)
-    , m_theme(host.m_theme)
-    , m_activeItemIds(host.m_activeItemIds)
-    , m_props(host.m_props)
-    , m_flashId(host.m_flashId)
-    , m_boardOpacity(host.m_boardOpacity)
-    , m_previewColor(host.m_previewColor)
-    , m_sliderScrubId(host.m_sliderScrubId)
-    , m_sliderScrubT(host.m_sliderScrubT)
-    , m_sliderScrubValue(host.m_sliderScrubValue)
-    , m_sliderScrubProgress(host.m_sliderScrubProgress)
-    , m_sliderReadoutT(host.m_sliderReadoutT)
-    , m_sliderReadoutValue(host.m_sliderReadoutValue)
-    , m_glass(host.m_glass)
-    , m_width(host.width())
-    , m_height(host.height())
+{
+    m.layout = &host.m_layout;
+    m.itemLocalRects = &host.m_itemLocalRects;
+    m.theme = &host.m_theme;
+    m.width = host.width();
+    m.height = host.height();
+    m.hoverId = host.m_hoverId;
+    m.hoverProgress = host.m_hoverProgress;
+    m.progressVisuals = host.m_progressVisuals;
+    m.activeItemIds = host.m_activeItemIds;
+    m.props = host.m_props;
+    m.flashId = host.m_flashId;
+    m.boardOpacity = host.m_boardOpacity;
+    m.previewColor = host.m_previewColor;
+    m.glass = &host.m_glass;
+    m.sliderScrubId = host.m_sliderScrubId;
+    m.sliderScrubT = host.m_sliderScrubT;
+    m.sliderScrubValue = host.m_sliderScrubValue;
+    m.sliderScrubProgress = host.m_sliderScrubProgress;
+    m.sliderReadoutT = &host.m_sliderReadoutT;
+    m.sliderReadoutValue = &host.m_sliderReadoutValue;
+}
+
+LayoutBoardPainter::LayoutBoardPainter(Input in)
+    : m(std::move(in))
 {
 }
 
 bool LayoutBoardPainter::itemShown(const LayoutItem& item) const
 {
-    return itemIsShown(item, m_props);
+    return itemIsShown(item, m.props);
 }
 
 LayoutItemStyle LayoutBoardPainter::resolvedItemStyle(const LayoutItem& item) const
 {
-    return m_layout.style.withOverrides(item.style);
+    return layout().style.withOverrides(item.style);
 }
 
 ProgressVisuals LayoutBoardPainter::visualsForItem(const LayoutItem* item) const
 {
-    ProgressVisuals v = m_progressVisuals;
-    if (m_layout.dwell.sectionPresent) {
-        v = v.mergedWith(m_layout.dwell);
+    ProgressVisuals v = m.progressVisuals;
+    if (layout().dwell.sectionPresent) {
+        v = v.mergedWith(layout().dwell);
     }
     if (item && item->dwell.sectionPresent) {
         v = v.mergedWith(item->dwell);
     }
     if (item) {
-        const QColor fg = resolvedItemStyle(*item).foreground.value_or(m_theme.text);
+        const QColor fg = resolvedItemStyle(*item).foreground.value_or(theme().text);
         return v.withItemFlash(fg);
     }
     return v;
@@ -88,8 +94,8 @@ ProgressVisuals LayoutBoardPainter::visualsForItem(const LayoutItem* item) const
 void LayoutBoardPainter::fillChrome(QPainter& p, const QRectF& r, double radius, const QColor& bg,
                                    const LayoutChromeStyle& st, const QColor& bgBot)
 {
-    if (st.hasBlur()) {
-        m_glass.paint(p, r, radius, st.background ? bg : QColor());
+    if (st.hasBlur() && m.glass) {
+        m.glass->paint(p, r, radius, st.background ? bg : QColor());
         return;
     }
     if (bgBot.isValid() && (bg.alpha() > 0 || bgBot.alpha() > 0)) {
@@ -113,8 +119,8 @@ void LayoutBoardPainter::paintProgressChrome(QPainter& p, const QRectF& r, bool 
                                             double progress, const ProgressVisuals& visuals,
                                             double radius)
 {
-    const bool flashing = !m_flashId.isEmpty() && m_itemLocalRects.contains(m_flashId)
-                          && m_itemLocalRects.value(m_flashId) == r;
+    const bool flashing = !m.flashId.isEmpty() && rects().contains(m.flashId)
+                          && rects().value(m.flashId) == r;
 
     if (flashing) {
         p.setPen(QPen(visuals.flashColor, 3.5));
@@ -142,7 +148,7 @@ void LayoutBoardPainter::paintPreviewSwatch(QPainter& p, const QRectF& r, double
         }
     }
     p.setPen(Qt::NoPen);
-    p.setBrush(m_previewColor);
+    p.setBrush(m.previewColor);
     p.drawRoundedRect(r, radius, radius);
     p.restore();
     p.setBrush(Qt::NoBrush);
@@ -155,13 +161,13 @@ void LayoutBoardPainter::paintRadioButton(QPainter& p, const QRectF& cell, bool 
     const qreal d = 18.0;
     const qreal m = 8.0;
     const QRectF outer(cell.right() - m - d, cell.top() + m, d, d);
-    p.setPen(QPen(on ? m_theme.accent : m_theme.border, 2.0));
-    p.setBrush(on ? QColor(m_theme.accent.red(), m_theme.accent.green(), m_theme.accent.blue(), 40)
-                  : m_theme.bgMain);
+    p.setPen(QPen(on ? theme().accent : theme().border, 2.0));
+    p.setBrush(on ? QColor(theme().accent.red(), theme().accent.green(), theme().accent.blue(), 40)
+                  : theme().bgMain);
     p.drawEllipse(outer);
     if (on) {
         p.setPen(Qt::NoPen);
-        p.setBrush(m_theme.accent);
+        p.setBrush(theme().accent);
         p.drawEllipse(outer.adjusted(4.5, 4.5, -4.5, -4.5));
     }
 }
@@ -226,9 +232,9 @@ void LayoutBoardPainter::paintSliderTrack(QPainter& p, const QRectF& r, const La
                                          bool hovered, double progress)
 {
     const QString channel = item.caption.isEmpty() ? item.id : item.caption;
-    const bool scrubbing = (item.id == m_sliderScrubId);
+    const bool scrubbing = (item.id == m.sliderScrubId);
     const LayoutQuickWindow::SliderVisual geom = LayoutQuickWindow::sliderVisual(r, scrubbing);
-    QColor base = m_previewColor.isValid() ? m_previewColor : ThemeColors::defaultProgressColor();
+    QColor base = m.previewColor.isValid() ? m.previewColor : ThemeColors::defaultProgressColor();
     int h = 0, s = 0, v = 0, a = 255;
     base.getHsv(&h, &s, &v, &a);
     if (h < 0) {
@@ -238,12 +244,12 @@ void LayoutBoardPainter::paintSliderTrack(QPainter& p, const QRectF& r, const La
     const int cg = base.green();
     const int cb = base.blue();
     const SliderChannelInfo info = sliderChannelInfo(channel, base);
-    double t = scrubbing ? m_sliderScrubT : info.t;
-    QString valueText = scrubbing && !m_sliderScrubValue.isEmpty() ? m_sliderScrubValue
+    double t = scrubbing ? m.sliderScrubT : info.t;
+    QString valueText = scrubbing && !m.sliderScrubValue.isEmpty() ? m.sliderScrubValue
                                                                   : info.value;
-    if (!scrubbing && m_sliderReadoutT.contains(item.id)) {
-        t = m_sliderReadoutT.value(item.id);
-        valueText = m_sliderReadoutValue.value(item.id, valueText);
+    if (!scrubbing && readoutT().contains(item.id)) {
+        t = readoutT().value(item.id);
+        valueText = readoutV().value(item.id, valueText);
     }
     const QString nameText = item.label.isEmpty() ? info.name : item.label;
 
@@ -287,9 +293,9 @@ void LayoutBoardPainter::paintSliderTrack(QPainter& p, const QRectF& r, const La
         g.setColorAt(0.0, QColor(cr, cg, 0));
         g.setColorAt(1.0, QColor(cr, cg, 255));
     } else if (ch == QLatin1String("contrast")) {
-        g.setColorAt(0.0, m_theme.bgSurface);
-        g.setColorAt(0.5, m_theme.cellHover);
-        g.setColorAt(1.0, m_theme.accent);
+        g.setColorAt(0.0, theme().bgSurface);
+        g.setColorAt(0.5, theme().cellHover);
+        g.setColorAt(1.0, theme().accent);
     } else if (ch == QLatin1String("brightness")) {
         g.setColorAt(0.0, QColor(20, 20, 22));
         g.setColorAt(1.0, QColor(240, 240, 242));
@@ -308,26 +314,26 @@ void LayoutBoardPainter::paintSliderTrack(QPainter& p, const QRectF& r, const La
     p.setPen(QPen(QColor(255, 255, 255, 70), 1.1));
     p.drawRoundedRect(track.adjusted(0.5, 0.5, -0.5, -0.5), radius, radius);
 
-    p.setPen(m_theme.text);
+    p.setPen(theme().text);
     p.setFont(QFont(QStringLiteral("Segoe UI"), 10, QFont::DemiBold));
     p.drawText(geom.header, Qt::AlignLeft | Qt::AlignVCenter, nameText);
-    p.setPen(m_theme.textSecondary);
+    p.setPen(theme().textSecondary);
     p.drawText(geom.header, Qt::AlignRight | Qt::AlignVCenter, valueText);
 
     const QPointF pos = geom.posAt(t);
     const double ringD = geom.ringDiameter;
     const QRectF ring(pos.x() - ringD * 0.5, pos.y() - ringD * 0.5, ringD, ringD);
-    p.setBrush(m_theme.bgMain);
+    p.setBrush(theme().bgMain);
     p.setPen(QPen(Qt::white, scrubbing ? 2.4 : 2.0));
     p.drawEllipse(ring);
     p.setPen(QPen(QColor(0, 0, 0, 90), 1.0));
     p.setBrush(Qt::NoBrush);
     p.drawEllipse(ring.adjusted(1.5, 1.5, -1.5, -1.5));
 
-    const double ringProgress = scrubbing && m_sliderScrubProgress > 0.0 ? m_sliderScrubProgress
+    const double ringProgress = scrubbing && m.sliderScrubProgress > 0.0 ? m.sliderScrubProgress
                                                                         : (hovered ? progress : 0.0);
     if (scrubbing) {
-        p.setPen(m_theme.text);
+        p.setPen(theme().text);
         p.setFont(QFont(QStringLiteral("Segoe UI Semibold"), 10, QFont::DemiBold));
         p.drawText(ring, Qt::AlignCenter, valueText);
     }
@@ -342,14 +348,14 @@ void LayoutBoardPainter::paintCell(QPainter& p, const LayoutItem& item, const QR
     const LayoutItemStyle st = resolvedItemStyle(item);
     const double radius = st.radius.value_or(14.0);
     if (item.kind == LayoutItemKind::Slider) {
-        const bool hovered = item.interactive && (item.id == m_hoverId);
-        paintSliderTrack(p, r, item, hovered, hovered ? m_hoverProgress : 0.0);
+        const bool hovered = item.interactive && (item.id == m.hoverId);
+        paintSliderTrack(p, r, item, hovered, hovered ? m.hoverProgress : 0.0);
         return;
     }
     if (item.kind == LayoutItemKind::Preview) {
         paintPreviewSwatch(p, r, radius);
         if (!item.label.isEmpty()) {
-            p.setPen(ThemeColors::contrastOn(m_previewColor));
+            p.setPen(ThemeColors::contrastOn(m.previewColor));
             p.setFont(QFont(QStringLiteral("Segoe UI"), 11, QFont::DemiBold));
             p.drawText(r.adjusted(8, 6, -8, -6), Qt::AlignLeft | Qt::AlignTop, item.label);
             if (!item.caption.isEmpty()) {
@@ -361,26 +367,26 @@ void LayoutBoardPainter::paintCell(QPainter& p, const LayoutItem& item, const QR
         return;
     }
 
-    const bool hovered = item.interactive && (item.id == m_hoverId);
-    const bool active = m_activeItemIds.contains(item.id);
+    const bool hovered = item.interactive && (item.id == m.hoverId);
+    const bool active = m.activeItemIds.contains(item.id);
     const bool hasSwitch = !item.activeState.isEmpty();
     QColor bg = st.background.value_or(QColor());
-    QColor fg = st.foreground.value_or(m_theme.text);
-    QColor border = st.borderColor.value_or(m_theme.border);
+    QColor fg = st.foreground.value_or(theme().text);
+    QColor border = st.borderColor.value_or(theme().border);
     double borderW = st.borderWidth.value_or(0.0);
 
     if (!st.background) {
         if (active && !hasSwitch) {
-            bg = m_theme.cellActive;
-            fg = m_theme.accent;
+            bg = theme().cellActive;
+            fg = theme().accent;
         } else if (hovered) {
-            bg = m_theme.cellHover;
+            bg = theme().cellHover;
         } else if (!onCard) {
-            bg = m_theme.cellBg;
+            bg = theme().cellBg;
         }
     } else if (active && !hasSwitch) {
-        bg = m_theme.cellActive;
-        fg = m_theme.accent;
+        bg = theme().cellActive;
+        fg = theme().accent;
     }
     if (hovered && bg.alpha() > 0 && st.background) {
         bg = bg.lighter(118);
@@ -388,7 +394,7 @@ void LayoutBoardPainter::paintCell(QPainter& p, const LayoutItem& item, const QR
     if (!st.borderWidth && (hovered || (active && !hasSwitch))) {
         borderW = 1.0;
         if (active && !hasSwitch && !st.borderColor) {
-            border = m_theme.accentHover;
+            border = theme().accentHover;
         }
     }
 
@@ -399,7 +405,7 @@ void LayoutBoardPainter::paintCell(QPainter& p, const LayoutItem& item, const QR
         p.drawRoundedRect(r, radius, radius);
     }
 
-    paintProgressChrome(p, r, hovered, m_hoverProgress, visualsForItem(&item), radius);
+    paintProgressChrome(p, r, hovered, m.hoverProgress, visualsForItem(&item), radius);
 
     p.setPen(fg);
     if (!item.icon.isEmpty()) {
@@ -429,7 +435,7 @@ void LayoutBoardPainter::paintStaticItem(QPainter& p, const LayoutItem& item, co
         fillChrome(p, r, radius, *st.background, st);
         if (st.borderWidth.value_or(0.0) > 0.0) {
             p.setBrush(Qt::NoBrush);
-            p.setPen(QPen(st.borderColor.value_or(m_theme.border), st.borderWidth.value_or(1.0)));
+            p.setPen(QPen(st.borderColor.value_or(theme().border), st.borderWidth.value_or(1.0)));
             p.drawRoundedRect(r, radius, radius);
         }
     }
@@ -450,15 +456,15 @@ void LayoutBoardPainter::paintStaticItem(QPainter& p, const LayoutItem& item, co
         titlePx = 22;
         titleWeight = QFont::DemiBold;
     } else if (ts == QLatin1String("section")) {
-        QColor bar = m_theme.accent;
+        QColor bar = theme().accent;
         p.setPen(Qt::NoPen);
         p.setBrush(bar);
         p.drawRoundedRect(QRectF(r.left(), r.center().y() - 7.0, 4.0, 14.0), 2.0, 2.0);
-        p.setPen(m_theme.textSecondary);
+        p.setPen(theme().textSecondary);
         p.setFont(QFont(QStringLiteral("Segoe UI"), 12, QFont::DemiBold));
         p.drawText(r.adjusted(16, 0, -8, -6), Qt::AlignLeft | Qt::AlignVCenter,
                    item.label.toUpper());
-        QColor rule = m_theme.border;
+        QColor rule = theme().border;
         p.setPen(QPen(rule, 1.0));
         const double y = r.bottom() - 4.0;
         p.drawLine(QPointF(r.left(), y), QPointF(r.right(), y));
@@ -474,16 +480,16 @@ void LayoutBoardPainter::paintStaticItem(QPainter& p, const LayoutItem& item, co
         const int flags = int(Qt::AlignCenter | Qt::TextWordWrap);
         const int px = fontPxToFit(family, QFont::DemiBold, ts.isEmpty() ? 16 : titlePx, 10,
                                    item.label, pad, flags);
-        p.setPen(st.foreground.value_or(m_theme.accent));
+        p.setPen(st.foreground.value_or(theme().accent));
         p.setFont(QFont(family, px, QFont::DemiBold));
         p.drawText(pad, flags, item.label);
         p.restore();
         return;
     }
 
-    QColor titleFg = st.foreground.value_or(m_theme.text);
+    QColor titleFg = st.foreground.value_or(theme().text);
     if (ts == QLatin1String("caption") && !st.foreground) {
-        titleFg = m_theme.textSecondary;
+        titleFg = theme().textSecondary;
     }
     if (item.caption.isEmpty()) {
         const int flags = (ts == QLatin1String("title") || ts == QLatin1String("subtitle"))
@@ -518,7 +524,7 @@ void LayoutBoardPainter::paintStaticItem(QPainter& p, const LayoutItem& item, co
     p.setPen(titleFg);
     p.setFont(tFont);
     p.drawText(titleR, titleFlags, item.label);
-    p.setPen(m_theme.textSecondary);
+    p.setPen(theme().textSecondary);
     p.setFont(QFont(family, capPx, QFont::Normal));
     p.drawText(capR, capFlags, item.caption);
     p.restore();
@@ -526,16 +532,16 @@ void LayoutBoardPainter::paintStaticItem(QPainter& p, const LayoutItem& item, co
 
 void LayoutBoardPainter::paintTab(QPainter& p, const LayoutItem& item, const QRectF& r)
 {
-    const bool selected = item.action.layoutId == m_layout.id
+    const bool selected = item.action.layoutId == layout().id
                           || (item.action.type == LayoutAction::Type::Unknown
                               && item.actions.isEmpty());
-    const bool hovered = item.interactive && item.id == m_hoverId;
+    const bool hovered = item.interactive && item.id == m.hoverId;
     const double radius = resolvedItemStyle(item).radius.value_or(4.0);
 
     if (hovered && !selected) {
-        QColor fill = m_theme.bgSurfaceHover;
+        QColor fill = theme().bgSurfaceHover;
         if (!fill.isValid() || fill.alpha() == 0) {
-            fill = m_theme.cellHover;
+            fill = theme().cellHover;
         }
         fill.setAlpha(qBound(20, fill.alpha(), 70));
         p.setPen(Qt::NoPen);
@@ -543,26 +549,26 @@ void LayoutBoardPainter::paintTab(QPainter& p, const LayoutItem& item, const QRe
         p.drawRoundedRect(r.adjusted(4, 6, -4, 6), radius, radius);
     }
 
-    p.setPen(selected ? m_theme.text : m_theme.textSecondary);
+    p.setPen(selected ? theme().text : theme().textSecondary);
     p.setFont(QFont(QStringLiteral("Segoe UI"), 14, selected ? QFont::DemiBold : QFont::Normal));
     p.drawText(r.adjusted(8, 4, -8, -10), Qt::AlignCenter | Qt::TextWordWrap, item.label);
 
-    const double t = selected ? 1.0 : (hovered ? m_hoverProgress : 0.0);
+    const double t = selected ? 1.0 : (hovered ? m.hoverProgress : 0.0);
     if (t > 0.01) {
         const double maxW = qMax(24.0, r.width() - 48.0);
         const double barW = maxW * t;
         const QRectF bar(r.center().x() - barW * 0.5, r.bottom() - 7.0, barW, selected ? 3.0 : 2.0);
         p.setPen(Qt::NoPen);
-        p.setBrush(m_theme.accent);
+        p.setBrush(theme().accent);
         p.drawRoundedRect(bar, 1.5, 1.5);
     }
 }
 
 void LayoutBoardPainter::paintCard(QPainter& p, const QRectF& r)
 {
-    QColor fill = m_theme.cellBg;
+    QColor fill = theme().cellBg;
     fill.setAlpha(255);
-    p.setPen(QPen(m_theme.border, 1.0));
+    p.setPen(QPen(theme().border, 1.0));
     p.setBrush(fill);
     p.drawRoundedRect(r, 8.0, 8.0);
 }
@@ -584,12 +590,12 @@ QRectF LayoutBoardPainter::toggleHitRect(const QRectF& cell)
 
 void LayoutBoardPainter::paintToggle(QPainter& p, const LayoutItem& item, const QRectF& r)
 {
-    const bool hovered = item.interactive && item.id == m_hoverId;
-    const bool on = m_activeItemIds.contains(item.id);
+    const bool hovered = item.interactive && item.id == m.hoverId;
+    const bool on = m.activeItemIds.contains(item.id);
     const QRectF track = toggleTrackRect(r);
 
-    QColor trackFill = on ? m_theme.accent : m_theme.bgSurfaceActive;
-    p.setPen(QPen(on ? m_theme.accentHover : m_theme.border, hovered ? 2.0 : 1.0));
+    QColor trackFill = on ? theme().accent : theme().bgSurfaceActive;
+    p.setPen(QPen(on ? theme().accentHover : theme().border, hovered ? 2.0 : 1.0));
     p.setBrush(trackFill);
     p.drawRoundedRect(track, track.height() * 0.5, track.height() * 0.5);
 
@@ -602,10 +608,10 @@ void LayoutBoardPainter::paintToggle(QPainter& p, const LayoutItem& item, const 
     p.drawEllipse(knob);
 
     QRectF textR = r.adjusted(12, 6, -(r.right() - track.left()) - 8.0, -6);
-    p.setPen(m_theme.text);
+    p.setPen(theme().text);
     if (!item.icon.isEmpty()) {
         const QRectF iconR(textR.left(), textR.center().y() - 14.0, 28.0, 28.0);
-        MouseIcons::paint(p, item.icon, iconR, m_theme.text);
+        MouseIcons::paint(p, item.icon, iconR, theme().text);
         textR.setLeft(iconR.right() + 8.0);
     }
     p.setFont(QFont(QStringLiteral("Segoe UI"), 13, QFont::DemiBold));
@@ -614,14 +620,14 @@ void LayoutBoardPainter::paintToggle(QPainter& p, const LayoutItem& item, const 
     } else {
         const QRectF titleR(textR.left(), textR.top(), textR.width(), textR.height() * 0.5);
         p.drawText(titleR, Qt::AlignLeft | Qt::AlignVCenter | Qt::TextWordWrap, item.label);
-        p.setPen(m_theme.textSecondary);
+        p.setPen(theme().textSecondary);
         p.setFont(QFont(QStringLiteral("Segoe UI"), 11));
         p.drawText(QRectF(textR.left(), titleR.bottom(), textR.width(), textR.bottom() - titleR.bottom()),
                    Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap, item.caption);
     }
 
-    if (hovered && m_hoverProgress > 0.0) {
-        paintProgress(p, track.adjusted(-4, -4, 4, 4), m_hoverProgress, visualsForItem(&item),
+    if (hovered && m.hoverProgress > 0.0) {
+        paintProgress(p, track.adjusted(-4, -4, 4, 4), m.hoverProgress, visualsForItem(&item),
                       ProgressShape::RoundedRect, track.height() * 0.5);
     }
 }
@@ -632,11 +638,11 @@ QRectF LayoutBoardPainter::clusterBounds(const QString& cluster) const
     if (cluster.isEmpty()) {
         return bounds;
     }
-    for (const LayoutItem& item : m_layout.items) {
+    for (const LayoutItem& item : layout().items) {
         if (item.cluster != cluster || !item.isClustered() || !itemShown(item)) {
             continue;
         }
-        const QRectF r = m_itemLocalRects.value(item.id);
+        const QRectF r = rects().value(item.id);
         if (!r.isEmpty()) {
             bounds = bounds.isEmpty() ? r : bounds.united(r);
         }
@@ -651,26 +657,26 @@ void LayoutBoardPainter::paintClusterFrame(QPainter& p, const QString& cluster)
         return;
     }
     bool stepper = false;
-    for (const LayoutItem& item : m_layout.items) {
+    for (const LayoutItem& item : layout().items) {
         if (item.cluster == cluster && item.kind == LayoutItemKind::Stepper) {
             stepper = true;
             break;
         }
     }
-    p.setPen(QPen(m_theme.border, 1.0));
+    p.setPen(QPen(theme().border, 1.0));
     p.setBrush(Qt::NoBrush);
     p.drawRoundedRect(bounds, stepper ? 4.0 : 6.0, stepper ? 4.0 : 6.0);
 }
 
 void LayoutBoardPainter::paintClusterSlot(QPainter& p, const LayoutItem& item, const QRectF& r)
 {
-    const bool hovered = item.interactive && item.id == m_hoverId;
-    const bool selected = m_activeItemIds.contains(item.id);
+    const bool hovered = item.interactive && item.id == m.hoverId;
+    const bool selected = m.activeItemIds.contains(item.id);
     const bool stepper = item.kind == LayoutItemKind::Stepper;
     const QString slot = item.clusterSlot;
 
     if (hovered || (selected && !stepper)) {
-        QColor fill = selected ? m_theme.accent : m_theme.cellHover;
+        QColor fill = selected ? theme().accent : theme().cellHover;
         if (selected) {
             fill.setAlpha(50);
         }
@@ -679,12 +685,12 @@ void LayoutBoardPainter::paintClusterSlot(QPainter& p, const LayoutItem& item, c
         p.drawRoundedRect(r.adjusted(2, 2, -2, -2), 3.0, 3.0);
     }
 
-    QColor fg = m_theme.text;
+    QColor fg = theme().text;
     if (selected && !stepper) {
-        fg = m_theme.accent;
+        fg = theme().accent;
     }
     if (slot == QLatin1String("value")) {
-        fg = m_theme.accent;
+        fg = theme().accent;
     }
     p.setPen(fg);
     if (slot == QLatin1String("value")) {
@@ -696,8 +702,8 @@ void LayoutBoardPainter::paintClusterSlot(QPainter& p, const LayoutItem& item, c
         p.drawText(r.adjusted(6, 4, -6, -4), Qt::AlignCenter | Qt::TextWordWrap, item.label);
     }
 
-    if (hovered && m_hoverProgress > 0.0) {
-        paintProgressChrome(p, r.adjusted(2, 2, -2, -2), true, m_hoverProgress,
+    if (hovered && m.hoverProgress > 0.0) {
+        paintProgressChrome(p, r.adjusted(2, 2, -2, -2), true, m.hoverProgress,
                             visualsForItem(&item), 3.0);
     }
 }
@@ -706,15 +712,17 @@ void LayoutBoardPainter::paint(QPainter& p)
 {
     p.setRenderHint(QPainter::Antialiasing, true);
     p.setRenderHint(QPainter::TextAntialiasing, true);
-    p.setOpacity(m_boardOpacity);
+    p.setOpacity(m.boardOpacity);
 
-    p.setCompositionMode(QPainter::CompositionMode_Source);
-    p.fillRect(QRect(0, 0, m_width, m_height), Qt::transparent);
-    p.setCompositionMode(QPainter::CompositionMode_SourceOver);
+    if (m.eraseBackground) {
+        p.setCompositionMode(QPainter::CompositionMode_Source);
+        p.fillRect(QRect(0, 0, m.width, m.height), Qt::transparent);
+        p.setCompositionMode(QPainter::CompositionMode_SourceOver);
+    }
 
     bool hasTabs = false;
     bool hasTitleItem = false;
-    for (const LayoutItem& item : m_layout.items) {
+    for (const LayoutItem& item : layout().items) {
         if (item.kind == LayoutItemKind::Tab) {
             hasTabs = true;
         }
@@ -724,38 +732,40 @@ void LayoutBoardPainter::paint(QPainter& p)
         }
     }
 
-    const auto& ws = m_layout.placement.style;
+    const auto& ws = layout().placement.style;
     const double winR = ws.radius.value_or(12.0);
     const double winBw = ws.borderWidth.value_or(0.0);
-    QColor bgTop = ws.background.value_or(m_theme.bgSurface);
-    QColor bgBot = ws.background ? QColor() : m_theme.bgMain;
-    QColor border = ws.borderColor.value_or(m_theme.border);
+    QColor bgTop = ws.background.value_or(theme().bgSurface);
+    QColor bgBot = ws.background ? QColor() : theme().bgMain;
+    QColor border = ws.borderColor.value_or(theme().border);
 
-    fillChrome(p, QRectF(0, 0, m_width, m_height), winR, bgTop, ws, bgBot);
-    if (border.alpha() > 0 && winBw > 0) {
-        p.setBrush(Qt::NoBrush);
-        p.setPen(QPen(border, winBw));
-        p.drawRoundedRect(QRectF(0, 0, m_width, m_height).adjusted(1.5, 1.5, -1.5, -1.5), winR,
-                          winR);
-    }
-
-    if (!hasTitleItem && m_layout.grid.marginPx >= 42
-        && (!m_layout.name.isEmpty() || !m_layout.description.isEmpty())) {
-        p.setFont(QFont(QStringLiteral("Segoe UI"), 16, QFont::DemiBold));
-        p.setPen(m_theme.text);
-        p.drawText(QRect(24, 14, m_width - 48, 28), Qt::AlignLeft | Qt::AlignVCenter,
-                   m_layout.name);
-        if (!m_layout.description.isEmpty()) {
-            p.setFont(QFont(QStringLiteral("Segoe UI"), 10));
-            p.setPen(m_theme.textSecondary);
-            p.drawText(QRect(24, 40, m_width - 48, 22), Qt::AlignLeft | Qt::AlignVCenter,
-                       m_layout.description);
+    if (m.paintWindowChrome) {
+        fillChrome(p, QRectF(0, 0, m.width, m.height), winR, bgTop, ws, bgBot);
+        if (border.alpha() > 0 && winBw > 0) {
+            p.setBrush(Qt::NoBrush);
+            p.setPen(QPen(border, winBw));
+            p.drawRoundedRect(QRectF(0, 0, m.width, m.height).adjusted(1.5, 1.5, -1.5, -1.5), winR,
+                              winR);
         }
     }
 
-    if (!m_layout.isValid()) {
-        p.setPen(m_theme.danger);
-        p.drawText(QRect(0, 0, m_width, m_height), Qt::AlignCenter,
+    if (m.paintWindowChrome && !hasTitleItem && layout().grid.marginPx >= 42
+        && (!layout().name.isEmpty() || !layout().description.isEmpty())) {
+        p.setFont(QFont(QStringLiteral("Segoe UI"), 16, QFont::DemiBold));
+        p.setPen(theme().text);
+        p.drawText(QRect(24, 14, m.width - 48, 28), Qt::AlignLeft | Qt::AlignVCenter,
+                   layout().name);
+        if (!layout().description.isEmpty()) {
+            p.setFont(QFont(QStringLiteral("Segoe UI"), 10));
+            p.setPen(theme().textSecondary);
+            p.drawText(QRect(24, 40, m.width - 48, 22), Qt::AlignLeft | Qt::AlignVCenter,
+                       layout().description);
+        }
+    }
+
+    if (!layout().isValid()) {
+        p.setPen(theme().danger);
+        p.drawText(QRect(0, 0, m.width, m.height), Qt::AlignCenter,
                    QStringLiteral("No layout loaded"));
         return;
     }
@@ -765,11 +775,11 @@ void LayoutBoardPainter::paint(QPainter& p)
     QHash<int, QRectF> rowBands;
     QHash<int, int> rowToolbarButtons;
     QHash<int, bool> rowCardAnchor;
-    for (const LayoutItem& item : m_layout.items) {
+    for (const LayoutItem& item : layout().items) {
         if (!itemShown(item) || item.isPageChrome() || !item.participatesInBoardGrid()) {
             continue;
         }
-        const QRectF r = m_itemLocalRects.value(item.id);
+        const QRectF r = rects().value(item.id);
         if (r.isEmpty()) {
             continue;
         }
@@ -787,7 +797,7 @@ void LayoutBoardPainter::paint(QPainter& p)
         }
     }
     QSet<int> cardRows;
-    const auto inset = m_layout.grid.insets(m_width, m_height);
+    const auto inset = layout().grid.insets(m.width, m.height);
     for (auto it = rowBands.begin(); it != rowBands.end(); ++it) {
         const int row = it.key();
         if (!rowCardAnchor.value(row) || rowToolbarButtons.value(row) >= 3) {
@@ -796,14 +806,14 @@ void LayoutBoardPainter::paint(QPainter& p)
         cardRows.insert(row);
         QRectF band = it.value();
         band.setLeft(inset.left);
-        band.setRight(m_width - inset.right);
+        band.setRight(m.width - inset.right);
         paintCard(p, band);
     }
-    for (const LayoutItem& item : m_layout.items) {
+    for (const LayoutItem& item : layout().items) {
         if (!itemShown(item)) {
             continue;
         }
-        const QRectF r = m_itemLocalRects.value(item.id);
+        const QRectF r = rects().value(item.id);
         if (r.isEmpty()) {
             continue;
         }
@@ -832,11 +842,11 @@ void LayoutBoardPainter::paint(QPainter& p)
 
     if (hasTabs && !tabBand.isEmpty()) {
         const double y = tabBand.bottom() + 1.0;
-        QColor rule = m_theme.border;
+        QColor rule = theme().border;
         rule.setAlpha(qBound(40, rule.alpha(), 90));
         p.setPen(QPen(rule, 1.0));
-        const auto inset = m_layout.grid.insets(m_width, m_height);
-        p.drawLine(QPointF(inset.left, y), QPointF(m_width - inset.right, y));
+        const auto inset = layout().grid.insets(m.width, m.height);
+        p.drawLine(QPointF(inset.left, y), QPointF(m.width - inset.right, y));
     }
 }
 

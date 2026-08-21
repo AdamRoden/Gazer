@@ -71,5 +71,7 @@ void addActionSeriesFields(PropertyBinder& b, QFormLayout* form, const QVector<L
                            const std::function<void(int)>& selectStep,
                            const std::function<void(QVector<LayoutAction>)>& applyAll);
 [[nodiscard]] QString friendlyCommandLabel(const QString& commandId);
+[[nodiscard]] QStringList visibleWhenChoices();
+[[nodiscard]] QStringList iconChoices();
 
 } // namespace gazer

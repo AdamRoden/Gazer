@@ -231,5 +231,33 @@ BoundsMode boundsModeFromName(const QString& s, BoundsMode fallback)
     return fallback;
 }
 
+QString layoutIdSuffix(const QString& id)
+{
+    if (id.endsWith(QLatin1String("_sym_shift"))) {
+        return QStringLiteral("_sym_shift");
+    }
+    if (id.endsWith(QLatin1String("_shift"))) {
+        return QStringLiteral("_shift");
+    }
+    if (id.endsWith(QLatin1String("_sym"))) {
+        return QStringLiteral("_sym");
+    }
+    return {};
+}
+
+QString layoutFamilyId(const QString& id)
+{
+    const QString suffix = layoutIdSuffix(id);
+    if (suffix.isEmpty()) {
+        return id;
+    }
+    return id.left(id.size() - suffix.size());
+}
+
+QString editorPreviewId(const QString& layoutId)
+{
+    return QStringLiteral("__editor_preview") + layoutIdSuffix(layoutId);
+}
+
 } // namespace LayoutSchema
 } // namespace gazer

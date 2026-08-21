@@ -29,15 +29,15 @@ The tray owns process lifetime. Closing a board does not quit the app.
 
 Tray → **Layout editor**, command `openLayoutEditor`, or launch with `--editor`.
 
-Three-pane Fluent designer:
+Three-pane designer (follows the app light/dark theme):
 
 | Pane | Contents |
 |------|----------|
-| Left | Add (keys, free item, templates) and the **element tree** (board → cells / free items) |
-| Center | **Fit board** (default): the preview screen is flush with the canvas (zero margin). Uncheck it to see true placement on a 16:9 screen, including free items that sit outside the display. Click / Shift-click to select; drag to move; drag the cyan handles to resize; arrows nudge; Delete removes. |
-| Right | Board selected: Board / Window / Grid / Gaze. Item selected: Item / Layout / Action. Appearance and dwell timing stay inherited until you override them. |
+| Left | **Add** (button, label, toggle, tab, slider, free item) and the **element tree** (board → cells / free items). Right-click an item to duplicate, delete, convert cell ↔ free, or change paint order. |
+| Center | **Fit board** (default): the board fills the canvas (aspect preserved); gaps, radii, and type scale with the view. Uncheck it to see true placement on the primary display, including free items outside the display. Click / Shift-click to select; drag to move; drag the accent handles to resize (cells and free items); arrows nudge (Shift = 16 px); Delete removes. **Esc** cancels click-to-place. |
+| Right | Board selected: Board / Window / Grid / Gaze (default item chrome, children, lifecycle). Item selected: Item / Layout / Action. Appearance and dwell timing stay inherited until you override them. |
 
-File → New asks for id, name, and a template (including a full QWERTY with Shift/Sym layers). File → Open lists shipped and user layouts. Saves default to `%AppData%\Gazer\layouts`. The toolbar layer combo switches Base / Shift / Symbols. **Test on canvas** (F6) plays a dwell ring and names the action; **Test on desktop** (F5) still opens a live preview board. Master roots cannot be live-tested. Layouts are the same JSON as `resources/layouts/*.json`.
+File → New asks for id, name, and a template (blank, QWERTY with Shift/Sym/Sym+Shift layers, keyboard row, settings row, free chip). File → Open lists shipped and user layouts. **Save** of a shipped file writes a user copy to `%AppData%\Gazer\layouts` and leaves `resources/` unchanged. The toolbar layer combo appears for keyboard families (Base / Shift / Symbols / Sym+Shift). **Test on canvas** (F6) plays a dwell ring using the item’s hold times and names the full action series; **Test on desktop** (F5) opens a live preview of the current layer and registers sibling layers so Shift/Sym still swap. Master roots cannot be live-tested. Overlaps and empty actions warn before Save and F5. Layouts are the same JSON as `resources/layouts/*.json`.
 
 ## Requirements
 

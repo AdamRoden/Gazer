@@ -20,7 +20,33 @@ class LayoutQuickWindow;
 /// Paints a layout board and owns toggle/cluster hit geometry.
 class LayoutBoardPainter final {
 public:
+    struct Input {
+        const LayoutDocument* layout = nullptr;
+        const QHash<QString, QRectF>* itemLocalRects = nullptr;
+        const ThemeColors* theme = nullptr;
+        int width = 0;
+        int height = 0;
+        QString hoverId;
+        double hoverProgress = 0.0;
+        ProgressVisuals progressVisuals;
+        QSet<QString> activeItemIds;
+        QVariantMap props;
+        QString flashId;
+        double boardOpacity = 1.0;
+        QColor previewColor = ThemeColors::defaultProgressColor();
+        GlassBackdrop* glass = nullptr;
+        bool eraseBackground = true;
+        bool paintWindowChrome = true;
+        QString sliderScrubId;
+        double sliderScrubT = 0.0;
+        QString sliderScrubValue;
+        double sliderScrubProgress = 0.0;
+        const QHash<QString, double>* sliderReadoutT = nullptr;
+        const QHash<QString, QString>* sliderReadoutValue = nullptr;
+    };
+
     explicit LayoutBoardPainter(LayoutQuickWindow& host);
+    explicit LayoutBoardPainter(Input in);
 
     void paint(QPainter& p);
 
@@ -48,26 +74,21 @@ private:
     [[nodiscard]] bool itemShown(const LayoutItem& item) const;
     [[nodiscard]] LayoutItemStyle resolvedItemStyle(const LayoutItem& item) const;
 
-    const LayoutDocument& m_layout;
-    const QHash<QString, QRectF>& m_itemLocalRects;
-    const QString& m_hoverId;
-    double m_hoverProgress = 0.0;
-    const ProgressVisuals& m_progressVisuals;
-    const ThemeColors& m_theme;
-    const QSet<QString>& m_activeItemIds;
-    const QVariantMap& m_props;
-    const QString& m_flashId;
-    double m_boardOpacity = 1.0;
-    const QColor& m_previewColor;
-    const QString& m_sliderScrubId;
-    double m_sliderScrubT = 0.0;
-    const QString& m_sliderScrubValue;
-    double m_sliderScrubProgress = 0.0;
-    const QHash<QString, double>& m_sliderReadoutT;
-    const QHash<QString, QString>& m_sliderReadoutValue;
-    GlassBackdrop& m_glass;
-    int m_width = 0;
-    int m_height = 0;
+    [[nodiscard]] const LayoutDocument& layout() const { return *m.layout; }
+    [[nodiscard]] const QHash<QString, QRectF>& rects() const { return *m.itemLocalRects; }
+    [[nodiscard]] const ThemeColors& theme() const { return *m.theme; }
+    [[nodiscard]] const QHash<QString, double>& readoutT() const
+    {
+        static const QHash<QString, double> empty;
+        return m.sliderReadoutT ? *m.sliderReadoutT : empty;
+    }
+    [[nodiscard]] const QHash<QString, QString>& readoutV() const
+    {
+        static const QHash<QString, QString> empty;
+        return m.sliderReadoutValue ? *m.sliderReadoutValue : empty;
+    }
+
+    Input m;
 };
 
 } // namespace gazer

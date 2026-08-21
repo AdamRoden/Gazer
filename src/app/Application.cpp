@@ -499,9 +499,10 @@ void Application::openLayoutEditor(const QString& layoutId)
             QDir(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation))
                 .filePath(QStringLiteral("layouts"));
         m_editor->setUserLayoutsDirectory(userLayouts);
-        m_editor->setTestHandler([this](const LayoutDocument& doc, QString* error) {
-            return testEditedLayout(doc, error);
-        });
+        m_editor->setTestHandler(
+            [this](const QVector<LayoutDocument>& family, int current, QString* error) {
+                return testEditedLayout(family, current, error);
+            });
     }
     QStringList ids = m_svc->catalog().layoutIds();
     QStringList labels;
@@ -526,7 +527,8 @@ void Application::openLayoutEditor(const QString& layoutId)
     m_editor->showAndRaise();
 }
 
-bool Application::testEditedLayout(const LayoutDocument& doc, QString* error)
+bool Application::testEditedLayout(const QVector<LayoutDocument>& family, int currentIndex,
+                                   QString* error)
 {
     if (!m_svc) {
         if (error) {
@@ -534,7 +536,7 @@ bool Application::testEditedLayout(const LayoutDocument& doc, QString* error)
         }
         return false;
     }
-    return !m_svc->instances().openEditorPreview(doc, error).isEmpty();
+    return !m_svc->instances().openEditorPreview(family, currentIndex, error).isEmpty();
 }
 
 void Application::shutdownUi()

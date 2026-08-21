@@ -31,110 +31,127 @@
 #include <QStatusBar>
 #include <QToolBar>
 #include <QVBoxLayout>
+#include <optional>
 
 namespace gazer {
 
 namespace {
 
-QString fluentStyleSheet()
+QString fluentStyleSheet(const ThemeColors& t)
 {
+    const auto h = [](const QColor& c) { return ThemeColors::colorToHex(c); };
     return QStringLiteral(R"(
-        QMainWindow, QWidget {
-            background-color: #202020;
-            color: #ffffff;
+        QMainWindow, QSplitter, QDialog {
+            background-color: %1;
+            color: %2;
             font-family: "Segoe UI";
             font-size: 13px;
         }
+        QLabel, QCheckBox, QTabBar, QTabWidget, QScrollArea {
+            background: transparent;
+            color: %2;
+            font-family: "Segoe UI";
+            font-size: 13px;
+        }
+        QWidget#editorToolbox, QWidget#editorProperties {
+            background-color: %1;
+            color: %2;
+        }
         QMenuBar {
-            background: #202020;
-            color: #ffffff;
+            background: %1;
+            color: %2;
             padding: 2px 6px;
         }
-        QMenuBar::item:selected { background: #2d2d2d; }
+        QMenuBar::item:selected { background: %3; }
         QMenu {
-            background: #2c2c2c;
-            color: #ffffff;
-            border: 1px solid #3f3f3f;
+            background: %4;
+            color: %2;
+            border: 1px solid %5;
         }
-        QMenu::item:selected { background: #3d3d3d; }
+        QMenu::item:selected { background: %3; }
         QToolBar {
-            background: #2b2b2b;
+            background: %4;
             border: none;
             padding: 4px 8px;
             spacing: 4px;
         }
         QToolBar QToolButton {
             background: transparent;
-            color: #ffffff;
+            color: %2;
             padding: 6px 10px;
             border-radius: 4px;
         }
-        QToolBar QToolButton:hover { background: #3a3a3a; }
-        QToolBar QToolButton:checked { background: #1f4d6e; }
+        QToolBar QToolButton:hover { background: %3; }
+        QToolBar QToolButton:checked { background: %6; color: %2; }
         QStatusBar {
-            background: #1c1c1c;
-            color: #c5c5c5;
+            background: %1;
+            color: %7;
         }
-        QSplitter::handle { background: #2a2a2a; width: 1px; }
-        QTreeWidget, QTabWidget::pane, QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox, QPlainTextEdit {
-            background: #2c2c2c;
-            color: #ffffff;
-            border: 1px solid #3f3f3f;
+        QSplitter::handle { background: %5; width: 1px; }
+        QTabWidget::pane { border: none; background: transparent; }
+        QScrollArea { border: none; background: transparent; }
+        QTreeWidget, QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox, QPlainTextEdit {
+            background: %8;
+            color: %2;
+            border: 1px solid %5;
             border-radius: 4px;
-            selection-background-color: #1f4d6e;
+            selection-background-color: %6;
+            selection-color: %2;
         }
         QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {
             padding: 4px 8px;
             min-height: 24px;
         }
         QComboBox QAbstractItemView {
-            background: #2c2c2c;
-            color: #ffffff;
-            selection-background-color: #1f4d6e;
+            background: %8;
+            color: %2;
+            selection-background-color: %6;
         }
         QTabBar::tab {
             background: transparent;
-            color: #c5c5c5;
+            color: %7;
             padding: 8px 14px;
             border: none;
         }
         QTabBar::tab:selected {
-            color: #ffffff;
-            border-bottom: 2px solid #60cdff;
+            color: %2;
+            border-bottom: 2px solid %9;
         }
-        QCheckBox { color: #ffffff; spacing: 8px; }
-        QHeaderView::section { background: #2c2c2c; color: #c5c5c5; border: none; }
+        QCheckBox { color: %2; spacing: 8px; }
+        QHeaderView::section { background: %8; color: %7; border: none; }
         QScrollBar:vertical, QScrollBar:horizontal {
-            background: #202020;
+            background: %1;
             width: 10px;
             height: 10px;
         }
-        QScrollBar::handle { background: #4a4a4a; border-radius: 4px; }
+        QScrollBar::handle { background: %5; border-radius: 4px; }
         QLabel#panelTitle {
             font-size: 16px;
             font-weight: 600;
-            color: #ffffff;
+            color: %2;
             padding: 4px 2px 8px 2px;
         }
         QLabel#fieldHeading {
             font-size: 12px;
             font-weight: 600;
-            color: #9aa0a6;
+            color: %7;
             padding-top: 8px;
         }
-        QLabel#fieldNote { color: #9aa0a6; }
+        QLabel#fieldNote { color: %7; }
         QPushButton {
-            background: #3c3c3c;
-            color: #ffffff;
-            border: 1px solid #4a4a4a;
+            background: %8;
+            color: %2;
+            border: 1px solid %5;
             border-radius: 4px;
             padding: 4px 10px;
         }
-        QPushButton:hover { background: #4a4a4a; }
+        QPushButton:hover { background: %3; }
         QTreeWidget::item { padding: 4px 2px; }
-        QTreeWidget::item:selected { background: #1f4d6e; }
-        QTreeWidget::item:hover { background: #333333; }
-    )");
+        QTreeWidget::item:selected { background: %6; }
+        QTreeWidget::item:hover { background: %3; }
+    )")
+        .arg(h(t.bgMain), h(t.text), h(t.bgSurfaceHover), h(t.bgSurface), h(t.border),
+             h(t.cellActive), h(t.textSecondary), h(t.bgSurfaceActive), h(t.accent));
 }
 
 } // namespace
@@ -164,8 +181,10 @@ LayoutEditorWindow::LayoutEditorWindow(QWidget* parent)
         updateTitle();
         updateActions();
     });
-    connect(m_session, &LayoutEditorSession::selectionChanged, this,
-            &LayoutEditorWindow::updateActions);
+    connect(m_session, &LayoutEditorSession::selectionChanged, this, [this]() {
+        updateTitle();
+        updateActions();
+    });
     connect(m_session, &LayoutEditorSession::dirtyChanged, this, [this](bool) { updateTitle(); });
     connect(m_session, &LayoutEditorSession::filePathChanged, this, [this](const QString&) {
         updateTitle();
@@ -222,6 +241,8 @@ void LayoutEditorWindow::setCommandNames(const QStringList& names)
 
 void LayoutEditorWindow::setTheme(const ThemeColors& theme)
 {
+    m_theme = theme;
+    applyFluentTheme();
     if (m_canvas) {
         m_canvas->setTheme(theme);
     }
@@ -345,7 +366,7 @@ void LayoutEditorWindow::buildUi()
         m_session->setPlaceKind(EditorItemKind::Slider);
     });
     auto* actAddEdge = makeAction(QStringLiteral("Add &free item"), QKeySequence(), [this]() {
-        m_session->addItem(EditorItemKind::Unbounded);
+        m_session->setPlaceKind(EditorItemKind::Unbounded);
     });
     auto* actDup = makeAction(QStringLiteral("D&uplicate selected"),
                               QKeySequence(QStringLiteral("Ctrl+D")),
@@ -418,11 +439,25 @@ void LayoutEditorWindow::buildUi()
                           [this]() { m_session->equalizeSelectedWidths(); });
     auto* align = makeAction(QStringLiteral("A&lign to row"), QKeySequence(),
                              [this]() { m_session->alignSelectedRow(); });
+    auto* raise = makeAction(QStringLiteral("Bring &forward"),
+                             QKeySequence(QStringLiteral("Ctrl+]")),
+                             [this]() { m_session->raiseSelected(); });
+    auto* lower = makeAction(QStringLiteral("Send back&ward"),
+                             QKeySequence(QStringLiteral("Ctrl+[")),
+                             [this]() { m_session->lowerSelected(); });
+    auto* toFree = makeAction(QStringLiteral("Convert to f&ree item"), QKeySequence(),
+                              [this]() { m_session->convertSelectedToFree(); });
+    auto* toCell = makeAction(QStringLiteral("Convert to ce&ll"), QKeySequence(),
+                              [this]() { m_session->convertSelectedToCell(); });
     layoutMenu->addAction(addRow);
     layoutMenu->addAction(addCol);
     layoutMenu->addAction(pack);
     layoutMenu->addAction(eq);
     layoutMenu->addAction(align);
+    layoutMenu->addAction(raise);
+    layoutMenu->addAction(lower);
+    layoutMenu->addAction(toFree);
+    layoutMenu->addAction(toCell);
     layoutMenu->addSeparator();
     layoutMenu->addAction(actDoc);
     layoutMenu->addAction(actGrid);
@@ -460,6 +495,8 @@ void LayoutEditorWindow::buildUi()
     m_toolbox = new LayoutEditorToolbox(split);
     m_canvas = new LayoutEditorCanvas(*m_session, split);
     m_props = new LayoutEditorProperties(*m_session, split);
+    m_toolbox->setObjectName(QStringLiteral("editorToolbox"));
+    m_props->setObjectName(QStringLiteral("editorProperties"));
     m_toolbox->bindSession(*m_session);
     m_toolbox->setMinimumWidth(240);
     m_props->setMinimumWidth(300);
@@ -478,47 +515,9 @@ void LayoutEditorWindow::buildUi()
     m_toolbox->addAction(elSec, actAddEdge);
     m_toolbox->addAction(elSec, actDup);
 
-    auto* tmplBlank = makeAction(QStringLiteral("Blank board"), QKeySequence(), [this]() {
-        if (!maybeSave()) {
-            return;
-        }
-        m_session->newFromTemplate(EditorTemplate::Blank, QStringLiteral("untitled"),
-                                   QStringLiteral("Untitled"));
-    });
-    auto* tmplKeys = makeAction(QStringLiteral("Full keyboard"), QKeySequence(), [this]() {
-        if (!maybeSave()) {
-            return;
-        }
-        m_session->newFromTemplate(EditorTemplate::Keyboard, QStringLiteral("keyboard"),
-                                   QStringLiteral("Keyboard"));
-    });
-    auto* tmplKeyRow = makeAction(QStringLiteral("Keyboard row"), QKeySequence(), [this]() {
-        if (!maybeSave()) {
-            return;
-        }
-        m_session->newFromTemplate(EditorTemplate::KeyboardRow, QStringLiteral("keys"),
-                                   QStringLiteral("Keys"));
-    });
-    auto* tmplSet = makeAction(QStringLiteral("Settings row"), QKeySequence(), [this]() {
-        if (!maybeSave()) {
-            return;
-        }
-        m_session->newFromTemplate(EditorTemplate::SettingsRow, QStringLiteral("tools"),
-                                   QStringLiteral("Tools"));
-    });
-    auto* tmplEdge = makeAction(QStringLiteral("Free chip"), QKeySequence(), [this]() {
-        if (!maybeSave()) {
-            return;
-        }
-        m_session->newFromTemplate(EditorTemplate::EdgeChip, QStringLiteral("free"),
-                                   QStringLiteral("Free"));
-    });
-    auto* tmplSec = m_toolbox->addSection(QStringLiteral("Templates"));
-    m_toolbox->addAction(tmplSec, tmplBlank);
-    m_toolbox->addAction(tmplSec, tmplKeys);
-    m_toolbox->addAction(tmplSec, tmplKeyRow);
-    m_toolbox->addAction(tmplSec, tmplSet);
-    m_toolbox->addAction(tmplSec, tmplEdge);
+    auto* actEsc = makeAction(QStringLiteral("Cancel place"), QKeySequence(Qt::Key_Escape),
+                              [this]() { m_session->setPlaceKind(std::nullopt); });
+    actEsc->setShortcutContext(Qt::WindowShortcut);
 
     connect(m_grid, &QAction::toggled, m_canvas, &LayoutEditorCanvas::setShowGrid);
     connect(m_fit, &QAction::toggled, m_canvas, &LayoutEditorCanvas::setFitBoard);
@@ -533,7 +532,7 @@ void LayoutEditorWindow::buildUi()
 
 void LayoutEditorWindow::applyFluentTheme()
 {
-    setStyleSheet(fluentStyleSheet());
+    setStyleSheet(fluentStyleSheet(m_theme));
 }
 
 void LayoutEditorWindow::updateTitle()
@@ -549,13 +548,33 @@ void LayoutEditorWindow::updateTitle()
         pathPart = QStringLiteral("unsaved");
     }
     const QString dirty = m_session->isDirty() ? QStringLiteral("*") : QString();
-    setWindowTitle(QStringLiteral("Gazer Layout Editor — %1 [%2]%3").arg(name, pathPart, dirty));
+    QString origin;
+    if (!m_session->filePath().isEmpty()) {
+        origin = isShippedPath(m_session->filePath()) ? QStringLiteral(" shipped")
+                                                     : QStringLiteral(" user");
+    }
+    setWindowTitle(
+        QStringLiteral("Gazer Layout Editor — %1 [%2]%3%4").arg(name, pathPart, dirty, origin));
 
     const LayoutGrid& g = m_session->document().grid;
-    statusBar()->showMessage(QStringLiteral("Ready    Grid: %1×%2    Items: %3")
+    const EditorSelection sel = m_session->selection();
+    QString selText;
+    if (sel.target == EditorTarget::Item && !sel.itemIds.isEmpty()) {
+        selText = sel.itemIds.size() == 1
+                      ? QStringLiteral("    %1").arg(sel.itemId)
+                      : QStringLiteral("    %1 items").arg(sel.itemIds.size());
+    }
+    const QStringList issues = m_session->validate(m_catalogIds);
+    const QString warn =
+        issues.isEmpty() ? QString()
+                         : QStringLiteral("    %1 issue%2")
+                               .arg(issues.size())
+                               .arg(issues.size() == 1 ? QString() : QStringLiteral("s"));
+    statusBar()->showMessage(QStringLiteral("Grid %1×%2    Items %3%4%5")
                                  .arg(g.columns)
                                  .arg(g.rows)
-                                 .arg(m_session->document().items.size()));
+                                 .arg(m_session->document().items.size())
+                                 .arg(selText, warn));
 }
 
 void LayoutEditorWindow::updateActions()
@@ -699,8 +718,22 @@ void LayoutEditorWindow::open()
 
 void LayoutEditorWindow::save()
 {
+    if (!confirmIssues(QStringLiteral("save"))) {
+        return;
+    }
     if (m_session->filePath().isEmpty()) {
         saveAs();
+        return;
+    }
+    if (isShippedPath(m_session->filePath()) && !m_userDir.isEmpty()) {
+        const QString dest = userCopyPath(m_session->filePath());
+        QString err;
+        if (!m_session->saveTo(dest, &err)) {
+            QMessageBox::warning(this, QStringLiteral("Save failed"), err);
+            return;
+        }
+        statusBar()->showMessage(
+            QStringLiteral("Saved user copy %1 (shipped file unchanged)").arg(dest), 5000);
         return;
     }
     QString err;
@@ -711,7 +744,10 @@ void LayoutEditorWindow::save()
 
 void LayoutEditorWindow::saveAs()
 {
-    const QString suggest = m_session->filePath().isEmpty()
+    if (!confirmIssues(QStringLiteral("save"))) {
+        return;
+    }
+    const QString suggest = m_session->filePath().isEmpty() || isShippedPath(m_session->filePath())
                                 ? QDir(defaultDir()).filePath(m_session->document().id + QStringLiteral(".json"))
                                 : m_session->filePath();
     const QString path =
@@ -766,13 +802,21 @@ void LayoutEditorWindow::exportFile()
 
 void LayoutEditorWindow::testLive()
 {
+    if (!confirmIssues(QStringLiteral("test on desktop"))) {
+        return;
+    }
     if (!m_test) {
         QMessageBox::information(this, QStringLiteral("Test"),
                                  QStringLiteral("Live test is only available while Gazer is running."));
         return;
     }
     QString err;
-    if (!m_test(m_session->document(), &err)) {
+    QVector<LayoutDocument> family;
+    family.reserve(m_session->layers().size());
+    for (const EditorLayer& layer : m_session->layers()) {
+        family.push_back(layer.doc);
+    }
+    if (!m_test(family, m_session->layerIndex(), &err)) {
         QMessageBox::warning(this, QStringLiteral("Test failed"),
                              err.isEmpty() ? QStringLiteral("Could not open layout") : err);
         return;
@@ -813,6 +857,45 @@ QString LayoutEditorWindow::defaultDir() const
 QString LayoutEditorWindow::jsonFilter() const
 {
     return QStringLiteral("Layout JSON (*.json);;All files (*.*)");
+}
+
+bool LayoutEditorWindow::isShippedPath(const QString& path) const
+{
+    if (path.isEmpty() || m_layoutsDir.isEmpty()) {
+        return false;
+    }
+    const QString dir = QDir::cleanPath(QFileInfo(path).absolutePath());
+    const QString shipped = QDir::cleanPath(QDir(m_layoutsDir).absolutePath());
+    if (dir.compare(shipped, Qt::CaseInsensitive) == 0) {
+        return true;
+    }
+    if (!m_userDir.isEmpty()) {
+        const QString user = QDir::cleanPath(QDir(m_userDir).absolutePath());
+        if (dir.compare(user, Qt::CaseInsensitive) == 0) {
+            return false;
+        }
+    }
+    return false;
+}
+
+QString LayoutEditorWindow::userCopyPath(const QString& path) const
+{
+    return QDir(m_userDir).filePath(QFileInfo(path).fileName());
+}
+
+bool LayoutEditorWindow::confirmIssues(const QString& action)
+{
+    const QStringList issues = m_session->validate(m_catalogIds);
+    if (issues.isEmpty()) {
+        return true;
+    }
+    const QString body =
+        QStringLiteral("This layout has problems:\n\n• %1\n\n%2 anyway?")
+            .arg(issues.mid(0, 8).join(QStringLiteral("\n• ")),
+                 action.left(1).toUpper() + action.mid(1));
+    return QMessageBox::warning(this, QStringLiteral("Layout issues"), body,
+                                QMessageBox::Yes | QMessageBox::No, QMessageBox::No)
+           == QMessageBox::Yes;
 }
 
 } // namespace gazer

@@ -8,51 +8,35 @@
 
 namespace gazer {
 
-class LayoutEditorSession::SnapshotCommand final : public QUndoCommand {
+class LayoutEditorSession::LayerEditCommand final : public QUndoCommand {
 public:
-    SnapshotCommand(LayoutEditorSession* session, QVector<EditorLayer> before,
-                    QVector<EditorLayer> after, int layerIndex, const QString& text)
+    LayerEditCommand(LayoutEditorSession* session, int layerIndex, LayoutDocument before,
+                     LayoutDocument after, const QString& text)
         : QUndoCommand(text)
         , m_session(session)
+        , m_layerIndex(layerIndex)
         , m_before(std::move(before))
         , m_after(std::move(after))
-        , m_layerIndex(layerIndex)
     {
     }
 
-    void undo() override { m_session->restoreProject(m_before, m_layerIndex); }
+    void undo() override { m_session->restoreLayer(m_layerIndex, m_before); }
     void redo() override
     {
         if (m_virgin) {
             m_virgin = false;
             return;
         }
-        m_session->restoreProject(m_after, m_layerIndex);
+        m_session->restoreLayer(m_layerIndex, m_after);
     }
 
 private:
     LayoutEditorSession* m_session = nullptr;
-    QVector<EditorLayer> m_before;
-    QVector<EditorLayer> m_after;
     int m_layerIndex = 0;
+    LayoutDocument m_before;
+    LayoutDocument m_after;
     bool m_virgin = true;
 };
-
-namespace {
-
-QByteArray familyFingerprint(const QVector<EditorLayer>& layers)
-{
-    QByteArray out;
-    for (const EditorLayer& layer : layers) {
-        out += layer.suffix.toUtf8();
-        out += '\0';
-        out += LayoutWriter::toBytes(layer.doc);
-        out += '\0';
-    }
-    return out;
-}
-
-} // namespace
 
 LayoutEditorSession::LayoutEditorSession(QObject* parent)
     : QObject(parent)
@@ -210,16 +194,45 @@ void LayoutEditorSession::setLayer(int index)
 
 void LayoutEditorSession::edit(const QString& label, const std::function<void(LayoutDocument&)>& fn)
 {
-    const QVector<EditorLayer> before = m_layers;
     const int layer = m_layerIndex;
+    LayoutDocument before = currentDoc();
     fn(currentDoc());
     ensureGridFits(currentDoc());
-    if (familyFingerprint(before) == familyFingerprint(m_layers)) {
-        m_layers = before;
+    if (LayoutWriter::toBytes(before) == LayoutWriter::toBytes(currentDoc())) {
+        currentDoc() = std::move(before);
         return;
     }
-    m_undo.push(new SnapshotCommand(this, before, m_layers, layer, label));
+    m_undo.push(new LayerEditCommand(this, layer, std::move(before), currentDoc(), label));
     emit documentChanged();
+}
+
+void LayoutEditorSession::restoreLayer(int layerIndex, LayoutDocument doc)
+{
+    if (layerIndex < 0 || layerIndex >= m_layers.size()) {
+        return;
+    }
+    const bool switchedLayer = m_layerIndex != layerIndex;
+    m_layerIndex = layerIndex;
+    m_layers[layerIndex].doc = std::move(doc);
+    if (m_sel.target == EditorTarget::Item) {
+        QStringList ids;
+        for (const QString& id : m_sel.itemIds) {
+            if (itemById(id)) {
+                ids.push_back(id);
+            }
+        }
+        if (ids.isEmpty()) {
+            m_sel = {EditorTarget::Document, {}, {}};
+            emit selectionChanged();
+        } else if (ids != m_sel.itemIds) {
+            m_sel = {EditorTarget::Item, ids.first(), ids};
+            emit selectionChanged();
+        }
+    }
+    emit documentChanged();
+    if (switchedLayer) {
+        emit layerChanged();
+    }
 }
 
 void LayoutEditorSession::notify(const QString& msg)

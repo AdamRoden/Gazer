@@ -28,5 +28,10 @@ namespace LayoutSchema {
 [[nodiscard]] BoundsMode boundsModeFromName(const QString& s,
                                             BoundsMode fallback = BoundsMode::Desktop);
 
+/// Keyboard-family file suffix: empty, `_shift`, `_sym`, or `_sym_shift`.
+[[nodiscard]] QString layoutIdSuffix(const QString& id);
+[[nodiscard]] QString layoutFamilyId(const QString& id);
+[[nodiscard]] QString editorPreviewId(const QString& layoutId);
+
 } // namespace LayoutSchema
 } // namespace gazer

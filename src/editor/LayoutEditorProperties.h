@@ -4,10 +4,12 @@
 #include "editor/LayoutEditorSession.h"
 
 #include <QWidget>
+#include <array>
 #include <functional>
 
 class QTabWidget;
 class QFormLayout;
+class QScrollArea;
 
 namespace gazer {
 
@@ -42,17 +44,45 @@ private:
 
     void applyItem(const std::function<void(LayoutItem&)>& fn, const QString& undoLabel);
     void applyDoc(const std::function<void(LayoutDocument&)>& fn, const QString& undoLabel);
+    struct Shape {
+        bool item = false;
+        QString itemKey;
+        bool windowShown = false;
+        bool autoClose = false;
+        bool dwellTiming = false;
+        bool dwellProgress = false;
+        int children = 0;
+        int hook = 0;
+        int hookSteps = 0;
+        int actionStep = 0;
+        int actionType = -1;
+        bool unbounded = false;
+        QString role;
+        bool loop = false;
+        bool customDwell = false;
+        bool itemTiming = false;
+        bool itemProgress = false;
+        bool embed = false;
+        int itemActions = 0;
+        bool operator==(const Shape&) const = default;
+    };
+    struct Page {
+        QFormLayout* form = nullptr;
+        QScrollArea* scroll = nullptr;
+    };
+
+    [[nodiscard]] Shape currentShape() const;
+    void rebuildIfNeeded();
 
     LayoutEditorSession& m_session;
     QTabWidget* m_tabs = nullptr;
-    QFormLayout* m_form0 = nullptr;
-    QFormLayout* m_form1 = nullptr;
-    QFormLayout* m_form2 = nullptr;
-    QFormLayout* m_form3 = nullptr;
+    std::array<Page, 4> m_pages{};
     bool m_loading = false;
     bool m_applying = false;
     bool m_itemMode = false;
     int m_actionStep = 0;
+    int m_lifecycleHook = 0;
+    Shape m_shape;
     ActionCatalog m_catalog;
 };
 

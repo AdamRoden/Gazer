@@ -1,6 +1,7 @@
 #include "editor/LayoutEditorFields.h"
 
 #include "layout/LayoutSchema.h"
+#include "ui/MouseIcons.h"
 #include "ui/Theme.h"
 
 #include <QCheckBox>
@@ -426,6 +427,8 @@ void addActionFields(PropertyBinder& b, QFormLayout* form, const LayoutAction& a
         preset = QStringLiteral("Run command");
     } else if (action.type == LayoutAction::Type::OpenLayout) {
         preset = QStringLiteral("Open layout");
+    } else if (action.type == LayoutAction::Type::LoadLayout) {
+        preset = QStringLiteral("Load layout");
     } else if (action.type == LayoutAction::Type::CloseLayout) {
         preset = QStringLiteral("Close layout");
     }
@@ -434,6 +437,7 @@ void addActionFields(PropertyBinder& b, QFormLayout* form, const LayoutAction& a
                                  QStringLiteral("Speak the label"),
                                  QStringLiteral("Run command"),
                                  QStringLiteral("Open layout"),
+                                 QStringLiteral("Load layout"),
                                  QStringLiteral("Close layout"),
                                  QStringLiteral("Custom")};
     b.combo(form, QStringLiteral("Preset"), presets, preset, [apply, itemLabel](const QString& t) {
@@ -449,6 +453,8 @@ void addActionFields(PropertyBinder& b, QFormLayout* form, const LayoutAction& a
                 a.type = LayoutAction::Type::Command;
             } else if (t == QLatin1String("Open layout")) {
                 a.type = LayoutAction::Type::OpenLayout;
+            } else if (t == QLatin1String("Load layout")) {
+                a.type = LayoutAction::Type::LoadLayout;
             } else if (t == QLatin1String("Close layout")) {
                 a.type = LayoutAction::Type::CloseLayout;
             } else if (t == QLatin1String("Custom")) {
@@ -484,7 +490,8 @@ void addActionFields(PropertyBinder& b, QFormLayout* form, const LayoutAction& a
                           });
         }
     }
-    if (preset == QLatin1String("Open layout") || preset == QLatin1String("Custom")) {
+    if (preset == QLatin1String("Open layout") || preset == QLatin1String("Load layout")
+        || preset == QLatin1String("Custom")) {
         QStringList ids = catalog.layoutIds;
         QStringList labels = catalog.layoutLabels;
         if (labels.size() != ids.size()) {
@@ -497,7 +504,9 @@ void addActionFields(PropertyBinder& b, QFormLayout* form, const LayoutAction& a
         if (ids.isEmpty()) {
             b.text(form, QStringLiteral("Layout"), action.layoutId, [apply](const QString& t) {
                 apply(QStringLiteral("Action layout"), [&](LayoutAction& a) {
-                    a.type = LayoutAction::Type::OpenLayout;
+                    if (a.type != LayoutAction::Type::LoadLayout) {
+                        a.type = LayoutAction::Type::OpenLayout;
+                    }
                     a.layoutId = t;
                 });
             });
@@ -506,7 +515,9 @@ void addActionFields(PropertyBinder& b, QFormLayout* form, const LayoutAction& a
                           action.layoutId.isEmpty() ? ids.first() : action.layoutId,
                           [apply](const QString& t) {
                               apply(QStringLiteral("Action layout"), [&](LayoutAction& a) {
-                                  a.type = LayoutAction::Type::OpenLayout;
+                                  if (a.type != LayoutAction::Type::LoadLayout) {
+                                      a.type = LayoutAction::Type::OpenLayout;
+                                  }
                                   a.layoutId = t;
                               });
                           });
@@ -536,6 +547,20 @@ void addActionFields(PropertyBinder& b, QFormLayout* form, const LayoutAction& a
             apply(QStringLiteral("Delay"), [&](LayoutAction& a) { a.delayMs = v; });
         });
     }
+}
+
+QStringList visibleWhenChoices()
+{
+    return {QString(), QStringLiteral("expanded"), QStringLiteral("!expanded"),
+            QStringLiteral("quitConfirm"), QStringLiteral("!quitConfirm"),
+            QStringLiteral("dwellSuspend"), QStringLiteral("!dwellSuspend")};
+}
+
+QStringList iconChoices()
+{
+    QStringList names = MouseIcons::names();
+    names.prepend(QString());
+    return names;
 }
 
 QString friendlyCommandLabel(const QString& commandId)

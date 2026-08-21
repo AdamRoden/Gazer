@@ -3,6 +3,7 @@
 #include "editor/LayoutEditorSession.h"
 #include "ui/Theme.h"
 
+#include <QHash>
 #include <QPoint>
 #include <QRect>
 #include <QRectF>
@@ -32,6 +33,7 @@ protected:
     void mouseMoveEvent(QMouseEvent* event) override;
     void mouseReleaseEvent(QMouseEvent* event) override;
     void mouseDoubleClickEvent(QMouseEvent* event) override;
+    void contextMenuEvent(QContextMenuEvent* event) override;
     void leaveEvent(QEvent* event) override;
     void keyPressEvent(QKeyEvent* event) override;
 
@@ -46,6 +48,9 @@ private:
         double scaleX = 1.0;
         double scaleY = 1.0;
         QSize virtualScreen{1920, 1080};
+        QSize virtBoard{1, 1};
+
+        [[nodiscard]] double px() const { return scaleX; }
 
         [[nodiscard]] QPointF fromVirt(QPointF v) const
         {
@@ -65,8 +70,10 @@ private:
     void paintMonitor(class QPainter& p, const ScreenMap& m) const;
     void paintPlacementPip(class QPainter& p, const ScreenMap& m) const;
     void paintBoard(class QPainter& p, const ScreenMap& m) const;
-    void paintCell(class QPainter& p, const LayoutItem& item, const QRectF& r, bool selected,
-                   bool hovered) const;
+    [[nodiscard]] QHash<QString, QRectF> boardItemRects(const ScreenMap& m) const;
+    void paintBoardItems(class QPainter& p, const ScreenMap& m, const QHash<QString, QRectF>& virtRects,
+                         const QRectF& origin, int virtW, int virtH, bool windowChrome) const;
+    void paintSelectionOverlay(class QPainter& p, const QRectF& r, bool handles) const;
     [[nodiscard]] QPoint cellAt(const QPoint& pos, const ScreenMap& m) const;
     [[nodiscard]] QRectF unboundedCanvasRect(const LayoutItem& item, const ScreenMap& m) const;
     [[nodiscard]] QString hitUnbounded(const QPoint& pos, const ScreenMap& m) const;
@@ -74,6 +81,10 @@ private:
     void commitDrag(const QPoint& pos, const ScreenMap& m);
     void updateDragCursor(const ScreenMap& m, const QPoint& pos);
     void tickTestDwell();
+    void paintHandles(class QPainter& p, const QRectF& r) const;
+    [[nodiscard]] QRectF selectedRect(const ScreenMap& m) const;
+    [[nodiscard]] QPoint virtFromCanvas(const QPoint& pos, const ScreenMap& m) const;
+    void showItemMenu(const QPoint& globalPos);
 
     LayoutEditorSession& m_session;
     ThemeColors m_theme = ThemeColors::darkPreset();

@@ -5,8 +5,10 @@
 #include <QAction>
 #include <QHeaderView>
 #include <QLabel>
+#include <QMenu>
 #include <QSignalBlocker>
 #include <QTreeWidget>
+#include <QTreeWidgetItemIterator>
 #include <QVariant>
 #include <QVector>
 #include <QVBoxLayout>
@@ -66,6 +68,46 @@ LayoutEditorToolbox::LayoutEditorToolbox(QWidget* parent)
             m_session->selectTarget(EditorTarget::Document);
         }
     });
+    m_hierarchy->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(m_hierarchy, &QTreeWidget::customContextMenuRequested, this, [this](const QPoint& pos) {
+        if (!m_session) {
+            return;
+        }
+        QTreeWidgetItem* item = m_hierarchy->itemAt(pos);
+        if (item && item->data(0, Qt::UserRole).toString() == QLatin1String("item")) {
+            const QString id = item->data(0, Qt::UserRole + 1).toString();
+            if (!m_session->isItemSelected(id)) {
+                m_session->selectItem(id);
+            }
+        }
+        QMenu menu(this);
+        auto* dup = menu.addAction(QStringLiteral("Duplicate"));
+        auto* del = menu.addAction(QStringLiteral("Delete"));
+        menu.addSeparator();
+        auto* toFree = menu.addAction(QStringLiteral("Convert to free item"));
+        auto* toCell = menu.addAction(QStringLiteral("Convert to cell"));
+        menu.addSeparator();
+        auto* raise = menu.addAction(QStringLiteral("Bring forward"));
+        auto* lower = menu.addAction(QStringLiteral("Send backward"));
+        const bool has = m_session->selection().target == EditorTarget::Item;
+        for (QAction* a : {dup, del, toFree, toCell, raise, lower}) {
+            a->setEnabled(has);
+        }
+        QAction* chosen = menu.exec(m_hierarchy->mapToGlobal(pos));
+        if (chosen == dup) {
+            m_session->duplicateSelected();
+        } else if (chosen == del) {
+            m_session->deleteSelected();
+        } else if (chosen == toFree) {
+            m_session->convertSelectedToFree();
+        } else if (chosen == toCell) {
+            m_session->convertSelectedToCell();
+        } else if (chosen == raise) {
+            m_session->raiseSelected();
+        } else if (chosen == lower) {
+            m_session->lowerSelected();
+        }
+    });
 }
 
 void LayoutEditorToolbox::bindSession(LayoutEditorSession& session)
@@ -109,10 +151,33 @@ void LayoutEditorToolbox::rebuildHierarchy()
     if (!m_hierarchy || !m_session) {
         return;
     }
-    const QSignalBlocker block(m_hierarchy);
-    m_hierarchy->clear();
     const LayoutDocument& d = m_session->document();
     const EditorSelection sel = m_session->selection();
+    QString key = d.id + QLatin1Char('\n') + d.name + QLatin1Char('\n');
+    for (const LayoutItem& it : d.items) {
+        key += it.id + QLatin1Char('\t') + it.label + QLatin1Char('\n');
+        key += it.isUnbounded() ? QLatin1Char('U') : QLatin1Char('C');
+        key += QLatin1Char('\n');
+    }
+    if (key == m_treeKey && m_hierarchy->topLevelItemCount() > 0) {
+        const QSignalBlocker block(m_hierarchy);
+        QTreeWidgetItemIterator iter(m_hierarchy);
+        while (*iter) {
+            QTreeWidgetItem* item = *iter;
+            if (item->data(0, Qt::UserRole).toString() == QLatin1String("item")) {
+                const QString id = item->data(0, Qt::UserRole + 1).toString();
+                item->setSelected(sel.target == EditorTarget::Item && sel.itemIds.contains(id));
+                if (sel.target == EditorTarget::Item && sel.itemId == id) {
+                    m_hierarchy->setCurrentItem(item);
+                }
+            }
+            ++iter;
+        }
+        return;
+    }
+    m_treeKey = key;
+    const QSignalBlocker block(m_hierarchy);
+    m_hierarchy->clear();
 
     auto add = [&](QTreeWidgetItem* parent, const QString& label, const QString& kind,
                    const QString& id, bool selected) {

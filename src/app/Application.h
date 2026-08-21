@@ -12,6 +12,7 @@
 #include "ui/TrayIcon.h"
 
 #include <QObject>
+#include <QVector>
 #include <memory>
 
 namespace gazer {
@@ -36,7 +37,8 @@ private:
 
     void onQuitRequested();
     void openLayoutEditor(const QString& layoutId = {});
-    [[nodiscard]] bool testEditedLayout(const LayoutDocument& doc, QString* error);
+    [[nodiscard]] bool testEditedLayout(const QVector<LayoutDocument>& family, int currentIndex,
+                                        QString* error);
     void onGaze(const gazer::GazePoint& point);
     void onItemActivated(const QString& instanceId, const QString& itemId);
     void onTobiiStreamFailed(const QString& reason);

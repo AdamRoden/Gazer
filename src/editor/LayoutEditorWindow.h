@@ -5,6 +5,7 @@
 
 #include <QMainWindow>
 #include <QStringList>
+#include <QVector>
 #include <functional>
 
 class QAction;
@@ -24,7 +25,8 @@ class LayoutEditorWindow final : public QMainWindow {
     Q_OBJECT
 
 public:
-    using TestHandler = std::function<bool(const LayoutDocument& doc, QString* error)>;
+    using TestHandler =
+        std::function<bool(const QVector<LayoutDocument>& family, int currentIndex, QString* error)>;
 
     explicit LayoutEditorWindow(QWidget* parent = nullptr);
     ~LayoutEditorWindow() override;
@@ -67,6 +69,9 @@ private:
 
     [[nodiscard]] QString defaultDir() const;
     [[nodiscard]] QString jsonFilter() const;
+    [[nodiscard]] bool isShippedPath(const QString& path) const;
+    [[nodiscard]] QString userCopyPath(const QString& path) const;
+    [[nodiscard]] bool confirmIssues(const QString& action);
 
     LayoutEditorSession* m_session = nullptr;
     LayoutEditorCanvas* m_canvas = nullptr;
@@ -79,6 +84,7 @@ private:
     QStringList m_catalogLabels;
     QStringList m_commandNames;
     TestHandler m_test;
+    ThemeColors m_theme = ThemeColors::darkPreset();
 
     QAction* m_undo = nullptr;
     QAction* m_redo = nullptr;

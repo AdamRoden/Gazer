@@ -42,6 +42,9 @@ public:
 
     /// Layout-editor live preview. Does not write the catalog. Replaces the previous preview.
     [[nodiscard]] QString openEditorPreview(LayoutDocument doc, QString* error = nullptr);
+    /// Preview the current layer and register sibling layers so loadLayout swaps stay in-editor.
+    [[nodiscard]] QString openEditorPreview(const QVector<LayoutDocument>& family, int currentIndex,
+                                            QString* error = nullptr);
 
     /// Show the home child and raise it.
     void raiseMaster();

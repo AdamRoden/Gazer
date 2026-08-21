@@ -6,6 +6,7 @@
 #include <QPainterPath>
 #include <QRectF>
 #include <QString>
+#include <QStringList>
 #include <QtMath>
 
 namespace gazer {
@@ -224,6 +225,45 @@ inline void paint(QPainter& p, const QString& icon, const QRectF& r, const QColo
         p.drawText(r, Qt::AlignCenter, icon.left(1).toUpper());
     }
     p.restore();
+}
+
+[[nodiscard]] inline QStringList names()
+{
+    return {QStringLiteral("leftClick"),
+            QStringLiteral("leftDbl"),
+            QStringLiteral("leftHold"),
+            QStringLiteral("rightClick"),
+            QStringLiteral("rightDbl"),
+            QStringLiteral("rightHold"),
+            QStringLiteral("middleClick"),
+            QStringLiteral("middleHold"),
+            QStringLiteral("moveTo"),
+            QStringLiteral("moveLeftClick"),
+            QStringLiteral("moveRightClick"),
+            QStringLiteral("magPick"),
+            QStringLiteral("magPickCenter"),
+            QStringLiteral("magFullScreen"),
+            QStringLiteral("foresight"),
+            QStringLiteral("doubleZoom"),
+            QStringLiteral("scrollUp"),
+            QStringLiteral("scrollDown"),
+            QStringLiteral("scrollLeft"),
+            QStringLiteral("scrollRight"),
+            QStringLiteral("nudgeUp"),
+            QStringLiteral("nudgeDown"),
+            QStringLiteral("nudgeLeft"),
+            QStringLiteral("nudgeRight"),
+            QStringLiteral("edgeTop"),
+            QStringLiteral("edgeBottom"),
+            QStringLiteral("edgeLeft"),
+            QStringLiteral("edgeRight"),
+            QStringLiteral("amount"),
+            QStringLiteral("magnifier"),
+            QStringLiteral("lookToScroll"),
+            QStringLiteral("main"),
+            QStringLiteral("back"),
+            QStringLiteral("edit"),
+            QStringLiteral("close")};
 }
 
 } // namespace MouseIcons

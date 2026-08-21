@@ -28,6 +28,7 @@ private:
     LayoutEditorSession* m_session = nullptr;
     QTreeWidget* m_actions = nullptr;
     QTreeWidget* m_hierarchy = nullptr;
+    QString m_treeKey;
 };
 
 } // namespace gazer

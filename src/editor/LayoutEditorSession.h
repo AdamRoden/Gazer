@@ -99,6 +99,7 @@ public:
 
     void addItem(EditorItemKind kind);
     void addItemAt(EditorItemKind kind, int row, int col);
+    void addFreeItemAt(const QPoint& virtTopLeft);
     void duplicateSelected();
     void deleteSelected();
     void cutSelected();
@@ -106,7 +107,13 @@ public:
     void pasteClipboard();
     void moveItemToCell(const QString& itemId, int row, int col);
     void moveSelected(int dRow, int dCol);
+    void nudgeSelected(int dRow, int dCol, int freePx);
     void resizeItem(const QString& itemId, int rowSpan, int colSpan, double widthUnits);
+    void resizeFreeItem(const QString& itemId, const DimSpec& width, const DimSpec& height);
+    void raiseSelected();
+    void lowerSelected();
+    void convertSelectedToFree();
+    void convertSelectedToCell();
     void setItemLabel(const QString& itemId, const QString& label);
     void addGridRow();
     void addGridColumn();
@@ -118,6 +125,7 @@ public:
     void setActions(const QString& itemId, QVector<LayoutAction> acts);
     void snapWindowTo(const QPoint& virtualTopLeft, const QSize& virtualScreen);
     [[nodiscard]] QString uniqueItemId(const QString& stem) const;
+    [[nodiscard]] QStringList validate(const QStringList& catalogIds = {}) const;
     void notify(const QString& msg);
 
 signals:
@@ -130,10 +138,11 @@ signals:
     void placeKindChanged();
 
 private:
-    class SnapshotCommand;
-    friend class SnapshotCommand;
+    class LayerEditCommand;
+    friend class LayerEditCommand;
 
     [[nodiscard]] LayoutDocument& currentDoc();
+    void restoreLayer(int layerIndex, LayoutDocument doc);
     void restoreProject(QVector<EditorLayer> layers, int layerIndex);
     void replaceProject(QVector<EditorLayer> layers, int layerIndex, const QString& path,
                         bool dirty);

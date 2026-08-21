@@ -1,6 +1,7 @@
 #include "editor/LayoutEditorSession.h"
 
 #include "layout/LayoutLoader.h"
+#include "layout/LayoutSchema.h"
 #include "layout/LayoutWriter.h"
 
 #include <QDir>
@@ -13,13 +14,16 @@ namespace {
 
 int suffixIndex(QString* family)
 {
-    if (family->endsWith(QLatin1String("_shift"))) {
-        family->chop(6);
+    const QString suffix = LayoutSchema::layoutIdSuffix(*family);
+    *family = LayoutSchema::layoutFamilyId(*family);
+    if (suffix == QLatin1String("_shift")) {
         return 1;
     }
-    if (family->endsWith(QLatin1String("_sym"))) {
-        family->chop(4);
+    if (suffix == QLatin1String("_sym")) {
         return 2;
+    }
+    if (suffix == QLatin1String("_sym_shift")) {
+        return 3;
     }
     return 0;
 }
@@ -62,25 +66,31 @@ QVector<EditorLayer> assembleFamily(const QString& dir, const QString& family, i
     const QString basePath = QDir(dir).filePath(family + QStringLiteral(".json"));
     const QString shiftPath = QDir(dir).filePath(family + QStringLiteral("_shift.json"));
     const QString symPath = QDir(dir).filePath(family + QStringLiteral("_sym.json"));
+    const QString symShiftPath = QDir(dir).filePath(family + QStringLiteral("_sym_shift.json"));
 
     LayoutDocument base;
     LayoutDocument shift;
     LayoutDocument sym;
+    LayoutDocument symShift;
     const bool hasBaseFile = opened == 0 || loadLayerFile(basePath, base);
     const bool hasShift = opened == 1 || loadLayerFile(shiftPath, shift);
     const bool hasSym = opened == 2 || loadLayerFile(symPath, sym);
+    const bool hasSymShift = opened == 3 || loadLayerFile(symShiftPath, symShift);
     if (opened == 0) {
         base = openedDoc;
     } else if (opened == 1) {
         shift = openedDoc;
-    } else {
+    } else if (opened == 2) {
         sym = openedDoc;
+    } else {
+        symShift = openedDoc;
     }
 
     const bool looksFamily =
         opened != 0 || documentRefersTo(openedDoc, family + QStringLiteral("_shift"))
         || documentRefersTo(openedDoc, family + QStringLiteral("_sym"))
-        || (hasShift && hasSym);
+        || documentRefersTo(openedDoc, family + QStringLiteral("_sym_shift"))
+        || hasShift || hasSym || hasSymShift;
 
     if (!looksFamily) {
         return {{QStringLiteral("Base"), {}, std::move(openedDoc)}};
@@ -96,6 +106,10 @@ QVector<EditorLayer> assembleFamily(const QString& dir, const QString& family, i
     if (hasSym) {
         layers.push_back({QStringLiteral("Symbols"), QStringLiteral("_sym"), std::move(sym)});
     }
+    if (hasSymShift) {
+        layers.push_back(
+            {QStringLiteral("Sym+Shift"), QStringLiteral("_sym_shift"), std::move(symShift)});
+    }
     if (layers.isEmpty()) {
         return {{QStringLiteral("Base"), {}, std::move(openedDoc)}};
     }
@@ -104,8 +118,10 @@ QVector<EditorLayer> assembleFamily(const QString& dir, const QString& family, i
 
 int indexForOpened(const QVector<EditorLayer>& layers, int opened)
 {
-    const QString want = opened == 1 ? QStringLiteral("_shift")
-                                     : (opened == 2 ? QStringLiteral("_sym") : QString());
+    const QString want = opened == 1   ? QStringLiteral("_shift")
+                         : opened == 2 ? QStringLiteral("_sym")
+                         : opened == 3 ? QStringLiteral("_sym_shift")
+                                       : QString();
     for (int i = 0; i < layers.size(); ++i) {
         if (layers[i].suffix == want) {
             return i;

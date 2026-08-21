@@ -1,5 +1,6 @@
 #include "layout/LayoutInstanceManager.h"
 
+#include "layout/LayoutSchema.h"
 #include "ui/OverlaySurface.h"
 #include "utils/Log.h"
 
@@ -571,6 +572,56 @@ QString LayoutInstanceManager::openSecondary(const QString& layoutId, QString* e
     return id;
 }
 
+QString LayoutInstanceManager::openEditorPreview(const QVector<LayoutDocument>& family,
+                                                 int currentIndex, QString* error)
+{
+    if (family.isEmpty() || currentIndex < 0 || currentIndex >= family.size()) {
+        if (error) {
+            *error = QStringLiteral("Nothing to preview");
+        }
+        return {};
+    }
+
+    QHash<QString, QString> map;
+    for (const LayoutDocument& src : family) {
+        if (!src.id.isEmpty()) {
+            map.insert(src.id, LayoutSchema::editorPreviewId(src.id));
+        }
+    }
+    auto remapActs = [&](QVector<LayoutAction>& acts) {
+        for (LayoutAction& a : acts) {
+            const auto it = map.constFind(a.layoutId);
+            if (it != map.cend()) {
+                a.layoutId = it.value();
+            }
+        }
+    };
+    LayoutDocument current;
+    for (int i = 0; i < family.size(); ++i) {
+        LayoutDocument d = family[i];
+        d.id = map.value(d.id, LayoutSchema::editorPreviewId(d.id));
+        remapActs(d.onOpen);
+        remapActs(d.onLoad);
+        remapActs(d.onClose);
+        for (LayoutItem& item : d.items) {
+            remapActs(item.actions);
+            const auto it = map.constFind(item.action.layoutId);
+            if (it != map.cend()) {
+                item.action.layoutId = it.value();
+            }
+            const auto embed = map.constFind(item.embedLayoutId);
+            if (embed != map.cend()) {
+                item.embedLayoutId = embed.value();
+            }
+        }
+        m_catalog.putDocument(d);
+        if (i == currentIndex) {
+            current = std::move(d);
+        }
+    }
+    return openEditorPreview(std::move(current), error);
+}
+
 QString LayoutInstanceManager::openEditorPreview(LayoutDocument doc, QString* error)
 {
     if (doc.master) {
@@ -580,7 +631,9 @@ QString LayoutInstanceManager::openEditorPreview(LayoutDocument doc, QString* er
         return {};
     }
 
-    const QString previewLayoutId = QStringLiteral("__editor_preview");
+    const QString previewLayoutId = doc.id.startsWith(QLatin1String("__editor_preview"))
+                                        ? doc.id
+                                        : QStringLiteral("__editor_preview");
     doc.master = false;
     doc.hideUntilGazeReveal = false;
     doc.children.clear();

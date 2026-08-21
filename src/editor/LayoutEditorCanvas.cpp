@@ -2,16 +2,21 @@
 
 #include "layout/DwellRegionSpace.h"
 #include "layout/LayoutGeometry.h"
-#include "ui/MouseIcons.h"
+#include "ui/LayoutBoardPainter.h"
 
+#include <QAction>
+#include <QContextMenuEvent>
+#include <QGuiApplication>
 #include <QHash>
 #include <QInputDialog>
 #include <QLineEdit>
 #include <QKeyEvent>
 #include <QLinearGradient>
+#include <QMenu>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPainterPath>
+#include <QScreen>
 #include <QTimer>
 
 namespace gazer {
@@ -31,6 +36,7 @@ LayoutEditorCanvas::LayoutEditorCanvas(LayoutEditorSession& session, QWidget* pa
     connect(&m_session, &LayoutEditorSession::selectionChanged, this, QOverload<>::of(&QWidget::update));
     connect(&m_session, &LayoutEditorSession::placeKindChanged, this, [this]() {
         setCursor(m_session.placeKind() ? Qt::CrossCursor : Qt::ArrowCursor);
+        update();
     });
 }
 
@@ -74,23 +80,44 @@ void LayoutEditorCanvas::tickTestDwell()
         update();
         return;
     }
-    m_testProgress = qMin(1.0, m_testProgress + 0.03);
+    int dwellMs = 800;
+    if (const LayoutItem* it = m_session.itemById(m_hoverId)) {
+        QVector<int> seq;
+        if (it->dwell.sectionPresent && it->dwell.hasTiming) {
+            seq = it->dwell.effectiveSequence();
+        } else if (m_session.document().dwell.hasTiming
+                   || !m_session.document().dwell.msSequence.isEmpty()) {
+            seq = m_session.document().dwell.effectiveSequence();
+        }
+        if (!seq.isEmpty()) {
+            dwellMs = qMax(50, seq.first());
+        }
+    }
+    m_testProgress = qMin(1.0, m_testProgress + (30.0 / double(dwellMs)));
     if (m_testProgress >= 1.0) {
         if (const LayoutItem* it = m_session.itemById(m_hoverId)) {
             const auto acts = it->effectiveActions();
-            QString msg = it->label;
-            if (!acts.isEmpty()) {
-                const LayoutAction& a = acts.first();
+            QStringList parts;
+            for (const LayoutAction& a : acts) {
                 if (a.type == LayoutAction::Type::TypeText) {
-                    msg = QStringLiteral("Would type: %1").arg(a.text);
+                    parts.push_back(QStringLiteral("type “%1”").arg(a.text));
                 } else if (a.type == LayoutAction::Type::Speak) {
-                    msg = QStringLiteral("Would speak: %1").arg(a.text);
+                    parts.push_back(QStringLiteral("speak “%1”").arg(a.text));
                 } else if (a.type == LayoutAction::Type::Command) {
-                    msg = QStringLiteral("Would run: %1").arg(a.name);
-                } else if (a.type == LayoutAction::Type::OpenLayout
-                           || a.type == LayoutAction::Type::LoadLayout) {
-                    msg = QStringLiteral("Would open: %1").arg(a.layoutId);
+                    parts.push_back(a.name);
+                } else if (a.type == LayoutAction::Type::OpenLayout) {
+                    parts.push_back(QStringLiteral("open %1").arg(a.layoutId));
+                } else if (a.type == LayoutAction::Type::LoadLayout) {
+                    parts.push_back(QStringLiteral("load %1").arg(a.layoutId));
+                } else if (a.type == LayoutAction::Type::CloseLayout) {
+                    parts.push_back(QStringLiteral("close"));
+                } else if (a.type == LayoutAction::Type::Script) {
+                    parts.push_back(QStringLiteral("script"));
                 }
+            }
+            QString msg = it->label.isEmpty() ? it->id : it->label;
+            if (!parts.isEmpty()) {
+                msg = QStringLiteral("%1 → %2").arg(msg, parts.join(QStringLiteral(", ")));
             }
             m_session.notify(msg);
         }
@@ -103,6 +130,12 @@ LayoutEditorCanvas::ScreenMap LayoutEditorCanvas::map() const
 {
     ScreenMap out;
     out.virtualScreen = QSize(1920, 1080);
+    if (QScreen* screen = QGuiApplication::primaryScreen()) {
+        const QSize sz = screen->size();
+        if (sz.width() >= 640 && sz.height() >= 360) {
+            out.virtualScreen = sz;
+        }
+    }
     const QRectF canvas = QRectF(rect());
     if (canvas.width() < 40 || canvas.height() < 40) {
         return out;
@@ -153,11 +186,28 @@ LayoutEditorCanvas::ScreenMap LayoutEditorCanvas::map() const
                                  -(kChin + kStand + kCaption + 8));
     }
     if (m_fitBoard) {
-        out.scaleX = canvas.width() / double(virt.width());
-        out.scaleY = canvas.height() / double(virt.height());
-        out.screen = canvas;
-        out.glass = canvas;
-        out.bezel = canvas;
+        QRect target = (doc.showsBoardWindow() && boardVirt.isValid() && !boardVirt.isEmpty())
+                           ? boardVirt
+                           : virt;
+        if (target.width() < 1) {
+            target.setWidth(1);
+        }
+        if (target.height() < 1) {
+            target.setHeight(1);
+        }
+        constexpr qreal kPad = 12.0;
+        const QRectF fit = canvas.adjusted(kPad, kPad, -kPad, -kPad);
+        const qreal s = qMin(fit.width() / qMax(1.0, double(target.width())),
+                             fit.height() / qMax(1.0, double(target.height())));
+        out.scaleX = s;
+        out.scaleY = s;
+        const qreal tw = target.width() * s;
+        const qreal th = target.height() * s;
+        const QPointF topLeft(canvas.center().x() - tw / 2.0, canvas.center().y() - th / 2.0);
+        out.screen = QRectF(topLeft.x() - target.x() * s, topLeft.y() - target.y() * s,
+                            virt.width() * s, virt.height() * s);
+        out.glass = out.screen;
+        out.bezel = out.screen;
     } else {
         const qreal s = qMin(usable.width() / qMax(1.0, double(virtView.width())),
                              usable.height() / qMax(1.0, double(virtView.height())));
@@ -178,6 +228,27 @@ LayoutEditorCanvas::ScreenMap LayoutEditorCanvas::map() const
                             int(delta.y() / qMax(0.001, out.scaleY)));
     }
     out.board = doc.showsBoardWindow() ? out.fromVirt(boardVirt) : QRectF{};
+    out.virtBoard = boardVirt.isValid() ? boardVirt.size() : QSize(1, 1);
+    if (out.virtBoard.width() < 1) {
+        out.virtBoard.setWidth(1);
+    }
+    if (out.virtBoard.height() < 1) {
+        out.virtBoard.setHeight(1);
+    }
+    return out;
+}
+
+QHash<QString, QRectF> LayoutEditorCanvas::boardItemRects(const ScreenMap& m) const
+{
+    const auto virtRects =
+        LayoutGeometry::itemRects(m_session.document(), m.virtBoard.width(), m.virtBoard.height());
+    QHash<QString, QRectF> out;
+    out.reserve(virtRects.size());
+    for (auto it = virtRects.constBegin(); it != virtRects.constEnd(); ++it) {
+        const QRectF& r = it.value();
+        out.insert(it.key(), QRectF(r.x() * m.scaleX, r.y() * m.scaleY, r.width() * m.scaleX,
+                                    r.height() * m.scaleY));
+    }
     return out;
 }
 
@@ -223,8 +294,7 @@ QString LayoutEditorCanvas::hitItem(const QPoint& pos, const ScreenMap& m) const
         return {};
     }
     const LayoutDocument& doc = m_session.document();
-    const QHash<QString, QRectF> rects =
-        LayoutGeometry::itemRects(doc, int(m.board.width()), int(m.board.height()));
+    const QHash<QString, QRectF> rects = boardItemRects(m);
     const QPointF local(pos.x() - m.board.x(), pos.y() - m.board.y());
     QString best;
     double bestArea = 1e18;
@@ -250,10 +320,11 @@ QPoint LayoutEditorCanvas::cellAt(const QPoint& pos, const ScreenMap& m) const
     const LayoutDocument& doc = m_session.document();
     const int cols = qMax(1, doc.grid.columns);
     const int rows = qMax(1, doc.grid.rows);
-    const QPointF local(pos.x() - m.board.x(), pos.y() - m.board.y());
-    const auto inset = doc.grid.insets(m.board.width(), m.board.height());
-    const double innerW = m.board.width() - inset.left - inset.right;
-    const double innerH = m.board.height() - inset.top - inset.bottom;
+    const QPointF local((pos.x() - m.board.x()) / qMax(0.001, m.scaleX),
+                        (pos.y() - m.board.y()) / qMax(0.001, m.scaleY));
+    const auto inset = doc.grid.insets(m.virtBoard.width(), m.virtBoard.height());
+    const double innerW = m.virtBoard.width() - inset.left - inset.right;
+    const double innerH = m.virtBoard.height() - inset.top - inset.bottom;
     int col = int((local.x() - inset.left) / qMax(1.0, innerW / cols));
     int row = int((local.y() - inset.top) / qMax(1.0, innerH / rows));
     col = qBound(0, col, cols - 1);
@@ -265,7 +336,7 @@ void LayoutEditorCanvas::paintEvent(QPaintEvent*)
 {
     QPainter p(this);
     p.setRenderHint(QPainter::Antialiasing, true);
-    p.fillRect(rect(), QColor(QStringLiteral("#1a1a1c")));
+    p.fillRect(rect(), m_theme.bgMain);
     const ScreenMap m = map();
     if (!m.screen.isValid()) {
         return;
@@ -276,17 +347,29 @@ void LayoutEditorCanvas::paintEvent(QPaintEvent*)
         paintPlacementPip(p, m);
     }
     if (m_drag == Drag::Rubber && !m_rubber.isEmpty()) {
-        p.setPen(QPen(QColor(QStringLiteral("#60cdff")), 1, Qt::DashLine));
-        p.setBrush(QColor(96, 205, 255, 40));
+        p.setPen(QPen(m_theme.accent, 1, Qt::DashLine));
+        QColor fill = m_theme.accent;
+        fill.setAlpha(40);
+        p.setBrush(fill);
         p.drawRect(m_rubber.normalized());
+    }
+    if (m_session.placeKind()) {
+        p.setPen(m_theme.textSecondary);
+        p.setFont(QFont(QStringLiteral("Segoe UI"), 10));
+        const QString hint = *m_session.placeKind() == EditorItemKind::Unbounded
+                                 ? QStringLiteral("Click to place a free item  ·  Esc cancel")
+                                 : QStringLiteral("Click a cell to place  ·  Esc cancel");
+        p.drawText(rect().adjusted(12, 8, -12, -8), Qt::AlignTop | Qt::AlignHCenter, hint);
     }
 }
 
 void LayoutEditorCanvas::paintPlacementPip(QPainter& p, const ScreenMap& m) const
 {
     const QRectF pip(m.screen.right() - 132, m.screen.bottom() - 82, 120, 68);
-    p.setPen(QPen(QColor(QStringLiteral("#3a3a40")), 1));
-    p.setBrush(QColor(15, 18, 28, 200));
+    p.setPen(QPen(m_theme.border, 1));
+    QColor pipBg = m_theme.bgSurface;
+    pipBg.setAlpha(220);
+    p.setBrush(pipBg);
     p.drawRoundedRect(pip, 4, 4);
     const LayoutDocument& doc = m_session.document();
     const QRect virt(0, 0, m.virtualScreen.width(), m.virtualScreen.height());
@@ -295,10 +378,12 @@ void LayoutEditorCanvas::paintPlacementPip(QPainter& p, const ScreenMap& m) cons
     const qreal sy = pip.height() / double(m.virtualScreen.height());
     const QRectF br(pip.left() + board.x() * sx, pip.top() + board.y() * sy, board.width() * sx,
                     board.height() * sy);
-    p.setBrush(QColor(96, 205, 255, 140));
+    QColor pipBoard = m_theme.accent;
+    pipBoard.setAlpha(140);
+    p.setBrush(pipBoard);
     p.setPen(Qt::NoPen);
     p.drawRect(br);
-    p.setPen(QColor(QStringLiteral("#8a90a0")));
+    p.setPen(m_theme.textSecondary);
     p.setFont(QFont(QStringLiteral("Segoe UI"), 7));
     p.drawText(pip.adjusted(4, 2, -4, -2), Qt::AlignTop | Qt::AlignLeft, QStringLiteral("Placement"));
 }
@@ -308,40 +393,78 @@ void LayoutEditorCanvas::paintMonitor(QPainter& p, const ScreenMap& m) const
     if (!m_fitBoard) {
         QPainterPath bezel;
         bezel.addRoundedRect(m.bezel, 18, 18);
-        p.fillPath(bezel, QColor(QStringLiteral("#121214")));
-        p.setPen(QPen(QColor(QStringLiteral("#2a2a2e")), 1.2));
+        p.fillPath(bezel, m_theme.bgSurface);
+        p.setPen(QPen(m_theme.border, 1.2));
         p.drawPath(bezel);
 
         const QRectF standNeck(m.bezel.center().x() - 18, m.bezel.bottom() - 4, 36, 16);
         p.setPen(Qt::NoPen);
-        p.setBrush(QColor(QStringLiteral("#2a2a2e")));
+        p.setBrush(m_theme.border);
         p.drawRoundedRect(standNeck, 3, 3);
         const QRectF standBase(m.bezel.center().x() - 70, standNeck.bottom() - 2, 140, 10);
         p.drawRoundedRect(standBase, 5, 5);
     }
 
     QLinearGradient wall(m.screen.topLeft(), m.screen.bottomRight());
-    wall.setColorAt(0.0, QColor(QStringLiteral("#1b2740")));
-    wall.setColorAt(0.45, QColor(QStringLiteral("#243a62")));
-    wall.setColorAt(0.75, QColor(QStringLiteral("#2a4d86")));
-    wall.setColorAt(1.0, QColor(QStringLiteral("#0f1728")));
+    wall.setColorAt(0.0, m_theme.bgMain);
+    wall.setColorAt(0.55, m_theme.bgSurface);
+    wall.setColorAt(1.0, m_theme.bgSurfaceActive);
     QPainterPath glass;
     glass.addRoundedRect(m.screen, m_fitBoard ? 0 : 4, m_fitBoard ? 0 : 4);
     p.fillPath(glass, wall);
 
     if (!m_fitBoard) {
-        p.setPen(QColor(QStringLiteral("#8a90a0")));
+        p.setPen(m_theme.textSecondary);
         p.setFont(QFont(QStringLiteral("Segoe UI"), 8));
         const LayoutDocument& doc = m_session.document();
         const QString caption =
             QStringLiteral("%1  ·  %2×%3  ·  grid %4×%5")
                 .arg(doc.name.isEmpty() ? doc.id : doc.name)
-                .arg(int(LayoutGeometry::boardRectInBounds(doc, QRect(0, 0, 1920, 1080)).width()))
-                .arg(int(LayoutGeometry::boardRectInBounds(doc, QRect(0, 0, 1920, 1080)).height()))
+                .arg(int(LayoutGeometry::boardRectInBounds(
+                             doc, QRect(0, 0, m.virtualScreen.width(), m.virtualScreen.height()))
+                             .width()))
+                .arg(int(LayoutGeometry::boardRectInBounds(
+                             doc, QRect(0, 0, m.virtualScreen.width(), m.virtualScreen.height()))
+                             .height()))
                 .arg(doc.grid.columns)
                 .arg(doc.grid.rows);
         p.drawText(QRectF(m.bezel.left(), m.bezel.bottom() + 14, m.bezel.width(), 18),
                    Qt::AlignHCenter | Qt::AlignTop, caption);
+    }
+}
+
+void LayoutEditorCanvas::paintBoardItems(QPainter& p, const ScreenMap& m,
+                                         const QHash<QString, QRectF>& virtRects,
+                                         const QRectF& origin, int virtW, int virtH,
+                                         bool windowChrome) const
+{
+    if (virtW < 1 || virtH < 1 || origin.width() < 2 || origin.height() < 2) {
+        return;
+    }
+    LayoutBoardPainter::Input in;
+    in.layout = &m_session.document();
+    in.itemLocalRects = &virtRects;
+    in.theme = &m_theme;
+    in.width = virtW;
+    in.height = virtH;
+    in.hoverId = m_hoverId;
+    in.hoverProgress = m_testMode ? m_testProgress : 0.0;
+    in.eraseBackground = false;
+    in.paintWindowChrome = windowChrome;
+    p.save();
+    p.translate(origin.topLeft());
+    p.scale(m.scaleX, m.scaleY);
+    LayoutBoardPainter(in).paint(p);
+    p.restore();
+}
+
+void LayoutEditorCanvas::paintSelectionOverlay(QPainter& p, const QRectF& r, bool handles) const
+{
+    p.setBrush(Qt::NoBrush);
+    p.setPen(QPen(m_theme.accent, 1, Qt::DashLine));
+    p.drawRect(r);
+    if (handles) {
+        paintHandles(p, r);
     }
 }
 
@@ -350,190 +473,154 @@ void LayoutEditorCanvas::paintBoard(QPainter& p, const ScreenMap& m) const
     const LayoutDocument& doc = m_session.document();
     const QRectF board = m.board;
     const bool paintGrid = board.width() >= 4 && board.height() >= 4;
-
-    const int bw = qMax(1, int(board.width()));
-    const int bh = qMax(1, int(board.height()));
-    const QHash<QString, QRectF> rects =
-        paintGrid ? LayoutGeometry::itemRects(doc, bw, bh) : QHash<QString, QRectF>{};
+    const QHash<QString, QRectF> canvasRects = paintGrid ? boardItemRects(m) : QHash<QString, QRectF>{};
 
     if (paintGrid) {
-    const LayoutChromeStyle winSt = doc.placement.style;
-    const double winR = winSt.radius.value_or(16.0);
-    QColor winBg = winSt.background.value_or(QColor(32, 36, 42, 210));
-    QColor winBorder = winSt.borderColor.value_or(QColor(QStringLiteral("#3a3f46")));
-    const double winBw = winSt.borderWidth.value_or(1.0);
-
-    p.setPen(Qt::NoPen);
-    p.setBrush(winBg);
-    p.drawRoundedRect(board, winR, winR);
-    if (winBw > 0.0) {
-        p.setBrush(Qt::NoBrush);
-        p.setPen(QPen(winBorder, winBw));
-        p.drawRoundedRect(board, winR, winR);
-    }
-
-    const bool windowSel = m_session.selection().target == EditorTarget::Window
-                           || m_session.selection().target == EditorTarget::Grid;
-    if (windowSel) {
-        p.setBrush(Qt::NoBrush);
-        p.setPen(QPen(QColor(QStringLiteral("#60cdff")), 2.0));
-        p.drawRoundedRect(board.adjusted(-3, -3, 3, 3), winR + 2, winR + 2);
-    }
-
-    if (m_showGrid) {
-        p.save();
-        p.translate(board.topLeft());
-        p.setPen(QPen(QColor(255, 255, 255, 28), 1, Qt::DashLine));
-        const auto inset = doc.grid.insets(bw, bh);
-        const int cols = qMax(1, doc.grid.columns);
-        const int rows = qMax(1, doc.grid.rows);
-        const double innerW = bw - inset.left - inset.right;
-        const double innerH = bh - inset.top - inset.bottom;
-        const double cw = innerW / cols;
-        const double rh = innerH / rows;
-        for (int c = 0; c <= cols; ++c) {
-            const double x = inset.left + c * cw;
-            p.drawLine(QPointF(x, inset.top), QPointF(x, inset.top + innerH));
-        }
-        for (int r = 0; r <= rows; ++r) {
-            const double y = inset.top + r * rh;
-            p.drawLine(QPointF(inset.left, y), QPointF(inset.left + innerW, y));
-        }
-        p.restore();
-    }
-
-    p.save();
-    p.translate(board.topLeft());
-    const EditorSelection sel = m_session.selection();
-    for (const LayoutItem& item : doc.items) {
-        if (!item.participatesInBoardGrid()) {
-            continue;
-        }
-        const QRectF r = rects.value(item.id);
-        if (r.isEmpty()) {
-            continue;
-        }
-        QRectF drawR = r;
-        if (m_drag == Drag::Move && item.id == m_dragId
+        auto virtRects =
+            LayoutGeometry::itemRects(doc, m.virtBoard.width(), m.virtBoard.height());
+        if (m_drag != Drag::None && !m_dragId.isEmpty()
             && (m_dragPos - m_pressPos).manhattanLength() > 8) {
-            const QPoint dest = cellAt(m_dragPos, m);
-            const double cw = r.width() / qMax(1, item.colSpan);
-            const double rh = r.height() / qMax(1, item.rowSpan);
-            drawR.translate((dest.x() - item.col) * cw, (dest.y() - item.row) * rh);
-        } else if ((m_drag == Drag::ResizeW || m_drag == Drag::ResizeH) && item.id == m_dragId) {
-            const QPointF local(m_dragPos.x() - m.board.x(), m_dragPos.y() - m.board.y());
-            if (m_drag == Drag::ResizeW) {
-                drawR.setWidth(qMax(8.0, local.x() - m_pressRect.left()));
-            } else {
-                drawR.setHeight(qMax(8.0, local.y() - m_pressRect.top()));
+            const LayoutItem* item = m_session.itemById(m_dragId);
+            if (item && item->participatesInBoardGrid() && virtRects.contains(item->id)) {
+                QRectF r = virtRects.value(item->id);
+                if (m_drag == Drag::Move) {
+                    const QPoint dest = cellAt(m_dragPos, m);
+                    const double cw = r.width() / qMax(1, item->colSpan);
+                    const double rh = r.height() / qMax(1, item->rowSpan);
+                    r.translate((dest.x() - item->col) * cw, (dest.y() - item->row) * rh);
+                } else if (m_drag == Drag::ResizeW) {
+                    r.setWidth(qMax(8.0, (m_dragPos.x() - m.board.x()) / qMax(0.001, m.scaleX)
+                                             - r.left()));
+                } else if (m_drag == Drag::ResizeH) {
+                    r.setHeight(qMax(8.0, (m_dragPos.y() - m.board.y()) / qMax(0.001, m.scaleY)
+                                              - r.top()));
+                }
+                virtRects.insert(item->id, r);
             }
         }
-        const bool selected = m_session.isItemSelected(item.id);
-        const bool hovered = item.id == m_hoverId;
-        paintCell(p, item, drawR, selected, hovered);
-        if (m_testMode && item.id == m_hoverId && m_testProgress > 0.02) {
-            QPen pen(m_theme.accent, 3);
-            p.setPen(pen);
+        paintBoardItems(p, m, virtRects, board, m.virtBoard.width(), m.virtBoard.height(), true);
+
+        const bool windowSel = m_session.selection().target == EditorTarget::Window
+                               || m_session.selection().target == EditorTarget::Grid;
+        if (windowSel) {
+            const double winR = doc.placement.style.radius.value_or(16.0) * m.px();
             p.setBrush(Qt::NoBrush);
-            p.drawArc(r.adjusted(3, 3, -3, -3), 90 * 16, int(-m_testProgress * 360 * 16));
+            p.setPen(QPen(m_theme.accent, 2.0));
+            p.drawRoundedRect(board.adjusted(-3, -3, 3, 3), winR + 2, winR + 2);
         }
-        if (selected && item.id == sel.itemId && !m_testMode) {
-            const QRectF hr(r.right() - 5, r.center().y() - 5, 10, 10);
-            const QRectF hb(r.center().x() - 5, r.bottom() - 5, 10, 10);
-            p.setBrush(QColor(QStringLiteral("#60cdff")));
-            p.setPen(Qt::NoPen);
-            p.drawRect(hr);
-            p.drawRect(hb);
+
+        if (m_showGrid) {
+            p.save();
+            p.translate(board.topLeft());
+            QColor gridC = m_theme.text;
+            gridC.setAlpha(m_theme.bgMain.lightness() > 140 ? 50 : 32);
+            p.setPen(QPen(gridC, 1, Qt::DashLine));
+            const auto inset = doc.grid.insets(m.virtBoard.width(), m.virtBoard.height());
+            const int cols = qMax(1, doc.grid.columns);
+            const int rows = qMax(1, doc.grid.rows);
+            const double px = m.px();
+            const double innerW = (m.virtBoard.width() - inset.left - inset.right) * px;
+            const double innerH = (m.virtBoard.height() - inset.top - inset.bottom) * px;
+            const double left = inset.left * px;
+            const double top = inset.top * px;
+            const double cw = innerW / cols;
+            const double rh = innerH / rows;
+            for (int c = 0; c <= cols; ++c) {
+                const double x = left + c * cw;
+                p.drawLine(QPointF(x, top), QPointF(x, top + innerH));
+            }
+            for (int r = 0; r <= rows; ++r) {
+                const double y = top + r * rh;
+                p.drawLine(QPointF(left, y), QPointF(left + innerW, y));
+            }
+            p.restore();
+        }
+
+        if (!m_testMode) {
+            p.save();
+            p.translate(board.topLeft());
+            const QString primary = m_session.selection().itemId;
+            for (auto it = canvasRects.constBegin(); it != canvasRects.constEnd(); ++it) {
+                if (!m_session.isItemSelected(it.key())) {
+                    continue;
+                }
+                paintSelectionOverlay(p, it.value(), it.key() == primary);
+            }
+            p.restore();
         }
     }
-    p.restore();
-    } // paintGrid
 
+    QHash<QString, QRectF> freeVirt;
+    const QRect virt(0, 0, m.virtualScreen.width(), m.virtualScreen.height());
     for (const LayoutItem& item : doc.items) {
-        if (item.participatesInBoardGrid()) {
+        if (!item.isUnbounded()) {
             continue;
         }
-        QRectF marker = unboundedCanvasRect(item, m);
-        if (marker.isEmpty()) {
+        QRect logical = DwellRegionSpace::logicalFromAnchor(item.dwellRegion, virt);
+        if (!logical.isValid() || logical.isEmpty()) {
             continue;
         }
         if (m_drag == Drag::Move && item.id == m_dragId
             && (m_dragPos - m_pressPos).manhattanLength() > 8) {
-            marker.translate(m_dragPos - m_pressPos);
+            logical.translate(int((m_dragPos.x() - m_pressPos.x()) / qMax(0.001, m.scaleX)),
+                              int((m_dragPos.y() - m_pressPos.y()) / qMax(0.001, m.scaleY)));
         }
-        const bool selected = m_session.isItemSelected(item.id);
-        const bool hovered = item.id == m_hoverId;
-        paintCell(p, item, marker, selected, hovered);
-        if (m_testMode && item.id == m_hoverId && m_testProgress > 0.02) {
-            QPen pen(m_theme.accent, 3);
-            p.setPen(pen);
-            p.setBrush(Qt::NoBrush);
-            p.drawArc(marker.adjusted(3, 3, -3, -3), 90 * 16, int(-m_testProgress * 360 * 16));
-        }
-        if (selected && !m_testMode) {
-            p.setBrush(Qt::NoBrush);
-            p.setPen(QPen(QColor(QStringLiteral("#60cdff")), 1, Qt::DashLine));
-            p.drawRect(marker);
+        freeVirt.insert(item.id, QRectF(logical));
+    }
+    if (!freeVirt.isEmpty()) {
+        paintBoardItems(p, m, freeVirt, m.screen, m.virtualScreen.width(), m.virtualScreen.height(),
+                        false);
+        if (!m_testMode) {
+            const QString primary = m_session.selection().itemId;
+            for (const LayoutItem& item : doc.items) {
+                if (!item.isUnbounded() || !m_session.isItemSelected(item.id)) {
+                    continue;
+                }
+                const QRectF marker = unboundedCanvasRect(item, m);
+                if (marker.isEmpty()) {
+                    continue;
+                }
+                paintSelectionOverlay(p, marker, item.id == primary);
+            }
         }
     }
 }
 
-void LayoutEditorCanvas::paintCell(QPainter& p, const LayoutItem& item, const QRectF& r,
-                                   bool selected, bool hovered) const
+void LayoutEditorCanvas::paintHandles(QPainter& p, const QRectF& r) const
 {
-    const LayoutDocument& doc = m_session.document();
-    const LayoutItemStyle st = doc.style.withOverrides(item.style);
-    const double radius = st.radius.value_or(14.0);
-    QColor bg = st.background.value_or(m_theme.cellBg);
-    QColor fg = st.foreground.value_or(m_theme.text);
-    if (hovered && !selected) {
-        bg = st.background ? bg.lighter(118) : m_theme.cellHover;
-    }
+    const QRectF hr(r.right() - 5, r.center().y() - 5, 10, 10);
+    const QRectF hb(r.center().x() - 5, r.bottom() - 5, 10, 10);
+    p.setBrush(m_theme.accent);
     p.setPen(Qt::NoPen);
-    p.setBrush(bg);
-    p.drawRoundedRect(r, radius, radius);
-    double bw = st.borderWidth.value_or(0.0);
-    QColor border = st.borderColor.value_or(m_theme.border);
-    if (selected) {
-        bw = qMax(bw, 2.0);
-        border = QColor(QStringLiteral("#e8a87c"));
-    } else if (hovered) {
-        bw = qMax(bw, 1.5);
-        border = m_theme.accent;
-    }
-    if (bw > 0.0 && border.alpha() > 0) {
-        p.setBrush(Qt::NoBrush);
-        p.setPen(QPen(border, bw));
-        p.drawRoundedRect(r, radius, radius);
-    }
+    p.drawRect(hr);
+    p.drawRect(hb);
+}
 
-    p.setPen(fg);
-    if (!item.icon.isEmpty()) {
-        const QRectF iconR(r.left() + 6, r.top() + 6, r.width() - 12, r.height() * 0.52);
-        MouseIcons::paint(p, item.icon, iconR, fg);
-        p.setFont(QFont(QStringLiteral("Segoe UI"), qBound(8, int(r.height() * 0.18), 12),
-                        QFont::DemiBold));
-        p.drawText(r.adjusted(6, r.height() * 0.52, -6, -4),
-                   Qt::AlignHCenter | Qt::AlignTop | Qt::TextWordWrap, item.label);
-    } else {
-        const int px = qBound(8, int(r.height() * 0.28), 14);
-        p.setFont(QFont(QStringLiteral("Segoe UI"), px, QFont::DemiBold));
-        const QString text = item.caption.isEmpty()
-                                 ? (item.label.isEmpty() ? item.id : item.label)
-                                 : QStringLiteral("%1\n%2").arg(item.label, item.caption);
-        p.drawText(r.adjusted(6, 4, -6, -4), Qt::AlignCenter | Qt::TextWordWrap, text);
+QRectF LayoutEditorCanvas::selectedRect(const ScreenMap& m) const
+{
+    const QString id = m_session.selection().itemId;
+    if (id.isEmpty()) {
+        return {};
     }
+    const LayoutItem* item = m_session.itemById(id);
+    if (!item) {
+        return {};
+    }
+    if (item->isUnbounded()) {
+        return unboundedCanvasRect(*item, m);
+    }
+    return boardItemRects(m).value(id).translated(m.board.topLeft());
+}
+
+QPoint LayoutEditorCanvas::virtFromCanvas(const QPoint& pos, const ScreenMap& m) const
+{
+    return {int((pos.x() - m.screen.left()) / qMax(0.001, m.scaleX)),
+            int((pos.y() - m.screen.top()) / qMax(0.001, m.scaleY))};
 }
 
 LayoutEditorCanvas::Drag LayoutEditorCanvas::hitHandle(const QPoint& pos, const ScreenMap& m) const
 {
-    const QString id = m_session.selection().itemId;
-    if (id.isEmpty()) {
-        return Drag::None;
-    }
-    const auto rects =
-        LayoutGeometry::itemRects(m_session.document(), int(m.board.width()), int(m.board.height()));
-    const QRectF r = rects.value(id).translated(m.board.topLeft());
+    const QRectF r = selectedRect(m);
     if (r.isEmpty()) {
         return Drag::None;
     }
@@ -579,9 +666,7 @@ void LayoutEditorCanvas::mousePressEvent(QMouseEvent* event)
     if (handle != Drag::None) {
         m_drag = handle;
         m_dragId = m_session.selection().itemId;
-        const auto rects = LayoutGeometry::itemRects(m_session.document(), int(m.board.width()),
-                                                     int(m.board.height()));
-        m_pressRect = rects.value(m_dragId);
+        m_pressRect = boardItemRects(m).value(m_dragId);
         return;
     }
 
@@ -593,6 +678,10 @@ void LayoutEditorCanvas::mousePressEvent(QMouseEvent* event)
         return;
     }
 
+    if (m_session.placeKind() && *m_session.placeKind() == EditorItemKind::Unbounded) {
+        m_session.addFreeItemAt(virtFromCanvas(event->pos(), m));
+        return;
+    }
     if (!hitBoard(event->pos(), m)) {
         m_session.selectTarget(EditorTarget::Document);
         return;
@@ -617,6 +706,7 @@ void LayoutEditorCanvas::mouseMoveEvent(QMouseEvent* event)
     const QString hover = hitItem(event->pos(), m);
     if (hover != m_hoverId) {
         m_hoverId = hover;
+        m_testProgress = 0.0;
     }
     if (m_drag == Drag::Rubber) {
         m_rubber = QRect(m_pressPos, event->pos()).normalized();
@@ -666,13 +756,22 @@ void LayoutEditorCanvas::commitDrag(const QPoint& pos, const ScreenMap& m)
         applyResize(pos, m);
         break;
     case Drag::Rubber: {
-        const auto rects = LayoutGeometry::itemRects(m_session.document(), int(m.board.width()),
-                                                     int(m.board.height()));
+        const auto rects = boardItemRects(m);
         const QRectF band = QRectF(m_rubber.normalized()).translated(-m.board.topLeft());
         QStringList ids;
         for (auto it = rects.constBegin(); it != rects.constEnd(); ++it) {
             if (it.value().intersects(band)) {
                 ids.push_back(it.key());
+            }
+        }
+        const QRectF bandCanvas = QRectF(m_rubber.normalized());
+        for (const LayoutItem& item : m_session.document().items) {
+            if (!item.isUnbounded()) {
+                continue;
+            }
+            const QRectF r = unboundedCanvasRect(item, m);
+            if (r.intersects(bandCanvas)) {
+                ids.push_back(item.id);
             }
         }
         m_session.selectItems(ids);
@@ -724,7 +823,29 @@ void LayoutEditorCanvas::mouseDoubleClickEvent(QMouseEvent* event)
 void LayoutEditorCanvas::applyResize(const QPoint& pos, const ScreenMap& m)
 {
     const LayoutItem* item = m_session.itemById(m_dragId);
-    if (!item || m_pressRect.width() < 1) {
+    if (!item) {
+        return;
+    }
+    if (item->isUnbounded()) {
+        const QRectF r = unboundedCanvasRect(*item, m);
+        if (r.width() < 1 || r.height() < 1) {
+            return;
+        }
+        double w = item->dwellRegion.width.isSet()
+                       ? item->dwellRegion.width.resolve(m.virtualScreen.width())
+                       : r.width() / qMax(0.001, m.scaleX);
+        double h = item->dwellRegion.height.isSet()
+                       ? item->dwellRegion.height.resolve(m.virtualScreen.height())
+                       : r.height() / qMax(0.001, m.scaleY);
+        if (m_drag == Drag::ResizeW) {
+            w = qMax(16.0, (pos.x() - r.left()) / qMax(0.001, m.scaleX));
+        } else {
+            h = qMax(16.0, (pos.y() - r.top()) / qMax(0.001, m.scaleY));
+        }
+        m_session.resizeFreeItem(item->id, DimSpec::pixels(w), DimSpec::pixels(h));
+        return;
+    }
+    if (m_pressRect.width() < 1) {
         return;
     }
     const QPointF local(pos.x() - m.board.x(), pos.y() - m.board.y());
@@ -747,8 +868,52 @@ void LayoutEditorCanvas::applyResize(const QPoint& pos, const ScreenMap& m)
     }
 }
 
+void LayoutEditorCanvas::showItemMenu(const QPoint& globalPos)
+{
+    QMenu menu(this);
+    auto* dup = menu.addAction(QStringLiteral("Duplicate"));
+    auto* del = menu.addAction(QStringLiteral("Delete"));
+    menu.addSeparator();
+    auto* toFree = menu.addAction(QStringLiteral("Convert to free item"));
+    auto* toCell = menu.addAction(QStringLiteral("Convert to cell"));
+    menu.addSeparator();
+    auto* raise = menu.addAction(QStringLiteral("Bring forward"));
+    auto* lower = menu.addAction(QStringLiteral("Send backward"));
+    const bool has = m_session.selection().target == EditorTarget::Item;
+    for (QAction* a : {dup, del, toFree, toCell, raise, lower}) {
+        a->setEnabled(has);
+    }
+    QAction* chosen = menu.exec(globalPos);
+    if (chosen == dup) {
+        m_session.duplicateSelected();
+    } else if (chosen == del) {
+        m_session.deleteSelected();
+    } else if (chosen == toFree) {
+        m_session.convertSelectedToFree();
+    } else if (chosen == toCell) {
+        m_session.convertSelectedToCell();
+    } else if (chosen == raise) {
+        m_session.raiseSelected();
+    } else if (chosen == lower) {
+        m_session.lowerSelected();
+    }
+}
+
+void LayoutEditorCanvas::contextMenuEvent(QContextMenuEvent* event)
+{
+    const QString id = hitItem(event->pos(), map());
+    if (!id.isEmpty() && !m_session.isItemSelected(id)) {
+        m_session.selectItem(id);
+    }
+    showItemMenu(event->globalPos());
+}
+
 void LayoutEditorCanvas::keyPressEvent(QKeyEvent* event)
 {
+    if (event->key() == Qt::Key_Escape) {
+        m_session.setPlaceKind(std::nullopt);
+        return;
+    }
     if (event->key() == Qt::Key_Delete || event->key() == Qt::Key_Backspace) {
         m_session.deleteSelected();
         return;
@@ -765,7 +930,8 @@ void LayoutEditorCanvas::keyPressEvent(QKeyEvent* event)
         dRow = 1;
     }
     if (dRow || dCol) {
-        m_session.moveSelected(dRow, dCol);
+        const int px = (event->modifiers() & Qt::ShiftModifier) ? 16 : 4;
+        m_session.nudgeSelected(dRow, dCol, px);
         return;
     }
     QWidget::keyPressEvent(event);
