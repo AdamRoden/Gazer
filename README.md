@@ -230,7 +230,7 @@ Unset fields fall back to layout `style`, then the theme. Item styles may live u
 
 ### Dwell (layout or item)
 
-Priority: item override → AppSettings (when set) → layout leftover. Layout `ms` is unused when AppSettings has a dwell sequence.
+Priority: item override → layout → AppSettings → built-in default. A layout `ms` / `scanGraceMs` / `graceMs` applies to every key that does not set that field.
 
 | Field | Description |
 |-------|-------------|
@@ -261,7 +261,7 @@ Priority: item override → AppSettings (when set) → layout leftover. Layout `
 | `u` / `widthUnits` | Relative width in unit-row mode |
 | `screenAnchor` | Omit / empty = **cell** (`row`/`col`). Else a free item at that anchor point (`top`, `bottomCenter`, …) |
 | `x`/`xPx`, `y`/`yPx`, `width`/`widthPx`, `height`/`heightPx` | Hit geometry when `screenAnchor` is set (also accepted nested under legacy `dwellRegion`) |
-| `dwell` | Per-item override (omit to inherit the board / app settings) |
+| `dwell` | Per-item override (omit to inherit the board, then AppSettings) |
 | `action` | Single action (legacy) |
 | `actions` | Ordered series (preferred when non-empty) |
 | `actionLoop` / `loop` | Sticky series; re-activate to stop |

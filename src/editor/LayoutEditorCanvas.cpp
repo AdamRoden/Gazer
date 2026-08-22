@@ -82,13 +82,8 @@ void LayoutEditorCanvas::tickTestDwell()
     }
     int dwellMs = 800;
     if (const LayoutItem* it = m_session.itemById(m_hoverId)) {
-        QVector<int> seq;
-        if (it->dwell.sectionPresent && it->dwell.hasTiming) {
-            seq = it->dwell.effectiveSequence();
-        } else if (m_session.document().dwell.hasTiming
-                   || !m_session.document().dwell.msSequence.isEmpty()) {
-            seq = m_session.document().dwell.effectiveSequence();
-        }
+        const QVector<int> seq =
+            LayoutDwellConfig::resolveSequence(&it->dwell, m_session.document().dwell, {});
         if (!seq.isEmpty()) {
             dwellMs = qMax(50, seq.first());
         }

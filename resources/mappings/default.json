@@ -21,12 +21,54 @@
     "escape": [
       { "type": "keyTap", "key": "Escape" }
     ],
+    "delete": [
+      { "type": "keyTap", "key": "Delete" }
+    ],
+    "home": [
+      { "type": "keyTap", "key": "Home" }
+    ],
+    "end": [
+      { "type": "keyTap", "key": "End" }
+    ],
+    "pageUp": [
+      { "type": "keyTap", "key": "PageUp" }
+    ],
+    "pageDown": [
+      { "type": "keyTap", "key": "PageDown" }
+    ],
+    "arrowUp": [
+      { "type": "keyTap", "key": "Up" }
+    ],
+    "arrowDown": [
+      { "type": "keyTap", "key": "Down" }
+    ],
+    "arrowLeft": [
+      { "type": "keyTap", "key": "Left" }
+    ],
+    "arrowRight": [
+      { "type": "keyTap", "key": "Right" }
+    ],
+    "leftCtrl": [
+      { "type": "keyTap", "key": "Control" }
+    ],
+    "leftAlt": [
+      { "type": "keyTap", "key": "Alt" }
+    ],
+    "leftWin": [
+      { "type": "keyTap", "key": "LWin" }
+    ],
     "clearPhrase": [
       { "type": "keyCombo", "keys": ["Control", "A"] },
       { "type": "keyTap", "key": "Backspace" }
     ],
     "speakPhrase": [
       { "type": "keyCombo", "keys": ["Control", "Enter"] }
+    ],
+    "windowMid": [
+      { "type": "keyCombo", "keys": ["Control", "Alt", "U"] }
+    ],
+    "windowMax": [
+      { "type": "keyCombo", "keys": ["Control", "Alt", "W"] }
     ],
     "enterMouseControl": [
       { "type": "mouseClick", "button": "left" }

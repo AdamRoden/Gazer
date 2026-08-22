@@ -91,37 +91,17 @@ void LayoutInstance::applyDwellForItem(const QString& itemId)
     const LayoutItem* item = itemId.isEmpty() ? nullptr : m_document.findItem(itemId);
     const LayoutDwellConfig* itemDwell = item ? &item->dwell : nullptr;
 
-    const auto pickMs = [](bool itemHas, int itemVal, bool useGlobal, int globalVal, bool docHas,
-                           int docVal, int fallback) {
-        if (itemHas && itemVal >= 0) {
-            return itemVal;
-        }
-        if (useGlobal) {
-            return globalVal;
-        }
-        if (docHas && docVal >= 0) {
-            return docVal;
-        }
-        return fallback;
-    };
+    const QVector<int> seq =
+        LayoutDwellConfig::resolveSequence(itemDwell, m_document.dwell, m_globalDwellSequence);
 
-    QVector<int> seq;
-    if (itemDwell && itemDwell->hasTiming) {
-        seq = itemDwell->effectiveSequence();
-    } else if (!m_globalDwellSequence.isEmpty()) {
-        seq = m_globalDwellSequence;
-    } else {
-        seq = m_document.dwell.effectiveSequence();
-    }
-
-    const int grace = pickMs(itemDwell && itemDwell->hasGrace, itemDwell ? itemDwell->graceMs : -1,
-                             m_globalGraceMs > 0, m_globalGraceMs,
-                             m_document.dwell.hasGrace, m_document.dwell.graceMs,
-                             DwellStateMachine::kDefaultInvalidGraceMs);
-    const int scanGrace =
-        pickMs(itemDwell && itemDwell->hasScanGrace, itemDwell ? itemDwell->scanGraceMs : -1,
-               m_globalScanGraceMs >= 0, m_globalScanGraceMs, m_document.dwell.hasScanGrace,
-               m_document.dwell.scanGraceMs, DwellStateMachine::kDefaultScanGraceMs);
+    const int grace = LayoutDwellConfig::resolveOverrideMs(
+        itemDwell && itemDwell->hasGrace, itemDwell ? itemDwell->graceMs : -1,
+        m_document.dwell.hasGrace, m_document.dwell.graceMs, m_globalGraceMs > 0, m_globalGraceMs,
+        DwellStateMachine::kDefaultInvalidGraceMs);
+    const int scanGrace = LayoutDwellConfig::resolveOverrideMs(
+        itemDwell && itemDwell->hasScanGrace, itemDwell ? itemDwell->scanGraceMs : -1,
+        m_document.dwell.hasScanGrace, m_document.dwell.scanGraceMs, m_globalScanGraceMs >= 0,
+        m_globalScanGraceMs, DwellStateMachine::kDefaultScanGraceMs);
 
     m_dwell->setDwellSequence(seq);
     m_dwell->setInvalidGraceMs(qMax(0, grace));

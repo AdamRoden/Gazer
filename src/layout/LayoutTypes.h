@@ -196,7 +196,7 @@ struct LayoutDwellRegion {
 };
 
 /// Dwell / progress settings. Used globally (AppSettings), per-layout, or per-item.
-/// When a field's "has*" flag is true, it overrides the parent level.
+/// Timing/grace resolution: item (`has*`) → layout (`has*`) → AppSettings → built-in default.
 struct LayoutDwellConfig {
     bool enabled = true;
     /// First step / legacy single value (kept for older code paths).
@@ -238,6 +238,40 @@ struct LayoutDwellConfig {
             return msSequence;
         }
         return {ms > 0 ? ms : 800};
+    }
+
+    /// Hold-time sequence: item → layout → global → layout default ({800}).
+    [[nodiscard]] static QVector<int> resolveSequence(const LayoutDwellConfig* item,
+                                                      const LayoutDwellConfig& layout,
+                                                      const QVector<int>& global)
+    {
+        if (item && item->hasTiming) {
+            return item->effectiveSequence();
+        }
+        if (layout.hasTiming) {
+            return layout.effectiveSequence();
+        }
+        if (!global.isEmpty()) {
+            return global;
+        }
+        return layout.effectiveSequence();
+    }
+
+    /// Optional ms field (scan / blink grace): item → layout → global → fallback.
+    [[nodiscard]] static int resolveOverrideMs(bool itemHas, int itemVal, bool layoutHas,
+                                               int layoutVal, bool globalHas, int globalVal,
+                                               int fallback)
+    {
+        if (itemHas && itemVal >= 0) {
+            return itemVal;
+        }
+        if (layoutHas && layoutVal >= 0) {
+            return layoutVal;
+        }
+        if (globalHas) {
+            return globalVal;
+        }
+        return fallback;
     }
 };
 

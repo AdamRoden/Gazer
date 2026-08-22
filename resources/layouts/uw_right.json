@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "id": "uw_right",
+  "name": "Right",
+  "description": "OptiKey uwRight strip: symbols, mag-click, keyboard, sleep, LTS, Mid/Max.",
+  "boundsMode": "screen",
+  "autoClose": false,
+  "window": {
+    "anchor": "topLeft",
+    "xPx": 2000,
+    "widthPx": 100,
+    "heightPx": 1034,
+    "marginPx": 0
+  },
+  "dwell": {
+    "scanGraceMs": 20,
+    "ms": [100,400]
+  },
+  "grid": {
+    "columns": 1,
+    "rows": 8,
+    "gapPx": 0,
+    "marginPx": 0
+  },
+  "items": [
+    {
+      "id": "more",
+      "label": "More",
+      "icon": "More",
+      "row": 0,
+      "col": 0,
+      "action": {
+        "type": "openLayout",
+        "layoutId": "example_keyboard_sym"
+      }
+    },
+    {
+      "id": "move_lclick",
+      "label": "Left",
+      "icon": "MouseLeftClick",
+      "activeState": "mouseMoveAndLeftClick",
+      "row": 1,
+      "col": 0,
+      "actions": [ { "type": "command", "name": "toggleMouseMoveMagPick" },
+        { "type": "command","name": "mouseMoveAndLeftClick" },
+        { "type": "command", "name": "toggleMouseMoveMagPick" }]
+    },
+    {
+      "id": "move_rclick",
+      "label": "Right",
+      "icon": "MouseRightClick",
+      "activeState": "mouseMoveAndRightClick",
+      "row": 2,
+      "col": 0,
+      "dwell": {
+        "scanGraceMs": 100
+      },
+      "action": {
+        "type": "command",
+        "name": "mouseMoveAndRightClick"
+      }
+    },
+    {
+      "id": "keyboard",
+      "label": "Keyboard",
+      "icon": "Keyboard",
+      "row": 3,
+      "col": 0,
+      "dwell": {
+        "ms": 200
+      },
+      "action": {
+        "type": "loadLayout",
+        "layoutId": "uw_qwerty"
+      }
+    },
+    {
+      "id": "sleep",
+      "label": "Sleep",
+      "icon": "Sleep",
+      "activeState": "dwellSuspend",
+      "row": 4,
+      "col": 0,
+      "action": {
+        "type": "command",
+        "name": "toggleDwellSuspend"
+      }
+    },
+    {
+      "id": "lts",
+      "label": "Look↕Scroll",
+      "icon": "LookToScrollActive",
+      "activeState": "lookToScroll",
+      "row": 5,
+      "col": 0,
+      "action": {
+        "type": "command",
+        "name": "toggleLookToScroll"
+      }
+    },
+    {
+      "id": "mid",
+      "label": "Mid",
+      "row": 6,
+      "col": 0,
+      "action": {
+        "type": "command",
+        "name": "windowMid"
+      }
+    },
+    {
+      "id": "max",
+      "label": "Max",
+      "row": 7,
+      "col": 0,
+      "action": {
+        "type": "command",
+        "name": "windowMax"
+      }
+    }
+  ]
+}

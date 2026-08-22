@@ -50,6 +50,7 @@ public:
     [[nodiscard]] bool isDismissing() const;
     void applyPlacement();
 
+    /// AppSettings fallback when item and layout omit timing / grace.
     void setGlobalDwellOverride(const QVector<int>& dwellSequence, int graceMs,
                                 int scanGraceMs = DwellStateMachine::kDefaultScanGraceMs);
     void setProgressVisuals(const ProgressVisuals& visuals);

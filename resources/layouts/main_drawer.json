@@ -21,7 +21,7 @@
     "glass": true
   },
   "grid": {
-    "columns": 8,
+    "columns": 9,
     "rows": 1,
     "marginPx": 10,
     "gapPx": 10
@@ -34,7 +34,7 @@
       "col": 0,
       "action": {
         "type": "openLayout",
-        "layoutId": "example_keyboard"
+        "layoutId": "uw_qwerty"
       },
       "icon": "Keyboard"
     },
@@ -61,10 +61,21 @@
       "icon": "Conversation"
     },
     {
+      "id": "open_right",
+      "label": "Right",
+      "row": 0,
+      "col": 3,
+      "action": {
+        "type": "openLayout",
+        "layoutId": "uw_right"
+      },
+      "icon": "More"
+    },
+    {
       "id": "open_settings",
       "label": "Settings",
       "row": 0,
-      "col": 3,
+      "col": 4,
       "action": {
         "type": "openLayout",
         "layoutId": "main_settings_button_timing"
@@ -75,7 +86,7 @@
       "id": "close",
       "label": "Close",
       "row": 0,
-      "col": 4,
+      "col": 5,
       "action": {
         "type": "command",
         "name": "collapseMaster"
@@ -86,7 +97,7 @@
       "id": "close_all",
       "label": "Close All",
       "row": 0,
-      "col": 5,
+      "col": 6,
       "actions": [
         {
           "type": "command",
@@ -103,7 +114,7 @@
       "id": "dwell_suspend",
       "label": "Pause dwell",
       "row": 0,
-      "col": 6,
+      "col": 7,
       "activeState": "dwellSuspend",
       "action": {
         "type": "command",
@@ -115,7 +126,7 @@
       "id": "quit",
       "label": "Quit",
       "row": 0,
-      "col": 7,
+      "col": 8,
       "action": {
         "type": "loadLayout",
         "layoutId": "main_quit_confirm"
