@@ -22,7 +22,8 @@ public:
     void setEnabled(bool enabled);
     /// Single-step convenience (sequence of one).
     void setDwellMs(int ms);
-    /// Progressive / repeating dwell steps in ms (cycled until leave).
+    /// Progressive dwell steps in ms. 0 is legal (fire as soon as scan grace
+    /// ends). Last step repeats while gaze holds; earlier steps do not wrap.
     void setDwellSequence(const QVector<int>& msSteps);
     void setInvalidGraceMs(int ms);
     /// Time on-target before dwell sequence / progress animation begins (ms).

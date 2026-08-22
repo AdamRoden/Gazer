@@ -5,7 +5,9 @@
 
 #include "layout/LayoutGeometry.h"
 #include "layout/LayoutVisibility.h"
+#include "ui/BoardPaint.h"
 #include "ui/KeySymbols.h"
+#include "ui/SliderTrack.h"
 
 #include <QFont>
 #include <QFontMetricsF>
@@ -22,15 +24,7 @@ namespace {
 int fontPxToFit(const QString& family, int weight, int startPx, int minPx, const QString& text,
                 const QRectF& box, int flags)
 {
-    int px = startPx;
-    while (px > minPx) {
-        const QRectF br = QFontMetricsF(QFont(family, px, weight)).boundingRect(box, flags, text);
-        if (br.width() <= box.width() + 0.5 && br.height() <= box.height() + 0.5) {
-            break;
-        }
-        --px;
-    }
-    return qMax(minPx, px);
+    return BoardPaint::fontPxToFit(family, weight, startPx, minPx, text, box, flags);
 }
 
 qreal gridIconSide(const LayoutDocument& layout, int boardW, int boardH)
@@ -164,24 +158,7 @@ void LayoutBoardPainter::paintProgressChrome(QPainter& p, const QRectF& r, bool 
 
 void LayoutBoardPainter::paintPreviewSwatch(QPainter& p, const QRectF& r, double radius)
 {
-    QPainterPath clip;
-    clip.addRoundedRect(r, radius, radius);
-    p.save();
-    p.setClipPath(clip);
-    const int cell = 10;
-    for (int y = int(r.top()); y < int(r.bottom()); y += cell) {
-        for (int x = int(r.left()); x < int(r.right()); x += cell) {
-            const bool lite = ((x / cell) + (y / cell)) % 2 == 0;
-            p.fillRect(x, y, cell, cell, lite ? QColor(200, 200, 200) : QColor(140, 140, 140));
-        }
-    }
-    p.setPen(Qt::NoPen);
-    p.setBrush(m.previewColor);
-    p.drawRoundedRect(r, radius, radius);
-    p.restore();
-    p.setBrush(Qt::NoBrush);
-    p.setPen(QPen(QColor(255, 255, 255, 80), 1.5));
-    p.drawRoundedRect(r.adjusted(1, 1, -1, -1), radius, radius);
+    SliderTrack::paintPreview(p, r, radius, m.previewColor);
 }
 
 void LayoutBoardPainter::paintRadioButton(QPainter& p, const QRectF& cell, bool on)
@@ -200,175 +177,14 @@ void LayoutBoardPainter::paintRadioButton(QPainter& p, const QRectF& cell, bool 
     }
 }
 
-namespace {
-
-struct SliderChannelInfo {
-    QString name;
-    QString value;
-    double t = 0.0;
-};
-
-SliderChannelInfo sliderChannelInfo(const QString& channel, const QColor& color)
-{
-    QColor c = color.isValid() ? color : ThemeColors::defaultProgressColor();
-    int h = 0, s = 0, v = 0, a = 255;
-    c.getHsv(&h, &s, &v, &a);
-    if (h < 0) {
-        h = 0;
-    }
-    const QString ch = channel.toLower();
-    SliderChannelInfo info;
-    if (ch == QLatin1String("h") || ch == QLatin1String("hue")) {
-        info.name = QStringLiteral("Hue");
-        info.value = QString::number(h);
-        info.t = h / 359.0;
-    } else if (ch == QLatin1String("s") || ch == QLatin1String("sat")) {
-        const int pct = qBound(0, qRound(s / 2.55), 100);
-        info.name = QStringLiteral("Saturation");
-        info.value = QStringLiteral("%1%").arg(pct);
-        info.t = s / 255.0;
-    } else if (ch == QLatin1String("v") || ch == QLatin1String("val")) {
-        const int pct = qBound(0, qRound(v / 2.55), 100);
-        info.name = QStringLiteral("Value");
-        info.value = QStringLiteral("%1%").arg(pct);
-        info.t = v / 255.0;
-    } else if (ch == QLatin1String("r") || ch == QLatin1String("red")) {
-        info.name = QStringLiteral("Red");
-        info.value = QString::number(c.red());
-        info.t = c.red() / 255.0;
-    } else if (ch == QLatin1String("g") || ch == QLatin1String("green")) {
-        info.name = QStringLiteral("Green");
-        info.value = QString::number(c.green());
-        info.t = c.green() / 255.0;
-    } else if (ch == QLatin1String("b") || ch == QLatin1String("blue")) {
-        info.name = QStringLiteral("Blue");
-        info.value = QString::number(c.blue());
-        info.t = c.blue() / 255.0;
-    } else {
-        const int pct = qBound(0, qRound(c.alpha() / 2.55), 100);
-        info.name = QStringLiteral("Alpha");
-        info.value = QStringLiteral("%1%").arg(pct);
-        info.t = c.alpha() / 255.0;
-    }
-    info.t = qBound(0.0, info.t, 1.0);
-    return info;
-}
-
-} // namespace
-
 void LayoutBoardPainter::paintSliderTrack(QPainter& p, const QRectF& r, const LayoutItem& item,
                                          bool hovered, double progress)
 {
     const QString channel = item.caption.isEmpty() ? item.id : item.caption;
     const bool scrubbing = (item.id == m.sliderScrubId);
-    const LayoutQuickWindow::SliderVisual geom = LayoutQuickWindow::sliderVisual(r, scrubbing);
-    QColor base = m.previewColor.isValid() ? m.previewColor : ThemeColors::defaultProgressColor();
-    int h = 0, s = 0, v = 0, a = 255;
-    base.getHsv(&h, &s, &v, &a);
-    if (h < 0) {
-        h = 0;
-    }
-    const int cr = base.red();
-    const int cg = base.green();
-    const int cb = base.blue();
-    const SliderChannelInfo info = sliderChannelInfo(channel, base);
-    double t = scrubbing ? m.sliderScrubT : info.t;
-    QString valueText = scrubbing && !m.sliderScrubValue.isEmpty() ? m.sliderScrubValue
-                                                                  : info.value;
-    if (!scrubbing && readoutT().contains(item.id)) {
-        t = readoutT().value(item.id);
-        valueText = readoutV().value(item.id, valueText);
-    }
-    const QString nameText = item.label.isEmpty() ? info.name : item.label;
-
-    const QString ch = channel.toLower();
-    const QRectF track = geom.track;
-    const double radius = track.height() * 0.5;
-
-    if (ch == QLatin1String("a") || ch == QLatin1String("alpha")) {
-        QPainterPath clip;
-        clip.addRoundedRect(track, radius, radius);
-        p.save();
-        p.setClipPath(clip);
-        const int cell = 6;
-        for (int y = int(track.top()); y < int(track.bottom()); y += cell) {
-            for (int x = int(track.left()); x < int(track.right()); x += cell) {
-                const bool lite = ((x / cell) + (y / cell)) % 2 == 0;
-                p.fillRect(x, y, cell, cell, lite ? QColor(210, 210, 210) : QColor(150, 150, 150));
-            }
-        }
-        p.restore();
-    }
-
-    QLinearGradient g(track.left(), track.center().y(), track.right(), track.center().y());
-    if (ch == QLatin1String("h") || ch == QLatin1String("hue")) {
-        for (int i = 0; i <= 6; ++i) {
-            g.setColorAt(i / 6.0, QColor::fromHsv(qMin(359, i * 60), 255, 255));
-        }
-    } else if (ch == QLatin1String("s") || ch == QLatin1String("sat")) {
-        g.setColorAt(0.0, QColor::fromHsv(h, 0, v));
-        g.setColorAt(1.0, QColor::fromHsv(h, 255, v));
-    } else if (ch == QLatin1String("v") || ch == QLatin1String("val")) {
-        g.setColorAt(0.0, QColor::fromHsv(h, s, 0));
-        g.setColorAt(1.0, QColor::fromHsv(h, s, 255));
-    } else if (ch == QLatin1String("r") || ch == QLatin1String("red")) {
-        g.setColorAt(0.0, QColor(0, cg, cb));
-        g.setColorAt(1.0, QColor(255, cg, cb));
-    } else if (ch == QLatin1String("g") || ch == QLatin1String("green")) {
-        g.setColorAt(0.0, QColor(cr, 0, cb));
-        g.setColorAt(1.0, QColor(cr, 255, cb));
-    } else if (ch == QLatin1String("b") || ch == QLatin1String("blue")) {
-        g.setColorAt(0.0, QColor(cr, cg, 0));
-        g.setColorAt(1.0, QColor(cr, cg, 255));
-    } else if (ch == QLatin1String("contrast")) {
-        g.setColorAt(0.0, theme().bgSurface);
-        g.setColorAt(0.5, theme().cellHover);
-        g.setColorAt(1.0, theme().accent);
-    } else if (ch == QLatin1String("brightness")) {
-        g.setColorAt(0.0, QColor(20, 20, 22));
-        g.setColorAt(1.0, QColor(240, 240, 242));
-    } else {
-        QColor clear = base;
-        clear.setAlpha(0);
-        QColor solid = base;
-        solid.setAlpha(255);
-        g.setColorAt(0.0, clear);
-        g.setColorAt(1.0, solid);
-    }
-    p.setPen(Qt::NoPen);
-    p.setBrush(g);
-    p.drawRoundedRect(track, radius, radius);
-    p.setBrush(Qt::NoBrush);
-    p.setPen(QPen(QColor(255, 255, 255, 70), 1.1));
-    p.drawRoundedRect(track.adjusted(0.5, 0.5, -0.5, -0.5), radius, radius);
-
-    p.setPen(theme().text);
-    p.setFont(QFont(QStringLiteral("Segoe UI"), 10, QFont::DemiBold));
-    p.drawText(geom.header, Qt::AlignLeft | Qt::AlignVCenter, nameText);
-    p.setPen(theme().textSecondary);
-    p.drawText(geom.header, Qt::AlignRight | Qt::AlignVCenter, valueText);
-
-    const QPointF pos = geom.posAt(t);
-    const double ringD = geom.ringDiameter;
-    const QRectF ring(pos.x() - ringD * 0.5, pos.y() - ringD * 0.5, ringD, ringD);
-    p.setBrush(theme().bgMain);
-    p.setPen(QPen(Qt::white, scrubbing ? 2.4 : 2.0));
-    p.drawEllipse(ring);
-    p.setPen(QPen(QColor(0, 0, 0, 90), 1.0));
-    p.setBrush(Qt::NoBrush);
-    p.drawEllipse(ring.adjusted(1.5, 1.5, -1.5, -1.5));
-
-    const double ringProgress = scrubbing && m.sliderScrubProgress > 0.0 ? m.sliderScrubProgress
-                                                                        : (hovered ? progress : 0.0);
-    if (scrubbing) {
-        p.setPen(theme().text);
-        p.setFont(QFont(QStringLiteral("Segoe UI Semibold"), 10, QFont::DemiBold));
-        p.drawText(ring, Qt::AlignCenter, valueText);
-    }
-    if (ringProgress > 0.01) {
-        paintProgress(p, ring.adjusted(-3, -3, 3, 3), ringProgress, visualsForItem(&item),
-                      ProgressShape::Ellipse);
-    }
+    SliderTrack::paint(p, r, theme(), visualsForItem(&item), m.previewColor, channel, item.label,
+                       hovered, progress, scrubbing, m.sliderScrubT, m.sliderScrubValue,
+                       m.sliderScrubProgress);
 }
 
 void LayoutBoardPainter::paintCell(QPainter& p, const LayoutItem& item, const QRectF& r, bool onCard,

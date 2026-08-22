@@ -49,29 +49,6 @@ public:
     void clearSliderScrub();
     void setSliderReadout(const QString& itemId, double t, const QString& valueText);
     void flashItem(const QString& itemId);
-
-    struct SliderVisual {
-        QRectF track;
-        QRectF header;
-        double valueLeft = 0.0;
-        double valueRight = 0.0;
-        double trackCy = 0.0;
-        double ringDiameter = 16.0;
-        [[nodiscard]] QPointF posAt(double t) const
-        {
-            const double u = qBound(0.0, t, 1.0);
-            return {valueLeft + (valueRight - valueLeft) * u, trackCy};
-        }
-        [[nodiscard]] double tAtX(double localX) const
-        {
-            const double span = valueRight - valueLeft;
-            if (span <= 1.0) {
-                return 0.0;
-            }
-            return qBound(0.0, (localX - valueLeft) / span, 1.0);
-        }
-    };
-    [[nodiscard]] static SliderVisual sliderVisual(const QRectF& cell, bool scrubbing);
     void showAndRaise();
     /// HWND_TOPMOST only — no restack dip. No-op unless window.aboveTaskbar.
     void keepAboveTaskbar();

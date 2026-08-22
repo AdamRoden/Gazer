@@ -1,0 +1,78 @@
+<Page id="main_settings_theme" name="Theme">
+  <Grid id="board" desktopMode="true" rows="12" columns="16" anchor="Top" offset="0,0" size="1600,1.0" gap="6" margin="12" aboveTaskbar="false" thickness="1" radius="4">
+    <SubGrid id="tabs" row="0" col="0" colSpan="16" rows="1" columns="6" gap="6">
+      <Cell id="tab_buttons" row="0" col="0" label="Button" role="tab">
+        <Action id="Page" value="Close, Page, self"/>
+        <Action id="Page" value="Open, Page, main_settings_button_timing"/>
+      </Cell>
+      <Cell id="tab_pointers" row="0" col="1" label="Pointer" role="tab">
+        <Action id="Page" value="Close, Page, self"/>
+        <Action id="Page" value="Open, Page, main_settings_pointer_timing"/>
+      </Cell>
+      <Cell id="tab_styles" row="0" col="2" label="Styles" role="tab">
+        <Action id="Page" value="Close, Page, self"/>
+        <Action id="Page" value="Open, Page, main_settings_styles"/>
+      </Cell>
+      <Cell id="tab_assist" row="0" col="3" label="Assist" role="tab">
+        <Action id="Page" value="Close, Page, self"/>
+        <Action id="Page" value="Open, Page, main_settings_assist"/>
+      </Cell>
+      <Cell id="tab_lts" row="0" col="4" label="LTS" role="tab">
+        <Action id="Page" value="Close, Page, self"/>
+        <Action id="Page" value="Open, Page, main_settings_lts"/>
+      </Cell>
+      <Cell id="tab_theme" row="0" col="5" label="Theme" role="tab" interactive="false"/>
+    </SubGrid>
+
+    <Cell id="page_title" row="1" col="0" colSpan="16" label="Theme" caption="Custom palette: pick colors, then set contrast to Low, Medium, or High." role="label" textStyle="title"/>
+    <Cell id="h_palette" row="2" col="0" colSpan="16" label="Palette" role="label" textStyle="section"/>
+    <Cell id="bg_name" row="3" col="0" colSpan="12" label="Background" caption="Source color. Variant, foreground, and accent suggestions are generated from this." settingKey="customBgColor">
+    <Action id="Command" value="settings.edit.color.customBgColor"/>
+    </Cell>
+    <Cell id="var_sw" row="4" col="0" colSpan="8" label="Variant" caption="Surface" settingKey="customSurfaceColor">
+    <Action id="Command" value="settings.edit.color.customSurfaceColor"/>
+    </Cell>
+    <Cell id="fg_sw" row="4" col="8" colSpan="4" label="Foreground" caption="On background" settingKey="customTextColor">
+    <Action id="Command" value="settings.edit.color.customTextColor"/>
+    </Cell>
+    <Cell id="pri_name" row="5" col="0" colSpan="4" label="Primary" caption="Highlighted foreground." settingKey="customPrimaryColor">
+    <Action id="Command" value="settings.edit.color.customPrimaryColor"/>
+    </Cell>
+    <Cell id="sec_name" row="5" col="4" colSpan="4" label="Secondary" caption="Progress colors." settingKey="customSecondaryColor">
+    <Action id="Command" value="settings.edit.color.customSecondaryColor"/>
+    </Cell>
+    <Cell id="ter_name" row="5" col="8" colSpan="4" label="Tertiary" caption="Highlighted background." settingKey="customTertiaryColor">
+    <Action id="Command" value="settings.edit.color.customTertiaryColor"/>
+    </Cell>
+    <Cell id="c_name" row="6" col="0" colSpan="6" label="Contrast" caption="How far tones are pushed apart." role="label"/>
+    <Cell id="c_low" row="6" col="8" colSpan="2" label="Low" cluster="segment.contrast" activeState="setting.theme.contrast.low">
+    <Action id="Command" value="settings.theme.contrast.low"/>
+    </Cell>
+    <Cell id="c_med" row="6" col="10" colSpan="2" label="Medium" cluster="segment.contrast" activeState="setting.theme.contrast.medium">
+    <Action id="Command" value="settings.theme.contrast.medium"/>
+    </Cell>
+    <Cell id="c_high" row="6" col="12" colSpan="2" label="High" cluster="segment.contrast" activeState="setting.theme.contrast.high">
+    <Action id="Command" value="settings.theme.contrast.high"/>
+    </Cell>
+    <Cell id="mode_name" row="7" col="0" colSpan="6" label="Use theme" caption="Custom applies this palette. Light / Dark use the built-in presets." role="label"/>
+    <Cell id="light" row="7" col="8" colSpan="2" label="Light" cluster="segment.theme" activeState="setting.theme.light">
+    <Action id="Command" value="theme.light"/>
+    </Cell>
+    <Cell id="dark" row="7" col="10" colSpan="2" label="Dark" cluster="segment.theme" activeState="setting.theme.dark">
+    <Action id="Command" value="theme.dark"/>
+    </Cell>
+    <Cell id="custom" row="7" col="12" colSpan="2" label="Custom" cluster="segment.theme" activeState="setting.theme.custom">
+    <Action id="Command" value="theme.custom"/>
+    </Cell>
+    <Cell id="fl_name" row="8" col="0" colSpan="6" label="Completion flash" caption="Flash after activation. Foreground uses the item text color; Custom picks a color." role="label"/>
+    <Cell id="fl_fg" row="8" col="8" colSpan="2" label="Use Foreground" cluster="segment.flash" activeState="setting.flashUseForeground">
+    <Action id="Command" value="settings.flash.foreground"/>
+    </Cell>
+    <Cell id="fl_custom" row="8" col="10" colSpan="2" label="Custom" cluster="segment.flash" activeState="setting.flashUseCustom">
+    <Action id="Command" value="settings.flash.custom"/>
+    </Cell>
+    <Cell id="fl_sw" row="8" col="12" colSpan="4" label="Flash color" settingKey="flashColor">
+    <Action id="Command" value="settings.edit.color.flashColor"/>
+    </Cell>
+  </Grid>
+</Page>

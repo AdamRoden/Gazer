@@ -39,6 +39,8 @@ void registerAssistCommands(AssistCommandContext& ctx)
     auto applySettings = ctx.applySettings;
     auto refresh = ctx.refreshActiveIndicators;
     auto notify = ctx.notifyStatus;
+    auto setDwellSuspended = ctx.setDwellSuspended;
+    auto isDwellSuspended = ctx.isDwellSuspended;
 
     // When leaving a mode, tear down the tool that owns it — except soft handoffs
     // within the mouse-dwell family, and LTS kept alive under any mouse-dwell aim.
@@ -148,28 +150,35 @@ void registerAssistCommands(AssistCommandContext& ctx)
     });
 
     commands->registerBuiltin(QStringLiteral("toggleDwellSuspend"),
-                              [instances, refresh, notify](QString*) {
-                                  instances->toggleDwellSuspended();
+                              [setDwellSuspended, isDwellSuspended, refresh, notify](QString*) {
+                                  const bool on = !(isDwellSuspended && isDwellSuspended());
+                                  if (setDwellSuspended) {
+                                      setDwellSuspended(on);
+                                  }
                                   refresh();
-                                  notify(instances->isDwellSuspended()
-                                             ? QStringLiteral(
-                                                   "Dwell SUSPENDED — only unlock cells work")
-                                             : QStringLiteral("Dwell resumed"));
+                                  notify(on ? QStringLiteral(
+                                                  "Dwell SUSPENDED — only unlock cells work")
+                                            : QStringLiteral("Dwell resumed"));
                                   return true;
                               });
     commands->registerBuiltin(QStringLiteral("suspendDwell"),
-                              [instances, refresh, notify](QString*) {
-                                  instances->setDwellSuspended(true);
+                              [setDwellSuspended, refresh, notify](QString*) {
+                                  if (setDwellSuspended) {
+                                      setDwellSuspended(true);
+                                  }
                                   refresh();
                                   notify(QStringLiteral("Dwell SUSPENDED — only unlock cells work"));
                                   return true;
                               });
-    commands->registerBuiltin(QStringLiteral("resumeDwell"), [instances, refresh, notify](QString*) {
-        instances->setDwellSuspended(false);
-        refresh();
-        notify(QStringLiteral("Dwell resumed"));
-        return true;
-    });
+    commands->registerBuiltin(QStringLiteral("resumeDwell"),
+                              [setDwellSuspended, refresh, notify](QString*) {
+                                  if (setDwellSuspended) {
+                                      setDwellSuspended(false);
+                                  }
+                                  refresh();
+                                  notify(QStringLiteral("Dwell resumed"));
+                                  return true;
+                              });
 
     commands->registerBuiltin(
         QStringLiteral("toggleLookToScroll"),
@@ -265,6 +274,11 @@ void registerAssistCommands(AssistCommandContext& ctx)
         toggleMoveClick(ArmPurpose::CursorMoveRightClick,
                         QStringLiteral("Move + right click — dwell to place, then click"),
                         QStringLiteral("Move + right click OFF")));
+    commands->registerBuiltin(
+        QStringLiteral("mouseMoveAndMiddleClick"),
+        toggleMoveClick(ArmPurpose::CursorMoveMiddleClick,
+                        QStringLiteral("Move + middle click — dwell to place, then click"),
+                        QStringLiteral("Move + middle click OFF")));
     commands->registerBuiltin(QStringLiteral("toggleGazeReticle"),
                               [reticle, mag, refresh, notify](QString*) {
                                   const bool turningOn = !reticle->isEnabled();

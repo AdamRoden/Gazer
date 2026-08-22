@@ -188,6 +188,8 @@ const char* MouseDwellMove::purposeName(ArmPurpose purpose)
         return "moveLeftClick";
     case ArmPurpose::CursorMoveRightClick:
         return "moveRightClick";
+    case ArmPurpose::CursorMoveMiddleClick:
+        return "moveMiddleClick";
     case ArmPurpose::CursorMove:
     default:
         return "move";
@@ -228,7 +230,8 @@ bool MouseDwellMove::useMagPickThisArm() const
            && (m_purpose == ArmPurpose::CursorMove
                || m_purpose == ArmPurpose::CursorMoveClickLoop
                || m_purpose == ArmPurpose::CursorMoveLeftClick
-               || m_purpose == ArmPurpose::CursorMoveRightClick);
+               || m_purpose == ArmPurpose::CursorMoveRightClick
+               || m_purpose == ArmPurpose::CursorMoveMiddleClick);
 }
 
 void MouseDwellMove::setArmed(bool armed, ArmPurpose purpose)
@@ -837,9 +840,15 @@ void MouseDwellMove::completeMoveCycle(const QPoint& target)
     const bool loop = m_purpose == ArmPurpose::CursorMoveClickLoop;
     const bool leftOnce = m_purpose == ArmPurpose::CursorMoveLeftClick;
     const bool rightOnce = m_purpose == ArmPurpose::CursorMoveRightClick;
-    if (loop || leftOnce || rightOnce) {
+    const bool middleOnce = m_purpose == ArmPurpose::CursorMoveMiddleClick;
+    if (loop || leftOnce || rightOnce || middleOnce) {
         QString err;
-        const QString button = rightOnce ? QStringLiteral("right") : QStringLiteral("left");
+        QString button = QStringLiteral("left");
+        if (rightOnce) {
+            button = QStringLiteral("right");
+        } else if (middleOnce) {
+            button = QStringLiteral("middle");
+        }
         if (!MouseInjector::click(button, &err)) {
             GAZER_WARN << "MouseDwellMove click failed:" << err;
         }

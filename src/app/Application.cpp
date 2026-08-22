@@ -3,6 +3,8 @@
 #include "app/AppSettings.h"
 #include "app/SettingsUi.h"
 #include "editor/LayoutEditorWindow.h"
+#include "layout/LayoutInstance.h"
+#include "layout/PageSession.h"
 #include "ui/OverlaySurface.h"
 #include "core/TrackerMouse.h"
 #include "core/TrackerTobii.h"
@@ -11,6 +13,7 @@
 #include <QApplication>
 #include <QCoreApplication>
 #include <QDir>
+#include <QFileInfo>
 #include <QSize>
 #include <QStandardPaths>
 #include <QTimer>
@@ -46,13 +49,21 @@ bool Application::initialize()
     m_actions = std::make_unique<ActionDispatcher>(*m_svc);
     m_preview = std::make_unique<PreviewWindow>();
     m_tray = std::make_unique<TrayIcon>();
-    m_dockReveal = std::make_unique<DockRevealOverlay>();
     m_edgeBubbles = std::make_unique<EdgeBubbleOverlay>();
     m_dwellSuspendOverlay = std::make_unique<DwellSuspendOverlay>();
     m_svc->instances().setEdgeBubbleOverlay(m_edgeBubbles.get());
-    auto restackChrome = [this]() { m_svc->instances().restackChrome(); };
+    auto restackChrome = [this]() {
+        if (m_restacking) {
+            return;
+        }
+        m_restacking = true;
+        m_svc->instances().restackChrome();
+        if (m_dwellSuspendOverlay && m_dwellSuspendOverlay->isVisible()) {
+            m_dwellSuspendOverlay->raiseStack();
+        }
+        m_restacking = false;
+    };
     connect(m_edgeBubbles.get(), &OverlaySurface::stackChanged, this, restackChrome);
-    connect(m_dockReveal.get(), &OverlaySurface::stackChanged, this, restackChrome);
     connect(m_dwellSuspendOverlay.get(), &OverlaySurface::stackChanged, this, restackChrome);
 
     // Domain owns loops + lifecycle; shell only supplies the dispatcher.
@@ -63,7 +74,7 @@ bool Application::initialize()
     });
 
     m_gazeRouter.setInstances(&m_svc->instances());
-    m_gazeRouter.setDockReveal(m_dockReveal.get());
+    m_gazeRouter.setPages(&m_svc->pages());
     m_gazeRouter.setAssistSession(&m_svc->assistSession());
     m_gazeRouter.setLookToScroll(&m_svc->lookToScroll());
     m_gazeRouter.setMouseDwellMove(&m_svc->mouseDwellMove());
@@ -76,9 +87,8 @@ bool Application::initialize()
     connect(m_tray.get(), &TrayIcon::showPreviewRequested, m_preview.get(),
             &PreviewWindow::showAndRaise);
     connect(m_tray.get(), &TrayIcon::showLayoutRequested, this, [this]() {
-        m_svc->instances().raiseMaster();
-        m_dockRevealed = false;
-        syncMasterChrome();
+        m_svc->pages().raise();
+        updateTrayStatus();
     });
     connect(m_tray.get(), &TrayIcon::layoutEditorRequested, this, [this]() { openLayoutEditor(); });
     connect(m_tray.get(), &TrayIcon::quitRequested, this, &Application::onQuitRequested);
@@ -96,24 +106,6 @@ bool Application::initialize()
             return true;
         });
 
-    connect(m_dockReveal.get(), &DockRevealOverlay::dockRevealRequested, this, [this]() {
-        auto* master = m_svc->instances().masterInstance();
-        if (!master || !master->document().isGazeRevealDock()) {
-            GAZER_WARN << "Dock reveal fired but master is not a gaze-reveal dock";
-            return;
-        }
-        m_dockRevealed = true;
-        // Strip must turn off or it steals gaze from the Main ▶ chip (same corner).
-        if (m_dockReveal) {
-            m_dockReveal->setEnabledReveal(false);
-        }
-        master->raise();
-        if (m_tray) {
-            m_tray->setStatus(QStringLiteral("Dock revealed — dwell Main ▶"));
-        }
-        GAZER_INFO << "Collapsed dock revealed";
-    });
-
     m_svc->commands().registerBuiltin(QStringLiteral("quitApp"), [this](QString*) {
         QTimer::singleShot(0, this, &Application::onQuitRequested);
         return true;
@@ -123,17 +115,18 @@ bool Application::initialize()
         return expandMasterShell(error);
     });
     m_svc->commands().registerBuiltin(QStringLiteral("collapseMaster"), [this](QString*) {
-        m_svc->instances().collapseHome();
-        m_dockRevealed = false;
-        syncMasterChrome();
+        m_svc->pages().applyPageAction(PageVerb::Close, PageTargetKind::Grid,
+                                       QStringLiteral("all"));
+        updateTrayStatus();
         return true;
     });
     m_svc->commands().registerBuiltin(QStringLiteral("closeOtherViews"), [this](QString*) {
-        const int n = m_svc->instances().closeOtherViews();
-        m_dockRevealed = false;
-        syncMasterChrome();
+        const int pages = m_svc->pages().closeAttached();
+        const int json = m_svc->instances().closeOtherViews();
+        updateTrayStatus();
         if (m_tray) {
-            m_tray->setStatus(QStringLiteral("Closed %1 other board(s)").arg(n));
+            m_tray->setStatus(
+                QStringLiteral("Closed %1 other board(s)").arg(pages + json));
         }
         return true;
     });
@@ -170,19 +163,16 @@ bool Application::initialize()
 
     connect(&m_svc->instances(), &LayoutInstanceManager::sessionChanged, this,
             &Application::syncDwellSuspendOverlay);
-    connect(&m_svc->instances(), &LayoutInstanceManager::dwellSuspendChanged, this,
+    connect(&m_svc->pages(), &PageSession::dwellSuspendChanged, this,
             [this](bool) { syncDwellSuspendOverlay(); });
+    connect(&m_svc->pages(), &PageSession::sessionChanged, this, &Application::updateTrayStatus);
 
     auto statusToTray = [this](const QString& msg) {
         if (m_tray) {
             m_tray->setStatus(msg);
         }
     };
-    connect(m_svc.get(), &GazerServices::settingsChanged, this, [this]() {
-        if (m_dockReveal) {
-            m_dockReveal->setAccent(m_svc->settings().colorKey(QStringLiteral("progressColor")));
-        }
-    });
+    connect(m_svc.get(), &GazerServices::settingsChanged, this, [this]() { updateTrayStatus(); });
     connect(m_actions.get(), &ActionDispatcher::statusMessage, this, statusToTray);
     connect(&m_svc->commands(), &CommandRegistry::statusMessage, this, statusToTray);
     connect(&m_svc->scripts(), &ScriptHost::statusMessage, this, statusToTray);
@@ -191,25 +181,33 @@ bool Application::initialize()
 
     connect(&m_svc->instances(), &LayoutInstanceManager::itemActivated, this,
             &Application::onItemActivated);
-    connect(&m_svc->instances(), &LayoutInstanceManager::sessionChanged, this, [this]() {
-        // Entering a new master document: reset reveal so dock starts hidden again.
-        auto* master = m_svc->instances().masterInstance();
-        if (!master || !master->document().isGazeRevealDock()) {
-            m_dockRevealed = false;
-        } else if (!m_dockRevealed) {
-            // Fresh dock mode — keep hidden.
+    connect(&m_svc->instances(), &LayoutInstanceManager::sessionChanged, this,
+            &Application::updateTrayStatus);
+
+    const QString mainXml =
+        QDir(appDir).filePath(QStringLiteral("resources/layouts/main.xml"));
+    m_svc->pages().setDispatch([this](const QVector<PageAction>& acts, const QString& pageId,
+                                      const QString& targetId) {
+        if (m_actions) {
+            m_actions->dispatchPage(acts, pageId, targetId);
         }
-        syncMasterChrome();
     });
 
-    if (!m_svc->instances().openMaster(QStringLiteral("main_master"), &err)) {
-        GAZER_ERROR << "Failed to open root layout:" << err;
+    if (!QFileInfo::exists(mainXml)) {
+        GAZER_ERROR << "Root page missing:" << mainXml;
         return false;
     }
+    m_svc->pages().setLayoutsDirectory(QFileInfo(mainXml).absolutePath());
+    if (!m_svc->pages().openRoot(mainXml, &err)) {
+        GAZER_ERROR << "Failed to open root page:" << err;
+        return false;
+    }
+    m_svc->applySettings(false);
     if (!m_svc->settings().startDocked) {
         QString expandErr;
-        if (!m_svc->instances().expandHome(&expandErr)) {
-            GAZER_WARN << "Initial expand home failed:" << expandErr;
+        if (!m_svc->pages().applyPageAction(PageVerb::Open, PageTargetKind::Grid,
+                                            QStringLiteral("drawer"), &expandErr)) {
+            GAZER_WARN << "Initial expand drawer failed:" << expandErr;
         }
     }
 
@@ -217,7 +215,7 @@ bool Application::initialize()
         return false;
     }
 
-    syncMasterChrome();
+    updateTrayStatus();
     GAZER_INFO << "Gazer running. Tracker:" << m_tracker->name()
                << "TTS:" << (m_svc->tts().isAvailable() ? "yes" : "no")
                << "settings:" << AppSettings::defaultFilePath();
@@ -228,42 +226,13 @@ bool Application::initialize()
     return true;
 }
 
-void Application::syncMasterChrome()
+void Application::updateTrayStatus()
 {
-    auto* master = m_svc ? m_svc->instances().masterInstance() : nullptr;
-    const bool gazeDock = master && master->document().isGazeRevealDock();
-    const int boardCount = m_svc ? m_svc->instances().visibleBoardCount() : 0;
-
-    // Reveal strip only while dock is collapsed *and* still hidden. Once the chip
-    // is shown, the strip must not steal gaze from Main ▶.
-    if (m_dockReveal) {
-        m_dockReveal->setEnabledReveal(gazeDock && !m_dockRevealed);
+    if (!m_tray || !m_tracker || !m_svc) {
+        return;
     }
-
-    if (master && gazeDock) {
-        if (m_dockRevealed) {
-            master->raise();
-            if (boardCount > 1) {
-                m_svc->instances().reassertStackTopVisual();
-            }
-        } else {
-            master->hide();
-            GAZER_INFO << "Dock hidden — look bottom-left strip to reveal";
-        }
-    } else if (master) {
-        m_dockRevealed = false;
-        if (m_dockReveal) {
-            m_dockReveal->setEnabledReveal(false);
-        }
-        // Root is headless dock chips — restack visible chrome, do not raise the root.
-        m_svc->instances().reassertStackTopVisual();
-    }
-
-    if (m_tray && m_tracker) {
-        m_tray->setStatus(QStringLiteral("%1 boards · %2")
-                              .arg(m_svc->instances().visibleBoardCount())
-                              .arg(m_tracker->name()));
-    }
+    const int n = m_svc->pages().openCount() + m_svc->instances().visibleBoardCount();
+    m_tray->setStatus(QStringLiteral("%1 boards · %2").arg(n).arg(m_tracker->name()));
 }
 
 bool Application::startTracker()
@@ -311,7 +280,7 @@ void Application::onTobiiStreamFailed(const QString& reason)
 {
     GAZER_WARN << "Tobii stream failed:" << reason << "— switching to mouse";
     fallbackToMouse();
-    syncMasterChrome();
+    updateTrayStatus();
 }
 
 void Application::syncDwellSuspendOverlay()
@@ -319,7 +288,7 @@ void Application::syncDwellSuspendOverlay()
     if (!m_dwellSuspendOverlay || !m_svc) {
         return;
     }
-    const bool susp = m_svc->instances().isDwellSuspended();
+    const bool susp = m_svc->isDwellSuspended();
     m_dwellSuspendOverlay->setSuspended(susp);
     if (!susp) {
         return;
@@ -350,6 +319,9 @@ void Application::syncDwellSuspendOverlay()
                 gaps.push_back(gap.adjusted(-16, -16, 16, 16));
             }
         }
+    }
+    for (const QRect& gap : m_svc->pages().unpauseGapRects()) {
+        gaps.push_back(gap);
     }
     m_dwellSuspendOverlay->setGapRects(gaps);
     m_dwellSuspendOverlay->refreshGeometry();
@@ -415,17 +387,6 @@ void Application::onItemActivated(const QString& instanceId, const QString& item
     GAZER_INFO << "Activate:" << sourceId << itemCopy.id << itemCopy.label
                << "actions" << acts.size() << (itemCopy.actionLoop ? "loop" : "");
 
-    // expandMaster must run immediately (dock→Main races hide chrome if deferred).
-    // All other actions go through ActionDispatcher on the next event-loop tick.
-    bool immediate = false;
-    for (const LayoutAction& a : acts) {
-        if (a.type == LayoutAction::Type::Command
-            && a.name == QStringLiteral("expandMaster")) {
-            immediate = true;
-            break;
-        }
-    }
-
     auto run = [this, itemCopy, sourceId]() {
         if (m_actions) {
             m_actions->dispatchItem(itemCopy, sourceId);
@@ -439,7 +400,8 @@ void Application::onItemActivated(const QString& instanceId, const QString& item
                 if (a.name == QLatin1String("mouseDwellMove")
                     || a.name == QLatin1String("mouseDwellClickLoop")
                     || a.name == QLatin1String("mouseMoveAndLeftClick")
-                    || a.name == QLatin1String("mouseMoveAndRightClick")) {
+                    || a.name == QLatin1String("mouseMoveAndRightClick")
+                    || a.name == QLatin1String("mouseMoveAndMiddleClick")) {
                     armsMove = true;
                     break;
                 }
@@ -453,37 +415,24 @@ void Application::onItemActivated(const QString& instanceId, const QString& item
                 }
             }
         }
-        if (auto* master = m_svc->instances().masterInstance()) {
-            if (!master->document().isGazeRevealDock()) {
-                m_dockRevealed = false;
-            }
-        }
         m_svc->instances().restackChrome();
-        syncMasterChrome();
+        updateTrayStatus();
     };
 
-    if (immediate) {
-        run();
-    } else {
-        QTimer::singleShot(0, this, run);
-    }
+    QTimer::singleShot(0, this, run);
 }
 
 bool Application::expandMasterShell(QString* error)
 {
-    m_dockRevealed = false;
-    if (m_dockReveal) {
-        m_dockReveal->setEnabledReveal(false);
-    }
-
-    if (!m_svc->instances().expandHome(error)) {
+    if (!m_svc->pages().applyPageAction(PageVerb::Open, PageTargetKind::Grid,
+                                        QStringLiteral("drawer"), error)) {
         if (m_tray && error) {
             m_tray->setStatus(QStringLiteral("Expand failed: %1").arg(*error));
         }
         return false;
     }
 
-    syncMasterChrome();
+    updateTrayStatus();
     if (m_tray) {
         m_tray->setStatus(QStringLiteral("Main restored"));
     }
@@ -545,10 +494,6 @@ void Application::shutdownUi()
         m_edgeBubbles->clearAll();
         m_edgeBubbles->hide();
     }
-    if (m_dockReveal) {
-        m_dockReveal->setEnabledReveal(false);
-        m_dockReveal->hide();
-    }
     if (m_svc) {
         m_svc->magnifier().setEnabledLens(false);
         m_svc->lookToScroll().setEnabled(false);
@@ -557,6 +502,7 @@ void Application::shutdownUi()
         m_svc->tts().stop();
         m_svc->instances().hideAll();
         m_svc->instances().shutdown();
+        m_svc->pages().hideHost();
     }
     if (m_preview) {
         m_preview->hide();

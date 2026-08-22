@@ -5,6 +5,7 @@
 #include "core/GazePoint.h"
 #include "layout/InvalidGazeGrace.h"
 #include "layout/LayoutTypes.h"
+#include "layout/PageTypes.h"
 #include "ui/ThemeScheme.h"
 
 #include <QColor>
@@ -20,6 +21,7 @@ namespace gazer {
 class CommandRegistry;
 class LayoutInstanceManager;
 class LayoutManager;
+class PageSession;
 
 /// Settings boards: live value decoration, numeric editor, color picker, settings commands.
 class SettingsUi {
@@ -30,7 +32,7 @@ public:
     using ResetFn = std::function<void()>;
 
     SettingsUi(AppSettings& settings, LayoutInstanceManager& instances, LayoutManager& catalog,
-               CommandRegistry& commands);
+               CommandRegistry& commands, PageSession& pages);
 
     void setApplyFn(ApplyFn fn) { m_apply = std::move(fn); }
     void setNotifyFn(NotifyFn fn) { m_notify = std::move(fn); }
@@ -39,24 +41,13 @@ public:
 
     void registerCommands();
     void decorateDocument(LayoutDocument& doc) const;
-    void refreshOpenBoards();
+    void decoratePage(PageDocument& doc) const;
     /// Gaze-follow color slider after the track is activated.
     void onGaze(const GazePoint& point);
     [[nodiscard]] bool isSliderScrubbing() const { return m_scrub.active; }
     [[nodiscard]] QString colorPickerKey() const { return m_colorPickerKey; }
 
     [[nodiscard]] bool isNumpadActive() const { return m_numpad.active; }
-    [[nodiscard]] QString numpadInstanceId() const { return m_numpad.instanceId; }
-
-    static LayoutItem makeItem(const QString& id, const QString& label, int row, int col,
-                               LayoutAction::Type type, const QString& payload,
-                               const QColor& bg = QColor(), int colSpan = 1,
-                               bool interactive = true, const QString& caption = {},
-                               const QString& settingKey = {}, const QString& role = {});
-    static LayoutItem makeLabel(const QString& id, const QString& label, int row, int col,
-                                int colSpan = 1, const QString& caption = {},
-                                const QString& settingKey = {});
-    static void applyLiveEditorChrome(LayoutDocument& doc);
 
     static constexpr const char* kColorKeys[] = {
         "progressColor",      "progressFillColor",   "progressBorderColor", "flashColor",
@@ -78,7 +69,7 @@ private:
     [[nodiscard]] EditorSwatch editorSwatch() const;
     [[nodiscard]] bool openNumericEditor(const QString& settingKey, QString* error = nullptr);
     void refreshNumpadDisplay();
-    [[nodiscard]] LayoutDocument buildNumpadDocument() const;
+    [[nodiscard]] PageDocument buildNumpadDocument() const;
     void numpadAppend(const QString& ch);
     void numpadBackspace();
     void numpadClear();
@@ -91,7 +82,7 @@ private:
 
     [[nodiscard]] bool openArrayEditor(const QString& settingKey, QString* error = nullptr);
     void refreshArrayEditor();
-    [[nodiscard]] LayoutDocument buildArrayDocument() const;
+    [[nodiscard]] PageDocument buildArrayDocument() const;
     void arrayNudge(int index, int dir);
     void arrayNudgeAll(int dir);
     void arrayRemove(int index);
@@ -105,14 +96,14 @@ private:
     [[nodiscard]] bool openFlashCustom(QString* error = nullptr);
     [[nodiscard]] bool openOpacityEditor(QString* error = nullptr);
     void refreshOpacityEditor();
-    [[nodiscard]] LayoutDocument buildOpacityDocument() const;
+    [[nodiscard]] PageDocument buildOpacityDocument() const;
     void closeOpacityEditor();
     void opacityNudge(int dir);
     [[nodiscard]] bool opacitySave(QString* error = nullptr);
     [[nodiscard]] bool openColorPicker(const QString& colorKey, QString* error = nullptr);
     [[nodiscard]] bool selectColorTarget(const QString& colorKey, QString* error = nullptr);
     void refreshColorPicker();
-    [[nodiscard]] LayoutDocument buildColorDocument() const;
+    [[nodiscard]] PageDocument buildColorDocument() const;
     void closeColorPicker();
     void colorNudge(const QString& channel, int dir);
     void colorSetChannel(const QString& channel, int value);
@@ -131,47 +122,44 @@ private:
     [[nodiscard]] AppSettings draftThemeSettings() const;
     [[nodiscard]] QColor suggestedDraftColor(const QString& colorKey) const;
     void applySuggestedColor(const QString& colorKey);
-    void updateLiveThemeSwatches();
     void refreshHexEditor();
     [[nodiscard]] bool colorSave(QString* error = nullptr);
     [[nodiscard]] bool colorEditChannel(const QString& channel, QString* error = nullptr);
     [[nodiscard]] bool openHexEditor(QString* error = nullptr);
-    [[nodiscard]] LayoutDocument buildHexDocument() const;
+    [[nodiscard]] PageDocument buildHexDocument() const;
     void hexAppend(QChar ch);
     void hexBackspace();
     [[nodiscard]] bool hexSave(QString* error = nullptr);
     [[nodiscard]] bool hexCancel(QString* error = nullptr);
 
     void applyPreviewColor();
-    [[nodiscard]] bool returnEditorInstance(const QString& instId, const QString& layoutId,
-                                            QString* error);
-    [[nodiscard]] bool isLiveEditorInstance(const QString& instanceId) const;
     [[nodiscard]] QColor flashOpacityPreview() const;
-
-    void notifyStatus(const QString& msg);
-    void apply(bool persist);
-    void bindEditorKeyboard(const QString& instanceId);
-    void unbindEditorKeyboard();
-    void handleEditorKey(int key, const QString& text);
 
     struct LiveBoard {
         bool active = false;
-        QString instanceId;
-        QString returnLayoutId;
+        QString pageId;
         void reset()
         {
             active = false;
-            instanceId.clear();
-            returnLayoutId.clear();
+            pageId.clear();
         }
     };
 
-    [[nodiscard]] bool claimFocusedBoard(LiveBoard& board, QString* error);
+    [[nodiscard]] bool presentLive(LiveBoard& board, const QString& id, PageDocument doc,
+                                   QString* error);
+    void closeLive(LiveBoard& board);
+
+    void notifyStatus(const QString& msg);
+    void apply(bool persist);
+    void bindEditorKeyboard();
+    void unbindEditorKeyboard();
+    void handleEditorKey(int key, const QString& text);
 
     AppSettings& m_settings;
     LayoutInstanceManager& m_instances;
     LayoutManager& m_catalog;
     CommandRegistry& m_commands;
+    PageSession& m_pages;
     ApplyFn m_apply;
     NotifyFn m_notify;
     MutateFn m_mutate;
@@ -218,13 +206,11 @@ private:
         bool active = false;
         QString channel;
         QString itemId;
-        QString instanceId;
         void reset()
         {
             active = false;
             channel.clear();
             itemId.clear();
-            instanceId.clear();
         }
     };
     SliderScrub m_scrub;

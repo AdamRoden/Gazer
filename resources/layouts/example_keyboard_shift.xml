@@ -1,0 +1,112 @@
+<Page id="example_keyboard_shift" name="Keyboard ⇧">
+  <Grid id="board" desktopMode="true" rows="3" columns="12" anchor="Bottom" offset="0,0" size="1280,280" gap="4" margin="4" aboveTaskbar="false">
+    <Cell id="tab" row="0" col="0" icon="Tab" label="Tab" background="#3d4f66" foreground="#ffffff">
+    <Action id="Command" value="tab"/>
+    </Cell>
+    <Cell id="ch_81_0_1" row="0" col="1" label="Q">
+    <Action id="Send" value="Q"/>
+    </Cell>
+    <Cell id="ch_87_0_2" row="0" col="2" label="W">
+    <Action id="Send" value="W"/>
+    </Cell>
+    <Cell id="ch_69_0_3" row="0" col="3" label="E">
+    <Action id="Send" value="E"/>
+    </Cell>
+    <Cell id="ch_82_0_4" row="0" col="4" label="R">
+    <Action id="Send" value="R"/>
+    </Cell>
+    <Cell id="ch_84_0_5" row="0" col="5" label="T">
+    <Action id="Send" value="T"/>
+    </Cell>
+    <Cell id="ch_89_0_6" row="0" col="6" label="Y">
+    <Action id="Send" value="Y"/>
+    </Cell>
+    <Cell id="ch_85_0_7" row="0" col="7" label="U">
+    <Action id="Send" value="U"/>
+    </Cell>
+    <Cell id="ch_73_0_8" row="0" col="8" label="I">
+    <Action id="Send" value="I"/>
+    </Cell>
+    <Cell id="ch_79_0_9" row="0" col="9" label="O">
+    <Action id="Send" value="O"/>
+    </Cell>
+    <Cell id="ch_80_0_10" row="0" col="10" label="P">
+    <Action id="Send" value="P"/>
+    </Cell>
+    <Cell id="bksp" row="0" col="11" icon="BackOne" label="⌫" background="#3d4f66" foreground="#ffffff">
+    <Action id="Command" value="backspace"/>
+    </Cell>
+    <Cell id="shift" row="1" col="0" icon="Shift" label="⇧" background="#e9c46a" foreground="#1a1a1a">
+    <Action id="Page" value="Close, Page, self"/>
+    <Action id="Page" value="Open, Page, example_keyboard"/>
+    </Cell>
+    <Cell id="ch_65_1_1" row="1" col="1" label="A">
+    <Action id="Send" value="A"/>
+    </Cell>
+    <Cell id="ch_83_1_2" row="1" col="2" label="S">
+    <Action id="Send" value="S"/>
+    </Cell>
+    <Cell id="ch_68_1_3" row="1" col="3" label="D">
+    <Action id="Send" value="D"/>
+    </Cell>
+    <Cell id="ch_70_1_4" row="1" col="4" label="F">
+    <Action id="Send" value="F"/>
+    </Cell>
+    <Cell id="ch_71_1_5" row="1" col="5" label="G">
+    <Action id="Send" value="G"/>
+    </Cell>
+    <Cell id="ch_72_1_6" row="1" col="6" label="H">
+    <Action id="Send" value="H"/>
+    </Cell>
+    <Cell id="ch_74_1_7" row="1" col="7" label="J">
+    <Action id="Send" value="J"/>
+    </Cell>
+    <Cell id="ch_75_1_8" row="1" col="8" label="K">
+    <Action id="Send" value="K"/>
+    </Cell>
+    <Cell id="ch_76_1_9" row="1" col="9" label="L">
+    <Action id="Send" value="L"/>
+    </Cell>
+    <Cell id="comma" row="1" col="10" label="?">
+    <Action id="Send" value="?"/>
+    </Cell>
+    <Cell id="quote" row="1" col="11" label="&quot;">
+    <Action id="Send" value="&quot;"/>
+    </Cell>
+    <Cell id="cmd" row="2" col="0" icon="Win" label="⌘" background="#3d4f66" foreground="#ffffff"/>
+    <Cell id="sym" row="2" col="1" icon="NumericAndSymbols" label="123?" background="#0a7ea4" foreground="#ffffff">
+    <Action id="Page" value="Close, Page, self"/>
+    <Action id="Page" value="Open, Page, example_keyboard_sym_shift"/>
+    </Cell>
+    <Cell id="ch_90_2_2" row="2" col="2" label="Z">
+    <Action id="Send" value="Z"/>
+    </Cell>
+    <Cell id="ch_88_2_3" row="2" col="3" label="X">
+    <Action id="Send" value="X"/>
+    </Cell>
+    <Cell id="ch_67_2_4" row="2" col="4" label="C">
+    <Action id="Send" value="C"/>
+    </Cell>
+    <Cell id="ch_86_2_5" row="2" col="5" label="V">
+    <Action id="Send" value="V"/>
+    </Cell>
+    <Cell id="space" row="2" col="6" icon="Space" label="␣" background="#3d4f66" foreground="#ffffff">
+    <Action id="Command" value="space"/>
+    </Cell>
+    <Cell id="ch_66_2_7" row="2" col="7" label="B">
+    <Action id="Send" value="B"/>
+    </Cell>
+    <Cell id="ch_78_2_8" row="2" col="8" label="N">
+    <Action id="Send" value="N"/>
+    </Cell>
+    <Cell id="ch_77_2_9" row="2" col="9" label="M">
+    <Action id="Send" value="M"/>
+    </Cell>
+    <Cell id="period" row="2" col="10" label="!">
+    <Action id="Send" value="!"/>
+    </Cell>
+    <Cell id="enter" row="2" col="11" icon="Enter" label="↵" background="#0a7ea4" foreground="#ffffff">
+    <Action id="Command" value="enter"/>
+    </Cell>
+  </Grid>
+</Page>

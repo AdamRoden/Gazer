@@ -29,7 +29,8 @@ public:
         LookToScrollPlace,    ///< Place scroll origin for LTS (always direct).
         CursorMoveClickLoop,  ///< Same as CursorMove, then left-click and re-arm until off.
         CursorMoveLeftClick,  ///< Move-to, then one left click and disarm.
-        CursorMoveRightClick  ///< Move-to, then one right click and disarm.
+        CursorMoveRightClick, ///< Move-to, then one right click and disarm.
+        CursorMoveMiddleClick ///< Move-to, then one middle click and disarm.
     };
 
     explicit MouseDwellMove(QObject* parent = nullptr);

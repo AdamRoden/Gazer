@@ -1,11 +1,15 @@
 ﻿#include "app/SettingsUi.h"
+#include "app/SettingsPageBuild.h"
 
 #include "app/CommandRegistry.h"
 #include "layout/LayoutTypes.h"
 #include "layout/LayoutInstance.h"
 #include "layout/LayoutInstanceManager.h"
 #include "layout/LayoutManager.h"
+#include "layout/PageDim.h"
+#include "layout/PageSession.h"
 #include "ui/LayoutQuickWindow.h"
+#include "ui/PageHostWindow.h"
 #include "ui/Theme.h"
 
 #include <QColor>
@@ -13,67 +17,16 @@
 #include <QObject>
 #include <QtGlobal>
 #include <QVector>
+#include <optional>
 
 namespace gazer {
-
-LayoutItem SettingsUi::makeItem(const QString& id, const QString& label, int row, int col,
-                                LayoutAction::Type type, const QString& payload, const QColor& bg,
-                                int colSpan, bool interactive, const QString& caption,
-                                const QString& settingKey, const QString& role)
-{
-    LayoutItem it;
-    it.id = id;
-    it.label = label;
-    it.caption = caption;
-    it.settingKey = settingKey;
-    it.role = role;
-    it.applyKind();
-    it.interactive = interactive;
-    it.row = row;
-    it.col = col;
-    it.colSpan = colSpan;
-    const QColor fill = bg.isValid() ? bg : ThemeColors::darkPreset().cellBg;
-    it.style.background = fill;
-    it.style.foreground = fill.alpha() == 0 ? QColor() : ThemeColors::contrastOn(fill);
-    if (interactive && type != LayoutAction::Type::Unknown) {
-        it.action.type = type;
-        if (type == LayoutAction::Type::Command) {
-            it.action.name = payload;
-        } else if (type == LayoutAction::Type::LoadLayout
-                   || type == LayoutAction::Type::OpenLayout) {
-            it.action.layoutId = payload;
-        } else if (type == LayoutAction::Type::TypeText) {
-            it.action.text = payload;
-        }
-    }
-    return it;
-}
-
-LayoutItem SettingsUi::makeLabel(const QString& id, const QString& label, int row, int col,
-                                 int colSpan, const QString& caption, const QString& settingKey)
-{
-    LayoutItem it = makeItem(id, label, row, col, LayoutAction::Type::Unknown, {}, QColor(0, 0, 0, 0),
-                             colSpan, /*interactive=*/false, caption, settingKey);
-    it.role = QStringLiteral("label");
-    it.applyKind();
-    return it;
-}
-
-void SettingsUi::applyLiveEditorChrome(LayoutDocument& doc)
-{
-    doc.autoClose = false;
-    doc.dwell.enabled = true;
-    doc.placement.specified = true;
-    doc.placement.anchor = LayoutWindowPlacement::Anchor::Center;
-    doc.placement.aboveTaskbar = true;
-    doc.placement.style.background = QColor(0, 0, 0);
-    doc.placement.style.radius = 8.0;
-    doc.placement.style.borderWidth = 1.0;
-}
 
 void SettingsUi::resetNumpad()
 {
     unbindEditorKeyboard();
+    if (!m_numpad.pageId.isEmpty()) {
+        m_pages.closePage(m_numpad.pageId);
+    }
     m_numpad.reset();
     m_numpadKey.clear();
     m_numpadTitle.clear();
@@ -89,28 +42,20 @@ void SettingsUi::unbindEditorKeyboard()
 {
     QObject::disconnect(m_editorKeyConn);
     m_editorKeyConn = {};
-    if (auto* inst = m_instances.instance(m_numpad.instanceId)) {
-        if (inst->window()) {
-            inst->window()->setInputFocusEnabled(false);
-        }
-    }
-    if (auto* inst = m_instances.instance(m_color.instanceId)) {
-        if (inst->window()) {
-            inst->window()->setInputFocusEnabled(false);
-        }
+    if (PageHostWindow* w = m_pages.window()) {
+        w->setInputFocusEnabled(false);
     }
 }
 
-void SettingsUi::bindEditorKeyboard(const QString& instanceId)
+void SettingsUi::bindEditorKeyboard()
 {
     unbindEditorKeyboard();
-    auto* inst = m_instances.instance(instanceId);
-    if (!inst || !inst->window()) {
+    PageHostWindow* w = m_pages.window();
+    if (!w) {
         return;
     }
-    LayoutQuickWindow* w = inst->window();
     w->setInputFocusEnabled(true);
-    m_editorKeyConn = QObject::connect(w, &LayoutQuickWindow::keyPressed, w,
+    m_editorKeyConn = QObject::connect(w, &PageHostWindow::keyPressed, w,
                                        [this](int key, const QString& text) {
                                            handleEditorKey(key, text);
                                        });
@@ -190,8 +135,9 @@ void SettingsUi::handleEditorKey(int key, const QString& text)
 
 bool SettingsUi::presentNumpad(QString* error)
 {
-    if (m_instances.setInstanceDocument(m_numpad.instanceId, buildNumpadDocument(), error)) {
-        bindEditorKeyboard(m_numpad.instanceId);
+    if (presentLive(m_numpad, QStringLiteral("settings_numpad_live"), buildNumpadDocument(),
+                    error)) {
+        bindEditorKeyboard();
         return true;
     }
     resetNumpad();
@@ -214,11 +160,12 @@ SettingsUi::EditorSwatch SettingsUi::editorSwatch() const
 }
 
 SettingsUi::SettingsUi(AppSettings& settings, LayoutInstanceManager& instances,
-                       LayoutManager& catalog, CommandRegistry& commands)
+                       LayoutManager& catalog, CommandRegistry& commands, PageSession& pages)
     : m_settings(settings)
     , m_instances(instances)
     , m_catalog(catalog)
     , m_commands(commands)
+    , m_pages(pages)
 {
 }
 
@@ -251,6 +198,65 @@ QString colorKeyFromItem(const LayoutItem& item)
     return {};
 }
 
+void stampSettingVisuals(QString& label, bool interactive, const QString& settingKey,
+                         const QString& id, const QString& colorKey,
+                         std::optional<QColor>& background, std::optional<QColor>& foreground,
+                         const AppSettings& settings, const ThemeColors& theme)
+{
+    if (!settingKey.isEmpty() && !interactive) {
+        label = settings.displayValue(settingKey);
+    }
+    if (!interactive && !settingKey.isEmpty() && id.contains(QLatin1String("desc"))) {
+        label = AppSettings::settingDescription(settingKey);
+    }
+    QColor sw;
+    if (settingKey == QLatin1String("themeVariant")) {
+        sw = theme.bgSurface;
+    } else if (settingKey == QLatin1String("themeForeground")) {
+        sw = theme.text;
+    } else if (!colorKey.isEmpty()) {
+        sw = settings.colorKey(colorKey);
+    }
+    if (sw.isValid()) {
+        background = sw;
+        foreground = ThemeColors::contrastOn(sw);
+    }
+}
+
+QString colorKeyFromPageCell(const PageCell& cell)
+{
+    if (AppSettings::isColorKey(cell.settingKey)) {
+        return cell.settingKey;
+    }
+    for (const PageAction& a : cell.actions) {
+        if (a.type != PageActionType::Command) {
+            continue;
+        }
+        const QLatin1String prefix("settings.edit.color.");
+        if (a.command.startsWith(prefix)) {
+            return a.command.mid(int(prefix.size()));
+        }
+    }
+    return {};
+}
+
+void stampPageCell(PageCell& cell, const AppSettings& settings, const ThemeColors& theme)
+{
+    stampSettingVisuals(cell.label, cell.interactive, cell.settingKey, cell.id,
+                        colorKeyFromPageCell(cell), cell.style.background, cell.style.foreground,
+                        settings, theme);
+}
+
+void stampGrid(PageGrid& grid, const AppSettings& settings, const ThemeColors& theme)
+{
+    for (PageCell& cell : grid.cells) {
+        stampPageCell(cell, settings, theme);
+    }
+    for (PageGrid& sub : grid.subGrids) {
+        stampGrid(sub, settings, theme);
+    }
+}
+
 } // namespace
 
 void SettingsUi::decorateDocument(LayoutDocument& doc) const
@@ -258,135 +264,34 @@ void SettingsUi::decorateDocument(LayoutDocument& doc) const
     if (!doc.id.startsWith(QLatin1String("main_settings"))) {
         return;
     }
-
-    static const struct {
-        const char* id;
-        const char* label;
-        const char* layoutId;
-        int col;
-        int span;
-    } kTabs[] = {
-        {"tab_buttons", "Button", "main_settings_button_timing", 0, 3},
-        {"tab_pointers", "Pointer", "main_settings_pointer_timing", 3, 2},
-        {"tab_styles", "Styles", "main_settings_styles", 5, 2},
-        {"tab_assist", "Assist", "main_settings_assist", 7, 3},
-        {"tab_lts", "LTS", "main_settings_lts", 10, 3},
-        {"tab_theme", "Theme", "main_settings_theme", 13, 3},
-    };
-    QVector<LayoutItem> tabs;
-    tabs.reserve(6);
-    for (const auto& spec : kTabs) {
-        LayoutItem t;
-        t.id = QLatin1String(spec.id);
-        t.role = QStringLiteral("tab");
-        t.label = QLatin1String(spec.label);
-        t.row = 0;
-        t.col = spec.col;
-        t.colSpan = spec.span;
-        t.applyKind();
-        if (doc.id == QLatin1String(spec.layoutId)) {
-            t.interactive = false;
-        } else {
-            t.action.type = LayoutAction::Type::LoadLayout;
-            t.action.layoutId = QLatin1String(spec.layoutId);
-        }
-        tabs.push_back(std::move(t));
-    }
-    QVector<LayoutItem> body;
-    body.reserve(doc.items.size());
-    for (LayoutItem& item : doc.items) {
-        if (item.kind == LayoutItemKind::Tab) {
-            continue;
-        }
-        body.push_back(std::move(item));
-    }
-    doc.items = std::move(tabs);
-    doc.items.append(body);
-    if (doc.grid.columns < 16) {
-        doc.grid.columns = 16;
-    }
-
     const ThemeColors theme = m_settings.customColors;
     for (LayoutItem& item : doc.items) {
-        if (!item.settingKey.isEmpty() && !item.interactive) {
-            item.label = m_settings.displayValue(item.settingKey);
-        }
-        if (!item.interactive && item.caption.isEmpty() && !item.settingKey.isEmpty()
-            && item.id.contains(QLatin1String("desc"))) {
-            item.label = AppSettings::settingDescription(item.settingKey);
-        }
-        QColor sw;
-        if (item.settingKey == QLatin1String("themeVariant")) {
-            sw = theme.bgSurface;
-        } else if (item.settingKey == QLatin1String("themeForeground")) {
-            sw = theme.text;
-        } else {
-            const QString ck = colorKeyFromItem(item);
-            if (!ck.isEmpty()) {
-                sw = m_settings.colorKey(ck);
-            }
-        }
-        if (sw.isValid()) {
-            item.style.background = sw;
-            item.style.foreground = ThemeColors::contrastOn(sw);
-        }
+        stampSettingVisuals(item.label, item.interactive, item.settingKey, item.id,
+                            colorKeyFromItem(item), item.style.background, item.style.foreground,
+                            m_settings, theme);
     }
 }
 
-void SettingsUi::refreshOpenBoards()
+void SettingsUi::decoratePage(PageDocument& doc) const
 {
-    for (LayoutInstance* inst : m_instances.instances()) {
-        if (!inst) {
-            continue;
-        }
-        const QString lid = inst->layoutId();
-        if (!lid.startsWith(QLatin1String("main_settings"))) {
-            continue;
-        }
-        if (isLiveEditorInstance(inst->instanceId())) {
-            continue;
-        }
-        const ThemeColors theme = m_settings.customColors;
-        inst->mutateItems([&](LayoutItem& item) {
-            if (!item.settingKey.isEmpty() && !item.interactive) {
-                item.label = m_settings.displayValue(item.settingKey);
-            }
-            QColor sw;
-            if (item.settingKey == QLatin1String("themeVariant")) {
-                sw = theme.bgSurface;
-            } else if (item.settingKey == QLatin1String("themeForeground")) {
-                sw = theme.text;
-            } else {
-                const QString ck = colorKeyFromItem(item);
-                if (!ck.isEmpty()) {
-                    sw = m_settings.colorKey(ck);
-                }
-            }
-            if (sw.isValid()) {
-                item.style.background = sw;
-                item.style.foreground = ThemeColors::contrastOn(sw);
-            }
-        });
-        inst->setGlobalDwellOverride(m_settings.dwellSequence, m_settings.dwellGraceMs,
-                                     m_settings.scanGraceMs);
+    if (!doc.id.startsWith(QLatin1String("main_settings"))) {
+        return;
+    }
+    const ThemeColors theme = m_settings.customColors;
+    for (PageGrid& g : doc.grids) {
+        stampGrid(g, m_settings, theme);
     }
 }
 
-LayoutDocument SettingsUi::buildNumpadDocument() const
+PageDocument SettingsUi::buildNumpadDocument() const
 {
-    LayoutDocument doc;
-    doc.schemaVersion = 1;
+    using SettingsPageBuild::cell;
+    using SettingsPageBuild::initGrid;
+    PageDocument doc;
     doc.id = QStringLiteral("settings_numpad_live");
     doc.name = m_numpadTitle;
-    doc.description = QStringLiteral("Enter a value, then Save");
-    applyLiveEditorChrome(doc);
-    doc.grid.columns = 4;
-    doc.grid.rows = 7;
-    doc.grid.gapPx = 10;
-    doc.grid.marginPx = 20;
-    doc.placement.width = DimSpec::pixels(520);
-    doc.placement.height = DimSpec::pixels(640);
-
+    initGrid(doc, 4, 7, 520, 640, 10, 20, m_settings.resolvedTheme());
+    PageGrid& grid = doc.grids[0];
     const EditorSwatch sw = editorSwatch();
     const QString savedLine = (m_numpadReturn == NumpadReturn::Catalog && !m_numpadKey.isEmpty())
                                   ? QStringLiteral("Saved: %1").arg(m_settings.displayValue(m_numpadKey))
@@ -394,39 +299,35 @@ LayoutDocument SettingsUi::buildNumpadDocument() const
     const QString titleCaption =
         m_numpadHint.isEmpty() ? savedLine
                                : QStringLiteral("%1\n%2").arg(savedLine, m_numpadHint);
-    doc.items.push_back(makeLabel(QStringLiteral("title"), m_numpadTitle, 0, 0, 4, titleCaption));
-    LayoutItem numpadDisplay =
-        makeItem(QStringLiteral("display"),
-                 m_numpadBuffer.isEmpty() ? QStringLiteral("0") : m_numpadBuffer, 1, 0,
-                 LayoutAction::Type::Unknown, {}, sw.value, 4, /*interactive=*/false);
-    numpadDisplay.role = QStringLiteral("label");
-    numpadDisplay.applyKind();
-    numpadDisplay.interactive = false;
-    doc.items.push_back(numpadDisplay);
+    PageCell title = cell(QStringLiteral("title"), m_numpadTitle, 0, 0, {}, QColor(), 4, false,
+                          QStringLiteral("label"), titleCaption);
+    title.textStyle = QStringLiteral("title");
+    grid.cells.push_back(title);
+    PageCell display =
+        cell(QStringLiteral("display"),
+             m_numpadBuffer.isEmpty() ? QStringLiteral("0") : m_numpadBuffer, 1, 0, {}, sw.value, 4,
+             false, QStringLiteral("label"));
+    display.clusterSlot = QStringLiteral("value");
+    grid.cells.push_back(display);
     auto key = [&](const QString& id, const QString& label, int row, int col, const QString& cmd,
                    const QColor& bg = QColor()) {
-        doc.items.push_back(makeItem(id, label, row, col, LayoutAction::Type::Command, cmd,
-                                     bg.isValid() ? bg : sw.key));
+        grid.cells.push_back(cell(id, label, row, col, cmd, bg.isValid() ? bg : sw.key));
     };
-
     key(QStringLiteral("d7"), QStringLiteral("7"), 2, 0, QStringLiteral("settings.numpad.digit.7"));
     key(QStringLiteral("d8"), QStringLiteral("8"), 2, 1, QStringLiteral("settings.numpad.digit.8"));
     key(QStringLiteral("d9"), QStringLiteral("9"), 2, 2, QStringLiteral("settings.numpad.digit.9"));
     key(QStringLiteral("back"), QStringLiteral("⌫"), 2, 3,
         QStringLiteral("settings.numpad.backspace"), sw.warn);
-
     key(QStringLiteral("d4"), QStringLiteral("4"), 3, 0, QStringLiteral("settings.numpad.digit.4"));
     key(QStringLiteral("d5"), QStringLiteral("5"), 3, 1, QStringLiteral("settings.numpad.digit.5"));
     key(QStringLiteral("d6"), QStringLiteral("6"), 3, 2, QStringLiteral("settings.numpad.digit.6"));
     key(QStringLiteral("reset"), QStringLiteral("Reset"), 3, 3,
         QStringLiteral("settings.numpad.reset"), sw.nudge);
-
     key(QStringLiteral("d1"), QStringLiteral("1"), 4, 0, QStringLiteral("settings.numpad.digit.1"));
     key(QStringLiteral("d2"), QStringLiteral("2"), 4, 1, QStringLiteral("settings.numpad.digit.2"));
     key(QStringLiteral("d3"), QStringLiteral("3"), 4, 2, QStringLiteral("settings.numpad.digit.3"));
     key(QStringLiteral("clear"), QStringLiteral("Clear"), 4, 3,
         QStringLiteral("settings.numpad.clear"), sw.warn);
-
     key(QStringLiteral("minus"), QStringLiteral("−"), 5, 0,
         QStringLiteral("settings.numpad.minus"), sw.nudge);
     key(QStringLiteral("d0"), QStringLiteral("0"), 5, 1, QStringLiteral("settings.numpad.digit.0"));
@@ -434,13 +335,10 @@ LayoutDocument SettingsUi::buildNumpadDocument() const
         QStringLiteral("settings.numpad.period"), sw.nudge);
     key(QStringLiteral("comma"), QStringLiteral(","), 5, 3,
         QStringLiteral("settings.numpad.comma"), sw.nudge);
-
-    doc.items.push_back(makeItem(QStringLiteral("save"), QStringLiteral("Save"), 6, 0,
-                                 LayoutAction::Type::Command, QStringLiteral("settings.numpad.save"),
-                                 sw.save, 2));
-    doc.items.push_back(makeItem(QStringLiteral("cancel"), QStringLiteral("Cancel"), 6, 2,
-                                 LayoutAction::Type::Command,
-                                 QStringLiteral("settings.numpad.cancel"), sw.cancel, 2));
+    grid.cells.push_back(cell(QStringLiteral("save"), QStringLiteral("Save"), 6, 0,
+                              QStringLiteral("settings.numpad.save"), sw.save, 2));
+    grid.cells.push_back(cell(QStringLiteral("cancel"), QStringLiteral("Cancel"), 6, 2,
+                              QStringLiteral("settings.numpad.cancel"), sw.cancel, 2));
     return doc;
 }
 
@@ -456,17 +354,6 @@ bool SettingsUi::openNumericEditor(const QString& settingKey, QString* error)
         }
         return false;
     }
-    auto* focused = m_instances.focusedInstance();
-    if (!focused) {
-        if (error) {
-            *error = QStringLiteral("No focused board for numeric editor");
-        }
-        return false;
-    }
-
-    m_numpad.active = true;
-    m_numpad.instanceId = focused->instanceId();
-    m_numpad.returnLayoutId = focused->layoutId();
     m_numpadKey = settingKey;
     m_numpadTitle = AppSettings::settingTitle(settingKey);
     m_numpadHint = AppSettings::settingDescription(settingKey);
@@ -488,12 +375,9 @@ void SettingsUi::refreshNumpadDisplay()
     if (!m_numpad.active) {
         return;
     }
-    auto* inst = m_instances.instance(m_numpad.instanceId);
-    if (!inst) {
-        return;
-    }
-    const QString shown = m_numpadBuffer.isEmpty() ? QStringLiteral("0") : m_numpadBuffer;
-    inst->setItemText(QStringLiteral("display"), shown, {});
+    QString err;
+    (void)presentLive(m_numpad, QStringLiteral("settings_numpad_live"), buildNumpadDocument(),
+                      &err);
 }
 
 void SettingsUi::numpadAppend(const QString& ch)
@@ -573,8 +457,6 @@ bool SettingsUi::numpadSave(QString* error)
     const NumpadReturn ret = m_numpadReturn;
     const int arrayIndex = m_numpadArrayIndex;
     const QString colorCh = m_numpadColorChannel;
-    const QString returnId = m_numpad.returnLayoutId;
-    const QString instId = m_numpad.instanceId;
     const QString key = m_numpadKey;
 
     if (ret == NumpadReturn::Array) {
@@ -625,10 +507,8 @@ bool SettingsUi::numpadSave(QString* error)
     const QString savedValue = m_settings.displayValue(key);
     apply(true);
 
+    closeLive(m_numpad);
     resetNumpad();
-    if (!returnEditorInstance(instId, returnId, error)) {
-        return false;
-    }
     notifyStatus(QStringLiteral("Saved %1 = %2").arg(savedTitle, savedValue));
     return true;
 }
@@ -642,24 +522,22 @@ bool SettingsUi::numpadCancel(QString* error)
         return false;
     }
     const NumpadReturn ret = m_numpadReturn;
-    const QString instId = m_numpad.instanceId;
-    const QString returnId = m_numpad.returnLayoutId;
-    resetNumpad();
-
     if (ret == NumpadReturn::Array && m_array.active) {
+        closeLive(m_numpad);
+        resetNumpad();
         refreshArrayEditor();
         notifyStatus(QStringLiteral("Edit cancelled"));
         return true;
     }
     if (ret == NumpadReturn::Color && m_color.active) {
+        closeLive(m_numpad);
+        resetNumpad();
         refreshColorPicker();
         notifyStatus(QStringLiteral("Edit cancelled"));
         return true;
     }
-    if (!returnEditorInstance(instId, returnId, error)) {
-        notifyStatus(QStringLiteral("Cancelled"));
-        return false;
-    }
+    closeLive(m_numpad);
+    resetNumpad();
     notifyStatus(QStringLiteral("Edit cancelled"));
     return true;
 }

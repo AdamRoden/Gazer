@@ -80,7 +80,9 @@ bool sendUnicode(wchar_t ch, bool keyUp)
 
 } // namespace
 
-bool KeyboardInjector::tapKey(const QString& keyName, QString* error)
+namespace {
+
+bool sendNamed(const QString& keyName, bool up, QString* error)
 {
 #ifdef Q_OS_WIN
     const WORD vk = virtualKeyFromName(keyName);
@@ -90,7 +92,7 @@ bool KeyboardInjector::tapKey(const QString& keyName, QString* error)
         }
         return false;
     }
-    if (!sendVk(vk, false) || !sendVk(vk, true)) {
+    if (!sendVk(vk, up)) {
         if (error) {
             *error = QStringLiteral("SendInput failed for key %1").arg(keyName);
         }
@@ -98,10 +100,62 @@ bool KeyboardInjector::tapKey(const QString& keyName, QString* error)
     }
     return true;
 #else
+    Q_UNUSED(up);
     if (error) {
         *error = QStringLiteral("Keyboard injection only supported on Windows");
     }
     return false;
+#endif
+}
+
+} // namespace
+
+bool KeyboardInjector::tapKey(const QString& keyName, QString* error)
+{
+    return keyDown(keyName, error) && keyUp(keyName, error);
+}
+
+bool KeyboardInjector::keyDown(const QString& keyName, QString* error)
+{
+#ifdef Q_OS_WIN
+    if (virtualKeyFromName(keyName) != 0) {
+        return sendNamed(keyName, false, error);
+    }
+    if (keyName.size() == 1) {
+        const wchar_t ch = static_cast<wchar_t>(keyName[0].unicode());
+        if (!sendUnicode(ch, false)) {
+            if (error) {
+                *error = QStringLiteral("SendInput unicode failed");
+            }
+            return false;
+        }
+        return true;
+    }
+    return sendNamed(keyName, false, error);
+#else
+    return sendNamed(keyName, false, error);
+#endif
+}
+
+bool KeyboardInjector::keyUp(const QString& keyName, QString* error)
+{
+#ifdef Q_OS_WIN
+    if (virtualKeyFromName(keyName) != 0) {
+        return sendNamed(keyName, true, error);
+    }
+    if (keyName.size() == 1) {
+        const wchar_t ch = static_cast<wchar_t>(keyName[0].unicode());
+        if (!sendUnicode(ch, true)) {
+            if (error) {
+                *error = QStringLiteral("SendInput unicode failed");
+            }
+            return false;
+        }
+        return true;
+    }
+    return sendNamed(keyName, true, error);
+#else
+    return sendNamed(keyName, true, error);
 #endif
 }
 

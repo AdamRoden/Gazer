@@ -4,7 +4,6 @@
 #include "app/GazeRouter.h"
 #include "app/GazerServices.h"
 #include "core/ITracker.h"
-#include "ui/DockRevealOverlay.h"
 #include "ui/DwellSuspendOverlay.h"
 #include "ui/EdgeBubbleOverlay.h"
 #include "layout/LayoutTypes.h"
@@ -30,9 +29,8 @@ public:
 private:
     [[nodiscard]] bool startTracker();
     void wireTracker();
-    void syncMasterChrome();
+    void updateTrayStatus();
     void syncDwellSuspendOverlay();
-    /// Show the home child of the persistent root. Used by Main ▶.
     [[nodiscard]] bool expandMasterShell(QString* error = nullptr);
 
     void onQuitRequested();
@@ -49,14 +47,12 @@ private:
     std::unique_ptr<ActionDispatcher> m_actions;
     std::unique_ptr<ITracker> m_tracker;
     GazeRouter m_gazeRouter;
-    std::unique_ptr<DockRevealOverlay> m_dockReveal;
     std::unique_ptr<EdgeBubbleOverlay> m_edgeBubbles;
     std::unique_ptr<DwellSuspendOverlay> m_dwellSuspendOverlay;
     std::unique_ptr<PreviewWindow> m_preview;
     std::unique_ptr<class LayoutEditorWindow> m_editor;
     std::unique_ptr<TrayIcon> m_tray;
-    /// Collapsed dock has been revealed this dock session (not re-hidden until expand).
-    bool m_dockRevealed = false;
+    bool m_restacking = false;
 };
 
 } // namespace gazer

@@ -15,7 +15,7 @@ set(CMAKE_AUTOUIC ON)
 
 option(GAZER_USE_TOBII "Build Tobii Stream Engine integration (runtime DLL load)" ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Qml Quick Svg)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Qml Quick Svg Test)
 
 set(GAZER_TOBII_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/third_party/tobii/include")
 set(GAZER_TOBII_EFFECTIVE OFF)
@@ -43,6 +43,13 @@ set(GAZER_SOURCES
     src/core/TrackerTobii.cpp
     src/core/StreamEngineLib.cpp
     src/layout/LayoutLoader.cpp
+    src/layout/PageDim.cpp
+    src/layout/PageActionParse.cpp
+    src/layout/PageLoader.cpp
+    src/layout/PageResolve.cpp
+    src/layout/PageDetector.cpp
+    src/layout/PageHit.cpp
+    src/layout/PageSession.cpp
     src/layout/LayoutSchema.cpp
     src/layout/LayoutManager.cpp
     src/layout/LayoutInstance.cpp
@@ -70,10 +77,13 @@ set(GAZER_SOURCES
     src/ui/PreviewWindow.cpp
     src/ui/StlMesh.cpp
     src/ui/LayoutQuickWindow.cpp
+    src/ui/PageHostWindow.cpp
+    src/ui/BoardPaint.cpp
+    src/ui/SliderTrack.cpp
     src/ui/LayoutBoardPainter.cpp
     src/ui/GlassBackdrop.cpp
     src/ui/TrayIcon.cpp
-    src/ui/DockRevealOverlay.cpp
+
     src/ui/EdgeBubbleOverlay.cpp
     src/ui/MagnifierOverlay.cpp
     src/ui/DwellSuspendOverlay.cpp
@@ -114,6 +124,14 @@ set(GAZER_HEADERS
     src/layout/DwellRegionSpace.h
     src/layout/InstanceTarget.h
     src/layout/LayoutLoader.h
+    src/layout/PageTypes.h
+    src/layout/PageDim.h
+    src/layout/PageActionParse.h
+    src/layout/PageLoader.h
+    src/layout/PageResolve.h
+    src/layout/PageDetector.h
+    src/layout/PageHit.h
+    src/layout/PageSession.h
     src/layout/LayoutSchema.h
     src/layout/LayoutWriter.h
     src/layout/LayoutManager.h
@@ -148,10 +166,13 @@ set(GAZER_HEADERS
     src/ui/PreviewWindow.h
     src/ui/StlMesh.h
     src/ui/LayoutQuickWindow.h
+    src/ui/PageHostWindow.h
+    src/ui/BoardPaint.h
+    src/ui/SliderTrack.h
     src/ui/LayoutBoardPainter.h
     src/ui/GlassBackdrop.h
     src/ui/TrayIcon.h
-    src/ui/DockRevealOverlay.h
+
     src/ui/EdgeBubbleOverlay.h
     src/ui/MagnifierOverlay.h
     src/ui/DwellSuspendOverlay.h
@@ -274,3 +295,30 @@ endif()
 
 install(TARGETS Gazer RUNTIME DESTINATION bin)
 install(DIRECTORY resources/ DESTINATION share/gazer/resources)
+
+enable_testing()
+add_executable(GazerPageTests
+    tests/PageLoaderTest.cpp
+    src/layout/PageDim.cpp
+    src/layout/PageActionParse.cpp
+    src/layout/PageLoader.cpp
+    src/layout/PageResolve.cpp
+    src/layout/PageDetector.cpp
+    src/layout/PageHit.cpp
+    src/layout/DwellRegionSpace.cpp
+)
+target_include_directories(GazerPageTests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_link_libraries(GazerPageTests PRIVATE Qt6::Core Qt6::Gui Qt6::Test)
+target_compile_definitions(GazerPageTests PRIVATE
+    "GAZER_TEST_FIXTURES=\"${CMAKE_SOURCE_DIR}/tests/fixtures\""
+    "GAZER_SOURCE_DIR=\"${CMAKE_SOURCE_DIR}\""
+)
+add_test(NAME GazerPageTests COMMAND GazerPageTests)
+
+add_executable(GazerDwellTests
+    tests/DwellStateMachineTest.cpp
+    src/layout/DwellStateMachine.cpp
+)
+target_include_directories(GazerDwellTests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_link_libraries(GazerDwellTests PRIVATE Qt6::Core Qt6::Gui Qt6::Test)
+add_test(NAME GazerDwellTests COMMAND GazerDwellTests)

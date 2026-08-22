@@ -6,7 +6,7 @@
 #include "assist/LookToScroll.h"
 #include "assist/MouseDwellMove.h"
 #include "layout/LayoutInstanceManager.h"
-#include "ui/DockRevealOverlay.h"
+#include "layout/PageSession.h"
 #include "ui/MagnifierOverlay.h"
 
 namespace gazer {
@@ -21,33 +21,29 @@ void GazeRouter::dispatch(const GazePoint& point)
     const bool freeAim = m_session && m_session->freesScreenForAim() && !clickLoopYields;
 
     bool overBoard = false;
-    if (m_instances) {
-        if (freeAim) {
+    if (freeAim) {
+        if (m_pages) {
+            m_pages->leaveGaze();
+        }
+        if (m_instances) {
             m_instances->leaveActiveGaze();
-        } else {
-            overBoard = m_instances->onGaze(point);
+        }
+    } else {
+        const bool overPages = m_pages && m_pages->hasRoot() && m_pages->onGaze(point);
+        if (overPages) {
+            overBoard = true;
+            if (m_instances) {
+                m_instances->leaveActiveGaze();
+            }
+        } else if (m_instances && m_instances->onGaze(point)) {
+            overBoard = true;
+            if (m_pages) {
+                m_pages->leaveGaze();
+            }
         }
     }
 
-    bool overDockReveal = false;
-    if (m_dockReveal && m_dockReveal->isEnabledReveal()) {
-        if (overBoard || freeAim) {
-            GazePoint away;
-            away.valid = true;
-            away.x = -1.0e6;
-            away.y = -1.0e6;
-            away.timestampMs = point.timestampMs;
-            m_dockReveal->onGaze(away);
-        } else {
-            overDockReveal = m_dockReveal->containsGaze(point);
-            m_dockReveal->onGaze(point);
-        }
-    }
-
-    // Pause LTS while over UI or while full-screen aiming.
-    // Gaze→mouse keeps tracking over boards (product intent); still pause during
-    // free-aim mouse-dwell / mag-pick so those tools own the cursor.
-    const bool pauseBackgroundAssist = overBoard || overDockReveal || freeAim;
+    const bool pauseBackgroundAssist = overBoard || freeAim;
 
     if (m_gazeReticle) {
         m_gazeReticle->onGaze(point);
@@ -59,7 +55,7 @@ void GazeRouter::dispatch(const GazePoint& point)
         m_lookToScroll->onGaze(point, pauseBackgroundAssist);
     }
     if (m_mouseDwell) {
-        m_mouseDwell->onBackgroundGaze(point, overBoard || overDockReveal);
+        m_mouseDwell->onBackgroundGaze(point, overBoard);
         if (clickLoopYields && overBoard) {
             m_mouseDwell->setPaused(true);
         } else {

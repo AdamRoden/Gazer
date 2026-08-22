@@ -1,0 +1,23 @@
+<Page id="Example Page">
+  <Style id="stl" background="#99000000" blur="15" foreground="#FFFFFFFF" border="#00DCFF" thickness="2" radius="8"/>
+  <Dwell id="dwl" scanGrace="100" dwellGrace="200" activation="0,640,640,480,320,160,80,40,20"/>
+  <Grid id="Quick Settings" desktopMode="true" rows="1" columns="2" anchor="TopLeft" offset="0,0" size="1920,360" style="stl" dwell="dwl">
+    <SubGrid id="splitter" rows="2" columns="1" row="0" col="0" rowSpan="1" colSpan="1">
+      <Cell id="altTab" row="0" col="0" label="Alt-Tab" icon="Tab">
+        <AHK><![CDATA[{
+    Send "{LAlt down}{Tab}{LAlt up}"
+}]]></AHK>
+      </Cell>
+      <Cell id="sleep" row="1" col="0" label="Sleep">
+        <Action id="Command" value="Sleep"/>
+      </Cell>
+    </SubGrid>
+    <Cell id="openKb" row="0" col="1" label="Keyboard" icon="Keyboard">
+      <Action id="Page" value="Open, Page, uw_qwerty"/>
+      <Action id="Send" value="Enter, Down, 50"/>
+    </Cell>
+  </Grid>
+  <Zone id="edge" anchor="Bottom" offset="0,0" size="300,150" dwellOffset="0,240" dwellSize="300,200" label="Main" icon="Menu" dwellExempt="true">
+    <Action id="Page" value="Open, Grid, Quick Settings"/>
+  </Zone>
+</Page>

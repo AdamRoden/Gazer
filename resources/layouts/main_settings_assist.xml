@@ -1,0 +1,87 @@
+<Page id="main_settings_assist" name="Assist tools">
+  <Grid id="board" desktopMode="true" rows="12" columns="16" anchor="Top" offset="0,0" size="1600,1.0" gap="6" margin="12" aboveTaskbar="false" thickness="1" radius="4">
+    <SubGrid id="tabs" row="0" col="0" colSpan="16" rows="1" columns="6" gap="6">
+      <Cell id="tab_buttons" row="0" col="0" label="Button" role="tab">
+        <Action id="Page" value="Close, Page, self"/>
+        <Action id="Page" value="Open, Page, main_settings_button_timing"/>
+      </Cell>
+      <Cell id="tab_pointers" row="0" col="1" label="Pointer" role="tab">
+        <Action id="Page" value="Close, Page, self"/>
+        <Action id="Page" value="Open, Page, main_settings_pointer_timing"/>
+      </Cell>
+      <Cell id="tab_styles" row="0" col="2" label="Styles" role="tab">
+        <Action id="Page" value="Close, Page, self"/>
+        <Action id="Page" value="Open, Page, main_settings_styles"/>
+      </Cell>
+      <Cell id="tab_assist" row="0" col="3" label="Assist" role="tab" interactive="false"/>
+      <Cell id="tab_lts" row="0" col="4" label="LTS" role="tab">
+        <Action id="Page" value="Close, Page, self"/>
+        <Action id="Page" value="Open, Page, main_settings_lts"/>
+      </Cell>
+      <Cell id="tab_theme" row="0" col="5" label="Theme" role="tab">
+        <Action id="Page" value="Close, Page, self"/>
+        <Action id="Page" value="Open, Page, main_settings_theme"/>
+      </Cell>
+    </SubGrid>
+
+    <Cell id="page_title" row="1" col="0" colSpan="16" label="Assist tools" caption="Tracker, live lens, and gaze helpers" role="label" textStyle="title"/>
+    <Cell id="h_tr" row="2" col="0" colSpan="16" label="Tracker" role="label" textStyle="section"/>
+    <Cell id="tr_l" row="3" col="0" colSpan="6" label="Tracker" caption="Applies on next app start." role="label"/>
+    <Cell id="tr_a" row="3" col="8" colSpan="2" label="Auto Tobii" cluster="segment.tracker" activeState="setting.tracker.0">
+    <Action id="Command" value="settings.tracker.auto"/>
+    </Cell>
+    <Cell id="tr_m" row="3" col="10" colSpan="2" label="Mouse" cluster="segment.tracker" activeState="setting.tracker.1">
+    <Action id="Command" value="settings.tracker.mouse"/>
+    </Cell>
+    <Cell id="preview" row="3" col="12" colSpan="4" label="Head preview">
+    <Action id="Command" value="openPreview"/>
+    </Cell>
+    <Cell id="h_lens" row="4" col="0" colSpan="16" label="Live lens" role="label" textStyle="section"/>
+    <Cell id="z_l" row="5" col="0" colSpan="6" label="Magnifier lens zoom" caption="Live lens magnification. Not used by pre-click or foresight." role="label"/>
+    <Cell id="z_dec" row="5" col="8" label="−" cluster="stepper.z" clusterSlot="dec">
+    <Action id="Command" value="settings.nudge.magZoom.dec"/>
+    </Cell>
+    <Cell id="z_val" row="5" col="9" colSpan="2" label="—" role="label" settingKey="magZoom" cluster="stepper.z" clusterSlot="value"/>
+    <Cell id="z_inc" row="5" col="11" label="+" cluster="stepper.z" clusterSlot="inc">
+    <Action id="Command" value="settings.nudge.magZoom.inc"/>
+    </Cell>
+    <Cell id="z_edit" row="5" col="12" label="Edit…" cluster="stepper.z" clusterSlot="edit">
+    <Action id="Command" value="settings.edit.magZoom"/>
+    </Cell>
+    <Cell id="l_l" row="6" col="0" colSpan="6" label="Magnifier lens size" caption="Live lens diameter in pixels." role="label"/>
+    <Cell id="l_dec" row="6" col="8" label="−" cluster="stepper.l" clusterSlot="dec">
+    <Action id="Command" value="settings.nudge.magLensSize.dec"/>
+    </Cell>
+    <Cell id="l_val" row="6" col="9" colSpan="2" label="—" role="label" settingKey="magLensSize" cluster="stepper.l" clusterSlot="value"/>
+    <Cell id="l_inc" row="6" col="11" label="+" cluster="stepper.l" clusterSlot="inc">
+    <Action id="Command" value="settings.nudge.magLensSize.inc"/>
+    </Cell>
+    <Cell id="l_edit" row="6" col="12" label="Edit…" cluster="stepper.l" clusterSlot="edit">
+    <Action id="Command" value="settings.edit.magLensSize"/>
+    </Cell>
+    <Cell id="f_l" row="7" col="0" colSpan="6" label="Magnifier lens follow" caption="Sticky / Balanced / Snappy tracking for the live lens." role="label"/>
+    <Cell id="f_s" row="7" col="8" label="Sticky" cluster="segment.follow" activeState="setting.magFollow.0">
+    <Action id="Command" value="settings.mag.follow.sticky"/>
+    </Cell>
+    <Cell id="f_v" row="7" col="9" colSpan="2" label="—" role="label" settingKey="magFollowProfile" cluster="segment.follow" clusterSlot="value"/>
+    <Cell id="f_b" row="7" col="11" label="Balanced" cluster="segment.follow" activeState="setting.magFollow.1">
+    <Action id="Command" value="settings.mag.follow.balanced"/>
+    </Cell>
+    <Cell id="f_n" row="7" col="12" label="Snappy" cluster="segment.follow" activeState="setting.magFollow.2">
+    <Action id="Command" value="settings.mag.follow.snappy"/>
+    </Cell>
+    <Cell id="h_help" row="8" col="0" colSpan="16" label="Helpers" role="label" textStyle="section"/>
+    <Cell id="reticle" row="9" col="0" colSpan="8" label="Gaze Indicator" role="toggle" activeState="gazeReticle">
+    <Action id="Command" value="toggleGazeReticle"/>
+    </Cell>
+    <Cell id="follow" row="9" col="8" colSpan="8" label="Gaze → mouse" role="toggle" activeState="gazeMouseFollow">
+    <Action id="Command" value="toggleGazeMouseFollow"/>
+    </Cell>
+    <Cell id="magnifier" row="10" col="0" colSpan="8" label="Magnifier" role="toggle" activeState="magnifier">
+    <Action id="Command" value="toggleMagnifier"/>
+    </Cell>
+    <Cell id="click_loop" row="10" col="8" colSpan="8" label="Gaze click loop" role="toggle" activeState="loop.gazeClick">
+    <Action id="Command" value="mouseDwellClickLoop"/>
+    </Cell>
+  </Grid>
+</Page>

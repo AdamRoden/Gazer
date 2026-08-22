@@ -2,6 +2,7 @@
 
 #include "app/GazerServices.h"
 #include "layout/LayoutTypes.h"
+#include "layout/PageTypes.h"
 
 #include <QObject>
 #include <QString>
@@ -25,6 +26,9 @@ public:
     /// Run one action immediately.
     void dispatchOne(const LayoutAction& action, const QString& sourceInstanceId,
                      const QString& itemId = {});
+
+    void dispatchPage(const QVector<PageAction>& actions, const QString& sourcePageId,
+                      const QString& targetId = {});
 
 signals:
     void statusMessage(const QString& message);

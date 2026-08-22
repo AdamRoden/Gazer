@@ -236,28 +236,7 @@ void LayoutQuickWindow::clearSliderScrub()
     }
 }
 
-LayoutQuickWindow::SliderVisual LayoutQuickWindow::sliderVisual(const QRectF& cell, bool scrubbing)
-{
-    SliderVisual g;
-    const double headerH = qBound(16.0, cell.height() * 0.30, 22.0);
-    g.header = QRectF(cell.left() + 8.0, cell.top() + 2.0, qMax(1.0, cell.width() - 16.0), headerH);
-    const double trackH = 40.0;
-    g.ringDiameter = scrubbing ? 52.0 : 40.0;
-    const double inset = g.ringDiameter * 0.5;
-    const double bandTop = g.header.bottom();
-    const double bandH = qMax(trackH + 10.0, cell.bottom() - bandTop);
-    g.trackCy = bandTop + bandH * 0.5;
-    g.track = QRectF(cell.left() + 6.0, g.trackCy - trackH * 0.5, qMax(8.0, cell.width() - 12.0),
-                     trackH);
-    g.valueLeft = g.track.left() + inset;
-    g.valueRight = g.track.right() - inset;
-    if (g.valueRight <= g.valueLeft + 1.0) {
-        const double mid = g.track.center().x();
-        g.valueLeft = mid - 1.0;
-        g.valueRight = mid + 1.0;
-    }
-    return g;
-}
+
 
 void LayoutQuickWindow::setPropertyContext(const QVariantMap& props)
 {

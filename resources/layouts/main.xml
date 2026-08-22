@@ -1,0 +1,70 @@
+<Page id="main" master="true" name="Dock">
+  <Style id="chip" background="#99000000" blur="15"/>
+  <Style id="quitPrompt" background="#2b2d42" foreground="#edf2f4"/>
+  <Style id="quitYes" background="#9b2226" foreground="#ffffff"/>
+  <Style id="quitNo" background="#2d6a4f" foreground="#ffffff"/>
+
+  <Zone id="mainChip" anchor="Bottom" offset="0,0" size="300,150"
+        dwellOffset="0,240" dwellSize="300,200"
+        style="chip" label="Main" icon="Menu"
+        dwellExempt="true" visibleWhen="!expanded" shell="true">
+    <Action id="Command" value="resumeDwell"/>
+    <Action id="Page" value="Open, Page, main"/>
+  </Zone>
+  <Zone id="sleep" anchor="Bottom" offset="400,0" size="300,150"
+        dwellOffset="0,240" dwellSize="300,200"
+        style="chip" label="Sleep" icon="Sleep"
+        activeState="dwellSuspend" shell="true">
+    <Action id="Command" value="toggleDwellSuspend"/>
+  </Zone>
+
+  <Grid id="drawer" desktopMode="false" rows="1" columns="9"
+        anchor="Bottom" offset="0,0" size="1080,150"
+        gap="10" margin="10"
+        chrome="drawer" drawerMotion="true" aboveTaskbar="true" autoClose="true"
+        autoCloseIdleMs="3000" shell="true" style="chip">
+    <Cell id="open_keyboard" row="0" col="0" label="Keyboard" icon="Keyboard">
+      <Action id="Page" value="Open, Page, uw_qwerty"/>
+    </Cell>
+    <Cell id="open_mouse" row="0" col="1" label="Mouse" icon="Mouse">
+      <Action id="Page" value="Open, Page, example_mouse"/>
+    </Cell>
+    <Cell id="open_assist" row="0" col="2" label="Assist" icon="Conversation">
+      <Action id="Page" value="Open, Page, example_assist"/>
+    </Cell>
+    <Cell id="open_right" row="0" col="3" label="Right" icon="More">
+      <Action id="Page" value="Open, Page, uw_right"/>
+    </Cell>
+    <Cell id="open_settings" row="0" col="4" label="Settings" icon="SizeAndPosition">
+      <Action id="Page" value="Open, Page, main_settings_button_timing"/>
+    </Cell>
+    <Cell id="close" row="0" col="5" label="Close" icon="MinimizeDown">
+      <Action id="Page" value="Close, Grid, drawer"/>
+    </Cell>
+    <Cell id="close_all" row="0" col="6" label="Close All" icon="CollapseDock">
+      <Action id="Command" value="closeOtherViews"/>
+      <Action id="Page" value="Close, Grid, drawer"/>
+    </Cell>
+    <Cell id="dwell_suspend" row="0" col="7" label="Pause dwell" icon="Sleep" activeState="dwellSuspend">
+      <Action id="Command" value="toggleDwellSuspend"/>
+    </Cell>
+    <Cell id="quit" row="0" col="8" label="Quit" icon="Quit">
+      <Action id="Page" value="Close, Grid, drawer"/>
+      <Action id="Page" value="Open, Grid, quit"/>
+    </Cell>
+  </Grid>
+
+  <Grid id="quit" desktopMode="true" rows="2" columns="2"
+        anchor="Center" offset="0,0" size="480,220"
+        gap="12" margin="16" chrome="quit" aboveTaskbar="true" shell="true">
+    <Cell id="prompt" row="0" col="0" colSpan="2" label="Quit Gazer?" role="label"
+          style="quitPrompt" interactive="false"/>
+    <Cell id="yes_quit" row="1" col="0" label="Yes" icon="Yes" style="quitYes">
+      <Action id="Command" value="quitApp"/>
+    </Cell>
+    <Cell id="no_stay" row="1" col="1" label="No" icon="No" style="quitNo">
+      <Action id="Page" value="Close, Grid, quit"/>
+      <Action id="Page" value="Open, Grid, drawer"/>
+    </Cell>
+  </Grid>
+</Page>

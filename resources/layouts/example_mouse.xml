@@ -1,0 +1,87 @@
+<Page id="example_mouse" name="Mouse">
+  <Grid id="board" desktopMode="true" rows="3" columns="9" anchor="Bottom" offset="0,0" size="1100,360" gap="8" margin="8" aboveTaskbar="false">
+    <Cell id="lclick" row="0" col="0" icon="MouseLeftClick" label="Left" background="#1b4332" foreground="#ffffff">
+    <Action id="Command" value="mouseLeftClick"/>
+    </Cell>
+    <Cell id="ldbl" row="0" col="1" icon="MouseLeftDoubleClick" label="L×2" background="#1b4332" foreground="#ffffff">
+    <Action id="Command" value="mouseLeftDoubleClick"/>
+    </Cell>
+    <Cell id="rclick" row="0" col="2" icon="MouseRightClick" label="Right" background="#2d6a4f" foreground="#ffffff">
+    <Action id="Command" value="mouseRightClick"/>
+    </Cell>
+    <Cell id="rdbl" row="0" col="3" icon="MouseRightButtonDoubleClick" label="R×2" background="#2d6a4f" foreground="#ffffff">
+    <Action id="Command" value="mouseRightDoubleClick"/>
+    </Cell>
+    <Cell id="mclick" row="0" col="4" icon="MouseMiddleClick" label="Middle" background="#40916c" foreground="#ffffff">
+    <Action id="Command" value="mouseMiddleClick"/>
+    </Cell>
+    <Cell id="ldownup" row="0" col="5" icon="MouseLeftDownUp" label="L Hold" background="#9b2226" foreground="#ffffff" activeState="mouse.leftHold">
+    <Action id="Command" value="mouseLeftDownUp"/>
+    </Cell>
+    <Cell id="rdownup" row="0" col="6" icon="MouseRightDownUp" label="R Hold" background="#9b2226" foreground="#ffffff" activeState="mouse.rightHold">
+    <Action id="Command" value="mouseRightDownUp"/>
+    </Cell>
+    <Cell id="mdownup" row="0" col="7" icon="MouseMiddleDownUp" label="M Hold" background="#9b2226" foreground="#ffffff" activeState="mouse.middleHold">
+    <Action id="Command" value="mouseMiddleDownUp"/>
+    </Cell>
+    <Cell id="move_lclick" row="0" col="8" icon="MouseLeftButtonClick" label="Move+L" background="#e9c46a" foreground="#1a1a1a" activeState="mouseMoveAndLeftClick">
+    <Action id="Command" value="mouseMoveAndLeftClick"/>
+    </Cell>
+    <Cell id="nudge_up" row="1" col="0" icon="ArrowPointingToTop" label="Up" background="#264653" foreground="#ffffff">
+    <Action id="Command" value="mouseMoveUp"/>
+    </Cell>
+    <Cell id="nudge_left" row="1" col="1" icon="ArrowPointingToLeft" label="Left" background="#264653" foreground="#ffffff">
+    <Action id="Command" value="mouseMoveLeft"/>
+    </Cell>
+    <Cell id="nudge_right" row="1" col="2" icon="ArrowPointingToRight" label="Right" background="#264653" foreground="#ffffff">
+    <Action id="Command" value="mouseMoveRight"/>
+    </Cell>
+    <Cell id="nudge_down" row="1" col="3" icon="ArrowPointingToBottom" label="Down" background="#264653" foreground="#ffffff">
+    <Action id="Command" value="mouseMoveDown"/>
+    </Cell>
+    <Cell id="sc_up" row="1" col="4" icon="MouseScrollToTop" label="Scroll ↑" background="#1d3557" foreground="#ffffff">
+    <Action id="Command" value="mouseScrollUp"/>
+    </Cell>
+    <Cell id="sc_down" row="1" col="5" icon="MouseScrollToBottom" label="Scroll ↓" background="#1d3557" foreground="#ffffff">
+    <Action id="Command" value="mouseScrollDown"/>
+    </Cell>
+    <Cell id="sc_left" row="1" col="6" icon="MouseScrollToLeft" label="Scroll ←" background="#1d3557" foreground="#ffffff">
+    <Action id="Command" value="mouseScrollLeft"/>
+    </Cell>
+    <Cell id="sc_right" row="1" col="7" icon="MouseScrollToRight" label="Scroll →" background="#1d3557" foreground="#ffffff">
+    <Action id="Command" value="mouseScrollRight"/>
+    </Cell>
+    <Cell id="move_rclick" row="1" col="8" icon="MouseRightButtonClick" label="Move+R" background="#f4a261" foreground="#1a1a1a" activeState="mouseMoveAndRightClick">
+    <Action id="Command" value="mouseMoveAndRightClick"/>
+    </Cell>
+    <Cell id="dwell_move" row="2" col="0" icon="MouseMoveTo" label="Move to…" background="#e9c46a" foreground="#1a1a1a" activeState="mouseDwellMove">
+    <Action id="Command" value="mouseDwellMove"/>
+    </Cell>
+    <Cell id="mag_pick" row="2" col="1" icon="ZoomToLocation" label="Mag pick" background="#f4a261" foreground="#1a1a1a" activeState="mouseMoveMagPick">
+    <Action id="Command" value="toggleMouseMoveMagPick"/>
+    </Cell>
+    <Cell id="mag_center" row="2" col="2" icon="LookToScrollBoundsScreenPoint" label="Mag @dwell" background="#e76f51" foreground="#ffffff" activeState="mouseMoveMagPickCenter">
+    <Action id="Command" value="toggleMouseMoveMagPickCenter"/>
+    </Cell>
+    <Cell id="movestep" row="2" col="3" icon="SizeAndPosition" label="Step 40 px" background="#3d4f66" foreground="#ffffff">
+    <Action id="Command" value="cycleMouseMoveAmount"/>
+    </Cell>
+    <Cell id="scrstep" row="2" col="4" icon="LookToScrollSpeedMedium" label="Scroll ×3" background="#3d4f66" foreground="#ffffff">
+    <Action id="Command" value="cycleMouseScrollAmount"/>
+    </Cell>
+    <Cell id="click_loop" row="2" col="5" icon="RepeatMouseAction" label="Gaze click
+loop" background="#c1121f" foreground="#ffffff" activeState="loop.gazeClick">
+    <Action id="Command" value="mouseDwellClickLoop"/>
+    </Cell>
+    <Cell id="mag" row="2" col="6" icon="MouseMagnifier" label="Lens" background="#6a4c93" foreground="#ffffff" activeState="magnifier">
+    <Action id="Command" value="toggleMagnifier"/>
+    </Cell>
+    <Cell id="lts" row="2" col="7" icon="LookToScrollActive" label="Look↕Scroll" background="#0a7ea4" foreground="#ffffff" activeState="lookToScroll">
+    <Action id="Command" value="toggleLookToScroll"/>
+    </Cell>
+    <Cell id="main" row="2" col="8" icon="Menu" label="Main" background="#0a7ea4" foreground="#ffffff">
+    <Action id="Page" value="Close, Page, self"/>
+    <Action id="Page" value="Open, Grid, drawer"/>
+    </Cell>
+  </Grid>
+</Page>

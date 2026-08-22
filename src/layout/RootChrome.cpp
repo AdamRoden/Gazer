@@ -59,6 +59,9 @@ void LayoutInstanceManager::restackChrome()
     if (m_edgeBubbles && m_edgeBubbles->isVisible()) {
         m_edgeBubbles->raiseStack();
     }
+    if (m_afterRestack) {
+        m_afterRestack();
+    }
 }
 
 void LayoutInstanceManager::setRootChrome(RootChrome next)

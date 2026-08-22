@@ -27,6 +27,7 @@ struct ActiveStateContext {
     const MouseAssistState* mouseAssist = nullptr;
     const ActionLoopService* actionLoops = nullptr;
     const SettingsUi* settingsUi = nullptr;
+    bool dwellSuspended = false;
 };
 
 /// Shared sticky-loop / toggle accent resolver (boards, settings, assist modes).

@@ -1,0 +1,87 @@
+#pragma once
+
+#include "layout/PageHit.h"
+#include "ui/GlassBackdrop.h"
+#include "ui/ProgressVisuals.h"
+#include "ui/Theme.h"
+
+#include <QColor>
+#include <QRectF>
+#include <QQuickWindow>
+#include <QSet>
+#include <QString>
+#include <QTimer>
+#include <QVector>
+
+class QCloseEvent;
+class QKeyEvent;
+class QQuickPaintedItem;
+
+namespace gazer {
+
+/// Single never-destroyed Page surface. Grids and Zones are regions, not child HWNDs.
+class PageHostWindow final : public QQuickWindow {
+    Q_OBJECT
+
+public:
+    explicit PageHostWindow(QWindow* parent = nullptr);
+
+    void setTheme(const ThemeColors& theme);
+    void setProgressVisuals(const ProgressVisuals& visuals);
+    void setTargets(QVector<PageTarget> targets);
+    void setGridPaints(QVector<PageGridPaint> grids);
+    void setDrawerScale(double scale);
+    void setActiveIds(QSet<QString> ids);
+    void setHover(const QString& id, double progress);
+    void flash(const QString& id);
+    void setPreviewColor(const QColor& color);
+    void setSliderScrub(const QString& itemId, double t, const QString& valueText,
+                        double dwellProgress);
+    void clearSliderScrub();
+    void setInputFocusEnabled(bool on);
+    void coverVirtualDesktop();
+    void showHost();
+    void raiseHost();
+
+    [[nodiscard]] QString mouseHit(const QPointF& global) const;
+    [[nodiscard]] const QVector<PageTarget>& targets() const { return m_targets; }
+    [[nodiscard]] QPoint origin() const { return m_origin; }
+
+signals:
+    void targetClicked(const QString& targetId);
+    void keyPressed(int key, const QString& text);
+
+protected:
+    bool nativeEvent(const QByteArray& eventType, void* message, qintptr* result) override;
+    void closeEvent(QCloseEvent* event) override;
+    void keyPressEvent(QKeyEvent* event) override;
+
+private:
+    void syncBoardSize();
+    void applyChrome();
+    void applyInputFocusChrome();
+
+    QQuickPaintedItem* m_board = nullptr;
+    GlassBackdrop m_glass;
+    ThemeColors m_theme;
+    ProgressVisuals m_progress;
+    QVector<PageTarget> m_targets;
+    QVector<PageGridPaint> m_gridPaints;
+    double m_drawerScale = 1.0;
+    QSet<QString> m_activeIds;
+    QString m_hoverId;
+    double m_hoverProgress = 0.0;
+    QString m_flashId;
+    QTimer m_flashTimer;
+    QRectF m_flashRect;
+    QPoint m_origin;
+    QColor m_previewColor;
+    QString m_sliderScrubId;
+    double m_sliderScrubT = 0.0;
+    QString m_sliderScrubValue;
+    double m_sliderScrubProgress = 0.0;
+    bool m_inputFocus = false;
+    friend class PageHostItem;
+};
+
+} // namespace gazer

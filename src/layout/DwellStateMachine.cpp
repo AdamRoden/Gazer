@@ -26,7 +26,7 @@ void DwellStateMachine::setDwellSequence(const QVector<int>& msSteps)
 {
     QVector<int> next;
     for (int ms : msSteps) {
-        if (ms > 0) {
+        if (ms >= 0) {
             next.push_back(ms);
         }
     }
@@ -141,25 +141,42 @@ void DwellStateMachine::onGazeSample(const gazer::GazePoint& point,
         m_dwellStartMs = point.timestampMs;
         elapsed = 0;
         m_progress = 0.0;
-        // Fall through with elapsed == 0 so the first post-grace sample does not
-        // immediately activate (needMs is always > 0).
         emit dwellProgress(m_currentId, 0.0);
+        // Fall through. A 0-ms step fires on this sample (PageNotes leading 0).
     }
 
-    const int needMs = stepMsAt(m_stepIndex);
-    m_progress = qBound(0.0, static_cast<double>(elapsed) / static_cast<double>(needMs), 1.0);
-    emit dwellProgress(m_currentId, m_progress);
+    // dwellAccumulator is elapsed on the current step. Scan grace and dwell
+    // (invalid) grace do not add to it: the step clock is paused/reset around them.
+    while (true) {
+        const int needMs = stepMsAt(m_stepIndex);
+        if (needMs <= 0) {
+            emit itemActivated(m_currentId);
+            m_dwellStartMs = point.timestampMs;
+            elapsed = 0;
+            m_progress = 0.0;
+            emit dwellProgress(m_currentId, 0.0);
+            if (m_stepIndex + 1 < m_sequence.size()) {
+                ++m_stepIndex;
+                continue;
+            }
+            break;
+        }
 
-    if (elapsed >= needMs) {
-        // Fire this step, then advance toward the last step. The final value
-        // is held forever (no wrap back to the first).
+        m_progress = qBound(0.0, static_cast<double>(elapsed) / static_cast<double>(needMs), 1.0);
+        emit dwellProgress(m_currentId, m_progress);
+
+        if (elapsed < needMs) {
+            break;
+        }
+        emit itemActivated(m_currentId);
         if (m_stepIndex + 1 < m_sequence.size()) {
             ++m_stepIndex;
         }
         m_dwellStartMs = point.timestampMs;
+        elapsed = 0;
         m_progress = 0.0;
         emit dwellProgress(m_currentId, 0.0);
-        emit itemActivated(m_currentId);
+        break;
     }
 }
 

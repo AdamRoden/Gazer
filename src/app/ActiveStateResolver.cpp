@@ -32,7 +32,7 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
         return !resolveActiveState(ctx, key.mid(1).trimmed());
     }
     if (key == QLatin1String("dwellSuspend") || key == QLatin1String("dwell.suspended")) {
-        return ctx.instances && ctx.instances->isDwellSuspended();
+        return ctx.dwellSuspended;
     }
     if (key == QLatin1String("lookToScroll")) {
         return ctx.lookToScroll && ctx.lookToScroll->isEnabled();
@@ -53,6 +53,11 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
         return ctx.mouseDwellMove && ctx.mouseDwellMove->isArmed()
                && ctx.mouseDwellMove->armPurpose()
                       == MouseDwellMove::ArmPurpose::CursorMoveRightClick;
+    }
+    if (key == QLatin1String("mouseMoveAndMiddleClick")) {
+        return ctx.mouseDwellMove && ctx.mouseDwellMove->isArmed()
+               && ctx.mouseDwellMove->armPurpose()
+                      == MouseDwellMove::ArmPurpose::CursorMoveMiddleClick;
     }
     // Gaze click loop: assist sticky registered on ActionLoopService + live arm state.
     if (key == QLatin1String("loop.gazeClick") || key == QLatin1String("mouseDwellClickLoop")) {

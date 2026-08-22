@@ -5,10 +5,10 @@
 namespace gazer {
 
 class AssistSession;
-class DockRevealOverlay;
 class GazeMouseFollow;
 class GazeReticle;
 class LayoutInstanceManager;
+class PageSession;
 class LookToScroll;
 class MagnifierOverlay;
 class MouseDwellMove;
@@ -17,7 +17,7 @@ class MouseDwellMove;
 class GazeRouter {
 public:
     void setInstances(LayoutInstanceManager* instances) { m_instances = instances; }
-    void setDockReveal(DockRevealOverlay* dock) { m_dockReveal = dock; }
+    void setPages(PageSession* pages) { m_pages = pages; }
     void setAssistSession(AssistSession* session) { m_session = session; }
     void setLookToScroll(LookToScroll* lts) { m_lookToScroll = lts; }
     void setMouseDwellMove(MouseDwellMove* move) { m_mouseDwell = move; }
@@ -29,7 +29,7 @@ public:
 
 private:
     LayoutInstanceManager* m_instances = nullptr;
-    DockRevealOverlay* m_dockReveal = nullptr;
+    PageSession* m_pages = nullptr;
     AssistSession* m_session = nullptr;
     LookToScroll* m_lookToScroll = nullptr;
     MouseDwellMove* m_mouseDwell = nullptr;

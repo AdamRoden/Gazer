@@ -1,0 +1,90 @@
+<Page id="main_settings_lts" name="Look to scroll">
+  <Grid id="board" desktopMode="true" rows="12" columns="16" anchor="Top" offset="0,0" size="1600,1.0" gap="6" margin="12" aboveTaskbar="false" thickness="1" radius="4">
+    <SubGrid id="tabs" row="0" col="0" colSpan="16" rows="1" columns="6" gap="6">
+      <Cell id="tab_buttons" row="0" col="0" label="Button" role="tab">
+        <Action id="Page" value="Close, Page, self"/>
+        <Action id="Page" value="Open, Page, main_settings_button_timing"/>
+      </Cell>
+      <Cell id="tab_pointers" row="0" col="1" label="Pointer" role="tab">
+        <Action id="Page" value="Close, Page, self"/>
+        <Action id="Page" value="Open, Page, main_settings_pointer_timing"/>
+      </Cell>
+      <Cell id="tab_styles" row="0" col="2" label="Styles" role="tab">
+        <Action id="Page" value="Close, Page, self"/>
+        <Action id="Page" value="Open, Page, main_settings_styles"/>
+      </Cell>
+      <Cell id="tab_assist" row="0" col="3" label="Assist" role="tab">
+        <Action id="Page" value="Close, Page, self"/>
+        <Action id="Page" value="Open, Page, main_settings_assist"/>
+      </Cell>
+      <Cell id="tab_lts" row="0" col="4" label="LTS" role="tab" interactive="false"/>
+      <Cell id="tab_theme" row="0" col="5" label="Theme" role="tab">
+        <Action id="Page" value="Close, Page, self"/>
+        <Action id="Page" value="Open, Page, main_settings_theme"/>
+      </Cell>
+    </SubGrid>
+
+    <Cell id="page_title" row="1" col="0" colSpan="16" label="Look to scroll" caption="Deadzone, falloff, speed, indicator, and cursor placement for look-to-scroll" role="label" textStyle="title"/>
+    <Cell id="h_dist" row="2" col="0" colSpan="16" label="Distance" role="label" textStyle="section"/>
+    <Cell id="dz_l" row="3" col="0" colSpan="6" label="Deadzone" caption="No-scroll radius around cursor (px)." role="label"/>
+    <Cell id="dz_dec" row="3" col="8" label="−" cluster="stepper.dz" clusterSlot="dec">
+    <Action id="Command" value="settings.nudge.ltsDeadzonePx.dec"/>
+    </Cell>
+    <Cell id="dz_val" row="3" col="9" colSpan="2" label="—" role="label" settingKey="ltsDeadzonePx" cluster="stepper.dz" clusterSlot="value"/>
+    <Cell id="dz_inc" row="3" col="11" label="+" cluster="stepper.dz" clusterSlot="inc">
+    <Action id="Command" value="settings.nudge.ltsDeadzonePx.inc"/>
+    </Cell>
+    <Cell id="dz_edit" row="3" col="12" label="Edit…" cluster="stepper.dz" clusterSlot="edit">
+    <Action id="Command" value="settings.edit.ltsDeadzonePx"/>
+    </Cell>
+    <Cell id="fo_l" row="4" col="0" colSpan="6" label="Falloff" caption="Distance to full speed past deadzone (px)." role="label"/>
+    <Cell id="fo_dec" row="4" col="8" label="−" cluster="stepper.fo" clusterSlot="dec">
+    <Action id="Command" value="settings.nudge.ltsFalloffPx.dec"/>
+    </Cell>
+    <Cell id="fo_val" row="4" col="9" colSpan="2" label="—" role="label" settingKey="ltsFalloffPx" cluster="stepper.fo" clusterSlot="value"/>
+    <Cell id="fo_inc" row="4" col="11" label="+" cluster="stepper.fo" clusterSlot="inc">
+    <Action id="Command" value="settings.nudge.ltsFalloffPx.inc"/>
+    </Cell>
+    <Cell id="fo_edit" row="4" col="12" label="Edit…" cluster="stepper.fo" clusterSlot="edit">
+    <Action id="Command" value="settings.edit.ltsFalloffPx"/>
+    </Cell>
+    <Cell id="h_spd" row="5" col="0" colSpan="16" label="Speed" role="label" textStyle="section"/>
+    <Cell id="sp_l" row="6" col="0" colSpan="6" label="Max speed" caption="Peak notches per second." role="label"/>
+    <Cell id="sp_dec" row="6" col="8" label="−" cluster="stepper.sp" clusterSlot="dec">
+    <Action id="Command" value="settings.nudge.ltsMaxNotchesPerSec.dec"/>
+    </Cell>
+    <Cell id="sp_val" row="6" col="9" colSpan="2" label="—" role="label" settingKey="ltsMaxNotchesPerSec" cluster="stepper.sp" clusterSlot="value"/>
+    <Cell id="sp_inc" row="6" col="11" label="+" cluster="stepper.sp" clusterSlot="inc">
+    <Action id="Command" value="settings.nudge.ltsMaxNotchesPerSec.inc"/>
+    </Cell>
+    <Cell id="sp_edit" row="6" col="12" label="Edit…" cluster="stepper.sp" clusterSlot="edit">
+    <Action id="Command" value="settings.edit.ltsMaxNotchesPerSec"/>
+    </Cell>
+    <Cell id="accel_label" row="7" col="0" colSpan="6" label="Accel / s" caption="Speed growth while outside deadzone." role="label"/>
+    <Cell id="accel_dec" row="7" col="8" label="−" cluster="stepper.accel" clusterSlot="dec">
+    <Action id="Command" value="settings.nudge.ltsAccelPerSec.dec"/>
+    </Cell>
+    <Cell id="accel_val" row="7" col="9" colSpan="2" label="—" role="label" settingKey="ltsAccelPerSec" cluster="stepper.accel" clusterSlot="value"/>
+    <Cell id="accel_inc" row="7" col="11" label="+" cluster="stepper.accel" clusterSlot="inc">
+    <Action id="Command" value="settings.nudge.ltsAccelPerSec.inc"/>
+    </Cell>
+    <Cell id="accel_edit" row="7" col="12" label="Edit…" cluster="stepper.accel" clusterSlot="edit">
+    <Action id="Command" value="settings.edit.ltsAccelPerSec"/>
+    </Cell>
+    <Cell id="h_ind" row="8" col="0" colSpan="16" label="Indicator" role="label" textStyle="section"/>
+    <Cell id="ind_l" row="9" col="0" colSpan="6" label="Scroll indicator" caption="Fan wedge, stretching orb, or pause/resume only." role="label"/>
+    <Cell id="ind_fan" row="9" col="8" colSpan="2" label="Fan" cluster="segment.ltsInd" activeState="setting.ltsIndicator.0">
+    <Action id="Command" value="settings.lts.indicator.fan"/>
+    </Cell>
+    <Cell id="ind_orb" row="9" col="10" colSpan="3" label="Orb" cluster="segment.ltsInd" activeState="setting.ltsIndicator.1">
+    <Action id="Command" value="settings.lts.indicator.orb"/>
+    </Cell>
+    <Cell id="ind_pause" row="9" col="13" colSpan="3" label="Pause" cluster="segment.ltsInd" activeState="setting.ltsIndicator.2">
+    <Action id="Command" value="settings.lts.indicator.pause"/>
+    </Cell>
+    <Cell id="h_place" row="10" col="0" colSpan="16" label="Placement" role="label" textStyle="section"/>
+    <Cell id="pl_t" row="11" col="0" colSpan="16" label="Place cursor first" caption="Arm mouse-move before enabling scroll." role="toggle" activeState="lts.placeCursorFirst">
+    <Action id="Command" value="settings.lts.placeCursor.toggle"/>
+    </Cell>
+  </Grid>
+</Page>

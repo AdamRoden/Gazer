@@ -33,6 +33,8 @@ struct AssistCommandContext {
     std::function<void(bool persist)> applySettings;
     std::function<void()> refreshActiveIndicators;
     std::function<void(const QString&)> notifyStatus;
+    std::function<void(bool)> setDwellSuspended;
+    std::function<bool()> isDwellSuspended;
 };
 
 void registerAssistCommands(AssistCommandContext& ctx);

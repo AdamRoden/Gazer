@@ -30,6 +30,7 @@
 namespace gazer {
 
 class SettingsUi;
+class PageSession;
 
 /// Composition root for domain services (not tray/tracker UI shell).
 class GazerServices final : public QObject {
@@ -49,6 +50,7 @@ public:
 
     LayoutManager& catalog() { return *m_catalog; }
     LayoutInstanceManager& instances() { return *m_instances; }
+    PageSession& pages() { return *m_pages; }
     InputService& input() { return *m_input; }
     MappingEngine& mapping() { return *m_mapping; }
     TtsService& tts() { return *m_tts; }
@@ -75,6 +77,10 @@ public:
     [[nodiscard]] bool reloadSettings(QString* error = nullptr);
     void resetSettingsToDefaults();
 
+    void setDwellSuspended(bool on);
+    void toggleDwellSuspended();
+    [[nodiscard]] bool isDwellSuspended() const;
+
 signals:
     void settingsChanged();
 
@@ -89,6 +95,7 @@ private:
 
     std::unique_ptr<LayoutManager> m_catalog;
     std::unique_ptr<LayoutInstanceManager> m_instances;
+    std::unique_ptr<PageSession> m_pages;
     std::unique_ptr<InputService> m_input;
     std::unique_ptr<MappingEngine> m_mapping;
     std::unique_ptr<TtsService> m_tts;

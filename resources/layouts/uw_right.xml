@@ -1,0 +1,31 @@
+<Page id="uw_right" name="Right">
+  <Grid id="board" desktopMode="false" rows="8" columns="1" anchor="TopLeft" offset="2000,0" size="100,1034" gap="0" margin="0" aboveTaskbar="false" scanGrace="20" activation="100,400">
+    <Cell id="more" row="0" col="0" icon="More" label="More">
+    <Action id="Page" value="Open, Page, example_keyboard_sym"/>
+    </Cell>
+    <Cell id="move_lclick" row="1" col="0" icon="MouseLeftClick" label="Left" activeState="mouseMoveAndLeftClick">
+    <Action id="Command" value="toggleMouseMoveMagPick"/>
+    <Action id="Command" value="mouseMoveAndLeftClick"/>
+    <Action id="Command" value="toggleMouseMoveMagPick"/>
+    </Cell>
+    <Cell id="move_rclick" row="2" col="0" icon="MouseRightClick" label="Right" activeState="mouseMoveAndRightClick" scanGrace="100">
+    <Action id="Command" value="mouseMoveAndRightClick"/>
+    </Cell>
+    <Cell id="keyboard" row="3" col="0" icon="Keyboard" label="Keyboard">
+    <Action id="Page" value="Close, Page, self"/>
+    <Action id="Page" value="Open, Page, uw_qwerty"/>
+    </Cell>
+    <Cell id="sleep" row="4" col="0" icon="Sleep" label="Sleep" activeState="dwellSuspend">
+    <Action id="Command" value="toggleDwellSuspend"/>
+    </Cell>
+    <Cell id="lts" row="5" col="0" icon="LookToScrollActive" label="Look↕Scroll" activeState="lookToScroll">
+    <Action id="Command" value="toggleLookToScroll"/>
+    </Cell>
+    <Cell id="mid" row="6" col="0" label="Mid">
+    <Action id="Command" value="windowMid"/>
+    </Cell>
+    <Cell id="max" row="7" col="0" label="Max">
+    <Action id="Command" value="windowMax"/>
+    </Cell>
+  </Grid>
+</Page>

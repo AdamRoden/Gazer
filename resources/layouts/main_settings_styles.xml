@@ -1,0 +1,103 @@
+<Page id="main_settings_styles" name="Styles">
+  <Grid id="board" desktopMode="true" rows="12" columns="16" anchor="Top" offset="0,0" size="1600,1.0" gap="6" margin="12" aboveTaskbar="false" thickness="1" radius="4">
+    <SubGrid id="tabs" row="0" col="0" colSpan="16" rows="1" columns="6" gap="6">
+      <Cell id="tab_buttons" row="0" col="0" label="Button" role="tab">
+        <Action id="Page" value="Close, Page, self"/>
+        <Action id="Page" value="Open, Page, main_settings_button_timing"/>
+      </Cell>
+      <Cell id="tab_pointers" row="0" col="1" label="Pointer" role="tab">
+        <Action id="Page" value="Close, Page, self"/>
+        <Action id="Page" value="Open, Page, main_settings_pointer_timing"/>
+      </Cell>
+      <Cell id="tab_styles" row="0" col="2" label="Styles" role="tab" interactive="false"/>
+      <Cell id="tab_assist" row="0" col="3" label="Assist" role="tab">
+        <Action id="Page" value="Close, Page, self"/>
+        <Action id="Page" value="Open, Page, main_settings_assist"/>
+      </Cell>
+      <Cell id="tab_lts" row="0" col="4" label="LTS" role="tab">
+        <Action id="Page" value="Close, Page, self"/>
+        <Action id="Page" value="Open, Page, main_settings_lts"/>
+      </Cell>
+      <Cell id="tab_theme" row="0" col="5" label="Theme" role="tab">
+        <Action id="Page" value="Close, Page, self"/>
+        <Action id="Page" value="Open, Page, main_settings_theme"/>
+      </Cell>
+    </SubGrid>
+
+    <Cell id="page_title" row="1" col="0" colSpan="16" label="Styles" caption="Progress chrome, pointer icons, and zoom window look" role="label" textStyle="title"/>
+    <Cell id="h_prog" row="2" col="0" colSpan="16" label="Progress" role="label" textStyle="section"/>
+    <Cell id="bp_label" row="3" col="0" colSpan="6" label="Button progress" caption="Progress styles for board cells." role="label"/>
+    <Cell id="bp_r" row="3" col="8" colSpan="2" label="Ring" cluster="segment.btnprog" activeState="setting.progressRadial">
+    <Action id="Command" value="settings.progress.radial.toggle"/>
+    </Cell>
+    <Cell id="bp_f" row="3" col="10" colSpan="3" label="Fill" cluster="segment.btnprog" activeState="setting.progressFill">
+    <Action id="Command" value="settings.progress.fill.toggle"/>
+    </Cell>
+    <Cell id="bp_b" row="3" col="13" colSpan="3" label="Border" cluster="segment.btnprog" activeState="setting.progressBorder">
+    <Action id="Command" value="settings.progress.border.toggle"/>
+    </Cell>
+    <Cell id="pp_label" row="4" col="0" colSpan="6" label="Pointer progress" caption="Progress styles for pointer dwell." role="label"/>
+    <Cell id="pp_r" row="4" col="8" colSpan="2" label="Ring" cluster="segment.ptrprog" activeState="setting.mouseProgressRadial">
+    <Action id="Command" value="settings.mouseProgress.radial.toggle"/>
+    </Cell>
+    <Cell id="pp_f" row="4" col="10" colSpan="3" label="Fill" cluster="segment.ptrprog" activeState="setting.mouseProgressFill">
+    <Action id="Command" value="settings.mouseProgress.fill.toggle"/>
+    </Cell>
+    <Cell id="pp_b" row="4" col="13" colSpan="3" label="Border" cluster="segment.ptrprog" activeState="setting.mouseProgressBorder">
+    <Action id="Command" value="settings.mouseProgress.border.toggle"/>
+    </Cell>
+    <Cell id="h_icons" row="5" col="0" colSpan="16" label="Icons" role="label" textStyle="section"/>
+    <Cell id="pi_label" row="6" col="0" colSpan="6" label="Pointer icon" caption="Markers for the final move / click point. Combine any." role="label"/>
+    <Cell id="pi_cur" row="6" col="8" colSpan="2" label="Cursor" cluster="segment.picon" activeState="setting.mousePick.cursor">
+    <Action id="Command" value="settings.mousePickStyle.cursor.toggle"/>
+    </Cell>
+    <Cell id="pi_dot" row="6" col="10" colSpan="3" label="Dot" cluster="segment.picon" activeState="setting.mousePick.dot">
+    <Action id="Command" value="settings.mousePickStyle.dot.toggle"/>
+    </Cell>
+    <Cell id="pi_xh" row="6" col="13" colSpan="3" label="Crosshair" cluster="segment.picon" activeState="setting.mousePick.crosshair">
+    <Action id="Command" value="settings.mousePickStyle.crosshair.toggle"/>
+    </Cell>
+    <Cell id="zi_label" row="7" col="0" colSpan="6" label="Zoom icon" caption="Markers for choosing the region to magnify. Combine any." role="label"/>
+    <Cell id="zi_cur" row="7" col="8" colSpan="2" label="Cursor" cluster="segment.zicon" activeState="setting.magPick.cursor">
+    <Action id="Command" value="settings.magPickStyle.cursor.toggle"/>
+    </Cell>
+    <Cell id="zi_dot" row="7" col="10" colSpan="2" label="Dot" cluster="segment.zicon" activeState="setting.magPick.dot">
+    <Action id="Command" value="settings.magPickStyle.dot.toggle"/>
+    </Cell>
+    <Cell id="zi_xh" row="7" col="12" colSpan="2" label="Crosshair" cluster="segment.zicon" activeState="setting.magPick.crosshair">
+    <Action id="Command" value="settings.magPickStyle.crosshair.toggle"/>
+    </Cell>
+    <Cell id="zi_gz" row="7" col="14" colSpan="2" label="Gaze" cluster="segment.zicon" activeState="setting.magPick.gaze">
+    <Action id="Command" value="settings.magPickStyle.gaze.toggle"/>
+    </Cell>
+    <Cell id="h_zw" row="8" col="0" colSpan="16" label="Zoom window" role="label" textStyle="section"/>
+    <Cell id="zl_label" row="9" col="0" colSpan="6" label="Zoom level" caption="Static magnification for foresight and magnify." role="label"/>
+    <Cell id="zl_dec" row="9" col="8" label="−" cluster="stepper.zl" clusterSlot="dec">
+    <Action id="Command" value="settings.nudge.pickZoom.dec"/>
+    </Cell>
+    <Cell id="zl_val" row="9" col="9" colSpan="2" label="—" role="label" settingKey="pickZoom" cluster="stepper.zl" clusterSlot="value"/>
+    <Cell id="zl_inc" row="9" col="11" label="+" cluster="stepper.zl" clusterSlot="inc">
+    <Action id="Command" value="settings.nudge.pickZoom.inc"/>
+    </Cell>
+    <Cell id="zl_edit" row="9" col="12" label="Edit…" cluster="stepper.zl" clusterSlot="edit">
+    <Action id="Command" value="settings.edit.pickZoom"/>
+    </Cell>
+    <Cell id="zs_label" row="10" col="0" colSpan="4" label="Zoom size" caption="Window size in pixels. Full screen uses the monitor short axis." role="label"/>
+    <Cell id="zs_dec" row="10" col="4" label="−" cluster="stepper.zs" clusterSlot="dec">
+    <Action id="Command" value="settings.nudge.pickWindowPx.dec"/>
+    </Cell>
+    <Cell id="zs_val" row="10" col="5" colSpan="2" label="—" role="label" settingKey="pickWindowPx" cluster="stepper.zs" clusterSlot="value"/>
+    <Cell id="zs_inc" row="10" col="7" label="+" cluster="stepper.zs" clusterSlot="inc">
+    <Action id="Command" value="settings.nudge.pickWindowPx.inc"/>
+    </Cell>
+    <Cell id="zs_full" row="10" col="8" colSpan="4" icon="BrowserFullscreen" label="Full screen" role="toggle" activeState="mouseMoveMagPickFullScreen">
+    <Action id="Command" value="toggleMouseMoveMagPickFullScreen"/>
+    </Cell>
+    <Cell id="zs_round" row="10" col="12" colSpan="2" label="Round" cluster="segment.shape" activeState="setting.pickWindow.round">
+    <Action id="Command" value="settings.pickWindow.round"/>
+    </Cell>
+    <Cell id="zs_sq" row="10" col="14" colSpan="2" label="Square" cluster="segment.shape" activeState="setting.pickWindow.square">
+    <Action id="Command" value="settings.pickWindow.square"/>
+    </Cell>
+  </Grid>
+</Page>

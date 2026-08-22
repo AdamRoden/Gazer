@@ -5,6 +5,7 @@
 #include "utils/WinOverlay.h"
 
 #include <QGuiApplication>
+#include <QImage>
 #include <QPainter>
 #include <QPainterPath>
 #include <QScreen>
@@ -112,21 +113,26 @@ void GlassBackdrop::paint(QPainter& p, const QRectF& localRect, double cornerRad
     if (localRect.isEmpty()) {
         return;
     }
-
-    QPainterPath path;
-    path.addRoundedRect(localRect, cornerRadius, cornerRadius);
-
-    p.save();
-    p.setRenderHint(QPainter::Antialiasing, true);
-    p.setRenderHint(QPainter::SmoothPixmapTransform, true);
-    p.setClipPath(path);
-    if (!m_frosted.isNull()) {
-        p.drawPixmap(QPointF(-m_pad, -m_pad), m_frosted);
+    // Rasterize off the QQuickPaintedItem painter. setClipPath + drawText on that
+    // painter drops glyphs under RHI; clipping here stays on a QImage.
+    const QSize px = localRect.size().toSize().expandedTo(QSize(1, 1));
+    QImage tile(px, QImage::Format_ARGB32_Premultiplied);
+    tile.fill(Qt::transparent);
+    {
+        QPainter tp(&tile);
+        tp.setRenderHint(QPainter::Antialiasing, true);
+        tp.setRenderHint(QPainter::SmoothPixmapTransform, true);
+        QPainterPath path;
+        path.addRoundedRect(QRectF(QPointF(), localRect.size()), cornerRadius, cornerRadius);
+        tp.setClipPath(path);
+        if (!m_frosted.isNull()) {
+            tp.drawPixmap(QPointF(-localRect.x() - m_pad, -localRect.y() - m_pad), m_frosted);
+        }
+        if (tint.isValid() && tint.alpha() > 0) {
+            tp.fillPath(path, tint);
+        }
     }
-    if (tint.isValid() && tint.alpha() > 0) {
-        p.fillPath(path, tint);
-    }
-    p.restore();
+    p.drawImage(localRect.topLeft(), tile);
 }
 
 } // namespace gazer

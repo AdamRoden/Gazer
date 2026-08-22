@@ -91,6 +91,8 @@ public:
     void refreshActiveIndicators(const ActiveStateResolver& resolver);
 
     void setEdgeBubbleOverlay(EdgeBubbleOverlay* overlay);
+    /// Called at the end of restackChrome (after JSON editor HWNDs).
+    void setAfterRestack(std::function<void()> fn) { m_afterRestack = std::move(fn); }
 
     /// Suspend dwell/click capture on all boards except isDwellExempt items.
     void setDwellSuspended(bool suspended);
@@ -205,6 +207,7 @@ private:
     ProgressVisuals m_progressVisuals;
     ThemeColors m_theme = ThemeColors::darkPreset();
     EdgeBubbleOverlay* m_edgeBubbles = nullptr;
+    std::function<void()> m_afterRestack;
     DocumentDecorator m_documentDecorator;
     LifecycleRunner m_lifecycleRunner;
     InstanceTeardownHook m_instanceTeardown;

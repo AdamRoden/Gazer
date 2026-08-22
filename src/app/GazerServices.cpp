@@ -2,6 +2,8 @@
 
 #include "app/ActiveStateResolver.h"
 #include "app/SettingsUi.h"
+#include "layout/PageSession.h"
+#include "layout/PageTypes.h"
 #include "assist/AssistCommands.h"
 #include "input/InputTypes.h"
 #include "utils/Log.h"
@@ -9,8 +11,42 @@
 #include <QColor>
 #include <QPoint>
 #include <QtGlobal>
+#include <functional>
 
 namespace gazer {
+
+namespace {
+
+void applyMouseAmountLabel(QString& label, const QString& command, const QString& move,
+                           const QString& scroll)
+{
+    if (command == QLatin1String("cycleMouseMoveAmount")) {
+        label = move;
+    } else if (command == QLatin1String("cycleMouseScrollAmount")) {
+        label = scroll;
+    }
+}
+
+void stampMousePage(PageDocument& doc, const QString& move, const QString& scroll)
+{
+    std::function<void(PageGrid&)> walk = [&](PageGrid& g) {
+        for (PageCell& c : g.cells) {
+            for (const PageAction& a : c.actions) {
+                if (a.type == PageActionType::Command) {
+                    applyMouseAmountLabel(c.label, a.command, move, scroll);
+                }
+            }
+        }
+        for (PageGrid& sub : g.subGrids) {
+            walk(sub);
+        }
+    };
+    for (PageGrid& g : doc.grids) {
+        walk(g);
+    }
+}
+
+} // namespace
 
 GazerServices::GazerServices(QObject* parent)
     : QObject(parent)
@@ -26,6 +62,15 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
 
     m_catalog = std::make_unique<LayoutManager>();
     m_instances = std::make_unique<LayoutInstanceManager>(*m_catalog);
+    m_pages = std::make_unique<PageSession>();
+    m_instances->setAfterRestack([this]() {
+        if (m_pages && m_pages->hasRoot()) {
+            m_pages->raise();
+        }
+    });
+    connect(m_instances.get(), &LayoutInstanceManager::instanceOpened, this, [this]() {
+        m_instances->restackChrome();
+    });
     m_input = std::make_unique<InputService>();
     m_mapping = std::make_unique<MappingEngine>(*m_input);
     m_tts = std::make_unique<TtsService>();
@@ -56,7 +101,7 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
     }
 
     m_settingsUi =
-        std::make_unique<SettingsUi>(m_settings, *m_instances, *m_catalog, *m_commands);
+        std::make_unique<SettingsUi>(m_settings, *m_instances, *m_catalog, *m_commands, *m_pages);
     m_settingsUi->setApplyFn([this](bool persist) { applySettings(persist); });
     m_settingsUi->setNotifyFn([this](const QString& msg) { notifyStatus(msg); });
     m_settingsUi->setMutateFn(
@@ -75,6 +120,16 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
             [this](const QString& instanceId, const QString& itemId) {
                 m_actionLoops->clearEngageLatch(instanceId, itemId);
             });
+
+    m_pages->setDecorate([this](PageDocument& doc) {
+        m_settingsUi->decoratePage(doc);
+        if (m_mouseAssist) {
+            stampMousePage(doc, QStringLiteral("Step %1 px").arg(m_mouseAssist->moveAmountPx()),
+                           QStringLiteral("Scroll ×%1").arg(m_mouseAssist->scrollNotches()));
+        }
+    });
+    m_pages->setActiveResolver(
+        [this](const QString& key) { return resolveActiveState(activeStateContext(), key); });
 
     registerDomainCommands();
     m_settingsUi->registerCommands();
@@ -125,7 +180,31 @@ ActiveStateContext GazerServices::activeStateContext() const
     ctx.mouseAssist = m_mouseAssist.get();
     ctx.actionLoops = m_actionLoops.get();
     ctx.settingsUi = m_settingsUi.get();
+    ctx.dwellSuspended = isDwellSuspended();
     return ctx;
+}
+
+void GazerServices::setDwellSuspended(bool on)
+{
+    if (m_pages) {
+        m_pages->setDwellSuspended(on);
+    }
+    if (m_instances) {
+        m_instances->setDwellSuspended(on);
+    }
+}
+
+void GazerServices::toggleDwellSuspended()
+{
+    setDwellSuspended(!isDwellSuspended());
+}
+
+bool GazerServices::isDwellSuspended() const
+{
+    if (m_pages && m_pages->hasRoot()) {
+        return m_pages->isDwellSuspended();
+    }
+    return m_instances && m_instances->isDwellSuspended();
 }
 
 void GazerServices::refreshActiveIndicators()
@@ -135,6 +214,9 @@ void GazerServices::refreshActiveIndicators()
     }
     m_instances->refreshActiveIndicators(
         [this](const QString& key) { return resolveActiveState(activeStateContext(), key); });
+    if (m_pages) {
+        m_pages->refreshActive();
+    }
 }
 
 void GazerServices::decorateMouseAmountLabels(LayoutDocument& doc) const
@@ -145,12 +227,7 @@ void GazerServices::decorateMouseAmountLabels(LayoutDocument& doc) const
     const QString move = QStringLiteral("Step %1 px").arg(m_mouseAssist->moveAmountPx());
     const QString scroll = QStringLiteral("Scroll ×%1").arg(m_mouseAssist->scrollNotches());
     for (LayoutItem& item : doc.items) {
-        const QString name = item.action.name;
-        if (name == QLatin1String("cycleMouseMoveAmount")) {
-            item.label = move;
-        } else if (name == QLatin1String("cycleMouseScrollAmount")) {
-            item.label = scroll;
-        }
+        applyMouseAmountLabel(item.label, item.action.name, move, scroll);
     }
 }
 
@@ -174,13 +251,14 @@ void GazerServices::refreshMouseAmountLabels()
         if (!has) {
             continue;
         }
-        inst->mutateItems([this](LayoutItem& item) {
-            if (item.action.name == QLatin1String("cycleMouseMoveAmount")) {
-                item.label = QStringLiteral("Step %1 px").arg(m_mouseAssist->moveAmountPx());
-            } else if (item.action.name == QLatin1String("cycleMouseScrollAmount")) {
-                item.label = QStringLiteral("Scroll ×%1").arg(m_mouseAssist->scrollNotches());
-            }
+        const QString move = QStringLiteral("Step %1 px").arg(m_mouseAssist->moveAmountPx());
+        const QString scroll = QStringLiteral("Scroll ×%1").arg(m_mouseAssist->scrollNotches());
+        inst->mutateItems([&](LayoutItem& item) {
+            applyMouseAmountLabel(item.label, item.action.name, move, scroll);
         });
+    }
+    if (m_pages) {
+        m_pages->refreshDecorated();
     }
 }
 
@@ -205,6 +283,9 @@ void GazerServices::applySettings(bool persist)
     m_settings.clamp();
 
     m_instances->setAutoCollapseMain(m_settings.autoCollapseMain);
+    if (m_pages) {
+        m_pages->setAutoCollapseMain(m_settings.autoCollapseMain);
+    }
     m_instances->setAutoCloseDefaults(m_settings.layoutAutoClose, m_settings.layoutAutoCloseIdleMs,
                                       m_settings.layoutAutoCloseFadeMs);
     m_instances->applyGlobalDwellOverride(m_settings.dwellSequence, m_settings.dwellGraceMs,
@@ -223,6 +304,12 @@ void GazerServices::applySettings(bool persist)
     boardPv.flashMs = m_settings.flashMs;
     m_instances->applyProgressVisuals(boardPv);
     m_instances->applyTheme(m_settings.resolvedTheme());
+    if (m_pages) {
+        m_pages->setProgressVisuals(boardPv);
+        m_pages->setTheme(m_settings.resolvedTheme());
+        m_pages->setGlobalDwell(m_settings.dwellSequence, m_settings.dwellGraceMs,
+                                m_settings.scanGraceMs);
+    }
 
     m_mouseDwellMove->setDwellMs(m_settings.mouseMoveDwellMs);
     m_mouseDwellMove->setMagPickDwellMs(m_settings.magPickDwellMs);
@@ -262,8 +349,8 @@ void GazerServices::applySettings(bool persist)
 
     m_mapping->setSpeakAlsoType(m_settings.speakAlsoType);
 
-    if (m_settingsUi) {
-        m_settingsUi->refreshOpenBoards();
+    if (m_pages) {
+        m_pages->refreshDecorated();
     }
 
     if (persist) {
@@ -310,6 +397,8 @@ void GazerServices::registerDomainCommands()
     m_assistCmdCtx->applySettings = [this](bool persist) { applySettings(persist); };
     m_assistCmdCtx->refreshActiveIndicators = [this]() { refreshActiveIndicators(); };
     m_assistCmdCtx->notifyStatus = [this](const QString& msg) { notifyStatus(msg); };
+    m_assistCmdCtx->setDwellSuspended = [this](bool on) { setDwellSuspended(on); };
+    m_assistCmdCtx->isDwellSuspended = [this]() { return isDwellSuspended(); };
     registerAssistCommands(*m_assistCmdCtx);
 
     m_commands->registerBuiltin(QStringLiteral("mouseMoveToGaze"), [this](QString* error) {
