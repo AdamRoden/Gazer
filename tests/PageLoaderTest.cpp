@@ -1,3 +1,4 @@
+#include "assist/LtsSpeed.h"
 #include "layout/PageCatalog.h"
 #include "layout/PageDetector.h"
 #include "layout/PageDim.h"
@@ -40,7 +41,10 @@ class PageLoaderTest final : public QObject {
 private slots:
     void dimPixelsVsProportion();
     void dimFraction();
+    void dimHeightRelative();
     void placeRectBottom();
+    void placeRectHeightSquareAtPoint();
+    void ltsSpeedLadder();
     void loadFixture();
     void inheritStyleAndDwell();
     void roundedBoxFitsSemicircle();
@@ -64,6 +68,7 @@ private slots:
     void loadConvertedBoards();
     void collectEmitsGridChrome();
     void settingsPagesAnchorTop();
+    void loadLtsMenu();
     void settingsTabsEqualWidth();
     void sleepKeepsContentWhenSuspended();
     void edgeChipHidesUntilProgress();
@@ -75,6 +80,7 @@ private slots:
     void actionExtrasRoundTrip();
     void edgeChipGazeHitsOnScreenChrome();
     void aboveTaskbarUsesDesktop();
+    void mainChipsSitAboveTaskbar();
     void sessionKeyPrefixedAfterPageId();
     void catalogUserCopyWinsPath();
 };
@@ -99,6 +105,50 @@ void PageLoaderTest::dimFraction()
     const PageDimPair p = PageDimParse::parsePair(QStringLiteral("1/2,1/4"));
     QCOMPARE(p.x.resolve(200), 100.0);
     QCOMPARE(p.y.resolve(200), 50.0);
+}
+
+void PageLoaderTest::dimHeightRelative()
+{
+    const PageDim h = PageDimParse::parse(QStringLiteral("0.25h"));
+    QCOMPARE(h.unit, PageDim::Unit::HeightProportion);
+    QCOMPARE(h.value, 0.25);
+    QCOMPARE(h.resolve(1920, 1080), 270.0);
+    const PageDim frac = PageDimParse::parse(QStringLiteral("1/4h"));
+    QCOMPARE(frac.unit, PageDim::Unit::HeightProportion);
+    QCOMPARE(frac.resolve(800, 400), 100.0);
+    QString err;
+    QVERIFY(PageDimParse::parse(QStringLiteral("150h"), &err).unit == PageDim::Unit::Unset);
+    QVERIFY(!err.isEmpty());
+}
+
+void PageLoaderTest::placeRectHeightSquareAtPoint()
+{
+    const QRectF desk(0, 0, 1920, 1040);
+    PageDimPair size;
+    size.x = PageDimParse::parse(QStringLiteral("0.25h"));
+    size.y = PageDimParse::parse(QStringLiteral("0.25h"));
+    const QPointF origin(1000, 500);
+    PageDimPair offset;
+    offset.x = PageDim::pixels(origin.x() - desk.center().x());
+    offset.y = PageDim::pixels(origin.y() - desk.center().y());
+    const QRectF r = PageDimParse::placeRect(desk, PageAnchor::Center, offset, size);
+    QCOMPARE(r.width(), 260.0);
+    QCOMPARE(r.height(), 260.0);
+    QCOMPARE(r.center().x(), origin.x());
+    QCOMPARE(r.center().y(), origin.y());
+}
+
+void PageLoaderTest::ltsSpeedLadder()
+{
+    QCOMPARE(snapLtsSpeed(4.4), 5.0);
+    QCOMPARE(snapLtsSpeed(2.0), 1.0);
+    QCOMPARE(snapLtsSpeed(4.0), 5.0);
+    QCOMPARE(snapLtsSpeed(1.0), 1.0);
+    QCOMPARE(nudgeLtsSpeed(5.0, +1), 10.0);
+    QCOMPARE(nudgeLtsSpeed(5.0, -1), 1.0);
+    QCOMPARE(nudgeLtsSpeed(1.0, -1), 1.0);
+    QCOMPARE(nudgeLtsSpeed(50.0, +1), 50.0);
+    QCOMPARE(nudgeLtsSpeed(20.0, +1), 50.0);
 }
 
 void PageLoaderTest::placeRectBottom()
@@ -425,6 +475,52 @@ void PageLoaderTest::collectEmitsGridChrome()
     QCOMPARE(cell->kind, PageTarget::Kind::Cell);
 }
 
+void PageLoaderTest::loadLtsMenu()
+{
+    PageDocument doc;
+    QString err;
+    const QString path = QStringLiteral(GAZER_SOURCE_DIR)
+                         + QStringLiteral("/resources/layouts/lts_menu.xml");
+    QVERIFY2(PageLoader::loadFromFile(path, doc, &err), qPrintable(err));
+    QCOMPARE(doc.id, QStringLiteral("lts_menu"));
+    QCOMPARE(doc.grids.size(), 1);
+    QCOMPARE(doc.grids[0].rows, 3);
+    QCOMPARE(doc.grids[0].columns, 3);
+    QCOMPARE(doc.grids[0].gapPx, 0);
+    QCOMPARE(doc.grids[0].size.x.unit, PageDim::Unit::HeightProportion);
+    QCOMPARE(doc.grids[0].size.y.unit, PageDim::Unit::HeightProportion);
+    QCOMPARE(doc.grids[0].size.x.value, 0.25);
+    QCOMPARE(doc.grids[0].cells.size(), 5);
+    QVERIFY(doc.grids[0].style.background.has_value());
+    QCOMPARE(doc.grids[0].style.background->alpha(), 0);
+    QVERIFY(doc.grids[0].style.thickness.has_value());
+    QCOMPARE(doc.grids[0].style.thickness->first(), 0.0);
+    QVERIFY(doc.styles.contains(QStringLiteral("hub")));
+    QVERIFY(doc.styles.contains(QStringLiteral("slow")));
+    QVERIFY(doc.styles.contains(QStringLiteral("fast")));
+    QVERIFY(doc.styles.contains(QStringLiteral("quit")));
+    QVERIFY(doc.styles.contains(QStringLiteral("reset")));
+    QCOMPARE(doc.styles.value(QStringLiteral("hub")).radius->toToken(), QStringLiteral("0"));
+    QCOMPARE(doc.styles.value(QStringLiteral("reset")).radius->toToken(),
+             QStringLiteral("900,900,0,0"));
+    QCOMPARE(doc.styles.value(QStringLiteral("fast")).radius->toToken(),
+             QStringLiteral("0,900,900,0"));
+    QCOMPARE(doc.styles.value(QStringLiteral("quit")).radius->toToken(),
+             QStringLiteral("0,0,900,900"));
+    QCOMPARE(doc.styles.value(QStringLiteral("slow")).radius->toToken(),
+             QStringLiteral("900,0,0,900"));
+    QCOMPARE(doc.styles.value(QStringLiteral("hub")).blur.value_or(-1.0), 15.0);
+    QCOMPARE(doc.styles.value(QStringLiteral("slow")).blur.value_or(-1.0), 15.0);
+    QCOMPARE(doc.styles.value(QStringLiteral("fast")).blur.value_or(-1.0), 15.0);
+    QCOMPARE(doc.styles.value(QStringLiteral("quit")).blur.value_or(-1.0), 15.0);
+    QCOMPARE(doc.styles.value(QStringLiteral("reset")).blur.value_or(-1.0), 15.0);
+
+    PageDocument written;
+    QVERIFY2(PageLoader::loadFromXml(PageWriter::toBytes(doc), written, &err), qPrintable(err));
+    QCOMPARE(written.grids[0].size.x.unit, PageDim::Unit::HeightProportion);
+    QCOMPARE(written.grids[0].size.x.value, 0.25);
+}
+
 void PageLoaderTest::settingsPagesAnchorTop()
 {
     const QStringList ids = {QStringLiteral("main_settings_button_timing"),
@@ -661,6 +757,7 @@ void PageLoaderTest::pageWriterRoundTripMain()
     QCOMPARE(dst.grids.size(), src.grids.size());
     QCOMPARE(dst.zones.size(), src.zones.size());
     QCOMPARE(dst.findZone(QStringLiteral("mainChip")) != nullptr, true);
+    QVERIFY(dst.findZone(QStringLiteral("mainChip"))->aboveTaskbar);
     QCOMPARE(dst.findGrid(QStringLiteral("drawer")) != nullptr, true);
 }
 
@@ -995,6 +1092,30 @@ void PageLoaderTest::aboveTaskbarUsesDesktop()
     const QRectF r = PageHit::gridBounds(g, frame);
     QVERIFY(r.bottom() <= frame.desktop.bottom() + 0.51);
     QVERIFY(r.bottom() < frame.screen.bottom() - 1.0);
+}
+
+void PageLoaderTest::mainChipsSitAboveTaskbar()
+{
+    PageDocument doc;
+    QString err;
+    const QString path =
+        QStringLiteral(GAZER_SOURCE_DIR) + QStringLiteral("/resources/layouts/main.xml");
+    QVERIFY2(PageLoader::loadFromFile(path, doc, &err), qPrintable(err));
+    const PageZone* chip = doc.findZone(QStringLiteral("mainChip"));
+    const PageZone* sleep = doc.findZone(QStringLiteral("sleep"));
+    QVERIFY(chip);
+    QVERIFY(sleep);
+    QVERIFY(chip->aboveTaskbar);
+    QVERIFY(sleep->aboveTaskbar);
+    PageFrame frame;
+    frame.screen = QRectF(0, 0, 1920, 1080);
+    frame.desktop = QRectF(0, 0, 1920, 1040);
+    const QSet<QString> hiddenGrids{QStringLiteral("drawer"), QStringLiteral("quit")};
+    const QVector<PageTarget> t = PageHit::collect(doc, frame, hiddenGrids, {});
+    const PageTarget* vis = targetById(t, QStringLiteral("mainChip"));
+    QVERIFY(vis);
+    QVERIFY(vis->geom.visual.bottom() <= frame.desktop.bottom() + 0.51);
+    QVERIFY(vis->geom.visual.bottom() < frame.screen.bottom() - 1.0);
 }
 
 void PageLoaderTest::sessionKeyPrefixedAfterPageId()

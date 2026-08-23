@@ -105,8 +105,8 @@ void ActionDispatcher::dispatchPage(const QVector<PageAction>& actions, const QS
                 ok = m_svc.commands().run({QStringLiteral("mouseDwellMove"), sourcePageId}, &err);
             } else {
                 const QRect desk = virtualDesktop();
-                const int x = qRound(a.moveX.resolve(desk.width()));
-                const int y = qRound(a.moveY.resolve(desk.height()));
+                const int x = qRound(a.moveX.resolve(desk.width(), desk.height()));
+                const int y = qRound(a.moveY.resolve(desk.height(), desk.height()));
                 if (a.moveMode == PageMoveMode::Relative) {
                     ok = MouseInjector::moveBy(x, y, &err);
                 } else {

@@ -17,7 +17,7 @@ namespace gazer {
 
 namespace {
 constexpr auto kPreviewPrefix = "__editor_preview_";
-}
+} // namespace
 
 QString PageSession::previewId(const QString& catalogId)
 {
@@ -78,6 +78,7 @@ PageSession::PageSession(QObject* parent)
                 continue;
             }
             connect(s, &QScreen::geometryChanged, this, onScreens);
+            connect(s, &QScreen::availableGeometryChanged, this, onScreens);
             connect(s, &QScreen::virtualGeometryChanged, this, onScreens);
             m_boundScreens.push_back(s);
         }
@@ -256,7 +257,6 @@ bool PageSession::applyPageAction(PageVerb verb, PageTargetKind kind, const QStr
                 }
                 return false;
             }
-            closeAttached();
             setRootChrome(RootChrome::Drawer);
             return true;
         }
@@ -418,6 +418,9 @@ void PageSession::closePreviewPages()
     }
     leaveGaze();
     rebuild();
+    if (!m_leaveGatePage.isEmpty() && !hasPage(m_leaveGatePage)) {
+        clearLeaveGate();
+    }
     emit sessionChanged();
 }
 
@@ -432,8 +435,9 @@ bool PageSession::attachDocument(PageDocument doc, QString* error, bool decorate
     if (decorate && m_decorate) {
         m_decorate(doc);
     }
+    const QString id = doc.id;
     for (int i = 0; i < m_attached.size(); ++i) {
-        if (m_attached[i].doc.id == doc.id) {
+        if (m_attached[i].doc.id == id) {
             m_attached[i].doc = std::move(doc);
             if (i != m_attached.size() - 1) {
                 m_attached.move(i, m_attached.size() - 1);
@@ -441,6 +445,7 @@ bool PageSession::attachDocument(PageDocument doc, QString* error, bool decorate
             leaveGaze();
             rebuild();
             raise();
+            armLeaveGate(id);
             emit sessionChanged();
             return true;
         }
@@ -451,6 +456,7 @@ bool PageSession::attachDocument(PageDocument doc, QString* error, bool decorate
     leaveGaze();
     rebuild();
     raise();
+    armLeaveGate(id);
     emit sessionChanged();
     return true;
 }
@@ -512,6 +518,7 @@ bool PageSession::openPage(const QString& id, QString* error)
     }
     rebuild();
     raise();
+    armLeaveGate(id);
     emit sessionChanged();
     GAZER_INFO << "Attached page" << id;
     return true;
@@ -519,6 +526,9 @@ bool PageSession::openPage(const QString& id, QString* error)
 
 void PageSession::closePage(const QString& id)
 {
+    if (m_leaveGatePage == id) {
+        clearLeaveGate();
+    }
     for (int i = 0; i < m_attached.size(); ++i) {
         if (m_attached[i].doc.id == id) {
             m_attached.removeAt(i);
@@ -538,6 +548,7 @@ int PageSession::closeAttached()
     if (n == 0) {
         return 0;
     }
+    clearLeaveGate();
     if (m_loopStopPage) {
         for (const AttachedPage& a : m_attached) {
             m_loopStopPage(a.doc.id);
@@ -802,11 +813,16 @@ bool PageSession::onGaze(const GazePoint& point)
         m_dwell.onGazeSample(invalid, {});
         return !m_hoverId.isEmpty();
     }
+    m_lastGaze = point;
     const QTransform* xf = m_host ? &m_host->drawerXf() : nullptr;
     const QString engaged =
         (m_dwell.isScanGraceComplete() && !m_hoverId.isEmpty()) ? m_hoverId : QString();
     const PageTarget* hit = PageHit::at(m_targets, point.toPointF(), m_drawerScale, engaged,
                                         m_gridPaints, xf);
+    if (blockedByLeaveGate(hit)) {
+        leaveGaze();
+        return hitsChrome(point);
+    }
     const QString id = hit ? sessionKey(*hit) : QString();
     if (hit) {
         noteActivity();

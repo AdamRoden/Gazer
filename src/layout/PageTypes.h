@@ -12,8 +12,10 @@
 namespace gazer {
 
 /// One offset/size component. Proportion iff the token contained `.` or `/`; else pixels.
+/// Suffix `h` (`0.25h`, `1/4h`) is a proportion of the reference *height* on either axis
+/// (square boards: `size="0.25h,0.25h"`).
 struct PageDim {
-    enum class Unit { Unset, Pixels, Proportion };
+    enum class Unit { Unset, Pixels, Proportion, HeightProportion };
 
     Unit unit = Unit::Unset;
     double value = 0.0;
@@ -36,13 +38,28 @@ struct PageDim {
         return d;
     }
 
-    [[nodiscard]] double resolve(double reference) const
+    [[nodiscard]] static PageDim heightProportion(double p)
+    {
+        PageDim d;
+        d.unit = Unit::HeightProportion;
+        d.value = p;
+        return d;
+    }
+
+    /// @p axisRef is width for x / height for y. @p heightRef is the box height
+    /// (used by HeightProportion on either axis). One-arg form uses @p axisRef for both.
+    [[nodiscard]] double resolve(double axisRef) const { return resolve(axisRef, axisRef); }
+
+    [[nodiscard]] double resolve(double axisRef, double heightRef) const
     {
         if (unit == Unit::Pixels) {
             return value;
         }
+        if (unit == Unit::HeightProportion) {
+            return heightRef * value;
+        }
         if (unit == Unit::Proportion) {
-            return reference * value;
+            return axisRef * value;
         }
         return 0.0;
     }
@@ -255,6 +272,7 @@ struct PageGrid {
 
 struct PageZone : PageLeaf {
     bool desktopMode = false;
+    bool aboveTaskbar = false;
     PageAnchor anchor = PageAnchor::TopLeft;
     PageDimPair offset;
     PageDimPair size;

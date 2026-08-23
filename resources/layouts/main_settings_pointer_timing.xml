@@ -60,7 +60,7 @@
     <Cell id="fsd_edit" row="6" col="12" label="Edit…" cluster="stepper.fsd" clusterSlot="edit">
     <Action id="Command" value="settings.edit.mouseMoveForesightDwellMs"/>
     </Cell>
-    <Cell id="fs_on" row="7" col="0" colSpan="8" icon="MouseMoveToPoint" label="Foresight" role="toggle" activeState="mouseMoveForesight">
+    <Cell id="fs_on" row="7" col="0" colSpan="8" icon="AutoModeIcon" label="Foresight" role="toggle" activeState="mouseMoveForesight">
     <Action id="Command" value="toggleMouseMoveForesight"/>
     </Cell>
     <Cell id="fs_dbl" row="7" col="8" colSpan="8" icon="ZoomToLocation" label="Bonus zoom" role="toggle" activeState="mouseMoveForesightDoubleZoom">
@@ -81,7 +81,7 @@
     <Cell id="z_on" row="10" col="0" colSpan="8" icon="ZoomToLocation" label="Zoom" role="toggle" activeState="mouseMoveMagPick">
     <Action id="Command" value="toggleMouseMoveMagPick"/>
     </Cell>
-    <Cell id="z_center" row="10" col="8" colSpan="8" icon="LookToScrollBoundsScreenPoint" label="Screen-centered" role="toggle" activeState="!mouseMoveMagPickCenter">
+    <Cell id="z_center" row="10" col="8" colSpan="8" icon="LookToScrollBoundsScreenCentredIcon" label="Screen-centered" role="toggle" activeState="!mouseMoveMagPickCenter">
     <Action id="Command" value="toggleMouseMoveMagPickCenter"/>
     </Cell>
   </Grid>

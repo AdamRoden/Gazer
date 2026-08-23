@@ -33,7 +33,7 @@
     <Cell id="tr_m" row="3" col="10" colSpan="2" label="Mouse" cluster="segment.tracker" activeState="setting.tracker.1">
     <Action id="Command" value="settings.tracker.mouse"/>
     </Cell>
-    <Cell id="preview" row="3" col="12" colSpan="4" label="Head preview">
+    <Cell id="preview" row="3" col="12" colSpan="4" label="Head preview" icon="AvatarIcon">
     <Action id="Command" value="openPreview"/>
     </Cell>
     <Cell id="h_lens" row="4" col="0" colSpan="16" label="Live lens" role="label" textStyle="section"/>
@@ -71,16 +71,16 @@
     <Action id="Command" value="settings.mag.follow.snappy"/>
     </Cell>
     <Cell id="h_help" row="8" col="0" colSpan="16" label="Helpers" role="label" textStyle="section"/>
-    <Cell id="reticle" row="9" col="0" colSpan="8" label="Gaze Indicator" role="toggle" activeState="gazeReticle">
+    <Cell id="reticle" row="9" col="0" colSpan="8" label="Gaze Indicator" icon="ApplicationIcon" role="toggle" activeState="gazeReticle">
     <Action id="Command" value="toggleGazeReticle"/>
     </Cell>
-    <Cell id="follow" row="9" col="8" colSpan="8" label="Gaze → mouse" role="toggle" activeState="gazeMouseFollow">
+    <Cell id="follow" row="9" col="8" colSpan="8" label="Gaze → mouse" icon="MouseMagneticCursorIcon" role="toggle" activeState="gazeMouseFollow">
     <Action id="Command" value="toggleGazeMouseFollow"/>
     </Cell>
-    <Cell id="magnifier" row="10" col="0" colSpan="8" label="Magnifier" role="toggle" activeState="magnifier">
+    <Cell id="magnifier" row="10" col="0" colSpan="8" label="Magnifier" icon="MouseMagnifierIcon" role="toggle" activeState="magnifier">
     <Action id="Command" value="toggleMagnifier"/>
     </Cell>
-    <Cell id="click_loop" row="10" col="8" colSpan="8" label="Gaze click loop" role="toggle" activeState="loop.gazeClick">
+    <Cell id="click_loop" row="10" col="8" colSpan="8" label="Gaze click loop" icon="RepeatMouseActionIcon" role="toggle" activeState="loop.gazeClick">
     <Action id="Command" value="mouseDwellClickLoop"/>
     </Cell>
   </Grid>

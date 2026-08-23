@@ -16,16 +16,24 @@ QString norm(const QString& s)
 
 PageDim parse(const QString& token, QString* error)
 {
-    const QString t = token.trimmed();
+    QString t = token.trimmed();
     if (t.isEmpty()) {
         return {};
     }
 
+    bool heightRel = false;
+    if (t.size() > 1 && (t.endsWith(QLatin1Char('h')) || t.endsWith(QLatin1Char('H')))) {
+        heightRel = true;
+        t.chop(1);
+        t = t.trimmed();
+    }
+
+    PageDim dim;
     if (t.contains(QLatin1Char('/'))) {
         const QStringList parts = t.split(QLatin1Char('/'));
         if (parts.size() != 2) {
             if (error) {
-                *error = QStringLiteral("Invalid fraction '%1'").arg(t);
+                *error = QStringLiteral("Invalid fraction '%1'").arg(token);
             }
             return {};
         }
@@ -35,25 +43,32 @@ PageDim parse(const QString& token, QString* error)
         const double den = parts[1].trimmed().toDouble(&okDen);
         if (!okNum || !okDen || den == 0.0) {
             if (error) {
-                *error = QStringLiteral("Invalid fraction '%1'").arg(t);
+                *error = QStringLiteral("Invalid fraction '%1'").arg(token);
             }
             return {};
         }
-        return PageDim::proportion(num / den);
-    }
-
-    bool ok = false;
-    const double v = t.toDouble(&ok);
-    if (!ok) {
-        if (error) {
-            *error = QStringLiteral("Invalid dimension '%1'").arg(t);
+        dim = PageDim::proportion(num / den);
+    } else {
+        bool ok = false;
+        const double v = t.toDouble(&ok);
+        if (!ok) {
+            if (error) {
+                *error = QStringLiteral("Invalid dimension '%1'").arg(token);
+            }
+            return {};
         }
-        return {};
+        dim = t.contains(QLatin1Char('.')) ? PageDim::proportion(v) : PageDim::pixels(v);
     }
-    if (t.contains(QLatin1Char('.'))) {
-        return PageDim::proportion(v);
+    if (heightRel) {
+        if (dim.unit == PageDim::Unit::Pixels) {
+            if (error) {
+                *error = QStringLiteral("Height suffix requires a proportion '%1'").arg(token);
+            }
+            return {};
+        }
+        dim.unit = PageDim::Unit::HeightProportion;
     }
-    return PageDim::pixels(v);
+    return dim;
 }
 
 PageDimPair parsePair(const QString& csv, QString* error)
@@ -183,10 +198,12 @@ QString anchorName(PageAnchor a)
 QRectF placeRect(const QRectF& bounds, PageAnchor anchor, const PageDimPair& offset,
                  const PageDimPair& size)
 {
-    const double w = size.x.isSet() ? size.x.resolve(bounds.width()) : 0.0;
-    const double h = size.y.isSet() ? size.y.resolve(bounds.height()) : 0.0;
-    const double ox = offset.x.isSet() ? offset.x.resolve(bounds.width()) : 0.0;
-    const double oy = offset.y.isSet() ? offset.y.resolve(bounds.height()) : 0.0;
+    const double bw = bounds.width();
+    const double bh = bounds.height();
+    const double w = size.x.isSet() ? size.x.resolve(bw, bh) : 0.0;
+    const double h = size.y.isSet() ? size.y.resolve(bh, bh) : 0.0;
+    const double ox = offset.x.isSet() ? offset.x.resolve(bw, bh) : 0.0;
+    const double oy = offset.y.isSet() ? offset.y.resolve(bh, bh) : 0.0;
 
     double x = bounds.left();
     double y = bounds.top();

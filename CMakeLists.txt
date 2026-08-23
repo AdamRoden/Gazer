@@ -17,6 +17,15 @@ option(GAZER_USE_TOBII "Build Tobii Stream Engine integration (runtime DLL load)
 
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets OpenGL OpenGLWidgets Qml Quick Svg Test)
 
+# AUTOMOC may invoke the compiler by basename. Keep MinGW on PATH even when
+# the parent shell did not export it (`cmake --build` / ninja autogen).
+if(WIN32 AND CMAKE_CXX_COMPILER)
+    get_filename_component(GAZER_CXX_BIN "${CMAKE_CXX_COMPILER}" DIRECTORY)
+    if(EXISTS "${GAZER_CXX_BIN}")
+        set(ENV{PATH} "${GAZER_CXX_BIN};$ENV{PATH}")
+    endif()
+endif()
+
 set(GAZER_TOBII_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/third_party/tobii/include")
 set(GAZER_TOBII_EFFECTIVE OFF)
 
@@ -49,6 +58,7 @@ set(GAZER_SOURCES
     src/layout/PageDetector.cpp
     src/layout/PageHit.cpp
     src/layout/PageSession.cpp
+    src/layout/PageSessionAttach.cpp
     src/layout/PageWriter.cpp
     src/layout/PageEdit.cpp
     src/layout/PageCatalog.cpp
@@ -56,6 +66,7 @@ set(GAZER_SOURCES
     src/layout/DwellStateMachine.cpp
     src/input/KeyboardInjector.cpp
     src/input/MouseInjector.cpp
+    src/input/PixelScroller.cpp
     src/input/VirtualGamepad.cpp
     src/input/InputService.cpp
     src/mapping/MappingLoader.cpp
@@ -131,6 +142,7 @@ set(GAZER_HEADERS
     src/input/InputTypes.h
     src/input/KeyboardInjector.h
     src/input/MouseInjector.h
+    src/input/PixelScroller.h
     src/input/VirtualGamepad.h
     src/input/InputService.h
     src/mapping/MappingTypes.h
@@ -140,6 +152,7 @@ set(GAZER_HEADERS
     src/assist/PhraseService.h
     src/assist/ScriptHost.h
     src/assist/LookToScroll.h
+    src/assist/LtsSpeed.h
     src/assist/LtsIndicator.h
     src/assist/MouseDwellMove.h
     src/assist/MouseAssistState.h
@@ -222,7 +235,7 @@ target_link_libraries(Gazer PRIVATE
 )
 
 if(WIN32)
-    target_link_libraries(Gazer PRIVATE user32 ole32 sapi)
+    target_link_libraries(Gazer PRIVATE user32 ole32 oleaut32 uuid sapi)
 endif()
 
 add_custom_command(TARGET Gazer POST_BUILD

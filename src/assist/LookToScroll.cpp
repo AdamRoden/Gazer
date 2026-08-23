@@ -1,5 +1,6 @@
 #include "assist/LookToScroll.h"
 
+#include "assist/LtsSpeed.h"
 #include "input/MouseInjector.h"
 #include "ui/OverlaySurface.h"
 #include "ui/Theme.h"
@@ -16,8 +17,20 @@
 namespace gazer {
 
 namespace {
-constexpr double kWheelDelta = 120.0;
-constexpr double kMinEmitDelta = 8.0;
+constexpr double kMinEmitPx = 1.0;
+
+void paintRoundProgress(QPainter& p, const QPointF& c, double radius, double prog, const QColor& color)
+{
+    if (prog <= 0.01 || radius < 4.0) {
+        return;
+    }
+    p.setBrush(Qt::NoBrush);
+    const qreal w = qBound(2.6, radius * 0.14, 4.8);
+    p.setPen(QPen(color, w, Qt::SolidLine, Qt::RoundCap));
+    p.drawArc(QRectF(c.x() - radius, c.y() - radius, radius * 2.0, radius * 2.0), 90 * 16,
+              int(-360 * 16 * prog));
+}
+
 } // namespace
 
 class LookToScroll::RingOverlay final : public OverlaySurface {
@@ -28,21 +41,19 @@ public:
         hide();
     }
 
-    void setState(int deadzonePx, int falloffPx, double activity, double centerProg, bool suspended,
-                  double dirX, double dirY, LtsIndicator style, CenterDwell dwell)
+    void setState(int deadzonePx, int falloffPx, double activity, double centerProg, double dirX,
+                  double dirY, LtsIndicator style)
     {
         m_deadzone = deadzonePx;
         m_falloff = qMax(40, falloffPx);
         m_activity = qBound(0.0, activity, 1.0);
         m_centerProg = qBound(0.0, centerProg, 1.0);
-        m_suspended = suspended;
         m_dirX = dirX;
         m_dirY = dirY;
         m_style = style;
-        m_dwell = dwell;
 
         const int activator = qMax(14, m_deadzone / 3);
-        const bool compact = m_suspended || m_style == LtsIndicator::PauseOnly;
+        const bool compact = m_style == LtsIndicator::PauseOnly;
         int side = activator * 2 + 36;
         if (!compact) {
             if (m_style == LtsIndicator::Orb) {
@@ -82,19 +93,17 @@ protected:
         p.setRenderHint(QPainter::Antialiasing, true);
         const QPointF c(rect().center());
         const QColor cyan = m_accent.isValid() ? m_accent : ThemeColors::defaultProgressColor();
-        if (!m_suspended) {
-            switch (m_style) {
-            case LtsIndicator::Fan:
-                paintFan(p, c, cyan);
-                break;
-            case LtsIndicator::Orb:
-                paintOrb(p, c, cyan);
-                break;
-            case LtsIndicator::PauseOnly:
-                break;
-            }
+        switch (m_style) {
+        case LtsIndicator::Fan:
+            paintFan(p, c, cyan);
+            break;
+        case LtsIndicator::Orb:
+            paintOrb(p, c, cyan);
+            break;
+        case LtsIndicator::PauseOnly:
+            break;
         }
-        paintActivator(p, c, activatorColor(cyan));
+        paintActivator(p, c, cyan);
     }
 
 private:
@@ -175,37 +184,19 @@ private:
         p.restore();
     }
 
-    [[nodiscard]] QColor activatorColor(const QColor& cyan) const
-    {
-        switch (m_dwell) {
-        case CenterDwell::Pause:
-            return QColor(255, 196, 40);
-        case CenterDwell::Quit:
-            return QColor(232, 56, 48);
-        case CenterDwell::Resume:
-            return QColor(48, 196, 88);
-        case CenterDwell::Idle:
-            return m_suspended ? QColor(255, 160, 40) : cyan;
-        }
-        return cyan;
-    }
-
     void paintActivator(QPainter& p, const QPointF& c, const QColor& accent)
     {
-        const int cr = qMax(14, m_deadzone / 3);
+        const double hubR = qMax(14.0, m_deadzone / 3.0);
         p.setPen(Qt::NoPen);
-        p.setBrush(QColor(0, 0, 0, m_suspended ? 70 : 40));
-        p.drawEllipse(c, double(cr), double(cr));
-        p.setBrush(QColor(accent.red(), accent.green(), accent.blue(), m_suspended ? 55 : 35));
-        p.drawEllipse(c, double(cr), double(cr));
+        p.setBrush(QColor(0, 0, 0, 50));
+        p.drawEllipse(c, hubR, hubR);
+        p.setBrush(QColor(accent.red(), accent.green(), accent.blue(), 40));
+        p.drawEllipse(c, hubR, hubR);
         p.setBrush(Qt::NoBrush);
-        p.setPen(QPen(QColor(accent.red(), accent.green(), accent.blue(), 140), 2.0));
-        p.drawEllipse(c, double(cr), double(cr));
-        if (m_centerProg > 0.01) {
-            p.setPen(QPen(accent, 3.5));
-            p.drawArc(QRectF(c.x() - cr, c.y() - cr, cr * 2.0, cr * 2.0), 90 * 16,
-                      int(-360 * 16 * m_centerProg));
-        }
+        p.setPen(QPen(QColor(accent.red(), accent.green(), accent.blue(), 150), 2.2, Qt::SolidLine,
+                      Qt::RoundCap));
+        p.drawEllipse(c, hubR, hubR);
+        paintRoundProgress(p, c, hubR - 1.5, m_centerProg, accent);
     }
 
     int m_deadzone = 110;
@@ -215,9 +206,7 @@ private:
     double m_centerProg = 0.0;
     double m_dirX = 0.0;
     double m_dirY = 0.0;
-    bool m_suspended = false;
     LtsIndicator m_style = LtsIndicator::Fan;
-    CenterDwell m_dwell = CenterDwell::Idle;
     QColor m_accent = ThemeColors::defaultProgressColor();
 };
 
@@ -230,6 +219,7 @@ LookToScroll::LookToScroll(QObject* parent)
 
 LookToScroll::~LookToScroll()
 {
+    m_scroller.reset();
     hideOverlay();
 }
 
@@ -244,6 +234,7 @@ void LookToScroll::setEnabled(bool enabled)
     if (m_enabled == enabled) {
         return;
     }
+    const bool was = m_enabled;
     m_enabled = enabled;
     m_lastTickMs = -1;
     m_lastSampleMs = -1;
@@ -251,12 +242,15 @@ void LookToScroll::setEnabled(bool enabled)
     m_accumH = 0.0;
     m_outsideSec = 0.0;
     m_centerProgress = 0.0;
-    m_holdToQuit = false;
-    m_centerDwell = CenterDwell::Idle;
+    m_replacing = false;
     m_scrollSuspended = false;
+    m_scroller.reset();
     if (!m_enabled) {
         m_hasOrigin = false;
         hideOverlay();
+        if (was) {
+            emit menuCloseRequested();
+        }
     } else if (!m_hasOrigin) {
         setScrollOrigin(QCursor::pos());
     } else {
@@ -271,6 +265,7 @@ void LookToScroll::setScrollOrigin(const QPoint& pos)
 {
     m_origin = pos;
     m_hasOrigin = true;
+    m_scroller.reset();
     pinCursorToOrigin();
 }
 
@@ -298,6 +293,58 @@ void LookToScroll::toggle()
     setEnabled(!m_enabled);
 }
 
+void LookToScroll::nudgeMaxSpeed(int dir)
+{
+    const double next = nudgeLtsSpeed(m_maxNotchesPerSec, dir);
+    if (qAbs(next - m_maxNotchesPerSec) < 0.001) {
+        return;
+    }
+    m_maxNotchesPerSec = next;
+    GAZER_INFO << "LookToScroll speed" << m_maxNotchesPerSec;
+    emit maxNotchesPerSecChanged(m_maxNotchesPerSec);
+}
+
+void LookToScroll::resumeScroll()
+{
+    if (!m_enabled || !m_scrollSuspended) {
+        return;
+    }
+    setScrollSuspended(false);
+}
+
+void LookToScroll::requestReset()
+{
+    if (!m_enabled) {
+        return;
+    }
+    m_replacing = true;
+    emit menuCloseRequested();
+    setScrollSuspended(true);
+    hideOverlay();
+    emit placeScrollPointRequested();
+}
+
+void LookToScroll::cancelOriginPlace()
+{
+    if (!m_enabled || !m_replacing) {
+        return;
+    }
+    m_replacing = false;
+    if (m_scrollSuspended) {
+        setScrollSuspended(false);
+    }
+}
+
+void LookToScroll::pauseAtHub()
+{
+    m_replacing = false;
+    if (!m_scrollSuspended) {
+        setScrollSuspended(true);
+    }
+    hideOverlay();
+    emit menuOpenRequested(originPoint());
+}
+
 void LookToScroll::setScrollSuspended(bool suspended)
 {
     if (m_scrollSuspended == suspended) {
@@ -308,8 +355,10 @@ void LookToScroll::setScrollSuspended(bool suspended)
     m_accumV = 0.0;
     m_accumH = 0.0;
     m_centerProgress = 0.0;
+    m_scroller.lift();
     if (!suspended) {
-        m_holdToQuit = false;
+        m_replacing = false;
+        emit menuCloseRequested();
     }
     GAZER_INFO << "LookToScroll scroll" << (suspended ? "SUSPENDED" : "resumed");
     emit scrollSuspendedChanged(m_scrollSuspended);
@@ -327,7 +376,7 @@ void LookToScroll::setFalloffPx(int px)
 
 void LookToScroll::setMaxNotchesPerSec(double n)
 {
-    m_maxNotchesPerSec = qBound(0.5, n, 30.0);
+    m_maxNotchesPerSec = snapLtsSpeed(n);
 }
 
 void LookToScroll::setAccent(const QColor& c)
@@ -365,110 +414,97 @@ void LookToScroll::hideOverlay()
 }
 
 void LookToScroll::updateOverlay(const QPoint& center, double gazeDist, double dirX, double dirY,
-                                 bool active, double centerProg, bool suspended, CenterDwell dwell)
+                                 bool active, double centerProg)
 {
     if (!m_overlay) {
         return;
     }
     double activity = 0.0;
-    if (active && !suspended && gazeDist > m_deadzonePx) {
+    if (active && !m_scrollSuspended && gazeDist > m_deadzonePx) {
         const double t = qBound(0.0, (gazeDist - m_deadzonePx) / double(m_falloffPx), 1.0);
         activity = easeNearDeadzone(t);
     }
-    m_overlay->setState(m_deadzonePx, m_falloffPx, activity, centerProg, suspended, dirX, dirY,
-                        m_indicatorStyle, dwell);
+    m_overlay->setState(m_deadzonePx, m_falloffPx, activity, centerProg, dirX, dirY,
+                        m_indicatorStyle);
     m_overlay->placeCenter(center);
 }
 
 void LookToScroll::onGaze(const GazePoint& point, bool pauseInput)
 {
     if (!m_enabled || !point.valid) {
+        m_scroller.lift();
+        hideOverlay();
+        return;
+    }
+    if (m_replacing) {
+        m_scroller.lift();
+        hideOverlay();
+        return;
+    }
+    if (m_scrollSuspended) {
+        m_scroller.lift();
         hideOverlay();
         return;
     }
     if (pauseInput && !m_allowOverBoard) {
+        m_scroller.lift();
         hideOverlay();
         m_centerProgress = 0.0;
-        m_holdToQuit = false;
         m_outsideSec = 0.0;
         return;
     }
 
     const QPoint origin = originPoint();
-    if (!m_scrollSuspended) {
-        pinCursorToOrigin();
-    }
+    pinCursorToOrigin();
     const QPointF gaze(point.x, point.y);
     const QPointF delta = gaze - QPointF(origin);
     const double dist = qSqrt(delta.x() * delta.x() + delta.y() * delta.y());
     const double dirX = dist > 1.0 ? delta.x() / dist : 0.0;
     const double dirY = dist > 1.0 ? delta.y() / dist : 0.0;
-    const int centerR = qMax(14, m_deadzonePx / 3);
+    const double hubR = qMax(14.0, m_deadzonePx / 3.0);
 
     const qint64 now = m_clock.elapsed();
-    // Per-sample dt for center dwell / decay (always advance timestamp after use).
     const double sampleDt =
         m_lastSampleMs < 0 ? 0.016
                            : qBound(0.004, (now - m_lastSampleMs) / 1000.0, 0.05);
     m_lastSampleMs = now;
 
-    // Center dwell: yellow pause → hold for red quit, or leave and return for green resume.
-    if (dist <= double(centerR)) {
+    if (dist <= hubR) {
+        m_scroller.lift();
         m_outsideSec = 0.0;
         m_accumV *= 0.5;
         m_accumH *= 0.5;
         m_centerProgress =
             qBound(0.0, m_centerProgress + sampleDt * 1000.0 / double(m_centerDwellMs), 1.0);
-        m_centerDwell = CenterDwell::Pause;
-        if (m_scrollSuspended) {
-            m_centerDwell = m_holdToQuit ? CenterDwell::Quit : CenterDwell::Resume;
-        }
-        updateOverlay(origin, dist, dirX, dirY, false, m_centerProgress, m_scrollSuspended,
-                      m_centerDwell);
+        updateOverlay(origin, dist, dirX, dirY, false, m_centerProgress);
         if (m_centerProgress >= 1.0) {
             m_centerProgress = 0.0;
-            if (!m_scrollSuspended) {
-                setScrollSuspended(true);
-                m_holdToQuit = true;
-            } else if (m_holdToQuit) {
-                setEnabled(false);
-            } else {
-                emit placeScrollPointRequested();
-            }
+            pauseAtHub();
         }
         return;
     }
 
-    m_holdToQuit = false;
     m_centerProgress = qMax(0.0, m_centerProgress - sampleDt * 2.5);
     if (m_centerProgress <= 0.01) {
-        m_centerDwell = CenterDwell::Idle;
         m_centerProgress = 0.0;
     }
 
     if (dist <= m_deadzonePx || dist < 1.0) {
+        m_scroller.lift();
         m_outsideSec = 0.0;
         m_accumV *= 0.5;
         m_accumH *= 0.5;
-        if (qAbs(m_accumV) < kMinEmitDelta) {
+        if (qAbs(m_accumV) < kMinEmitPx) {
             m_accumV = 0.0;
         }
-        if (qAbs(m_accumH) < kMinEmitDelta) {
+        if (qAbs(m_accumH) < kMinEmitPx) {
             m_accumH = 0.0;
         }
-        updateOverlay(origin, dist, dirX, dirY, false, m_centerProgress, m_scrollSuspended,
-                      m_centerDwell);
+        updateOverlay(origin, dist, dirX, dirY, false, m_centerProgress);
         return;
     }
 
-    // Outside deadzone.
-    updateOverlay(origin, dist, dirX, dirY, !m_scrollSuspended, m_centerProgress,
-                  m_scrollSuspended, m_centerDwell);
-
-    if (m_scrollSuspended) {
-        m_outsideSec = 0.0;
-        return;
-    }
+    updateOverlay(origin, dist, dirX, dirY, true, m_centerProgress);
 
     if (m_lastTickMs >= 0 && (now - m_lastTickMs) < m_intervalMs) {
         return;
@@ -485,30 +521,27 @@ void LookToScroll::onGaze(const GazePoint& point, bool pauseInput)
 
     const double nx = delta.x() / dist;
     const double ny = delta.y() / dist;
-    const double rate = m_maxNotchesPerSec * kWheelDelta * t * accel;
+    const double rate = m_maxNotchesPerSec * PixelScroller::kPixelsPerNotch * t * accel;
     m_accumV += (-ny) * rate * tickDt;
     m_accumH += (nx)*rate * tickDt;
 
     int v = 0;
     int h = 0;
-    if (qAbs(m_accumV) >= kMinEmitDelta) {
+    if (qAbs(m_accumV) >= kMinEmitPx) {
         v = int(m_accumV > 0 ? qFloor(m_accumV) : qCeil(m_accumV));
         m_accumV -= v;
     }
-    if (qAbs(m_accumH) >= kMinEmitDelta) {
+    if (qAbs(m_accumH) >= kMinEmitPx) {
         h = int(m_accumH > 0 ? qFloor(m_accumH) : qCeil(m_accumH));
         m_accumH -= h;
     }
 
+    if (v == 0 && h == 0) {
+        return;
+    }
+
     QString err;
-    bool any = false;
-    if (v != 0) {
-        any = MouseInjector::scrollDelta(v, &err) || any;
-    }
-    if (h != 0) {
-        any = MouseInjector::scrollHorizontalDelta(h, &err) || any;
-    }
-    if (any) {
+    if (m_scroller.scrollBy(h, v, &err)) {
         emit scrolled(v, h);
     } else if (!err.isEmpty()) {
         GAZER_WARN << "LookToScroll:" << err;

@@ -72,7 +72,7 @@
     <Action id="Command" value="settings.edit.ltsAccelPerSec"/>
     </Cell>
     <Cell id="h_ind" row="8" col="0" colSpan="16" label="Indicator" role="label" textStyle="section"/>
-    <Cell id="ind_l" row="9" col="0" colSpan="6" label="Scroll indicator" caption="Fan wedge, stretching orb, or pause/resume only." role="label"/>
+    <Cell id="ind_l" row="9" col="0" colSpan="6" label="Scroll indicator" caption="Fan wedge, stretching orb, or hub/menu only." role="label"/>
     <Cell id="ind_fan" row="9" col="8" colSpan="2" label="Fan" cluster="segment.ltsInd" activeState="setting.ltsIndicator.0">
     <Action id="Command" value="settings.lts.indicator.fan"/>
     </Cell>
@@ -83,7 +83,7 @@
     <Action id="Command" value="settings.lts.indicator.pause"/>
     </Cell>
     <Cell id="h_place" row="10" col="0" colSpan="16" label="Placement" role="label" textStyle="section"/>
-    <Cell id="pl_t" row="11" col="0" colSpan="16" label="Place cursor first" caption="Arm mouse-move before enabling scroll." role="toggle" activeState="lts.placeCursorFirst">
+    <Cell id="pl_t" row="11" col="0" colSpan="16" label="Place cursor first" icon="MouseMoveToPointIcon" caption="Arm mouse-move before enabling scroll." role="toggle" activeState="lts.placeCursorFirst">
     <Action id="Command" value="settings.lts.placeCursor.toggle"/>
     </Cell>
   </Grid>

@@ -216,20 +216,23 @@ void PropertyBinder::dim(QFormLayout* form, const QString& label, const PageDim&
     h->setContentsMargins(0, 0, 0, 0);
     h->setSpacing(6);
     auto* unit = new QComboBox;
-    unit->addItems({QStringLiteral("unset"), QStringLiteral("px"), QStringLiteral("prop")});
+    unit->addItems({QStringLiteral("unset"), QStringLiteral("px"), QStringLiteral("prop"),
+                    QStringLiteral("h-prop")});
     fitWidth(unit);
     fitWidth(row);
     if (!value.isSet()) {
         unit->setCurrentIndex(0);
     } else if (value.unit == PageDim::Unit::Pixels) {
         unit->setCurrentIndex(1);
+    } else if (value.unit == PageDim::Unit::HeightProportion) {
+        unit->setCurrentIndex(3);
     } else {
         unit->setCurrentIndex(2);
     }
     auto* spin = new QDoubleSpinBox;
     spin->setRange(-10000, 10000);
     spin->setDecimals(3);
-    spin->setValue(value.unit == PageDim::Unit::Proportion ? value.value : value.value);
+    spin->setValue(value.value);
     spin->setButtonSymbols(QAbstractSpinBox::NoButtons);
     spin->setEnabled(unit->currentIndex() != 0);
     fitWidth(spin);
@@ -243,6 +246,8 @@ void PropertyBinder::dim(QFormLayout* form, const QString& label, const PageDim&
             d = PageDim::pixels(spin->value());
         } else if (unit->currentIndex() == 2) {
             d = PageDim::proportion(spin->value());
+        } else if (unit->currentIndex() == 3) {
+            d = PageDim::heightProportion(spin->value());
         }
         apply(d);
     };

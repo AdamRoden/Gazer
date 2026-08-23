@@ -6,14 +6,14 @@
   <Style id="quitNo" background="#2d6a4f" foreground="#ffffff"/>
 
   <Zone id="mainChip" anchor="Bottom" offset="0,0" size="200,100"
-        dwellOffset="0,300" dwellSize="300,200" 
+        dwellOffset="0,300" dwellSize="300,200" aboveTaskbar="true"
         style="chip" label="Main" icon="Menu"
         dwellExempt="true" visibleWhen="!expanded" shell="true">
     <Action id="Command" value="resumeDwell"/>
     <Action id="Page" value="Open, Page, main"/>
   </Zone>
   <Zone id="sleep" anchor="Bottom" offset="400,0" size="200,100"
-        dwellOffset="0,300" dwellSize="300,200" 
+        dwellOffset="0,300" dwellSize="300,200" aboveTaskbar="true"
         style="chip" label="Sleep" icon="Sleep"
         activeState="dwellSuspend" shell="true">
     <Action id="Command" value="toggleDwellSuspend"/>
@@ -30,7 +30,7 @@
     <Cell id="open_mouse" row="0" col="1" label="Mouse" icon="Mouse">
       <Action id="Page" value="Open, Page, example_mouse"/>
     </Cell>
-    <Cell id="open_assist" row="0" col="2" label="Assist" icon="Conversation">
+    <Cell id="open_assist" row="0" col="2" label="Assist" icon="IdeaIcon">
       <Action id="Page" value="Open, Page, example_assist"/>
     </Cell>
     <Cell id="open_right" row="0" col="3" label="Right" icon="More">
@@ -39,14 +39,14 @@
     <Cell id="open_settings" row="0" col="4" label="Settings" icon="SettingsIcon">
       <Action id="Page" value="Open, Page, main_settings_button_timing"/>
     </Cell>
-    <Cell id="open_editor" row="0" col="5" label="Editor" icon="PhysicalKeys">
+    <Cell id="open_editor" row="0" col="5" label="Editor" icon="EditAppIcon">
       <Action id="Command" value="openLayoutEditor"/>
       <Action id="Page" value="Close, Grid, drawer"/>
     </Cell>
-    <Cell id="close" row="0" col="6" label="Close" icon="CollapseIcon">
+    <Cell id="close" row="0" col="6" label="Dismiss" icon="ArrowPointingToBottomBoundaryIcon">
       <Action id="Page" value="Close, Grid, drawer"/>
     </Cell>
-    <Cell id="close_all" row="0" col="7" label="Close All" icon="CollapseAllIcon">
+    <Cell id="close_all" row="0" col="7" label="Close All" icon="CollapseIcon">
       <Action id="Command" value="closeOtherViews"/>
       <Action id="Page" value="Close, Grid, drawer"/>
     </Cell>

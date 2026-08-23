@@ -15,11 +15,13 @@ class LookToScroll;
 class MagnifierOverlay;
 class MouseAssistState;
 class MouseDwellMove;
+class PageSession;
 
 /// Heap-owned command wiring context (must outlive all command/signal handlers).
 struct AssistCommandContext {
     CommandRegistry* commands = nullptr;
     AssistSession* session = nullptr;
+    PageSession* pages = nullptr;
     LookToScroll* lookToScroll = nullptr;
     MouseDwellMove* mouseDwellMove = nullptr;
     MagnifierOverlay* magnifier = nullptr;

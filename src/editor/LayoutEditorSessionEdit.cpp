@@ -573,8 +573,8 @@ void LayoutEditorSession::snapWindowTo(const QPoint& virtualTopLeft, const QSize
         if (!g || g->nested) {
             return;
         }
-        const int w = g->size.x.isSet() ? int(g->size.x.resolve(vw)) : 800;
-        const int h = g->size.y.isSet() ? int(g->size.y.resolve(vh)) : 280;
+        const int w = g->size.x.isSet() ? int(g->size.x.resolve(vw, vh)) : 800;
+        const int h = g->size.y.isSet() ? int(g->size.y.resolve(vh, vh)) : 280;
         const bool cx = qAbs(x - (vw - w) / 2) < 48;
         const bool cy = qAbs(y - (vh - h) / 2) < 48;
         if (y + h > vh - 40 && cx) {

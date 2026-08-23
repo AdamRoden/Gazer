@@ -25,8 +25,12 @@ QString dimTok(const PageDim& d)
     if (!d.isSet()) {
         return {};
     }
-    if (d.unit == PageDim::Unit::Proportion) {
-        return QString::number(d.value, 'g', 8);
+    if (d.unit == PageDim::Unit::Proportion || d.unit == PageDim::Unit::HeightProportion) {
+        QString t = QString::number(d.value, 'g', 8);
+        if (d.unit == PageDim::Unit::HeightProportion) {
+            t += QLatin1Char('h');
+        }
+        return t;
     }
     if (qFuzzyCompare(d.value, qRound(d.value))) {
         return QString::number(qRound(d.value));
@@ -346,6 +350,7 @@ QByteArray PageWriter::toBytes(const PageDocument& doc)
         xml.writeStartElement(QStringLiteral("Zone"));
         writeLeafAttrs(xml, z);
         writePlacement(xml, z.desktopMode, z.anchor, z.offset, z.size);
+        attrBool(xml, QStringLiteral("aboveTaskbar"), z.aboveTaskbar, false);
         attr(xml, QStringLiteral("dwellOffset"), pairTok(z.dwellOffset));
         attr(xml, QStringLiteral("dwellSize"), pairTok(z.dwellSize));
         writeLeafBody(xml, z);

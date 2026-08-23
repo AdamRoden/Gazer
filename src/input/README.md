@@ -6,5 +6,6 @@ OS / virtual device injection used by mapping profiles.
 |--------|--------|
 | `KeyboardInjector` | Windows `SendInput` (keys, combos, unicode text) |
 | `MouseInjector` | Windows click / relative move / scroll |
+| `PixelScroller` | Pixel scroll for LTS (native bars + UIA, wheel fallback) |
 | `VirtualGamepad` | Stub (logs); ViGEm later |
 | `InputService` | Facade over the above |

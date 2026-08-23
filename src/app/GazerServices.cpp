@@ -110,6 +110,20 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
     m_settingsUi->setResetFn([this]() { resetSettingsToDefaults(); });
 
     m_pages->setDecorate([this](PageDocument& doc) {
+        if (doc.id == QLatin1String("lts_menu")) {
+            doc.dwell.scanGrace = qMax(0, m_settings.scanGraceMs);
+            doc.dwell.activation = QVector<int>{m_settings.ltsCenterDwellMs};
+            const QString speed =
+                QString::number(int(qRound(m_settings.ltsMaxNotchesPerSec)));
+            for (PageGrid& g : doc.grids) {
+                for (PageCell& c : g.cells) {
+                    if (c.id == QLatin1String("hub")) {
+                        c.label = speed;
+                    }
+                }
+            }
+            return;
+        }
         m_settingsUi->decoratePage(doc);
         if (m_mouseAssist) {
             stampMousePage(doc, QStringLiteral("Step %1 px").arg(m_mouseAssist->moveAmountPx()),
@@ -131,6 +145,11 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
             [this](bool) { refreshActiveIndicators(); });
     connect(m_lookToScroll.get(), &LookToScroll::scrollSuspendedChanged, this,
             [this](bool) { refreshActiveIndicators(); });
+    connect(m_lookToScroll.get(), &LookToScroll::maxNotchesPerSecChanged, this,
+            [this](double n) {
+                m_settings.ltsMaxNotchesPerSec = n;
+                applySettings(true);
+            });
     connect(m_mouseDwellMove.get(), &MouseDwellMove::armedChanged, this,
             [this](bool) { refreshActiveIndicators(); });
     connect(m_magnifier.get(), &MagnifierOverlay::enabledChanged, this,
@@ -325,6 +344,7 @@ void GazerServices::registerDomainCommands()
     m_assistCmdCtx = std::make_unique<AssistCommandContext>();
     m_assistCmdCtx->commands = m_commands.get();
     m_assistCmdCtx->session = m_assistSession.get();
+    m_assistCmdCtx->pages = m_pages.get();
     m_assistCmdCtx->lookToScroll = m_lookToScroll.get();
     m_assistCmdCtx->mouseDwellMove = m_mouseDwellMove.get();
     m_assistCmdCtx->magnifier = m_magnifier.get();

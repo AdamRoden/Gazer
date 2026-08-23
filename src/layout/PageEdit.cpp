@@ -376,6 +376,7 @@ PageZone zoneFromCell(const PageCell& cell)
     PageZone z;
     static_cast<PageLeaf&>(z) = cell;
     z.anchor = PageAnchor::Bottom;
+    z.aboveTaskbar = true;
     z.size.x = PageDim::pixels(200);
     z.size.y = PageDim::pixels(120);
     z.dwellSize = z.size;

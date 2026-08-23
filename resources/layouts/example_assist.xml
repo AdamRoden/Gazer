@@ -20,9 +20,10 @@ Zoom" activeState="mouseMoveMagPick">
     <Cell id="lts" row="0" col="5" icon="LookToScrollActive" label="Look↕Scroll" activeState="lookToScroll">
     <Action id="Command" value="toggleLookToScroll"/>
     </Cell>
-    <Cell id="lts_hint" row="0" col="6" label="LTS: yellow pause
-hold red to quit
-green to resume" role="label"/>
+    <Cell id="lts_hint" row="0" col="6" label="LTS: dwell hub to pause
+center resumes
+← slow  → fast
+↑ reset  ↓ quit" role="label"/>
     <Cell id="edit_layout" row="0" col="7" icon="PhysicalKeys" label="Edit layout">
     <Action id="Command" value="openLayoutEditor"/>
     </Cell>

@@ -73,7 +73,7 @@ struct AppSettings {
     // --- Look-to-Scroll ---
     int ltsDeadzonePx = 110;
     int ltsFalloffPx = 360;
-    double ltsMaxNotchesPerSec = 6.0;
+    double ltsMaxNotchesPerSec = 5.0;
     /// Scroll rate grows by this factor each second gaze stays outside deadzone.
     double ltsAccelPerSec = 0.45;
     int ltsCenterDwellMs = 650;

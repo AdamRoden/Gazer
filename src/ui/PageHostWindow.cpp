@@ -216,6 +216,12 @@ PageHostWindow::PageHostWindow(QWindow* parent)
     });
     m_theme = ThemeColors::darkPreset();
     m_flashTimer.setSingleShot(true);
+    m_raiseTimer.setSingleShot(true);
+    connect(&m_raiseTimer, &QTimer::timeout, this, [this]() {
+        if (isVisible()) {
+            raiseAboveTaskbar(this);
+        }
+    });
     connect(&m_flashTimer, &QTimer::timeout, this, [this]() {
         m_flashId.clear();
         m_flashRect = {};
@@ -470,6 +476,8 @@ void PageHostWindow::applyChrome()
     applyOverlayWindowChrome(this, /*excludeFromCapture=*/false);
     applyInputFocusChrome();
     raiseAboveTaskbar(this);
+    // Explorer restacks Shell_TrayWnd after a show; win again on a short delay.
+    m_raiseTimer.start(180);
 }
 
 void PageHostWindow::showHost()

@@ -399,6 +399,7 @@ bool readZone(QXmlStreamReader& xml, PageZone& zone, QString* error)
     if (error && !error->isEmpty()) {
         return false;
     }
+    zone.aboveTaskbar = parseBoolAttr(a.value(QStringLiteral("aboveTaskbar")), false);
     if (a.hasAttribute(QStringLiteral("dwellOffset"))) {
         QString err;
         zone.dwellOffset =

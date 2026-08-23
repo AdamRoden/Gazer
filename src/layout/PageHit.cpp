@@ -194,7 +194,8 @@ QVector<PageTarget> collect(const PageDocument& page, const PageFrame& frame,
         if (!evalVisibleWhen(z.visibleWhen, props)) {
             continue;
         }
-        const QRectF bounds = z.desktopMode ? frame.desktop : frame.screen;
+        const QRectF bounds =
+            (z.desktopMode || z.aboveTaskbar) ? frame.desktop : frame.screen;
         PageTarget t;
         t.kind = PageTarget::Kind::Zone;
         t.id = z.id;

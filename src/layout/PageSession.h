@@ -12,6 +12,7 @@
 #include <QHash>
 #include <QObject>
 #include <QPointer>
+#include <QPoint>
 #include <QRect>
 #include <QScreen>
 #include <QSet>
@@ -46,6 +47,9 @@ public:
     void setLayoutsDirectory(const QString& dir) { m_layoutsDir = dir; }
     void setCatalog(PageCatalog* catalog) { m_catalog = catalog; }
     [[nodiscard]] bool openPage(const QString& id, QString* error = nullptr);
+    /// Put the attached page's center on @p screenCenter. Size stays as authored.
+    /// Does not activate the cell under gaze until gaze leaves it.
+    [[nodiscard]] bool placeAttachedCenter(const QString& id, const QPoint& screenCenter);
     void closePage(const QString& id);
     int closeAttached();
     [[nodiscard]] bool hasRoot() const { return m_root.isValid(); }
@@ -116,6 +120,9 @@ private:
                 const QSet<QString>& hiddenZones, QVector<PageTarget>& rest,
                 QVector<PageTarget>& shellLayer, QVector<PageGridPaint>& restGrids,
                 QVector<PageGridPaint>& shellGrids);
+    void armLeaveGate(const QString& pageId);
+    void clearLeaveGate();
+    [[nodiscard]] bool blockedByLeaveGate(const PageTarget* hit);
     void noteActivity();
     void tickAutoClose();
     [[nodiscard]] int autoCloseIdleMs() const;
@@ -152,6 +159,9 @@ private:
     bool m_idleClockRunning = false;
     QVector<QPointer<QScreen>> m_boundScreens;
     PageCatalog* m_catalog = nullptr;
+    GazePoint m_lastGaze;
+    QString m_leaveGatePage;
+    QString m_leaveGateKey;
 
     RootChrome m_chrome = RootChrome::Docked;
     QTimer m_drawerTimer;

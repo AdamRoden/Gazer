@@ -9,7 +9,9 @@
 #include "assist/LookToScroll.h"
 #include "assist/MouseAssistState.h"
 #include "assist/MouseDwellMove.h"
+#include "layout/PageSession.h"
 #include "ui/MagnifierOverlay.h"
+#include "utils/Log.h"
 
 #include <QPoint>
 
@@ -25,6 +27,7 @@ void registerAssistCommands(AssistCommandContext& ctx)
     using ArmPurpose = MouseDwellMove::ArmPurpose;
 
     auto* session = ctx.session;
+    auto* pages = ctx.pages;
     auto* lts = ctx.lookToScroll;
     auto* mouseDwell = ctx.mouseDwellMove;
     auto* follow = ctx.gazeMouseFollow;
@@ -77,6 +80,7 @@ void registerAssistCommands(AssistCommandContext& ctx)
                              if (AssistSession::isMouseDwellFamily(m)) {
                                  session->leave(m);
                              }
+                             lts->cancelOriginPlace();
                              if (lts->isEnabled() && session->isNone()) {
                                  session->enter(Mode::LookToScroll);
                              }
@@ -102,6 +106,27 @@ void registerAssistCommands(AssistCommandContext& ctx)
                                                 : Mode::MouseDwell);
                          }
                      });
+
+    constexpr auto kLtsMenuId = "lts_menu";
+    QObject::connect(lts, &LookToScroll::menuOpenRequested, session,
+                     [pages](QPoint origin) {
+                         if (!pages) {
+                             return;
+                         }
+                         QString err;
+                         if (!pages->openPage(QLatin1String(kLtsMenuId), &err)) {
+                             GAZER_WARN << "LTS menu:" << err;
+                             return;
+                         }
+                         if (!pages->placeAttachedCenter(QLatin1String(kLtsMenuId), origin)) {
+                             GAZER_WARN << "LTS menu: could not place at origin";
+                         }
+                     });
+    QObject::connect(lts, &LookToScroll::menuCloseRequested, session, [pages]() {
+        if (pages) {
+            pages->closePage(QLatin1String(kLtsMenuId));
+        }
+    });
 
     QObject::connect(lts, &LookToScroll::enabledChanged, session, [session, notify](bool on) {
         if (on) {
@@ -185,6 +210,26 @@ void registerAssistCommands(AssistCommandContext& ctx)
                                   return true;
                               });
 
+    commands->registerBuiltin(QStringLiteral("lts.resume"), [lts](QString*) {
+        lts->resumeScroll();
+        return true;
+    });
+    commands->registerBuiltin(QStringLiteral("lts.speed.slower"), [lts](QString*) {
+        lts->nudgeMaxSpeed(-1);
+        return true;
+    });
+    commands->registerBuiltin(QStringLiteral("lts.speed.faster"), [lts](QString*) {
+        lts->nudgeMaxSpeed(+1);
+        return true;
+    });
+    commands->registerBuiltin(QStringLiteral("lts.quit"), [lts](QString*) {
+        lts->setEnabled(false);
+        return true;
+    });
+    commands->registerBuiltin(QStringLiteral("lts.reset"), [lts](QString*) {
+        lts->requestReset();
+        return true;
+    });
     commands->registerBuiltin(
         QStringLiteral("toggleLookToScroll"),
         [lts, mouseDwell, settings, notify](QString*) {

@@ -737,6 +737,10 @@ void LayoutEditorProperties::fillPlacement(QFormLayout* form)
     b.check(form, QStringLiteral("Desktop bounds"), z->desktopMode, [this](bool on) {
         applyZone([&](PageZone& zone) { zone.desktopMode = on; }, QStringLiteral("Desktop mode"));
     });
+    b.check(form, QStringLiteral("Above taskbar"), z->aboveTaskbar, [this](bool on) {
+        applyZone([&](PageZone& zone) { zone.aboveTaskbar = on; },
+                  QStringLiteral("Above taskbar"));
+    });
     b.combo(form, QStringLiteral("Anchor"), pageAnchorNames(), PageDimParse::anchorName(z->anchor),
             [this](const QString& t) {
                 applyZone(

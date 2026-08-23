@@ -1,5 +1,6 @@
 #include "app/AppSettings.h"
 
+#include "assist/LtsSpeed.h"
 #include "ui/PickStyle.h"
 #include "ui/ThemeScheme.h"
 #include "utils/Log.h"
@@ -39,6 +40,8 @@ struct DoubleSpec {
     double max;
     double step;
     int decimals;
+    double (*snap)(double) = nullptr;
+    double (*nudge)(double, int) = nullptr;
 };
 
 struct ColorSpec {
@@ -81,7 +84,8 @@ constexpr IntSpec kIntSpecs[] = {
      &AppSettings::ltsDeadzonePx, 30, 400, 10},
     {"ltsFalloffPx", "LTS falloff", "Distance to full scroll speed past deadzone (px).", " px",
      &AppSettings::ltsFalloffPx, 80, 800, 20},
-    {"ltsCenterDwellMs", "LTS center dwell", "Dwell in the deadzone center to pause/resume (ms).",
+    {"ltsCenterDwellMs", "LTS center dwell",
+     "Dwell the hub to pause and open the plus menu (ms).",
      " ms", &AppSettings::ltsCenterDwellMs, 200, 2500, 50},
     {"flashMs", "Completion flash duration", "How long the completion flash is shown (ms).", " ms",
      &AppSettings::flashMs, 40, 1000, 20},
@@ -96,8 +100,8 @@ constexpr DoubleSpec kDoubleSpecs[] = {
     {"pickZoom", "Zoom level",
      "Static magnification for magnify and foresight (1.25–8).", "",
      &AppSettings::pickZoom, 1.25, 8.0, 0.25, 2},
-    {"ltsMaxNotchesPerSec", "LTS max speed", "Peak scroll rate (notches/second).", " n/s",
-     &AppSettings::ltsMaxNotchesPerSec, 0.5, 24.0, 0.5, 1},
+    {"ltsMaxNotchesPerSec", "LTS max speed", "Peak scroll rate (1, 5, 10, 20, 50).", " n/s",
+     &AppSettings::ltsMaxNotchesPerSec, 1.0, 50.0, 1.0, 0, snapLtsSpeed, nudgeLtsSpeed},
     {"ltsAccelPerSec", "LTS accel/s", "Speed growth while outside deadzone.", " /s",
      &AppSettings::ltsAccelPerSec, 0.0, 2.0, 0.05, 2},
 };
@@ -253,7 +257,8 @@ void AppSettings::clamp()
         this->*s.member = qBound(s.min, this->*s.member, s.max);
     }
     for (const DoubleSpec& s : kDoubleSpecs) {
-        this->*s.member = qBound(s.min, this->*s.member, s.max);
+        double v = qBound(s.min, this->*s.member, s.max);
+        this->*s.member = s.snap ? s.snap(v) : v;
     }
     magFollowProfile = qBound(0, magFollowProfile, 2);
     ltsIndicatorStyle = ltsIndicatorFromInt(int(ltsIndicatorStyle));
@@ -285,6 +290,10 @@ bool AppSettings::nudge(const QString& key, int dir)
         return true;
     }
     if (const DoubleSpec* s = findDouble(key)) {
+        if (s->nudge) {
+            this->*s->member = s->nudge(this->*s->member, dir);
+            return true;
+        }
         this->*s->member = qBound(s->min, this->*s->member + dir * s->step, s->max);
         return true;
     }

@@ -79,6 +79,7 @@ private:
     bool m_revealProgress = false;
     QString m_flashId;
     QTimer m_flashTimer;
+    QTimer m_raiseTimer;
     QRectF m_flashRect;
     PageBox m_flashRadii;
     QPoint m_origin;
