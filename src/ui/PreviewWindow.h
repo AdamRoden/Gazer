@@ -5,19 +5,25 @@
 #include "ui/StlMesh.h"
 #include "ui/Theme.h"
 
+#include <QOpenGLBuffer>
+#include <QOpenGLFunctions>
+#include <QOpenGLWidget>
 #include <QVector3D>
-#include <QWidget>
 
 class QCloseEvent;
+class QOpenGLShaderProgram;
+class QPainter;
 
 namespace gazer {
 
 /// Live head-pose preview: mask mesh + gaze-driven eyes.
-class PreviewWindow final : public QWidget {
+/// Mesh is drawn on the GPU; QPainter is only used for the HUD/gizmo overlay.
+class PreviewWindow final : public QOpenGLWidget, protected QOpenGLFunctions {
     Q_OBJECT
 
 public:
     explicit PreviewWindow(QWidget* parent = nullptr);
+    ~PreviewWindow() override;
 
     void setTrackerName(const QString& name);
     void setTheme(const ThemeColors& theme);
@@ -28,14 +34,19 @@ public slots:
     void showAndRaise();
 
 protected:
-    void paintEvent(QPaintEvent* event) override;
+    void initializeGL() override;
+    void paintGL() override;
     void closeEvent(QCloseEvent* event) override;
 
 private:
     void ensureMeshLoaded();
     void estimateEyeSockets();
     void updateEyeLookFromGaze();
-    void paintHead(QPainter& p, const QRect& area);
+    bool buildProgram();
+    void uploadMeshVbo();
+    void bindVertexLayout();
+    void drawHeadGl(const QRect& area);
+    void paintOverlay(QPainter& p, const QRect& headArea);
 
     GazePoint m_gaze;
     HeadPose m_head;
@@ -55,6 +66,14 @@ private:
     double m_lookX = 0.0;
     double m_lookY = 0.0;
     double m_eyeOpen = 1.0;
+
+    QOpenGLShaderProgram* m_prog = nullptr;
+    QOpenGLBuffer m_meshVbo{QOpenGLBuffer::VertexBuffer};
+    QOpenGLBuffer m_dynVbo{QOpenGLBuffer::VertexBuffer};
+    int m_meshVertexCount = 0;
+    bool m_glReady = false;
+    bool m_meshUploaded = false;
+    QString m_glError;
 };
 
 } // namespace gazer

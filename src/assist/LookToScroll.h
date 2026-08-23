@@ -26,6 +26,12 @@ public:
     [[nodiscard]] bool isScrollSuspended() const { return m_scrollSuspended; }
     void setScrollSuspended(bool suspended);
 
+    /// Warp the OS cursor here and use it as the deadzone / wheel origin.
+    void setScrollOrigin(const QPoint& pos);
+    [[nodiscard]] QPoint scrollOrigin() const { return m_origin; }
+    [[nodiscard]] bool hasScrollOrigin() const { return m_hasOrigin; }
+    [[nodiscard]] int deadzonePx() const { return m_deadzonePx; }
+
     void setDeadzonePx(int px);
     void setFalloffPx(int px);
     void setMaxNotchesPerSec(double n);
@@ -57,11 +63,15 @@ private:
     void updateOverlay(const QPoint& center, double gazeDist, double dirX, double dirY,
                        bool active, double centerProg, bool suspended, CenterDwell dwell);
     void hideOverlay();
+    void pinCursorToOrigin();
+    [[nodiscard]] QPoint originPoint() const;
     [[nodiscard]] static double easeNearDeadzone(double t);
 
     bool m_enabled = false;
     bool m_allowOverBoard = false;
     bool m_scrollSuspended = false;
+    bool m_hasOrigin = false;
+    QPoint m_origin;
     int m_deadzonePx = 110;
     int m_falloffPx = 360;
     double m_maxNotchesPerSec = 6.0;

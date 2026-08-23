@@ -6,9 +6,11 @@
 #include <QCoreApplication>
 #include <QDir>
 #include <QGuiApplication>
-#include <QPaintEvent>
+#include <QMatrix4x4>
+#include <QOpenGLShaderProgram>
 #include <QPainter>
 #include <QScreen>
+#include <QSurfaceFormat>
 #include <QVector>
 #include <QtMath>
 #include <algorithm>
@@ -19,6 +21,9 @@ namespace gazer {
 namespace {
 
 constexpr double kPi = 3.14159265358979323846;
+constexpr int kHudH = 48;
+constexpr int kVertStrideFloats = 9;
+constexpr int kVertStrideBytes = kVertStrideFloats * int(sizeof(float));
 
 struct Vec3 {
     double x = 0, y = 0, z = 0;
@@ -74,11 +79,39 @@ Vec3 inverseLiveRot(const Vec3& v, double yawDeg, double pitchDeg, double rollDe
     return {a.x, a.y * cp + a.z * sp, -a.y * sp + a.z * cp};
 }
 
-struct DrawTri {
-    Vec3 a, b, c;
-    QColor color;
-    double depth = 0;
-};
+QMatrix4x4 livePoseMatrix(double yawDeg, double pitchDeg, double rollDeg, double tx, double ty,
+                          double tz)
+{
+    QMatrix4x4 m;
+    m.setToIdentity();
+    m.translate(float(-tx), float(ty), float(tz));
+    m.rotate(float(rollDeg), 0.f, 0.f, 1.f);
+    m.rotate(float(yawDeg), 0.f, 1.f, 0.f);
+    m.rotate(float(-pitchDeg), 1.f, 0.f, 0.f);
+    return m;
+}
+
+void emitVert(QVector<float>& out, const Vec3& p, const Vec3& n, float r, float g, float b)
+{
+    out.push_back(float(p.x));
+    out.push_back(float(p.y));
+    out.push_back(float(p.z));
+    out.push_back(float(n.x));
+    out.push_back(float(n.y));
+    out.push_back(float(n.z));
+    out.push_back(r);
+    out.push_back(g);
+    out.push_back(b);
+}
+
+void emitTri(QVector<float>& out, const Vec3& a, const Vec3& b, const Vec3& c, float r, float g,
+             float bch)
+{
+    const Vec3 n = (b - a).cross(c - a).normalized();
+    emitVert(out, a, n, r, g, bch);
+    emitVert(out, b, n, r, g, bch);
+    emitVert(out, c, n, r, g, bch);
+}
 
 // --- Eye geometry (head-local units after mesh normalize) ---
 constexpr float kEyeYNudge = 0.0f;
@@ -93,32 +126,306 @@ constexpr double kPupilOfIris = 0.35;
 constexpr double kLidClosed = 0.16;
 constexpr double kGazeGain = 0.5;
 
+// Compatibility (GL 2.1 / ES 2.0) — no #version; Qt injects one when needed.
+constexpr const char* kVertCompat = R"(
+attribute vec3 aPos;
+attribute vec3 aNrm;
+attribute vec3 aBase;
+uniform mat4 uPose;
+uniform vec2 uOrigin;
+uniform vec2 uViewport;
+uniform float uScale;
+uniform float uFocal;
+varying vec3 vNrm;
+varying vec3 vBase;
+void main() {
+    vec4 world = uPose * vec4(aPos, 1.0);
+    float d = max(0.4, (uFocal - world.z) / uFocal);
+    vec2 screen = vec2(uOrigin.x + world.x * uScale / d,
+                       uOrigin.y - world.y * uScale / d);
+    vec2 ndc = vec2(screen.x / uViewport.x * 2.0 - 1.0,
+                    1.0 - screen.y / uViewport.y * 2.0);
+    float z = clamp(0.35 - world.z * 0.25, -0.95, 0.95);
+    gl_Position = vec4(ndc, z, 1.0);
+    vNrm = mat3(uPose) * aNrm;
+    vBase = aBase;
+}
+)";
+
+constexpr const char* kFragCompat = R"(
+#ifdef GL_ES
+precision mediump float;
+#endif
+varying vec3 vNrm;
+varying vec3 vBase;
+uniform vec3 uLightDir;
+uniform vec3 uFillDir;
+uniform float uLit;
+uniform float uAlpha;
+void main() {
+    if (uLit < 0.5) {
+        gl_FragColor = vec4(vBase, uAlpha);
+        return;
+    }
+    vec3 n = normalize(vNrm);
+    if (n.z < -0.02) discard;
+    float key = max(0.0, dot(n, uLightDir));
+    float fill = max(0.0, dot(n, uFillDir)) * 0.32;
+    float ndl = 0.20 + 0.68 * key + fill;
+    vec3 c = vBase * ndl + vec3(18.0, 18.0, 22.0) / 255.0 * key;
+    gl_FragColor = vec4(c, uAlpha);
+}
+)";
+
+constexpr const char* kVertCore = R"(
+#version 330 core
+layout(location = 0) in vec3 aPos;
+layout(location = 1) in vec3 aNrm;
+layout(location = 2) in vec3 aBase;
+uniform mat4 uPose;
+uniform vec2 uOrigin;
+uniform vec2 uViewport;
+uniform float uScale;
+uniform float uFocal;
+out vec3 vNrm;
+out vec3 vBase;
+void main() {
+    vec4 world = uPose * vec4(aPos, 1.0);
+    float d = max(0.4, (uFocal - world.z) / uFocal);
+    vec2 screen = vec2(uOrigin.x + world.x * uScale / d,
+                       uOrigin.y - world.y * uScale / d);
+    vec2 ndc = vec2(screen.x / uViewport.x * 2.0 - 1.0,
+                    1.0 - screen.y / uViewport.y * 2.0);
+    float z = clamp(0.35 - world.z * 0.25, -0.95, 0.95);
+    gl_Position = vec4(ndc, z, 1.0);
+    vNrm = mat3(uPose) * aNrm;
+    vBase = aBase;
+}
+)";
+
+constexpr const char* kFragCore = R"(
+#version 330 core
+in vec3 vNrm;
+in vec3 vBase;
+uniform vec3 uLightDir;
+uniform vec3 uFillDir;
+uniform float uLit;
+uniform float uAlpha;
+out vec4 fragColor;
+void main() {
+    if (uLit < 0.5) {
+        fragColor = vec4(vBase, uAlpha);
+        return;
+    }
+    vec3 n = normalize(vNrm);
+    if (n.z < -0.02) discard;
+    float key = max(0.0, dot(n, uLightDir));
+    float fill = max(0.0, dot(n, uFillDir)) * 0.32;
+    float ndl = 0.20 + 0.68 * key + fill;
+    vec3 c = vBase * ndl + vec3(18.0, 18.0, 22.0) / 255.0 * key;
+    fragColor = vec4(c, uAlpha);
+}
+)";
+
+void appendShadow(QVector<float>& out)
+{
+    constexpr int kSegs = 32;
+    const Vec3 center{0.0, -0.95, 0.0};
+    const double rx = 0.48;
+    const double ry = 0.11;
+    Vec3 prev{rx, -0.95, 0.0};
+    for (int i = 1; i <= kSegs; ++i) {
+        const double a = (2.0 * kPi * i) / kSegs;
+        const Vec3 rim{rx * std::cos(a), -0.95 - ry * std::sin(a), 0.0};
+        emitTri(out, center, prev, rim, 0.f, 0.f, 0.f);
+        prev = rim;
+    }
+}
+
+void appendEyes(QVector<float>& out, const QVector3D& eyeLeft, const QVector3D& eyeRight,
+                float eyeRadius, double lookX, double lookY, double eyeOpen, double yaw,
+                double pitch, double roll)
+{
+    const double open = qBound(0.0, eyeOpen, 1.0);
+    lookX = qBound(-1.0, lookX, 1.0);
+    lookY = qBound(-1.0, lookY, 1.0);
+    const double R = double(eyeRadius);
+
+    const Vec3 worldLook = Vec3{lookX * kGazeGain, lookY * kGazeGain, 1.0}.normalized();
+    Vec3 lookDir = inverseLiveRot(worldLook, yaw, pitch, roll).normalized();
+    if (lookDir.dot(lookDir) < 1e-8) {
+        lookDir = Vec3{0, 0, 1};
+    }
+
+    constexpr int kStacks = 14;
+    constexpr int kSlices = 28;
+    constexpr int kDiscSegs = 32;
+
+    constexpr float scleraR = 236.f / 255.f, scleraG = 238.f / 255.f, scleraB = 242.f / 255.f;
+    constexpr float irisR = 40.f / 255.f, irisG = 95.f / 255.f, irisB = 150.f / 255.f;
+    constexpr float pupilR = 8.f / 255.f, pupilG = 8.f / 255.f, pupilB = 12.f / 255.f;
+
+    auto appendEye = [&](const QVector3D& centerQ) {
+        const Vec3 C(centerQ);
+        const Vec3 f = lookDir;
+
+        Vec3 rAxis = Vec3{0, 1, 0}.cross(f);
+        if (rAxis.dot(rAxis) < 1e-8) {
+            rAxis = Vec3{1, 0, 0}.cross(f);
+        }
+        rAxis = rAxis.normalized();
+        const Vec3 uAxis = f.cross(rAxis).normalized();
+
+        const double irisRad = R * kIrisRadiusOfEye;
+        const double dCut = std::sqrt(std::max(0.0, R * R - irisRad * irisRad));
+        const double thetaCut = std::acos(qBound(-1.0, dCut / R, 1.0));
+
+        auto sphPt = [&](double theta, double phi) -> Vec3 {
+            const double st = std::sin(theta);
+            const double ct = std::cos(theta);
+            const double cp = std::cos(phi);
+            const double sp = std::sin(phi);
+            return C + (rAxis * (R * st * cp) + uAxis * (R * st * sp) + f * (R * ct));
+        };
+
+        auto pushSclera = [&](const Vec3& a, const Vec3& b, const Vec3& c) {
+            emitTri(out, a, b, c, scleraR, scleraG, scleraB);
+        };
+
+        if (open < kLidClosed) {
+            const Vec3 north = C + f * R;
+            const Vec3 south = C - f * R;
+            for (int i = 0; i < kStacks; ++i) {
+                const double t0 = kPi * (double(i) / kStacks);
+                const double t1 = kPi * (double(i + 1) / kStacks);
+                for (int j = 0; j < kSlices; ++j) {
+                    const double p0 = (2.0 * kPi) * (double(j) / kSlices);
+                    const double p1 = (2.0 * kPi) * (double(j + 1) / kSlices);
+                    if (i == 0) {
+                        pushSclera(north, sphPt(t1, p0), sphPt(t1, p1));
+                        continue;
+                    }
+                    if (i + 1 == kStacks) {
+                        pushSclera(south, sphPt(t0, p1), sphPt(t0, p0));
+                        continue;
+                    }
+                    pushSclera(sphPt(t0, p0), sphPt(t1, p0), sphPt(t1, p1));
+                    pushSclera(sphPt(t0, p0), sphPt(t1, p1), sphPt(t0, p1));
+                }
+            }
+            return;
+        }
+
+        constexpr double kRimBack = 0.012;
+        const double thetaStart = std::min(kPi - 1e-3, thetaCut + kRimBack);
+        const Vec3 south = C - f * R;
+        const int nLat = kStacks;
+        for (int i = 0; i < nLat; ++i) {
+            const double t0 = thetaStart + (kPi - thetaStart) * (double(i) / nLat);
+            const double t1 = thetaStart + (kPi - thetaStart) * (double(i + 1) / nLat);
+            for (int j = 0; j < kSlices; ++j) {
+                const double p0 = (2.0 * kPi) * (double(j) / kSlices);
+                const double p1 = (2.0 * kPi) * (double(j + 1) / kSlices);
+                if (i + 1 == nLat) {
+                    pushSclera(south, sphPt(t0, p1), sphPt(t0, p0));
+                    continue;
+                }
+                pushSclera(sphPt(t0, p0), sphPt(t1, p0), sphPt(t1, p1));
+                pushSclera(sphPt(t0, p0), sphPt(t1, p1), sphPt(t0, p1));
+            }
+        }
+
+        const Vec3 planeO = C + f * dCut;
+        const double pupilRad = irisRad * kPupilOfIris;
+
+        auto discPoint = [&](double radius, double angle) -> Vec3 {
+            return planeO + rAxis * (radius * std::cos(angle))
+                   + uAxis * (radius * open * std::sin(angle));
+        };
+
+        auto pushDisc = [&](double radius, float cr, float cg, float cb) {
+            Vec3 prev = discPoint(radius, 0.0);
+            for (int s = 1; s <= kDiscSegs; ++s) {
+                const double a = (2.0 * kPi * s) / kDiscSegs;
+                const Vec3 rim = discPoint(radius, a);
+                emitTri(out, planeO, prev, rim, cr, cg, cb);
+                emitTri(out, planeO, rim, prev, cr, cg, cb);
+                prev = rim;
+            }
+        };
+
+        auto pushRing = [&](double rOuter, double rInner, float cr, float cg, float cb) {
+            for (int s = 0; s < kDiscSegs; ++s) {
+                const double a0 = (2.0 * kPi * s) / kDiscSegs;
+                const double a1 = (2.0 * kPi * (s + 1) / kDiscSegs);
+                const Vec3 o0 = discPoint(rOuter, a0);
+                const Vec3 o1 = discPoint(rOuter, a1);
+                const Vec3 i0 = discPoint(rInner, a0);
+                const Vec3 i1 = discPoint(rInner, a1);
+                emitTri(out, i0, o0, o1, cr, cg, cb);
+                emitTri(out, i0, o1, i1, cr, cg, cb);
+                emitTri(out, i0, o1, o0, cr, cg, cb);
+                emitTri(out, i0, i1, o1, cr, cg, cb);
+            }
+        };
+
+        pushRing(irisRad, pupilRad, irisR, irisG, irisB);
+        pushDisc(pupilRad, pupilR, pupilG, pupilB);
+    };
+
+    appendEye(eyeLeft);
+    appendEye(eyeRight);
+}
+
 } // namespace
 
 PreviewWindow::PreviewWindow(QWidget* parent)
-    : QWidget(parent)
+    : QOpenGLWidget(parent)
 {
     setWindowTitle(QStringLiteral("Gazer — Head Preview"));
     setMinimumSize(480, 400);
     resize(900, 720);
     setAttribute(Qt::WA_OpaquePaintEvent);
+    setUpdateBehavior(QOpenGLWidget::NoPartialUpdate);
+
+    QSurfaceFormat fmt = QSurfaceFormat::defaultFormat();
+    fmt.setDepthBufferSize(24);
+    fmt.setSamples(4);
+    setFormat(fmt);
+}
+
+PreviewWindow::~PreviewWindow()
+{
+    makeCurrent();
+    m_meshVbo.destroy();
+    m_dynVbo.destroy();
+    delete m_prog;
+    m_prog = nullptr;
+    doneCurrent();
 }
 
 void PreviewWindow::setTrackerName(const QString& name)
 {
     m_trackerName = name;
-    update();
+    if (isVisible()) {
+        update();
+    }
 }
 
 void PreviewWindow::setTheme(const ThemeColors& theme)
 {
     m_theme = theme;
-    update();
+    if (isVisible()) {
+        update();
+    }
 }
 
 void PreviewWindow::onGazeUpdated(const gazer::GazePoint& point)
 {
     m_gaze = point;
+    if (!isVisible()) {
+        return;
+    }
     updateEyeLookFromGaze();
     update();
 }
@@ -126,6 +433,9 @@ void PreviewWindow::onGazeUpdated(const gazer::GazePoint& point)
 void PreviewWindow::onHeadPoseUpdated(const gazer::HeadPose& pose)
 {
     m_head = pose;
+    if (!isVisible()) {
+        return;
+    }
     update();
 }
 
@@ -163,6 +473,8 @@ void PreviewWindow::showAndRaise()
     showNormal();
     raise();
     activateWindow();
+    updateEyeLookFromGaze();
+    update();
 }
 
 void PreviewWindow::closeEvent(QCloseEvent* event)
@@ -279,20 +591,88 @@ void PreviewWindow::estimateEyeSockets()
                << "socketZ L/R" << zL << zR;
 }
 
-void PreviewWindow::paintHead(QPainter& p, const QRect& area)
+bool PreviewWindow::buildProgram()
 {
-    ensureMeshLoaded();
-    p.setRenderHint(QPainter::Antialiasing, true);
-    p.fillRect(area, QColor(14, 14, 16));
+    auto tryLink = [this](const char* vs, const char* fs) -> bool {
+        auto* prog = new QOpenGLShaderProgram(this);
+        if (!prog->addShaderFromSourceCode(QOpenGLShader::Vertex, vs)
+            || !prog->addShaderFromSourceCode(QOpenGLShader::Fragment, fs)) {
+            m_glError = prog->log();
+            delete prog;
+            return false;
+        }
+        prog->bindAttributeLocation(QStringLiteral("aPos"), 0);
+        prog->bindAttributeLocation(QStringLiteral("aNrm"), 1);
+        prog->bindAttributeLocation(QStringLiteral("aBase"), 2);
+        if (!prog->link()) {
+            m_glError = prog->log();
+            delete prog;
+            return false;
+        }
+        delete m_prog;
+        m_prog = prog;
+        m_glError.clear();
+        return true;
+    };
 
-    if (m_mesh.isEmpty()) {
-        p.setPen(QColor(220, 100, 100));
-        p.setFont(QFont(QStringLiteral("Segoe UI"), 12));
-        p.drawText(area, Qt::AlignCenter,
-                   QStringLiteral("Could not load resources/models/head.obj\n%1").arg(m_meshError));
+    if (tryLink(kVertCompat, kFragCompat) || tryLink(kVertCore, kFragCore)) {
+        return true;
+    }
+    GAZER_WARN << "Head preview shader failed:" << m_glError;
+    return false;
+}
+
+void PreviewWindow::initializeGL()
+{
+    initializeOpenGLFunctions();
+    m_glReady = buildProgram();
+
+    if (!m_meshVbo.create() || !m_dynVbo.create()) {
+        m_glReady = false;
+        m_glError = QStringLiteral("Could not create GL buffers");
+        GAZER_WARN << m_glError;
+        return;
+    }
+    m_meshVbo.setUsagePattern(QOpenGLBuffer::StaticDraw);
+    m_dynVbo.setUsagePattern(QOpenGLBuffer::DynamicDraw);
+    m_meshUploaded = false;
+    uploadMeshVbo();
+}
+
+void PreviewWindow::uploadMeshVbo()
+{
+    if (!m_glReady || m_meshUploaded || m_mesh.isEmpty() || !m_meshVbo.isCreated()) {
         return;
     }
 
+    QVector<float> verts;
+    verts.reserve(m_mesh.tris.size() * kVertStrideFloats * 3);
+    constexpr float br = 175.f / 255.f, bg = 178.f / 255.f, bb = 188.f / 255.f;
+    for (const StlMesh::Tri& t : m_mesh.tris) {
+        emitTri(verts, Vec3(t.a), Vec3(t.b), Vec3(t.c), br, bg, bb);
+    }
+    m_meshVertexCount = verts.size() / kVertStrideFloats;
+    m_meshVbo.bind();
+    m_meshVbo.allocate(verts.constData(), verts.size() * int(sizeof(float)));
+    m_meshVbo.release();
+    m_meshUploaded = true;
+    GAZER_INFO << "Head preview GPU mesh" << m_meshVertexCount << "verts";
+}
+
+void PreviewWindow::bindVertexLayout()
+{
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, kVertStrideBytes, nullptr);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, kVertStrideBytes,
+                          reinterpret_cast<void*>(3 * sizeof(float)));
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, kVertStrideBytes,
+                          reinterpret_cast<void*>(6 * sizeof(float)));
+}
+
+void PreviewWindow::drawHeadGl(const QRect& area)
+{
     const double yaw = m_head.rotationValid ? m_head.yaw : 0.0;
     const double pitch = m_head.rotationValid ? m_head.pitch : 0.0;
     const double roll = m_head.rotationValid ? m_head.roll : 0.0;
@@ -300,240 +680,91 @@ void PreviewWindow::paintHead(QPainter& p, const QRect& area)
     const double ty = m_head.positionValid ? m_head.y * 0.04 : 0.0;
     const double tz = m_head.positionValid ? (m_head.z - 55.0) * 0.025 : 0.0;
 
-    const double scale = qMin(area.width(), area.height()) * 0.30;
-    const double focal = 3.4;
-    const QPointF origin(area.center().x(), area.center().y() + area.height() * 0.04);
+    const float scale = float(qMin(area.width(), area.height()) * 0.30);
+    const float focal = 3.4f;
+    const QVector2D origin(float(area.center().x()),
+                           float(area.center().y() + area.height() * 0.04));
+    const QMatrix4x4 pose = livePoseMatrix(yaw, pitch, roll, tx, ty, tz);
 
-    // Camera on +Z looking toward −Z: larger world.z is nearer → larger on screen.
-    auto project = [&](const Vec3& world) -> QPointF {
-        const double zCam = focal - world.z;
-        const double d = qMax(0.4, zCam / focal);
-        return {origin.x() + world.x * scale / d, origin.y() - world.y * scale / d};
-    };
+    m_prog->bind();
+    m_prog->setUniformValue("uOrigin", origin);
+    m_prog->setUniformValue("uViewport", QVector2D(float(width()), float(height())));
+    m_prog->setUniformValue("uScale", scale);
+    m_prog->setUniformValue("uFocal", focal);
+    m_prog->setUniformValue("uLightDir", QVector3D(-0.35f, 0.5f, 0.85f).normalized());
+    m_prog->setUniformValue("uFillDir", QVector3D(0.55f, 0.15f, 0.25f).normalized());
 
-    const Vec3 lightDir = Vec3{-0.35, 0.5, 0.85}.normalized();
-    const Vec3 fillDir = Vec3{0.55, 0.15, 0.25}.normalized();
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    auto shade = [&](const Vec3& n, const QColor& base) -> QColor {
-        const double key = qMax(0.0, n.dot(lightDir));
-        const double fill = qMax(0.0, n.dot(fillDir)) * 0.32;
-        const double ndl = 0.20 + 0.68 * key + fill;
-        return QColor(qBound(0, int(base.red() * ndl + 18 * key), 255),
-                      qBound(0, int(base.green() * ndl + 18 * key), 255),
-                      qBound(0, int(base.blue() * ndl + 22 * key), 255));
-    };
+    m_prog->setUniformValue("uPose", QMatrix4x4());
+    m_prog->setUniformValue("uLit", 0.f);
+    m_prog->setUniformValue("uAlpha", 75.f / 255.f);
 
-    QVector<DrawTri> draw;
-    draw.reserve(m_mesh.tris.size() + 2500);
+    QVector<float> dyn;
+    dyn.reserve(32 * 3 * kVertStrideFloats + 4000);
+    appendShadow(dyn);
+    const int shadowVerts = dyn.size() / kVertStrideFloats;
+    m_dynVbo.bind();
+    m_dynVbo.allocate(dyn.constData(), dyn.size() * int(sizeof(float)));
+    bindVertexLayout();
+    glDrawArrays(GL_TRIANGLES, 0, shadowVerts);
 
-    auto pushTri = [&](const Vec3& a, const Vec3& b, const Vec3& c, const QColor& base,
-                       double depthBias = 0.0) {
-        DrawTri t;
-        t.a = applyLivePose(a, yaw, pitch, roll, tx, ty, tz);
-        t.b = applyLivePose(b, yaw, pitch, roll, tx, ty, tz);
-        t.c = applyLivePose(c, yaw, pitch, roll, tx, ty, tz);
-        const Vec3 n = (t.b - t.a).cross(t.c - t.a).normalized();
-        if (n.z < -0.02) {
-            return; // back-face cull (camera looks toward −Z)
-        }
-        t.color = shade(n, base);
-        t.depth = (t.a.z + t.b.z + t.c.z) / 3.0 + depthBias;
-        draw.push_back(t);
-    };
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+    glDepthMask(GL_TRUE);
+    glDisable(GL_BLEND);
 
-    // Mask.
-    for (const StlMesh::Tri& src : m_mesh.tris) {
-        pushTri(Vec3(src.a), Vec3(src.b), Vec3(src.c), QColor(175, 178, 188));
+    m_prog->setUniformValue("uPose", pose);
+    m_prog->setUniformValue("uLit", 1.f);
+    m_prog->setUniformValue("uAlpha", 1.f);
+
+    if (m_meshVertexCount > 0) {
+        m_meshVbo.bind();
+        bindVertexLayout();
+        glDrawArrays(GL_TRIANGLES, 0, m_meshVertexCount);
     }
 
-    // Eyes: perfect sphere (UV aligned to lookDir) with the look-side cap removed.
-    // Iris = planar disc = exact plane∩sphere circle (radius 40% of R). Pupil on same plane.
-    {
-        const double open = qBound(0.0, m_eyeOpen, 1.0);
-        const double lookX = qBound(-1.0, m_lookX, 1.0);
-        const double lookY = qBound(-1.0, m_lookY, 1.0);
-        const double R = double(m_eyeRadius);
-
-        const Vec3 worldLook = Vec3{lookX * kGazeGain, lookY * kGazeGain, 1.0}.normalized();
-        Vec3 lookDir = inverseLiveRot(worldLook, yaw, pitch, roll).normalized();
-        if (lookDir.dot(lookDir) < 1e-8) {
-            lookDir = Vec3{0, 0, 1};
-        }
-
-        // Sphere tessellation: stacks from cut latitude → back pole; slices around look axis.
-        constexpr int kStacks = 14;
-        constexpr int kSlices = 28;
-        constexpr int kDiscSegs = 32;
-
-        const QColor scleraColor(236, 238, 242);
-        const QColor irisColor(40, 95, 150);
-        const QColor pupilColor(8, 8, 12);
-
-        auto appendEye = [&](const QVector3D& centerQ) {
-            const Vec3 C(centerQ);
-            const Vec3 f = lookDir;
-
-            // Orthonormal frame: +f = look (iris faces this way).
-            Vec3 rAxis = Vec3{0, 1, 0}.cross(f);
-            if (rAxis.dot(rAxis) < 1e-8) {
-                rAxis = Vec3{1, 0, 0}.cross(f);
-            }
-            rAxis = rAxis.normalized();
-            const Vec3 uAxis = f.cross(rAxis).normalized();
-
-            // Plane ⟂ f at distance d from C so plane∩sphere is a circle of radius irisR.
-            //   irisR = 0.4 R
-            //   d = sqrt(R² − irisR²) = R √(1 − 0.16) = R √0.84
-            const double irisR = R * kIrisRadiusOfEye;
-            const double dCut = std::sqrt(std::max(0.0, R * R - irisR * irisR));
-            const double thetaCut = std::acos(qBound(-1.0, dCut / R, 1.0)); // from +f pole
-
-            // Point on unit sphere in look-aligned spherical coords:
-            // theta=0 at +f, theta=pi at −f; phi around the look axis.
-            auto sphPt = [&](double theta, double phi) -> Vec3 {
-                const double st = std::sin(theta);
-                const double ct = std::cos(theta);
-                const double cp = std::cos(phi);
-                const double sp = std::sin(phi);
-                // Local: x along r, y along u, z along f
-                return C + (rAxis * (R * st * cp) + uAxis * (R * st * sp) + f * (R * ct));
-            };
-
-            auto pushSclera = [&](const Vec3& a, const Vec3& b, const Vec3& c) {
-                pushTri(a, b, c, scleraColor);
-            };
-
-            if (open < kLidClosed) {
-                // Lids closed: full closed sphere (no iris window).
-                const Vec3 north = C + f * R;
-                const Vec3 south = C - f * R;
-                for (int i = 0; i < kStacks; ++i) {
-                    const double t0 = kPi * (double(i) / kStacks);
-                    const double t1 = kPi * (double(i + 1) / kStacks);
-                    for (int j = 0; j < kSlices; ++j) {
-                        const double p0 = (2.0 * kPi) * (double(j) / kSlices);
-                        const double p1 = (2.0 * kPi) * (double(j + 1) / kSlices);
-                        if (i == 0) {
-                            pushSclera(north, sphPt(t1, p0), sphPt(t1, p1));
-                            continue;
-                        }
-                        if (i + 1 == kStacks) {
-                            pushSclera(south, sphPt(t0, p1), sphPt(t0, p0));
-                            continue;
-                        }
-                        pushSclera(sphPt(t0, p0), sphPt(t1, p0), sphPt(t1, p1));
-                        pushSclera(sphPt(t0, p0), sphPt(t1, p1), sphPt(t0, p1));
-                    }
-                }
-                return;
-            }
-
-            // Open: sphere from just behind the cut latitude → back pole.
-            // Start slightly past thetaCut so the rim sits a hair behind the iris plane
-            // (avoids coplanar z-fight without a huge depth bias that would leap in front
-            // of the mask).
-            constexpr double kRimBack = 0.012; // radians past the cut
-            const double thetaStart = std::min(kPi - 1e-3, thetaCut + kRimBack);
-            const Vec3 south = C - f * R;
-            const int nLat = kStacks;
-            for (int i = 0; i < nLat; ++i) {
-                const double t0 = thetaStart + (kPi - thetaStart) * (double(i) / nLat);
-                const double t1 = thetaStart + (kPi - thetaStart) * (double(i + 1) / nLat);
-                for (int j = 0; j < kSlices; ++j) {
-                    const double p0 = (2.0 * kPi) * (double(j) / kSlices);
-                    const double p1 = (2.0 * kPi) * (double(j + 1) / kSlices);
-                    if (i + 1 == nLat) {
-                        pushSclera(south, sphPt(t0, p1), sphPt(t0, p0));
-                        continue;
-                    }
-                    pushSclera(sphPt(t0, p0), sphPt(t1, p0), sphPt(t1, p1));
-                    pushSclera(sphPt(t0, p0), sphPt(t1, p1), sphPt(t0, p1));
-                }
-            }
-
-            // Iris = planar annulus (outer = plane∩sphere = 0.4 R); pupil cut out of center.
-            // No depth bias — must share real depth with sclera/mask.
-            const Vec3 planeO = C + f * dCut;
-            const double pupilR = irisR * kPupilOfIris;
-
-            auto discPoint = [&](double radius, double angle) -> Vec3 {
-                return planeO + rAxis * (radius * std::cos(angle))
-                       + uAxis * (radius * open * std::sin(angle));
-            };
-
-            auto pushDisc = [&](double radius, const QColor& color) {
-                Vec3 prev = discPoint(radius, 0.0);
-                for (int s = 1; s <= kDiscSegs; ++s) {
-                    const double a = (2.0 * kPi * s) / kDiscSegs;
-                    const Vec3 rim = discPoint(radius, a);
-                    pushTri(planeO, prev, rim, color);
-                    pushTri(planeO, rim, prev, color);
-                    prev = rim;
-                }
-            };
-
-            // Iris ring: outer irisR, inner pupilR (pupil area cut out).
-            auto pushRing = [&](double rOuter, double rInner, const QColor& color) {
-                for (int s = 0; s < kDiscSegs; ++s) {
-                    const double a0 = (2.0 * kPi * s) / kDiscSegs;
-                    const double a1 = (2.0 * kPi * (s + 1)) / kDiscSegs;
-                    const Vec3 o0 = discPoint(rOuter, a0);
-                    const Vec3 o1 = discPoint(rOuter, a1);
-                    const Vec3 i0 = discPoint(rInner, a0);
-                    const Vec3 i1 = discPoint(rInner, a1);
-                    pushTri(i0, o0, o1, color);
-                    pushTri(i0, o1, i1, color);
-                    pushTri(i0, o1, o0, color);
-                    pushTri(i0, i1, o1, color);
-                }
-            };
-
-            pushRing(irisR, pupilR, irisColor);
-            pushDisc(pupilR, pupilColor);
-        };
-
-        appendEye(m_eyeLeft);
-        appendEye(m_eyeRight);
+    dyn.clear();
+    appendEyes(dyn, m_eyeLeft, m_eyeRight, m_eyeRadius, m_lookX, m_lookY, m_eyeOpen, yaw, pitch,
+               roll);
+    const int eyeVerts = dyn.size() / kVertStrideFloats;
+    if (eyeVerts > 0) {
+        m_dynVbo.bind();
+        m_dynVbo.allocate(dyn.constData(), dyn.size() * int(sizeof(float)));
+        bindVertexLayout();
+        glDrawArrays(GL_TRIANGLES, 0, eyeVerts);
     }
 
-    std::sort(draw.begin(), draw.end(),
-              [](const DrawTri& a, const DrawTri& b) { return a.depth < b.depth; });
+    glDisableVertexAttribArray(0);
+    glDisableVertexAttribArray(1);
+    glDisableVertexAttribArray(2);
+    m_dynVbo.release();
+    m_meshVbo.release();
+    m_prog->release();
+}
 
-    p.setPen(Qt::NoPen);
-    p.setBrush(QColor(0, 0, 0, 75));
-    p.drawEllipse(QPointF(origin.x(), origin.y() + scale * 0.95), scale * 0.48, scale * 0.11);
+void PreviewWindow::paintOverlay(QPainter& p, const QRect& headArea)
+{
+    const double yaw = m_head.rotationValid ? m_head.yaw : 0.0;
+    const double pitch = m_head.rotationValid ? m_head.pitch : 0.0;
+    const double roll = m_head.rotationValid ? m_head.roll : 0.0;
 
-    for (const DrawTri& t : draw) {
-        QPolygonF poly;
-        poly << project(t.a) << project(t.b) << project(t.c);
-        p.setBrush(t.color);
-        p.setPen(QPen(t.color.darker(114), 0.55));
-        p.drawPolygon(poly);
-    }
-
-    // Axis gizmo (pose only, no translation).
-    const QPointF g0(area.right() - 64, area.bottom() - 48);
+    const QPointF g0(headArea.right() - 64, headArea.bottom() - 48);
     auto ax = [&](double x, double y, double z) {
         const Vec3 w = applyLivePose(Vec3{x, y, z}, yaw, pitch, roll, 0, 0, 0);
         const double d = qMax(0.5, (2.2 - w.z) / 2.2);
         return QPointF(g0.x() + w.x * 26 / d, g0.y() - w.y * 26 / d);
     };
+    p.setRenderHint(QPainter::Antialiasing, true);
     p.setPen(QPen(QColor(220, 80, 80), 2));
     p.drawLine(g0, ax(1, 0, 0));
     p.setPen(QPen(QColor(80, 200, 100), 2));
     p.drawLine(g0, ax(0, 1, 0));
     p.setPen(QPen(QColor(80, 140, 255), 2));
     p.drawLine(g0, ax(0, 0, 1));
-}
-
-void PreviewWindow::paintEvent(QPaintEvent* /*event*/)
-{
-    QPainter p(this);
-    p.fillRect(rect(), m_theme.bgMain.isValid() ? m_theme.bgMain : QColor(14, 14, 16));
-
-    const int hudH = 48;
-    // Head view keeps its own dark stage; HUD uses theme colors.
-    paintHead(p, rect().adjusted(0, hudH, 0, 0));
 
     p.setPen(m_theme.text.isValid() ? m_theme.text : QColor(220, 224, 230));
     p.setFont(QFont(QStringLiteral("Segoe UI"), 11));
@@ -558,6 +789,61 @@ void PreviewWindow::paintEvent(QPaintEvent* /*event*/)
                   .arg(gazeBit)
             : QStringLiteral("Head pose: no sample — mesh still shown at rest  ·  %1").arg(gazeBit);
     p.drawText(QRect(12, 24, width() - 24, 18), Qt::AlignLeft | Qt::AlignVCenter, line2);
+}
+
+void PreviewWindow::paintGL()
+{
+    ensureMeshLoaded();
+    uploadMeshVbo();
+
+    const QColor bg = m_theme.bgMain.isValid() ? m_theme.bgMain : QColor(14, 14, 16);
+    const QRect headArea = rect().adjusted(0, kHudH, 0, 0);
+    const qreal dpr = devicePixelRatioF();
+    const int vw = std::max(1, int(std::lround(width() * dpr)));
+    const int vh = std::max(1, int(std::lround(height() * dpr)));
+    const int headH = std::max(1, int(std::lround((height() - kHudH) * dpr)));
+
+    QPainter painter(this);
+    painter.beginNativePainting();
+
+    glViewport(0, 0, vw, vh);
+    glDisable(GL_SCISSOR_TEST);
+    glDisable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST);
+    glDepthMask(GL_TRUE);
+    glClearColor(bg.redF(), bg.greenF(), bg.blueF(), 1.f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glEnable(GL_SCISSOR_TEST);
+    glScissor(0, 0, vw, headH);
+    glClearColor(14.f / 255.f, 14.f / 255.f, 16.f / 255.f, 1.f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glDisable(GL_SCISSOR_TEST);
+
+    if (m_mesh.isEmpty()) {
+        painter.endNativePainting();
+        painter.setPen(QColor(220, 100, 100));
+        painter.setFont(QFont(QStringLiteral("Segoe UI"), 12));
+        painter.drawText(headArea, Qt::AlignCenter,
+                         QStringLiteral("Could not load resources/models/head.obj\n%1")
+                             .arg(m_meshError));
+        paintOverlay(painter, headArea);
+        return;
+    }
+
+    if (!m_glReady || !m_prog) {
+        painter.endNativePainting();
+        painter.setPen(QColor(220, 100, 100));
+        painter.setFont(QFont(QStringLiteral("Segoe UI"), 12));
+        painter.drawText(headArea, Qt::AlignCenter,
+                         QStringLiteral("GPU preview unavailable\n%1").arg(m_glError));
+        paintOverlay(painter, headArea);
+        return;
+    }
+
+    drawHeadGl(headArea);
+    painter.endNativePainting();
+    paintOverlay(painter, headArea);
 }
 
 } // namespace gazer

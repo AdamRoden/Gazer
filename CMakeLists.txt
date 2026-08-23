@@ -15,7 +15,7 @@ set(CMAKE_AUTOUIC ON)
 
 option(GAZER_USE_TOBII "Build Tobii Stream Engine integration (runtime DLL load)" ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Qml Quick Svg Test)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets OpenGL OpenGLWidgets Qml Quick Svg Test)
 
 set(GAZER_TOBII_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/third_party/tobii/include")
 set(GAZER_TOBII_EFFECTIVE OFF)
@@ -214,6 +214,8 @@ target_link_libraries(Gazer PRIVATE
     Qt6::Core
     Qt6::Gui
     Qt6::Widgets
+    Qt6::OpenGL
+    Qt6::OpenGLWidgets
     Qt6::Qml
     Qt6::Quick
     Qt6::Svg

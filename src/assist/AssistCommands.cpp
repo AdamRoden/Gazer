@@ -118,18 +118,25 @@ void registerAssistCommands(AssistCommandContext& ctx)
 
     // Resume / re-place: arm direct Move-to for LTS (never mag-pick).
     QObject::connect(lts, &LookToScroll::placeScrollPointRequested, session,
-                     [mouseDwell, notify]() {
+                     [lts, mouseDwell, notify]() {
                          mouseDwell->setArmed(true, ArmPurpose::LookToScrollPlace);
+                         if (lts->hasScrollOrigin()) {
+                             const int r = qMax(40, lts->deadzonePx());
+                             const QPoint c = lts->scrollOrigin();
+                             mouseDwell->gateUntilGazeLeaves(
+                                 QRect(c.x() - r, c.y() - r, r * 2, r * 2));
+                         }
                          notify(QStringLiteral(
                              "Look↕Scroll: dwell to place scroll point, then look to scroll"));
                      });
 
     // After a successful place, enable or unsuspend LTS (purpose lives on the tool).
     QObject::connect(mouseDwell, &MouseDwellMove::movedTo, session,
-                     [mouseDwell, lts, notify](QPoint) {
+                     [mouseDwell, lts, notify](QPoint pos) {
                          if (mouseDwell->armPurpose() != ArmPurpose::LookToScrollPlace) {
                              return;
                          }
+                         lts->setScrollOrigin(pos);
                          if (!lts->isEnabled()) {
                              lts->setEnabled(true);
                              notify(QStringLiteral("Look↕Scroll ON (cursor placed)"));

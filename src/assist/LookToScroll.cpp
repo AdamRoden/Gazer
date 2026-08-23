@@ -255,11 +255,42 @@ void LookToScroll::setEnabled(bool enabled)
     m_centerDwell = CenterDwell::Idle;
     m_scrollSuspended = false;
     if (!m_enabled) {
+        m_hasOrigin = false;
         hideOverlay();
+    } else if (!m_hasOrigin) {
+        setScrollOrigin(QCursor::pos());
+    } else {
+        pinCursorToOrigin();
     }
     GAZER_INFO << "LookToScroll" << (m_enabled ? "ON" : "OFF");
     emit enabledChanged(m_enabled);
     emit scrollSuspendedChanged(false);
+}
+
+void LookToScroll::setScrollOrigin(const QPoint& pos)
+{
+    m_origin = pos;
+    m_hasOrigin = true;
+    pinCursorToOrigin();
+}
+
+void LookToScroll::pinCursorToOrigin()
+{
+    if (!m_hasOrigin) {
+        return;
+    }
+    if (QCursor::pos() == m_origin) {
+        return;
+    }
+    QString err;
+    if (!MouseInjector::moveTo(m_origin.x(), m_origin.y(), &err) && !err.isEmpty()) {
+        GAZER_WARN << "LookToScroll pin cursor:" << err;
+    }
+}
+
+QPoint LookToScroll::originPoint() const
+{
+    return m_hasOrigin ? m_origin : QCursor::pos();
 }
 
 void LookToScroll::toggle()
@@ -363,7 +394,10 @@ void LookToScroll::onGaze(const GazePoint& point, bool pauseInput)
         return;
     }
 
-    const QPoint origin = QCursor::pos();
+    const QPoint origin = originPoint();
+    if (!m_scrollSuspended) {
+        pinCursorToOrigin();
+    }
     const QPointF gaze(point.x, point.y);
     const QPointF delta = gaze - QPointF(origin);
     const double dist = qSqrt(delta.x() * delta.x() + delta.y() * delta.y());

@@ -23,6 +23,9 @@ void GazeRouter::dispatch(const GazePoint& point)
     if (freeAim) {
         if (m_pages) {
             m_pages->leaveGaze();
+            // Still hit-test chrome so Move-to / LTS place do not complete on the
+            // board cell that just armed them.
+            overBoard = m_pages->hitsChrome(point);
         }
     } else if (m_pages && m_pages->hasRoot()) {
         overBoard = m_pages->onGaze(point);
@@ -41,7 +44,11 @@ void GazeRouter::dispatch(const GazePoint& point)
     }
     if (m_mouseDwell) {
         m_mouseDwell->onBackgroundGaze(point, overBoard);
-        if (clickLoopYields && overBoard) {
+        // Pause while gaze is still on Gazer chrome so dwell-to-place cannot
+        // fire on the activation cell (LTS / Move-to). Mag-pick's zoom window
+        // may overlap a board; keep sampling there.
+        const bool pauseAimOnBoard = overBoard && !magPick && (clickLoopYields || freeAim);
+        if (pauseAimOnBoard) {
             m_mouseDwell->setPaused(true);
         } else {
             m_mouseDwell->setPaused(false);

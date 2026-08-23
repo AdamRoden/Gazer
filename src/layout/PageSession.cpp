@@ -821,6 +821,19 @@ bool PageSession::onGaze(const GazePoint& point)
     return hit != nullptr;
 }
 
+bool PageSession::hitsChrome(const GazePoint& point) const
+{
+    if (!hasRoot() || !point.valid) {
+        return false;
+    }
+    const QTransform* xf = m_host ? &m_host->drawerXf() : nullptr;
+    const QPointF g = point.toPointF();
+    if (PageHit::at(m_targets, g, m_drawerScale, {}, m_gridPaints, xf)) {
+        return true;
+    }
+    return !PageHit::coveringPageId(m_gridPaints, g, m_drawerScale, m_targets, xf).isEmpty();
+}
+
 void PageSession::leaveGaze()
 {
     if (m_loopLatchClear) {

@@ -89,6 +89,8 @@ public:
                          QString* error = nullptr);
 
     [[nodiscard]] bool onGaze(const GazePoint& point);
+    /// Hit-test only: true if gaze is over a board/cell/zone (does not run dwell).
+    [[nodiscard]] bool hitsChrome(const GazePoint& point) const;
     void leaveGaze();
     void raise();
     void hideHost();
