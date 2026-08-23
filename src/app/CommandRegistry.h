@@ -10,15 +10,14 @@
 
 namespace gazer {
 
-/// Resolves layout command names: built-in handlers first, then mapping profile.
+/// Resolves command names: built-in handlers first, then mapping profile.
 class CommandRegistry final : public QObject {
     Q_OBJECT
 
 public:
     struct Invocation {
         QString name;
-        QString layoutId;
-        QString sourceInstanceId;
+        QString pageId;
     };
 
     using Handler = std::function<bool(QString* error)>;

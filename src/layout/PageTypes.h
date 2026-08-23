@@ -1,5 +1,8 @@
 #pragma once
 
+#include "layout/PageBox.h"
+#include "layout/ProgressStyle.h"
+
 #include <QColor>
 #include <QHash>
 #include <QString>
@@ -69,14 +72,23 @@ struct PageChrome {
     std::optional<QColor> background;
     std::optional<QColor> foreground;
     std::optional<QColor> borderColor;
-    std::optional<double> thickness;
-    std::optional<double> radius;
+    std::optional<PageBox> thickness;
+    std::optional<PageBox> radius;
     std::optional<double> blur;
+    std::optional<ProgressStyle> progressStyle;
+
+    [[nodiscard]] bool hasBlur() const { return blur.has_value() && *blur > 0.0; }
+
+    [[nodiscard]] PageBox resolvedRadius(bool clustered = false) const
+    {
+        return radius.value_or(PageBox::all(clustered ? 4.0 : 8.0));
+    }
 
     [[nodiscard]] bool hasAny() const
     {
         return background.has_value() || foreground.has_value() || borderColor.has_value()
-               || thickness.has_value() || radius.has_value() || blur.has_value();
+               || thickness.has_value() || radius.has_value() || blur.has_value()
+               || progressStyle.has_value();
     }
 
     [[nodiscard]] PageChrome withOverrides(const PageChrome& ovr) const
@@ -99,6 +111,9 @@ struct PageChrome {
         }
         if (ovr.blur) {
             out.blur = ovr.blur;
+        }
+        if (ovr.progressStyle) {
+            out.progressStyle = ovr.progressStyle;
         }
         return out;
     }
@@ -253,7 +268,6 @@ struct PageDocument {
     bool master = false;
     bool autoClose = false;
     int autoCloseIdleMs = -1;
-    int autoCloseFadeMs = -1;
     PageChrome style;
     PageDwell dwell;
     QHash<QString, PageChrome> styles;

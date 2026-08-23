@@ -1,8 +1,9 @@
 #include "layout/PageSession.h"
 
-#include "layout/DwellRegionSpace.h"
+#include "layout/PageCatalog.h"
 #include "layout/PageLoader.h"
 #include "utils/Log.h"
+#include "utils/ScreenGrab.h"
 
 #include <QDir>
 #include <QFileInfo>
@@ -13,6 +14,23 @@
 #include <utility>
 
 namespace gazer {
+
+namespace {
+constexpr auto kPreviewPrefix = "__editor_preview_";
+}
+
+QString PageSession::previewId(const QString& catalogId)
+{
+    if (catalogId.startsWith(QLatin1String(kPreviewPrefix))) {
+        return catalogId;
+    }
+    return QLatin1String(kPreviewPrefix) + catalogId;
+}
+
+bool PageSession::isPreviewId(const QString& id)
+{
+    return id.startsWith(QLatin1String(kPreviewPrefix));
+}
 
 PageSession::PageSession(QObject* parent)
     : QObject(parent)
@@ -26,17 +44,56 @@ PageSession::PageSession(QObject* parent)
     connect(&m_dwell, &DwellStateMachine::dwellProgress, this,
             [this](const QString& id, double p) {
                 if (m_host) {
-                    m_host->setHover(id, p);
+                    m_host->setHover(id, p, m_dwell.isScanGraceComplete());
                 }
             });
     connect(&m_dwell, &DwellStateMachine::hoverChanged, this, [this](const QString& id) {
         m_hoverId = id;
-        if (id.isEmpty() && m_host) {
-            m_host->setHover({}, 0.0);
+        if (!m_host) {
+            return;
+        }
+        if (id.isEmpty()) {
+            m_host->setHover({}, 0.0, false);
+        } else {
+            m_host->setHover(id, m_dwell.progress(), m_dwell.isScanGraceComplete());
         }
     });
     connect(&m_dwell, &DwellStateMachine::itemActivated, this, [this](const QString& id) {
         activateTarget(id);
+    });
+    const auto onScreens = [this]() {
+        if (hasRoot()) {
+            rebuild();
+        }
+    };
+    auto bindScreens = [this, onScreens]() {
+        for (const QPointer<QScreen>& s : m_boundScreens) {
+            if (s) {
+                disconnect(s, nullptr, this, nullptr);
+            }
+        }
+        m_boundScreens.clear();
+        for (QScreen* s : QGuiApplication::screens()) {
+            if (!s) {
+                continue;
+            }
+            connect(s, &QScreen::geometryChanged, this, onScreens);
+            connect(s, &QScreen::virtualGeometryChanged, this, onScreens);
+            m_boundScreens.push_back(s);
+        }
+    };
+    bindScreens();
+    connect(qGuiApp, &QGuiApplication::screenAdded, this, [bindScreens, onScreens]() {
+        bindScreens();
+        onScreens();
+    });
+    connect(qGuiApp, &QGuiApplication::screenRemoved, this, [bindScreens, onScreens]() {
+        bindScreens();
+        onScreens();
+    });
+    connect(qGuiApp, &QGuiApplication::primaryScreenChanged, this, [bindScreens, onScreens]() {
+        bindScreens();
+        onScreens();
     });
 }
 
@@ -186,12 +243,6 @@ bool PageSession::applyPageAction(PageVerb verb, PageTargetKind kind, const QStr
     }
 
     if (kind == PageTargetKind::Page) {
-        if (id.compare(QLatin1String("main_drawer"), Qt::CaseInsensitive) == 0) {
-            return applyPageAction(verb, PageTargetKind::Grid, QStringLiteral("drawer"), error);
-        }
-        if (id.compare(QLatin1String("main_quit_confirm"), Qt::CaseInsensitive) == 0) {
-            return applyPageAction(verb, PageTargetKind::Grid, QStringLiteral("quit"), error);
-        }
         if (id.compare(QLatin1String("all"), Qt::CaseInsensitive) == 0) {
             if (verb == PageVerb::Close || verb == PageVerb::Toggle) {
                 closeAttached();
@@ -297,24 +348,37 @@ bool PageSession::applyPageAction(PageVerb verb, PageTargetKind kind, const QStr
 PageFrame PageSession::frame() const
 {
     PageFrame f;
-    f.screen = QRectF(DwellRegionSpace::virtualDesktop());
-    if (QScreen* s = QGuiApplication::primaryScreen()) {
-        f.desktop = QRectF(s->availableGeometry());
-    } else {
-        f.desktop = f.screen;
-    }
+    f.screen = QRectF(overlayScreenGeometry());
+    f.desktop = QRectF(overlayDesktopGeometry());
     if (f.screen.isEmpty()) {
         f.screen = f.desktop;
+    }
+    if (f.desktop.isEmpty()) {
+        f.desktop = f.screen;
     }
     return f;
 }
 
 QString PageSession::xmlPathFor(const QString& id) const
 {
+    if (m_catalog) {
+        const QString live = m_catalog->pathFor(id);
+        if (!live.isEmpty()) {
+            return live;
+        }
+    }
     if (m_layoutsDir.isEmpty()) {
         return {};
     }
     return QDir(m_layoutsDir).filePath(id + QStringLiteral(".xml"));
+}
+
+QString PageSession::topPageId() const
+{
+    if (!m_attached.isEmpty()) {
+        return m_attached.last().doc.id;
+    }
+    return m_root.id;
 }
 
 bool PageSession::hasPage(const QString& id) const
@@ -330,13 +394,43 @@ bool PageSession::hasPage(const QString& id) const
     return false;
 }
 
-bool PageSession::attachDocument(PageDocument doc, QString* error)
+void PageSession::registerMemoryPage(PageDocument doc)
+{
+    if (!doc.isValid()) {
+        return;
+    }
+    m_memory.insert(doc.id, std::move(doc));
+}
+
+void PageSession::closePreviewPages()
+{
+    for (int i = m_attached.size() - 1; i >= 0; --i) {
+        if (isPreviewId(m_attached[i].doc.id)) {
+            m_attached.removeAt(i);
+        }
+    }
+    for (auto it = m_memory.begin(); it != m_memory.end();) {
+        if (isPreviewId(it.key())) {
+            it = m_memory.erase(it);
+        } else {
+            ++it;
+        }
+    }
+    leaveGaze();
+    rebuild();
+    emit sessionChanged();
+}
+
+bool PageSession::attachDocument(PageDocument doc, QString* error, bool decorate)
 {
     if (!doc.isValid()) {
         if (error) {
             *error = QStringLiteral("Page has no id");
         }
         return false;
+    }
+    if (decorate && m_decorate) {
+        m_decorate(doc);
     }
     for (int i = 0; i < m_attached.size(); ++i) {
         if (m_attached[i].doc.id == doc.id) {
@@ -367,6 +461,13 @@ bool PageSession::openPage(const QString& id, QString* error)
         raise();
         return true;
     }
+    if (isPreviewId(id)) {
+        for (int i = m_attached.size() - 1; i >= 0; --i) {
+            if (isPreviewId(m_attached[i].doc.id) && m_attached[i].doc.id != id) {
+                m_attached.removeAt(i);
+            }
+        }
+    }
     for (int i = 0; i < m_attached.size(); ++i) {
         if (m_attached[i].doc.id == id) {
             if (i != m_attached.size() - 1) {
@@ -378,6 +479,10 @@ bool PageSession::openPage(const QString& id, QString* error)
             emit sessionChanged();
             return true;
         }
+    }
+    if (m_memory.contains(id)) {
+        PageDocument doc = m_memory.value(id);
+        return attachDocument(std::move(doc), error, true);
     }
     const QString path = xmlPathFor(id);
     if (path.isEmpty() || !QFileInfo::exists(path)) {
@@ -417,6 +522,9 @@ void PageSession::closePage(const QString& id)
     for (int i = 0; i < m_attached.size(); ++i) {
         if (m_attached[i].doc.id == id) {
             m_attached.removeAt(i);
+            if (m_loopStopPage) {
+                m_loopStopPage(id);
+            }
             rebuild();
             emit sessionChanged();
             return;
@@ -429,6 +537,11 @@ int PageSession::closeAttached()
     const int n = m_attached.size();
     if (n == 0) {
         return 0;
+    }
+    if (m_loopStopPage) {
+        for (const AttachedPage& a : m_attached) {
+            m_loopStopPage(a.doc.id);
+        }
     }
     m_attached.clear();
     rebuild();
@@ -450,9 +563,6 @@ void PageSession::ingest(const PageDocument& doc, const QSet<QString>& hiddenGri
     }
     for (PageTarget& t : piece) {
         t.pageId = doc.id;
-        if (!doc.id.isEmpty() && !t.id.startsWith(doc.id + QLatin1Char('/'))) {
-            t.id = doc.id + QLatin1Char('/') + t.id;
-        }
         (t.shell ? shellLayer : rest).push_back(std::move(t));
     }
 }
@@ -472,10 +582,7 @@ void PageSession::rebuild()
     m_targets = std::move(rest);
     m_gridPaints = std::move(restGrids);
     if (m_host) {
-        m_host->coverVirtualDesktop();
-        m_host->setGridPaints(m_gridPaints);
-        m_host->setTargets(m_targets);
-        m_host->setDrawerScale(m_drawerScale);
+        m_host->commit(m_targets, m_gridPaints, m_drawerScale);
     }
     refreshActive();
     if (autoCloseIdleMs() >= 0) {
@@ -511,7 +618,7 @@ void PageSession::refreshActive()
     if (m_active) {
         for (const PageTarget& t : m_targets) {
             if (!t.activeState.isEmpty() && m_active(t.activeState)) {
-                ids.insert(t.id);
+                ids.insert(sessionKey(t));
             }
         }
     }
@@ -656,7 +763,7 @@ void PageSession::tickAutoClose()
 const PageTarget* PageSession::findTarget(const QString& id) const
 {
     for (const PageTarget& t : m_targets) {
-        if (t.id == id) {
+        if (sessionKey(t) == id) {
             return &t;
         }
     }
@@ -695,13 +802,19 @@ bool PageSession::onGaze(const GazePoint& point)
         m_dwell.onGazeSample(invalid, {});
         return !m_hoverId.isEmpty();
     }
-    const PageTarget* hit = PageHit::at(m_targets, point.toPointF(), m_drawerScale, m_hoverId,
-                                        m_gridPaints);
-    const QString id = hit ? hit->id : QString();
+    const QTransform* xf = m_host ? &m_host->drawerXf() : nullptr;
+    const QString engaged =
+        (m_dwell.isScanGraceComplete() && !m_hoverId.isEmpty()) ? m_hoverId : QString();
+    const PageTarget* hit = PageHit::at(m_targets, point.toPointF(), m_drawerScale, engaged,
+                                        m_gridPaints, xf);
+    const QString id = hit ? sessionKey(*hit) : QString();
     if (hit) {
         noteActivity();
     }
     if (id != m_hoverId) {
+        if (m_loopLatchClear) {
+            m_loopLatchClear();
+        }
         applyDwellFor(hit);
     }
     m_dwell.onGazeSample(point, id);
@@ -710,6 +823,9 @@ bool PageSession::onGaze(const GazePoint& point)
 
 void PageSession::leaveGaze()
 {
+    if (m_loopLatchClear) {
+        m_loopLatchClear();
+    }
     m_dwell.leave();
     m_hoverId.clear();
 }
@@ -731,18 +847,30 @@ void PageSession::hideHost()
 QVector<QRect> PageSession::unpauseGapRects() const
 {
     QVector<QRect> gaps;
-    const QTransform xf = PageHit::drawerTransform(m_targets, m_drawerScale, m_gridPaints);
+    const QTransform xf = m_host ? m_host->drawerXf()
+                                 : PageHit::drawerTransform(m_targets, m_drawerScale, m_gridPaints);
+    const QString engaged =
+        (m_dwell.isScanGraceComplete() && !m_hoverId.isEmpty()) ? m_hoverId : QString();
+    auto isUnpause = [](const PageTarget& t) {
+        for (const PageAction& a : t.actions) {
+            if (a.type == PageActionType::Command
+                && (a.command == QLatin1String("toggleDwellSuspend")
+                    || a.command == QLatin1String("resumeDwell"))) {
+                return true;
+            }
+        }
+        return false;
+    };
     for (const PageTarget& t : m_targets) {
-        if (!t.interactive || !t.dwellExempt) {
+        if (!t.interactive || !isUnpause(t)) {
             continue;
         }
-        QRectF r = t.geom.contentOnScreen();
-        if (r.isEmpty()) {
-            r = t.geom.progressZone;
-        }
+        const QString key = (sessionKey(t) == engaged) ? engaged : QString();
+        QRectF r = PageHit::gazeHitRect(t, key);
         r = PageHit::mapDrawer(t, r, xf, m_drawerScale);
-        if (!r.isEmpty()) {
-            gaps.push_back(r.toRect().adjusted(-16, -16, 16, 16));
+        const QRectF vis = QRectF(virtualDesktop()).intersected(r);
+        if (!vis.isEmpty()) {
+            gaps.push_back(vis.toRect().adjusted(-16, -16, 16, 16));
         }
     }
     return gaps;
@@ -757,11 +885,15 @@ void PageSession::activateTarget(const QString& targetId)
     const QVector<PageAction> actions = t->actions;
     const QString pageId = t->pageId.isEmpty() ? m_root.id : t->pageId;
     if (m_host) {
-        m_host->flash(targetId);
+        m_host->flash(sessionKey(*t));
     }
-    emit targetActivated(pageId, targetId);
+    emit targetActivated(pageId, t->id);
+    if (t->actionLoop && m_loopToggle) {
+        m_loopToggle(*t, pageId);
+        return;
+    }
     if (m_dispatch) {
-        m_dispatch(actions, pageId, targetId);
+        m_dispatch(actions, pageId, t->id);
     }
 }
 

@@ -5,7 +5,6 @@
 #include "assist/GazeReticle.h"
 #include "assist/LookToScroll.h"
 #include "assist/MouseDwellMove.h"
-#include "layout/LayoutInstanceManager.h"
 #include "layout/PageSession.h"
 #include "ui/MagnifierOverlay.h"
 
@@ -25,22 +24,8 @@ void GazeRouter::dispatch(const GazePoint& point)
         if (m_pages) {
             m_pages->leaveGaze();
         }
-        if (m_instances) {
-            m_instances->leaveActiveGaze();
-        }
-    } else {
-        const bool overPages = m_pages && m_pages->hasRoot() && m_pages->onGaze(point);
-        if (overPages) {
-            overBoard = true;
-            if (m_instances) {
-                m_instances->leaveActiveGaze();
-            }
-        } else if (m_instances && m_instances->onGaze(point)) {
-            overBoard = true;
-            if (m_pages) {
-                m_pages->leaveGaze();
-            }
-        }
+    } else if (m_pages && m_pages->hasRoot()) {
+        overBoard = m_pages->onGaze(point);
     }
 
     const bool pauseBackgroundAssist = overBoard || freeAim;

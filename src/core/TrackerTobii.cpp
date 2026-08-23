@@ -1,6 +1,7 @@
 #include "core/TrackerTobii.h"
 
 #include "utils/Log.h"
+#include "utils/ScreenGrab.h"
 
 #include <QCoreApplication>
 #include <QGuiApplication>
@@ -19,9 +20,16 @@ TrackerTobii::TrackerTobii(QObject* parent)
 
     if (auto* app = qGuiApp) {
         connect(app, &QGuiApplication::primaryScreenChanged, this, [this](QScreen*) {
-            cacheScreenGeometry();
+            bindOverlayScreen();
+        });
+        connect(app, &QGuiApplication::screenAdded, this, [this](QScreen*) {
+            bindOverlayScreen();
+        });
+        connect(app, &QGuiApplication::screenRemoved, this, [this](QScreen*) {
+            bindOverlayScreen();
         });
     }
+    bindOverlayScreen();
 }
 
 TrackerTobii::~TrackerTobii()
@@ -63,12 +71,26 @@ void TrackerTobii::headPoseCallback(tobii_head_pose_t const* head_pose, void* us
     }
 }
 
+void TrackerTobii::bindOverlayScreen()
+{
+    if (m_overlayScreen) {
+        disconnect(m_overlayScreen, nullptr, this, nullptr);
+    }
+    m_overlayScreen = QGuiApplication::primaryScreen();
+    if (m_overlayScreen) {
+        connect(m_overlayScreen, &QScreen::geometryChanged, this, [this](const QRect&) {
+            cacheScreenGeometry();
+        });
+        connect(m_overlayScreen, &QScreen::virtualGeometryChanged, this, [this](const QRect&) {
+            cacheScreenGeometry();
+        });
+    }
+    cacheScreenGeometry();
+}
+
 void TrackerTobii::cacheScreenGeometry()
 {
-    QRect geo;
-    if (QScreen* screen = QGuiApplication::primaryScreen()) {
-        geo = screen->geometry();
-    }
+    const QRect geo = overlayScreenGeometry();
     QMutexLocker lock(&m_geoMutex);
     m_screenGeo = geo;
 }

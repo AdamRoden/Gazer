@@ -5,8 +5,7 @@
 #include "app/GazerServices.h"
 #include "core/ITracker.h"
 #include "ui/DwellSuspendOverlay.h"
-#include "ui/EdgeBubbleOverlay.h"
-#include "layout/LayoutTypes.h"
+#include "layout/PageTypes.h"
 #include "ui/PreviewWindow.h"
 #include "ui/TrayIcon.h"
 
@@ -34,11 +33,10 @@ private:
     [[nodiscard]] bool expandMasterShell(QString* error = nullptr);
 
     void onQuitRequested();
-    void openLayoutEditor(const QString& layoutId = {});
-    [[nodiscard]] bool testEditedLayout(const QVector<LayoutDocument>& family, int currentIndex,
+    void openPageEditor(const QString& pageId = {});
+    [[nodiscard]] bool testEditedLayout(const QVector<PageDocument>& family, int currentIndex,
                                         QString* error);
     void onGaze(const gazer::GazePoint& point);
-    void onItemActivated(const QString& instanceId, const QString& itemId);
     void onTobiiStreamFailed(const QString& reason);
     void fallbackToMouse();
     void shutdownUi();
@@ -47,7 +45,6 @@ private:
     std::unique_ptr<ActionDispatcher> m_actions;
     std::unique_ptr<ITracker> m_tracker;
     GazeRouter m_gazeRouter;
-    std::unique_ptr<EdgeBubbleOverlay> m_edgeBubbles;
     std::unique_ptr<DwellSuspendOverlay> m_dwellSuspendOverlay;
     std::unique_ptr<PreviewWindow> m_preview;
     std::unique_ptr<class LayoutEditorWindow> m_editor;

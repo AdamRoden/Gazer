@@ -1,11 +1,13 @@
 #include "editor/LayoutEditorToolbox.h"
 
 #include "editor/LayoutEditorSession.h"
+#include "layout/PageEdit.h"
 
 #include <QAction>
 #include <QHeaderView>
 #include <QLabel>
 #include <QMenu>
+#include <functional>
 #include <QSignalBlocker>
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
@@ -64,6 +66,12 @@ LayoutEditorToolbox::LayoutEditorToolbox(QWidget* parent)
         const QString id = item->data(0, Qt::UserRole + 1).toString();
         if (kind == QLatin1String("item")) {
             m_session->selectItem(id);
+        } else if (kind == QLatin1String("grid")) {
+            m_session->selectGrid(id);
+        } else if (kind == QLatin1String("style")) {
+            m_session->setSelection({EditorTarget::Style, id, {}});
+        } else if (kind == QLatin1String("dwell")) {
+            m_session->setSelection({EditorTarget::Dwell, id, {}});
         } else {
             m_session->selectTarget(EditorTarget::Document);
         }
@@ -74,30 +82,47 @@ LayoutEditorToolbox::LayoutEditorToolbox(QWidget* parent)
             return;
         }
         QTreeWidgetItem* item = m_hierarchy->itemAt(pos);
-        if (item && item->data(0, Qt::UserRole).toString() == QLatin1String("item")) {
-            const QString id = item->data(0, Qt::UserRole + 1).toString();
+        const QString kind = item ? item->data(0, Qt::UserRole).toString() : QString();
+        const QString id = item ? item->data(0, Qt::UserRole + 1).toString() : QString();
+        if (kind == QLatin1String("item")) {
             if (!m_session->isItemSelected(id)) {
                 m_session->selectItem(id);
             }
+        } else if (kind == QLatin1String("grid")) {
+            m_session->selectGrid(id);
+        } else if (kind == QLatin1String("style")) {
+            m_session->setSelection({EditorTarget::Style, id, {}});
+        } else if (kind == QLatin1String("dwell")) {
+            m_session->setSelection({EditorTarget::Dwell, id, {}});
         }
         QMenu menu(this);
         auto* dup = menu.addAction(QStringLiteral("Duplicate"));
         auto* del = menu.addAction(QStringLiteral("Delete"));
         menu.addSeparator();
-        auto* toFree = menu.addAction(QStringLiteral("Convert to free item"));
+        auto* addSub = menu.addAction(QStringLiteral("Add subgrid"));
+        auto* toFree = menu.addAction(QStringLiteral("Convert to zone"));
         auto* toCell = menu.addAction(QStringLiteral("Convert to cell"));
         menu.addSeparator();
         auto* raise = menu.addAction(QStringLiteral("Bring forward"));
         auto* lower = menu.addAction(QStringLiteral("Send backward"));
-        const bool has = m_session->selection().target == EditorTarget::Item;
-        for (QAction* a : {dup, del, toFree, toCell, raise, lower}) {
-            a->setEnabled(has);
-        }
+        const EditorTarget target = m_session->selection().target;
+        const bool hasItem = target == EditorTarget::Item;
+        const bool hasGrid = target == EditorTarget::Grid;
+        const bool hasNamed = target == EditorTarget::Style || target == EditorTarget::Dwell;
+        dup->setEnabled(hasItem);
+        del->setEnabled(hasItem || hasGrid || hasNamed);
+        addSub->setEnabled(hasGrid || hasItem);
+        toFree->setEnabled(hasItem);
+        toCell->setEnabled(hasItem);
+        raise->setEnabled(hasItem);
+        lower->setEnabled(hasItem);
         QAction* chosen = menu.exec(m_hierarchy->mapToGlobal(pos));
         if (chosen == dup) {
             m_session->duplicateSelected();
         } else if (chosen == del) {
             m_session->deleteSelected();
+        } else if (chosen == addSub) {
+            m_session->addSubGrid();
         } else if (chosen == toFree) {
             m_session->convertSelectedToFree();
         } else if (chosen == toCell) {
@@ -151,25 +176,46 @@ void LayoutEditorToolbox::rebuildHierarchy()
     if (!m_hierarchy || !m_session) {
         return;
     }
-    const LayoutDocument& d = m_session->document();
+    const PageDocument& d = m_session->document();
     const EditorSelection sel = m_session->selection();
     QString key = d.id + QLatin1Char('\n') + d.name + QLatin1Char('\n');
-    for (const LayoutItem& it : d.items) {
+    PageEdit::forEachGrid(d, [&](const PageGrid& g) {
+        key += QLatin1Char('G') + g.id + QLatin1Char('\n');
+        for (const PageCell& it : g.cells) {
+            key += it.id + QLatin1Char('\t') + it.label + QLatin1Char('\n');
+        }
+    });
+    for (const PageZone& it : d.zones) {
         key += it.id + QLatin1Char('\t') + it.label + QLatin1Char('\n');
-        key += it.isUnbounded() ? QLatin1Char('U') : QLatin1Char('C');
-        key += QLatin1Char('\n');
     }
+    QStringList styleKeys = d.styles.keys();
+    styleKeys.sort();
+    key += styleKeys.join(QLatin1Char(','));
+    QStringList dwellKeys = d.dwells.keys();
+    dwellKeys.sort();
+    key += dwellKeys.join(QLatin1Char(','));
     if (key == m_treeKey && m_hierarchy->topLevelItemCount() > 0) {
         const QSignalBlocker block(m_hierarchy);
         QTreeWidgetItemIterator iter(m_hierarchy);
         while (*iter) {
             QTreeWidgetItem* item = *iter;
-            if (item->data(0, Qt::UserRole).toString() == QLatin1String("item")) {
-                const QString id = item->data(0, Qt::UserRole + 1).toString();
-                item->setSelected(sel.target == EditorTarget::Item && sel.itemIds.contains(id));
-                if (sel.target == EditorTarget::Item && sel.itemId == id) {
-                    m_hierarchy->setCurrentItem(item);
-                }
+            const QString kind = item->data(0, Qt::UserRole).toString();
+            const QString id = item->data(0, Qt::UserRole + 1).toString();
+            bool selected = false;
+            if (kind == QLatin1String("item")) {
+                selected = sel.target == EditorTarget::Item && sel.itemIds.contains(id);
+            } else if (kind == QLatin1String("grid")) {
+                selected = sel.target == EditorTarget::Grid && sel.itemId == id;
+            } else if (kind == QLatin1String("style")) {
+                selected = sel.target == EditorTarget::Style && sel.itemId == id;
+            } else if (kind == QLatin1String("dwell")) {
+                selected = sel.target == EditorTarget::Dwell && sel.itemId == id;
+            } else if (kind == QLatin1String("document")) {
+                selected = sel.target == EditorTarget::Document && id.isEmpty();
+            }
+            item->setSelected(selected);
+            if (selected) {
+                m_hierarchy->setCurrentItem(item);
             }
             ++iter;
         }
@@ -191,44 +237,68 @@ void LayoutEditorToolbox::rebuildHierarchy()
         return item;
     };
 
-    const bool boardSel = sel.target != EditorTarget::Item;
+    const bool boardSel = sel.target == EditorTarget::Document;
     const QString boardName = d.name.isEmpty() ? d.id : d.name;
-    auto* root = add(nullptr, boardName.isEmpty() ? QStringLiteral("Board") : boardName,
+    auto* root = add(nullptr, boardName.isEmpty() ? QStringLiteral("Page") : boardName,
                      QStringLiteral("document"), {}, boardSel);
     root->setExpanded(true);
 
-    QVector<const LayoutItem*> cells;
-    QVector<const LayoutItem*> edges;
-    for (const LayoutItem& it : d.items) {
-        if (it.isUnbounded()) {
-            edges.push_back(&it);
-        } else {
-            cells.push_back(&it);
+    if (!d.styles.isEmpty()) {
+        auto* styles = add(root, QStringLiteral("Styles"), QStringLiteral("document"), {}, false);
+        styles->setExpanded(true);
+        for (const QString& id : styleKeys) {
+            add(styles, id, QStringLiteral("style"), id,
+                sel.target == EditorTarget::Style && sel.itemId == id);
         }
     }
-
-    auto addItems = [&](QTreeWidgetItem* parent, const QVector<const LayoutItem*>& list) {
-        for (const LayoutItem* it : list) {
-            QString label = it->label.isEmpty() ? it->id : it->label;
-            if (!it->label.isEmpty() && it->label != it->id) {
-                label = QStringLiteral("%1  (%2)").arg(it->label, it->id);
+    if (!d.dwells.isEmpty()) {
+        auto* dwells = add(root, QStringLiteral("Dwells"), QStringLiteral("document"), {}, false);
+        dwells->setExpanded(true);
+        for (const QString& id : dwellKeys) {
+            add(dwells, id, QStringLiteral("dwell"), id,
+                sel.target == EditorTarget::Dwell && sel.itemId == id);
+        }
+    }
+    if (!d.zones.isEmpty()) {
+        auto* zones = add(root, QStringLiteral("Zones"), QStringLiteral("document"), {}, false);
+        zones->setExpanded(true);
+        for (const PageZone& it : d.zones) {
+            QString label = it.label.isEmpty() ? it.id : it.label;
+            if (!it.label.isEmpty() && it.label != it.id) {
+                label = QStringLiteral("%1  (%2)").arg(it.label, it.id);
             }
-            add(parent, label, QStringLiteral("item"), it->id,
-                sel.target == EditorTarget::Item && sel.itemIds.contains(it->id));
+            add(zones, label, QStringLiteral("item"), it.id,
+                sel.target == EditorTarget::Item && sel.itemIds.contains(it.id));
         }
-    };
-
-    if (edges.isEmpty()) {
-        addItems(root, cells);
-        return;
     }
 
-    auto* cellNode = add(root, QStringLiteral("Cells"), QStringLiteral("document"), {}, false);
-    cellNode->setExpanded(true);
-    addItems(cellNode, cells);
-    auto* freeNode = add(root, QStringLiteral("Free"), QStringLiteral("document"), {}, false);
-    freeNode->setExpanded(true);
-    addItems(freeNode, edges);
+    auto addLeaf = [&](QTreeWidgetItem* parent, const PageLeaf& it) {
+        QString label = it.label.isEmpty() ? it.id : it.label;
+        if (!it.label.isEmpty() && it.label != it.id) {
+            label = QStringLiteral("%1  (%2)").arg(it.label, it.id);
+        }
+        add(parent, label, QStringLiteral("item"), it.id,
+            sel.target == EditorTarget::Item && sel.itemIds.contains(it.id));
+    };
+    std::function<void(QTreeWidgetItem*, const PageGrid&)> addGrid =
+        [&](QTreeWidgetItem* parent, const PageGrid& g) {
+            const QString kindLabel =
+                g.nested ? QStringLiteral("SubGrid") : QStringLiteral("Grid");
+            const QString label = g.id.isEmpty() ? kindLabel
+                                                 : QStringLiteral("%1  (%2)").arg(kindLabel, g.id);
+            auto* node = add(parent, label, QStringLiteral("grid"), g.id,
+                             sel.target == EditorTarget::Grid && sel.itemId == g.id);
+            node->setExpanded(true);
+            for (const PageCell& it : g.cells) {
+                addLeaf(node, it);
+            }
+            for (const PageGrid& sub : g.subGrids) {
+                addGrid(node, sub);
+            }
+        };
+    for (const PageGrid& g : d.grids) {
+        addGrid(root, g);
+    }
 }
 
 } // namespace gazer

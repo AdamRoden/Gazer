@@ -5,6 +5,7 @@
 #include "editor/LayoutEditorProperties.h"
 #include "editor/LayoutEditorSession.h"
 #include "editor/LayoutEditorToolbox.h"
+#include "layout/PageEdit.h"
 #include "ui/AppIcon.h"
 
 #include <QAction>
@@ -99,8 +100,15 @@ QString fluentStyleSheet(const ThemeColors& t)
             selection-color: %2;
         }
         QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {
-            padding: 4px 8px;
+            padding: 4px 6px;
             min-height: 24px;
+            min-width: 0px;
+        }
+        QWidget#editorProperties QLineEdit,
+        QWidget#editorProperties QSpinBox,
+        QWidget#editorProperties QDoubleSpinBox,
+        QWidget#editorProperties QComboBox {
+            min-width: 0px;
         }
         QComboBox QAbstractItemView {
             background: %8;
@@ -159,7 +167,7 @@ QString fluentStyleSheet(const ThemeColors& t)
 LayoutEditorWindow::LayoutEditorWindow(QWidget* parent)
     : QMainWindow(parent)
 {
-    setWindowTitle(QStringLiteral("Gazer Layout Editor"));
+    setWindowTitle(QStringLiteral("Gazer Page Editor"));
     const QIcon icon = loadAppIcon();
     if (!icon.isNull()) {
         setWindowIcon(icon);
@@ -265,12 +273,12 @@ bool LayoutEditorWindow::openLayoutId(const QString& layoutId, QString* error)
 {
     if (layoutId.isEmpty()) {
         if (error) {
-            *error = QStringLiteral("Layout id is empty");
+            *error = QStringLiteral("Page id is empty");
         }
         return false;
     }
-    const QString userPath = QDir(m_userDir).filePath(layoutId + QStringLiteral(".json"));
-    const QString shipPath = QDir(m_layoutsDir).filePath(layoutId + QStringLiteral(".json"));
+    const QString userPath = QDir(m_userDir).filePath(layoutId + QStringLiteral(".xml"));
+    const QString shipPath = QDir(m_layoutsDir).filePath(layoutId + QStringLiteral(".xml"));
     const QString path = QFileInfo::exists(userPath) ? userPath : shipPath;
     return openFile(path, error);
 }
@@ -289,7 +297,7 @@ void LayoutEditorWindow::closeEvent(QCloseEvent* event)
         return;
     }
     const auto r = QMessageBox::question(
-        this, QStringLiteral("Unsaved layout"),
+        this, QStringLiteral("Unsaved page"),
         QStringLiteral("Save changes to %1?").arg(m_session->document().id),
         QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Save);
     if (r == QMessageBox::Cancel) {
@@ -346,7 +354,7 @@ void LayoutEditorWindow::buildUi()
     m_grid = makeAction(QStringLiteral("Show &grid"), QKeySequence(), []() {});
     m_grid->setCheckable(true);
     m_grid->setChecked(true);
-    m_fit = makeAction(QStringLiteral("&Fit board"), QKeySequence(QStringLiteral("Ctrl+0")), []() {});
+    m_fit = makeAction(QStringLiteral("&Fit grid"), QKeySequence(QStringLiteral("Ctrl+0")), []() {});
     m_fit->setCheckable(true);
     m_fit->setChecked(true);
 
@@ -365,27 +373,21 @@ void LayoutEditorWindow::buildUi()
     auto* actAddSlider = makeAction(QStringLiteral("Add &slider"), QKeySequence(), [this]() {
         m_session->setPlaceKind(EditorItemKind::Slider);
     });
-    auto* actAddEdge = makeAction(QStringLiteral("Add &free item"), QKeySequence(), [this]() {
-        m_session->setPlaceKind(EditorItemKind::Unbounded);
+    auto* actAddEdge = makeAction(QStringLiteral("Add &zone"), QKeySequence(), [this]() {
+        m_session->setPlaceKind(EditorItemKind::Zone);
     });
     auto* actDup = makeAction(QStringLiteral("D&uplicate selected"),
                               QKeySequence(QStringLiteral("Ctrl+D")),
                               [this]() { m_session->duplicateSelected(); });
 
-    auto* actDoc = makeAction(QStringLiteral("&Board properties"), QKeySequence(), [this]() {
-        m_props->showBoardTab();
+    auto* actDoc = makeAction(QStringLiteral("&Page properties"), QKeySequence(), [this]() {
+        m_props->showPageTab();
     });
     auto* actGrid = makeAction(QStringLiteral("Edit &grid"), QKeySequence(), [this]() {
         m_props->showGridTab();
     });
-    auto* actDwell = makeAction(QStringLiteral("Edit &gaze"), QKeySequence(), [this]() {
+    auto* actDwell = makeAction(QStringLiteral("Edit &dwell"), QKeySequence(), [this]() {
         m_props->showDwellTab();
-    });
-    auto* actStyle = makeAction(QStringLiteral("Window &look"), QKeySequence(), [this]() {
-        m_props->showWindowTab();
-    });
-    auto* actWin = makeAction(QStringLiteral("&Window"), QKeySequence(), [this]() {
-        m_props->showWindowTab();
     });
     auto* actTest =
         makeAction(QStringLiteral("&Test on desktop"), QKeySequence(QStringLiteral("F5")), [this]() {
@@ -421,6 +423,14 @@ void LayoutEditorWindow::buildUi()
     viewMenu->addAction(m_fit);
     viewMenu->addAction(m_testMode);
 
+    auto* actAddGrid = makeAction(QStringLiteral("Add g&rid"), QKeySequence(),
+                                  [this]() { m_session->addTopGrid(); });
+    auto* actAddSub = makeAction(QStringLiteral("Add s&ubgrid"), QKeySequence(),
+                                 [this]() { m_session->addSubGrid(); });
+    auto* actAddStyle = makeAction(QStringLiteral("Add named st&yle"), QKeySequence(),
+                                   [this]() { m_session->addNamedStyle(); });
+    auto* actAddDwell = makeAction(QStringLiteral("Add named d&well"), QKeySequence(),
+                                   [this]() { m_session->addNamedDwell(); });
     auto* layoutMenu = menuBar()->addMenu(QStringLiteral("&Layout"));
     layoutMenu->addAction(actAddBtn);
     layoutMenu->addAction(actAddLabel);
@@ -428,6 +438,10 @@ void LayoutEditorWindow::buildUi()
     layoutMenu->addAction(actAddTab);
     layoutMenu->addAction(actAddSlider);
     layoutMenu->addAction(actAddEdge);
+    layoutMenu->addAction(actAddGrid);
+    layoutMenu->addAction(actAddSub);
+    layoutMenu->addAction(actAddStyle);
+    layoutMenu->addAction(actAddDwell);
     layoutMenu->addSeparator();
     auto* addRow = makeAction(QStringLiteral("Add r&ow"), QKeySequence(),
                               [this]() { m_session->addGridRow(); });
@@ -445,7 +459,7 @@ void LayoutEditorWindow::buildUi()
     auto* lower = makeAction(QStringLiteral("Send back&ward"),
                              QKeySequence(QStringLiteral("Ctrl+[")),
                              [this]() { m_session->lowerSelected(); });
-    auto* toFree = makeAction(QStringLiteral("Convert to f&ree item"), QKeySequence(),
+    auto* toFree = makeAction(QStringLiteral("Convert to &zone"), QKeySequence(),
                               [this]() { m_session->convertSelectedToFree(); });
     auto* toCell = makeAction(QStringLiteral("Convert to ce&ll"), QKeySequence(),
                               [this]() { m_session->convertSelectedToCell(); });
@@ -462,10 +476,6 @@ void LayoutEditorWindow::buildUi()
     layoutMenu->addAction(actDoc);
     layoutMenu->addAction(actGrid);
     layoutMenu->addAction(actDwell);
-    layoutMenu->addAction(actStyle);
-
-    auto* winMenu = menuBar()->addMenu(QStringLiteral("&Window"));
-    winMenu->addAction(actWin);
 
     auto* tb = addToolBar(QStringLiteral("Main"));
     tb->setMovable(false);
@@ -499,7 +509,7 @@ void LayoutEditorWindow::buildUi()
     m_props->setObjectName(QStringLiteral("editorProperties"));
     m_toolbox->bindSession(*m_session);
     m_toolbox->setMinimumWidth(240);
-    m_props->setMinimumWidth(300);
+    m_props->setMinimumWidth(360);
     split->setStretchFactor(0, 0);
     split->setStretchFactor(1, 1);
     split->setStretchFactor(2, 0);
@@ -514,6 +524,11 @@ void LayoutEditorWindow::buildUi()
     m_toolbox->addAction(elSec, actAddSlider);
     m_toolbox->addAction(elSec, actAddEdge);
     m_toolbox->addAction(elSec, actDup);
+    auto* stSec = m_toolbox->addSection(QStringLiteral("Structure"));
+    m_toolbox->addAction(stSec, actAddGrid);
+    m_toolbox->addAction(stSec, actAddSub);
+    m_toolbox->addAction(stSec, actAddStyle);
+    m_toolbox->addAction(stSec, actAddDwell);
 
     auto* actEsc = makeAction(QStringLiteral("Cancel place"), QKeySequence(Qt::Key_Escape),
                               [this]() { m_session->setPlaceKind(std::nullopt); });
@@ -554,15 +569,21 @@ void LayoutEditorWindow::updateTitle()
                                                      : QStringLiteral(" user");
     }
     setWindowTitle(
-        QStringLiteral("Gazer Layout Editor — %1 [%2]%3%4").arg(name, pathPart, dirty, origin));
+        QStringLiteral("Gazer Page Editor — %1 [%2]%3%4").arg(name, pathPart, dirty, origin));
 
-    const LayoutGrid& g = m_session->document().grid;
+    const PageGrid* g = m_session->selectedGrid();
     const EditorSelection sel = m_session->selection();
     QString selText;
     if (sel.target == EditorTarget::Item && !sel.itemIds.isEmpty()) {
         selText = sel.itemIds.size() == 1
                       ? QStringLiteral("    %1").arg(sel.itemId)
-                      : QStringLiteral("    %1 items").arg(sel.itemIds.size());
+                      : QStringLiteral("    %1 cells/zones").arg(sel.itemIds.size());
+    } else if (sel.target == EditorTarget::Grid && !sel.itemId.isEmpty()) {
+        selText = QStringLiteral("    grid %1").arg(sel.itemId);
+    } else if (sel.target == EditorTarget::Style) {
+        selText = QStringLiteral("    style %1").arg(sel.itemId);
+    } else if (sel.target == EditorTarget::Dwell) {
+        selText = QStringLiteral("    dwell %1").arg(sel.itemId);
     }
     const QStringList issues = m_session->validate(m_catalogIds);
     const QString warn =
@@ -570,22 +591,27 @@ void LayoutEditorWindow::updateTitle()
                          : QStringLiteral("    %1 issue%2")
                                .arg(issues.size())
                                .arg(issues.size() == 1 ? QString() : QStringLiteral("s"));
-    statusBar()->showMessage(QStringLiteral("Grid %1×%2    Items %3%4%5")
-                                 .arg(g.columns)
-                                 .arg(g.rows)
-                                 .arg(m_session->document().items.size())
+    const int cols = g ? g->columns : 0;
+    const int rows = g ? g->rows : 0;
+    statusBar()->showMessage(QStringLiteral("Grid %1×%2    Ids %3%4%5")
+                                 .arg(cols)
+                                 .arg(rows)
+                                 .arg(PageEdit::allIds(m_session->document()).size())
                                  .arg(selText, warn));
 }
 
 void LayoutEditorWindow::updateActions()
 {
-    const bool item = m_session->selection().target == EditorTarget::Item;
+    const EditorTarget target = m_session->selection().target;
+    const bool item = target == EditorTarget::Item;
+    const bool deletable = item || target == EditorTarget::Grid || target == EditorTarget::Style
+                           || target == EditorTarget::Dwell;
     m_undo->setEnabled(m_session->undoStack().canUndo());
     m_redo->setEnabled(m_session->undoStack().canRedo());
     m_cut->setEnabled(item);
     m_copy->setEnabled(item);
     m_paste->setEnabled(m_session->hasClipboard());
-    m_delete->setEnabled(item);
+    m_delete->setEnabled(deletable);
     m_save->setEnabled(m_session->isDirty() || m_session->filePath().isEmpty());
 }
 
@@ -595,7 +621,7 @@ bool LayoutEditorWindow::maybeSave()
         return true;
     }
     const auto r = QMessageBox::question(
-        this, QStringLiteral("Unsaved layout"),
+        this, QStringLiteral("Unsaved page"),
         QStringLiteral("Save changes to %1?").arg(m_session->document().id),
         QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Save);
     if (r == QMessageBox::Cancel) {
@@ -608,10 +634,10 @@ bool LayoutEditorWindow::maybeSave()
     return !m_session->isDirty();
 }
 
-bool LayoutEditorWindow::promptNewBoard()
+bool LayoutEditorWindow::promptNewPage()
 {
     QDialog dlg(this);
-    dlg.setWindowTitle(QStringLiteral("New layout"));
+    dlg.setWindowTitle(QStringLiteral("New page"));
     auto* form = new QFormLayout(&dlg);
     auto* idEdit = new QLineEdit(QStringLiteral("untitled"));
     auto* nameEdit = new QLineEdit(QStringLiteral("Untitled"));
@@ -620,7 +646,7 @@ bool LayoutEditorWindow::promptNewBoard()
     tmpl->addItem(QStringLiteral("Full keyboard (with shift/sym)"), int(EditorTemplate::Keyboard));
     tmpl->addItem(QStringLiteral("Keyboard row"), int(EditorTemplate::KeyboardRow));
     tmpl->addItem(QStringLiteral("Settings row"), int(EditorTemplate::SettingsRow));
-    tmpl->addItem(QStringLiteral("Free chip"), int(EditorTemplate::EdgeChip));
+    tmpl->addItem(QStringLiteral("Zone chip"), int(EditorTemplate::EdgeChip));
     form->addRow(QStringLiteral("Id"), idEdit);
     form->addRow(QStringLiteral("Name"), nameEdit);
     form->addRow(QStringLiteral("Template"), tmpl);
@@ -642,7 +668,7 @@ bool LayoutEditorWindow::promptOpenCatalog()
         return false;
     }
     QDialog dlg(this);
-    dlg.setWindowTitle(QStringLiteral("Open layout"));
+    dlg.setWindowTitle(QStringLiteral("Open page"));
     auto* lay = new QVBoxLayout(&dlg);
     auto* list = new QListWidget;
     QSet<QString> seen;
@@ -658,14 +684,14 @@ bool LayoutEditorWindow::promptOpenCatalog()
     for (int i = 0; i < m_catalogIds.size(); ++i) {
         const QString id = m_catalogIds[i];
         const QString label = i < m_catalogLabels.size() ? m_catalogLabels[i] : id;
-        const QString user = QDir(m_userDir).filePath(id + QStringLiteral(".json"));
-        const QString shipped = QDir(m_layoutsDir).filePath(id + QStringLiteral(".json"));
+        const QString user = QDir(m_userDir).filePath(id + QStringLiteral(".xml"));
+        const QString shipped = QDir(m_layoutsDir).filePath(id + QStringLiteral(".xml"));
         addPath(label + (QFileInfo::exists(user) ? QStringLiteral("  (user)") : QString()),
                 QFileInfo::exists(user) ? user : shipped);
     }
     if (!m_userDir.isEmpty()) {
         const QFileInfoList extra =
-            QDir(m_userDir).entryInfoList({QStringLiteral("*.json")}, QDir::Files, QDir::Name);
+            QDir(m_userDir).entryInfoList({QStringLiteral("*.xml")}, QDir::Files, QDir::Name);
         for (const QFileInfo& fi : extra) {
             addPath(fi.completeBaseName() + QStringLiteral("  (user)"), fi.absoluteFilePath());
         }
@@ -694,7 +720,7 @@ void LayoutEditorWindow::newFile()
     if (!maybeSave()) {
         return;
     }
-    (void)promptNewBoard();
+    (void)promptNewPage();
 }
 
 void LayoutEditorWindow::open()
@@ -706,7 +732,7 @@ void LayoutEditorWindow::open()
         return;
     }
     const QString path =
-        QFileDialog::getOpenFileName(this, QStringLiteral("Open layout"), defaultDir(), jsonFilter());
+        QFileDialog::getOpenFileName(this, QStringLiteral("Open page"), defaultDir(), xmlFilter());
     if (path.isEmpty()) {
         return;
     }
@@ -748,10 +774,10 @@ void LayoutEditorWindow::saveAs()
         return;
     }
     const QString suggest = m_session->filePath().isEmpty() || isShippedPath(m_session->filePath())
-                                ? QDir(defaultDir()).filePath(m_session->document().id + QStringLiteral(".json"))
+                                ? QDir(defaultDir()).filePath(m_session->document().id + QStringLiteral(".xml"))
                                 : m_session->filePath();
     const QString path =
-        QFileDialog::getSaveFileName(this, QStringLiteral("Save layout"), suggest, jsonFilter());
+        QFileDialog::getSaveFileName(this, QStringLiteral("Save page"), suggest, xmlFilter());
     if (path.isEmpty()) {
         return;
     }
@@ -775,7 +801,7 @@ void LayoutEditorWindow::importFile()
         return;
     }
     const QString path =
-        QFileDialog::getOpenFileName(this, QStringLiteral("Import layout"), defaultDir(), jsonFilter());
+        QFileDialog::getOpenFileName(this, QStringLiteral("Import page"), defaultDir(), xmlFilter());
     if (path.isEmpty()) {
         return;
     }
@@ -788,9 +814,9 @@ void LayoutEditorWindow::importFile()
 void LayoutEditorWindow::exportFile()
 {
     const QString suggest =
-        QDir(defaultDir()).filePath(m_session->document().id + QStringLiteral(".json"));
+        QDir(defaultDir()).filePath(m_session->document().id + QStringLiteral(".xml"));
     const QString path =
-        QFileDialog::getSaveFileName(this, QStringLiteral("Export layout"), suggest, jsonFilter());
+        QFileDialog::getSaveFileName(this, QStringLiteral("Export page"), suggest, xmlFilter());
     if (path.isEmpty()) {
         return;
     }
@@ -811,14 +837,14 @@ void LayoutEditorWindow::testLive()
         return;
     }
     QString err;
-    QVector<LayoutDocument> family;
+    QVector<PageDocument> family;
     family.reserve(m_session->layers().size());
     for (const EditorLayer& layer : m_session->layers()) {
         family.push_back(layer.doc);
     }
     if (!m_test(family, m_session->layerIndex(), &err)) {
         QMessageBox::warning(this, QStringLiteral("Test failed"),
-                             err.isEmpty() ? QStringLiteral("Could not open layout") : err);
+                             err.isEmpty() ? QStringLiteral("Could not open page") : err);
         return;
     }
     statusBar()->showMessage(QStringLiteral("Live board opened for %1").arg(m_session->document().id),
@@ -854,9 +880,9 @@ QString LayoutEditorWindow::defaultDir() const
     return QStringLiteral(".");
 }
 
-QString LayoutEditorWindow::jsonFilter() const
+QString LayoutEditorWindow::xmlFilter() const
 {
-    return QStringLiteral("Layout JSON (*.json);;All files (*.*)");
+    return QStringLiteral("Page XML (*.xml);;All files (*.*)");
 }
 
 bool LayoutEditorWindow::isShippedPath(const QString& path) const
@@ -890,10 +916,10 @@ bool LayoutEditorWindow::confirmIssues(const QString& action)
         return true;
     }
     const QString body =
-        QStringLiteral("This layout has problems:\n\n• %1\n\n%2 anyway?")
+        QStringLiteral("This page has problems:\n\n• %1\n\n%2 anyway?")
             .arg(issues.mid(0, 8).join(QStringLiteral("\n• ")),
                  action.left(1).toUpper() + action.mid(1));
-    return QMessageBox::warning(this, QStringLiteral("Layout issues"), body,
+    return QMessageBox::warning(this, QStringLiteral("Page issues"), body,
                                 QMessageBox::Yes | QMessageBox::No, QMessageBox::No)
            == QMessageBox::Yes;
 }

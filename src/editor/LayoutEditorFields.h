@@ -1,6 +1,6 @@
 #pragma once
 
-#include "layout/LayoutTypes.h"
+#include "layout/PageTypes.h"
 
 #include <QColor>
 #include <QString>
@@ -38,24 +38,32 @@ struct PropertyBinder {
                      const std::function<void(const QString&)>& apply);
     void color(QFormLayout* form, const QString& label, const std::optional<QColor>& value,
                const std::function<void(std::optional<QColor>)>& apply);
-    void dim(QFormLayout* form, const QString& label, const DimSpec& value,
-             const std::function<void(DimSpec)>& apply);
+    void dim(QFormLayout* form, const QString& label, const PageDim& value,
+             const std::function<void(PageDim)>& apply);
     void optionalReal(QFormLayout* form, const QString& label, const std::optional<double>& value,
                       double min, double max, int decimals,
                       const std::function<void(std::optional<double>)>& apply);
+    void optionalBox(QFormLayout* form, const QString& label, const std::optional<PageBox>& value,
+                     const QString& placeholder,
+                     const std::function<void(std::optional<PageBox>)>& apply);
+
+private:
+    static void fitWidth(QWidget* w);
 };
 
 using ChromeMutate = std::function<void(const QString& undoLabel,
-                                        const std::function<void(LayoutChromeStyle&)>& mut)>;
+                                        const std::function<void(PageChrome&)>& mut)>;
 using DwellMutate = std::function<void(const QString& undoLabel,
-                                       const std::function<void(LayoutDwellConfig&)>& mut)>;
+                                       const std::function<void(PageDwell&)>& mut)>;
 using ActionMutate = std::function<void(const QString& undoLabel,
-                                        const std::function<void(LayoutAction&)>& mut)>;
+                                        const std::function<void(PageAction&)>& mut)>;
 
-void addChromeFields(PropertyBinder& b, QFormLayout* form, const LayoutChromeStyle& st,
-                     const ChromeMutate& apply);
-void addDwellFields(PropertyBinder& b, QFormLayout* form, const LayoutDwellConfig& dwell,
-                    const DwellMutate& apply, bool boardLevel);
+void addChromeFields(PropertyBinder& b, QFormLayout* form, const PageChrome& st,
+                     const ChromeMutate& apply, bool includeHeading = true);
+void addDwellFields(PropertyBinder& b, QFormLayout* form, const PageDwell& dwell,
+                    const DwellMutate& apply, bool includeHeading = true,
+                    const QStringList& inheritIds = {}, const QString& inheritCurrent = {},
+                    const std::function<void(const QString&)>& inheritApply = {});
 struct ActionCatalog {
     QStringList commands;
     QStringList commandLabels;
@@ -63,15 +71,34 @@ struct ActionCatalog {
     QStringList layoutLabels;
 };
 
-void addActionFields(PropertyBinder& b, QFormLayout* form, const LayoutAction& action,
+void addActionFields(PropertyBinder& b, QFormLayout* form, const PageAction& action,
                      const QString& itemLabel, const ActionCatalog& catalog,
                      const ActionMutate& apply);
-void addActionSeriesFields(PropertyBinder& b, QFormLayout* form, const QVector<LayoutAction>& acts,
+void addActionSeriesFields(PropertyBinder& b, QFormLayout* form, const QVector<PageAction>& acts,
                            const QString& itemLabel, const ActionCatalog& catalog, int selectedStep,
                            const std::function<void(int)>& selectStep,
-                           const std::function<void(QVector<LayoutAction>)>& applyAll);
+                           const std::function<void(QVector<PageAction>)>& applyAll);
+void addOptionalIdCombo(PropertyBinder& b, QFormLayout* form, const QString& label,
+                        const QStringList& ids, const QString& current,
+                        const std::function<void(const QString&)>& apply);
+void addNamedChromeEditor(PropertyBinder& b, QFormLayout* form,
+                          const QHash<QString, PageChrome>& styles, const QString& selectedId,
+                          const std::function<void(const QString&)>& selectId,
+                          const std::function<void()>& addNew,
+                          const std::function<void(const QString& from, const QString& to)>& rename,
+                          const std::function<void(const QString&)>& remove,
+                          const ChromeMutate& apply);
+void addNamedDwellEditor(PropertyBinder& b, QFormLayout* form,
+                         const QHash<QString, PageDwell>& dwells, const QString& selectedId,
+                         const std::function<void(const QString&)>& selectId,
+                         const std::function<void()>& addNew,
+                         const std::function<void(const QString& from, const QString& to)>& rename,
+                         const std::function<void(const QString&)>& remove,
+                         const DwellMutate& apply);
 [[nodiscard]] QString friendlyCommandLabel(const QString& commandId);
 [[nodiscard]] QStringList visibleWhenChoices();
 [[nodiscard]] QStringList iconChoices();
+[[nodiscard]] QStringList pageAnchorNames();
+[[nodiscard]] QStringList sortedKeys(const QStringList& keys);
 
 } // namespace gazer

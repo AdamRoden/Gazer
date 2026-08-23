@@ -8,21 +8,24 @@ namespace gazer {
 
 /// DwellDetector geometry: gaze maps in dwellZone; chrome draws in progressZone.
 struct PageDetectorGeom {
-    /// Authored display rect (cell or Zone size at anchor). May be off-screen.
+    /// Authored progress box (Zone size at the zone anchor). May sit off-screen.
     QRectF visual;
+    /// Scan-grace rect. Same anchor type as the zone; offset from the progress box's anchor.
     QRectF dwellZone;
-    /// On-screen drawable area. Coerced to an edge strip when visual misses the screen.
+    /// Unrounded progress box used for accumulation hit-test (same as visual for zones).
     QRectF progressZone;
-    /// True when progressZone is a fallback strip, not the on-screen part of visual.
     bool progressCoerced = false;
 
     /// Persistent content to paint (keys, on-screen Zone chips). Empty if fully off-screen.
     [[nodiscard]] QRectF contentOnScreen() const
     {
-        return progressCoerced ? QRectF() : progressZone;
+        if (progressCoerced) {
+            return {};
+        }
+        return visual.isEmpty() ? progressZone : visual;
     }
 
-    /// Dock edge chips: dwell sits outside the visual, so chrome stays hidden until progress/flash.
+    /// Dock edge chips: dwell sits outside the visual, so chrome stays hidden until scan grace.
     [[nodiscard]] bool hidesUntilProgress() const
     {
         return !visual.isEmpty() && !dwellZone.isEmpty()

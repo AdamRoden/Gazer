@@ -9,7 +9,6 @@
 #include "assist/LookToScroll.h"
 #include "assist/MouseAssistState.h"
 #include "assist/MouseDwellMove.h"
-#include "layout/LayoutInstanceManager.h"
 #include "ui/MagnifierOverlay.h"
 
 #include <QPoint>
@@ -31,7 +30,6 @@ void registerAssistCommands(AssistCommandContext& ctx)
     auto* follow = ctx.gazeMouseFollow;
     auto* reticle = ctx.gazeReticle;
     auto* mag = ctx.magnifier;
-    auto* instances = ctx.instances;
     auto* settings = ctx.settings;
     auto* actionLoops = ctx.actionLoops;
     auto* commands = ctx.commands;

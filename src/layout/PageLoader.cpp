@@ -61,23 +61,16 @@ void applyChromeAttrs(const QXmlStreamAttributes& a, PageChrome& st)
         st.borderColor = parseColorAttr(a.value(QStringLiteral("border")));
     }
     if (a.hasAttribute(QStringLiteral("thickness"))) {
-        const QString s = a.value(QStringLiteral("thickness")).toString().trimmed();
-        if (!s.isEmpty()) {
-            bool ok = false;
-            const double n = s.toDouble(&ok);
-            if (ok) {
-                st.thickness = n;
-            }
+        const PageBox box =
+            PageBox::fromToken(a.value(QStringLiteral("thickness")).toString());
+        if (box.isSet()) {
+            st.thickness = box;
         }
     }
     if (a.hasAttribute(QStringLiteral("radius"))) {
-        const QString s = a.value(QStringLiteral("radius")).toString().trimmed();
-        if (!s.isEmpty()) {
-            bool ok = false;
-            const double n = s.toDouble(&ok);
-            if (ok) {
-                st.radius = n;
-            }
+        const PageBox box = PageBox::fromToken(a.value(QStringLiteral("radius")).toString());
+        if (box.isSet()) {
+            st.radius = box;
         }
     }
     if (a.hasAttribute(QStringLiteral("blur"))) {
@@ -88,6 +81,12 @@ void applyChromeAttrs(const QXmlStreamAttributes& a, PageChrome& st)
             if (ok) {
                 st.blur = n;
             }
+        }
+    }
+    if (a.hasAttribute(QStringLiteral("progressStyle"))) {
+        const QString s = a.value(QStringLiteral("progressStyle")).toString().trimmed();
+        if (!s.isEmpty()) {
+            st.progressStyle = ProgressStyle::fromCsv(s);
         }
     }
 }
@@ -248,6 +247,7 @@ bool readCell(QXmlStreamReader& xml, PageCell& cell, QString* error)
     applyCommonContent(a, cell.label, cell.icon, cell.caption, cell.settingKey, cell.activeState,
                        cell.visibleWhen, cell.interactive, cell.dwellExempt, cell.actionLoop,
                        cell.visible);
+    cell.shell = parseBoolAttr(a.value(QStringLiteral("shell")), false);
     if (!a.hasAttribute(QStringLiteral("interactive"))) {
         const QString r = cell.role.toLower();
         if (r == QLatin1String("label") || r == QLatin1String("value")
@@ -458,7 +458,6 @@ bool readPage(QXmlStreamReader& xml, PageDocument& out, QString* error)
     out.master = parseBoolAttr(a.value(QStringLiteral("master")), false);
     out.autoClose = parseBoolAttr(a.value(QStringLiteral("autoClose")), false);
     out.autoCloseIdleMs = parseIntAttr(a.value(QStringLiteral("autoCloseIdleMs")), -1);
-    out.autoCloseFadeMs = parseIntAttr(a.value(QStringLiteral("autoCloseFadeMs")), -1);
     applyChromeAttrs(a, out.style);
     applyDwellAttrs(a, out.dwell, error);
     if (error && !error->isEmpty()) {

@@ -8,7 +8,6 @@ class ActionLoopService;
 class AppSettings;
 class GazeMouseFollow;
 class GazeReticle;
-class LayoutInstanceManager;
 class LookToScroll;
 class MagnifierOverlay;
 class MouseAssistState;
@@ -18,7 +17,6 @@ class SettingsUi;
 /// Inputs for resolving layout item `activeState` accent keys.
 struct ActiveStateContext {
     const AppSettings* settings = nullptr;
-    const LayoutInstanceManager* instances = nullptr;
     const LookToScroll* lookToScroll = nullptr;
     const MouseDwellMove* mouseDwellMove = nullptr;
     const MagnifierOverlay* magnifier = nullptr;

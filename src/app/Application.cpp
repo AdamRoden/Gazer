@@ -3,7 +3,8 @@
 #include "app/AppSettings.h"
 #include "app/SettingsUi.h"
 #include "editor/LayoutEditorWindow.h"
-#include "layout/LayoutInstance.h"
+#include "layout/PageEdit.h"
+#include "layout/PageLoader.h"
 #include "layout/PageSession.h"
 #include "ui/OverlaySurface.h"
 #include "core/TrackerMouse.h"
@@ -13,9 +14,9 @@
 #include <QApplication>
 #include <QCoreApplication>
 #include <QDir>
+#include <QHash>
 #include <QFileInfo>
 #include <QSize>
-#include <QStandardPaths>
 #include <QTimer>
 
 #include <cstdlib>
@@ -49,31 +50,28 @@ bool Application::initialize()
     m_actions = std::make_unique<ActionDispatcher>(*m_svc);
     m_preview = std::make_unique<PreviewWindow>();
     m_tray = std::make_unique<TrayIcon>();
-    m_edgeBubbles = std::make_unique<EdgeBubbleOverlay>();
     m_dwellSuspendOverlay = std::make_unique<DwellSuspendOverlay>();
-    m_svc->instances().setEdgeBubbleOverlay(m_edgeBubbles.get());
     auto restackChrome = [this]() {
         if (m_restacking) {
             return;
         }
         m_restacking = true;
-        m_svc->instances().restackChrome();
+        m_svc->pages().raise();
         if (m_dwellSuspendOverlay && m_dwellSuspendOverlay->isVisible()) {
             m_dwellSuspendOverlay->raiseStack();
         }
         m_restacking = false;
     };
-    connect(m_edgeBubbles.get(), &OverlaySurface::stackChanged, this, restackChrome);
     connect(m_dwellSuspendOverlay.get(), &OverlaySurface::stackChanged, this, restackChrome);
 
     // Domain owns loops + lifecycle; shell only supplies the dispatcher.
-    m_svc->bindActionDispatch([this](const QVector<LayoutAction>& acts, const QString& sourceId) {
-        if (m_actions) {
-            m_actions->dispatchAll(acts, sourceId);
-        }
-    });
+    m_svc->bindActionDispatch(
+        [this](const QVector<PageAction>& acts, const QString& pageId, const QString& targetId) {
+            if (m_actions) {
+                m_actions->dispatchPage(acts, pageId, targetId);
+            }
+        });
 
-    m_gazeRouter.setInstances(&m_svc->instances());
     m_gazeRouter.setPages(&m_svc->pages());
     m_gazeRouter.setAssistSession(&m_svc->assistSession());
     m_gazeRouter.setLookToScroll(&m_svc->lookToScroll());
@@ -90,21 +88,15 @@ bool Application::initialize()
         m_svc->pages().raise();
         updateTrayStatus();
     });
-    connect(m_tray.get(), &TrayIcon::layoutEditorRequested, this, [this]() { openLayoutEditor(); });
+    connect(m_tray.get(), &TrayIcon::layoutEditorRequested, this, [this]() { openPageEditor(); });
     connect(m_tray.get(), &TrayIcon::quitRequested, this, &Application::onQuitRequested);
 
-    m_svc->commands().registerBuiltin(
-        QStringLiteral("openLayoutEditor"),
-        [this](const CommandRegistry::Invocation& inv, QString*) {
-            QString id = inv.layoutId;
-            if (id.isEmpty() && !inv.sourceInstanceId.isEmpty()) {
-                if (const auto* inst = m_svc->instances().instance(inv.sourceInstanceId)) {
-                    id = inst->document().id;
-                }
-            }
-            openLayoutEditor(id);
-            return true;
-        });
+    auto openEditor = [this](const CommandRegistry::Invocation& inv, QString*) {
+        openPageEditor(inv.pageId);
+        return true;
+    };
+    m_svc->commands().registerBuiltin(QStringLiteral("openPageEditor"), openEditor);
+    m_svc->commands().registerBuiltin(QStringLiteral("openLayoutEditor"), openEditor);
 
     m_svc->commands().registerBuiltin(QStringLiteral("quitApp"), [this](QString*) {
         QTimer::singleShot(0, this, &Application::onQuitRequested);
@@ -122,11 +114,9 @@ bool Application::initialize()
     });
     m_svc->commands().registerBuiltin(QStringLiteral("closeOtherViews"), [this](QString*) {
         const int pages = m_svc->pages().closeAttached();
-        const int json = m_svc->instances().closeOtherViews();
         updateTrayStatus();
         if (m_tray) {
-            m_tray->setStatus(
-                QStringLiteral("Closed %1 other board(s)").arg(pages + json));
+            m_tray->setStatus(QStringLiteral("Closed %1 other board(s)").arg(pages));
         }
         return true;
     });
@@ -161,8 +151,6 @@ bool Application::initialize()
         return true;
     });
 
-    connect(&m_svc->instances(), &LayoutInstanceManager::sessionChanged, this,
-            &Application::syncDwellSuspendOverlay);
     connect(&m_svc->pages(), &PageSession::dwellSuspendChanged, this,
             [this](bool) { syncDwellSuspendOverlay(); });
     connect(&m_svc->pages(), &PageSession::sessionChanged, this, &Application::updateTrayStatus);
@@ -179,25 +167,18 @@ bool Application::initialize()
     connect(&m_svc->phrases(), &PhraseService::spoken, this,
             [statusToTray](const QString& t) { statusToTray(QStringLiteral("Said: %1").arg(t)); });
 
-    connect(&m_svc->instances(), &LayoutInstanceManager::itemActivated, this,
-            &Application::onItemActivated);
-    connect(&m_svc->instances(), &LayoutInstanceManager::sessionChanged, this,
-            &Application::updateTrayStatus);
-
-    const QString mainXml =
+    const QString shippedMain =
         QDir(appDir).filePath(QStringLiteral("resources/layouts/main.xml"));
-    m_svc->pages().setDispatch([this](const QVector<PageAction>& acts, const QString& pageId,
-                                      const QString& targetId) {
-        if (m_actions) {
-            m_actions->dispatchPage(acts, pageId, targetId);
-        }
-    });
+    QString mainXml = m_svc->catalog().pathFor(QStringLiteral("main"));
+    if (mainXml.isEmpty()) {
+        mainXml = shippedMain;
+    }
 
     if (!QFileInfo::exists(mainXml)) {
         GAZER_ERROR << "Root page missing:" << mainXml;
         return false;
     }
-    m_svc->pages().setLayoutsDirectory(QFileInfo(mainXml).absolutePath());
+    m_svc->pages().setLayoutsDirectory(QFileInfo(shippedMain).absolutePath());
     if (!m_svc->pages().openRoot(mainXml, &err)) {
         GAZER_ERROR << "Failed to open root page:" << err;
         return false;
@@ -221,7 +202,7 @@ bool Application::initialize()
                << "settings:" << AppSettings::defaultFilePath();
 
     if (QCoreApplication::arguments().contains(QStringLiteral("--editor"))) {
-        openLayoutEditor();
+        openPageEditor();
     }
     return true;
 }
@@ -231,7 +212,7 @@ void Application::updateTrayStatus()
     if (!m_tray || !m_tracker || !m_svc) {
         return;
     }
-    const int n = m_svc->pages().openCount() + m_svc->instances().visibleBoardCount();
+    const int n = m_svc->pages().openCount();
     m_tray->setStatus(QStringLiteral("%1 boards · %2").arg(n).arg(m_tracker->name()));
 }
 
@@ -293,33 +274,9 @@ void Application::syncDwellSuspendOverlay()
     if (!susp) {
         return;
     }
-    // Gap at dwell-exempt unpause targets (toggleDwellSuspend / resumeDwell),
-    // including unbounded edge affordances (coerced on-screen band).
+    // Gap at unpause targets (toggleDwellSuspend / resumeDwell): same rect gaze hits
+    // (off-screen dwell union on-screen chip), clipped to the desktop.
     QVector<QRect> gaps;
-    for (LayoutInstance* inst : m_svc->instances().instances()) {
-        if (!inst) {
-            continue;
-        }
-        for (const LayoutItem& item : inst->document().items) {
-            bool isUnpause = false;
-            for (const LayoutAction& a : item.effectiveActions()) {
-                if (a.type == LayoutAction::Type::Command
-                    && (a.name == QLatin1String("toggleDwellSuspend")
-                        || a.name == QLatin1String("resumeDwell"))) {
-                    isUnpause = true;
-                    break;
-                }
-            }
-            if (!isUnpause) {
-                continue;
-            }
-            const QRect gap = inst->unpauseGapScreenRect(item);
-            if (!gap.isEmpty()) {
-                // Expand slightly so the border break is obvious.
-                gaps.push_back(gap.adjusted(-16, -16, 16, 16));
-            }
-        }
-    }
     for (const QRect& gap : m_svc->pages().unpauseGapRects()) {
         gaps.push_back(gap);
     }
@@ -367,59 +324,9 @@ void Application::onGaze(const gazer::GazePoint& point)
     // activate minus/plus on the same sample.
     m_svc->settingsUi().onGaze(point);
     m_gazeRouter.dispatch(point);
-}
-
-void Application::onItemActivated(const QString& instanceId, const QString& itemId)
-{
-    auto* inst = m_svc->instances().instance(instanceId);
-    if (!inst) {
-        return;
+    if (m_svc->isDwellSuspended()) {
+        syncDwellSuspendOverlay();
     }
-    const LayoutItem* itemPtr = inst->document().findItem(itemId);
-    if (!itemPtr) {
-        GAZER_WARN << "Activated unknown item:" << itemId << "on" << instanceId;
-        return;
-    }
-
-    const LayoutItem itemCopy = *itemPtr;
-    const QString sourceId = instanceId;
-    const auto acts = itemCopy.effectiveActions();
-    GAZER_INFO << "Activate:" << sourceId << itemCopy.id << itemCopy.label
-               << "actions" << acts.size() << (itemCopy.actionLoop ? "loop" : "");
-
-    auto run = [this, itemCopy, sourceId]() {
-        if (m_actions) {
-            m_actions->dispatchItem(itemCopy, sourceId);
-        }
-        if (m_svc->mouseDwellMove().isArmed()) {
-            bool armsMove = false;
-            for (const LayoutAction& a : itemCopy.effectiveActions()) {
-                if (a.type != LayoutAction::Type::Command) {
-                    continue;
-                }
-                if (a.name == QLatin1String("mouseDwellMove")
-                    || a.name == QLatin1String("mouseDwellClickLoop")
-                    || a.name == QLatin1String("mouseMoveAndLeftClick")
-                    || a.name == QLatin1String("mouseMoveAndRightClick")
-                    || a.name == QLatin1String("mouseMoveAndMiddleClick")) {
-                    armsMove = true;
-                    break;
-                }
-            }
-            if (armsMove) {
-                if (auto* src = m_svc->instances().instance(sourceId)) {
-                    const QRect r = src->itemScreenRect(itemCopy.id);
-                    if (!r.isEmpty()) {
-                        m_svc->mouseDwellMove().gateUntilGazeLeaves(r);
-                    }
-                }
-            }
-        }
-        m_svc->instances().restackChrome();
-        updateTrayStatus();
-    };
-
-    QTimer::singleShot(0, this, run);
 }
 
 bool Application::expandMasterShell(QString* error)
@@ -439,36 +346,34 @@ bool Application::expandMasterShell(QString* error)
     return true;
 }
 
-void Application::openLayoutEditor(const QString& layoutId)
+void Application::openPageEditor(const QString& pageId)
 {
     if (!m_editor) {
         m_editor = std::make_unique<LayoutEditorWindow>();
-        m_editor->setLayoutsDirectory(m_svc->catalog().layoutsDirectory());
-        const QString userLayouts =
-            QDir(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation))
-                .filePath(QStringLiteral("layouts"));
-        m_editor->setUserLayoutsDirectory(userLayouts);
+        m_editor->setLayoutsDirectory(m_svc->catalog().directory());
+        m_editor->setUserLayoutsDirectory(m_svc->catalog().userDirectory());
         m_editor->setTestHandler(
-            [this](const QVector<LayoutDocument>& family, int current, QString* error) {
+            [this](const QVector<PageDocument>& family, int current, QString* error) {
                 return testEditedLayout(family, current, error);
             });
     }
-    QStringList ids = m_svc->catalog().layoutIds();
+    (void)m_svc->catalog().scan();
+    QStringList ids;
     QStringList labels;
-    for (const QString& id : ids) {
-        const LayoutDocument* d = m_svc->catalog().document(id);
-        const QString name = d && !d->name.isEmpty() ? d->name : id;
-        labels.push_back(QStringLiteral("%1  (%2)").arg(name, id));
+    for (const QString& id : m_svc->catalog().ids()) {
+        ids.push_back(id);
+        const QString name = m_svc->catalog().nameFor(id);
+        labels.push_back(QStringLiteral("%1  (%2)").arg(name.isEmpty() ? id : name, id));
     }
     m_editor->setCatalog(ids, labels);
     m_editor->setCommandNames(m_svc->commands().names());
     m_editor->setTheme(m_svc->settings().resolvedTheme());
-    if (!layoutId.isEmpty()) {
+    if (!pageId.isEmpty()) {
         QString err;
-        if (!m_editor->openLayoutId(layoutId, &err)) {
-            GAZER_WARN << "Layout editor could not open" << layoutId << err;
+        if (!m_editor->openLayoutId(pageId, &err)) {
+            GAZER_WARN << "Page editor could not open" << pageId << err;
             if (m_tray) {
-                m_tray->setStatus(err.isEmpty() ? QStringLiteral("Could not open %1").arg(layoutId)
+                m_tray->setStatus(err.isEmpty() ? QStringLiteral("Could not open %1").arg(pageId)
                                                 : err);
             }
         }
@@ -476,7 +381,7 @@ void Application::openLayoutEditor(const QString& layoutId)
     m_editor->showAndRaise();
 }
 
-bool Application::testEditedLayout(const QVector<LayoutDocument>& family, int currentIndex,
+bool Application::testEditedLayout(const QVector<PageDocument>& family, int currentIndex,
                                    QString* error)
 {
     if (!m_svc) {
@@ -485,23 +390,54 @@ bool Application::testEditedLayout(const QVector<LayoutDocument>& family, int cu
         }
         return false;
     }
-    return !m_svc->instances().openEditorPreview(family, currentIndex, error).isEmpty();
+    if (currentIndex < 0 || currentIndex >= family.size()) {
+        if (error) {
+            *error = QStringLiteral("No page to preview");
+        }
+        return false;
+    }
+    if (family[currentIndex].master) {
+        if (error) {
+            *error = QStringLiteral("Master root pages cannot be live-tested");
+        }
+        return false;
+    }
+    QHash<QString, QString> idMap;
+    for (const PageDocument& src : family) {
+        if (!src.id.isEmpty()) {
+            idMap.insert(src.id, PageSession::previewId(src.id));
+        }
+    }
+    m_svc->pages().closePreviewPages();
+    for (int i = 0; i < family.size(); ++i) {
+        PageDocument doc = family[i];
+        const QString orig = doc.id;
+        doc.id = idMap.value(orig, PageSession::previewId(orig));
+        if (!doc.name.contains(QLatin1String("(preview)"))) {
+            doc.name = doc.name.isEmpty() ? QStringLiteral("Preview")
+                                          : doc.name + QStringLiteral(" (preview)");
+        }
+        PageEdit::remapPageActionTargets(doc, idMap);
+        m_svc->pages().registerMemoryPage(doc);
+        if (i != currentIndex) {
+            continue;
+        }
+        if (!m_svc->pages().attachDocument(std::move(doc), error, true)) {
+            m_svc->pages().closePreviewPages();
+            return false;
+        }
+    }
+    return true;
 }
 
 void Application::shutdownUi()
 {
-    if (m_edgeBubbles) {
-        m_edgeBubbles->clearAll();
-        m_edgeBubbles->hide();
-    }
     if (m_svc) {
         m_svc->magnifier().setEnabledLens(false);
         m_svc->lookToScroll().setEnabled(false);
         m_svc->mouseDwellMove().setArmed(false);
         m_svc->mouseAssist().releaseAllHolds();
         m_svc->tts().stop();
-        m_svc->instances().hideAll();
-        m_svc->instances().shutdown();
         m_svc->pages().hideHost();
     }
     if (m_preview) {

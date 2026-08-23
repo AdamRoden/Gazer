@@ -16,9 +16,8 @@
 #include "assist/ScriptHost.h"
 #include "assist/TtsService.h"
 #include "input/InputService.h"
-#include "layout/LayoutInstanceManager.h"
-#include "layout/LayoutManager.h"
-#include "layout/LayoutTypes.h"
+#include "layout/PageCatalog.h"
+#include "layout/PageTypes.h"
 #include "mapping/MappingEngine.h"
 #include "ui/MagnifierOverlay.h"
 
@@ -43,13 +42,12 @@ public:
     [[nodiscard]] bool initialize(const QString& layoutsDir, const QString& mappingPath,
                                   QString* error = nullptr);
 
-    /// Wire action loops + layout lifecycle to a dispatcher (call once after ActionDispatcher exists).
     using ActionDispatchFn =
-        std::function<void(const QVector<LayoutAction>& actions, const QString& sourceInstanceId)>;
+        std::function<void(const QVector<PageAction>& actions, const QString& pageId,
+                           const QString& targetId)>;
     void bindActionDispatch(ActionDispatchFn dispatch);
 
-    LayoutManager& catalog() { return *m_catalog; }
-    LayoutInstanceManager& instances() { return *m_instances; }
+    PageCatalog& catalog() { return *m_catalog; }
     PageSession& pages() { return *m_pages; }
     InputService& input() { return *m_input; }
     MappingEngine& mapping() { return *m_mapping; }
@@ -87,14 +85,12 @@ signals:
 private:
     void registerDomainCommands();
     void notifyStatus(const QString& msg);
-    void decorateMouseAmountLabels(LayoutDocument& doc) const;
     void refreshMouseAmountLabels();
     void mutateAndApply(const std::function<void(AppSettings&)>& mutator, const QString& status);
     void refreshActiveIndicators();
     [[nodiscard]] ActiveStateContext activeStateContext() const;
 
-    std::unique_ptr<LayoutManager> m_catalog;
-    std::unique_ptr<LayoutInstanceManager> m_instances;
+    std::unique_ptr<PageCatalog> m_catalog;
     std::unique_ptr<PageSession> m_pages;
     std::unique_ptr<InputService> m_input;
     std::unique_ptr<MappingEngine> m_mapping;

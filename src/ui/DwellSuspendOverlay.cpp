@@ -1,6 +1,6 @@
 #include "ui/DwellSuspendOverlay.h"
 
-#include "layout/DwellRegionSpace.h"
+#include "utils/ScreenGrab.h"
 
 #include <QPaintEvent>
 #include <QPainter>
@@ -44,7 +44,7 @@ void DwellSuspendOverlay::setGapRects(const QVector<QRect>& gaps)
 
 void DwellSuspendOverlay::refreshGeometry()
 {
-    const QRect desk = DwellRegionSpace::virtualDesktop();
+    const QRect desk = virtualDesktop();
     if (desk.isValid()) {
         setGeometry(desk);
     }

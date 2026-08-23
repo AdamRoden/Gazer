@@ -7,7 +7,9 @@
 
 #include <QElapsedTimer>
 #include <QMutex>
+#include <QPointer>
 #include <QRect>
+#include <QScreen>
 #include <QTimer>
 #include <atomic>
 #include <condition_variable>
@@ -53,6 +55,7 @@ private:
     void onGazeFromEngine(tobii_gaze_point_t const* gaze_point);
     void onHeadFromEngine(tobii_head_pose_t const* head_pose);
     void cacheScreenGeometry();
+    void bindOverlayScreen();
     void teardownDeviceUnlocked();
 
     StreamEngineLib m_lib;
@@ -89,6 +92,7 @@ private:
 
     QMutex m_geoMutex;
     QRect m_screenGeo;
+    QPointer<QScreen> m_overlayScreen;
 };
 
 } // namespace gazer

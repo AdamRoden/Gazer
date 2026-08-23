@@ -7,7 +7,6 @@ namespace gazer {
 class AssistSession;
 class GazeMouseFollow;
 class GazeReticle;
-class LayoutInstanceManager;
 class PageSession;
 class LookToScroll;
 class MagnifierOverlay;
@@ -16,7 +15,6 @@ class MouseDwellMove;
 /// Ordered gaze consumers. Board/aim policy comes only from AssistSession.
 class GazeRouter {
 public:
-    void setInstances(LayoutInstanceManager* instances) { m_instances = instances; }
     void setPages(PageSession* pages) { m_pages = pages; }
     void setAssistSession(AssistSession* session) { m_session = session; }
     void setLookToScroll(LookToScroll* lts) { m_lookToScroll = lts; }
@@ -28,7 +26,6 @@ public:
     void dispatch(const GazePoint& point);
 
 private:
-    LayoutInstanceManager* m_instances = nullptr;
     PageSession* m_pages = nullptr;
     AssistSession* m_session = nullptr;
     LookToScroll* m_lookToScroll = nullptr;

@@ -62,8 +62,8 @@ inline void initGrid(PageDocument& doc, int cols, int rows, int widthPx, int hei
     if (theme.border.isValid()) {
         g.style.borderColor = theme.border;
     }
-    g.style.radius = 8.0;
-    g.style.thickness = 1.0;
+    g.style.radius = PageBox::all(8.0);
+    g.style.thickness = PageBox::all(1.0);
     doc.grids.push_back(std::move(g));
 }
 

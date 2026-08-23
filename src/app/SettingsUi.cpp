@@ -2,13 +2,8 @@
 #include "app/SettingsPageBuild.h"
 
 #include "app/CommandRegistry.h"
-#include "layout/LayoutTypes.h"
-#include "layout/LayoutInstance.h"
-#include "layout/LayoutInstanceManager.h"
-#include "layout/LayoutManager.h"
 #include "layout/PageDim.h"
 #include "layout/PageSession.h"
-#include "ui/LayoutQuickWindow.h"
 #include "ui/PageHostWindow.h"
 #include "ui/Theme.h"
 
@@ -159,11 +154,8 @@ SettingsUi::EditorSwatch SettingsUi::editorSwatch() const
     return s;
 }
 
-SettingsUi::SettingsUi(AppSettings& settings, LayoutInstanceManager& instances,
-                       LayoutManager& catalog, CommandRegistry& commands, PageSession& pages)
+SettingsUi::SettingsUi(AppSettings& settings, CommandRegistry& commands, PageSession& pages)
     : m_settings(settings)
-    , m_instances(instances)
-    , m_catalog(catalog)
     , m_commands(commands)
     , m_pages(pages)
 {
@@ -184,19 +176,6 @@ void SettingsUi::apply(bool persist)
 }
 
 namespace {
-
-QString colorKeyFromItem(const LayoutItem& item)
-{
-    if (AppSettings::isColorKey(item.settingKey)) {
-        return item.settingKey;
-    }
-    const QString name = item.action.name;
-    const QLatin1String prefix("settings.edit.color.");
-    if (name.startsWith(prefix)) {
-        return name.mid(int(prefix.size()));
-    }
-    return {};
-}
 
 void stampSettingVisuals(QString& label, bool interactive, const QString& settingKey,
                          const QString& id, const QString& colorKey,
@@ -258,19 +237,6 @@ void stampGrid(PageGrid& grid, const AppSettings& settings, const ThemeColors& t
 }
 
 } // namespace
-
-void SettingsUi::decorateDocument(LayoutDocument& doc) const
-{
-    if (!doc.id.startsWith(QLatin1String("main_settings"))) {
-        return;
-    }
-    const ThemeColors theme = m_settings.customColors;
-    for (LayoutItem& item : doc.items) {
-        stampSettingVisuals(item.label, item.interactive, item.settingKey, item.id,
-                            colorKeyFromItem(item), item.style.background, item.style.foreground,
-                            m_settings, theme);
-    }
-}
 
 void SettingsUi::decoratePage(PageDocument& doc) const
 {

@@ -1,6 +1,7 @@
 #include "ui/GlassBackdrop.h"
 
-#include "layout/LayoutTypes.h"
+#include "layout/ChromeBlur.h"
+#include "layout/RoundBox.h"
 #include "utils/ScreenGrab.h"
 #include "utils/WinOverlay.h"
 
@@ -11,6 +12,7 @@
 #include <QScreen>
 #include <QWindow>
 #include <QtMath>
+#include <utility>
 
 namespace gazer {
 
@@ -46,12 +48,13 @@ GlassBackdrop::GlassBackdrop(QWindow* host)
 
 void GlassBackdrop::setActive(double maxBlurRadius)
 {
-    m_radius = qBound(0.0, maxBlurRadius, LayoutChromeStyle::kMaxBlur);
+    m_radius = qBound(0.0, maxBlurRadius, kChromeBlurMax);
     if (m_radius <= 0.0) {
         m_timer.stop();
         m_pad = 0;
         if (!m_frosted.isNull()) {
             m_frosted = {};
+            m_frostKey = 0;
             emit updated();
         }
         return;
@@ -59,9 +62,20 @@ void GlassBackdrop::setActive(double maxBlurRadius)
     invalidate();
 }
 
+void GlassBackdrop::setCaptureRect(const QRect& globalRect)
+{
+    if (m_capture == globalRect) {
+        return;
+    }
+    m_capture = globalRect;
+    if (m_radius > 0.0) {
+        invalidate();
+    }
+}
+
 void GlassBackdrop::invalidate()
 {
-    if (m_radius <= 0.0 || !m_host || !m_host->isVisible()) {
+    if (m_radius <= 0.0 || m_capture.isEmpty() || !m_host || !m_host->isVisible()) {
         m_timer.stop();
         return;
     }
@@ -70,22 +84,18 @@ void GlassBackdrop::invalidate()
 
 void GlassBackdrop::rebuild()
 {
-    if (m_radius <= 0.0 || !m_host || !m_host->isVisible()) {
+    if (m_radius <= 0.0 || m_capture.isEmpty() || !m_host || !m_host->isVisible()) {
         m_frosted = {};
-        return;
-    }
-
-    const QSize winSize = m_host->size();
-    if (winSize.width() < 2 || winSize.height() < 2) {
+        m_frostKey = 0;
         return;
     }
 
     m_pad = qMax(8, qCeil(m_radius * 2.0));
-    const QRect grabGlobal = QRect(m_host->position(), winSize).adjusted(-m_pad, -m_pad, m_pad, m_pad);
+    const QRect grabGlobal = m_capture.adjusted(-m_pad, -m_pad, m_pad, m_pad);
 
     QScreen* screen = m_host->screen();
     if (!screen) {
-        screen = QGuiApplication::screenAt(m_host->position());
+        screen = QGuiApplication::screenAt(grabGlobal.center());
     }
     if (!screen) {
         screen = QGuiApplication::primaryScreen();
@@ -99,22 +109,29 @@ void GlassBackdrop::rebuild()
         const CaptureExclusion hideHost(m_host);
         raw = grabScreenRect(screen, grabGlobal);
     }
-    m_frosted = downscaleBlur(raw, m_radius);
+    QPixmap next = downscaleBlur(raw, m_radius);
+    const qint64 key = next.cacheKey();
+    if (key != 0 && key == m_frostKey) {
+        if (m_host->isVisible() && m_radius > 0.0 && !m_capture.isEmpty()) {
+            m_timer.start(500);
+        }
+        return;
+    }
+    m_frosted = std::move(next);
+    m_frostKey = key;
 
-    if (m_host->isVisible() && m_radius > 0.0) {
-        m_timer.start(200);
+    if (m_host->isVisible() && m_radius > 0.0 && !m_capture.isEmpty()) {
+        m_timer.start(500);
     }
     emit updated();
 }
 
-void GlassBackdrop::paint(QPainter& p, const QRectF& localRect, double cornerRadius,
+void GlassBackdrop::paint(QPainter& p, const QRectF& localRect, const PageBox& radii,
                           const QColor& tint) const
 {
     if (localRect.isEmpty()) {
         return;
     }
-    // Rasterize off the QQuickPaintedItem painter. setClipPath + drawText on that
-    // painter drops glyphs under RHI; clipping here stays on a QImage.
     const QSize px = localRect.size().toSize().expandedTo(QSize(1, 1));
     QImage tile(px, QImage::Format_ARGB32_Premultiplied);
     tile.fill(Qt::transparent);
@@ -122,11 +139,13 @@ void GlassBackdrop::paint(QPainter& p, const QRectF& localRect, double cornerRad
         QPainter tp(&tile);
         tp.setRenderHint(QPainter::Antialiasing, true);
         tp.setRenderHint(QPainter::SmoothPixmapTransform, true);
-        QPainterPath path;
-        path.addRoundedRect(QRectF(QPointF(), localRect.size()), cornerRadius, cornerRadius);
+        const QPainterPath path = roundedBoxPath(QRectF(QPointF(), localRect.size()), radii);
         tp.setClipPath(path);
-        if (!m_frosted.isNull()) {
-            tp.drawPixmap(QPointF(-localRect.x() - m_pad, -localRect.y() - m_pad), m_frosted);
+        if (!m_frosted.isNull() && m_host) {
+            const QPoint hostPos = m_host->position();
+            const QPoint grabOrigin = m_capture.adjusted(-m_pad, -m_pad, m_pad, m_pad).topLeft();
+            const QPointF dest = QPointF(grabOrigin - hostPos) - localRect.topLeft();
+            tp.drawPixmap(dest, m_frosted);
         }
         if (tint.isValid() && tint.alpha() > 0) {
             tp.fillPath(path, tint);

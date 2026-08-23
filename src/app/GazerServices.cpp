@@ -2,6 +2,7 @@
 
 #include "app/ActiveStateResolver.h"
 #include "app/SettingsUi.h"
+#include "layout/PageHit.h"
 #include "layout/PageSession.h"
 #include "layout/PageTypes.h"
 #include "assist/AssistCommands.h"
@@ -9,7 +10,9 @@
 #include "utils/Log.h"
 
 #include <QColor>
+#include <QDir>
 #include <QPoint>
+#include <QStandardPaths>
 #include <QtGlobal>
 #include <functional>
 
@@ -60,17 +63,8 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
 {
     Q_UNUSED(error);
 
-    m_catalog = std::make_unique<LayoutManager>();
-    m_instances = std::make_unique<LayoutInstanceManager>(*m_catalog);
+    m_catalog = std::make_unique<PageCatalog>();
     m_pages = std::make_unique<PageSession>();
-    m_instances->setAfterRestack([this]() {
-        if (m_pages && m_pages->hasRoot()) {
-            m_pages->raise();
-        }
-    });
-    connect(m_instances.get(), &LayoutInstanceManager::instanceOpened, this, [this]() {
-        m_instances->restackChrome();
-    });
     m_input = std::make_unique<InputService>();
     m_mapping = std::make_unique<MappingEngine>(*m_input);
     m_tts = std::make_unique<TtsService>();
@@ -84,10 +78,16 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
     m_gazeMouseFollow = std::make_unique<GazeMouseFollow>();
     m_assistSession = std::make_unique<AssistSession>();
     m_actionLoops = std::make_unique<ActionLoopService>();
-    m_scripts = std::make_unique<ScriptHost>(*m_phrases, *m_commands, *m_input, *m_instances);
+    m_scripts = std::make_unique<ScriptHost>(*m_phrases, *m_commands, *m_input, *m_pages);
 
-    m_catalog->setLayoutsDirectory(layoutsDir);
-    GAZER_INFO << "Layouts available:" << m_catalog->scanDirectory();
+    m_catalog->setDirectory(layoutsDir);
+    const QString userLayouts =
+        QDir(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation))
+            .filePath(QStringLiteral("layouts"));
+    QDir().mkpath(userLayouts);
+    m_catalog->setUserDirectory(userLayouts);
+    m_pages->setCatalog(m_catalog.get());
+    GAZER_INFO << "Pages available:" << m_catalog->scan();
 
     QString mapErr;
     if (!m_mapping->loadProfileFile(mappingPath, &mapErr)) {
@@ -100,8 +100,7 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
         m_settings = AppSettings::defaults();
     }
 
-    m_settingsUi =
-        std::make_unique<SettingsUi>(m_settings, *m_instances, *m_catalog, *m_commands, *m_pages);
+    m_settingsUi = std::make_unique<SettingsUi>(m_settings, *m_commands, *m_pages);
     m_settingsUi->setApplyFn([this](bool persist) { applySettings(persist); });
     m_settingsUi->setNotifyFn([this](const QString& msg) { notifyStatus(msg); });
     m_settingsUi->setMutateFn(
@@ -109,17 +108,6 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
             mutateAndApply(mutator, status);
         });
     m_settingsUi->setResetFn([this]() { resetSettingsToDefaults(); });
-
-    m_instances->setDocumentDecorator([this](LayoutDocument& doc) {
-        m_settingsUi->decorateDocument(doc);
-        decorateMouseAmountLabels(doc);
-    });
-    m_instances->setInstanceTeardownHook(
-        [this](const QString& instanceId) { m_actionLoops->stopInstance(instanceId); });
-    connect(m_instances.get(), &LayoutInstanceManager::dwellEngagementEnded, this,
-            [this](const QString& instanceId, const QString& itemId) {
-                m_actionLoops->clearEngageLatch(instanceId, itemId);
-            });
 
     m_pages->setDecorate([this](PageDocument& doc) {
         m_settingsUi->decoratePage(doc);
@@ -130,6 +118,11 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
     });
     m_pages->setActiveResolver(
         [this](const QString& key) { return resolveActiveState(activeStateContext(), key); });
+    m_pages->setLoopToggle([this](const PageTarget& t, const QString& pageId) {
+        return m_actionLoops->toggle(pageId, sessionKey(t), t.actions, t.activeState);
+    });
+    m_pages->setLoopLatchClear([this]() { m_actionLoops->clearAllEngageLatches(); });
+    m_pages->setLoopStopPage([this](const QString& pageId) { m_actionLoops->stopPage(pageId); });
 
     registerDomainCommands();
     m_settingsUi->registerCommands();
@@ -153,8 +146,7 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
     connect(m_actionLoops.get(), &ActionLoopService::loopsChanged, this,
             [this]() { refreshActiveIndicators(); });
     connect(this, &GazerServices::settingsChanged, this, [this]() { refreshActiveIndicators(); });
-    connect(m_instances.get(), &LayoutInstanceManager::sessionChanged, this,
-            [this]() { refreshActiveIndicators(); });
+    connect(m_pages.get(), &PageSession::sessionChanged, this, [this]() { refreshActiveIndicators(); });
 
     applySettings(false);
     refreshActiveIndicators();
@@ -163,15 +155,17 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
 
 void GazerServices::bindActionDispatch(ActionDispatchFn dispatch)
 {
-    m_actionLoops->setDispatchFn(dispatch);
-    m_instances->setLifecycleRunner(std::move(dispatch));
+    m_pages->setDispatch(dispatch);
+    m_actionLoops->setDispatchFn(
+        [dispatch](const QVector<PageAction>& acts, const QString& pageId) {
+            dispatch(acts, pageId, {});
+        });
 }
 
 ActiveStateContext GazerServices::activeStateContext() const
 {
     ActiveStateContext ctx;
     ctx.settings = &m_settings;
-    ctx.instances = m_instances.get();
     ctx.lookToScroll = m_lookToScroll.get();
     ctx.mouseDwellMove = m_mouseDwellMove.get();
     ctx.magnifier = m_magnifier.get();
@@ -189,9 +183,6 @@ void GazerServices::setDwellSuspended(bool on)
     if (m_pages) {
         m_pages->setDwellSuspended(on);
     }
-    if (m_instances) {
-        m_instances->setDwellSuspended(on);
-    }
 }
 
 void GazerServices::toggleDwellSuspended()
@@ -201,62 +192,18 @@ void GazerServices::toggleDwellSuspended()
 
 bool GazerServices::isDwellSuspended() const
 {
-    if (m_pages && m_pages->hasRoot()) {
-        return m_pages->isDwellSuspended();
-    }
-    return m_instances && m_instances->isDwellSuspended();
+    return m_pages && m_pages->isDwellSuspended();
 }
 
 void GazerServices::refreshActiveIndicators()
 {
-    if (!m_instances) {
-        return;
-    }
-    m_instances->refreshActiveIndicators(
-        [this](const QString& key) { return resolveActiveState(activeStateContext(), key); });
     if (m_pages) {
         m_pages->refreshActive();
     }
 }
 
-void GazerServices::decorateMouseAmountLabels(LayoutDocument& doc) const
-{
-    if (!m_mouseAssist) {
-        return;
-    }
-    const QString move = QStringLiteral("Step %1 px").arg(m_mouseAssist->moveAmountPx());
-    const QString scroll = QStringLiteral("Scroll ×%1").arg(m_mouseAssist->scrollNotches());
-    for (LayoutItem& item : doc.items) {
-        applyMouseAmountLabel(item.label, item.action.name, move, scroll);
-    }
-}
-
 void GazerServices::refreshMouseAmountLabels()
 {
-    if (!m_instances || !m_mouseAssist) {
-        return;
-    }
-    for (LayoutInstance* inst : m_instances->instances()) {
-        if (!inst) {
-            continue;
-        }
-        bool has = false;
-        for (const LayoutItem& item : inst->document().items) {
-            if (item.action.name == QLatin1String("cycleMouseMoveAmount")
-                || item.action.name == QLatin1String("cycleMouseScrollAmount")) {
-                has = true;
-                break;
-            }
-        }
-        if (!has) {
-            continue;
-        }
-        const QString move = QStringLiteral("Step %1 px").arg(m_mouseAssist->moveAmountPx());
-        const QString scroll = QStringLiteral("Scroll ×%1").arg(m_mouseAssist->scrollNotches());
-        inst->mutateItems([&](LayoutItem& item) {
-            applyMouseAmountLabel(item.label, item.action.name, move, scroll);
-        });
-    }
     if (m_pages) {
         m_pages->refreshDecorated();
     }
@@ -282,19 +229,14 @@ void GazerServices::applySettings(bool persist)
 {
     m_settings.clamp();
 
-    m_instances->setAutoCollapseMain(m_settings.autoCollapseMain);
     if (m_pages) {
         m_pages->setAutoCollapseMain(m_settings.autoCollapseMain);
     }
-    m_instances->setAutoCloseDefaults(m_settings.layoutAutoClose, m_settings.layoutAutoCloseIdleMs,
-                                      m_settings.layoutAutoCloseFadeMs);
-    m_instances->applyGlobalDwellOverride(m_settings.dwellSequence, m_settings.dwellGraceMs,
-                                          m_settings.scanGraceMs);
 
     ProgressVisuals boardPv;
-    boardPv.radial = m_settings.progressRadial;
-    boardPv.fillBackground = m_settings.progressFill;
-    boardPv.border = m_settings.progressBorder;
+    boardPv.style.radial = m_settings.progressRadial;
+    boardPv.style.fillBackground = m_settings.progressFill;
+    boardPv.style.border = m_settings.progressBorder;
     boardPv.progressColor = m_settings.colorKey(QStringLiteral("progressColor"));
     boardPv.fillColor = m_settings.colorKey(QStringLiteral("progressFillColor"));
     boardPv.borderColor = m_settings.colorKey(QStringLiteral("progressBorderColor"));
@@ -302,8 +244,6 @@ void GazerServices::applySettings(bool persist)
     boardPv.flashForegroundOpacity = m_settings.flashForegroundOpacity;
     boardPv.flashColor = m_settings.colorKey(QStringLiteral("flashColor"));
     boardPv.flashMs = m_settings.flashMs;
-    m_instances->applyProgressVisuals(boardPv);
-    m_instances->applyTheme(m_settings.resolvedTheme());
     if (m_pages) {
         m_pages->setProgressVisuals(boardPv);
         m_pages->setTheme(m_settings.resolvedTheme());
@@ -326,9 +266,9 @@ void GazerServices::applySettings(bool persist)
     m_mouseDwellMove->setPickWindowPx(m_settings.pickWindowPx);
     m_mouseDwellMove->setPickWindowRound(m_settings.pickWindowRound);
     ProgressVisuals mousePv = boardPv;
-    mousePv.radial = m_settings.mouseProgressRadial;
-    mousePv.fillBackground = m_settings.mouseProgressFill;
-    mousePv.border = m_settings.mouseProgressBorder;
+    mousePv.style.radial = m_settings.mouseProgressRadial;
+    mousePv.style.fillBackground = m_settings.mouseProgressFill;
+    mousePv.style.border = m_settings.mouseProgressBorder;
     m_mouseDwellMove->setProgressVisuals(mousePv);
     m_gazeReticle->setColor(boardPv.progressColor);
     m_magnifier->setAccent(boardPv.progressColor);
@@ -385,7 +325,6 @@ void GazerServices::registerDomainCommands()
     m_assistCmdCtx = std::make_unique<AssistCommandContext>();
     m_assistCmdCtx->commands = m_commands.get();
     m_assistCmdCtx->session = m_assistSession.get();
-    m_assistCmdCtx->instances = m_instances.get();
     m_assistCmdCtx->lookToScroll = m_lookToScroll.get();
     m_assistCmdCtx->mouseDwellMove = m_mouseDwellMove.get();
     m_assistCmdCtx->magnifier = m_magnifier.get();

@@ -4,7 +4,6 @@
 #include "assist/GazeDwellTracker.h"
 #include "core/GazePoint.h"
 #include "layout/InvalidGazeGrace.h"
-#include "layout/LayoutTypes.h"
 #include "layout/PageTypes.h"
 #include "ui/ThemeScheme.h"
 
@@ -19,8 +18,6 @@
 namespace gazer {
 
 class CommandRegistry;
-class LayoutInstanceManager;
-class LayoutManager;
 class PageSession;
 
 /// Settings boards: live value decoration, numeric editor, color picker, settings commands.
@@ -31,8 +28,7 @@ public:
     using MutateFn = std::function<void(const std::function<void(AppSettings&)>&, const QString&)>;
     using ResetFn = std::function<void()>;
 
-    SettingsUi(AppSettings& settings, LayoutInstanceManager& instances, LayoutManager& catalog,
-               CommandRegistry& commands, PageSession& pages);
+    SettingsUi(AppSettings& settings, CommandRegistry& commands, PageSession& pages);
 
     void setApplyFn(ApplyFn fn) { m_apply = std::move(fn); }
     void setNotifyFn(NotifyFn fn) { m_notify = std::move(fn); }
@@ -40,7 +36,6 @@ public:
     void setResetFn(ResetFn fn) { m_reset = std::move(fn); }
 
     void registerCommands();
-    void decorateDocument(LayoutDocument& doc) const;
     void decoratePage(PageDocument& doc) const;
     /// Gaze-follow color slider after the track is activated.
     void onGaze(const GazePoint& point);
@@ -156,8 +151,6 @@ private:
     void handleEditorKey(int key, const QString& text);
 
     AppSettings& m_settings;
-    LayoutInstanceManager& m_instances;
-    LayoutManager& m_catalog;
     CommandRegistry& m_commands;
     PageSession& m_pages;
     ApplyFn m_apply;

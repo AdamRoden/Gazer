@@ -7,7 +7,6 @@
 #include "assist/LookToScroll.h"
 #include "assist/MouseAssistState.h"
 #include "assist/MouseDwellMove.h"
-#include "layout/LayoutInstanceManager.h"
 #include "ui/MagnifierOverlay.h"
 #include "app/SettingsUi.h"
 #include "ui/PickStyle.h"

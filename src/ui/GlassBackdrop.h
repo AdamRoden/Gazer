@@ -1,8 +1,11 @@
 #pragma once
 
+#include "layout/PageBox.h"
+
 #include <QColor>
 #include <QObject>
 #include <QPixmap>
+#include <QRect>
 #include <QRectF>
 #include <QTimer>
 
@@ -12,16 +15,16 @@ class QWindow;
 namespace gazer {
 
 /// Screen-behind frost for style.blur fills. Owns capture, blur, and refresh.
-/// Paint only draws the last rebuilt pixmap plus the authored tint.
 class GlassBackdrop final : public QObject {
     Q_OBJECT
 
 public:
     explicit GlassBackdrop(QWindow* host);
 
-    /// 0 disables capture. Non-zero is the blur radius used for the shared frost.
     void setActive(double maxBlurRadius);
-    void paint(QPainter& p, const QRectF& localRect, double cornerRadius, const QColor& tint) const;
+    /// Global capture rect (frosted chrome union). Empty disables capture.
+    void setCaptureRect(const QRect& globalRect);
+    void paint(QPainter& p, const QRectF& localRect, const PageBox& radii, const QColor& tint) const;
 
 signals:
     void updated();
@@ -35,7 +38,9 @@ private:
     QTimer m_timer;
     double m_radius = 0.0;
     int m_pad = 0;
+    QRect m_capture;
     QPixmap m_frosted;
+    qint64 m_frostKey = 0;
 };
 
 } // namespace gazer

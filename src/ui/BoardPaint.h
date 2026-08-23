@@ -19,7 +19,10 @@ namespace BoardPaint {
                               const QString& text, const QRectF& box, int flags);
 
 void fillRound(QPainter& p, const QRectF& r, double radius, const QColor& bg);
+void fillRound(QPainter& p, const QRectF& r, const PageBox& radii, const QColor& bg);
 void strokeRound(QPainter& p, const QRectF& r, double radius, const QColor& color, double width);
+void strokeRound(QPainter& p, const QRectF& r, const PageBox& radii, const QColor& color,
+                 const PageBox& width);
 
 void paintLabel(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeColors& theme);
 void paintTab(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeColors& theme,

@@ -13,57 +13,66 @@ class QScrollArea;
 
 namespace gazer {
 
-/// Right-hand inspector. Board selection: Board / Window / Grid / Gaze.
-/// Item selection: Item / Layout / Action.
+/// Right-hand inspector. Tabs follow the selected XML element.
 class LayoutEditorProperties final : public QWidget {
     Q_OBJECT
 
 public:
     explicit LayoutEditorProperties(LayoutEditorSession& session, QWidget* parent = nullptr);
 
-    void showBoardTab();
-    void showWindowTab();
+    void showPageTab();
     void showGridTab();
     void showDwellTab();
     void showStyleTab();
-    void showLayoutTab();
-    void showInteractionTab();
+    void showPlacementTab();
     void setActionCatalog(ActionCatalog catalog) { m_catalog = std::move(catalog); }
 
 private:
+    enum class Kind { Page, Grid, Cell, Zone, Style, Dwell };
+
     void rebuild();
-    void syncTabs(bool itemSelected);
-    void fillBoard(QFormLayout* form);
-    void fillWindow(QFormLayout* form);
+    void syncTabs(Kind kind);
+    void fillPage(QFormLayout* form);
     void fillGrid(QFormLayout* form);
-    void fillBoardDwell(QFormLayout* form);
-    void fillItem(QFormLayout* form);
-    void fillItemLayout(QFormLayout* form);
-    void fillItemAction(QFormLayout* form);
+    void fillCell(QFormLayout* form);
+    void fillZone(QFormLayout* form);
+    void fillPlacement(QFormLayout* form);
+    void fillStyle(QFormLayout* form);
+    void fillDwell(QFormLayout* form);
+    void fillAction(QFormLayout* form);
+    void fillLeafIdentity(QFormLayout* form, const PageLeaf& item);
+    void fillVisibleWhen(QFormLayout* form, const PageLeaf& item);
     void clearLayout(QFormLayout* form);
 
-    void applyItem(const std::function<void(LayoutItem&)>& fn, const QString& undoLabel);
-    void applyDoc(const std::function<void(LayoutDocument&)>& fn, const QString& undoLabel);
+    void applyItem(const std::function<void(PageLeaf&)>& fn, const QString& undoLabel);
+    void applyDoc(const std::function<void(PageDocument&)>& fn, const QString& undoLabel);
+    void applyGrid(const std::function<void(PageGrid&)>& fn, const QString& undoLabel);
+    void applyZone(const std::function<void(PageZone&)>& fn, const QString& undoLabel);
+    void applyCell(const std::function<void(PageCell&)>& fn, const QString& undoLabel);
+
+    [[nodiscard]] Kind currentKind() const;
+    void selectStyleTab();
+    void selectNamedStyle(const QString& id);
+    void selectNamedDwell(const QString& id);
+    void renameNamedStyle(const QString& from, const QString& to);
+    void renameNamedDwell(const QString& from, const QString& to);
+
     struct Shape {
-        bool item = false;
+        Kind kind = Kind::Page;
         QString itemKey;
-        bool windowShown = false;
         bool autoClose = false;
         bool dwellTiming = false;
-        bool dwellProgress = false;
-        int children = 0;
-        int hook = 0;
-        int hookSteps = 0;
         int actionStep = 0;
         int actionType = -1;
-        bool unbounded = false;
         QString role;
         bool loop = false;
         bool customDwell = false;
-        bool itemTiming = false;
-        bool itemProgress = false;
-        bool embed = false;
         int itemActions = 0;
+        bool gridNested = false;
+        bool gridAutoClose = false;
+        int namedStyles = 0;
+        int namedDwells = 0;
+        int moveMode = -1;
         bool operator==(const Shape&) const = default;
     };
     struct Page {
@@ -79,9 +88,8 @@ private:
     std::array<Page, 4> m_pages{};
     bool m_loading = false;
     bool m_applying = false;
-    bool m_itemMode = false;
+    Kind m_kind = Kind::Page;
     int m_actionStep = 0;
-    int m_lifecycleHook = 0;
     Shape m_shape;
     ActionCatalog m_catalog;
 };

@@ -9,8 +9,11 @@
 #include "ui/Theme.h"
 
 #include <QElapsedTimer>
+#include <QHash>
 #include <QObject>
+#include <QPointer>
 #include <QRect>
+#include <QScreen>
 #include <QSet>
 #include <QString>
 #include <QTimer>
@@ -21,6 +24,8 @@
 
 namespace gazer {
 
+class PageCatalog;
+
 class PageSession final : public QObject {
     Q_OBJECT
 
@@ -29,6 +34,9 @@ public:
                                           const QString& targetId)>;
     using DecorateFn = std::function<void(PageDocument&)>;
     using ActiveFn = std::function<bool(const QString& activeStateKey)>;
+    using LoopToggleFn = std::function<bool(const PageTarget& t, const QString& pageId)>;
+    using LoopLatchFn = std::function<void()>;
+    using LoopStopPageFn = std::function<void(const QString& pageId)>;
 
     enum class RootChrome { Docked, Drawer, Quit };
 
@@ -36,6 +44,7 @@ public:
 
     [[nodiscard]] bool openRoot(const QString& xmlPath, QString* error = nullptr);
     void setLayoutsDirectory(const QString& dir) { m_layoutsDir = dir; }
+    void setCatalog(PageCatalog* catalog) { m_catalog = catalog; }
     [[nodiscard]] bool openPage(const QString& id, QString* error = nullptr);
     void closePage(const QString& id);
     int closeAttached();
@@ -44,12 +53,22 @@ public:
     [[nodiscard]] const PageDocument& root() const { return m_root; }
     [[nodiscard]] PageHostWindow* window() const { return m_host.get(); }
     [[nodiscard]] const QVector<PageTarget>& targets() const { return m_targets; }
-    /// Attach or refresh an in-memory page (live editors). Does not decorate.
-    [[nodiscard]] bool attachDocument(PageDocument doc, QString* error = nullptr);
+    [[nodiscard]] const QVector<PageGridPaint>& gridPaints() const { return m_gridPaints; }
+    [[nodiscard]] double drawerScale() const { return m_drawerScale; }
+    /// Attach or refresh an in-memory page. decorate=true runs the session decorator.
+    [[nodiscard]] bool attachDocument(PageDocument doc, QString* error = nullptr,
+                                      bool decorate = false);
+    void registerMemoryPage(PageDocument doc);
+    void closePreviewPages();
+    static QString previewId(const QString& catalogId);
+    static bool isPreviewId(const QString& id);
 
     void setDispatch(DispatchFn fn) { m_dispatch = std::move(fn); }
     void setDecorate(DecorateFn fn) { m_decorate = std::move(fn); }
     void setActiveResolver(ActiveFn fn) { m_active = std::move(fn); }
+    void setLoopToggle(LoopToggleFn fn) { m_loopToggle = std::move(fn); }
+    void setLoopLatchClear(LoopLatchFn fn) { m_loopLatchClear = std::move(fn); }
+    void setLoopStopPage(LoopStopPageFn fn) { m_loopStopPage = std::move(fn); }
     void refreshDecorated();
     void refreshActive();
 
@@ -64,6 +83,7 @@ public:
     void toggleDwellSuspended() { setDwellSuspended(!m_dwellSuspended); }
     [[nodiscard]] bool isDwellSuspended() const { return m_dwellSuspended; }
     [[nodiscard]] int openCount() const { return hasRoot() ? 1 + m_attached.size() : 0; }
+    [[nodiscard]] QString topPageId() const;
 
     bool applyPageAction(PageVerb verb, PageTargetKind kind, const QString& id,
                          QString* error = nullptr);
@@ -105,6 +125,7 @@ private:
 
     PageDocument m_root;
     QString m_layoutsDir;
+    QHash<QString, PageDocument> m_memory;
     QVector<AttachedPage> m_attached;
     QSet<QString> m_hiddenZones;
     QVariantMap m_props;
@@ -121,9 +142,14 @@ private:
     DispatchFn m_dispatch;
     DecorateFn m_decorate;
     ActiveFn m_active;
+    LoopToggleFn m_loopToggle;
+    LoopLatchFn m_loopLatchClear;
+    LoopStopPageFn m_loopStopPage;
     QTimer m_autoCloseTimer;
     QElapsedTimer m_idleClock;
     bool m_idleClockRunning = false;
+    QVector<QPointer<QScreen>> m_boundScreens;
+    PageCatalog* m_catalog = nullptr;
 
     RootChrome m_chrome = RootChrome::Docked;
     QTimer m_drawerTimer;

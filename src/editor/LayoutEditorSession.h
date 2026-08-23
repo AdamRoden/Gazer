@@ -1,6 +1,6 @@
 #pragma once
 
-#include "layout/LayoutTypes.h"
+#include "layout/PageTypes.h"
 
 #include <QObject>
 #include <QPoint>
@@ -17,7 +17,6 @@ namespace gazer {
 enum class EditorTarget {
     None,
     Document,
-    Window,
     Grid,
     Dwell,
     Style,
@@ -36,7 +35,7 @@ enum class EditorItemKind {
     Toggle,
     Tab,
     Slider,
-    Unbounded
+    Zone
 };
 
 enum class EditorTemplate {
@@ -50,18 +49,25 @@ enum class EditorTemplate {
 struct EditorLayer {
     QString name;
     QString suffix;
-    LayoutDocument doc;
+    PageDocument doc;
 };
 
-/// In-memory layout family, undo stack, clipboard, and selection for the designer.
-/// `document()` is the current layer; there is no second copy of that board.
+struct EditorClip {
+    enum class Kind { Cell, Zone };
+    Kind kind = Kind::Cell;
+    PageCell cell;
+    PageZone zone;
+    QString gridId;
+};
+
+/// In-memory XML page family, undo stack, clipboard, and selection.
 class LayoutEditorSession final : public QObject {
     Q_OBJECT
 
 public:
     explicit LayoutEditorSession(QObject* parent = nullptr);
 
-    [[nodiscard]] const LayoutDocument& document() const;
+    [[nodiscard]] const PageDocument& document() const;
     [[nodiscard]] QString filePath() const { return m_filePath; }
     [[nodiscard]] bool isDirty() const { return m_dirty; }
     [[nodiscard]] EditorSelection selection() const { return m_sel; }
@@ -69,10 +75,11 @@ public:
     [[nodiscard]] bool hasClipboard() const { return !m_clipboard.isEmpty(); }
     [[nodiscard]] bool isItemSelected(const QString& id) const;
 
-    [[nodiscard]] LayoutItem* selectedItem();
-    [[nodiscard]] const LayoutItem* selectedItem() const;
-    [[nodiscard]] LayoutItem* itemById(const QString& id);
-    [[nodiscard]] const LayoutItem* itemById(const QString& id) const;
+    [[nodiscard]] PageLeaf* selectedItem();
+    [[nodiscard]] const PageLeaf* selectedItem() const;
+    [[nodiscard]] PageLeaf* itemById(const QString& id);
+    [[nodiscard]] const PageLeaf* itemById(const QString& id) const;
+    [[nodiscard]] bool selectedIsZone() const;
 
     void newDocument();
     void newFromTemplate(EditorTemplate tmpl, const QString& id, const QString& name);
@@ -82,7 +89,6 @@ public:
     void setPlaceKind(std::optional<EditorItemKind> kind);
     [[nodiscard]] std::optional<EditorItemKind> placeKind() const { return m_placeKind; }
     [[nodiscard]] bool loadFromFile(const QString& path, QString* error = nullptr);
-    [[nodiscard]] bool loadFromJson(const QByteArray& json, QString* error = nullptr);
     [[nodiscard]] bool importFromFile(const QString& path, QString* error = nullptr);
     [[nodiscard]] bool save(QString* error = nullptr);
     [[nodiscard]] bool saveTo(const QString& path, QString* error = nullptr);
@@ -93,13 +99,15 @@ public:
     void selectItem(const QString& itemId, bool additive = false);
     void selectItems(const QStringList& ids);
     void selectTarget(EditorTarget target);
+    void selectGrid(const QString& gridId);
+    [[nodiscard]] QString selectedGridId() const;
+    [[nodiscard]] const PageGrid* selectedGrid() const;
 
-    /// Snapshot-undo mutation of the whole family. No-op if nothing changed.
-    void edit(const QString& label, const std::function<void(LayoutDocument&)>& fn);
+    void edit(const QString& label, const std::function<void(PageDocument&)>& fn);
 
     void addItem(EditorItemKind kind);
-    void addItemAt(EditorItemKind kind, int row, int col);
-    void addFreeItemAt(const QPoint& virtTopLeft);
+    void addItemAt(EditorItemKind kind, int row, int col, const QString& gridId = {});
+    void addZoneAt(const QPoint& virtTopLeft);
     void duplicateSelected();
     void deleteSelected();
     void cutSelected();
@@ -109,20 +117,23 @@ public:
     void moveSelected(int dRow, int dCol);
     void nudgeSelected(int dRow, int dCol, int freePx);
     void resizeItem(const QString& itemId, int rowSpan, int colSpan, double widthUnits);
-    void resizeFreeItem(const QString& itemId, const DimSpec& width, const DimSpec& height);
+    void resizeFreeItem(const QString& itemId, const PageDim& width, const PageDim& height);
     void raiseSelected();
     void lowerSelected();
     void convertSelectedToFree();
     void convertSelectedToCell();
     void setItemLabel(const QString& itemId, const QString& label);
+    void addTopGrid();
+    void addSubGrid();
+    void addNamedStyle();
+    void addNamedDwell();
     void addGridRow();
     void addGridColumn();
     void packGrid();
     void equalizeSelectedWidths();
     void alignSelectedRow();
-    void applyChromeToSelected(const std::function<void(LayoutChromeStyle&)>& mut,
-                               const QString& undoLabel);
-    void setActions(const QString& itemId, QVector<LayoutAction> acts);
+    void applyChromeToSelected(const std::function<void(PageChrome&)>& mut, const QString& undoLabel);
+    void setActions(const QString& itemId, QVector<PageAction> acts);
     void snapWindowTo(const QPoint& virtualTopLeft, const QSize& virtualScreen);
     [[nodiscard]] QString uniqueItemId(const QString& stem) const;
     [[nodiscard]] QStringList validate(const QStringList& catalogIds = {}) const;
@@ -141,16 +152,13 @@ private:
     class LayerEditCommand;
     friend class LayerEditCommand;
 
-    [[nodiscard]] LayoutDocument& currentDoc();
-    void restoreLayer(int layerIndex, LayoutDocument doc);
+    [[nodiscard]] PageDocument& currentDoc();
+    void restoreLayer(int layerIndex, PageDocument doc);
     void restoreProject(QVector<EditorLayer> layers, int layerIndex);
     void replaceProject(QVector<EditorLayer> layers, int layerIndex, const QString& path,
                         bool dirty);
     void setDirty(bool dirty);
     void resetUndo();
-    void ensureGridFits(LayoutDocument& doc);
-    void expandGridForItem(LayoutDocument& doc, const LayoutItem& item);
-    [[nodiscard]] bool findEmptyCell(int& row, int& col) const;
     [[nodiscard]] QStringList actionItemIds(const QString& itemId) const;
 
     QVector<EditorLayer> m_layers;
@@ -159,7 +167,7 @@ private:
     bool m_dirty = false;
     EditorSelection m_sel;
     QUndoStack m_undo;
-    QVector<LayoutItem> m_clipboard;
+    QVector<EditorClip> m_clipboard;
     std::optional<EditorItemKind> m_placeKind;
 };
 

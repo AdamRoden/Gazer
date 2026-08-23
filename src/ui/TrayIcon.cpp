@@ -62,9 +62,9 @@ TrayIcon::TrayIcon(QObject* parent)
     }
 
     m_menu = new QMenu();
-    auto* layoutAction = m_menu->addAction(QStringLiteral("Show layout"));
+    auto* layoutAction = m_menu->addAction(QStringLiteral("Show pages"));
     auto* previewAction = m_menu->addAction(QStringLiteral("Show preview"));
-    auto* editorAction = m_menu->addAction(QStringLiteral("Layout editor"));
+    auto* editorAction = m_menu->addAction(QStringLiteral("Page editor"));
     m_menu->addSeparator();
     auto* quitAction = m_menu->addAction(QStringLiteral("Quit Gazer"));
 

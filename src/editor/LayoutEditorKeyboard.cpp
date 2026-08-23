@@ -1,28 +1,121 @@
 #include "editor/LayoutEditorKeyboard.h"
 
+#include "layout/PageEdit.h"
+
 namespace gazer {
 
-LayoutDocument makeBlankDocument()
+namespace {
+
+PageAction sendKey(const QString& key)
 {
-    LayoutDocument d;
-    d.schemaVersion = 1;
+    PageAction a;
+    a.type = PageActionType::Send;
+    a.sendKey = key;
+    return a;
+}
+
+PageAction openPage(const QString& id)
+{
+    PageAction a;
+    a.type = PageActionType::Page;
+    a.verb = PageVerb::Open;
+    a.targetKind = PageTargetKind::Page;
+    a.targetId = id;
+    return a;
+}
+
+PageCell keyCell(const QString& id, const QString& label, int row, int col, const QString& send)
+{
+    PageCell c;
+    c.id = id;
+    c.label = label;
+    c.row = row;
+    c.col = col;
+    c.actions.push_back(sendKey(send));
+    return c;
+}
+
+PageGrid boardGrid(int cols, int rows, int width, int height)
+{
+    PageGrid g;
+    g.id = QStringLiteral("board");
+    g.desktopMode = true;
+    g.anchor = PageAnchor::Bottom;
+    g.size.x = PageDim::pixels(width);
+    g.size.y = PageDim::pixels(height);
+    g.rows = rows;
+    g.columns = cols;
+    g.gapPx = 6;
+    g.marginPx = 8;
+    return g;
+}
+
+} // namespace
+
+PageDocument makeBlankDocument()
+{
+    PageDocument d;
     d.id = QStringLiteral("untitled");
     d.name = QStringLiteral("Untitled");
     d.autoClose = true;
-    d.grid.columns = 4;
-    d.grid.rows = 2;
-    d.grid.gapPx = 8;
-    d.grid.marginPx = 8;
-    d.placement.specified = true;
-    d.placement.anchor = LayoutWindowPlacement::Anchor::BottomCenter;
-    d.placement.width = DimSpec::pixels(800);
-    d.placement.height = DimSpec::pixels(280);
+    d.grids.push_back(boardGrid(4, 2, 800, 280));
     return d;
 }
 
 QVector<EditorLayer> makeBlankLayers()
 {
     return {{QStringLiteral("Base"), {}, makeBlankDocument()}};
+}
+
+QVector<PageDocument> makeKeyboardFamily(const QString& id, const QString& name)
+{
+    auto makeLayer = [&](const QString& suffix, const QString& layerName, bool shifted) {
+        PageDocument d;
+        d.id = id + suffix;
+        d.name = name + (layerName.isEmpty() ? QString() : QStringLiteral(" ") + layerName);
+        d.autoClose = true;
+        PageGrid g = boardGrid(10, 4, 1100, 360);
+        const QString row1 = shifted ? QStringLiteral("QWERTYUIOP") : QStringLiteral("qwertyuiop");
+        const QString row2 = shifted ? QStringLiteral("ASDFGHJKL") : QStringLiteral("asdfghjkl");
+        const QString row3 = shifted ? QStringLiteral("ZXCVBNM") : QStringLiteral("zxcvbnm");
+        auto addRow = [&](const QString& keys, int row, int col0) {
+            for (int i = 0; i < keys.size(); ++i) {
+                const QString ch = keys.mid(i, 1);
+                g.cells.push_back(keyCell(QStringLiteral("k_%1_%2").arg(row).arg(i), ch, row,
+                                          col0 + i, ch));
+            }
+        };
+        addRow(row1, 0, 0);
+        addRow(row2, 1, 0);
+        addRow(row3, 2, 0);
+        PageCell space;
+        space.id = QStringLiteral("space");
+        space.label = QStringLiteral("Space");
+        space.row = 3;
+        space.col = 2;
+        space.colSpan = 5;
+        space.actions.push_back(sendKey(QStringLiteral("Space")));
+        g.cells.push_back(space);
+        PageCell shift;
+        shift.id = QStringLiteral("shift");
+        shift.label = QStringLiteral("Shift");
+        shift.row = 3;
+        shift.col = 0;
+        shift.colSpan = 2;
+        shift.actions.push_back(openPage(shifted ? id : id + QStringLiteral("_shift")));
+        g.cells.push_back(shift);
+        PageCell bk;
+        bk.id = QStringLiteral("back");
+        bk.label = QStringLiteral("Bksp");
+        bk.row = 3;
+        bk.col = 7;
+        bk.colSpan = 3;
+        bk.actions.push_back(sendKey(QStringLiteral("Backspace")));
+        g.cells.push_back(bk);
+        d.grids.push_back(std::move(g));
+        return d;
+    };
+    return {makeLayer({}, {}, false), makeLayer(QStringLiteral("_shift"), QStringLiteral("Shift"), true)};
 }
 
 QVector<EditorLayer> makeTemplateLayers(EditorTemplate tmpl, const QString& id, const QString& name)
@@ -32,85 +125,74 @@ QVector<EditorLayer> makeTemplateLayers(EditorTemplate tmpl, const QString& id, 
         const QString boardName = name.trimmed().isEmpty() ? boardId : name.trimmed();
         const auto family = makeKeyboardFamily(boardId, boardName);
         return {{QStringLiteral("Base"), {}, family[0]},
-                {QStringLiteral("Shift"), QStringLiteral("_shift"), family[1]},
-                {QStringLiteral("Symbols"), QStringLiteral("_sym"), family[2]}};
+                {QStringLiteral("Shift"), QStringLiteral("_shift"), family[1]}};
     }
 
-    LayoutDocument d = makeBlankDocument();
+    PageDocument d = makeBlankDocument();
     d.id = id.trimmed().isEmpty() ? QStringLiteral("untitled") : id.trimmed();
     d.name = name.trimmed().isEmpty() ? d.id : name.trimmed();
-    d.placement.specified = true;
-    d.placement.anchor = LayoutWindowPlacement::Anchor::BottomCenter;
-
-    auto addKey = [&](const QString& label, int col, double u) {
-        LayoutItem it;
-        it.id = QStringLiteral("k_%1").arg(label);
-        it.label = label;
-        it.row = 0;
-        it.col = col;
-        it.widthUnits = u;
-        it.action.type = LayoutAction::Type::TypeText;
-        it.action.text = label;
-        it.actions = {it.action};
-        d.items.push_back(it);
-    };
+    PageEdit::ensurePrimaryGrid(d);
+    PageGrid* g = PageEdit::primaryGrid(d);
 
     switch (tmpl) {
     case EditorTemplate::KeyboardRow: {
-        d.grid.columns = 10;
-        d.grid.rows = 1;
-        d.grid.gapPx = 4;
-        d.grid.marginPx = 6;
-        d.grid.unitRows = true;
-        d.placement.width = DimSpec::pixels(1100);
-        d.placement.height = DimSpec::pixels(96);
+        g->columns = 10;
+        g->rows = 1;
+        g->gapPx = 4;
+        g->marginPx = 6;
+        g->size.x = PageDim::pixels(1100);
+        g->size.y = PageDim::pixels(96);
         const QString keys = QStringLiteral("qwertyuiop");
         for (int i = 0; i < keys.size(); ++i) {
-            addKey(keys.mid(i, 1), i, 1.0);
+            g->cells.push_back(keyCell(QStringLiteral("k_%1").arg(keys.mid(i, 1)), keys.mid(i, 1), 0,
+                                       i, keys.mid(i, 1)));
         }
         break;
     }
     case EditorTemplate::SettingsRow: {
-        d.grid.columns = 4;
-        d.grid.rows = 1;
-        d.grid.gapPx = 10;
-        d.grid.marginPx = 10;
-        d.placement.width = DimSpec::pixels(1080);
-        d.placement.height = DimSpec::pixels(140);
+        g->columns = 4;
+        g->rows = 1;
+        g->gapPx = 10;
+        g->marginPx = 10;
+        g->size.x = PageDim::pixels(1080);
+        g->size.y = PageDim::pixels(140);
         const QStringList labels = {QStringLiteral("Keyboard"), QStringLiteral("Mouse"),
                                     QStringLiteral("Assist"), QStringLiteral("Settings")};
-        const QStringList layouts = {QStringLiteral("example_keyboard"),
-                                     QStringLiteral("example_mouse"),
-                                     QStringLiteral("example_assist"),
-                                     QStringLiteral("main_settings_button_timing")};
+        const QStringList pages = {QStringLiteral("uw_qwerty"), QStringLiteral("example_mouse"),
+                                   QStringLiteral("example_assist"),
+                                   QStringLiteral("main_settings_button_timing")};
         const QStringList icons = {QStringLiteral("Keyboard"), QStringLiteral("Mouse"),
                                    QStringLiteral("Conversation"), QStringLiteral("SizeAndPosition")};
         for (int i = 0; i < labels.size(); ++i) {
-            LayoutItem it;
-            it.id = QStringLiteral("open_%1").arg(i);
-            it.label = labels[i];
-            it.icon = icons[i];
-            it.row = 0;
-            it.col = i;
-            it.action.type = LayoutAction::Type::OpenLayout;
-            it.action.layoutId = layouts[i];
-            it.actions = {it.action};
-            d.items.push_back(it);
+            PageCell c;
+            c.id = QStringLiteral("open_%1").arg(i);
+            c.label = labels[i];
+            c.icon = icons[i];
+            c.row = 0;
+            c.col = i;
+            c.actions.push_back(openPage(pages[i]));
+            g->cells.push_back(c);
         }
         break;
     }
     case EditorTemplate::EdgeChip: {
-        d.placement.hidden = true;
-        d.grid.columns = 1;
-        d.grid.rows = 1;
-        LayoutItem it;
-        it.id = QStringLiteral("edge");
-        it.label = QStringLiteral("Main");
-        it.setAnchor(LayoutDwellRegion::ScreenAnchor::Bottom);
-        it.action.type = LayoutAction::Type::Command;
-        it.action.name = QStringLiteral("expandMaster");
-        it.actions = {it.action};
-        d.items.push_back(it);
+        d.grids.clear();
+        PageZone z;
+        z.id = QStringLiteral("edge");
+        z.label = QStringLiteral("Main");
+        z.anchor = PageAnchor::Bottom;
+        z.size.x = PageDim::pixels(300);
+        z.size.y = PageDim::pixels(150);
+        z.dwellOffset.y = PageDim::pixels(240);
+        z.dwellSize.x = PageDim::pixels(300);
+        z.dwellSize.y = PageDim::pixels(200);
+        PageAction a;
+        a.type = PageActionType::Page;
+        a.verb = PageVerb::Open;
+        a.targetKind = PageTargetKind::Grid;
+        a.targetId = QStringLiteral("drawer");
+        z.actions.push_back(a);
+        d.zones.push_back(z);
         break;
     }
     case EditorTemplate::Blank:
@@ -119,226 +201,6 @@ QVector<EditorLayer> makeTemplateLayers(EditorTemplate tmpl, const QString& id, 
     }
 
     return {{QStringLiteral("Base"), {}, std::move(d)}};
-}
-
-
-namespace {
-
-LayoutChromeStyle modStyle()
-{
-    LayoutChromeStyle s;
-    s.background = QColor(QStringLiteral("#3d4f66"));
-    s.foreground = QColor(QStringLiteral("#ffffff"));
-    return s;
-}
-
-LayoutChromeStyle accentStyle()
-{
-    LayoutChromeStyle s;
-    s.background = QColor(QStringLiteral("#0a7ea4"));
-    s.foreground = QColor(QStringLiteral("#ffffff"));
-    return s;
-}
-
-LayoutItem letter(const QString& ch, int row, int col, double u)
-{
-    LayoutItem it;
-    it.id = QStringLiteral("k_%1_%2_%3").arg(row).arg(col).arg(ch);
-    it.label = ch;
-    it.row = row;
-    it.col = col;
-    it.widthUnits = u;
-    it.action.type = LayoutAction::Type::TypeText;
-    it.action.text = ch;
-    it.actions = {it.action};
-    return it;
-}
-
-LayoutItem withIcon(LayoutItem it, const QString& icon)
-{
-    it.icon = icon;
-    return it;
-}
-
-LayoutItem cmdKey(const QString& id, const QString& label, int row, int col, double u,
-                  const QString& command, bool accent = false)
-{
-    LayoutItem it;
-    it.id = id;
-    it.label = label;
-    it.row = row;
-    it.col = col;
-    it.widthUnits = u;
-    it.action.type = LayoutAction::Type::Command;
-    it.action.name = command;
-    it.actions = {it.action};
-    it.style = accent ? accentStyle() : modStyle();
-    return it;
-}
-
-LayoutItem layerKey(const QString& id, const QString& label, int row, int col, double u,
-                    const QString& layoutId, bool accent = false)
-{
-    LayoutItem it;
-    it.id = id;
-    it.label = label;
-    it.row = row;
-    it.col = col;
-    it.widthUnits = u;
-    it.action.type = LayoutAction::Type::LoadLayout;
-    it.action.layoutId = layoutId;
-    it.actions = {it.action};
-    it.style = accent ? accentStyle() : modStyle();
-    return it;
-}
-
-LayoutDocument board(const QString& id, const QString& name)
-{
-    LayoutDocument d;
-    d.schemaVersion = 1;
-    d.id = id;
-    d.name = name;
-    d.autoClose = true;
-    d.grid.columns = 12;
-    d.grid.rows = 3;
-    d.grid.gapPx = 4;
-    d.grid.marginPx = 4;
-    d.grid.unitRows = true;
-    d.placement.specified = true;
-    d.placement.anchor = LayoutWindowPlacement::Anchor::BottomCenter;
-    d.placement.width = DimSpec::pixels(1280);
-    d.placement.height = DimSpec::pixels(280);
-    return d;
-}
-
-} // namespace
-
-QVector<LayoutDocument> makeKeyboardFamily(const QString& id, const QString& name)
-{
-    const QString shiftId = id + QStringLiteral("_shift");
-    const QString symId = id + QStringLiteral("_sym");
-
-    LayoutDocument base = board(id, name);
-    const QString row0 = QStringLiteral("qwertyuiop");
-    base.items.push_back(withIcon(
-        cmdKey(QStringLiteral("tab"), QStringLiteral("Tab"), 0, 0, 0.9, QStringLiteral("tab")),
-        QStringLiteral("Tab")));
-    for (int i = 0; i < row0.size(); ++i) {
-        base.items.push_back(letter(row0.mid(i, 1), 0, i + 1, i < 5 ? 0.95 : 1.0));
-    }
-    base.items.push_back(withIcon(
-        cmdKey(QStringLiteral("bksp"), QString(), 0, 11, 1.2, QStringLiteral("backspace")),
-        QStringLiteral("BackOne")));
-    base.items.push_back(withIcon(layerKey(QStringLiteral("shift"), QString(), 1, 0, 1.3, shiftId),
-                                 QStringLiteral("Shift")));
-    const QString row1 = QStringLiteral("asdfghjkl");
-    for (int i = 0; i < row1.size(); ++i) {
-        base.items.push_back(letter(row1.mid(i, 1), 1, i + 1, 1.0));
-    }
-    base.items.push_back(letter(QStringLiteral(","), 1, 10, 0.9));
-    base.items.push_back(letter(QStringLiteral("'"), 1, 11, 0.9));
-    base.items.push_back(withIcon(
-        cmdKey(QStringLiteral("cmd"), QString(), 2, 0, 0.9, QStringLiteral("escape")),
-        QStringLiteral("Win")));
-    base.items.push_back(withIcon(
-        layerKey(QStringLiteral("sym"), QStringLiteral("123?"), 2, 1, 0.9, symId, true),
-        QStringLiteral("NumericAndSymbols")));
-    const QString row2 = QStringLiteral("zxcv");
-    for (int i = 0; i < row2.size(); ++i) {
-        base.items.push_back(letter(row2.mid(i, 1), 2, i + 2, 0.9));
-    }
-    base.items.push_back(withIcon(
-        cmdKey(QStringLiteral("space"), QString(), 2, 6, 1.5, QStringLiteral("space")),
-        QStringLiteral("Space")));
-    base.items.push_back(letter(QStringLiteral("b"), 2, 7, 0.9));
-    base.items.push_back(letter(QStringLiteral("n"), 2, 8, 1.0));
-    base.items.push_back(letter(QStringLiteral("m"), 2, 9, 1.0));
-    base.items.push_back(letter(QStringLiteral("."), 2, 10, 0.9));
-    base.items.push_back(withIcon(
-        cmdKey(QStringLiteral("enter"), QString(), 2, 11, 1.2, QStringLiteral("enter"), true),
-        QStringLiteral("Enter")));
-
-    LayoutDocument shift = board(shiftId, name + QStringLiteral(" (shift)"));
-    shift.items.push_back(withIcon(
-        cmdKey(QStringLiteral("tab"), QStringLiteral("Tab"), 0, 0, 0.9, QStringLiteral("tab")),
-        QStringLiteral("Tab")));
-    const QString s0 = QStringLiteral("QWERTYUIOP");
-    for (int i = 0; i < s0.size(); ++i) {
-        shift.items.push_back(letter(s0.mid(i, 1), 0, i + 1, i < 5 ? 0.95 : 1.0));
-    }
-    shift.items.push_back(withIcon(
-        cmdKey(QStringLiteral("bksp"), QString(), 0, 11, 1.2, QStringLiteral("backspace")),
-        QStringLiteral("BackOne")));
-    shift.items.push_back(withIcon(
-        layerKey(QStringLiteral("shift"), QString(), 1, 0, 1.3, id, true), QStringLiteral("Shift")));
-    const QString s1 = QStringLiteral("ASDFGHJKL");
-    for (int i = 0; i < s1.size(); ++i) {
-        shift.items.push_back(letter(s1.mid(i, 1), 1, i + 1, 1.0));
-    }
-    shift.items.push_back(letter(QStringLiteral("<"), 1, 10, 0.9));
-    shift.items.push_back(letter(QStringLiteral("\""), 1, 11, 0.9));
-    shift.items.push_back(withIcon(
-        cmdKey(QStringLiteral("cmd"), QString(), 2, 0, 0.9, QStringLiteral("escape")),
-        QStringLiteral("Win")));
-    shift.items.push_back(withIcon(
-        layerKey(QStringLiteral("sym"), QStringLiteral("123?"), 2, 1, 0.9, symId, true),
-        QStringLiteral("NumericAndSymbols")));
-    const QString s2 = QStringLiteral("ZXCV");
-    for (int i = 0; i < s2.size(); ++i) {
-        shift.items.push_back(letter(s2.mid(i, 1), 2, i + 2, 0.9));
-    }
-    shift.items.push_back(withIcon(
-        cmdKey(QStringLiteral("space"), QString(), 2, 6, 1.5, QStringLiteral("space")),
-        QStringLiteral("Space")));
-    shift.items.push_back(letter(QStringLiteral("B"), 2, 7, 0.9));
-    shift.items.push_back(letter(QStringLiteral("N"), 2, 8, 1.0));
-    shift.items.push_back(letter(QStringLiteral("M"), 2, 9, 1.0));
-    shift.items.push_back(letter(QStringLiteral("?"), 2, 10, 0.9));
-    shift.items.push_back(withIcon(
-        cmdKey(QStringLiteral("enter"), QString(), 2, 11, 1.2, QStringLiteral("enter"), true),
-        QStringLiteral("Enter")));
-
-    LayoutDocument sym = board(symId, name + QStringLiteral(" (sym)"));
-    const QString n0 = QStringLiteral("1234567890");
-    sym.items.push_back(withIcon(
-        cmdKey(QStringLiteral("tab"), QStringLiteral("Tab"), 0, 0, 0.9, QStringLiteral("tab")),
-        QStringLiteral("Tab")));
-    for (int i = 0; i < n0.size(); ++i) {
-        sym.items.push_back(letter(n0.mid(i, 1), 0, i + 1, 1.0));
-    }
-    sym.items.push_back(withIcon(
-        cmdKey(QStringLiteral("bksp"), QString(), 0, 11, 1.2, QStringLiteral("backspace")),
-        QStringLiteral("BackOne")));
-    sym.items.push_back(withIcon(layerKey(QStringLiteral("shift"), QString(), 1, 0, 1.3, shiftId),
-                                QStringLiteral("Shift")));
-    const QString n1[] = {QStringLiteral("-"), QStringLiteral("/"), QStringLiteral(":"),
-                          QStringLiteral(";"), QStringLiteral("("), QStringLiteral(")"),
-                          QStringLiteral("$"), QStringLiteral("&"), QStringLiteral("@")};
-    for (int i = 0; i < 9; ++i) {
-        sym.items.push_back(letter(n1[i], 1, i + 1, 1.0));
-    }
-    sym.items.push_back(letter(QStringLiteral("\""), 1, 10, 0.9));
-    sym.items.push_back(letter(QStringLiteral("!"), 1, 11, 0.9));
-    sym.items.push_back(withIcon(
-        layerKey(QStringLiteral("abc"), QStringLiteral("ABC"), 2, 0, 0.9, id, true),
-        QStringLiteral("Alpha")));
-    const QString n2[] = {QStringLiteral("."), QStringLiteral(","), QStringLiteral("?"),
-                          QStringLiteral("'"), QStringLiteral("#")};
-    for (int i = 0; i < 5; ++i) {
-        sym.items.push_back(letter(n2[i], 2, i + 1, 0.9));
-    }
-    sym.items.push_back(withIcon(
-        cmdKey(QStringLiteral("space"), QString(), 2, 6, 1.5, QStringLiteral("space")),
-        QStringLiteral("Space")));
-    sym.items.push_back(letter(QStringLiteral("+"), 2, 7, 0.9));
-    sym.items.push_back(letter(QStringLiteral("="), 2, 8, 1.0));
-    sym.items.push_back(letter(QStringLiteral("*"), 2, 9, 1.0));
-    sym.items.push_back(letter(QStringLiteral("%"), 2, 10, 0.9));
-    sym.items.push_back(withIcon(
-        cmdKey(QStringLiteral("enter"), QString(), 2, 11, 1.2, QStringLiteral("enter"), true),
-        QStringLiteral("Enter")));
-
-    return {base, shift, sym};
 }
 
 } // namespace gazer

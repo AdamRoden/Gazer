@@ -1,12 +1,12 @@
 #include "editor/LayoutEditorSession.h"
 
-#include "layout/LayoutLoader.h"
-#include "layout/LayoutSchema.h"
-#include "layout/LayoutWriter.h"
+#include "layout/PageLoader.h"
+#include "layout/PageWriter.h"
 
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <functional>
 
 namespace gazer {
 
@@ -14,64 +14,88 @@ namespace {
 
 int suffixIndex(QString* family)
 {
-    const QString suffix = LayoutSchema::layoutIdSuffix(*family);
-    *family = LayoutSchema::layoutFamilyId(*family);
-    if (suffix == QLatin1String("_shift")) {
-        return 1;
+    const QString id = *family;
+    auto strip = [&](const QString& suf, int idx) -> int {
+        if (id.endsWith(suf)) {
+            *family = id.left(id.size() - suf.size());
+            return idx;
+        }
+        return -1;
+    };
+    int n = strip(QStringLiteral("_sym_shift"), 3);
+    if (n >= 0) {
+        return n;
     }
-    if (suffix == QLatin1String("_sym")) {
-        return 2;
+    n = strip(QStringLiteral("_shift"), 1);
+    if (n >= 0) {
+        return n;
     }
-    if (suffix == QLatin1String("_sym_shift")) {
-        return 3;
+    n = strip(QStringLiteral("_sym"), 2);
+    if (n >= 0) {
+        return n;
     }
     return 0;
 }
 
-bool actionRefersTo(const LayoutAction& a, const QString& id)
+bool actionRefersTo(const PageAction& a, const QString& id)
 {
-    return !id.isEmpty() && a.layoutId == id;
+    return a.type == PageActionType::Page && !id.isEmpty() && a.targetId == id;
 }
 
-bool documentRefersTo(const LayoutDocument& doc, const QString& id)
+bool documentRefersTo(const PageDocument& doc, const QString& id)
 {
-    const auto scan = [&](const QVector<LayoutAction>& acts) {
-        for (const LayoutAction& a : acts) {
+    auto scan = [&](const QVector<PageAction>& acts) {
+        for (const PageAction& a : acts) {
             if (actionRefersTo(a, id)) {
                 return true;
             }
         }
         return false;
     };
-    if (scan(doc.onOpen) || scan(doc.onLoad) || scan(doc.onClose)) {
-        return true;
+    std::function<bool(const PageGrid&)> walk = [&](const PageGrid& g) -> bool {
+        for (const PageCell& c : g.cells) {
+            if (scan(c.actions)) {
+                return true;
+            }
+        }
+        for (const PageGrid& sub : g.subGrids) {
+            if (walk(sub)) {
+                return true;
+            }
+        }
+        return false;
+    };
+    for (const PageGrid& g : doc.grids) {
+        if (walk(g)) {
+            return true;
+        }
     }
-    for (const LayoutItem& it : doc.items) {
-        if (scan(it.effectiveActions())) {
+    for (const PageZone& z : doc.zones) {
+        if (scan(z.actions)) {
             return true;
         }
     }
     return false;
 }
 
-bool loadLayerFile(const QString& path, LayoutDocument& out)
+bool loadLayerFile(const QString& path, PageDocument& out)
 {
     QString err;
-    return QFileInfo::exists(path) && LayoutLoader::loadFromFile(path, out, &err);
+    return QFileInfo::exists(path) && PageLoader::loadFromFile(path, out, &err);
 }
 
 QVector<EditorLayer> assembleFamily(const QString& dir, const QString& family, int opened,
-                                    LayoutDocument openedDoc)
+                                    PageDocument openedDoc)
 {
-    const QString basePath = QDir(dir).filePath(family + QStringLiteral(".json"));
-    const QString shiftPath = QDir(dir).filePath(family + QStringLiteral("_shift.json"));
-    const QString symPath = QDir(dir).filePath(family + QStringLiteral("_sym.json"));
-    const QString symShiftPath = QDir(dir).filePath(family + QStringLiteral("_sym_shift.json"));
+    const QString basePath = QDir(dir).filePath(family + QStringLiteral(".xml"));
+    const QString shiftPath = QDir(dir).filePath(family + QStringLiteral("_shift.xml"));
+    const QString symPath = QDir(dir).filePath(family + QStringLiteral("_sym.xml"));
+    const QString symShiftPath = QDir(dir).filePath(family + QStringLiteral("_sym_shift.xml"));
 
-    LayoutDocument base;
-    LayoutDocument shift;
-    LayoutDocument sym;
-    LayoutDocument symShift;
+    PageDocument base;
+    PageDocument shift;
+    PageDocument sym;
+    PageDocument symShift;
     const bool hasBaseFile = opened == 0 || loadLayerFile(basePath, base);
     const bool hasShift = opened == 1 || loadLayerFile(shiftPath, shift);
     const bool hasSym = opened == 2 || loadLayerFile(symPath, sym);
@@ -183,8 +207,8 @@ bool replaceWithBackup(const QStringList& temps, const QStringList& finals, QStr
 
 bool LayoutEditorSession::loadFromFile(const QString& path, QString* error)
 {
-    LayoutDocument doc;
-    if (!LayoutLoader::loadFromFile(path, doc, error)) {
+    PageDocument doc;
+    if (!PageLoader::loadFromFile(path, doc, error)) {
         return false;
     }
     const QFileInfo fi(path);
@@ -197,20 +221,10 @@ bool LayoutEditorSession::loadFromFile(const QString& path, QString* error)
     return true;
 }
 
-bool LayoutEditorSession::loadFromJson(const QByteArray& json, QString* error)
-{
-    LayoutDocument doc;
-    if (!LayoutLoader::loadFromJson(json, doc, error)) {
-        return false;
-    }
-    replaceProject({{QStringLiteral("Base"), {}, std::move(doc)}}, 0, m_filePath, true);
-    return true;
-}
-
 bool LayoutEditorSession::importFromFile(const QString& path, QString* error)
 {
-    LayoutDocument doc;
-    if (!LayoutLoader::loadFromFile(path, doc, error)) {
+    PageDocument doc;
+    if (!PageLoader::loadFromFile(path, doc, error)) {
         return false;
     }
     replaceProject({{QStringLiteral("Base"), {}, std::move(doc)}}, 0, {}, true);
@@ -242,17 +256,17 @@ bool LayoutEditorSession::saveTo(const QString& path, QString* error)
         return false;
     }
 
-    QVector<LayoutDocument> written;
+    QVector<PageDocument> written;
     written.reserve(m_layers.size());
     QStringList temps;
     QStringList finals;
     for (const EditorLayer& layer : m_layers) {
-        LayoutDocument doc = layer.doc;
+        PageDocument doc = layer.doc;
         doc.id = family + layer.suffix;
-        const QString out = QDir(dir).filePath(doc.id + QStringLiteral(".json"));
+        const QString out = QDir(dir).filePath(doc.id + QStringLiteral(".xml"));
         const QString tmp = out + QStringLiteral(".tmp");
         QFile::remove(tmp);
-        if (!LayoutWriter::saveToFile(doc, tmp, error)) {
+        if (!PageWriter::saveToFile(doc, tmp, error)) {
             for (const QString& t : temps) {
                 QFile::remove(t);
             }
@@ -283,7 +297,7 @@ bool LayoutEditorSession::saveTo(const QString& path, QString* error)
 
 bool LayoutEditorSession::exportTo(const QString& path, QString* error)
 {
-    if (!LayoutWriter::saveToFile(document(), path, error)) {
+    if (!PageWriter::saveToFile(document(), path, error)) {
         return false;
     }
     emit statusMessage(QStringLiteral("Exported %1").arg(path));

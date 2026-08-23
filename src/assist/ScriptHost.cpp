@@ -1,7 +1,6 @@
 #include "assist/ScriptHost.h"
 
 #include "input/InputTypes.h"
-#include "layout/SessionNavigate.h"
 #include "utils/Log.h"
 
 #include <QJSValue>
@@ -9,12 +8,12 @@
 namespace gazer {
 
 ScriptApi::ScriptApi(PhraseService& phrases, CommandRegistry& commands, InputService& input,
-                     LayoutInstanceManager& instances, QObject* parent)
+                     PageSession& pages, QObject* parent)
     : QObject(parent)
     , m_phrases(phrases)
     , m_commands(commands)
     , m_input(input)
-    , m_instances(instances)
+    , m_pages(pages)
 {
 }
 
@@ -55,35 +54,47 @@ bool ScriptApi::runCommand(const QString& name)
     return ok;
 }
 
-bool ScriptApi::openLayout(const QString& layoutId)
+bool ScriptApi::openPage(const QString& pageId)
 {
     QString err;
-    return !m_instances.openInstance(layoutId, &err).isEmpty();
+    return m_pages.openPage(pageId, &err);
+}
+
+bool ScriptApi::loadPage(const QString& pageId)
+{
+    const QString cur = m_pages.topPageId();
+    if (!cur.isEmpty() && cur != m_pages.root().id) {
+        m_pages.closePage(cur);
+    }
+    QString err;
+    return m_pages.openPage(pageId, &err);
+}
+
+QString ScriptApi::focusedPageId() const
+{
+    return m_pages.topPageId();
+}
+
+bool ScriptApi::openLayout(const QString& layoutId)
+{
+    return openPage(layoutId);
 }
 
 bool ScriptApi::loadLayout(const QString& layoutId)
 {
-    auto* focused = m_instances.focusedInstance();
-    if (!focused) {
-        return false;
-    }
-    QString err;
-    return applyLoadLayout(m_instances, focused->instanceId(), layoutId, &err);
+    return loadPage(layoutId);
 }
 
 QString ScriptApi::focusedLayoutId() const
 {
-    if (!m_instances.focusedInstance()) {
-        return {};
-    }
-    return m_instances.focusedInstance()->layoutId();
+    return focusedPageId();
 }
 
 ScriptHost::ScriptHost(PhraseService& phrases, CommandRegistry& commands, InputService& input,
-                       LayoutInstanceManager& instances, QObject* parent)
+                       PageSession& pages, QObject* parent)
     : QObject(parent)
 {
-    m_api = new ScriptApi(phrases, commands, input, instances, this);
+    m_api = new ScriptApi(phrases, commands, input, pages, this);
     connect(m_api, &ScriptApi::statusMessage, this, &ScriptHost::statusMessage);
 
     const QJSValue gazerObj = m_engine.newQObject(m_api);
@@ -95,7 +106,7 @@ bool ScriptHost::evaluate(const QString& source, QString* error)
     if (source.trimmed().isEmpty()) {
         return true;
     }
-    const QJSValue result = m_engine.evaluate(source, QStringLiteral("layout-script"));
+    const QJSValue result = m_engine.evaluate(source, QStringLiteral("page-script"));
     if (result.isError()) {
         const QString msg = QStringLiteral("%1:%2: %3")
                                 .arg(result.property(QStringLiteral("fileName")).toString())

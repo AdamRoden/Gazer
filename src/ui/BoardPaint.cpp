@@ -1,12 +1,16 @@
 #include "ui/BoardPaint.h"
 
 #include "ui/KeySymbols.h"
+#include "ui/ProgressPaint.h"
+#include "layout/RoundBox.h"
 #include "ui/SliderTrack.h"
 
 #include <QFont>
 #include <QFontInfo>
 #include <QFontMetricsF>
 #include <QPainter>
+#include <QPainterPath>
+#include <QtMath>
 
 namespace gazer {
 namespace BoardPaint {
@@ -37,23 +41,61 @@ int fontPxToFit(const QString& family, int weight, int startPx, int minPx, const
 
 void fillRound(QPainter& p, const QRectF& r, double radius, const QColor& bg)
 {
+    fillRound(p, r, PageBox::all(radius), bg);
+}
+
+void fillRound(QPainter& p, const QRectF& r, const PageBox& radii, const QColor& bg)
+{
     if (!bg.isValid() || bg.alpha() <= 0 || r.isEmpty()) {
         return;
     }
     p.setPen(Qt::NoPen);
     p.setBrush(bg);
-    p.drawRoundedRect(r, radius, radius);
+    p.drawPath(roundedBoxPath(r, radii));
 }
 
 void strokeRound(QPainter& p, const QRectF& r, double radius, const QColor& color, double width)
 {
-    if (width <= 0.0 || !color.isValid() || color.alpha() <= 0) {
+    strokeRound(p, r, PageBox::all(radius), color, PageBox::all(width));
+}
+
+void strokeRound(QPainter& p, const QRectF& r, const PageBox& radii, const QColor& color,
+                 const PageBox& width)
+{
+    if (!color.isValid() || color.alpha() <= 0 || r.isEmpty()) {
         return;
     }
-    p.setBrush(Qt::NoBrush);
-    p.setPen(QPen(color, width));
-    p.drawRoundedRect(r.adjusted(width / 2.0, width / 2.0, -width / 2.0, -width / 2.0), radius,
-                      radius);
+    const double t = width.at(0);
+    const double ri = width.at(1);
+    const double btm = width.at(2);
+    const double l = width.at(3);
+    if (t <= 0.0 && ri <= 0.0 && btm <= 0.0 && l <= 0.0) {
+        return;
+    }
+    if (width.uniform() && t > 0.0) {
+        p.setBrush(Qt::NoBrush);
+        p.setPen(QPen(color, t, Qt::SolidLine, Qt::FlatCap, Qt::MiterJoin));
+        const double h = t / 2.0;
+        p.drawPath(roundedBoxPath(r.adjusted(h, h, -h, -h), radii));
+        return;
+    }
+    const QPainterPath outer = roundedBoxPath(r, radii);
+    const QRectF innerRect = r.adjusted(l, t, -ri, -btm);
+    p.setPen(Qt::NoPen);
+    p.setBrush(color);
+    if (innerRect.width() <= 0.5 || innerRect.height() <= 0.5) {
+        p.drawPath(outer);
+        return;
+    }
+    const PageBox fitted = fitCornerRadii(r, radii);
+    const PageBox innerRadii = PageBox::of(qMax(0.0, fitted.at(0) - qMax(t, l)),
+                                           qMax(0.0, fitted.at(1) - qMax(t, ri)),
+                                           qMax(0.0, fitted.at(2) - qMax(btm, ri)),
+                                           qMax(0.0, fitted.at(3) - qMax(btm, l)));
+    QPainterPath ring = outer;
+    ring.setFillRule(Qt::OddEvenFill);
+    ring.addPath(roundedBoxPath(innerRect, innerRadii));
+    p.drawPath(ring);
 }
 
 void paintLabel(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeColors& theme)
@@ -125,7 +167,7 @@ void paintLabel(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeCo
 void paintTab(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeColors& theme,
               bool hovered, bool selected, double progress)
 {
-    const double radius = t.chrome.radius.value_or(6.0);
+    const double radius = t.chrome.radius ? t.chrome.radius->first() : 6.0;
     if (hovered && !selected) {
         QColor fill = theme.bgSurfaceHover.isValid() ? theme.bgSurfaceHover : theme.cellHover;
         fill.setAlpha(qBound(24, fill.alpha(), 80));
@@ -225,55 +267,50 @@ void paintSurface(QPainter& p, const QRectF& r, const PageChrome& chrome, const 
                   GlassBackdrop* glass, bool grid, bool hovered, bool active, bool interactive,
                   bool clustered)
 {
-    Q_UNUSED(glass);
     if (r.isEmpty()) {
         return;
     }
-    const double radius = chrome.radius.value_or(grid ? 8.0 : (clustered ? 4.0 : 8.0));
+    const PageBox radii = chrome.resolvedRadius(clustered);
     const QColor themeBase = opaqueFill(grid ? theme.bgMain : theme.cellBg,
                                         grid ? QColor(10, 10, 11) : QColor(26, 27, 28));
+    // Authored colors keep their alpha. Unset chrome still uses an opaque theme fill
+    // so a board without a background stays a solid overlay.
     QColor bg = chrome.background.value_or(themeBase);
     QColor border = chrome.borderColor.value_or(theme.border);
-    double thickness = chrome.thickness.value_or(grid ? 1.0 : 0.0);
+    PageBox thickness = chrome.thickness.value_or(PageBox::all(grid ? 1.0 : 0.0));
 
     if (active) {
         bg = theme.cellActive;
         border = theme.accentHover;
-        thickness = qMax(thickness, 1.5);
+        if (thickness.first() < 1.5) {
+            thickness = PageBox::all(1.5);
+        }
     } else if (hovered && interactive) {
         if (chrome.background) {
             bg = bg.lighter(114);
         } else {
             bg = theme.cellHover.isValid() ? theme.cellHover : bg.lighter(118);
         }
-        if (thickness <= 0.0) {
-            thickness = 1.0;
+        if (thickness.first() <= 0.0) {
+            thickness = PageBox::all(1.0);
             if (!chrome.borderColor) {
                 border = theme.border;
                 border.setAlpha(qBound(40, border.alpha(), 120));
             }
         }
-    } else if (!grid && !chrome.background && !clustered && thickness <= 0.0) {
-        thickness = 1.0;
+    } else if (!grid && !chrome.background && !clustered && thickness.first() <= 0.0) {
+        thickness = PageBox::all(1.0);
         border = theme.border;
         border.setAlpha(qBound(28, border.alpha(), 70));
     }
 
-    // Layered QQuickPaintedItem only keeps alpha from CompositionMode_Source +
-    // fillRect. Rounded Source fills and SourceOver leave the host see-through.
-    // Grids write that opaque base; cells SourceOver on top so they cannot punch
-    // holes in the board.
-    if (grid) {
-        const QColor board = opaqueFill(bg, themeBase);
-        p.save();
-        p.setCompositionMode(QPainter::CompositionMode_Source);
-        p.setPen(Qt::NoPen);
-        p.fillRect(r, board);
-        p.restore();
+    if (chrome.hasBlur() && glass) {
+        const QColor tint = (bg.isValid() && bg.alpha() > 0) ? bg : QColor();
+        glass->paint(p, r, radii, tint);
     } else if (bg.isValid() && bg.alpha() > 0) {
-        fillRound(p, r, radius, bg);
+        fillRound(p, r, radii, bg);
     }
-    strokeRound(p, r, radius, border, thickness);
+    strokeRound(p, r, radii, border, thickness);
 }
 
 void paintTarget(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeColors& theme,
@@ -285,7 +322,12 @@ void paintTarget(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeC
         return;
     }
     const bool clustered = !t.cluster.isEmpty();
-    const double radius = t.chrome.radius.value_or(clustered ? 4.0 : 8.0);
+    const PageBox radii = t.chrome.resolvedRadius(clustered);
+    const double radius = radii.first();
+    ProgressVisuals vis = pv;
+    if (t.chrome.progressStyle) {
+        vis.applyStyle(*t.chrome.progressStyle);
+    }
     const QColor fg = (active && !t.activeState.isEmpty())
                           ? t.chrome.foreground.value_or(theme.accent)
                           : t.chrome.foreground.value_or(theme.text);
@@ -294,8 +336,9 @@ void paintTarget(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeC
         const QString channel = t.caption.isEmpty() ? t.id : t.caption;
         const bool scrubbing =
             !sliderScrubId.isEmpty()
-            && (t.id == sliderScrubId || t.id.endsWith(QLatin1Char('/') + sliderScrubId));
-        SliderTrack::paint(p, r, theme, pv, previewColor, channel, t.label, hovered, progress,
+            && (sessionKey(t) == sliderScrubId || t.id == sliderScrubId
+                || t.id.endsWith(QLatin1Char('/') + sliderScrubId));
+        SliderTrack::paint(p, r, theme, vis, previewColor, channel, t.label, hovered, progress,
                            scrubbing, sliderScrubT, sliderScrubValue, sliderScrubProgress);
     } else if (t.role == QLatin1String("preview")) {
         SliderTrack::paintPreview(p, r, radius, previewColor);
@@ -310,13 +353,13 @@ void paintTarget(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeC
                      active && !t.activeState.isEmpty(), t.interactive, clustered);
         paintIconAndText(p, t, r, fg, theme);
         if (hovered && progress > 0.0 && t.interactive) {
-            paintProgress(p, r, progress, pv.withItemFlash(fg), ProgressShape::RoundedRect, radius);
+            paintProgress(p, r, progress, vis.withItemFlash(fg), ProgressShape::RoundedRect, radii);
         }
     }
     if (flashing) {
-        const QColor fc = pv.resolvedFlashColor(fg);
-        fillRound(p, r, radius, fc);
-        strokeRound(p, r, radius, fc, 3.5);
+        const QColor fc = vis.resolvedFlashColor(fg);
+        fillRound(p, r, radii, fc);
+        strokeRound(p, r, radii, fc, PageBox::all(3.5));
     }
 }
 

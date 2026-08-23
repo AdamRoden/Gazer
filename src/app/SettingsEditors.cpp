@@ -1,13 +1,11 @@
 #include "app/SettingsUi.h"
 #include "app/SettingsPageBuild.h"
 
-#include "layout/LayoutInstance.h"
-#include "layout/LayoutInstanceManager.h"
-#include "layout/LayoutManager.h"
+
 #include "layout/PageDim.h"
 #include "layout/PageHit.h"
 #include "layout/PageSession.h"
-#include "ui/LayoutQuickWindow.h"
+
 #include "ui/PageHostWindow.h"
 #include "ui/SliderTrack.h"
 #include "ui/Theme.h"
@@ -647,7 +645,9 @@ void SettingsUi::feedSliderGaze(const GazePoint& point)
     m_scrubGrace.onValid();
 
     const QPointF gaze = point.toPointF();
-    const PageTarget* hitT = PageHit::at(m_pages.targets(), gaze, 1.0, {});
+    const QTransform* xf = m_pages.window() ? &m_pages.window()->drawerXf() : nullptr;
+    const PageTarget* hitT =
+        PageHit::at(m_pages.targets(), gaze, m_pages.drawerScale(), {}, m_pages.gridPaints(), xf);
     const QString hit = hitT ? localIdOf(*hitT) : QString();
     const QString editId = QStringLiteral("edit_%1").arg(m_scrub.channel);
     const QString decId = QStringLiteral("dec_%1").arg(m_scrub.channel);

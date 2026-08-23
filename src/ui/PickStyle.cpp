@@ -1,5 +1,7 @@
 #include "ui/PickStyle.h"
 
+#include "ui/ProgressPaint.h"
+
 #include <QPainterPath>
 #include <QtMath>
 
@@ -85,7 +87,8 @@ void paint(QPainter& p, const QPointF& c, int flags, double progress, const Prog
         p.drawPath(path);
     }
 
-    if (progress > 0.01 && (visuals.radial || visuals.fillBackground || visuals.border)) {
+    if (progress > 0.01
+        && (visuals.style.radial || visuals.style.fillBackground || visuals.style.border)) {
         const qreal s = has(flags, GazeIndicator) ? 56.0 : 36.0;
         paintProgress(p, QRectF(c.x() - s * 0.5, c.y() - s * 0.5, s, s), progress, visuals,
                       ProgressShape::Ellipse);

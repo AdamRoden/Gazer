@@ -1,5 +1,7 @@
 #include "editor/LayoutEditorSession.h"
 
+#include "layout/PageEdit.h"
+
 #include <QSet>
 #include <algorithm>
 
@@ -18,11 +20,27 @@ QString roleForKind(EditorItemKind kind)
         return QStringLiteral("tab");
     case EditorItemKind::Slider:
         return QStringLiteral("slider");
-    case EditorItemKind::Unbounded:
+    case EditorItemKind::Zone:
     case EditorItemKind::Button:
         break;
     }
     return {};
+}
+
+PageAction sendLetter(const QString& label)
+{
+    PageAction a;
+    a.type = PageActionType::Send;
+    a.sendKey = label.toLower() == QLatin1String("button") ? QString() : label;
+    return a;
+}
+
+PageAction commandAction(const QString& name)
+{
+    PageAction a;
+    a.type = PageActionType::Command;
+    a.command = name;
+    return a;
 }
 
 } // namespace
@@ -42,61 +60,73 @@ void LayoutEditorSession::addItem(EditorItemKind kind)
 {
     int row = 0;
     int col = 0;
-    if (!findEmptyCell(row, col)) {
-        row = document().grid.rows;
+    QString gridId;
+    if (const PageGrid* own = PageEdit::gridOwningCell(document(), m_sel.itemId)) {
+        gridId = own->id;
+        if (!PageEdit::findEmptyCell(*own, row, col)) {
+            row = own->rows;
+            col = 0;
+        }
+    } else if (!PageEdit::findEmptyCell(document(), row, col)) {
+        const PageGrid* g = PageEdit::primaryGrid(document());
+        row = g ? g->rows : 0;
         col = 0;
     }
-    addItemAt(kind, row, col);
+    addItemAt(kind, row, col, gridId);
 }
 
-void LayoutEditorSession::addFreeItemAt(const QPoint& virtTopLeft)
+void LayoutEditorSession::addZoneAt(const QPoint& virtTopLeft)
 {
-    LayoutItem item;
-    item.id = uniqueItemId(QStringLiteral("free"));
-    item.label = QStringLiteral("Free");
-    item.setAnchor(LayoutDwellRegion::ScreenAnchor::TopLeft);
-    item.dwellRegion.x = DimSpec::pixels(virtTopLeft.x());
-    item.dwellRegion.y = DimSpec::pixels(virtTopLeft.y());
-    const QString newId = item.id;
-    edit(QStringLiteral("Add free item"), [&](LayoutDocument& d) { d.items.push_back(item); });
+    PageZone z;
+    z.id = uniqueItemId(QStringLiteral("zone"));
+    z.label = QStringLiteral("Zone");
+    z.anchor = PageAnchor::TopLeft;
+    z.offset.x = PageDim::pixels(virtTopLeft.x());
+    z.offset.y = PageDim::pixels(virtTopLeft.y());
+    z.size.x = PageDim::pixels(200);
+    z.size.y = PageDim::pixels(120);
+    z.dwellSize = z.size;
+    const QString newId = z.id;
+    edit(QStringLiteral("Add zone"), [&](PageDocument& d) { d.zones.push_back(z); });
     m_placeKind.reset();
     emit placeKindChanged();
     selectItem(newId);
 }
 
-void LayoutEditorSession::addItemAt(EditorItemKind kind, int row, int col)
+void LayoutEditorSession::addItemAt(EditorItemKind kind, int row, int col, const QString& gridId)
 {
-    const QString stem = kind == EditorItemKind::Unbounded ? QStringLiteral("free")
-                                                           : QStringLiteral("item");
-    LayoutItem item;
-    item.id = uniqueItemId(stem);
-    item.label = kind == EditorItemKind::Unbounded ? QStringLiteral("Free")
-                                                   : QStringLiteral("Button");
-    item.role = roleForKind(kind);
-    item.applyKind();
+    if (kind == EditorItemKind::Zone) {
+        addZoneAt(QPoint(200, 200));
+        return;
+    }
+    PageCell cell;
+    cell.id = uniqueItemId(QStringLiteral("item"));
+    cell.label = QStringLiteral("Button");
+    cell.role = roleForKind(kind);
+    cell.row = qMax(0, row);
+    cell.col = qMax(0, col);
     if (kind == EditorItemKind::Label || kind == EditorItemKind::Slider) {
-        item.interactive = false;
-    }
-    if (kind == EditorItemKind::Unbounded) {
-        item.setAnchor(LayoutDwellRegion::ScreenAnchor::Bottom);
-        item.label = QStringLiteral("Free");
-    } else {
-        item.row = qMax(0, row);
-        item.col = qMax(0, col);
-        item.action.type = LayoutAction::Type::TypeText;
-        item.action.text = item.label.toLower() == QLatin1String("button") ? QString()
-                                                                           : item.label;
-        if (kind == EditorItemKind::Toggle) {
-            item.action.type = LayoutAction::Type::Command;
-            item.action.name = QStringLiteral("toggleDwellSuspend");
-            item.action.text.clear();
+        cell.interactive = false;
+        if (kind == EditorItemKind::Label) {
+            cell.label = QStringLiteral("Label");
         }
-        item.actions = {item.action};
     }
-    const QString newId = item.id;
-    edit(QStringLiteral("Add %1").arg(item.label), [&](LayoutDocument& d) {
-        d.items.push_back(item);
-        expandGridForItem(d, item);
+    if (kind == EditorItemKind::Toggle) {
+        cell.actions.push_back(commandAction(QStringLiteral("toggleDwellSuspend")));
+        cell.dwellExempt = true;
+    } else if (cell.interactive) {
+        cell.actions.push_back(sendLetter(cell.label));
+    }
+    const QString newId = cell.id;
+    const QString gid = gridId;
+    edit(QStringLiteral("Add %1").arg(cell.label), [&](PageDocument& d) {
+        PageEdit::ensurePrimaryGrid(d);
+        PageGrid* g = gid.isEmpty() ? PageEdit::primaryGrid(d) : PageEdit::findGrid(d, gid);
+        if (!g) {
+            g = PageEdit::primaryGrid(d);
+        }
+        PageEdit::expandForCell(*g, cell);
+        g->cells.push_back(cell);
     });
     m_placeKind.reset();
     emit placeKindChanged();
@@ -108,7 +138,7 @@ void LayoutEditorSession::duplicateSelected()
     if (m_sel.target != EditorTarget::Item || m_sel.itemIds.isEmpty()) {
         return;
     }
-    QVector<LayoutItem> copies;
+    QVector<EditorClip> copies;
     QStringList newIds;
     QStringList reserved;
     auto nextId = [&](const QString& stem) {
@@ -116,42 +146,54 @@ void LayoutEditorSession::duplicateSelected()
         int n = 2;
         while (reserved.contains(id)) {
             id = QStringLiteral("%1_%2").arg(stem).arg(n++);
-            if (!document().findItem(id) && !reserved.contains(id)) {
-                break;
-            }
         }
         reserved.push_back(id);
         return id;
     };
     for (const QString& id : m_sel.itemIds) {
-        const LayoutItem* src = itemById(id);
-        if (!src) {
-            continue;
-        }
-        LayoutItem copy = *src;
-        copy.id = nextId(src->id);
-        if (copy.participatesInBoardGrid()) {
-            copy.col = src->col + src->colSpan;
-            if (copy.col >= document().grid.columns) {
-                copy.col = 0;
-                copy.row = src->row + src->rowSpan;
+        if (const PageCell* src = PageEdit::findCell(document(), id)) {
+            EditorClip clip;
+            clip.kind = EditorClip::Kind::Cell;
+            clip.cell = *src;
+            clip.cell.id = nextId(src->id);
+            clip.cell.col = src->col + qMax(1, src->colSpan);
+            if (const PageGrid* g = PageEdit::gridOwningCell(document(), id)) {
+                clip.gridId = g->id;
             }
-        } else if (copy.dwellRegion.x.isSet() || copy.dwellRegion.y.isSet()) {
-            const double x0 = copy.dwellRegion.x.isSet() ? copy.dwellRegion.x.value : 0.0;
-            const double y0 = copy.dwellRegion.y.isSet() ? copy.dwellRegion.y.value : 0.0;
-            copy.dwellRegion.x = DimSpec::pixels(x0 + 16);
-            copy.dwellRegion.y = DimSpec::pixels(y0 + 16);
+            newIds.push_back(clip.cell.id);
+            copies.push_back(clip);
+        } else if (const PageZone* src = PageEdit::findZone(document(), id)) {
+            EditorClip clip;
+            clip.kind = EditorClip::Kind::Zone;
+            clip.zone = *src;
+            clip.zone.id = nextId(src->id);
+            if (clip.zone.offset.x.isSet()) {
+                clip.zone.offset.x.value += 16;
+            }
+            if (clip.zone.offset.y.isSet()) {
+                clip.zone.offset.y.value += 16;
+            }
+            newIds.push_back(clip.zone.id);
+            copies.push_back(clip);
         }
-        newIds.push_back(copy.id);
-        copies.push_back(copy);
     }
     if (copies.isEmpty()) {
         return;
     }
-    edit(QStringLiteral("Duplicate items"), [&](LayoutDocument& d) {
-        for (const LayoutItem& copy : copies) {
-            d.items.push_back(copy);
-            expandGridForItem(d, copy);
+    edit(QStringLiteral("Duplicate items"), [&](PageDocument& d) {
+        PageEdit::ensurePrimaryGrid(d);
+        for (EditorClip& copy : copies) {
+            if (copy.kind == EditorClip::Kind::Cell) {
+                PageGrid* g = copy.gridId.isEmpty() ? PageEdit::primaryGrid(d)
+                                                    : PageEdit::findGrid(d, copy.gridId);
+                if (!g) {
+                    g = PageEdit::primaryGrid(d);
+                }
+                PageEdit::expandForCell(*g, copy.cell);
+                g->cells.push_back(copy.cell);
+            } else {
+                d.zones.push_back(copy.zone);
+            }
         }
     });
     setSelection({EditorTarget::Item, newIds.first(), newIds});
@@ -159,14 +201,32 @@ void LayoutEditorSession::duplicateSelected()
 
 void LayoutEditorSession::deleteSelected()
 {
+    if (m_sel.target == EditorTarget::Grid && !m_sel.itemId.isEmpty()) {
+        const QString id = m_sel.itemId;
+        edit(QStringLiteral("Delete grid"), [&](PageDocument& d) { PageEdit::removeGrid(d, id); });
+        setSelection({EditorTarget::Document, {}, {}});
+        return;
+    }
+    if (m_sel.target == EditorTarget::Style && !m_sel.itemId.isEmpty()) {
+        const QString id = m_sel.itemId;
+        edit(QStringLiteral("Delete style"), [&](PageDocument& d) { d.styles.remove(id); });
+        setSelection({EditorTarget::Document, {}, {}});
+        return;
+    }
+    if (m_sel.target == EditorTarget::Dwell && !m_sel.itemId.isEmpty()) {
+        const QString id = m_sel.itemId;
+        edit(QStringLiteral("Delete dwell"), [&](PageDocument& d) { d.dwells.remove(id); });
+        setSelection({EditorTarget::Document, {}, {}});
+        return;
+    }
     if (m_sel.target != EditorTarget::Item || m_sel.itemIds.isEmpty()) {
         return;
     }
     const QStringList ids = m_sel.itemIds;
-    edit(QStringLiteral("Delete items"), [&](LayoutDocument& d) {
-        d.items.erase(std::remove_if(d.items.begin(), d.items.end(),
-                                     [&](const LayoutItem& it) { return ids.contains(it.id); }),
-                      d.items.end());
+    edit(QStringLiteral("Delete items"), [&](PageDocument& d) {
+        for (const QString& id : ids) {
+            PageEdit::removeLeaf(d, id);
+        }
     });
     setSelection({EditorTarget::Document, {}, {}});
 }
@@ -181,12 +241,23 @@ void LayoutEditorSession::copySelected()
 {
     m_clipboard.clear();
     for (const QString& id : m_sel.itemIds) {
-        if (const LayoutItem* src = itemById(id)) {
-            m_clipboard.push_back(*src);
+        if (const PageCell* src = PageEdit::findCell(document(), id)) {
+            EditorClip clip;
+            clip.kind = EditorClip::Kind::Cell;
+            clip.cell = *src;
+            if (const PageGrid* g = PageEdit::gridOwningCell(document(), id)) {
+                clip.gridId = g->id;
+            }
+            m_clipboard.push_back(clip);
+        } else if (const PageZone* src = PageEdit::findZone(document(), id)) {
+            EditorClip clip;
+            clip.kind = EditorClip::Kind::Zone;
+            clip.zone = *src;
+            m_clipboard.push_back(clip);
         }
     }
     if (!m_clipboard.isEmpty()) {
-        emit statusMessage(QStringLiteral("Copied %1 item(s)").arg(m_clipboard.size()));
+        emit statusMessage(QStringLiteral("Copied %1 cell(s)/zone(s)").arg(m_clipboard.size()));
     }
 }
 
@@ -195,47 +266,56 @@ void LayoutEditorSession::pasteClipboard()
     if (m_clipboard.isEmpty()) {
         return;
     }
-    QVector<LayoutItem> copies;
-    QStringList newIds;
     int row = 0;
     int col = 0;
-    const bool haveCell = findEmptyCell(row, col);
+    const bool haveCell = PageEdit::findEmptyCell(document(), row, col);
     QStringList reserved;
+    QStringList newIds;
+    QVector<EditorClip> copies;
     auto nextId = [&](const QString& stem) {
         QString id = uniqueItemId(stem);
         int n = 2;
         while (reserved.contains(id)) {
             id = QStringLiteral("%1_%2").arg(stem).arg(n++);
-            if (!document().findItem(id) && !reserved.contains(id)) {
-                break;
-            }
         }
         reserved.push_back(id);
         return id;
     };
-    for (LayoutItem item : m_clipboard) {
-        item.id = nextId(item.id);
-        if (item.participatesInBoardGrid()) {
+    for (EditorClip item : m_clipboard) {
+        if (item.kind == EditorClip::Kind::Cell) {
+            item.cell.id = nextId(item.cell.id);
             if (haveCell) {
-                item.row = row;
-                item.col = col;
+                item.cell.row = row;
+                item.cell.col = col;
                 ++col;
-                if (col >= document().grid.columns) {
+                const PageGrid* g = PageEdit::primaryGrid(document());
+                const int cols = g ? g->columns : 4;
+                if (col >= cols) {
                     col = 0;
                     ++row;
                 }
-            } else {
-                item.row = document().grid.rows;
-                item.col = 0;
             }
+            newIds.push_back(item.cell.id);
+        } else {
+            item.zone.id = nextId(item.zone.id);
+            newIds.push_back(item.zone.id);
         }
-        newIds.push_back(item.id);
         copies.push_back(item);
     }
-    edit(QStringLiteral("Paste items"), [&](LayoutDocument& d) {
-        for (const LayoutItem& item : copies) {
-            d.items.push_back(item);
-            expandGridForItem(d, item);
+    edit(QStringLiteral("Paste items"), [&](PageDocument& d) {
+        PageEdit::ensurePrimaryGrid(d);
+        for (const EditorClip& item : copies) {
+            if (item.kind == EditorClip::Kind::Cell) {
+                PageGrid* g = item.gridId.isEmpty() ? PageEdit::primaryGrid(d)
+                                                    : PageEdit::findGrid(d, item.gridId);
+                if (!g) {
+                    g = PageEdit::primaryGrid(d);
+                }
+                PageEdit::expandForCell(*g, item.cell);
+                g->cells.push_back(item.cell);
+            } else {
+                d.zones.push_back(item.zone);
+            }
         }
     });
     if (!newIds.isEmpty()) {
@@ -247,15 +327,13 @@ void LayoutEditorSession::moveItemToCell(const QString& itemId, int row, int col
 {
     row = qMax(0, row);
     col = qMax(0, col);
-    edit(QStringLiteral("Move %1").arg(itemId), [&](LayoutDocument& d) {
-        for (LayoutItem& it : d.items) {
-            if (it.id != itemId) {
-                continue;
+    edit(QStringLiteral("Move %1").arg(itemId), [&](PageDocument& d) {
+        if (PageCell* c = PageEdit::findCell(d, itemId)) {
+            c->row = row;
+            c->col = col;
+            if (PageGrid* g = PageEdit::gridOwningCell(d, itemId)) {
+                PageEdit::expandForCell(*g, *c);
             }
-            it.row = row;
-            it.col = col;
-            expandGridForItem(d, it);
-            break;
         }
     });
 }
@@ -272,20 +350,19 @@ void LayoutEditorSession::nudgeSelected(int dRow, int dCol, int freePx)
     }
     const QStringList ids = m_sel.itemIds;
     const int px = qMax(1, freePx);
-    edit(QStringLiteral("Nudge items"), [&](LayoutDocument& d) {
-        for (LayoutItem& it : d.items) {
-            if (!ids.contains(it.id)) {
-                continue;
-            }
-            if (it.participatesInBoardGrid()) {
-                it.row = qMax(0, it.row + dRow);
-                it.col = qMax(0, it.col + dCol);
-                expandGridForItem(d, it);
-            } else {
-                const double x0 = it.dwellRegion.x.isSet() ? it.dwellRegion.x.value : 0.0;
-                const double y0 = it.dwellRegion.y.isSet() ? it.dwellRegion.y.value : 0.0;
-                it.dwellRegion.x = DimSpec::pixels(x0 + double(dCol * px));
-                it.dwellRegion.y = DimSpec::pixels(y0 + double(dRow * px));
+    edit(QStringLiteral("Nudge items"), [&](PageDocument& d) {
+        for (const QString& id : ids) {
+            if (PageCell* c = PageEdit::findCell(d, id)) {
+                c->row = qMax(0, c->row + dRow);
+                c->col = qMax(0, c->col + dCol);
+                if (PageGrid* g = PageEdit::gridOwningCell(d, id)) {
+                    PageEdit::expandForCell(*g, *c);
+                }
+            } else if (PageZone* z = PageEdit::findZone(d, id)) {
+                const double x0 = z->offset.x.isSet() ? z->offset.x.value : 0.0;
+                const double y0 = z->offset.y.isSet() ? z->offset.y.value : 0.0;
+                z->offset.x = PageDim::pixels(x0 + double(dCol * px));
+                z->offset.y = PageDim::pixels(y0 + double(dRow * px));
             }
         }
     });
@@ -293,41 +370,112 @@ void LayoutEditorSession::nudgeSelected(int dRow, int dCol, int freePx)
 
 void LayoutEditorSession::setItemLabel(const QString& itemId, const QString& label)
 {
-    edit(QStringLiteral("Rename"), [&](LayoutDocument& d) {
-        for (LayoutItem& it : d.items) {
-            if (it.id == itemId) {
-                it.label = label;
-                break;
-            }
+    edit(QStringLiteral("Rename"), [&](PageDocument& d) {
+        if (PageLeaf* leaf = PageEdit::findLeaf(d, itemId)) {
+            leaf->label = label;
         }
     });
+}
+
+void LayoutEditorSession::addTopGrid()
+{
+    PageGrid g;
+    g.id = uniqueItemId(QStringLiteral("grid"));
+    g.desktopMode = true;
+    g.anchor = PageAnchor::Bottom;
+    g.size.x = PageDim::pixels(800);
+    g.size.y = PageDim::pixels(280);
+    g.rows = 1;
+    g.columns = 4;
+    g.gapPx = 8;
+    g.marginPx = 8;
+    const QString id = g.id;
+    edit(QStringLiteral("Add grid"), [&](PageDocument& d) { d.grids.push_back(g); });
+    selectGrid(id);
+}
+
+void LayoutEditorSession::addSubGrid()
+{
+    const QString parentId = selectedGridId();
+    PageGrid sub;
+    sub.id = uniqueItemId(QStringLiteral("sub"));
+    sub.nested = true;
+    sub.rows = 1;
+    sub.columns = 2;
+    sub.rowSpan = 1;
+    sub.colSpan = 1;
+    const QString id = sub.id;
+    edit(QStringLiteral("Add subgrid"), [&](PageDocument& d) {
+        PageEdit::ensurePrimaryGrid(d);
+        PageGrid* parent = parentId.isEmpty() ? PageEdit::primaryGrid(d)
+                                              : PageEdit::findGrid(d, parentId);
+        if (!parent) {
+            parent = PageEdit::primaryGrid(d);
+        }
+        if (!parent) {
+            return;
+        }
+        int row = 0;
+        int col = 0;
+        if (!PageEdit::findEmptyCell(*parent, row, col)) {
+            row = parent->rows;
+            col = 0;
+            parent->rows += 1;
+        }
+        sub.row = row;
+        sub.col = col;
+        parent->subGrids.push_back(sub);
+    });
+    selectGrid(id);
+}
+
+void LayoutEditorSession::addNamedStyle()
+{
+    const QString id = uniqueItemId(QStringLiteral("style"));
+    edit(QStringLiteral("Add style"), [&](PageDocument& d) { d.styles.insert(id, PageChrome{}); });
+    setSelection({EditorTarget::Style, id, {}});
+}
+
+void LayoutEditorSession::addNamedDwell()
+{
+    const QString id = uniqueItemId(QStringLiteral("dwell"));
+    edit(QStringLiteral("Add dwell"), [&](PageDocument& d) { d.dwells.insert(id, PageDwell{}); });
+    setSelection({EditorTarget::Dwell, id, {}});
 }
 
 void LayoutEditorSession::addGridRow()
 {
-    edit(QStringLiteral("Add row"), [](LayoutDocument& d) { d.grid.rows += 1; });
+    const QString gid = selectedGridId();
+    edit(QStringLiteral("Add row"), [&](PageDocument& d) {
+        PageEdit::ensurePrimaryGrid(d);
+        PageGrid* g = gid.isEmpty() ? PageEdit::primaryGrid(d) : PageEdit::findGrid(d, gid);
+        if (!g) {
+            g = PageEdit::primaryGrid(d);
+        }
+        if (g) {
+            g->rows += 1;
+        }
+    });
 }
 
 void LayoutEditorSession::addGridColumn()
 {
-    edit(QStringLiteral("Add column"), [](LayoutDocument& d) { d.grid.columns += 1; });
+    const QString gid = selectedGridId();
+    edit(QStringLiteral("Add column"), [&](PageDocument& d) {
+        PageEdit::ensurePrimaryGrid(d);
+        PageGrid* g = gid.isEmpty() ? PageEdit::primaryGrid(d) : PageEdit::findGrid(d, gid);
+        if (!g) {
+            g = PageEdit::primaryGrid(d);
+        }
+        if (g) {
+            g->columns += 1;
+        }
+    });
 }
 
 void LayoutEditorSession::packGrid()
 {
-    edit(QStringLiteral("Pack grid"), [](LayoutDocument& d) {
-        int maxRow = 0;
-        int maxCol = 0;
-        for (const LayoutItem& it : d.items) {
-            if (!it.participatesInBoardGrid()) {
-                continue;
-            }
-            maxRow = qMax(maxRow, it.row + it.rowSpan - 1);
-            maxCol = qMax(maxCol, it.col + it.colSpan - 1);
-        }
-        d.grid.rows = qMax(1, maxRow + 1);
-        d.grid.columns = qMax(1, maxCol + 1);
-    });
+    edit(QStringLiteral("Pack grid"), [](PageDocument& d) { PageEdit::ensureGridFits(d); });
 }
 
 void LayoutEditorSession::equalizeSelectedWidths()
@@ -336,23 +484,19 @@ void LayoutEditorSession::equalizeSelectedWidths()
         return;
     }
     const QStringList ids = m_sel.itemIds;
-    edit(QStringLiteral("Equalize widths"), [&](LayoutDocument& d) {
-        double total = 0;
+    edit(QStringLiteral("Equalize widths"), [&](PageDocument& d) {
         int n = 0;
-        for (const LayoutItem& it : d.items) {
-            if (ids.contains(it.id) && it.participatesInBoardGrid()) {
-                total += it.widthUnits > 0 ? it.widthUnits : 1.0;
+        for (const QString& id : ids) {
+            if (PageEdit::findCell(d, id)) {
                 ++n;
             }
         }
-        if (n < 1) {
+        if (n < 2) {
             return;
         }
-        const double u = total / n;
-        d.grid.unitRows = true;
-        for (LayoutItem& it : d.items) {
-            if (ids.contains(it.id) && it.participatesInBoardGrid()) {
-                it.widthUnits = u;
+        for (const QString& id : ids) {
+            if (PageCell* c = PageEdit::findCell(d, id)) {
+                c->colSpan = 1;
             }
         }
     });
@@ -364,53 +508,51 @@ void LayoutEditorSession::alignSelectedRow()
         return;
     }
     const QStringList ids = m_sel.itemIds;
-    edit(QStringLiteral("Align row"), [&](LayoutDocument& d) {
+    edit(QStringLiteral("Align row"), [&](PageDocument& d) {
         int row = -1;
-        for (const LayoutItem& it : d.items) {
-            if (ids.contains(it.id) && it.participatesInBoardGrid()) {
-                row = (row < 0) ? it.row : qMin(row, it.row);
+        for (const QString& id : ids) {
+            if (const PageCell* c = PageEdit::findCell(d, id)) {
+                row = (row < 0) ? c->row : qMin(row, c->row);
             }
         }
         if (row < 0) {
             return;
         }
-        for (LayoutItem& it : d.items) {
-            if (ids.contains(it.id) && it.participatesInBoardGrid()) {
-                it.row = row;
+        for (const QString& id : ids) {
+            if (PageCell* c = PageEdit::findCell(d, id)) {
+                c->row = row;
             }
         }
     });
 }
 
-void LayoutEditorSession::applyChromeToSelected(const std::function<void(LayoutChromeStyle&)>& mut,
+void LayoutEditorSession::applyChromeToSelected(const std::function<void(PageChrome&)>& mut,
                                                const QString& undoLabel)
 {
     const QStringList ids = m_sel.itemIds;
     if (ids.isEmpty()) {
         return;
     }
-    edit(undoLabel, [&](LayoutDocument& d) {
-        for (LayoutItem& it : d.items) {
-            if (ids.contains(it.id)) {
-                mut(it.style);
+    edit(undoLabel, [&](PageDocument& d) {
+        for (const QString& id : ids) {
+            if (PageLeaf* leaf = PageEdit::findLeaf(d, id)) {
+                mut(leaf->style);
             }
         }
     });
 }
 
-void LayoutEditorSession::setActions(const QString& itemId, QVector<LayoutAction> acts)
+void LayoutEditorSession::setActions(const QString& itemId, QVector<PageAction> acts)
 {
     const QStringList ids = actionItemIds(itemId);
     if (ids.isEmpty()) {
         return;
     }
-    edit(QStringLiteral("Actions"), [&](LayoutDocument& d) {
-        for (LayoutItem& it : d.items) {
-            if (!ids.contains(it.id)) {
-                continue;
+    edit(QStringLiteral("Actions"), [&](PageDocument& d) {
+        for (const QString& id : ids) {
+            if (PageLeaf* leaf = PageEdit::findLeaf(d, id)) {
+                leaf->actions = acts;
             }
-            it.actions = acts;
-            it.action = it.actions.isEmpty() ? LayoutAction{} : it.actions.first();
         }
     });
 }
@@ -421,44 +563,44 @@ void LayoutEditorSession::snapWindowTo(const QPoint& virtualTopLeft, const QSize
     const int y = virtualTopLeft.y();
     const int vw = qMax(1, virtualScreen.width());
     const int vh = qMax(1, virtualScreen.height());
-    edit(QStringLiteral("Move window"), [&](LayoutDocument& d) {
-        d.placement.specified = true;
-        d.placement.x = DimSpec::pixels(x);
-        d.placement.y = DimSpec::pixels(y);
-        const int w = d.placement.width.resolveInt(vw, 800);
-        const int h = d.placement.height.resolveInt(vh, 280);
-        using A = LayoutWindowPlacement::Anchor;
+    const QString gid = selectedGridId();
+    edit(QStringLiteral("Move window"), [&](PageDocument& d) {
+        PageEdit::ensurePrimaryGrid(d);
+        PageGrid* g = gid.isEmpty() ? PageEdit::primaryGrid(d) : PageEdit::findGrid(d, gid);
+        if (!g) {
+            g = PageEdit::primaryGrid(d);
+        }
+        if (!g || g->nested) {
+            return;
+        }
+        const int w = g->size.x.isSet() ? int(g->size.x.resolve(vw)) : 800;
+        const int h = g->size.y.isSet() ? int(g->size.y.resolve(vh)) : 280;
         const bool cx = qAbs(x - (vw - w) / 2) < 48;
         const bool cy = qAbs(y - (vh - h) / 2) < 48;
         if (y + h > vh - 40 && cx) {
-            d.placement.anchor = A::BottomCenter;
-            d.placement.x = {};
-            d.placement.y = {};
+            g->anchor = PageAnchor::Bottom;
+            g->offset = {};
         } else if (y < 40 && cx) {
-            d.placement.anchor = A::TopCenter;
-            d.placement.x = {};
-            d.placement.y = {};
+            g->anchor = PageAnchor::Top;
+            g->offset = {};
         } else if (cx && cy) {
-            d.placement.anchor = A::Center;
-            d.placement.x = {};
-            d.placement.y = {};
+            g->anchor = PageAnchor::Center;
+            g->offset = {};
         } else {
-            d.placement.anchor = A::Default;
+            g->anchor = PageAnchor::TopLeft;
+            g->offset.x = PageDim::pixels(x);
+            g->offset.y = PageDim::pixels(y);
         }
     });
 }
 
-void LayoutEditorSession::resizeFreeItem(const QString& itemId, const DimSpec& width,
-                                         const DimSpec& height)
+void LayoutEditorSession::resizeFreeItem(const QString& itemId, const PageDim& width,
+                                         const PageDim& height)
 {
-    edit(QStringLiteral("Resize %1").arg(itemId), [&](LayoutDocument& d) {
-        for (LayoutItem& it : d.items) {
-            if (it.id != itemId) {
-                continue;
-            }
-            it.dwellRegion.width = width;
-            it.dwellRegion.height = height;
-            break;
+    edit(QStringLiteral("Resize %1").arg(itemId), [&](PageDocument& d) {
+        if (PageZone* z = PageEdit::findZone(d, itemId)) {
+            z->size.x = width;
+            z->size.y = height;
         }
     });
 }
@@ -469,10 +611,17 @@ void LayoutEditorSession::raiseSelected()
         return;
     }
     const QStringList ids = m_sel.itemIds;
-    edit(QStringLiteral("Bring forward"), [&](LayoutDocument& d) {
-        for (int i = d.items.size() - 2; i >= 0; --i) {
-            if (ids.contains(d.items[i].id) && !ids.contains(d.items[i + 1].id)) {
-                qSwap(d.items[i], d.items[i + 1]);
+    edit(QStringLiteral("Bring forward"), [&](PageDocument& d) {
+        PageEdit::forEachGrid(d, [&](PageGrid& g) {
+            for (int i = g.cells.size() - 2; i >= 0; --i) {
+                if (ids.contains(g.cells[i].id) && !ids.contains(g.cells[i + 1].id)) {
+                    qSwap(g.cells[i], g.cells[i + 1]);
+                }
+            }
+        });
+        for (int i = d.zones.size() - 2; i >= 0; --i) {
+            if (ids.contains(d.zones[i].id) && !ids.contains(d.zones[i + 1].id)) {
+                qSwap(d.zones[i], d.zones[i + 1]);
             }
         }
     });
@@ -484,10 +633,17 @@ void LayoutEditorSession::lowerSelected()
         return;
     }
     const QStringList ids = m_sel.itemIds;
-    edit(QStringLiteral("Send backward"), [&](LayoutDocument& d) {
-        for (int i = 1; i < d.items.size(); ++i) {
-            if (ids.contains(d.items[i].id) && !ids.contains(d.items[i - 1].id)) {
-                qSwap(d.items[i], d.items[i - 1]);
+    edit(QStringLiteral("Send backward"), [&](PageDocument& d) {
+        PageEdit::forEachGrid(d, [&](PageGrid& g) {
+            for (int i = 1; i < g.cells.size(); ++i) {
+                if (ids.contains(g.cells[i].id) && !ids.contains(g.cells[i - 1].id)) {
+                    qSwap(g.cells[i], g.cells[i - 1]);
+                }
+            }
+        });
+        for (int i = 1; i < d.zones.size(); ++i) {
+            if (ids.contains(d.zones[i].id) && !ids.contains(d.zones[i - 1].id)) {
+                qSwap(d.zones[i], d.zones[i - 1]);
             }
         }
     });
@@ -499,12 +655,15 @@ void LayoutEditorSession::convertSelectedToFree()
         return;
     }
     const QStringList ids = m_sel.itemIds;
-    edit(QStringLiteral("Convert to free"), [&](LayoutDocument& d) {
-        for (LayoutItem& it : d.items) {
-            if (!ids.contains(it.id) || it.isUnbounded()) {
+    edit(QStringLiteral("Convert to zone"), [&](PageDocument& d) {
+        for (const QString& id : ids) {
+            PageCell* c = PageEdit::findCell(d, id);
+            if (!c) {
                 continue;
             }
-            it.setAnchor(LayoutDwellRegion::ScreenAnchor::BottomCenter);
+            PageZone z = PageEdit::zoneFromCell(*c);
+            PageEdit::removeLeaf(d, id);
+            d.zones.push_back(z);
         }
     });
 }
@@ -517,189 +676,97 @@ void LayoutEditorSession::convertSelectedToCell()
     const QStringList ids = m_sel.itemIds;
     int row = 0;
     int col = 0;
-    const bool have = findEmptyCell(row, col);
-    edit(QStringLiteral("Convert to cell"), [&](LayoutDocument& d) {
-        for (LayoutItem& it : d.items) {
-            if (!ids.contains(it.id) || !it.isUnbounded()) {
+    const bool have = PageEdit::findEmptyCell(document(), row, col);
+    edit(QStringLiteral("Convert to cell"), [&](PageDocument& d) {
+        PageEdit::ensurePrimaryGrid(d);
+        PageGrid* g = PageEdit::primaryGrid(d);
+        for (const QString& id : ids) {
+            PageZone* z = PageEdit::findZone(d, id);
+            if (!z) {
                 continue;
             }
-            it.dwellRegion.screenAnchor = LayoutDwellRegion::ScreenAnchor::None;
+            PageCell c = PageEdit::cellFromZone(*z);
             if (have) {
-                it.row = row;
-                it.col = col;
+                c.row = row;
+                c.col = col;
                 ++col;
-                if (col >= d.grid.columns) {
+                if (col >= g->columns) {
                     col = 0;
                     ++row;
                 }
             }
-            expandGridForItem(d, it);
+            PageEdit::removeLeaf(d, id);
+            PageEdit::expandForCell(*g, c);
+            g->cells.push_back(c);
         }
     });
 }
 
 void LayoutEditorSession::resizeItem(const QString& itemId, int rowSpan, int colSpan,
-                                     double widthUnits)
+                                     double /*widthUnits*/)
 {
-    edit(QStringLiteral("Resize %1").arg(itemId), [&](LayoutDocument& d) {
-        for (LayoutItem& it : d.items) {
-            if (it.id != itemId) {
-                continue;
+    edit(QStringLiteral("Resize %1").arg(itemId), [&](PageDocument& d) {
+        if (PageCell* c = PageEdit::findCell(d, itemId)) {
+            c->rowSpan = qMax(1, rowSpan);
+            c->colSpan = qMax(1, colSpan);
+            if (PageGrid* g = PageEdit::gridOwningCell(d, itemId)) {
+                PageEdit::expandForCell(*g, *c);
             }
-            it.rowSpan = qMax(1, rowSpan);
-            it.colSpan = qMax(1, colSpan);
-            it.widthUnits = qMax(0.0, widthUnits);
-            expandGridForItem(d, it);
-            break;
         }
     });
-}
-
-void LayoutEditorSession::ensureGridFits(LayoutDocument& doc)
-{
-    int maxRow = 0;
-    int maxCol = 0;
-    for (const LayoutItem& it : doc.items) {
-        if (!it.participatesInBoardGrid()) {
-            continue;
-        }
-        maxRow = qMax(maxRow, it.row + it.rowSpan - 1);
-        maxCol = qMax(maxCol, it.col + it.colSpan - 1);
-    }
-    doc.grid.rows = qMax(doc.grid.rows, maxRow + 1);
-    doc.grid.columns = qMax(doc.grid.columns, maxCol + 1);
-    if (doc.grid.rows < 1) {
-        doc.grid.rows = 1;
-    }
-    if (doc.grid.columns < 1) {
-        doc.grid.columns = 1;
-    }
-}
-
-void LayoutEditorSession::expandGridForItem(LayoutDocument& doc, const LayoutItem& item)
-{
-    if (!item.participatesInBoardGrid()) {
-        return;
-    }
-    doc.grid.rows = qMax(doc.grid.rows, item.row + item.rowSpan);
-    doc.grid.columns = qMax(doc.grid.columns, item.col + item.colSpan);
-}
-
-bool LayoutEditorSession::findEmptyCell(int& row, int& col) const
-{
-    const LayoutDocument& doc = document();
-    const int rows = qMax(1, doc.grid.rows);
-    const int cols = qMax(1, doc.grid.columns);
-    QVector<QVector<bool>> used(rows, QVector<bool>(cols, false));
-    for (const LayoutItem& it : doc.items) {
-        if (!it.participatesInBoardGrid()) {
-            continue;
-        }
-        for (int r = it.row; r < it.row + it.rowSpan && r < rows; ++r) {
-            for (int c = it.col; c < it.col + it.colSpan && c < cols; ++c) {
-                if (r >= 0 && c >= 0) {
-                    used[r][c] = true;
-                }
-            }
-        }
-    }
-    for (int r = 0; r < rows; ++r) {
-        for (int c = 0; c < cols; ++c) {
-            if (!used[r][c]) {
-                row = r;
-                col = c;
-                return true;
-            }
-        }
-    }
-    return false;
 }
 
 QStringList LayoutEditorSession::validate(const QStringList& catalogIds) const
 {
     QStringList issues;
-    const LayoutDocument& doc = document();
+    const PageDocument& doc = document();
     if (doc.id.trimmed().isEmpty()) {
-        issues.push_back(QStringLiteral("Board id is empty"));
+        issues.push_back(QStringLiteral("Page id is empty"));
     }
     QSet<QString> seen;
-    const int rows = qMax(1, doc.grid.rows);
-    const int cols = qMax(1, doc.grid.columns);
-    QVector<QVector<QString>> occ(rows, QVector<QString>(cols));
-    auto checkAction = [&](const LayoutAction& a, const QString& where) {
-        if (a.type == LayoutAction::Type::Command && a.name.trimmed().isEmpty()) {
+    auto checkAction = [&](const PageAction& a, const QString& where) {
+        if (a.type == PageActionType::Command && a.command.trimmed().isEmpty()) {
             issues.push_back(QStringLiteral("%1: command name is empty").arg(where));
         }
-        if ((a.type == LayoutAction::Type::OpenLayout || a.type == LayoutAction::Type::LoadLayout)
-            && a.layoutId.trimmed().isEmpty()) {
-            issues.push_back(QStringLiteral("%1: layout id is empty").arg(where));
+        if (a.type == PageActionType::Page && a.targetId.trimmed().isEmpty()) {
+            issues.push_back(QStringLiteral("%1: page target is empty").arg(where));
         }
-        if ((a.type == LayoutAction::Type::OpenLayout || a.type == LayoutAction::Type::LoadLayout)
-            && !a.layoutId.isEmpty() && !catalogIds.isEmpty() && !catalogIds.contains(a.layoutId)
-            && a.layoutId != doc.id) {
-            issues.push_back(
-                QStringLiteral("%1: unknown layout '%2'").arg(where, a.layoutId));
+        if (a.type == PageActionType::Page && a.targetKind == PageTargetKind::Page
+            && !a.targetId.isEmpty() && !catalogIds.isEmpty() && !catalogIds.contains(a.targetId)
+            && a.targetId != doc.id && a.targetId.compare(QLatin1String("self"), Qt::CaseInsensitive) != 0) {
+            issues.push_back(QStringLiteral("%1: unknown page '%2'").arg(where, a.targetId));
         }
-        if ((a.type == LayoutAction::Type::Speak || a.type == LayoutAction::Type::TypeText)
-            && a.text.trimmed().isEmpty()) {
-            issues.push_back(QStringLiteral("%1: text is empty").arg(where));
+        if (a.type == PageActionType::Speak && a.speakText.trimmed().isEmpty()) {
+            issues.push_back(QStringLiteral("%1: speak text is empty").arg(where));
         }
-        if (a.type == LayoutAction::Type::Script && a.source.trimmed().isEmpty()) {
-            issues.push_back(QStringLiteral("%1: script is empty").arg(where));
+        if (a.type == PageActionType::Send && a.sendKey.trimmed().isEmpty()) {
+            issues.push_back(QStringLiteral("%1: send key is empty").arg(where));
         }
     };
-    auto checkActs = [&](const QVector<LayoutAction>& acts, const QString& where) {
-        for (int i = 0; i < acts.size(); ++i) {
-            checkAction(acts[i], acts.size() == 1 ? where
-                                                  : QStringLiteral("%1 step %2").arg(where).arg(i + 1));
+    auto checkLeaf = [&](const PageLeaf& leaf, const QString& kind) {
+        if (leaf.id.trimmed().isEmpty()) {
+            issues.push_back(QStringLiteral("%1 has an empty id").arg(kind));
+            return;
+        }
+        if (seen.contains(leaf.id)) {
+            issues.push_back(QStringLiteral("Duplicate id '%1'").arg(leaf.id));
+        }
+        seen.insert(leaf.id);
+        if (leaf.interactive && leaf.actions.isEmpty()) {
+            issues.push_back(QStringLiteral("%1 '%2' has no actions").arg(kind, leaf.id));
+        }
+        for (const PageAction& a : leaf.actions) {
+            checkAction(a, leaf.id);
         }
     };
-    checkActs(doc.onOpen, QStringLiteral("onOpen"));
-    checkActs(doc.onLoad, QStringLiteral("onLoad"));
-    checkActs(doc.onClose, QStringLiteral("onClose"));
-    for (const LayoutChildRef& ch : doc.children) {
-        if (ch.id.trimmed().isEmpty()) {
-            issues.push_back(QStringLiteral("Child slot id is empty"));
+    PageEdit::forEachGrid(doc, [&](const PageGrid& g) {
+        for (const PageCell& c : g.cells) {
+            checkLeaf(c, QStringLiteral("Cell"));
         }
-        if (ch.layoutId.trimmed().isEmpty()) {
-            issues.push_back(QStringLiteral("Child '%1' has no layout").arg(ch.id));
-        } else if (!catalogIds.isEmpty() && !catalogIds.contains(ch.layoutId)) {
-            issues.push_back(
-                QStringLiteral("Child '%1' unknown layout '%2'").arg(ch.id, ch.layoutId));
-        }
+    });
+    for (const PageZone& z : doc.zones) {
+        checkLeaf(z, QStringLiteral("Zone"));
     }
-    for (const LayoutItem& it : doc.items) {
-        if (it.id.trimmed().isEmpty()) {
-            issues.push_back(QStringLiteral("An item has an empty id"));
-            continue;
-        }
-        if (seen.contains(it.id)) {
-            issues.push_back(QStringLiteral("Duplicate item id '%1'").arg(it.id));
-        }
-        seen.insert(it.id);
-        checkActs(it.effectiveActions(), it.label.isEmpty() ? it.id : it.label);
-        if (!it.participatesInBoardGrid()) {
-            continue;
-        }
-        for (int r = it.row; r < it.row + it.rowSpan; ++r) {
-            for (int c = it.col; c < it.col + it.colSpan; ++c) {
-                if (r < 0 || c < 0 || r >= rows || c >= cols) {
-                    issues.push_back(
-                        QStringLiteral("%1 sits outside the grid (r%2 c%3)").arg(it.id).arg(r).arg(c));
-                    continue;
-                }
-                if (!occ[r][c].isEmpty()) {
-                    issues.push_back(QStringLiteral("%1 overlaps %2 at r%3 c%4")
-                                         .arg(it.id, occ[r][c])
-                                         .arg(r)
-                                         .arg(c));
-                } else {
-                    occ[r][c] = it.id;
-                }
-            }
-        }
-    }
-    issues.removeDuplicates();
     return issues;
 }
 

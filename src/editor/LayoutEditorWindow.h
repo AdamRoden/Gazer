@@ -1,6 +1,6 @@
 #pragma once
 
-#include "layout/LayoutTypes.h"
+#include "layout/PageTypes.h"
 #include "ui/Theme.h"
 
 #include <QMainWindow>
@@ -26,7 +26,7 @@ class LayoutEditorWindow final : public QMainWindow {
 
 public:
     using TestHandler =
-        std::function<bool(const QVector<LayoutDocument>& family, int currentIndex, QString* error)>;
+        std::function<bool(const QVector<PageDocument>& family, int currentIndex, QString* error)>;
 
     explicit LayoutEditorWindow(QWidget* parent = nullptr);
     ~LayoutEditorWindow() override;
@@ -38,7 +38,7 @@ public:
     void setTheme(const ThemeColors& theme);
     void setTestHandler(TestHandler handler);
     [[nodiscard]] bool openFile(const QString& path, QString* error = nullptr);
-    /// Open shipped or user `id.json` (user copy wins).
+    /// Open shipped or user `id.xml` (user copy wins).
     [[nodiscard]] bool openLayoutId(const QString& layoutId, QString* error = nullptr);
     void showAndRaise();
 
@@ -56,7 +56,7 @@ private:
     QAction* makeAction(const QString& text, const QKeySequence& shortcut,
                         const std::function<void()>& slot);
 
-    [[nodiscard]] bool promptNewBoard();
+    [[nodiscard]] bool promptNewPage();
     [[nodiscard]] bool promptOpenCatalog();
     void newFile();
     void open();
@@ -68,7 +68,7 @@ private:
     void testLive();
 
     [[nodiscard]] QString defaultDir() const;
-    [[nodiscard]] QString jsonFilter() const;
+    [[nodiscard]] QString xmlFilter() const;
     [[nodiscard]] bool isShippedPath(const QString& path) const;
     [[nodiscard]] QString userCopyPath(const QString& path) const;
     [[nodiscard]] bool confirmIssues(const QString& action);

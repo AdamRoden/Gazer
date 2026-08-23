@@ -1,6 +1,7 @@
 #pragma once
 
 #include "editor/LayoutEditorSession.h"
+#include "layout/PageHit.h"
 #include "ui/Theme.h"
 
 #include <QHash>
@@ -12,7 +13,7 @@
 
 namespace gazer {
 
-/// Board preview (Fit = edit view). Click/shift-click to select, drag to move, edges to resize.
+/// Page preview (Fit grid = edit view). Click/shift-click to select, drag to move, edges to resize.
 class LayoutEditorCanvas final : public QWidget {
     Q_OBJECT
 
@@ -38,7 +39,7 @@ protected:
     void keyPressEvent(QKeyEvent* event) override;
 
 private:
-    enum class Drag { None, Move, ResizeW, ResizeH, Rubber, Window };
+    enum class Drag { None, Move, ResizeW, ResizeH, Rubber, Grid };
 
     struct ScreenMap {
         QRectF bezel;
@@ -49,6 +50,8 @@ private:
         double scaleY = 1.0;
         QSize virtualScreen{1920, 1080};
         QSize virtBoard{1, 1};
+        QVector<PageGridPaint> grids;
+        QVector<PageTarget> targets;
 
         [[nodiscard]] double px() const { return scaleX; }
 
@@ -71,12 +74,11 @@ private:
     void paintPlacementPip(class QPainter& p, const ScreenMap& m) const;
     void paintBoard(class QPainter& p, const ScreenMap& m) const;
     [[nodiscard]] QHash<QString, QRectF> boardItemRects(const ScreenMap& m) const;
-    void paintBoardItems(class QPainter& p, const ScreenMap& m, const QHash<QString, QRectF>& virtRects,
-                         const QRectF& origin, int virtW, int virtH, bool windowChrome) const;
     void paintSelectionOverlay(class QPainter& p, const QRectF& r, bool handles) const;
-    [[nodiscard]] QPoint cellAt(const QPoint& pos, const ScreenMap& m) const;
-    [[nodiscard]] QRectF unboundedCanvasRect(const LayoutItem& item, const ScreenMap& m) const;
-    [[nodiscard]] QString hitUnbounded(const QPoint& pos, const ScreenMap& m) const;
+    [[nodiscard]] QPoint cellAt(const QPoint& pos, const ScreenMap& m, QString* gridId = nullptr) const;
+    [[nodiscard]] QRectF unboundedCanvasRect(const QString& id, const ScreenMap& m) const;
+    [[nodiscard]] QRectF toCanvas(const QRectF& virt, const ScreenMap& m) const;
+    [[nodiscard]] QPointF toVirt(const QPoint& pos, const ScreenMap& m) const;
     void applyResize(const QPoint& pos, const ScreenMap& m);
     void commitDrag(const QPoint& pos, const ScreenMap& m);
     void updateDragCursor(const ScreenMap& m, const QPoint& pos);

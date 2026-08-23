@@ -1,7 +1,8 @@
 #include "editor/LayoutEditorSession.h"
 
 #include "editor/LayoutEditorKeyboard.h"
-#include "layout/LayoutWriter.h"
+#include "layout/PageEdit.h"
+#include "layout/PageWriter.h"
 
 #include <QRegularExpression>
 #include <QUndoCommand>
@@ -10,8 +11,8 @@ namespace gazer {
 
 class LayoutEditorSession::LayerEditCommand final : public QUndoCommand {
 public:
-    LayerEditCommand(LayoutEditorSession* session, int layerIndex, LayoutDocument before,
-                     LayoutDocument after, const QString& text)
+    LayerEditCommand(LayoutEditorSession* session, int layerIndex, PageDocument before,
+                     PageDocument after, const QString& text)
         : QUndoCommand(text)
         , m_session(session)
         , m_layerIndex(layerIndex)
@@ -33,8 +34,8 @@ public:
 private:
     LayoutEditorSession* m_session = nullptr;
     int m_layerIndex = 0;
-    LayoutDocument m_before;
-    LayoutDocument m_after;
+    PageDocument m_before;
+    PageDocument m_after;
     bool m_virgin = true;
 };
 
@@ -45,17 +46,17 @@ LayoutEditorSession::LayoutEditorSession(QObject* parent)
     newDocument();
 }
 
-const LayoutDocument& LayoutEditorSession::document() const
+const PageDocument& LayoutEditorSession::document() const
 {
     return m_layers[m_layerIndex].doc;
 }
 
-LayoutDocument& LayoutEditorSession::currentDoc()
+PageDocument& LayoutEditorSession::currentDoc()
 {
     return m_layers[m_layerIndex].doc;
 }
 
-LayoutItem* LayoutEditorSession::selectedItem()
+PageLeaf* LayoutEditorSession::selectedItem()
 {
     if (m_sel.target != EditorTarget::Item) {
         return nullptr;
@@ -63,7 +64,7 @@ LayoutItem* LayoutEditorSession::selectedItem()
     return itemById(m_sel.itemId);
 }
 
-const LayoutItem* LayoutEditorSession::selectedItem() const
+const PageLeaf* LayoutEditorSession::selectedItem() const
 {
     if (m_sel.target != EditorTarget::Item) {
         return nullptr;
@@ -71,19 +72,19 @@ const LayoutItem* LayoutEditorSession::selectedItem() const
     return itemById(m_sel.itemId);
 }
 
-LayoutItem* LayoutEditorSession::itemById(const QString& id)
+PageLeaf* LayoutEditorSession::itemById(const QString& id)
 {
-    for (LayoutItem& it : currentDoc().items) {
-        if (it.id == id) {
-            return &it;
-        }
-    }
-    return nullptr;
+    return PageEdit::findLeaf(currentDoc(), id);
 }
 
-const LayoutItem* LayoutEditorSession::itemById(const QString& id) const
+const PageLeaf* LayoutEditorSession::itemById(const QString& id) const
 {
-    return document().findItem(id);
+    return PageEdit::findLeaf(document(), id);
+}
+
+bool LayoutEditorSession::selectedIsZone() const
+{
+    return m_sel.target == EditorTarget::Item && PageEdit::isZone(document(), m_sel.itemId);
 }
 
 void LayoutEditorSession::newDocument()
@@ -116,6 +117,25 @@ void LayoutEditorSession::setSelection(EditorSelection sel)
         sel.itemIds = ids;
         sel.itemId = ids.isEmpty() ? QString() : ids.first();
         if (sel.itemId.isEmpty()) {
+            sel = {EditorTarget::Document, {}, {}};
+        }
+    } else if (sel.target == EditorTarget::Grid) {
+        sel.itemIds.clear();
+        if (sel.itemId.isEmpty() || !PageEdit::findGrid(document(), sel.itemId)) {
+            const PageGrid* g = PageEdit::primaryGrid(document());
+            sel.itemId = g ? g->id : QString();
+        }
+        if (sel.target == EditorTarget::Grid && sel.itemId.isEmpty()) {
+            sel = {EditorTarget::Document, {}, {}};
+        }
+    } else if (sel.target == EditorTarget::Style) {
+        sel.itemIds.clear();
+        if (sel.itemId.isEmpty() || !document().styles.contains(sel.itemId)) {
+            sel = {EditorTarget::Document, {}, {}};
+        }
+    } else if (sel.target == EditorTarget::Dwell) {
+        sel.itemIds.clear();
+        if (sel.itemId.isEmpty() || !document().dwells.contains(sel.itemId)) {
             sel = {EditorTarget::Document, {}, {}};
         }
     } else {
@@ -171,12 +191,44 @@ void LayoutEditorSession::selectTarget(EditorTarget target)
     setSelection({target, {}, {}});
 }
 
+void LayoutEditorSession::selectGrid(const QString& gridId)
+{
+    if (gridId.isEmpty() || !PageEdit::findGrid(document(), gridId)) {
+        setSelection({EditorTarget::Document, {}, {}});
+        return;
+    }
+    setSelection({EditorTarget::Grid, gridId, {}});
+}
+
+QString LayoutEditorSession::selectedGridId() const
+{
+    if (const PageGrid* g = selectedGrid()) {
+        return g->id;
+    }
+    return {};
+}
+
+const PageGrid* LayoutEditorSession::selectedGrid() const
+{
+    if (m_sel.target == EditorTarget::Grid && !m_sel.itemId.isEmpty()) {
+        if (const PageGrid* g = PageEdit::findGrid(document(), m_sel.itemId)) {
+            return g;
+        }
+    }
+    if (m_sel.target == EditorTarget::Item) {
+        if (const PageGrid* g = PageEdit::gridOwningCell(document(), m_sel.itemId)) {
+            return g;
+        }
+    }
+    return PageEdit::primaryGrid(document());
+}
+
 void LayoutEditorSession::setPlaceKind(std::optional<EditorItemKind> kind)
 {
     m_placeKind = kind;
     emit placeKindChanged();
     if (kind) {
-        emit statusMessage(QStringLiteral("Click a cell to place"));
+        emit statusMessage(QStringLiteral("Click a grid cell to place"));
     }
 }
 
@@ -192,13 +244,13 @@ void LayoutEditorSession::setLayer(int index)
     emit layerChanged();
 }
 
-void LayoutEditorSession::edit(const QString& label, const std::function<void(LayoutDocument&)>& fn)
+void LayoutEditorSession::edit(const QString& label, const std::function<void(PageDocument&)>& fn)
 {
     const int layer = m_layerIndex;
-    LayoutDocument before = currentDoc();
+    PageDocument before = currentDoc();
     fn(currentDoc());
-    ensureGridFits(currentDoc());
-    if (LayoutWriter::toBytes(before) == LayoutWriter::toBytes(currentDoc())) {
+    PageEdit::ensureGridFits(currentDoc());
+    if (PageWriter::toBytes(before) == PageWriter::toBytes(currentDoc())) {
         currentDoc() = std::move(before);
         return;
     }
@@ -206,7 +258,7 @@ void LayoutEditorSession::edit(const QString& label, const std::function<void(La
     emit documentChanged();
 }
 
-void LayoutEditorSession::restoreLayer(int layerIndex, LayoutDocument doc)
+void LayoutEditorSession::restoreLayer(int layerIndex, PageDocument doc)
 {
     if (layerIndex < 0 || layerIndex >= m_layers.size()) {
         return;
@@ -228,6 +280,21 @@ void LayoutEditorSession::restoreLayer(int layerIndex, LayoutDocument doc)
             m_sel = {EditorTarget::Item, ids.first(), ids};
             emit selectionChanged();
         }
+    } else if (m_sel.target == EditorTarget::Grid) {
+        if (!m_sel.itemId.isEmpty() && !PageEdit::findGrid(document(), m_sel.itemId)) {
+            const PageGrid* g = PageEdit::primaryGrid(document());
+            m_sel.itemId = g ? g->id : QString();
+            if (m_sel.target == EditorTarget::Grid && m_sel.itemId.isEmpty()) {
+                m_sel = {EditorTarget::Document, {}, {}};
+            }
+            emit selectionChanged();
+        }
+    } else if (m_sel.target == EditorTarget::Style && !document().styles.contains(m_sel.itemId)) {
+        m_sel = {EditorTarget::Document, {}, {}};
+        emit selectionChanged();
+    } else if (m_sel.target == EditorTarget::Dwell && !document().dwells.contains(m_sel.itemId)) {
+        m_sel = {EditorTarget::Document, {}, {}};
+        emit selectionChanged();
     }
     emit documentChanged();
     if (switchedLayer) {
@@ -247,13 +314,16 @@ QString LayoutEditorSession::uniqueItemId(const QString& stem) const
     if (base.isEmpty()) {
         base = QStringLiteral("item");
     }
-    auto taken = [this](const QString& id) { return document().findItem(id) != nullptr; };
-    if (!taken(base)) {
+    const QStringList taken = PageEdit::allIds(document());
+    auto used = [&](const QString& id) {
+        return taken.contains(id) || document().styles.contains(id) || document().dwells.contains(id);
+    };
+    if (!used(base)) {
         return base;
     }
     for (int n = 2; n < 10000; ++n) {
         const QString id = QStringLiteral("%1_%2").arg(base).arg(n);
-        if (!taken(id)) {
+        if (!used(id)) {
             return id;
         }
     }
@@ -273,13 +343,27 @@ void LayoutEditorSession::restoreProject(QVector<EditorLayer> layers, int layerI
                 ids.push_back(id);
             }
         }
-        if (ids.isEmpty()) {
-            m_sel = {EditorTarget::Document, {}, {}};
-        } else {
-            m_sel = {EditorTarget::Item, ids.first(), ids};
+        m_sel = ids.isEmpty() ? EditorSelection{EditorTarget::Document, {}, {}}
+                              : EditorSelection{EditorTarget::Item, ids.first(), ids};
+    } else if (keepTarget == EditorTarget::Grid) {
+        const QString gid = PageEdit::findGrid(document(), m_sel.itemId) ? m_sel.itemId : QString();
+        m_sel = {keepTarget, gid, {}};
+        if (keepTarget == EditorTarget::Grid && m_sel.itemId.isEmpty()
+            && !PageEdit::findGrid(document(), gid)) {
+            const PageGrid* g = PageEdit::primaryGrid(document());
+            m_sel.itemId = g ? g->id : QString();
+            if (m_sel.itemId.isEmpty()) {
+                m_sel = {EditorTarget::Document, {}, {}};
+            }
         }
-        emit selectionChanged();
+    } else if (keepTarget == EditorTarget::Style && document().styles.contains(m_sel.itemId)) {
+        m_sel = {keepTarget, m_sel.itemId, {}};
+    } else if (keepTarget == EditorTarget::Dwell && document().dwells.contains(m_sel.itemId)) {
+        m_sel = {keepTarget, m_sel.itemId, {}};
+    } else {
+        m_sel = {keepTarget, {}, {}};
     }
+    emit selectionChanged();
     emit documentChanged();
     emit layerChanged();
 }
@@ -294,12 +378,9 @@ void LayoutEditorSession::replaceProject(QVector<EditorLayer> layers, int layerI
     m_layerIndex = qBound(0, layerIndex, m_layers.size() - 1);
     m_filePath = path;
     m_sel = {EditorTarget::Document, {}, {}};
-    m_clipboard.clear();
     m_placeKind.reset();
     resetUndo();
-    if (dirty) {
-        m_undo.resetClean();
-    }
+    setDirty(dirty);
     emit filePathChanged(m_filePath);
     emit selectionChanged();
     emit documentChanged();
@@ -319,7 +400,6 @@ void LayoutEditorSession::setDirty(bool dirty)
 void LayoutEditorSession::resetUndo()
 {
     m_undo.clear();
-    m_undo.setClean();
 }
 
 } // namespace gazer

@@ -2,7 +2,6 @@
 
 #include "app/CommandRegistry.h"
 #include "assist/LtsIndicator.h"
-#include "layout/LayoutInstanceManager.h"
 #include "ui/PickStyle.h"
 #include "ui/Theme.h"
 

@@ -42,7 +42,6 @@ set(GAZER_SOURCES
     src/core/TrackerMouse.cpp
     src/core/TrackerTobii.cpp
     src/core/StreamEngineLib.cpp
-    src/layout/LayoutLoader.cpp
     src/layout/PageDim.cpp
     src/layout/PageActionParse.cpp
     src/layout/PageLoader.cpp
@@ -50,11 +49,9 @@ set(GAZER_SOURCES
     src/layout/PageDetector.cpp
     src/layout/PageHit.cpp
     src/layout/PageSession.cpp
-    src/layout/LayoutSchema.cpp
-    src/layout/LayoutManager.cpp
-    src/layout/LayoutInstance.cpp
-    src/layout/LayoutInstanceManager.cpp
-    src/layout/RootChrome.cpp
+    src/layout/PageWriter.cpp
+    src/layout/PageEdit.cpp
+    src/layout/PageCatalog.cpp
     src/layout/DwellRegionSpace.cpp
     src/layout/DwellStateMachine.cpp
     src/input/KeyboardInjector.cpp
@@ -76,22 +73,17 @@ set(GAZER_SOURCES
     src/assist/ActionLoopService.cpp
     src/ui/PreviewWindow.cpp
     src/ui/StlMesh.cpp
-    src/ui/LayoutQuickWindow.cpp
     src/ui/PageHostWindow.cpp
     src/ui/BoardPaint.cpp
     src/ui/SliderTrack.cpp
-    src/ui/LayoutBoardPainter.cpp
     src/ui/GlassBackdrop.cpp
     src/ui/TrayIcon.cpp
-
-    src/ui/EdgeBubbleOverlay.cpp
     src/ui/MagnifierOverlay.cpp
     src/ui/DwellSuspendOverlay.cpp
     src/ui/Theme.cpp
     src/ui/ThemeScheme.cpp
     src/ui/KeySymbols.cpp
     src/ui/PickStyle.cpp
-    src/layout/LayoutWriter.cpp
     src/editor/LayoutEditorSession.cpp
     src/editor/LayoutEditorSessionIo.cpp
     src/editor/LayoutEditorSessionEdit.cpp
@@ -118,13 +110,12 @@ set(GAZER_HEADERS
     src/core/TrackerMouse.h
     src/core/TrackerTobii.h
     src/core/StreamEngineLib.h
-    src/layout/LayoutTypes.h
-    src/layout/LayoutVisibility.h
-    src/layout/LayoutGeometry.h
     src/layout/DwellRegionSpace.h
-    src/layout/InstanceTarget.h
-    src/layout/LayoutLoader.h
     src/layout/PageTypes.h
+    src/layout/PageBox.h
+    src/layout/RoundBox.h
+    src/layout/ChromeBlur.h
+    src/layout/ProgressStyle.h
     src/layout/PageDim.h
     src/layout/PageActionParse.h
     src/layout/PageLoader.h
@@ -132,11 +123,9 @@ set(GAZER_HEADERS
     src/layout/PageDetector.h
     src/layout/PageHit.h
     src/layout/PageSession.h
-    src/layout/LayoutSchema.h
-    src/layout/LayoutWriter.h
-    src/layout/LayoutManager.h
-    src/layout/LayoutInstance.h
-    src/layout/LayoutInstanceManager.h
+    src/layout/PageWriter.h
+    src/layout/PageEdit.h
+    src/layout/PageCatalog.h
     src/layout/DwellStateMachine.h
     src/layout/InvalidGazeGrace.h
     src/input/InputTypes.h
@@ -165,15 +154,13 @@ set(GAZER_HEADERS
     src/assist/MagLayout.h
     src/ui/PreviewWindow.h
     src/ui/StlMesh.h
-    src/ui/LayoutQuickWindow.h
     src/ui/PageHostWindow.h
     src/ui/BoardPaint.h
+    src/ui/ProgressVisuals.h
+    src/ui/ProgressPaint.h
     src/ui/SliderTrack.h
-    src/ui/LayoutBoardPainter.h
     src/ui/GlassBackdrop.h
     src/ui/TrayIcon.h
-
-    src/ui/EdgeBubbleOverlay.h
     src/ui/MagnifierOverlay.h
     src/ui/DwellSuspendOverlay.h
     src/ui/OverlaySurface.h
@@ -305,6 +292,9 @@ add_executable(GazerPageTests
     src/layout/PageResolve.cpp
     src/layout/PageDetector.cpp
     src/layout/PageHit.cpp
+    src/layout/PageWriter.cpp
+    src/layout/PageEdit.cpp
+    src/layout/PageCatalog.cpp
     src/layout/DwellRegionSpace.cpp
 )
 target_include_directories(GazerPageTests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)

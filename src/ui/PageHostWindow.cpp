@@ -1,6 +1,5 @@
 ﻿#include "ui/PageHostWindow.h"
 
-#include "layout/DwellRegionSpace.h"
 #include "ui/BoardPaint.h"
 #include "utils/WinOverlay.h"
 
@@ -14,6 +13,7 @@
 #include <QStringList>
 #include <QTimer>
 #include <QTransform>
+#include <QtMath>
 #include <utility>
 
 #ifdef Q_OS_WIN
@@ -44,14 +44,13 @@ public:
         if (!p || !m_host) {
             return;
         }
+        p->setRenderHint(QPainter::Antialiasing, true);
         p->save();
         p->setCompositionMode(QPainter::CompositionMode_Source);
         p->fillRect(boundingRect(), Qt::transparent);
         p->restore();
-        p->setRenderHint(QPainter::Antialiasing, true);
         const QPoint origin = m_host->m_origin;
-        const QTransform xf = PageHit::drawerTransform(m_host->m_targets, m_host->m_drawerScale,
-                                                       m_host->m_gridPaints);
+        const QTransform& xf = m_host->m_drawerXf;
         auto mapRect = [&](const PageTarget& t, const QRectF& r) {
             return PageHit::mapDrawer(t, r, xf, m_host->m_drawerScale).translated(-origin);
         };
@@ -95,15 +94,18 @@ public:
             }
         };
         auto paintTarget = [&](const PageTarget& t) {
-            const bool hovered = t.id == m_host->m_hoverId;
-            const bool flashing = t.id == m_host->m_flashId;
-            const bool active = m_host->m_activeIds.contains(t.id);
+            const bool hovered = sessionKey(t) == m_host->m_hoverId;
+            const bool flashing = sessionKey(t) == m_host->m_flashId;
+            const bool active = m_host->m_activeIds.contains(sessionKey(t));
             const double progress = hovered ? m_host->m_hoverProgress : 0.0;
-            const bool showProgress = flashing || (hovered && progress > 0.0);
+            const bool showProgress =
+                flashing || (hovered && (progress > 0.0 || m_host->m_revealProgress));
             if (t.kind == PageTarget::Kind::Zone && t.geom.hidesUntilProgress() && !showProgress) {
                 return;
             }
-            const QRectF content = mapRect(t, t.geom.contentOnScreen());
+            const QRectF content = mapRect(t, t.kind == PageTarget::Kind::Zone
+                                                  ? t.geom.visual
+                                                  : t.geom.contentOnScreen());
             if (!content.isEmpty()) {
                 BoardPaint::paintTarget(*p, t, content, m_host->m_theme, &m_host->m_glass, hovered,
                                         progress, flashing, active, m_host->m_progress,
@@ -172,8 +174,10 @@ public:
         if (!m_host->m_flashRect.isEmpty()) {
             const QRectF fr = m_host->m_flashRect.translated(-origin);
             const QColor fc = m_host->m_progress.resolvedFlashColor(m_host->m_theme.text);
-            BoardPaint::fillRound(*p, fr, 8.0, fc);
-            BoardPaint::strokeRound(*p, fr, 8.0, fc, 3.5);
+            const PageBox radii =
+                m_host->m_flashRadii.isSet() ? m_host->m_flashRadii : PageBox::all(8.0);
+            BoardPaint::fillRound(*p, fr, radii, fc);
+            BoardPaint::strokeRound(*p, fr, radii, fc, PageBox::all(3.5));
         }
     }
 
@@ -215,6 +219,7 @@ PageHostWindow::PageHostWindow(QWindow* parent)
     connect(&m_flashTimer, &QTimer::timeout, this, [this]() {
         m_flashId.clear();
         m_flashRect = {};
+        m_flashRadii = {};
         if (m_board) {
             m_board->update();
         }
@@ -225,6 +230,64 @@ void PageHostWindow::syncBoardSize()
 {
     if (m_board) {
         m_board->setSize(QSizeF(width(), height()));
+        m_board->update();
+    }
+}
+
+void PageHostWindow::syncGlass()
+{
+    double blur = 0.0;
+    for (const PageGridPaint& g : m_gridPaints) {
+        blur = qMax(blur, g.chrome.blur.value_or(0.0));
+    }
+    for (const PageTarget& t : m_targets) {
+        blur = qMax(blur, t.chrome.blur.value_or(0.0));
+    }
+    const QRect cap = PageHit::frostedBounds(m_targets, m_gridPaints, m_drawerScale).toAlignedRect();
+    m_glass.setCaptureRect(cap);
+    if (!qFuzzyCompare(blur + 1.0, m_blurMax + 1.0)) {
+        m_blurMax = blur;
+        m_glass.setActive(blur);
+    }
+}
+
+void PageHostWindow::cacheDrawerXf()
+{
+    m_drawerXf = PageHit::drawerTransform(m_targets, m_drawerScale, m_gridPaints);
+}
+
+void PageHostWindow::fitToChrome()
+{
+    const QRectF u = PageHit::paintBounds(m_targets, m_gridPaints, m_drawerScale);
+    const int pad = qMax(8, qCeil(m_blurMax * 2.0));
+    QRect geo(0, 0, 1, 1);
+    if (!u.isEmpty()) {
+        geo = u.toAlignedRect().adjusted(-pad, -pad, pad, pad);
+        if (geo.width() < 1) {
+            geo.setWidth(1);
+        }
+        if (geo.height() < 1) {
+            geo.setHeight(1);
+        }
+    }
+    if (geo.topLeft() == m_origin && geo.size() == size()) {
+        return;
+    }
+    m_origin = geo.topLeft();
+    setGeometry(geo);
+    syncBoardSize();
+}
+
+void PageHostWindow::commit(QVector<PageTarget> targets, QVector<PageGridPaint> grids,
+                            double drawerScale)
+{
+    m_targets = std::move(targets);
+    m_gridPaints = std::move(grids);
+    m_drawerScale = drawerScale;
+    cacheDrawerXf();
+    syncGlass();
+    fitToChrome();
+    if (m_board) {
         m_board->update();
     }
 }
@@ -256,40 +319,28 @@ void PageHostWindow::setActiveIds(QSet<QString> ids)
     }
 }
 
-void PageHostWindow::setGridPaints(QVector<PageGridPaint> grids)
-{
-    m_gridPaints = std::move(grids);
-    if (m_board) {
-        m_board->update();
-    }
-}
-
-void PageHostWindow::setTargets(QVector<PageTarget> targets)
-{
-    m_targets = std::move(targets);
-    if (m_board) {
-        m_board->update();
-    }
-}
-
 void PageHostWindow::setDrawerScale(double scale)
 {
     if (qFuzzyCompare(m_drawerScale + 1.0, scale + 1.0)) {
         return;
     }
     m_drawerScale = scale;
+    cacheDrawerXf();
+    fitToChrome();
     if (m_board) {
         m_board->update();
     }
 }
 
-void PageHostWindow::setHover(const QString& id, double progress)
+void PageHostWindow::setHover(const QString& id, double progress, bool revealProgress)
 {
-    if (m_hoverId == id && qFuzzyCompare(m_hoverProgress + 1.0, progress + 1.0)) {
+    if (m_hoverId == id && qFuzzyCompare(m_hoverProgress + 1.0, progress + 1.0)
+        && m_revealProgress == revealProgress) {
         return;
     }
     m_hoverId = id;
     m_hoverProgress = progress;
+    m_revealProgress = revealProgress && !id.isEmpty();
     if (m_board) {
         m_board->update();
     }
@@ -302,9 +353,10 @@ void PageHostWindow::flash(const QString& id)
     }
     m_flashId = id;
     m_flashRect = {};
-    const QTransform xf = PageHit::drawerTransform(m_targets, m_drawerScale, m_gridPaints);
+    m_flashRadii = {};
+    const QTransform& xf = m_drawerXf;
     for (const PageTarget& t : m_targets) {
-        if (t.id != id) {
+        if (sessionKey(t) != id) {
             continue;
         }
         QRectF r = t.geom.contentOnScreen();
@@ -312,6 +364,8 @@ void PageHostWindow::flash(const QString& id)
             r = t.geom.progressZone;
         }
         m_flashRect = PageHit::mapDrawer(t, r, xf, m_drawerScale);
+        const bool clustered = !t.cluster.isEmpty();
+        m_flashRadii = t.chrome.resolvedRadius(clustered);
         break;
     }
     m_flashTimer.start(qMax(40, m_progress.flashMs));
@@ -409,13 +463,7 @@ void PageHostWindow::keyPressEvent(QKeyEvent* event)
     QQuickWindow::keyPressEvent(event);
 }
 
-void PageHostWindow::coverVirtualDesktop()
-{
-    const QRect desk = DwellRegionSpace::virtualDesktop();
-    m_origin = desk.topLeft();
-    setGeometry(desk);
-    syncBoardSize();
-}
+
 
 void PageHostWindow::applyChrome()
 {
@@ -426,7 +474,7 @@ void PageHostWindow::applyChrome()
 
 void PageHostWindow::showHost()
 {
-    coverVirtualDesktop();
+    fitToChrome();
     show();
     applyChrome();
 }
@@ -442,9 +490,9 @@ void PageHostWindow::raiseHost()
 
 QString PageHostWindow::mouseHit(const QPointF& global) const
 {
-    const QTransform xf = PageHit::drawerTransform(m_targets, m_drawerScale, m_gridPaints);
+    const QTransform& xf = m_drawerXf;
     const QString cover =
-        PageHit::coveringPageId(m_gridPaints, global, m_drawerScale, m_targets);
+        PageHit::coveringPageId(m_gridPaints, global, m_drawerScale, m_targets, &xf);
     for (int i = m_targets.size() - 1; i >= 0; --i) {
         const PageTarget& t = m_targets.at(i);
         if (!t.interactive) {
@@ -453,23 +501,28 @@ QString PageHostWindow::mouseHit(const QPointF& global) const
         if (!cover.isEmpty() && !t.shell && t.pageId != cover) {
             continue;
         }
-        const bool showProgress = (t.id == m_flashId)
-                                  || (t.id == m_hoverId && m_hoverProgress > 0.0);
+        const QString key = sessionKey(t);
+        const bool showProgress = (key == m_flashId)
+                                  || (key == m_hoverId && m_hoverProgress > 0.0);
+        const bool clustered = !t.cluster.isEmpty();
         if (t.kind == PageTarget::Kind::Zone && !showProgress) {
-            QRectF dwell = PageHit::mapDrawer(t, t.geom.dwellZone, xf, m_drawerScale);
+            const QRectF dwell = PageHit::mapDrawer(t, t.geom.dwellZone, xf, m_drawerScale);
             if (dwell.contains(global)) {
-                return t.id;
+                return key;
             }
             continue;
         }
         const QRectF content =
             PageHit::mapDrawer(t, t.geom.contentOnScreen(), xf, m_drawerScale);
-        if (!content.isEmpty() && content.contains(global)) {
-            return t.id;
+        if (!content.isEmpty()
+            && PageHit::shapeContains(content, t.chrome, clustered, global)) {
+            return key;
         }
-        if (showProgress
-            && PageHit::mapDrawer(t, t.geom.progressZone, xf, m_drawerScale).contains(global)) {
-            return t.id;
+        if (showProgress) {
+            const QRectF strip = PageHit::mapDrawer(t, t.geom.progressZone, xf, m_drawerScale);
+            if (PageHit::shapeContains(strip, t.chrome, clustered, global)) {
+                return key;
+            }
         }
     }
     return {};

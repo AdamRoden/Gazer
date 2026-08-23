@@ -1,6 +1,6 @@
 #include "ui/SliderTrack.h"
 
-#include "ui/ProgressVisuals.h"
+#include "ui/ProgressPaint.h"
 
 #include <QFont>
 #include <QLinearGradient>

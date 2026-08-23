@@ -36,6 +36,10 @@ public:
     [[nodiscard]] double progress() const { return m_progress; }
     [[nodiscard]] int currentStepMs() const;
     [[nodiscard]] int scanGraceMs() const { return m_scanGraceMs; }
+    [[nodiscard]] bool isScanGraceComplete() const
+    {
+        return m_scanGraceComplete && !m_currentId.isEmpty();
+    }
 
     static constexpr int kDefaultInvalidGraceMs = 180;
     static constexpr int kDefaultScanGraceMs = 100;

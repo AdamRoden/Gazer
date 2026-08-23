@@ -40,7 +40,7 @@ QStringList CommandRegistry::names() const
 
 bool CommandRegistry::run(const QString& commandName, QString* error)
 {
-    return run(Invocation{commandName, {}, {}}, error);
+    return run(Invocation{commandName, {}}, error);
 }
 
 bool CommandRegistry::run(const Invocation& inv, QString* error)

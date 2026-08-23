@@ -1,14 +1,17 @@
 #include "editor/LayoutEditorProperties.h"
 
 #include "editor/LayoutEditorFields.h"
-#include "layout/LayoutSchema.h"
+#include "layout/PageDim.h"
+#include "layout/PageEdit.h"
 
 #include <QFormLayout>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QStringList>
 #include <QPushButton>
 #include <QScrollArea>
 #include <QScrollBar>
+#include <QSizePolicy>
 #include <QTabWidget>
 #include <QTimer>
 #include <QVBoxLayout>
@@ -34,9 +37,11 @@ LayoutEditorProperties::LayoutEditorProperties(LayoutEditorSession& session, QWi
         auto* form = new QFormLayout(page);
         form->setContentsMargins(8, 10, 8, 8);
         form->setSpacing(8);
-        form->setLabelAlignment(Qt::AlignRight | Qt::AlignVCenter);
+        form->setLabelAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+        form->setFormAlignment(Qt::AlignLeft | Qt::AlignTop);
         form->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
-        form->setRowWrapPolicy(QFormLayout::WrapLongRows);
+        form->setRowWrapPolicy(QFormLayout::DontWrapRows);
+        page->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
         *outForm = form;
         auto* scroll = new QScrollArea;
         scroll->setWidget(page);
@@ -46,10 +51,12 @@ LayoutEditorProperties::LayoutEditorProperties(LayoutEditorSession& session, QWi
         *outScroll = scroll;
         return scroll;
     };
-    m_tabs->addTab(makePage(&m_pages[0].form, &m_pages[0].scroll), QStringLiteral("Board"));
-    m_tabs->addTab(makePage(&m_pages[1].form, &m_pages[1].scroll), QStringLiteral("Window"));
-    m_tabs->addTab(makePage(&m_pages[2].form, &m_pages[2].scroll), QStringLiteral("Grid"));
-    m_tabs->addTab(makePage(&m_pages[3].form, &m_pages[3].scroll), QStringLiteral("Gaze"));
+    m_tabs->addTab(makePage(&m_pages[0].form, &m_pages[0].scroll), QStringLiteral("Page"));
+    m_tabs->addTab(makePage(&m_pages[1].form, &m_pages[1].scroll), QStringLiteral("Style"));
+    m_tabs->addTab(makePage(&m_pages[2].form, &m_pages[2].scroll), QStringLiteral("Dwell"));
+    m_tabs->addTab(makePage(&m_pages[3].form, &m_pages[3].scroll), QStringLiteral("Action"));
+    m_tabs->setElideMode(Qt::ElideRight);
+    m_tabs->setUsesScrollButtons(false);
     root->addWidget(m_tabs, 1);
 
     connect(&m_session, &LayoutEditorSession::selectionChanged, this, [this]() {
@@ -67,46 +74,98 @@ LayoutEditorProperties::LayoutEditorProperties(LayoutEditorSession& session, QWi
     rebuild();
 }
 
-void LayoutEditorProperties::showBoardTab()
+LayoutEditorProperties::Kind LayoutEditorProperties::currentKind() const
+{
+    switch (m_session.selection().target) {
+    case EditorTarget::Grid:
+        return Kind::Grid;
+    case EditorTarget::Item:
+        return m_session.selectedIsZone() ? Kind::Zone : Kind::Cell;
+    case EditorTarget::Style:
+        return Kind::Style;
+    case EditorTarget::Dwell:
+        return Kind::Dwell;
+    case EditorTarget::Document:
+    case EditorTarget::None:
+        break;
+    }
+    return Kind::Page;
+}
+
+void LayoutEditorProperties::showPageTab()
 {
     m_session.selectTarget(EditorTarget::Document);
     m_tabs->setCurrentIndex(0);
 }
 
-void LayoutEditorProperties::showWindowTab()
-{
-    m_session.selectTarget(EditorTarget::Window);
-    syncTabs(false);
-    m_tabs->setCurrentIndex(1);
-}
-
 void LayoutEditorProperties::showGridTab()
 {
-    m_session.selectTarget(EditorTarget::Grid);
-    syncTabs(false);
-    m_tabs->setCurrentIndex(2);
+    const QString gid = m_session.selectedGridId();
+    if (gid.isEmpty()) {
+        m_session.selectTarget(EditorTarget::Grid);
+    } else {
+        m_session.selectGrid(gid);
+    }
+    m_tabs->setCurrentIndex(0);
 }
 
 void LayoutEditorProperties::showDwellTab()
 {
-    m_session.selectTarget(EditorTarget::Dwell);
-    syncTabs(false);
-    m_tabs->setCurrentIndex(3);
+    const Kind kind = currentKind();
+    if (kind == Kind::Cell || kind == Kind::Zone) {
+        for (int i = 0; i < m_tabs->count(); ++i) {
+            if (m_tabs->isTabVisible(i) && m_tabs->tabText(i) == QLatin1String("Action")) {
+                m_tabs->setCurrentIndex(i);
+                return;
+            }
+        }
+    }
+    if (kind == Kind::Dwell) {
+        m_tabs->setCurrentIndex(0);
+        return;
+    }
+    for (int i = 0; i < m_tabs->count(); ++i) {
+        if (m_tabs->isTabVisible(i) && m_tabs->tabText(i) == QLatin1String("Dwell")) {
+            m_tabs->setCurrentIndex(i);
+            return;
+        }
+    }
+    m_tabs->setCurrentIndex(0);
+}
+
+void LayoutEditorProperties::showPlacementTab()
+{
+    const Kind kind = currentKind();
+    if (kind != Kind::Grid && kind != Kind::Cell && kind != Kind::Zone) {
+        showGridTab();
+    }
+    for (int i = 0; i < m_tabs->count(); ++i) {
+        if (m_tabs->isTabVisible(i) && m_tabs->tabText(i) == QLatin1String("Placement")) {
+            m_tabs->setCurrentIndex(i);
+            return;
+        }
+    }
 }
 
 void LayoutEditorProperties::showStyleTab()
 {
-    showBoardTab();
+    selectStyleTab();
 }
 
-void LayoutEditorProperties::showLayoutTab()
+void LayoutEditorProperties::selectStyleTab()
 {
-    showGridTab();
-}
-
-void LayoutEditorProperties::showInteractionTab()
-{
-    showDwellTab();
+    for (int i = 0; i < m_tabs->count(); ++i) {
+        if (m_tabs->isTabVisible(i) && m_tabs->tabText(i) == QLatin1String("Style")) {
+            m_tabs->setCurrentIndex(i);
+            return;
+        }
+    }
+    const QStringList keys = sortedKeys(m_session.document().styles.keys());
+    if (!keys.isEmpty()) {
+        m_session.setSelection({EditorTarget::Style, keys.first(), {}});
+        return;
+    }
+    m_session.selectTarget(EditorTarget::Document);
 }
 
 void LayoutEditorProperties::clearLayout(QFormLayout* form)
@@ -122,26 +181,40 @@ void LayoutEditorProperties::clearLayout(QFormLayout* form)
     }
 }
 
-void LayoutEditorProperties::syncTabs(bool itemSelected)
+void LayoutEditorProperties::syncTabs(Kind kind)
 {
-    if (itemSelected == m_itemMode) {
-        return;
+    QStringList titles;
+    switch (kind) {
+    case Kind::Page:
+        titles = {QStringLiteral("Page")};
+        break;
+    case Kind::Grid:
+        titles = {QStringLiteral("Grid"), QStringLiteral("Style"), QStringLiteral("Placement")};
+        break;
+    case Kind::Cell:
+        titles = {QStringLiteral("Cell"), QStringLiteral("Style"), QStringLiteral("Placement"),
+                  QStringLiteral("Action")};
+        break;
+    case Kind::Zone:
+        titles = {QStringLiteral("Zone"), QStringLiteral("Style"), QStringLiteral("Placement"),
+                  QStringLiteral("Action")};
+        break;
+    case Kind::Style:
+        titles = {QStringLiteral("Style")};
+        break;
+    case Kind::Dwell:
+        titles = {QStringLiteral("Dwell")};
+        break;
     }
-    m_itemMode = itemSelected;
-    if (itemSelected) {
-        m_tabs->setTabText(0, QStringLiteral("Item"));
-        m_tabs->setTabText(1, QStringLiteral("Layout"));
-        m_tabs->setTabText(2, QStringLiteral("Action"));
-        m_tabs->setTabVisible(3, false);
-        m_tabs->setCurrentIndex(0);
-    } else {
-        m_tabs->setTabText(0, QStringLiteral("Board"));
-        m_tabs->setTabText(1, QStringLiteral("Window"));
-        m_tabs->setTabText(2, QStringLiteral("Grid"));
-        m_tabs->setTabText(3, QStringLiteral("Gaze"));
-        m_tabs->setTabVisible(3, true);
-        m_tabs->setCurrentIndex(0);
+    for (int i = 0; i < 4; ++i) {
+        if (i < titles.size()) {
+            m_tabs->setTabText(i, titles[i]);
+            m_tabs->setTabVisible(i, true);
+        } else {
+            m_tabs->setTabVisible(i, false);
+        }
     }
+    m_kind = kind;
 }
 
 void LayoutEditorProperties::rebuild()
@@ -150,35 +223,63 @@ void LayoutEditorProperties::rebuild()
         return;
     }
     m_loading = true;
-    const bool item = m_session.selection().target == EditorTarget::Item;
-    const int tab = m_tabs->currentIndex();
-    const bool modeChange = item != m_itemMode;
+    const Kind kind = currentKind();
+    QString keep = m_tabs->tabText(m_tabs->currentIndex());
+    if (kind == Kind::Page && (keep == QLatin1String("Style") || keep == QLatin1String("Dwell"))) {
+        keep = QStringLiteral("Page");
+    }
+    if (keep == QLatin1String("Dwell") && (kind == Kind::Cell || kind == Kind::Zone)) {
+        keep = QStringLiteral("Action");
+    }
     int scrollY[4] = {};
     for (int i = 0; i < 4; ++i) {
         if (m_pages[i].scroll) {
             scrollY[i] = m_pages[i].scroll->verticalScrollBar()->value();
         }
     }
-    syncTabs(item);
+    syncTabs(kind);
     for (auto& page : m_pages) {
         clearLayout(page.form);
     }
-    if (item) {
-        fillItem(m_pages[0].form);
-        fillItemLayout(m_pages[1].form);
-        fillItemAction(m_pages[2].form);
-    } else {
-        fillBoard(m_pages[0].form);
-        fillWindow(m_pages[1].form);
-        fillGrid(m_pages[2].form);
-        fillBoardDwell(m_pages[3].form);
+    switch (kind) {
+    case Kind::Page:
+        fillPage(m_pages[0].form);
+        break;
+    case Kind::Grid:
+        fillGrid(m_pages[0].form);
+        fillStyle(m_pages[1].form);
+        fillPlacement(m_pages[2].form);
+        break;
+    case Kind::Cell:
+        fillCell(m_pages[0].form);
+        fillStyle(m_pages[1].form);
+        fillPlacement(m_pages[2].form);
+        fillAction(m_pages[3].form);
+        break;
+    case Kind::Zone:
+        fillZone(m_pages[0].form);
+        fillStyle(m_pages[1].form);
+        fillPlacement(m_pages[2].form);
+        fillAction(m_pages[3].form);
+        break;
+    case Kind::Style:
+        fillStyle(m_pages[0].form);
+        break;
+    case Kind::Dwell:
+        fillDwell(m_pages[0].form);
+        break;
     }
-    if (!modeChange) {
-        m_tabs->setCurrentIndex(tab);
-        for (int i = 0; i < 4; ++i) {
-            if (m_pages[i].scroll) {
-                m_pages[i].scroll->verticalScrollBar()->setValue(scrollY[i]);
-            }
+    int idx = 0;
+    for (int i = 0; i < m_tabs->count(); ++i) {
+        if (m_tabs->isTabVisible(i) && m_tabs->tabText(i) == keep) {
+            idx = i;
+            break;
+        }
+    }
+    m_tabs->setCurrentIndex(idx);
+    for (int i = 0; i < 4; ++i) {
+        if (m_pages[i].scroll) {
+            m_pages[i].scroll->verticalScrollBar()->setValue(scrollY[i]);
         }
     }
     m_shape = currentShape();
@@ -189,34 +290,28 @@ LayoutEditorProperties::Shape LayoutEditorProperties::currentShape() const
 {
     Shape s;
     const EditorSelection sel = m_session.selection();
-    s.item = sel.target == EditorTarget::Item;
-    s.itemKey = sel.itemIds.join(QLatin1Char(','));
-    const LayoutDocument& d = m_session.document();
-    s.windowShown = d.placement.specified && !d.placement.hidden;
+    s.kind = currentKind();
+    s.itemKey = QString::number(int(sel.target)) + QLatin1Char('|') + sel.itemId + QLatin1Char('|')
+                + sel.itemIds.join(QLatin1Char(','));
+    const PageDocument& d = m_session.document();
     s.autoClose = d.autoClose;
-    s.dwellTiming = d.dwell.hasTiming;
-    s.dwellProgress = d.dwell.hasProgressStyle;
-    s.children = d.children.size();
-    s.hook = m_lifecycleHook;
-    const QVector<LayoutAction>& hook =
-        m_lifecycleHook == 1 ? d.onLoad : (m_lifecycleHook == 2 ? d.onClose : d.onOpen);
-    s.hookSteps = hook.size();
-    s.actionStep = m_actionStep;
-    if (!hook.isEmpty()) {
-        s.actionType = int(hook[qBound(0, m_actionStep, hook.size() - 1)].type);
+    s.namedStyles = d.styles.size();
+    s.namedDwells = d.dwells.size();
+    if (const PageGrid* g = m_session.selectedGrid()) {
+        s.gridNested = g->nested;
+        s.gridAutoClose = g->autoClose;
     }
-    if (const LayoutItem* it = m_session.selectedItem()) {
-        s.unbounded = it->isUnbounded();
+    s.dwellTiming = d.dwell.activation.has_value();
+    s.actionStep = m_actionStep;
+    if (const PageLeaf* it = m_session.selectedItem()) {
         s.role = it->role;
         s.loop = it->actionLoop;
-        s.customDwell = it->dwell.sectionPresent;
-        s.itemTiming = it->dwell.hasTiming;
-        s.itemProgress = it->dwell.hasProgressStyle;
-        s.embed = it->isEmbed();
-        const QVector<LayoutAction> acts = it->effectiveActions();
-        s.itemActions = acts.size();
-        if (!acts.isEmpty()) {
-            s.actionType = int(acts[qBound(0, m_actionStep, acts.size() - 1)].type);
+        s.customDwell = it->dwell.hasAny();
+        s.itemActions = it->actions.size();
+        if (!it->actions.isEmpty()) {
+            const PageAction& a = it->actions[qBound(0, m_actionStep, it->actions.size() - 1)];
+            s.actionType = int(a.type);
+            s.moveMode = int(a.moveMode);
         }
     }
     return s;
@@ -229,25 +324,23 @@ void LayoutEditorProperties::rebuildIfNeeded()
     }
 }
 
-void LayoutEditorProperties::applyItem(const std::function<void(LayoutItem&)>& fn,
+void LayoutEditorProperties::applyItem(const std::function<void(PageLeaf&)>& fn,
                                        const QString& undoLabel)
 {
     const QStringList ids = m_session.selection().itemIds;
     m_applying = true;
-    m_session.edit(undoLabel, [&](LayoutDocument& d) {
-        for (LayoutItem& it : d.items) {
-            if (!ids.contains(it.id)) {
-                continue;
+    m_session.edit(undoLabel, [&](PageDocument& d) {
+        for (const QString& id : ids) {
+            if (PageLeaf* it = PageEdit::findLeaf(d, id)) {
+                fn(*it);
             }
-            fn(it);
-            it.applyKind();
         }
     });
     m_applying = false;
     rebuildIfNeeded();
 }
 
-void LayoutEditorProperties::applyDoc(const std::function<void(LayoutDocument&)>& fn,
+void LayoutEditorProperties::applyDoc(const std::function<void(PageDocument&)>& fn,
                                       const QString& undoLabel)
 {
     m_applying = true;
@@ -256,564 +349,540 @@ void LayoutEditorProperties::applyDoc(const std::function<void(LayoutDocument&)>
     rebuildIfNeeded();
 }
 
-void LayoutEditorProperties::fillBoard(QFormLayout* form)
+void LayoutEditorProperties::applyGrid(const std::function<void(PageGrid&)>& fn,
+                                       const QString& undoLabel)
+{
+    const QString id = m_session.selectedGridId();
+    applyDoc(
+        [&](PageDocument& doc) {
+            PageGrid* g = id.isEmpty() ? PageEdit::primaryGrid(doc) : PageEdit::findGrid(doc, id);
+            if (g) {
+                fn(*g);
+            }
+        },
+        undoLabel);
+}
+
+void LayoutEditorProperties::applyZone(const std::function<void(PageZone&)>& fn,
+                                       const QString& undoLabel)
+{
+    const QString id = m_session.selection().itemId;
+    applyDoc(
+        [&](PageDocument& doc) {
+            if (PageZone* z = PageEdit::findZone(doc, id)) {
+                fn(*z);
+            }
+        },
+        undoLabel);
+}
+
+void LayoutEditorProperties::applyCell(const std::function<void(PageCell&)>& fn,
+                                       const QString& undoLabel)
+{
+    const QString id = m_session.selection().itemId;
+    applyDoc(
+        [&](PageDocument& doc) {
+            if (PageCell* c = PageEdit::findCell(doc, id)) {
+                fn(*c);
+            }
+        },
+        undoLabel);
+}
+
+void LayoutEditorProperties::selectNamedStyle(const QString& id)
+{
+    if (id.isEmpty()) {
+        m_session.selectTarget(EditorTarget::Document);
+        return;
+    }
+    m_session.setSelection({EditorTarget::Style, id, {}});
+}
+
+void LayoutEditorProperties::selectNamedDwell(const QString& id)
+{
+    if (id.isEmpty()) {
+        m_session.selectTarget(EditorTarget::Document);
+        return;
+    }
+    m_session.setSelection({EditorTarget::Dwell, id, {}});
+}
+
+void LayoutEditorProperties::renameNamedStyle(const QString& from, const QString& to)
+{
+    if (to.isEmpty() || to == from || m_session.document().styles.contains(to)
+        || PageEdit::allIds(m_session.document()).contains(to)) {
+        rebuild();
+        return;
+    }
+    applyDoc(
+        [&](PageDocument& doc) {
+            if (!doc.styles.contains(from) || doc.styles.contains(to)) {
+                return;
+            }
+            const PageChrome st = doc.styles.take(from);
+            doc.styles.insert(to, st);
+            PageEdit::remapStyleId(doc, from, to);
+        },
+        QStringLiteral("Rename style"));
+    m_session.setSelection({EditorTarget::Style, to, {}});
+}
+
+void LayoutEditorProperties::renameNamedDwell(const QString& from, const QString& to)
+{
+    if (to.isEmpty() || to == from || m_session.document().dwells.contains(to)
+        || PageEdit::allIds(m_session.document()).contains(to)) {
+        rebuild();
+        return;
+    }
+    applyDoc(
+        [&](PageDocument& doc) {
+            if (!doc.dwells.contains(from) || doc.dwells.contains(to)) {
+                return;
+            }
+            const PageDwell dw = doc.dwells.take(from);
+            doc.dwells.insert(to, dw);
+            PageEdit::remapDwellId(doc, from, to);
+        },
+        QStringLiteral("Rename dwell"));
+    m_session.setSelection({EditorTarget::Dwell, to, {}});
+}
+
+void LayoutEditorProperties::fillPage(QFormLayout* form)
 {
     PropertyBinder b{this, &m_loading};
-    const LayoutDocument& d = m_session.document();
-    b.heading(form, QStringLiteral("Board"));
+    const PageDocument& d = m_session.document();
     b.text(form, QStringLiteral("Id"), d.id, [this](const QString& t) {
-        applyDoc([&](LayoutDocument& doc) { doc.id = t.trimmed(); }, QStringLiteral("Layout id"));
+        applyDoc([&](PageDocument& doc) { doc.id = t.trimmed(); }, QStringLiteral("Page id"));
     });
     b.text(form, QStringLiteral("Name"), d.name, [this](const QString& t) {
-        applyDoc([&](LayoutDocument& doc) { doc.name = t; }, QStringLiteral("Name"));
-    });
-    b.text(form, QStringLiteral("Description"), d.description, [this](const QString& t) {
-        applyDoc([&](LayoutDocument& doc) { doc.description = t; }, QStringLiteral("Description"));
+        applyDoc([&](PageDocument& doc) { doc.name = t; }, QStringLiteral("Name"));
     });
     b.check(form, QStringLiteral("Process-lifetime root"), d.master, [this](bool on) {
-        applyDoc([&](LayoutDocument& doc) { doc.master = on; }, QStringLiteral("Master"));
-    });
-    b.check(form, QStringLiteral("Hide until gaze reveal"), d.hideUntilGazeReveal, [this](bool on) {
-        applyDoc([&](LayoutDocument& doc) { doc.hideUntilGazeReveal = on; },
-                 QStringLiteral("Gaze reveal"));
+        applyDoc([&](PageDocument& doc) { doc.master = on; }, QStringLiteral("Master"));
     });
     b.check(form, QStringLiteral("Auto-close when idle"), d.autoClose, [this](bool on) {
-        applyDoc([&](LayoutDocument& doc) { doc.autoClose = on; }, QStringLiteral("Auto close"));
+        applyDoc([&](PageDocument& doc) { doc.autoClose = on; }, QStringLiteral("Auto close"));
     });
     if (d.autoClose) {
         b.integer(form, QStringLiteral("Idle ms"), d.autoCloseIdleMs, -1, 120000, [this](int v) {
-            applyDoc([&](LayoutDocument& doc) { doc.autoCloseIdleMs = v; },
-                     QStringLiteral("Idle ms"));
+            applyDoc([&](PageDocument& doc) { doc.autoCloseIdleMs = v; }, QStringLiteral("Idle ms"));
         });
-        b.integer(form, QStringLiteral("Fade ms"), d.autoCloseFadeMs, -1, 30000, [this](int v) {
-            applyDoc([&](LayoutDocument& doc) { doc.autoCloseFadeMs = v; },
-                     QStringLiteral("Fade ms"));
-        });
-        b.note(form, QStringLiteral("−1 uses the app setting."));
     }
-
-    b.combo(form, QStringLiteral("Bounds"),
-            {QStringLiteral("desktop"), QStringLiteral("screen")},
-            LayoutSchema::boundsModeName(d.hasBoundsMode ? d.boundsMode : BoundsMode::Desktop),
-            [this](const QString& t) {
-                applyDoc(
-                    [&](LayoutDocument& doc) {
-                        doc.hasBoundsMode = true;
-                        doc.boundsMode = LayoutSchema::boundsModeFromName(t);
-                    },
-                    QStringLiteral("Board bounds"));
-            });
-    b.note(form, QStringLiteral("Default for the window and free items unless they override it."));
     addChromeFields(b, form, d.style, [this](const QString& undo, const auto& mut) {
-        applyDoc([&](LayoutDocument& doc) { mut(doc.style); }, undo);
+        applyDoc([&](PageDocument& doc) { mut(doc.style); }, undo);
     });
-    b.note(form, QStringLiteral("Default look for cells. Window look is on the Window tab."));
-
-    b.heading(form, QStringLiteral("Owned children"));
-    b.note(form, QStringLiteral("Declared instances of other layouts (drawer, quit, …)."));
-    for (int i = 0; i < d.children.size(); ++i) {
-        const LayoutChildRef& ch = d.children[i];
-        b.text(form, QStringLiteral("Slot"), ch.id, [this, i](const QString& t) {
-            applyDoc(
-                [&](LayoutDocument& doc) {
-                    if (i >= 0 && i < doc.children.size()) {
-                        doc.children[i].id = t.trimmed();
-                    }
-                },
-                QStringLiteral("Child slot"));
-        });
-        QStringList ids = m_catalog.layoutIds;
-        QStringList labels = m_catalog.layoutLabels;
-        if (labels.size() != ids.size()) {
-            labels = ids;
-        }
-        if (!ch.layoutId.isEmpty() && !ids.contains(ch.layoutId)) {
-            ids.prepend(ch.layoutId);
-            labels.prepend(ch.layoutId);
-        }
-        if (ids.isEmpty()) {
-            b.text(form, QStringLiteral("Layout"), ch.layoutId, [this, i](const QString& t) {
-                applyDoc(
-                    [&](LayoutDocument& doc) {
-                        if (i >= 0 && i < doc.children.size()) {
-                            doc.children[i].layoutId = t.trimmed();
-                        }
-                    },
-                    QStringLiteral("Child layout"));
-            });
-        } else {
-            b.comboValues(form, QStringLiteral("Layout"), labels, ids, ch.layoutId,
-                          [this, i](const QString& t) {
-                              applyDoc(
-                                  [&](LayoutDocument& doc) {
-                                      if (i >= 0 && i < doc.children.size()) {
-                                          doc.children[i].layoutId = t;
-                                      }
-                                  },
-                                  QStringLiteral("Child layout"));
-                          });
-        }
-        QStringList whenLabels = {QStringLiteral("(always)"), QStringLiteral("expanded"),
-                                  QStringLiteral("!expanded"), QStringLiteral("quitConfirm"),
-                                  QStringLiteral("!quitConfirm"), QStringLiteral("dwellSuspend"),
-                                  QStringLiteral("!dwellSuspend")};
-        QStringList whenVals = visibleWhenChoices();
-        if (!ch.visibleWhen.isEmpty() && !whenVals.contains(ch.visibleWhen)) {
-            whenVals.prepend(ch.visibleWhen);
-            whenLabels.prepend(ch.visibleWhen);
-        }
-        b.comboValues(form, QStringLiteral("Visible when"), whenLabels, whenVals, ch.visibleWhen,
-                      [this, i](const QString& t) {
-                          applyDoc(
-                              [&](LayoutDocument& doc) {
-                                  if (i >= 0 && i < doc.children.size()) {
-                                      doc.children[i].visibleWhen = t;
-                                  }
-                              },
-                              QStringLiteral("Child visible when"));
-                      });
-        auto* rm = new QPushButton(QStringLiteral("Remove child"));
-        QObject::connect(rm, &QPushButton::clicked, this, [this, i]() {
-            applyDoc(
-                [&](LayoutDocument& doc) {
-                    if (i >= 0 && i < doc.children.size()) {
-                        doc.children.removeAt(i);
-                    }
-                },
-                QStringLiteral("Remove child"));
-        });
-        form->addRow(rm);
-    }
-    auto* addChild = new QPushButton(QStringLiteral("Add child"));
-    QObject::connect(addChild, &QPushButton::clicked, this, [this]() {
-        applyDoc(
-            [&](LayoutDocument& doc) {
-                LayoutChildRef ch;
-                ch.id = QStringLiteral("child_%1").arg(doc.children.size() + 1);
-                if (!m_catalog.layoutIds.isEmpty()) {
-                    ch.layoutId = m_catalog.layoutIds.first();
-                }
-                doc.children.push_back(ch);
-            },
-            QStringLiteral("Add child"));
-    });
-    form->addRow(addChild);
-
-    b.heading(form, QStringLiteral("Lifecycle"));
-    b.combo(form, QStringLiteral("Hook"),
-            {QStringLiteral("onOpen"), QStringLiteral("onLoad"), QStringLiteral("onClose")},
-            m_lifecycleHook == 1   ? QStringLiteral("onLoad")
-            : m_lifecycleHook == 2 ? QStringLiteral("onClose")
-                                   : QStringLiteral("onOpen"),
-            [this](const QString& t) {
-                m_lifecycleHook = t == QLatin1String("onLoad")   ? 1
-                                  : t == QLatin1String("onClose") ? 2
-                                                                 : 0;
-                QTimer::singleShot(0, this, &LayoutEditorProperties::rebuild);
-            });
-    const QVector<LayoutAction>* hookActs = &d.onOpen;
-    if (m_lifecycleHook == 1) {
-        hookActs = &d.onLoad;
-    } else if (m_lifecycleHook == 2) {
-        hookActs = &d.onClose;
-    }
-    addActionSeriesFields(b, form, *hookActs, d.name, m_catalog, m_actionStep,
-                          [this](int step) {
-                              m_actionStep = step;
-                              QTimer::singleShot(0, this, &LayoutEditorProperties::rebuild);
-                          },
-                          [this](QVector<LayoutAction> next) {
-                              const int hook = m_lifecycleHook;
-                              applyDoc(
-                                  [&](LayoutDocument& doc) {
-                                      if (hook == 1) {
-                                          doc.onLoad = next;
-                                      } else if (hook == 2) {
-                                          doc.onClose = next;
-                                      } else {
-                                          doc.onOpen = next;
-                                      }
-                                  },
-                                  QStringLiteral("Lifecycle"));
-                          });
-}
-
-void LayoutEditorProperties::fillWindow(QFormLayout* form)
-{
-    PropertyBinder b{this, &m_loading};
-    const LayoutDocument& d = m_session.document();
-    const bool shown = d.placement.specified && !d.placement.hidden;
-    b.heading(form, QStringLiteral("Window"));
-    b.check(form, QStringLiteral("Show on-screen board"), shown, [this](bool on) {
-        applyDoc(
-            [&](LayoutDocument& doc) {
-                doc.placement.specified = on;
-                doc.placement.hidden = !on;
-            },
-            QStringLiteral("Show window"));
-    });
-    if (!shown) {
-        b.note(form, QStringLiteral("Headless: only free items (if any) appear on screen."));
-        return;
-    }
-    b.combo(form, QStringLiteral("Anchor"), LayoutSchema::windowAnchorNames(),
-            LayoutSchema::windowAnchorName(d.placement.anchor), [this](const QString& t) {
-                applyDoc(
-                    [&](LayoutDocument& doc) {
-                        doc.placement.specified = true;
-                        doc.placement.anchor = LayoutSchema::windowAnchorFromName(t);
-                    },
-                    QStringLiteral("Anchor"));
-            });
-    b.dim(form, QStringLiteral("Width"), d.placement.width, [this](DimSpec v) {
-        applyDoc(
-            [&](LayoutDocument& doc) {
-                doc.placement.specified = true;
-                doc.placement.width = v;
-            },
-            QStringLiteral("Width"));
-    });
-    b.dim(form, QStringLiteral("Height"), d.placement.height, [this](DimSpec v) {
-        applyDoc(
-            [&](LayoutDocument& doc) {
-                doc.placement.specified = true;
-                doc.placement.height = v;
-            },
-            QStringLiteral("Height"));
-    });
-    b.dim(form, QStringLiteral("X"), d.placement.x, [this](DimSpec v) {
-        applyDoc([&](LayoutDocument& doc) { doc.placement.x = v; }, QStringLiteral("X"));
-    });
-    b.dim(form, QStringLiteral("Y"), d.placement.y, [this](DimSpec v) {
-        applyDoc([&](LayoutDocument& doc) { doc.placement.y = v; }, QStringLiteral("Y"));
-    });
-    b.integer(form, QStringLiteral("Edge inset px"), d.placement.marginPx, 0, 400, [this](int v) {
-        applyDoc([&](LayoutDocument& doc) { doc.placement.marginPx = v; },
-                 QStringLiteral("Margin"));
-    });
-    b.combo(form, QStringLiteral("Bounds"),
-            {QStringLiteral("desktop"), QStringLiteral("screen")},
-            LayoutSchema::boundsModeName(d.placement.hasBoundsMode ? d.placement.boundsMode
-                                                                   : BoundsMode::Desktop),
-            [this](const QString& t) {
-                applyDoc(
-                    [&](LayoutDocument& doc) {
-                        doc.placement.hasBoundsMode = true;
-                        doc.placement.boundsMode = LayoutSchema::boundsModeFromName(t);
-                    },
-                    QStringLiteral("Window bounds"));
-            });
-    b.note(form, QStringLiteral("desktop = work area (excludes the taskbar). screen = full display."));
-    b.check(form, QStringLiteral("Stack in front of the taskbar"), d.placement.aboveTaskbar,
-            [this](bool on) {
-                applyDoc([&](LayoutDocument& doc) { doc.placement.aboveTaskbar = on; },
-                         QStringLiteral("Above taskbar"));
-            });
-    b.note(form, QStringLiteral("Z-order only (HWND_TOPMOST). Does not change Bounds."));
-    b.check(form, QStringLiteral("Drawer motion"), d.placement.drawerMotion, [this](bool on) {
-        applyDoc([&](LayoutDocument& doc) { doc.placement.drawerMotion = on; },
-                 QStringLiteral("Drawer motion"));
-    });
-    addChromeFields(b, form, d.placement.style, [this](const QString& undo, const auto& mut) {
-        applyDoc([&](LayoutDocument& doc) { mut(doc.placement.style); }, undo);
+    addDwellFields(b, form, d.dwell, [this](const QString& undo, const auto& mut) {
+        applyDoc([&](PageDocument& doc) { mut(doc.dwell); }, undo);
     });
 }
 
 void LayoutEditorProperties::fillGrid(QFormLayout* form)
 {
     PropertyBinder b{this, &m_loading};
-    const LayoutDocument& d = m_session.document();
-    b.heading(form, QStringLiteral("Grid"));
-    b.integer(form, QStringLiteral("Columns"), d.grid.columns, 1, 48, [this](int v) {
-        applyDoc([&](LayoutDocument& doc) { doc.grid.columns = v; }, QStringLiteral("Columns"));
-    });
-    b.integer(form, QStringLiteral("Rows"), d.grid.rows, 1, 48, [this](int v) {
-        applyDoc([&](LayoutDocument& doc) { doc.grid.rows = v; }, QStringLiteral("Rows"));
-    });
-    b.integer(form, QStringLiteral("Gap px"), d.grid.gapPx, 0, 64, [this](int v) {
-        applyDoc([&](LayoutDocument& doc) { doc.grid.gapPx = v; }, QStringLiteral("Gap"));
-    });
-    b.integer(form, QStringLiteral("Inset px"), d.grid.marginPx, 0, 200, [this](int v) {
-        applyDoc([&](LayoutDocument& doc) { doc.grid.marginPx = v; },
-                 QStringLiteral("Grid margin"));
-    });
-    b.dim(form, QStringLiteral("Inset X"), d.grid.marginX, [this](DimSpec v) {
-        applyDoc([&](LayoutDocument& doc) { doc.grid.marginX = v; },
-                 QStringLiteral("Grid margin X"));
-    });
-    b.dim(form, QStringLiteral("Inset Y"), d.grid.marginY, [this](DimSpec v) {
-        applyDoc([&](LayoutDocument& doc) { doc.grid.marginY = v; },
-                 QStringLiteral("Grid margin Y"));
-    });
-    b.note(form, QStringLiteral("X/Y insets override Inset px when set. Bare % is of board size."));
-    b.check(form, QStringLiteral("Unit rows (keyboard widths)"), d.grid.unitRows, [this](bool on) {
-        applyDoc([&](LayoutDocument& doc) { doc.grid.unitRows = on; },
-                 QStringLiteral("Unit rows"));
-    });
-    b.note(form, QStringLiteral("On: each row sizes keys by Key width (u). Auto-on if any key has u > 0."));
-}
-
-void LayoutEditorProperties::fillBoardDwell(QFormLayout* form)
-{
-    PropertyBinder b{this, &m_loading};
-    addDwellFields(b, form, m_session.document().dwell,
-                   [this](const QString& undo, const auto& mut) {
-                       applyDoc([&](LayoutDocument& doc) { mut(doc.dwell); }, undo);
-                   },
-                   true);
-}
-
-void LayoutEditorProperties::fillItem(QFormLayout* form)
-{
-    PropertyBinder b{this, &m_loading};
-    const EditorSelection sel = m_session.selection();
-    const LayoutItem* item = m_session.selectedItem();
-    if (!item) {
-        b.note(form, QStringLiteral("No item selected."));
+    const PageGrid* g = m_session.selectedGrid();
+    if (!g) {
+        b.note(form, QStringLiteral("This page has no grid. Add a grid from the Layout menu."));
         return;
     }
-    if (sel.itemIds.size() > 1) {
-        b.note(form, QStringLiteral("Editing %1 selected items.").arg(sel.itemIds.size()));
-    }
-
-    b.heading(form, QStringLiteral("Item"));
-    b.text(form, QStringLiteral("Id"), item->id, [this, old = item->id](const QString& t) {
+    b.text(form, QStringLiteral("Id"), g->id, [this](const QString& t) {
         const QString next = t.trimmed();
-        if (next.isEmpty() || next == old) {
+        const QString cur = m_session.selectedGridId();
+        if (next == cur) {
             return;
         }
-        if (m_session.itemById(next)) {
-            m_session.notify(QStringLiteral("Id already in use: %1").arg(next));
+        if (next.isEmpty() || PageEdit::allIds(m_session.document()).contains(next)) {
+            rebuild();
+            return;
+        }
+        applyGrid([&](PageGrid& grid) { grid.id = next; }, QStringLiteral("Grid id"));
+        m_session.selectGrid(next);
+    });
+    QString chrome = QStringLiteral("none");
+    if (g->rootSlot == PageRootSlot::Drawer) {
+        chrome = QStringLiteral("drawer");
+    } else if (g->rootSlot == PageRootSlot::Quit) {
+        chrome = QStringLiteral("quit");
+    }
+    b.comboValues(form, QStringLiteral("Chrome slot"),
+                  {QStringLiteral("none"), QStringLiteral("drawer"), QStringLiteral("quit")},
+                  {QStringLiteral("none"), QStringLiteral("drawer"), QStringLiteral("quit")}, chrome,
+                  [this](const QString& t) {
+                      applyGrid(
+                          [&](PageGrid& grid) {
+                              if (t == QLatin1String("drawer")) {
+                                  grid.rootSlot = PageRootSlot::Drawer;
+                              } else if (t == QLatin1String("quit")) {
+                                  grid.rootSlot = PageRootSlot::Quit;
+                              } else {
+                                  grid.rootSlot = PageRootSlot::None;
+                              }
+                          },
+                          QStringLiteral("Chrome slot"));
+                  });
+    b.check(form, QStringLiteral("Shell (always on top)"), g->shell, [this](bool on) {
+        applyGrid([&](PageGrid& grid) { grid.shell = on; }, QStringLiteral("Shell"));
+    });
+    b.check(form, QStringLiteral("Auto-close when idle"), g->autoClose, [this](bool on) {
+        applyGrid([&](PageGrid& grid) { grid.autoClose = on; }, QStringLiteral("Grid auto close"));
+    });
+    if (g->autoClose) {
+        b.integer(form, QStringLiteral("Idle ms"), g->autoCloseIdleMs, -1, 120000, [this](int v) {
+            applyGrid([&](PageGrid& grid) { grid.autoCloseIdleMs = v; },
+                      QStringLiteral("Grid idle ms"));
+        });
+    }
+    b.heading(form, QStringLiteral("Cells"));
+    b.integer(form, QStringLiteral("Columns"), g->columns, 1, 48, [this](int v) {
+        applyGrid([&](PageGrid& grid) { grid.columns = v; }, QStringLiteral("Columns"));
+    });
+    b.integer(form, QStringLiteral("Rows"), g->rows, 1, 48, [this](int v) {
+        applyGrid([&](PageGrid& grid) { grid.rows = v; }, QStringLiteral("Rows"));
+    });
+    b.integer(form, QStringLiteral("Gap px"), g->gapPx, 0, 64, [this](int v) {
+        applyGrid([&](PageGrid& grid) { grid.gapPx = v; }, QStringLiteral("Gap"));
+    });
+    b.integer(form, QStringLiteral("Inset px"), g->marginPx, 0, 200, [this](int v) {
+        applyGrid([&](PageGrid& grid) { grid.marginPx = v; }, QStringLiteral("Grid margin"));
+    });
+}
+
+void LayoutEditorProperties::fillLeafIdentity(QFormLayout* form, const PageLeaf& item)
+{
+    PropertyBinder b{this, &m_loading};
+    b.text(form, QStringLiteral("Id"), item.id, [this](const QString& t) {
+        const QString next = t.trimmed();
+        const QString cur = m_session.selection().itemId;
+        if (next == cur) {
+            return;
+        }
+        if (next.isEmpty() || PageEdit::allIds(m_session.document()).contains(next)) {
+            rebuild();
             return;
         }
         applyDoc(
-            [old, next](LayoutDocument& doc) {
-                for (LayoutItem& it : doc.items) {
-                    if (it.id == old) {
-                        it.id = next;
-                        break;
-                    }
+            [&](PageDocument& doc) {
+                if (PageLeaf* leaf = PageEdit::findLeaf(doc, cur)) {
+                    leaf->id = next;
                 }
             },
-            QStringLiteral("Rename item"));
+            QStringLiteral("Id"));
         m_session.selectItem(next);
     });
-    const QString roleUi = item->role.isEmpty() ? QStringLiteral("button") : item->role;
+    b.text(form, QStringLiteral("Label"), item.label, [this](const QString& t) {
+        applyItem([&](PageLeaf& it) { it.label = t; }, QStringLiteral("Label"));
+    });
+    b.text(form, QStringLiteral("Caption"), item.caption, [this](const QString& t) {
+        applyItem([&](PageLeaf& it) { it.caption = t; }, QStringLiteral("Caption"));
+    });
+    b.combo(form, QStringLiteral("Icon"), iconChoices(), item.icon, [this](const QString& t) {
+        applyItem([&](PageLeaf& it) { it.icon = t; }, QStringLiteral("Icon"));
+    });
     b.combo(form, QStringLiteral("Role"),
-            {QStringLiteral("button"), QStringLiteral("label"), QStringLiteral("tab"),
-             QStringLiteral("toggle"), QStringLiteral("slider"), QStringLiteral("preview")},
-            roleUi, [this](const QString& t) {
-                applyItem(
-                    [&](LayoutItem& it) {
-                        it.role = t == QLatin1String("button") ? QString() : t;
-                        it.applyKind();
-                    },
-                    QStringLiteral("Role"));
+            {QString(), QStringLiteral("label"), QStringLiteral("tab"), QStringLiteral("toggle"),
+             QStringLiteral("slider"), QStringLiteral("preview")},
+            item.role, [this](const QString& t) {
+                applyItem([&](PageLeaf& it) { it.role = t; }, QStringLiteral("Role"));
             });
-    b.text(form, QStringLiteral("Text"), item->label, [this](const QString& t) {
-        applyItem([&](LayoutItem& it) { it.label = t; }, QStringLiteral("Label"));
-    });
-    b.text(form, QStringLiteral("Caption"), item->caption, [this](const QString& t) {
-        applyItem([&](LayoutItem& it) { it.caption = t; }, QStringLiteral("Caption"));
-    });
-    {
-        QStringList ids = iconChoices();
-        QStringList labels = ids;
-        labels[0] = QStringLiteral("(none)");
-        if (!item->icon.isEmpty() && !ids.contains(item->icon)) {
-            ids.insert(1, item->icon);
-            labels.insert(1, item->icon);
-        }
-        b.comboValues(form, QStringLiteral("Icon"), labels, ids, item->icon,
-                      [this](const QString& t) {
-                          applyItem([&](LayoutItem& it) { it.icon = t; }, QStringLiteral("Icon"));
-                      });
-    }
-    b.text(form, QStringLiteral("Cluster"), item->cluster, [this](const QString& t) {
-        applyItem([&](LayoutItem& it) { it.cluster = t.trimmed(); }, QStringLiteral("Cluster"));
-    });
-    b.combo(form, QStringLiteral("Cluster slot"),
-            {QStringLiteral(""), QStringLiteral("dec"), QStringLiteral("value"),
-             QStringLiteral("inc"), QStringLiteral("edit")},
-            item->clusterSlot, [this](const QString& t) {
-                applyItem([&](LayoutItem& it) { it.clusterSlot = t; },
-                          QStringLiteral("Cluster slot"));
+    b.combo(form, QStringLiteral("Text style"),
+            {QString(), QStringLiteral("caption"), QStringLiteral("body"), QStringLiteral("title"),
+             QStringLiteral("section")},
+            item.textStyle, [this](const QString& t) {
+                applyItem([&](PageLeaf& it) { it.textStyle = t; }, QStringLiteral("Text style"));
             });
-    b.note(form, QStringLiteral("segment.* = pill group. stepper.* = NumberBox (dec/value/inc)."));
-    if (item->kind == LayoutItemKind::Label || item->kind == LayoutItemKind::Tab) {
-        b.combo(form, QStringLiteral("Text style"),
-                {QStringLiteral(""), QStringLiteral("caption"), QStringLiteral("body"),
-                 QStringLiteral("bodyStrong"), QStringLiteral("subtitle"),
-                 QStringLiteral("title"), QStringLiteral("section")},
-                item->textStyle, [this](const QString& t) {
-                    applyItem([&](LayoutItem& it) { it.textStyle = t; },
-                             QStringLiteral("Text style"));
-                });
+    b.text(form, QStringLiteral("Setting key"), item.settingKey, [this](const QString& t) {
+        applyItem([&](PageLeaf& it) { it.settingKey = t; }, QStringLiteral("Setting key"));
+    });
+    b.text(form, QStringLiteral("Cluster"), item.cluster, [this](const QString& t) {
+        applyItem([&](PageLeaf& it) { it.cluster = t; }, QStringLiteral("Cluster"));
+    });
+    QStringList slotNames = {QString(), QStringLiteral("dec"), QStringLiteral("value"),
+                             QStringLiteral("inc"), QStringLiteral("edit")};
+    if (!item.clusterSlot.isEmpty() && !slotNames.contains(item.clusterSlot)) {
+        slotNames.push_back(item.clusterSlot);
     }
-    if (item->kind == LayoutItemKind::Label || item->kind == LayoutItemKind::Preview) {
-        b.text(form, QStringLiteral("Setting key"), item->settingKey, [this](const QString& t) {
-            applyItem([&](LayoutItem& it) { it.settingKey = t; }, QStringLiteral("Setting key"));
-        });
-    }
-
-    addChromeFields(b, form, item->style, [this](const QString& undo, const auto& mut) {
-        m_session.applyChromeToSelected(mut, undo);
-        rebuildIfNeeded();
+    b.combo(form, QStringLiteral("Cluster slot"), slotNames, item.clusterSlot,
+            [this](const QString& t) {
+                applyItem([&](PageLeaf& it) { it.clusterSlot = t; }, QStringLiteral("Cluster slot"));
+            });
+    b.check(form, QStringLiteral("Visible"), item.visible, [this](bool on) {
+        applyItem([&](PageLeaf& it) { it.visible = on; }, QStringLiteral("Visible"));
+    });
+    fillVisibleWhen(form, item);
+    b.check(form, QStringLiteral("Shell (always on top)"), item.shell, [this](bool on) {
+        applyItem([&](PageLeaf& it) { it.shell = on; }, QStringLiteral("Shell"));
     });
 }
 
-void LayoutEditorProperties::fillItemLayout(QFormLayout* form)
+void LayoutEditorProperties::fillVisibleWhen(QFormLayout* form, const PageLeaf& item)
 {
     PropertyBinder b{this, &m_loading};
-    const LayoutItem* item = m_session.selectedItem();
-    if (!item) {
+    QStringList whenVals = visibleWhenChoices();
+    QStringList whenLabels = {QStringLiteral("(always)"), QStringLiteral("expanded"),
+                              QStringLiteral("!expanded"), QStringLiteral("quitConfirm"),
+                              QStringLiteral("!quitConfirm"), QStringLiteral("dwellSuspend"),
+                              QStringLiteral("!dwellSuspend")};
+    if (!item.visibleWhen.isEmpty() && !whenVals.contains(item.visibleWhen)) {
+        whenVals.prepend(item.visibleWhen);
+        whenLabels.prepend(item.visibleWhen);
+    }
+    b.comboValues(form, QStringLiteral("Visible when"), whenLabels, whenVals, item.visibleWhen,
+                  [this](const QString& t) {
+                      applyItem([&](PageLeaf& it) { it.visibleWhen = t; },
+                                QStringLiteral("Visible when"));
+                  });
+}
+
+void LayoutEditorProperties::fillCell(QFormLayout* form)
+{
+    const PageLeaf* item = m_session.selectedItem();
+    if (!item || !PageEdit::findCell(m_session.document(), item->id)) {
         return;
     }
-    b.heading(form, QStringLiteral("Placement"));
-    b.combo(form, QStringLiteral("Anchor"), LayoutSchema::itemAnchorNames(),
-            LayoutSchema::itemAnchorName(*item), [this](const QString& t) {
-                applyItem(
-                    [&](LayoutItem& it) {
-                        it.setAnchor(LayoutSchema::itemAnchorFromName(t));
+    fillLeafIdentity(form, *item);
+}
+
+void LayoutEditorProperties::fillZone(QFormLayout* form)
+{
+    const PageLeaf* item = m_session.selectedItem();
+    if (!item || !PageEdit::findZone(m_session.document(), item->id)) {
+        return;
+    }
+    fillLeafIdentity(form, *item);
+}
+
+void LayoutEditorProperties::fillPlacement(QFormLayout* form)
+{
+    PropertyBinder b{this, &m_loading};
+    const Kind kind = currentKind();
+    if (kind == Kind::Grid) {
+        const PageGrid* g = m_session.selectedGrid();
+        if (!g) {
+            return;
+        }
+        if (g->nested) {
+            b.integer(form, QStringLiteral("Row"), g->row, 0, 64, [this](int v) {
+                applyGrid([&](PageGrid& grid) { grid.row = v; }, QStringLiteral("Row"));
+            });
+            b.integer(form, QStringLiteral("Column"), g->col, 0, 64, [this](int v) {
+                applyGrid([&](PageGrid& grid) { grid.col = v; }, QStringLiteral("Column"));
+            });
+            b.integer(form, QStringLiteral("Row span"), g->rowSpan, 1, 16, [this](int v) {
+                applyGrid([&](PageGrid& grid) { grid.rowSpan = v; }, QStringLiteral("Row span"));
+            });
+            b.integer(form, QStringLiteral("Column span"), g->colSpan, 1, 16, [this](int v) {
+                applyGrid([&](PageGrid& grid) { grid.colSpan = v; }, QStringLiteral("Column span"));
+            });
+            return;
+        }
+        b.check(form, QStringLiteral("Desktop bounds"), g->desktopMode, [this](bool on) {
+            applyGrid([&](PageGrid& grid) { grid.desktopMode = on; }, QStringLiteral("Desktop mode"));
+        });
+        b.combo(form, QStringLiteral("Anchor"), pageAnchorNames(),
+                PageDimParse::anchorName(g->anchor), [this](const QString& t) {
+                    applyGrid(
+                        [&](PageGrid& grid) {
+                            bool ok = true;
+                            grid.anchor = PageDimParse::parseAnchor(t, &ok);
+                        },
+                        QStringLiteral("Anchor"));
+                });
+        b.dim(form, QStringLiteral("Offset X"), g->offset.x, [this](PageDim v) {
+            applyGrid([&](PageGrid& grid) { grid.offset.x = v; }, QStringLiteral("Offset X"));
+        });
+        b.dim(form, QStringLiteral("Offset Y"), g->offset.y, [this](PageDim v) {
+            applyGrid([&](PageGrid& grid) { grid.offset.y = v; }, QStringLiteral("Offset Y"));
+        });
+        b.dim(form, QStringLiteral("Width"), g->size.x, [this](PageDim v) {
+            applyGrid([&](PageGrid& grid) { grid.size.x = v; }, QStringLiteral("Width"));
+        });
+        b.dim(form, QStringLiteral("Height"), g->size.y, [this](PageDim v) {
+            applyGrid([&](PageGrid& grid) { grid.size.y = v; }, QStringLiteral("Height"));
+        });
+        b.check(form, QStringLiteral("Above taskbar"), g->aboveTaskbar, [this](bool on) {
+            applyGrid([&](PageGrid& grid) { grid.aboveTaskbar = on; },
+                      QStringLiteral("Above taskbar"));
+        });
+        b.check(form, QStringLiteral("Drawer motion"), g->drawerMotion, [this](bool on) {
+            applyGrid([&](PageGrid& grid) { grid.drawerMotion = on; },
+                      QStringLiteral("Drawer motion"));
+        });
+        return;
+    }
+    if (kind == Kind::Cell) {
+        const PageLeaf* item = m_session.selectedItem();
+        const PageCell* c = item ? PageEdit::findCell(m_session.document(), item->id) : nullptr;
+        if (!c) {
+            return;
+        }
+        b.integer(form, QStringLiteral("Row"), c->row, 0, 64, [this](int v) {
+            applyCell([&](PageCell& cell) { cell.row = v; }, QStringLiteral("Row"));
+        });
+        b.integer(form, QStringLiteral("Column"), c->col, 0, 64, [this](int v) {
+            applyCell([&](PageCell& cell) { cell.col = v; }, QStringLiteral("Column"));
+        });
+        b.integer(form, QStringLiteral("Row span"), c->rowSpan, 1, 16, [this](int v) {
+            applyCell([&](PageCell& cell) { cell.rowSpan = v; }, QStringLiteral("Row span"));
+        });
+        b.integer(form, QStringLiteral("Column span"), c->colSpan, 1, 16, [this](int v) {
+            applyCell([&](PageCell& cell) { cell.colSpan = v; }, QStringLiteral("Column span"));
+        });
+        return;
+    }
+    const PageLeaf* item = m_session.selectedItem();
+    const PageZone* z = item ? PageEdit::findZone(m_session.document(), item->id) : nullptr;
+    if (!z) {
+        return;
+    }
+    b.heading(form, QStringLiteral("Progress zone (offset from page anchor)"));
+    b.check(form, QStringLiteral("Desktop bounds"), z->desktopMode, [this](bool on) {
+        applyZone([&](PageZone& zone) { zone.desktopMode = on; }, QStringLiteral("Desktop mode"));
+    });
+    b.combo(form, QStringLiteral("Anchor"), pageAnchorNames(), PageDimParse::anchorName(z->anchor),
+            [this](const QString& t) {
+                applyZone(
+                    [&](PageZone& zone) {
+                        bool ok = true;
+                        zone.anchor = PageDimParse::parseAnchor(t, &ok);
                     },
                     QStringLiteral("Anchor"));
             });
-    b.note(form, QStringLiteral("cell = row/column on the board. Other values are free "
-                                "(anchor point on the screen)."));
-
-    if (item->isUnbounded()) {
-        b.heading(form, QStringLiteral("Free placement"));
-        b.note(form, QStringLiteral("Offset and size are relative to the Anchor point."));
-        b.dim(form, QStringLiteral("X"), item->dwellRegion.x, [this](DimSpec v) {
-            applyItem([&](LayoutItem& it) { it.dwellRegion.x = v; }, QStringLiteral("X"));
-        });
-        b.dim(form, QStringLiteral("Y"), item->dwellRegion.y, [this](DimSpec v) {
-            applyItem([&](LayoutItem& it) { it.dwellRegion.y = v; }, QStringLiteral("Y"));
-        });
-        b.dim(form, QStringLiteral("Width"), item->dwellRegion.width, [this](DimSpec v) {
-            applyItem([&](LayoutItem& it) { it.dwellRegion.width = v; }, QStringLiteral("Width"));
-        });
-        b.dim(form, QStringLiteral("Height"), item->dwellRegion.height, [this](DimSpec v) {
-            applyItem([&](LayoutItem& it) { it.dwellRegion.height = v; }, QStringLiteral("Height"));
-        });
-        b.combo(form, QStringLiteral("Bounds"),
-                {QStringLiteral("desktop"), QStringLiteral("screen")},
-                LayoutSchema::boundsModeName(item->dwellRegion.hasBoundsMode
-                                                 ? item->dwellRegion.boundsMode
-                                                 : BoundsMode::Desktop),
-                [this](const QString& t) {
-                    applyItem(
-                        [&](LayoutItem& it) {
-                            it.dwellRegion.hasBoundsMode = true;
-                            it.dwellRegion.boundsMode = LayoutSchema::boundsModeFromName(t);
-                        },
-                        QStringLiteral("Item bounds"));
-                });
-    } else {
-        b.heading(form, QStringLiteral("Cell"));
-        b.integer(form, QStringLiteral("Row"), item->row, 0, 64, [this](int v) {
-            applyItem([&](LayoutItem& it) { it.row = v; }, QStringLiteral("Row"));
-        });
-        b.integer(form, QStringLiteral("Column"), item->col, 0, 64, [this](int v) {
-            applyItem([&](LayoutItem& it) { it.col = v; }, QStringLiteral("Column"));
-        });
-        b.integer(form, QStringLiteral("Row span"), item->rowSpan, 1, 16, [this](int v) {
-            applyItem([&](LayoutItem& it) { it.rowSpan = v; }, QStringLiteral("Row span"));
-        });
-        b.integer(form, QStringLiteral("Column span"), item->colSpan, 1, 16, [this](int v) {
-            applyItem([&](LayoutItem& it) { it.colSpan = v; }, QStringLiteral("Column span"));
-        });
-        b.real(form, QStringLiteral("Key width (u)"), item->widthUnits, 0, 24, 2, [this](double v) {
-            applyItem([&](LayoutItem& it) { it.widthUnits = v; }, QStringLiteral("Width units"));
-        });
-        b.note(form, QStringLiteral("0 = equal columns. Keyboard keys use letter-widths."));
-    }
-
-    b.check(form, QStringLiteral("Visible"), item->visible, [this](bool on) {
-        applyItem([&](LayoutItem& it) { it.visible = on; }, QStringLiteral("Visible"));
+    b.dim(form, QStringLiteral("Offset X"), z->offset.x, [this](PageDim v) {
+        applyZone([&](PageZone& zone) { zone.offset.x = v; }, QStringLiteral("Offset X"));
     });
-    {
-        QStringList whenVals = visibleWhenChoices();
-        QStringList whenLabels = {QStringLiteral("(always)"), QStringLiteral("expanded"),
-                                  QStringLiteral("!expanded"), QStringLiteral("quitConfirm"),
-                                  QStringLiteral("!quitConfirm"), QStringLiteral("dwellSuspend"),
-                                  QStringLiteral("!dwellSuspend")};
-        if (!item->visibleWhen.isEmpty() && !whenVals.contains(item->visibleWhen)) {
-            whenVals.prepend(item->visibleWhen);
-            whenLabels.prepend(item->visibleWhen);
-        }
-        b.comboValues(form, QStringLiteral("Visible when"), whenLabels, whenVals, item->visibleWhen,
-                      [this](const QString& t) {
-                          applyItem([&](LayoutItem& it) { it.visibleWhen = t; },
-                                    QStringLiteral("Visible when"));
-                      });
-    }
-    b.combo(form, QStringLiteral("Embed"),
-            {QStringLiteral("cell"), QStringLiteral("layout")},
-            item->isEmbed() ? QStringLiteral("layout") : QStringLiteral("cell"),
-            [this](const QString& t) {
-                applyItem(
-                    [&](LayoutItem& it) {
-                        if (t == QLatin1String("layout")) {
-                            it.type = QStringLiteral("layout");
-                        } else {
-                            it.type.clear();
-                            it.embedLayoutId.clear();
-                        }
-                    },
-                    QStringLiteral("Embed"));
-            });
-    if (item->isEmbed()) {
-        QStringList ids = m_catalog.layoutIds;
-        QStringList labels = m_catalog.layoutLabels;
-        if (labels.size() != ids.size()) {
-            labels = ids;
-        }
-        if (!item->embedLayoutId.isEmpty() && !ids.contains(item->embedLayoutId)) {
-            ids.prepend(item->embedLayoutId);
-            labels.prepend(item->embedLayoutId);
-        }
-        if (ids.isEmpty()) {
-            b.text(form, QStringLiteral("Layout id"), item->embedLayoutId, [this](const QString& t) {
-                applyItem([&](LayoutItem& it) { it.embedLayoutId = t.trimmed(); },
-                          QStringLiteral("Embed layout"));
-            });
-        } else {
-            b.comboValues(form, QStringLiteral("Layout id"), labels, ids, item->embedLayoutId,
-                          [this](const QString& t) {
-                              applyItem([&](LayoutItem& it) { it.embedLayoutId = t; },
-                                        QStringLiteral("Embed layout"));
-                          });
-        }
-    }
+    b.dim(form, QStringLiteral("Offset Y"), z->offset.y, [this](PageDim v) {
+        applyZone([&](PageZone& zone) { zone.offset.y = v; }, QStringLiteral("Offset Y"));
+    });
+    b.dim(form, QStringLiteral("Width"), z->size.x, [this](PageDim v) {
+        applyZone([&](PageZone& zone) { zone.size.x = v; }, QStringLiteral("Width"));
+    });
+    b.dim(form, QStringLiteral("Height"), z->size.y, [this](PageDim v) {
+        applyZone([&](PageZone& zone) { zone.size.y = v; }, QStringLiteral("Height"));
+    });
+    b.heading(form, QStringLiteral("Dwell zone (offset from progress anchor)"));
+    b.dim(form, QStringLiteral("Offset X"), z->dwellOffset.x, [this](PageDim v) {
+        applyZone([&](PageZone& zone) { zone.dwellOffset.x = v; }, QStringLiteral("Dwell offset X"));
+    });
+    b.dim(form, QStringLiteral("Offset Y"), z->dwellOffset.y, [this](PageDim v) {
+        applyZone([&](PageZone& zone) { zone.dwellOffset.y = v; }, QStringLiteral("Dwell offset Y"));
+    });
+    b.dim(form, QStringLiteral("Width"), z->dwellSize.x, [this](PageDim v) {
+        applyZone([&](PageZone& zone) { zone.dwellSize.x = v; }, QStringLiteral("Dwell width"));
+    });
+    b.dim(form, QStringLiteral("Height"), z->dwellSize.y, [this](PageDim v) {
+        applyZone([&](PageZone& zone) { zone.dwellSize.y = v; }, QStringLiteral("Dwell height"));
+    });
 }
 
-void LayoutEditorProperties::fillItemAction(QFormLayout* form)
+void LayoutEditorProperties::fillStyle(QFormLayout* form)
 {
     PropertyBinder b{this, &m_loading};
-    const LayoutItem* item = m_session.selectedItem();
+    const Kind kind = currentKind();
+    if (kind == Kind::Style) {
+        const QString styleId = m_session.selection().itemId;
+        addNamedChromeEditor(
+            b, form, m_session.document().styles, styleId,
+            [this](const QString& id) { selectNamedStyle(id); },
+            [this]() { m_session.addNamedStyle(); },
+            [this](const QString& from, const QString& to) { renameNamedStyle(from, to); },
+            [this](const QString& id) {
+                applyDoc([&](PageDocument& doc) { doc.styles.remove(id); },
+                         QStringLiteral("Delete style"));
+                m_session.selectTarget(EditorTarget::Document);
+            },
+            [this, styleId](const QString& undo, const auto& mut) {
+                applyDoc(
+                    [&](PageDocument& doc) {
+                        const auto it = doc.styles.find(styleId);
+                        if (it != doc.styles.end()) {
+                            mut(*it);
+                        }
+                    },
+                    undo);
+            });
+        return;
+    }
+    if (kind == Kind::Grid) {
+        const PageGrid* g = m_session.selectedGrid();
+        if (!g) {
+            return;
+        }
+        addOptionalIdCombo(b, form, QStringLiteral("Inherit"), m_session.document().styles.keys(),
+                           g->styleId, [this](const QString& t) {
+                               applyGrid([&](PageGrid& grid) { grid.styleId = t; },
+                                         QStringLiteral("Grid style"));
+                           });
+        addChromeFields(b, form, g->style, [this](const QString& undo, const auto& mut) {
+            applyGrid([&](PageGrid& grid) { mut(grid.style); }, undo);
+        }, false);
+        return;
+    }
+    const PageLeaf* item = m_session.selectedItem();
     if (!item) {
         return;
     }
-    b.heading(form, QStringLiteral("Activation"));
-    b.check(form, QStringLiteral("Gaze / click can activate"), item->interactive, [this](bool on) {
-        applyItem([&](LayoutItem& it) { it.interactive = on; }, QStringLiteral("Interactive"));
+    addOptionalIdCombo(b, form, QStringLiteral("Inherit"), m_session.document().styles.keys(),
+                       item->styleId, [this](const QString& t) {
+                           applyItem([&](PageLeaf& it) { it.styleId = t; },
+                                     QStringLiteral("Style"));
+                       });
+    addChromeFields(b, form, item->style, [this](const QString& undo, const auto& mut) {
+        m_session.applyChromeToSelected(mut, undo);
+        rebuildIfNeeded();
+    }, false);
+}
+
+void LayoutEditorProperties::fillDwell(QFormLayout* form)
+{
+    PropertyBinder b{this, &m_loading};
+    const Kind kind = currentKind();
+    if (kind == Kind::Dwell) {
+        const QString dwellId = m_session.selection().itemId;
+        addNamedDwellEditor(
+            b, form, m_session.document().dwells, dwellId,
+            [this](const QString& id) { selectNamedDwell(id); },
+            [this]() { m_session.addNamedDwell(); },
+            [this](const QString& from, const QString& to) { renameNamedDwell(from, to); },
+            [this](const QString& id) {
+                applyDoc([&](PageDocument& doc) { doc.dwells.remove(id); },
+                         QStringLiteral("Delete dwell"));
+                m_session.selectTarget(EditorTarget::Document);
+            },
+            [this, dwellId](const QString& undo, const auto& mut) {
+                applyDoc(
+                    [&](PageDocument& doc) {
+                        const auto it = doc.dwells.find(dwellId);
+                        if (it != doc.dwells.end()) {
+                            mut(*it);
+                        }
+                    },
+                    undo);
+            });
+        return;
+    }
+}
+
+void LayoutEditorProperties::fillAction(QFormLayout* form)
+{
+    PropertyBinder b{this, &m_loading};
+    const PageLeaf* item = m_session.selectedItem();
+    if (!item) {
+        return;
+    }
+    b.check(form, QStringLiteral("Interactive"), item->interactive, [this](bool on) {
+        applyItem([&](PageLeaf& it) { it.interactive = on; }, QStringLiteral("Interactive"));
     });
     b.check(form, QStringLiteral("Still works while Sleep is on"), item->dwellExempt,
             [this](bool on) {
-                applyItem([&](LayoutItem& it) { it.dwellExempt = on; },
-                         QStringLiteral("Dwell exempt"));
+                applyItem([&](PageLeaf& it) { it.dwellExempt = on; },
+                          QStringLiteral("Dwell exempt"));
             });
     b.check(form, QStringLiteral("Loop until activated again"), item->actionLoop, [this](bool on) {
-        applyItem([&](LayoutItem& it) { it.actionLoop = on; }, QStringLiteral("Action loop"));
+        applyItem([&](PageLeaf& it) { it.actionLoop = on; }, QStringLiteral("Action loop"));
     });
     b.text(form, QStringLiteral("Active-state key"), item->activeState, [this](const QString& t) {
-        applyItem([&](LayoutItem& it) { it.activeState = t; }, QStringLiteral("Active state"));
+        applyItem([&](PageLeaf& it) { it.activeState = t; }, QStringLiteral("Active state"));
     });
-    b.note(form, QStringLiteral("Accent on when this key is true (dwellSuspend, setting.*, loop.id, !…)."));
-
-    const QVector<LayoutAction> acts = item->effectiveActions();
-    addActionSeriesFields(b, form, acts, item->label, m_catalog, m_actionStep,
+    addActionSeriesFields(b, form, item->actions, item->label, m_catalog, m_actionStep,
                           [this](int step) {
                               if (m_actionStep == step) {
                                   return;
@@ -821,28 +890,18 @@ void LayoutEditorProperties::fillItemAction(QFormLayout* form)
                               m_actionStep = step;
                               QTimer::singleShot(0, this, &LayoutEditorProperties::rebuild);
                           },
-                          [this, id = item->id](QVector<LayoutAction> next) {
+                          [this, id = item->id](QVector<PageAction> next) {
                               m_session.setActions(id, std::move(next));
                               rebuildIfNeeded();
                           });
-
-    b.check(form, QStringLiteral("Custom gaze timing"), item->dwell.sectionPresent, [this](bool on) {
-        applyItem(
-            [&](LayoutItem& it) {
-                it.dwell.sectionPresent = on;
-                if (!on) {
-                    it.dwell = LayoutDwellConfig{};
-                }
-            },
-            QStringLiteral("Custom dwell"));
-    });
-    if (item->dwell.sectionPresent) {
-        addDwellFields(b, form, item->dwell,
-                       [this](const QString& undo, const auto& mut) {
-                           applyItem([&](LayoutItem& it) { mut(it.dwell); }, undo);
-                       },
-                       false);
-    }
+    addDwellFields(
+        b, form, item->dwell,
+        [this](const QString& undo, const auto& mut) {
+            applyItem([&](PageLeaf& it) { mut(it.dwell); }, undo);
+        },
+        true, m_session.document().dwells.keys(), item->dwellId, [this](const QString& t) {
+            applyItem([&](PageLeaf& it) { it.dwellId = t; }, QStringLiteral("Dwell"));
+        });
 }
 
 } // namespace gazer

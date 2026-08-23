@@ -11,6 +11,7 @@
 #include <QSet>
 #include <QString>
 #include <QTimer>
+#include <QTransform>
 #include <QVector>
 
 class QCloseEvent;
@@ -28,24 +29,23 @@ public:
 
     void setTheme(const ThemeColors& theme);
     void setProgressVisuals(const ProgressVisuals& visuals);
-    void setTargets(QVector<PageTarget> targets);
-    void setGridPaints(QVector<PageGridPaint> grids);
+    void commit(QVector<PageTarget> targets, QVector<PageGridPaint> grids, double drawerScale);
     void setDrawerScale(double scale);
     void setActiveIds(QSet<QString> ids);
-    void setHover(const QString& id, double progress);
+    void setHover(const QString& id, double progress, bool revealProgress = false);
     void flash(const QString& id);
     void setPreviewColor(const QColor& color);
     void setSliderScrub(const QString& itemId, double t, const QString& valueText,
                         double dwellProgress);
     void clearSliderScrub();
     void setInputFocusEnabled(bool on);
-    void coverVirtualDesktop();
     void showHost();
     void raiseHost();
 
     [[nodiscard]] QString mouseHit(const QPointF& global) const;
     [[nodiscard]] const QVector<PageTarget>& targets() const { return m_targets; }
     [[nodiscard]] QPoint origin() const { return m_origin; }
+    [[nodiscard]] const QTransform& drawerXf() const { return m_drawerXf; }
 
 signals:
     void targetClicked(const QString& targetId);
@@ -58,8 +58,11 @@ protected:
 
 private:
     void syncBoardSize();
+    void syncGlass();
+    void fitToChrome();
     void applyChrome();
     void applyInputFocusChrome();
+    void cacheDrawerXf();
 
     QQuickPaintedItem* m_board = nullptr;
     GlassBackdrop m_glass;
@@ -68,12 +71,16 @@ private:
     QVector<PageTarget> m_targets;
     QVector<PageGridPaint> m_gridPaints;
     double m_drawerScale = 1.0;
+    QTransform m_drawerXf;
+    double m_blurMax = 0.0;
     QSet<QString> m_activeIds;
     QString m_hoverId;
     double m_hoverProgress = 0.0;
+    bool m_revealProgress = false;
     QString m_flashId;
     QTimer m_flashTimer;
     QRectF m_flashRect;
+    PageBox m_flashRadii;
     QPoint m_origin;
     QColor m_previewColor;
     QString m_sliderScrubId;
