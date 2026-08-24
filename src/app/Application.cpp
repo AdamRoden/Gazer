@@ -91,25 +91,15 @@ bool Application::initialize()
     connect(m_tray.get(), &TrayIcon::layoutEditorRequested, this, [this]() { openPageEditor(); });
     connect(m_tray.get(), &TrayIcon::quitRequested, this, &Application::onQuitRequested);
 
-    auto openEditor = [this](const CommandRegistry::Invocation& inv, QString*) {
-        openPageEditor(inv.pageId);
-        return true;
-    };
-    m_svc->commands().registerBuiltin(QStringLiteral("openPageEditor"), openEditor);
-    m_svc->commands().registerBuiltin(QStringLiteral("openLayoutEditor"), openEditor);
+    m_svc->commands().registerBuiltin(
+        QStringLiteral("openLayoutEditor"),
+        [this](const CommandRegistry::Invocation& inv, QString*) {
+            openPageEditor(inv.pageId);
+            return true;
+        });
 
     m_svc->commands().registerBuiltin(QStringLiteral("quitApp"), [this](QString*) {
         QTimer::singleShot(0, this, &Application::onQuitRequested);
-        return true;
-    });
-    // Dock "Main ▶" — show the home child of the persistent root.
-    m_svc->commands().registerBuiltin(QStringLiteral("expandMaster"), [this](QString* error) {
-        return expandMasterShell(error);
-    });
-    m_svc->commands().registerBuiltin(QStringLiteral("collapseMaster"), [this](QString*) {
-        m_svc->pages().applyPageAction(PageVerb::Close, PageTargetKind::Grid,
-                                       QStringLiteral("all"));
-        updateTrayStatus();
         return true;
     });
     m_svc->commands().registerBuiltin(QStringLiteral("closeOtherViews"), [this](QString*) {
@@ -327,23 +317,6 @@ void Application::onGaze(const gazer::GazePoint& point)
     if (m_svc->isDwellSuspended()) {
         syncDwellSuspendOverlay();
     }
-}
-
-bool Application::expandMasterShell(QString* error)
-{
-    if (!m_svc->pages().applyPageAction(PageVerb::Open, PageTargetKind::Grid,
-                                        QStringLiteral("drawer"), error)) {
-        if (m_tray && error) {
-            m_tray->setStatus(QStringLiteral("Expand failed: %1").arg(*error));
-        }
-        return false;
-    }
-
-    updateTrayStatus();
-    if (m_tray) {
-        m_tray->setStatus(QStringLiteral("Main restored"));
-    }
-    return true;
 }
 
 void Application::openPageEditor(const QString& pageId)

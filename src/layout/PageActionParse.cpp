@@ -12,12 +12,79 @@ QStringList splitCsv(const QString& value)
 {
     QStringList out;
     for (const QString& p : value.split(QLatin1Char(','))) {
-        const QString t = p.trimmed();
-        if (!t.isEmpty()) {
-            out.push_back(t);
-        }
+        out.push_back(p.trimmed());
+    }
+    while (!out.isEmpty() && out.last().isEmpty()) {
+        out.removeLast();
     }
     return out;
+}
+
+bool isEdgeToken(const QString& t)
+{
+    const QString l = t.trimmed().toLower();
+    return l == QLatin1String("down") || l == QLatin1String("up");
+}
+
+bool parseIntToken(const QString& t, int* out, QString* error, const char* what)
+{
+    const QString s = t.trimmed();
+    if (s.isEmpty()) {
+        return true;
+    }
+    bool ok = false;
+    const int v = s.toInt(&ok);
+    if (!ok) {
+        if (error) {
+            *error = QStringLiteral("%1 must be an integer, got '%2'")
+                         .arg(QString::fromLatin1(what), t);
+        }
+        return false;
+    }
+    *out = v;
+    return true;
+}
+
+bool parseClickTail(const QStringList& parts, PageAction& out, QString* error, bool withZoom)
+{
+    if (!parts.isEmpty()) {
+        out.button = parts[0];
+    }
+    int i = 1;
+    const int n = parts.size();
+    if (i < n && isEdgeToken(parts[i])) {
+        // Count omitted; default 1.
+    } else if (i < n) {
+        if (!parseIntToken(parts[i], &out.clickCount, error, "Click count")) {
+            return false;
+        }
+        ++i;
+    }
+    if (i < n && isEdgeToken(parts[i])) {
+        out.clickEdge = parts[i];
+        ++i;
+    } else if (i < n && parts[i].isEmpty()) {
+        ++i;
+    }
+    if (i < n) {
+        if (!parseIntToken(parts[i], &out.speed, error, "Click speed")) {
+            return false;
+        }
+        ++i;
+    }
+    if (withZoom && i < n) {
+        if (!parseIntToken(parts[i], &out.zoomLevel, error, "Zoom")) {
+            return false;
+        }
+        ++i;
+    }
+    if (i < n) {
+        if (error) {
+            *error = QStringLiteral("Unexpected extra field '%1'").arg(parts[i]);
+        }
+        return false;
+    }
+    return true;
 }
 
 } // namespace
@@ -50,11 +117,24 @@ bool parsePageAction(const QXmlStreamAttributes& a, const QString& cdata, PageAc
         if (!parts.isEmpty()) {
             out.sendKey = parts[0];
         }
-        if (parts.size() >= 2) {
-            out.sendEdge = parts[1];
+        int i = 1;
+        if (i < parts.size() && isEdgeToken(parts[i])) {
+            out.sendEdge = parts[i];
+            ++i;
+        } else if (i < parts.size() && parts[i].isEmpty()) {
+            ++i;
         }
-        if (parts.size() >= 3) {
-            out.sendDurationMs = parts[2].toInt();
+        if (i < parts.size()) {
+            if (!parseIntToken(parts[i], &out.sendDurationMs, error, "Send duration")) {
+                return false;
+            }
+            ++i;
+        }
+        if (i < parts.size()) {
+            if (error) {
+                *error = QStringLiteral("Unexpected extra Send field '%1'").arg(parts[i]);
+            }
+            return false;
         }
         return true;
     }
@@ -94,23 +174,11 @@ bool parsePageAction(const QXmlStreamAttributes& a, const QString& cdata, PageAc
         }
         return true;
     }
-    if (nid == QLatin1String("click") || nid == QLatin1String("mouseclick")) {
+    if (nid == QLatin1String("click")) {
         out.type = PageActionType::Click;
-        if (!parts.isEmpty()) {
-            out.button = parts[0];
-        }
-        if (parts.size() >= 2) {
-            out.clickCount = parts[1].toInt();
-        }
-        if (parts.size() >= 3) {
-            out.clickEdge = parts[2];
-        }
-        if (parts.size() >= 4) {
-            out.speed = parts[3].toInt();
-        }
-        return true;
+        return parseClickTail(parts, out, error, false);
     }
-    if (nid == QLatin1String("move") || nid == QLatin1String("mousemove")) {
+    if (nid == QLatin1String("move")) {
         out.type = PageActionType::Move;
         if (!parts.isEmpty()) {
             const QString m = parts[0].toLower();
@@ -140,31 +208,20 @@ bool parsePageAction(const QXmlStreamAttributes& a, const QString& cdata, PageAc
             }
         }
         if (parts.size() >= 4) {
-            out.speed = parts[3].toInt();
+            if (!parseIntToken(parts[3], &out.speed, error, "Move speed")) {
+                return false;
+            }
         }
         if (parts.size() >= 5) {
-            out.zoomLevel = parts[4].toInt();
+            if (!parseIntToken(parts[4], &out.zoomLevel, error, "Zoom")) {
+                return false;
+            }
         }
         return true;
     }
-    if (nid == QLatin1String("moveandclick") || nid == QLatin1String("mousemoveandclick")) {
+    if (nid == QLatin1String("moveandclick")) {
         out.type = PageActionType::MoveAndClick;
-        if (!parts.isEmpty()) {
-            out.button = parts[0];
-        }
-        if (parts.size() >= 2) {
-            out.clickCount = parts[1].toInt();
-        }
-        if (parts.size() >= 3) {
-            out.clickEdge = parts[2];
-        }
-        if (parts.size() >= 4) {
-            out.speed = parts[3].toInt();
-        }
-        if (parts.size() >= 5) {
-            out.zoomLevel = parts[4].toInt();
-        }
-        return true;
+        return parseClickTail(parts, out, error, true);
     }
     if (nid == QLatin1String("command")) {
         out.type = PageActionType::Command;

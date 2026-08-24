@@ -30,7 +30,6 @@ private:
     void wireTracker();
     void updateTrayStatus();
     void syncDwellSuspendOverlay();
-    [[nodiscard]] bool expandMasterShell(QString* error = nullptr);
 
     void onQuitRequested();
     void openPageEditor(const QString& pageId = {});

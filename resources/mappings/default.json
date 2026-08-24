@@ -70,12 +70,6 @@
     "windowMax": [
       { "type": "keyCombo", "keys": ["Control", "Alt", "W"] }
     ],
-    "enterMouseControl": [
-      { "type": "mouseClick", "button": "left" }
-    ],
-    "mouseLeftClick": [
-      { "type": "mouseClick", "button": "left" }
-    ],
     "mouseRightClick": [
       { "type": "mouseClick", "button": "right" }
     ],
@@ -87,12 +81,6 @@
     ],
     "mouseRightDoubleClick": [
       { "type": "mouseDoubleClick", "button": "right" }
-    ],
-    "scrollUp": [
-      { "type": "mouseScroll", "notches": 3 }
-    ],
-    "scrollDown": [
-      { "type": "mouseScroll", "notches": -3 }
     ],
     "gamepadA": [
       { "type": "gamepadButton", "button": "A" }

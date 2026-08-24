@@ -266,11 +266,7 @@ void registerAssistCommands(AssistCommandContext& ctx)
         return true;
     });
 
-    // Used by action series / loops: move OS cursor to last valid gaze sample.
-    // (Registered fully in GazerServices with lastGaze access.)
     commands->registerBuiltin(QStringLiteral("mouseDwellMove"), [mouseDwell](QString*) {
-        // Explicit Move-to: normal CursorMove purpose (mag-pick setting applies).
-        // Soft handoff keeps LTS enabled if it was already on.
         mouseDwell->toggle();
         return true;
     });

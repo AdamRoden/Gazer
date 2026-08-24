@@ -152,11 +152,14 @@ void writeAction(QXmlStreamWriter& xml, const PageAction& a)
     }
     xml.writeStartElement(QStringLiteral("Action"));
     auto csv = [](const QStringList& parts) {
+        int last = parts.size();
+        while (last > 0 && parts.at(last - 1).isEmpty()) {
+            --last;
+        }
         QStringList out;
-        for (const QString& p : parts) {
-            if (!p.isEmpty()) {
-                out.push_back(p);
-            }
+        out.reserve(last);
+        for (int i = 0; i < last; ++i) {
+            out.push_back(parts.at(i));
         }
         return out.join(QStringLiteral(", "));
     };
@@ -164,7 +167,7 @@ void writeAction(QXmlStreamWriter& xml, const PageAction& a)
     case PageActionType::Send: {
         xml.writeAttribute(QStringLiteral("id"), QStringLiteral("Send"));
         QStringList parts{a.sendKey};
-        if (!a.sendEdge.isEmpty() || a.sendDurationMs > 0) {
+        if (!a.sendEdge.isEmpty()) {
             parts.push_back(a.sendEdge);
         }
         if (a.sendDurationMs > 0) {
@@ -194,10 +197,10 @@ void writeAction(QXmlStreamWriter& xml, const PageAction& a)
         xml.writeAttribute(QStringLiteral("id"), QStringLiteral("Click"));
         QStringList parts;
         parts.push_back(a.button.isEmpty() ? QStringLiteral("left") : a.button);
-        if (a.clickCount != 1 || !a.clickEdge.isEmpty() || a.speed != 0) {
+        if (a.clickCount != 1 || a.speed != 0) {
             parts.push_back(QString::number(a.clickCount));
         }
-        if (!a.clickEdge.isEmpty() || a.speed != 0) {
+        if (!a.clickEdge.isEmpty()) {
             parts.push_back(a.clickEdge);
         }
         if (a.speed != 0) {
@@ -232,10 +235,10 @@ void writeAction(QXmlStreamWriter& xml, const PageAction& a)
         xml.writeAttribute(QStringLiteral("id"), QStringLiteral("MoveAndClick"));
         QStringList parts;
         parts.push_back(a.button.isEmpty() ? QStringLiteral("left") : a.button);
-        if (a.clickCount != 1 || !a.clickEdge.isEmpty() || a.speed != 0 || a.zoomLevel != 0) {
+        if (a.clickCount != 1 || a.speed != 0 || a.zoomLevel != 0) {
             parts.push_back(QString::number(a.clickCount));
         }
-        if (!a.clickEdge.isEmpty() || a.speed != 0 || a.zoomLevel != 0) {
+        if (!a.clickEdge.isEmpty()) {
             parts.push_back(a.clickEdge);
         }
         if (a.speed != 0 || a.zoomLevel != 0) {

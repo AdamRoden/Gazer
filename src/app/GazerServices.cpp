@@ -202,6 +202,9 @@ void GazerServices::setDwellSuspended(bool on)
     if (m_pages) {
         m_pages->setDwellSuspended(on);
     }
+    if (on && m_mouseAssist) {
+        m_mouseAssist->releaseAllHolds();
+    }
 }
 
 void GazerServices::toggleDwellSuspended()
@@ -386,6 +389,9 @@ void GazerServices::registerDomainCommands()
         }
         if (m_mouseDwellMove && m_mouseDwellMove->isClickLoop()) {
             m_mouseDwellMove->setArmed(false);
+        }
+        if (m_mouseAssist) {
+            m_mouseAssist->releaseAllHolds();
         }
         refreshActiveIndicators();
         notifyStatus(QStringLiteral("All action loops stopped"));

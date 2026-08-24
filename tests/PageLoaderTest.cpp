@@ -32,6 +32,7 @@ private slots:
     void rejectMissingPageId();
     void rejectUnknownChild();
     void rejectNonPageRoot();
+    void rejectRemovedActionAliases();
     void loadMainPage();
     void loadQwertyXml();
     void loadConvertedBoards();
@@ -40,6 +41,10 @@ private slots:
     void pageWriterRoundTripMain();
     void rowWeightsRoundTrip();
     void actionExtrasRoundTrip();
+    void actionEmptyEdgeRoundTrip();
+    void parseClickDownAsEdge();
+    void parseSendDurationWithoutEdge();
+    void rejectNonIntegerClickCount();
     void sessionKeyPrefixedAfterPageId();
     void catalogUserCopyWinsPath();
 };
@@ -315,6 +320,22 @@ void PageLoaderTest::rejectNonPageRoot()
     QVERIFY(err.contains(QStringLiteral("Page")));
 }
 
+void PageLoaderTest::rejectRemovedActionAliases()
+{
+    const QStringList ids = {QStringLiteral("MouseClick"), QStringLiteral("MouseMove"),
+                             QStringLiteral("MouseMoveAndClick")};
+    for (const QString& id : ids) {
+        const QByteArray xml =
+            QByteArray("<Page id=\"p\"><Grid id=\"g\"><Cell id=\"c\">"
+                       "<Action id=\"")
+            + id.toUtf8() + QByteArray("\" value=\"left\"/></Cell></Grid></Page>");
+        PageDocument doc;
+        QString err;
+        QVERIFY2(!PageLoader::loadFromXml(xml, doc, &err), qPrintable(id));
+        QVERIFY2(err.contains(QStringLiteral("Unknown Action id")), qPrintable(err));
+    }
+}
+
 void PageLoaderTest::loadConvertedBoards()
 {
     const QStringList ids = {QStringLiteral("example_mouse"), QStringLiteral("example_assist"),
@@ -553,6 +574,7 @@ void PageLoaderTest::actionExtrasRoundTrip()
     QCOMPARE(grid->cells[0].styleId, QStringLiteral("chip"));
     QCOMPARE(grid->cells[0].actions.size(), 4);
     QCOMPARE(grid->cells[0].actions[0].sendDurationMs, 40);
+    QCOMPARE(grid->cells[0].actions[0].sendEdge, QStringLiteral("Down"));
     QCOMPARE(grid->cells[0].actions[1].moveMode, PageMoveMode::Absolute);
     QCOMPARE(int(grid->cells[0].actions[1].moveX.value), 10);
     QCOMPARE(grid->cells[0].actions[1].speed, 5);
@@ -561,6 +583,98 @@ void PageLoaderTest::actionExtrasRoundTrip()
     QCOMPARE(grid->cells[0].actions[2].zoomLevel, 1);
     QCOMPARE(grid->cells[0].actions[3].command, QStringLiteral("quitApp"));
     QCOMPARE(grid->cells[0].actions[3].args, QStringLiteral("now"));
+}
+
+namespace {
+
+bool loadOneAction(const QByteArray& actionXml, PageAction& out, QString* err)
+{
+    const QByteArray xml = QByteArray("<Page id=\"p\"><Grid id=\"g\"><Cell id=\"c\">") + actionXml
+                           + QByteArray("</Cell></Grid></Page>");
+    PageDocument doc;
+    if (!PageLoader::loadFromXml(xml, doc, err)) {
+        return false;
+    }
+    if (doc.grids.isEmpty() || doc.grids[0].cells.isEmpty()
+        || doc.grids[0].cells[0].actions.isEmpty()) {
+        if (err) {
+            *err = QStringLiteral("no action");
+        }
+        return false;
+    }
+    out = doc.grids[0].cells[0].actions[0];
+    return true;
+}
+
+} // namespace
+
+void PageLoaderTest::actionEmptyEdgeRoundTrip()
+{
+    PageDocument doc;
+    doc.id = QStringLiteral("t");
+    PageGrid g;
+    g.id = QStringLiteral("g");
+    PageCell c;
+    c.id = QStringLiteral("c");
+    PageAction send;
+    send.type = PageActionType::Send;
+    send.sendKey = QStringLiteral("Enter");
+    send.sendDurationMs = 40;
+    PageAction click;
+    click.type = PageActionType::Click;
+    click.button = QStringLiteral("left");
+    click.speed = 5;
+    PageAction mac;
+    mac.type = PageActionType::MoveAndClick;
+    mac.button = QStringLiteral("right");
+    mac.zoomLevel = 2;
+    c.actions = {send, click, mac};
+    g.cells.push_back(c);
+    doc.grids.push_back(g);
+
+    QString err;
+    PageDocument out;
+    QVERIFY2(PageLoader::loadFromXml(PageWriter::toBytes(doc), out, &err), qPrintable(err));
+    QCOMPARE(out.grids[0].cells[0].actions.size(), 3);
+    QCOMPARE(out.grids[0].cells[0].actions[0].sendKey, QStringLiteral("Enter"));
+    QCOMPARE(out.grids[0].cells[0].actions[0].sendEdge, QString());
+    QCOMPARE(out.grids[0].cells[0].actions[0].sendDurationMs, 40);
+    QCOMPARE(out.grids[0].cells[0].actions[1].clickCount, 1);
+    QCOMPARE(out.grids[0].cells[0].actions[1].clickEdge, QString());
+    QCOMPARE(out.grids[0].cells[0].actions[1].speed, 5);
+    QCOMPARE(out.grids[0].cells[0].actions[2].clickCount, 1);
+    QCOMPARE(out.grids[0].cells[0].actions[2].zoomLevel, 2);
+}
+
+void PageLoaderTest::parseClickDownAsEdge()
+{
+    PageAction a;
+    QString err;
+    QVERIFY2(loadOneAction(QByteArray("<Action id=\"Click\" value=\"left, Down\"/>"), a, &err),
+             qPrintable(err));
+    QCOMPARE(a.type, PageActionType::Click);
+    QCOMPARE(a.button, QStringLiteral("left"));
+    QCOMPARE(a.clickCount, 1);
+    QCOMPARE(a.clickEdge.toLower(), QStringLiteral("down"));
+}
+
+void PageLoaderTest::parseSendDurationWithoutEdge()
+{
+    PageAction a;
+    QString err;
+    QVERIFY2(loadOneAction(QByteArray("<Action id=\"Send\" value=\"Enter, 40\"/>"), a, &err),
+             qPrintable(err));
+    QCOMPARE(a.sendKey, QStringLiteral("Enter"));
+    QCOMPARE(a.sendEdge, QString());
+    QCOMPARE(a.sendDurationMs, 40);
+}
+
+void PageLoaderTest::rejectNonIntegerClickCount()
+{
+    PageAction a;
+    QString err;
+    QVERIFY(!loadOneAction(QByteArray("<Action id=\"Click\" value=\"left, foo\"/>"), a, &err));
+    QVERIFY(err.contains(QStringLiteral("integer")));
 }
 
 void PageLoaderTest::sessionKeyPrefixedAfterPageId()

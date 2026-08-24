@@ -19,22 +19,52 @@ bool MouseAssistState::inject(const InputOutput& o, QString* error)
     return m_input.execute(o, error);
 }
 
-bool MouseAssistState::toggleButton(const QString& button, bool& held, QString* error)
+bool* MouseAssistState::heldFlag(const QString& button)
 {
+    const QString b = button.trimmed().toLower();
+    if (b == QLatin1String("left") || b.isEmpty()) {
+        return &m_leftHeld;
+    }
+    if (b == QLatin1String("right")) {
+        return &m_rightHeld;
+    }
+    if (b == QLatin1String("middle")) {
+        return &m_middleHeld;
+    }
+    return nullptr;
+}
+
+bool MouseAssistState::setHeld(const QString& button, bool down, QString* error)
+{
+    bool* flag = heldFlag(button);
+    if (!flag) {
+        if (error) {
+            *error = QStringLiteral("Unknown mouse button: %1").arg(button);
+        }
+        return false;
+    }
+    if (*flag == down) {
+        return true;
+    }
     InputOutput o;
-    o.button = button;
-    if (held) {
-        o.type = InputOutput::Type::MouseUp;
-        held = false;
-    } else {
-        o.type = InputOutput::Type::MouseDown;
-        held = true;
+    o.button = button.trimmed().isEmpty() ? QStringLiteral("left") : button.trimmed();
+    o.type = down ? InputOutput::Type::MouseDown : InputOutput::Type::MouseUp;
+    if (!inject(o, error)) {
+        return false;
     }
-    const bool ok = inject(o, error);
-    if (ok) {
-        emit holdsChanged();
+    *flag = down;
+    emit holdsChanged();
+    return true;
+}
+
+void MouseAssistState::markReleased(const QString& button)
+{
+    bool* flag = heldFlag(button);
+    if (!flag || !*flag) {
+        return;
     }
-    return ok;
+    *flag = false;
+    emit holdsChanged();
 }
 
 bool MouseAssistState::nudge(int dx, int dy, QString* error)
@@ -80,27 +110,21 @@ bool MouseAssistState::moveToEdge(Qt::Alignment edge, QString* error)
 void MouseAssistState::releaseAllHolds()
 {
     QString err;
-    if (m_leftHeld) {
-        (void)toggleButton(QStringLiteral("left"), m_leftHeld, &err);
-    }
-    if (m_rightHeld) {
-        (void)toggleButton(QStringLiteral("right"), m_rightHeld, &err);
-    }
-    if (m_middleHeld) {
-        (void)toggleButton(QStringLiteral("middle"), m_middleHeld, &err);
-    }
+    (void)setHeld(QStringLiteral("left"), false, &err);
+    (void)setHeld(QStringLiteral("right"), false, &err);
+    (void)setHeld(QStringLiteral("middle"), false, &err);
 }
 
 void MouseAssistState::registerCommands(CommandRegistry& commands)
 {
     commands.registerBuiltin(QStringLiteral("mouseLeftDownUp"), [this](QString* e) {
-        return toggleButton(QStringLiteral("left"), m_leftHeld, e);
+        return setHeld(QStringLiteral("left"), !m_leftHeld, e);
     });
     commands.registerBuiltin(QStringLiteral("mouseRightDownUp"), [this](QString* e) {
-        return toggleButton(QStringLiteral("right"), m_rightHeld, e);
+        return setHeld(QStringLiteral("right"), !m_rightHeld, e);
     });
     commands.registerBuiltin(QStringLiteral("mouseMiddleDownUp"), [this](QString* e) {
-        return toggleButton(QStringLiteral("middle"), m_middleHeld, e);
+        return setHeld(QStringLiteral("middle"), !m_middleHeld, e);
     });
 
     commands.registerBuiltin(QStringLiteral("cycleMouseMoveAmount"), [this](QString*) {

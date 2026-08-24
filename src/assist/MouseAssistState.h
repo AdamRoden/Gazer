@@ -19,8 +19,14 @@ public:
 
     void registerCommands(CommandRegistry& commands);
 
-    /// Release any held buttons (call on quit / shutdown).
+    /// Release any held buttons (call on quit / shutdown / stop loops).
     void releaseAllHolds();
+
+    /// Inject down or up only if the tracked hold state would change.
+    [[nodiscard]] bool setHeld(const QString& button, bool down, QString* error = nullptr);
+
+    /// Sync hold flags after a full click (down+up) without injecting.
+    void markReleased(const QString& button);
 
     [[nodiscard]] bool isLeftHeld() const { return m_leftHeld; }
     [[nodiscard]] bool isRightHeld() const { return m_rightHeld; }
@@ -39,7 +45,7 @@ signals:
 
 private:
     [[nodiscard]] bool inject(const InputOutput& o, QString* error);
-    [[nodiscard]] bool toggleButton(const QString& button, bool& held, QString* error);
+    [[nodiscard]] bool* heldFlag(const QString& button);
     [[nodiscard]] bool nudge(int dx, int dy, QString* error);
     [[nodiscard]] bool moveToEdge(Qt::Alignment edge, QString* error);
 

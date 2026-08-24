@@ -27,7 +27,7 @@ The tray owns process lifetime. Closing a page does not quit the app.
 
 ## Page editor
 
-Tray → **Page editor**, command `openPageEditor` (alias `openLayoutEditor`), or launch with `--editor`.
+Tray → **Page editor**, command `openLayoutEditor`, or launch with `--editor`.
 
 The designer edits **Page XML** (the same files the runtime loads). Three panes:
 
@@ -205,9 +205,9 @@ Screen-anchored chip (dock Main/Sleep, keyboard edge keys). Same leaf fields as 
 | `Page` | Open\|Close\|Toggle, Page\|Grid\|Zone, targetId (`self` = current page) |
 | `Command` | builtin or mapping-profile name |
 | `Speak` | TTS text |
-| `Click` | left\|right\|middle |
-| `Move` | Gaze, or Absolute\|Relative,x,y |
-| `MoveAndClick` | button |
+| `Click` | left\|right\|middle[, count[, Down\|Up]] |
+| `Move` | Gaze (jump to last gaze), or Absolute\|Relative,x,y |
+| `MoveAndClick` | button — jump to last gaze, then click (count/edge as Click) |
 | `AHK` | element body (not executed yet) |
 
 ### Example
@@ -232,7 +232,6 @@ Builtins first; unknown names fall through to the mapping profile.
 
 | Command | Role |
 |---------|------|
-| `expandMaster` / `collapseMaster` | Show / hide the drawer |
 | `closeOtherViews` | Close every attached (non-root) page |
 | `quitApp` | Exit |
 | `toggleDwellSuspend` / `suspendDwell` / `resumeDwell` | Global dwell pause |
@@ -246,6 +245,6 @@ Builtins first; unknown names fall through to the mapping profile.
 | `mouseLeftClick` | Left click at cursor |
 | `stopAllActionLoops` | Stop sticky series and assist loops |
 | `openPreview` | Head-pose preview |
-| `openPageEditor` / `openLayoutEditor` | XML page designer |
+| `openLayoutEditor` | XML page designer |
 | `theme.light` / `theme.dark` / `theme.custom` | Theme mode |
 | `settings.*` | Settings hub editors, nudges, presets |

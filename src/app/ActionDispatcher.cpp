@@ -1,6 +1,5 @@
 #include "app/ActionDispatcher.h"
 
-#include "input/InputTypes.h"
 #include "input/KeyboardInjector.h"
 #include "input/MouseInjector.h"
 #include "utils/Log.h"
@@ -15,6 +14,27 @@ ActionDispatcher::ActionDispatcher(GazerServices& services, QObject* parent)
     : QObject(parent)
     , m_svc(services)
 {
+}
+
+bool ActionDispatcher::dispatchClick(const PageAction& a, QString* error)
+{
+    const QString btn = a.button.isEmpty() ? QStringLiteral("left") : a.button;
+    const QString edge = a.clickEdge.trimmed().toLower();
+    if (edge == QLatin1String("down")) {
+        return m_svc.mouseAssist().setHeld(btn, true, error);
+    }
+    if (edge == QLatin1String("up")) {
+        return m_svc.mouseAssist().setHeld(btn, false, error);
+    }
+    const int n = qMax(1, a.clickCount);
+    bool ok = true;
+    for (int i = 0; i < n && ok; ++i) {
+        ok = MouseInjector::click(btn, error);
+    }
+    if (ok) {
+        m_svc.mouseAssist().markReleased(btn);
+    }
+    return ok;
 }
 
 void ActionDispatcher::dispatchPage(const QVector<PageAction>& actions, const QString& sourcePageId,
@@ -80,20 +100,7 @@ void ActionDispatcher::dispatchPage(const QVector<PageAction>& actions, const QS
         }
         case PageActionType::Click: {
             QString err;
-            QString btn = a.button.isEmpty() ? QStringLiteral("left") : a.button;
-            const QString edge = a.clickEdge.trimmed().toLower();
-            const int n = qMax(1, a.clickCount);
-            bool ok = true;
-            if (edge == QLatin1String("down")) {
-                ok = MouseInjector::buttonDown(btn, &err);
-            } else if (edge == QLatin1String("up")) {
-                ok = MouseInjector::buttonUp(btn, &err);
-            } else {
-                for (int i = 0; i < n && ok; ++i) {
-                    ok = MouseInjector::click(btn, &err);
-                }
-            }
-            if (!ok) {
+            if (!dispatchClick(a, &err)) {
                 notify(err.isEmpty() ? QStringLiteral("Click failed") : err);
             }
             break;
@@ -102,7 +109,7 @@ void ActionDispatcher::dispatchPage(const QVector<PageAction>& actions, const QS
             QString err;
             bool ok = true;
             if (a.moveMode == PageMoveMode::Gaze) {
-                ok = m_svc.commands().run({QStringLiteral("mouseDwellMove"), sourcePageId}, &err);
+                ok = m_svc.commands().run({QStringLiteral("mouseMoveToGaze"), sourcePageId}, &err);
             } else {
                 const QRect desk = virtualDesktop();
                 const int x = qRound(a.moveX.resolve(desk.width(), desk.height()));
@@ -120,14 +127,11 @@ void ActionDispatcher::dispatchPage(const QVector<PageAction>& actions, const QS
         }
         case PageActionType::MoveAndClick: {
             QString err;
-            QString name = QStringLiteral("mouseMoveAndLeftClick");
-            const QString b = a.button.trimmed().toLower();
-            if (b == QLatin1String("right")) {
-                name = QStringLiteral("mouseMoveAndRightClick");
-            } else if (b == QLatin1String("middle")) {
-                name = QStringLiteral("mouseMoveAndMiddleClick");
+            if (!m_svc.commands().run({QStringLiteral("mouseMoveToGaze"), sourcePageId}, &err)) {
+                notify(err.isEmpty() ? QStringLiteral("MoveAndClick failed") : err);
+                break;
             }
-            if (!m_svc.commands().run({name, sourcePageId}, &err)) {
+            if (!dispatchClick(a, &err)) {
                 notify(err.isEmpty() ? QStringLiteral("MoveAndClick failed") : err);
             }
             break;

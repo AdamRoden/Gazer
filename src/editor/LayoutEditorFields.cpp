@@ -687,6 +687,10 @@ void addActionFields(PropertyBinder& b, QFormLayout* form, const PageAction& act
                         }
                     });
                 });
+        if (action.moveMode == PageMoveMode::Gaze) {
+            b.note(form, QStringLiteral("Jumps the cursor to the last gaze sample. Use Command "
+                                       "mouseDwellMove for dwell-to-place."));
+        }
         if (action.moveMode != PageMoveMode::Gaze) {
             b.dim(form, QStringLiteral("X"), action.moveX, [apply](PageDim v) {
                 apply(QStringLiteral("Move X"), [&](PageAction& a) { a.moveX = v; });
@@ -729,12 +733,9 @@ QStringList iconChoices()
 QString friendlyCommandLabel(const QString& commandId)
 {
     static const QHash<QString, QString> k = {
-        {QStringLiteral("expandMaster"), QStringLiteral("Open drawer")},
-        {QStringLiteral("collapseMaster"), QStringLiteral("Close drawer")},
         {QStringLiteral("closeOtherViews"), QStringLiteral("Close other pages")},
         {QStringLiteral("quitApp"), QStringLiteral("Quit Gazer")},
         {QStringLiteral("toggleDwellSuspend"), QStringLiteral("Pause / resume dwell")},
-        {QStringLiteral("openPageEditor"), QStringLiteral("Page editor")},
         {QStringLiteral("openLayoutEditor"), QStringLiteral("Page editor")},
         {QStringLiteral("openPreview"), QStringLiteral("Head preview")},
         {QStringLiteral("tab"), QStringLiteral("Tab key")},
