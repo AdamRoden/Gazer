@@ -7,7 +7,8 @@
 
 namespace gazer {
 
-bool PageSession::placeAttachedCenter(const QString& id, const QPoint& screenCenter)
+bool PageSession::placeAttachedCenter(const QString& id, const QPoint& screenCenter,
+                                      bool leaveGate)
 {
     AttachedPage* att = nullptr;
     for (AttachedPage& a : m_attached) {
@@ -37,7 +38,11 @@ bool PageSession::placeAttachedCenter(const QString& id, const QPoint& screenCen
     leaveGaze();
     rebuild();
     raise();
-    armLeaveGate(id);
+    if (leaveGate) {
+        armLeaveGate(id);
+    } else {
+        clearLeaveGate();
+    }
     emit sessionChanged();
     return true;
 }

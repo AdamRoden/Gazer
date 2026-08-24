@@ -14,6 +14,7 @@
 #include "utils/Log.h"
 
 #include <QPoint>
+#include <QPointF>
 
 namespace gazer {
 
@@ -108,8 +109,11 @@ void registerAssistCommands(AssistCommandContext& ctx)
                      });
 
     constexpr auto kLtsMenuId = "lts_menu";
+    lts->setMenuContainsGaze([pages](QPointF g) {
+        return pages && pages->hitsPage(QLatin1String(kLtsMenuId), g);
+    });
     QObject::connect(lts, &LookToScroll::menuOpenRequested, session,
-                     [pages](QPoint origin) {
+                     [pages](QPoint origin, bool leaveGate) {
                          if (!pages) {
                              return;
                          }
@@ -118,7 +122,8 @@ void registerAssistCommands(AssistCommandContext& ctx)
                              GAZER_WARN << "LTS menu:" << err;
                              return;
                          }
-                         if (!pages->placeAttachedCenter(QLatin1String(kLtsMenuId), origin)) {
+                         if (!pages->placeAttachedCenter(QLatin1String(kLtsMenuId), origin,
+                                                         leaveGate)) {
                              GAZER_WARN << "LTS menu: could not place at origin";
                          }
                      });

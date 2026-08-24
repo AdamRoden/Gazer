@@ -2,6 +2,7 @@
 
 #include "assist/LtsSpeed.h"
 #include "input/MouseInjector.h"
+#include "ui/KeySymbols.h"
 #include "ui/OverlaySurface.h"
 #include "ui/Theme.h"
 #include "utils/Log.h"
@@ -42,7 +43,7 @@ public:
     }
 
     void setState(int deadzonePx, int falloffPx, double activity, double centerProg, double dirX,
-                  double dirY, LtsIndicator style, double hubRadius)
+                  double dirY, LtsIndicator style, double hubRadius, bool paused = false)
     {
         m_deadzone = deadzonePx;
         m_falloff = qMax(40, falloffPx);
@@ -52,9 +53,10 @@ public:
         m_dirY = dirY;
         m_style = style;
         m_hubR = qMax(8.0, hubRadius);
+        m_paused = paused;
 
         const int activator = qMax(8, qRound(m_hubR));
-        const bool compact = m_style == LtsIndicator::PauseOnly;
+        const bool compact = m_paused || m_style == LtsIndicator::PauseOnly;
         int side = activator * 2 + 36;
         if (!compact) {
             if (m_style == LtsIndicator::Orb) {
@@ -95,15 +97,17 @@ protected:
         p.setRenderHint(QPainter::Antialiasing, true);
         const QPointF c(rect().center());
         const QColor cyan = m_accent.isValid() ? m_accent : ThemeColors::defaultProgressColor();
-        switch (m_style) {
-        case LtsIndicator::Fan:
-            paintFan(p, c, cyan);
-            break;
-        case LtsIndicator::Orb:
-            paintOrb(p, c, cyan);
-            break;
-        case LtsIndicator::PauseOnly:
-            break;
+        if (!m_paused) {
+            switch (m_style) {
+            case LtsIndicator::Fan:
+                paintFan(p, c, cyan);
+                break;
+            case LtsIndicator::Orb:
+                paintOrb(p, c, cyan);
+                break;
+            case LtsIndicator::PauseOnly:
+                break;
+            }
         }
         paintActivator(p, c, cyan);
     }
@@ -198,7 +202,14 @@ private:
         p.setPen(QPen(QColor(accent.red(), accent.green(), accent.blue(), 150), 2.2, Qt::SolidLine,
                       Qt::RoundCap));
         p.drawEllipse(c, hubR, hubR);
-        paintRoundProgress(p, c, qMax(4.0, hubR - 1.5), m_centerProg, accent);
+        if (m_paused) {
+            const double side = hubR * 1.2;
+            const QRectF icon(c.x() - side * 0.5, c.y() - side * 0.5, side, side);
+            const QColor fg(255, 255, 255, 230);
+            KeySymbols::paint(p, QStringLiteral("PauseButtonIcon"), icon, fg);
+        } else {
+            paintRoundProgress(p, c, qMax(4.0, hubR - 1.5), m_centerProg, accent);
+        }
     }
 
     int m_deadzone = 110;
@@ -210,6 +221,7 @@ private:
     double m_dirX = 0.0;
     double m_dirY = 0.0;
     LtsIndicator m_style = LtsIndicator::Fan;
+    bool m_paused = false;
     QColor m_accent = ThemeColors::defaultProgressColor();
 };
 
@@ -247,6 +259,8 @@ void LookToScroll::setEnabled(bool enabled)
     m_centerProgress = 0.0;
     m_replacing = false;
     m_scrollSuspended = false;
+    m_plusOpen = false;
+    m_lookAwaySec = 0.0;
     m_scroller.reset();
     if (!m_enabled) {
         m_hasOrigin = false;
@@ -321,7 +335,7 @@ void LookToScroll::requestReset()
         return;
     }
     m_replacing = true;
-    emit menuCloseRequested();
+    closePlus();
     setScrollSuspended(true);
     hideOverlay();
     emit placeScrollPointRequested();
@@ -344,8 +358,7 @@ void LookToScroll::pauseAtHub()
     if (!m_scrollSuspended) {
         setScrollSuspended(true);
     }
-    hideOverlay();
-    emit menuOpenRequested(originPoint());
+    openPlus(true);
 }
 
 void LookToScroll::setScrollSuspended(bool suspended)
@@ -361,7 +374,8 @@ void LookToScroll::setScrollSuspended(bool suspended)
     m_scroller.lift();
     if (!suspended) {
         m_replacing = false;
-        emit menuCloseRequested();
+        closePlus();
+        hideOverlay();
     }
     GAZER_INFO << "LookToScroll scroll" << (suspended ? "SUSPENDED" : "resumed");
     emit scrollSuspendedChanged(m_scrollSuspended);
@@ -416,6 +430,45 @@ void LookToScroll::hideOverlay()
     }
 }
 
+void LookToScroll::showPausedHub()
+{
+    if (!m_overlay) {
+        return;
+    }
+    m_overlay->setState(m_deadzonePx, m_falloffPx, 0.0, 0.0, 0.0, 0.0, m_indicatorStyle,
+                        hubVisualRadiusPx(), true);
+    m_overlay->placeCenter(originPoint());
+}
+
+void LookToScroll::openPlus(bool leaveGate)
+{
+    m_lookAwaySec = 0.0;
+    hideOverlay();
+    m_plusOpen = true;
+    emit menuOpenRequested(originPoint(), leaveGate);
+}
+
+void LookToScroll::closePlus()
+{
+    if (!m_plusOpen) {
+        return;
+    }
+    m_plusOpen = false;
+    m_lookAwaySec = 0.0;
+    emit menuCloseRequested();
+}
+
+bool LookToScroll::gazeOnPlus(const GazePoint& point) const
+{
+    if (!point.valid) {
+        return false;
+    }
+    if (!m_menuContains) {
+        return true;
+    }
+    return m_menuContains(point.toPointF());
+}
+
 void LookToScroll::updateOverlay(const QPoint& center, double gazeDist, double dirX, double dirY,
                                  bool active, double centerProg)
 {
@@ -441,6 +494,41 @@ double LookToScroll::screenHeightPx() const
     return s ? double(s->geometry().height()) : 1080.0;
 }
 
+void LookToScroll::updatePausedMenu(const GazePoint& point)
+{
+    m_scroller.lift();
+
+    const qint64 now = m_clock.elapsed();
+    const double sampleDt =
+        m_lastSampleMs < 0 ? 0.016
+                           : qBound(0.004, (now - m_lastSampleMs) / 1000.0, 0.05);
+    m_lastSampleMs = now;
+
+    if (m_plusOpen) {
+        hideOverlay();
+        if (gazeOnPlus(point)) {
+            m_lookAwaySec = 0.0;
+            return;
+        }
+        m_lookAwaySec += sampleDt;
+        if (m_lookAwaySec < kLtsPlusDismissGraceSec) {
+            return;
+        }
+        closePlus();
+    }
+
+    m_lookAwaySec = 0.0;
+    if (point.valid) {
+        const QPointF delta = point.toPointF() - QPointF(originPoint());
+        const double dist = qSqrt(delta.x() * delta.x() + delta.y() * delta.y());
+        if (dist <= hubDwellRadiusPx()) {
+            openPlus(false);
+            return;
+        }
+    }
+    showPausedHub();
+}
+
 double LookToScroll::hubVisualRadiusPx() const
 {
     return screenHeightPx() * (kLtsHubVisualDiameterFrac * 0.5);
@@ -453,7 +541,7 @@ double LookToScroll::hubDwellRadiusPx() const
 
 void LookToScroll::onGaze(const GazePoint& point, bool pauseInput)
 {
-    if (!m_enabled || !point.valid) {
+    if (!m_enabled) {
         m_scroller.lift();
         hideOverlay();
         return;
@@ -464,6 +552,10 @@ void LookToScroll::onGaze(const GazePoint& point, bool pauseInput)
         return;
     }
     if (m_scrollSuspended) {
+        updatePausedMenu(point);
+        return;
+    }
+    if (!point.valid) {
         m_scroller.lift();
         hideOverlay();
         return;

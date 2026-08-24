@@ -13,6 +13,7 @@
 #include <QObject>
 #include <QPointer>
 #include <QPoint>
+#include <QPointF>
 #include <QRect>
 #include <QScreen>
 #include <QSet>
@@ -48,8 +49,9 @@ public:
     void setCatalog(PageCatalog* catalog) { m_catalog = catalog; }
     [[nodiscard]] bool openPage(const QString& id, QString* error = nullptr);
     /// Put the attached page's center on @p screenCenter. Size stays as authored.
-    /// Does not activate the cell under gaze until gaze leaves it.
-    [[nodiscard]] bool placeAttachedCenter(const QString& id, const QPoint& screenCenter);
+    /// @p leaveGate: do not activate the cell under gaze until gaze leaves it.
+    [[nodiscard]] bool placeAttachedCenter(const QString& id, const QPoint& screenCenter,
+                                           bool leaveGate = true);
     void closePage(const QString& id);
     int closeAttached();
     [[nodiscard]] bool hasRoot() const { return m_root.isValid(); }
@@ -98,6 +100,8 @@ public:
     [[nodiscard]] bool onGaze(const GazePoint& point);
     /// Hit-test only: true if gaze is over a board/cell/zone (does not run dwell).
     [[nodiscard]] bool hitsChrome(const GazePoint& point) const;
+    /// True if @p pos is inside a painted grid of page @p id (including shell grids).
+    [[nodiscard]] bool hitsPage(const QString& id, const QPointF& pos) const;
     void leaveGaze();
     void raise();
     void hideHost();

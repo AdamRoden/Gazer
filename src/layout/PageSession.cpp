@@ -740,6 +740,25 @@ bool PageSession::hitsChrome(const GazePoint& point) const
     return !PageHit::coveringPageId(m_gridPaints, g, m_drawerScale, m_targets, xf).isEmpty();
 }
 
+bool PageSession::hitsPage(const QString& id, const QPointF& pos) const
+{
+    if (id.isEmpty()) {
+        return false;
+    }
+    const QTransform xf = m_host ? m_host->drawerXf()
+                                 : PageHit::drawerTransform(m_targets, m_drawerScale, m_gridPaints);
+    for (const PageGridPaint& g : m_gridPaints) {
+        if (g.pageId != id || g.visual.isEmpty()) {
+            continue;
+        }
+        const QRectF z = PageHit::mapDrawer(g.drawerMotion, g.visual, xf, m_drawerScale);
+        if (PageHit::shapeContains(z, g.chrome, false, pos)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void PageSession::leaveGaze()
 {
     if (m_loopLatchClear) {
