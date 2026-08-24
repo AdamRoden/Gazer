@@ -59,6 +59,7 @@ set(GAZER_SOURCES
     src/layout/PageHit.cpp
     src/layout/PageSession.cpp
     src/layout/PageSessionAttach.cpp
+    src/layout/PageSessionNav.cpp
     src/layout/PageWriter.cpp
     src/layout/PageEdit.cpp
     src/layout/PageCatalog.cpp

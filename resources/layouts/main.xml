@@ -9,53 +9,37 @@
         dwellOffset="0,300" dwellSize="300,200" aboveTaskbar="false"
         style="chip" label="Main" icon="Menu"
         dwellExempt="true" visibleWhen="!expanded" shell="true">
-    <Action id="Command" value="resumeDwell"/>
-    <Action id="Page" value="Open, Page, main"/>
+    <Command value="resumeDwell"/>
+    <OpenPage value="main"/>
   </Zone>
   <Zone id="sleep" anchor="Bottom" offset="400,0" size="200,100"
         dwellOffset="0,300" dwellSize="300,200" aboveTaskbar="false"
         style="chip" label="Sleep" icon="Sleep"
-        activeState="dwellSuspend" shell="true">
-    <Action id="Command" value="toggleDwellSuspend"/>
-  </Zone>
+        activeState="dwellSuspend" shell="true" command="toggleDwellSuspend"/>
 
   <Grid id="drawer" desktopMode="false" rows="1" columns="10"
         anchor="Bottom" offset="0,0" size="1200,150"
         style="drawer" gap="10" margin="10"
         chrome="drawer" drawerMotion="true" aboveTaskbar="true" autoClose="true"
         autoCloseIdleMs="3000" shell="true" >
-    <Cell id="open_keyboard" row="0" col="0" label="Keyboard" icon="Keyboard">
-      <Action id="Page" value="Open, Page, uw_qwerty"/>
-    </Cell>
-    <Cell id="open_mouse" row="0" col="1" label="Mouse" icon="Mouse">
-      <Action id="Page" value="Open, Page, example_mouse"/>
-    </Cell>
-    <Cell id="open_assist" row="0" col="2" label="Assist" icon="IdeaIcon">
-      <Action id="Page" value="Open, Page, example_assist"/>
-    </Cell>
-    <Cell id="open_right" row="0" col="3" label="Right" icon="More">
-      <Action id="Page" value="Open, Page, uw_right"/>
-    </Cell>
-    <Cell id="open_settings" row="0" col="4" label="Settings" icon="SettingsIcon">
-      <Action id="Page" value="Open, Page, main_settings_button_timing"/>
-    </Cell>
+    <Cell id="open_keyboard" row="0" col="0" label="Keyboard" icon="Keyboard" openPage="uw_qwerty"/>
+    <Cell id="open_mouse" row="0" col="1" label="Mouse" icon="Mouse" openPage="example_mouse"/>
+    <Cell id="open_assist" row="0" col="2" label="Assist" icon="IdeaIcon" openPage="example_assist"/>
+    <Cell id="open_right" row="0" col="3" label="Right" icon="More" openPage="uw_right"/>
+    <Cell id="open_settings" row="0" col="4" label="Settings" icon="SettingsIcon" openPage="main_settings_button_timing"/>
     <Cell id="open_editor" row="0" col="5" label="Editor" icon="EditAppIcon">
-      <Action id="Command" value="openLayoutEditor"/>
-      <Action id="Page" value="Close, Grid, drawer"/>
+      <Command value="openLayoutEditor"/>
+      <CloseGrid value="drawer"/>
     </Cell>
-    <Cell id="close" row="0" col="6" label="Dismiss" icon="ArrowPointingToBottomBoundaryIcon">
-      <Action id="Page" value="Close, Grid, drawer"/>
-    </Cell>
+    <Cell id="close" row="0" col="6" label="Dismiss" icon="ArrowPointingToBottomBoundaryIcon" closeGrid="drawer"/>
     <Cell id="close_all" row="0" col="7" label="Close All" icon="CollapseIcon">
-      <Action id="Command" value="closeOtherViews"/>
-      <Action id="Page" value="Close, Grid, drawer"/>
+      <Command value="closeOtherViews"/>
+      <CloseGrid value="drawer"/>
     </Cell>
-    <Cell id="dwell_suspend" row="0" col="8" label="Pause dwell" icon="Sleep" activeState="dwellSuspend">
-      <Action id="Command" value="toggleDwellSuspend"/>
-    </Cell>
+    <Cell id="dwell_suspend" row="0" col="8" label="Pause dwell" icon="Sleep" activeState="dwellSuspend" command="toggleDwellSuspend"/>
     <Cell id="quit" row="0" col="9" label="Quit" icon="Quit">
-      <Action id="Page" value="Close, Grid, drawer"/>
-      <Action id="Page" value="Open, Grid, quit"/>
+      <CloseGrid value="drawer"/>
+      <OpenGrid value="quit"/>
     </Cell>
   </Grid>
 
@@ -64,12 +48,10 @@
         gap="12" margin="16" chrome="quit" aboveTaskbar="true" shell="true">
     <Cell id="prompt" row="0" col="0" colSpan="2" label="Quit Gazer?" role="label"
           style="quitPrompt" interactive="false"/>
-    <Cell id="yes_quit" row="1" col="0" label="Yes" icon="Yes" style="quitYes">
-      <Action id="Command" value="quitApp"/>
-    </Cell>
+    <Cell id="yes_quit" row="1" col="0" label="Yes" icon="Yes" style="quitYes" command="quitApp"/>
     <Cell id="no_stay" row="1" col="1" label="No" icon="No" style="quitNo">
-      <Action id="Page" value="Close, Grid, quit"/>
-      <Action id="Page" value="Open, Grid, drawer"/>
+      <CloseGrid value="quit"/>
+      <OpenGrid value="drawer"/>
     </Cell>
   </Grid>
 </Page>

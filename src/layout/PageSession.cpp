@@ -9,6 +9,7 @@
 #include <QFileInfo>
 #include <QGuiApplication>
 #include <QScreen>
+#include <QStringList>
 #include <QTimer>
 #include <QTransform>
 #include <utility>
@@ -113,6 +114,7 @@ bool PageSession::openRoot(const QString& xmlPath, QString* error)
     }
     m_attached.clear();
     m_hiddenZones.clear();
+    m_crumbs.clear();
     m_chrome = RootChrome::Docked;
     m_drawerPhase = DrawerPhase::Idle;
     m_drawerScale = 1.0;
@@ -231,118 +233,6 @@ void PageSession::setRootChrome(RootChrome next, bool animate)
     rebuild();
     raise();
     emit sessionChanged();
-}
-
-bool PageSession::applyPageAction(PageVerb verb, PageTargetKind kind, const QString& id,
-                                  QString* error)
-{
-    if (!hasRoot()) {
-        if (error) {
-            *error = QStringLiteral("No root page");
-        }
-        return false;
-    }
-
-    if (kind == PageTargetKind::Page) {
-        if (id.compare(QLatin1String("all"), Qt::CaseInsensitive) == 0) {
-            if (verb == PageVerb::Close || verb == PageVerb::Toggle) {
-                closeAttached();
-                return true;
-            }
-        }
-        if (id == m_root.id) {
-            if (verb == PageVerb::Close) {
-                if (error) {
-                    *error = QStringLiteral("Cannot close the root page");
-                }
-                return false;
-            }
-            setRootChrome(RootChrome::Drawer);
-            return true;
-        }
-        const bool attached = hasPage(id);
-        if (verb == PageVerb::Close || (verb == PageVerb::Toggle && attached)) {
-            if (attached) {
-                closePage(id);
-                return true;
-            }
-            if (error) {
-                *error = QStringLiteral("Page not open: %1").arg(id);
-            }
-            return false;
-        }
-        if (verb == PageVerb::Open || verb == PageVerb::Toggle) {
-            return openPage(id, error);
-        }
-        if (error) {
-            *error = QStringLiteral("No handler for Page %1").arg(id);
-        }
-        return false;
-    }
-
-    if (kind == PageTargetKind::Grid) {
-        const bool all = id.compare(QLatin1String("all"), Qt::CaseInsensitive) == 0;
-        if (all) {
-            if (verb == PageVerb::Close || verb == PageVerb::Toggle) {
-                setRootChrome(RootChrome::Docked);
-                return true;
-            }
-            if (error) {
-                *error = QStringLiteral("Open Grid all is not valid");
-            }
-            return false;
-        }
-        const PageGrid* g = m_root.findGrid(id);
-        if (!g || g->rootSlot == PageRootSlot::None) {
-            if (error) {
-                *error = QStringLiteral("Unknown root chrome grid: %1").arg(id);
-            }
-            return false;
-        }
-        const RootChrome slot = chromeForSlot(g->rootSlot);
-        const bool showing = (m_chrome == slot);
-        bool show = true;
-        if (verb == PageVerb::Close) {
-            show = false;
-        } else if (verb == PageVerb::Toggle) {
-            show = !showing;
-        }
-        setRootChrome(show ? slot : RootChrome::Docked);
-        return true;
-    }
-
-    const bool all = id.compare(QLatin1String("all"), Qt::CaseInsensitive) == 0;
-    QStringList ids;
-    if (all) {
-        for (const PageZone& z : m_root.zones) {
-            if (!z.id.isEmpty()) {
-                ids.push_back(z.id);
-            }
-        }
-    } else {
-        ids.push_back(id);
-    }
-    for (const QString& one : ids) {
-        if (one.isEmpty()) {
-            continue;
-        }
-        const bool nowHidden = m_hiddenZones.contains(one);
-        bool show = true;
-        if (verb == PageVerb::Close) {
-            show = false;
-        } else if (verb == PageVerb::Toggle) {
-            show = nowHidden;
-        }
-        if (show) {
-            m_hiddenZones.remove(one);
-        } else {
-            m_hiddenZones.insert(one);
-        }
-    }
-    rebuild();
-    raise();
-    emit sessionChanged();
-    return true;
 }
 
 PageFrame PageSession::frame() const

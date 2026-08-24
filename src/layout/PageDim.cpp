@@ -1,6 +1,7 @@
 #include "layout/PageDim.h"
 
 #include <QStringList>
+#include <QtGlobal>
 
 namespace gazer {
 namespace PageDimParse {
@@ -138,7 +139,8 @@ PageAnchor parseAnchor(const QString& name, bool* ok)
     if (n.isEmpty() || n == QLatin1String("topleft")) {
         return PageAnchor::TopLeft;
     }
-    if (n == QLatin1String("top") || n == QLatin1String("topcenter")) {
+    if (n == QLatin1String("top") || n == QLatin1String("topcenter")
+        || n == QLatin1String("up")) {
         return PageAnchor::Top;
     }
     if (n == QLatin1String("topright")) {
@@ -158,7 +160,8 @@ PageAnchor parseAnchor(const QString& name, bool* ok)
     if (n == QLatin1String("bottomleft")) {
         return PageAnchor::BottomLeft;
     }
-    if (n == QLatin1String("bottom") || n == QLatin1String("bottomcenter")) {
+    if (n == QLatin1String("bottom") || n == QLatin1String("bottomcenter")
+        || n == QLatin1String("down")) {
         return PageAnchor::Bottom;
     }
     if (n == QLatin1String("bottomright")) {
@@ -193,6 +196,93 @@ QString anchorName(PageAnchor a)
         return QStringLiteral("BottomRight");
     }
     return QStringLiteral("TopLeft");
+}
+
+QString token(const PageDim& d)
+{
+    if (!d.isSet()) {
+        return {};
+    }
+    if (d.unit == PageDim::Unit::Proportion || d.unit == PageDim::Unit::HeightProportion) {
+        QString t = QString::number(d.value, 'g', 8);
+        if (d.unit == PageDim::Unit::HeightProportion) {
+            t += QLatin1Char('h');
+        }
+        return t;
+    }
+    if (qFuzzyCompare(d.value, qRound(d.value))) {
+        return QString::number(qRound(d.value));
+    }
+    return QString::number(d.value, 'g', 8);
+}
+
+QPoint anchorDelta(PageAnchor a, int amount)
+{
+    int dx = 0;
+    int dy = 0;
+    switch (a) {
+    case PageAnchor::TopLeft:
+        dx = -1;
+        dy = -1;
+        break;
+    case PageAnchor::Top:
+        dy = -1;
+        break;
+    case PageAnchor::TopRight:
+        dx = 1;
+        dy = -1;
+        break;
+    case PageAnchor::Left:
+        dx = -1;
+        break;
+    case PageAnchor::Center:
+        break;
+    case PageAnchor::Right:
+        dx = 1;
+        break;
+    case PageAnchor::BottomLeft:
+        dx = -1;
+        dy = 1;
+        break;
+    case PageAnchor::Bottom:
+        dy = 1;
+        break;
+    case PageAnchor::BottomRight:
+        dx = 1;
+        dy = 1;
+        break;
+    }
+    return {dx * amount, dy * amount};
+}
+
+bool strictBool(QStringView t, bool* out)
+{
+    const QString s = t.toString().trimmed().toLower();
+    if (s == QLatin1String("true") || s == QLatin1String("1") || s == QLatin1String("yes")) {
+        if (out) {
+            *out = true;
+        }
+        return true;
+    }
+    if (s == QLatin1String("false") || s == QLatin1String("0") || s == QLatin1String("no")) {
+        if (out) {
+            *out = false;
+        }
+        return true;
+    }
+    return false;
+}
+
+bool boolWord(QStringView t, bool defaultValue)
+{
+    if (t.trimmed().isEmpty()) {
+        return defaultValue;
+    }
+    bool v = false;
+    if (strictBool(t, &v)) {
+        return v;
+    }
+    return false;
 }
 
 QRectF placeRect(const QRectF& bounds, PageAnchor anchor, const PageDimPair& offset,

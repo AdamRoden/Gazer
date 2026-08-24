@@ -188,27 +188,50 @@ Screen-anchored chip (dock Main/Sleep, keyboard edge keys). Same leaf fields as 
 
 ### Actions
 
+Action is generic: the specific thing to do is named as an attribute (on `<Action>`, or on the cell/zone when there is only one) or as a child element.
+
 ```xml
-<Action id="Send" value="q"/>
-<Action id="Send" value="Space"/>
-<Action id="Page" value="Open, Page, uw_qwerty"/>
-<Action id="Page" value="Close, Grid, drawer"/>
-<Action id="Command" value="toggleDwellSuspend"/>
-<Action id="Speak" value="Hello"/>
-<Action id="Click" value="left"/>
-<Action id="Move" value="Gaze"/>
+<Cell row="0" col="9" colSpan="10" label="1" send="1"/>
+<Cell command="toggleLookToScroll"/>
+<Cell openPage="uw_qwerty, true"/>
+
+<Send value="a"/>
+<Click value="left"/>
+<Move value="gaze"/>
+<Move value="gaze,0"/>
+<Move value="gaze,4"/>
+<Move value="up"/>
+<Move value="down,40"/>
+<Move value="100,200"/>
+<MoveAndClick value="left"/>
+<MoveAndClick value="left,4"/>
+<Command value="toggleLookToScroll"/>
+<OpenPage value="uw_qwerty, true"/>
+<OpenGrid value="board, true"/>
+<OpenZone value="more, true"/>
+<ClosePage value="-self"/>
+<CloseGrid value="-all"/>
+<CloseZone value="-!self"/>
+<GoBack/>
+<Speak value="Hello"/>
 ```
 
-| `id` | `value` |
+A cell or zone may have **one** action attribute. Multiple actions use child elements.
+
+| Name | `value` |
 |------|---------|
 | `Send` | key[, Down\|Up[, durationMs]] |
-| `Page` | Open\|Close\|Toggle, Page\|Grid\|Zone, targetId (`self` = current page) |
+| `Click` | left\|right\|middle |
+| `Move` | `gaze` (settings zoom), `gaze,0` (no magnify), `gaze,N`; or direction (`up`/`down`/anchor)[, amount px]; or `x,y` screen coords. Amount omitted uses the mouse-assist step. |
+| `MoveAndClick` | button[, zoom] — always move to gaze, then click. Zoom omitted means no magnify. |
 | `Command` | builtin or mapping-profile name |
+| `OpenPage` / `OpenGrid` / `OpenZone` | targetId[, true] — `true` saves a breadcrumb of the current page state |
+| `ClosePage` / `CloseGrid` / `CloseZone` | targetId[, true] — `-all`, `-self`, `-!self` (all except current) |
+| `GoBack` | (none) — restore the last breadcrumb |
 | `Speak` | TTS text |
-| `Click` | left\|right\|middle[, count[, Down\|Up]] |
-| `Move` | Gaze (jump to last gaze), or Absolute\|Relative,x,y |
-| `MoveAndClick` | button — jump to last gaze, then click (count/edge as Click) |
 | `AHK` | element body (not executed yet) |
+
+`<Action send="a"/>` is the same as `<Send value="a"/>`. Legacy `<Action id="Send" value="a"/>` still loads.
 
 ### Example
 
@@ -216,12 +239,8 @@ Screen-anchored chip (dock Main/Sleep, keyboard edge keys). Same leaf fields as 
 <Page id="tools" name="Tools">
   <Grid id="board" desktopMode="true" rows="1" columns="2"
         anchor="Top" offset="0,0" size="800,400" gap="12" margin="16">
-    <Cell id="hello" row="0" col="0" label="Speak">
-      <Action id="Speak" value="Hello"/>
-    </Cell>
-    <Cell id="close" row="0" col="1" label="Close">
-      <Action id="Page" value="Close, Page, self"/>
-    </Cell>
+    <Cell id="hello" row="0" col="0" label="Speak" speak="Hello"/>
+    <Cell id="close" row="0" col="1" label="Close" closePage="-self"/>
   </Grid>
 </Page>
 ```

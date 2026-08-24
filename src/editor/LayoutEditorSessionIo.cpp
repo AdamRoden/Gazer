@@ -39,7 +39,8 @@ int suffixIndex(QString* family)
 
 bool actionRefersTo(const PageAction& a, const QString& id)
 {
-    return a.type == PageActionType::Page && !id.isEmpty() && a.targetId == id;
+    return a.type == PageActionType::Nav && a.targetKind == PageTargetKind::Page
+           && a.targetScope == PageNavScope::Id && !id.isEmpty() && a.targetId == id;
 }
 
 bool documentRefersTo(const PageDocument& doc, const QString& id)

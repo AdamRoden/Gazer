@@ -1,5 +1,6 @@
 #include "layout/PageWriter.h"
 
+#include "layout/PageActionParse.h"
 #include "layout/PageDim.h"
 
 #include <QFile>
@@ -21,31 +22,13 @@ QString colorTok(const std::optional<QColor>& c)
     return c->name(QColor::HexRgb);
 }
 
-QString dimTok(const PageDim& d)
-{
-    if (!d.isSet()) {
-        return {};
-    }
-    if (d.unit == PageDim::Unit::Proportion || d.unit == PageDim::Unit::HeightProportion) {
-        QString t = QString::number(d.value, 'g', 8);
-        if (d.unit == PageDim::Unit::HeightProportion) {
-            t += QLatin1Char('h');
-        }
-        return t;
-    }
-    if (qFuzzyCompare(d.value, qRound(d.value))) {
-        return QString::number(qRound(d.value));
-    }
-    return QString::number(d.value, 'g', 8);
-}
-
 QString pairTok(const PageDimPair& p)
 {
     if (!p.isSet()) {
         return {};
     }
-    const QString x = p.x.isSet() ? dimTok(p.x) : QStringLiteral("0");
-    const QString y = p.y.isSet() ? dimTok(p.y) : QStringLiteral("0");
+    const QString x = p.x.isSet() ? PageDimParse::token(p.x) : QStringLiteral("0");
+    const QString y = p.y.isSet() ? PageDimParse::token(p.y) : QStringLiteral("0");
     return x + QLatin1Char(',') + y;
 }
 
@@ -150,126 +133,35 @@ void writeAction(QXmlStreamWriter& xml, const PageAction& a)
         xml.writeEndElement();
         return;
     }
-    xml.writeStartElement(QStringLiteral("Action"));
-    auto csv = [](const QStringList& parts) {
-        int last = parts.size();
-        while (last > 0 && parts.at(last - 1).isEmpty()) {
-            --last;
-        }
-        QStringList out;
-        out.reserve(last);
-        for (int i = 0; i < last; ++i) {
-            out.push_back(parts.at(i));
-        }
-        return out.join(QStringLiteral(", "));
-    };
-    switch (a.type) {
-    case PageActionType::Send: {
-        xml.writeAttribute(QStringLiteral("id"), QStringLiteral("Send"));
-        QStringList parts{a.sendKey};
-        if (!a.sendEdge.isEmpty()) {
-            parts.push_back(a.sendEdge);
-        }
-        if (a.sendDurationMs > 0) {
-            parts.push_back(QString::number(a.sendDurationMs));
-        }
-        xml.writeAttribute(QStringLiteral("value"), csv(parts));
-        break;
-    }
-    case PageActionType::Page: {
-        xml.writeAttribute(QStringLiteral("id"), QStringLiteral("Page"));
-        QString verb = QStringLiteral("Open");
-        if (a.verb == PageVerb::Close) {
-            verb = QStringLiteral("Close");
-        } else if (a.verb == PageVerb::Toggle) {
-            verb = QStringLiteral("Toggle");
-        }
-        QString kind = QStringLiteral("Page");
-        if (a.targetKind == PageTargetKind::Grid) {
-            kind = QStringLiteral("Grid");
-        } else if (a.targetKind == PageTargetKind::Zone) {
-            kind = QStringLiteral("Zone");
-        }
-        xml.writeAttribute(QStringLiteral("value"), csv({verb, kind, a.targetId}));
-        break;
-    }
-    case PageActionType::Click: {
-        xml.writeAttribute(QStringLiteral("id"), QStringLiteral("Click"));
-        QStringList parts;
-        parts.push_back(a.button.isEmpty() ? QStringLiteral("left") : a.button);
-        if (a.clickCount != 1 || a.speed != 0) {
-            parts.push_back(QString::number(a.clickCount));
-        }
-        if (!a.clickEdge.isEmpty()) {
-            parts.push_back(a.clickEdge);
-        }
-        if (a.speed != 0) {
-            parts.push_back(QString::number(a.speed));
-        }
-        xml.writeAttribute(QStringLiteral("value"), csv(parts));
-        break;
-    }
-    case PageActionType::Move: {
-        xml.writeAttribute(QStringLiteral("id"), QStringLiteral("Move"));
-        QString mode = QStringLiteral("Gaze");
-        if (a.moveMode == PageMoveMode::Absolute) {
-            mode = QStringLiteral("Absolute");
-        } else if (a.moveMode == PageMoveMode::Relative) {
-            mode = QStringLiteral("Relative");
-        }
-        QStringList parts{mode};
-        if (a.moveMode != PageMoveMode::Gaze) {
-            parts.push_back(dimTok(a.moveX));
-            parts.push_back(dimTok(a.moveY));
-            if (a.speed != 0 || a.zoomLevel != 0) {
-                parts.push_back(QString::number(a.speed));
-            }
-            if (a.zoomLevel != 0) {
-                parts.push_back(QString::number(a.zoomLevel));
-            }
-        }
-        xml.writeAttribute(QStringLiteral("value"), csv(parts));
-        break;
-    }
-    case PageActionType::MoveAndClick: {
-        xml.writeAttribute(QStringLiteral("id"), QStringLiteral("MoveAndClick"));
-        QStringList parts;
-        parts.push_back(a.button.isEmpty() ? QStringLiteral("left") : a.button);
-        if (a.clickCount != 1 || a.speed != 0 || a.zoomLevel != 0) {
-            parts.push_back(QString::number(a.clickCount));
-        }
-        if (!a.clickEdge.isEmpty()) {
-            parts.push_back(a.clickEdge);
-        }
-        if (a.speed != 0 || a.zoomLevel != 0) {
-            parts.push_back(QString::number(a.speed));
-        }
-        if (a.zoomLevel != 0) {
-            parts.push_back(QString::number(a.zoomLevel));
-        }
-        xml.writeAttribute(QStringLiteral("value"), csv(parts));
-        break;
-    }
-    case PageActionType::Command:
-        xml.writeAttribute(QStringLiteral("id"), QStringLiteral("Command"));
-        xml.writeAttribute(QStringLiteral("value"), a.command);
-        break;
-    case PageActionType::Speak:
-        xml.writeAttribute(QStringLiteral("id"), QStringLiteral("Speak"));
-        xml.writeAttribute(QStringLiteral("value"), a.speakText);
-        break;
-    case PageActionType::Unknown:
-    case PageActionType::Ahk:
-        xml.writeAttribute(QStringLiteral("id"), QStringLiteral("Command"));
-        xml.writeAttribute(QStringLiteral("value"), a.value);
-        break;
+    xml.writeStartElement(pageActionElementName(a));
+    const QString value = pageActionValueText(a);
+    if (a.type != PageActionType::GoBack || !value.isEmpty()) {
+        attr(xml, QStringLiteral("value"), value);
     }
     attr(xml, QStringLiteral("args"), a.args);
     xml.writeEndElement();
 }
 
-void writeLeafBody(QXmlStreamWriter& xml, const PageLeaf& leaf)
+bool writeInlineAction(QXmlStreamWriter& xml, const QVector<PageAction>& acts)
 {
+    if (acts.size() != 1 || !pageActionCanInline(acts[0])) {
+        return false;
+    }
+    const PageAction& a = acts[0];
+    const QString name = pageActionAttributeName(a);
+    QString value = pageActionValueText(a);
+    if (a.type == PageActionType::GoBack && value.isEmpty()) {
+        value = QStringLiteral("true");
+    }
+    attr(xml, name, value);
+    return true;
+}
+
+void writeLeafBody(QXmlStreamWriter& xml, const PageLeaf& leaf, bool inlined)
+{
+    if (inlined) {
+        return;
+    }
     for (const PageAction& a : leaf.actions) {
         writeAction(xml, a);
     }
@@ -326,7 +218,8 @@ void writeGrid(QXmlStreamWriter& xml, const PageGrid& grid)
         attrInt(xml, QStringLiteral("col"), cell.col, 0);
         attrInt(xml, QStringLiteral("rowSpan"), cell.rowSpan, 1);
         attrInt(xml, QStringLiteral("colSpan"), cell.colSpan, 1);
-        writeLeafBody(xml, cell);
+        const bool inlined = writeInlineAction(xml, cell.actions);
+        writeLeafBody(xml, cell, inlined);
         xml.writeEndElement();
     }
     for (const PageGrid& sub : grid.subGrids) {
@@ -371,7 +264,8 @@ QByteArray PageWriter::toBytes(const PageDocument& doc)
         attrBool(xml, QStringLiteral("aboveTaskbar"), z.aboveTaskbar, false);
         attr(xml, QStringLiteral("dwellOffset"), pairTok(z.dwellOffset));
         attr(xml, QStringLiteral("dwellSize"), pairTok(z.dwellSize));
-        writeLeafBody(xml, z);
+        const bool inlined = writeInlineAction(xml, z.actions);
+        writeLeafBody(xml, z, inlined);
         xml.writeEndElement();
     }
     for (const PageGrid& g : doc.grids) {

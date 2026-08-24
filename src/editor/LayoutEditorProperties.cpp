@@ -310,7 +310,8 @@ LayoutEditorProperties::Shape LayoutEditorProperties::currentShape() const
         s.itemActions = it->actions.size();
         if (!it->actions.isEmpty()) {
             const PageAction& a = it->actions[qBound(0, m_actionStep, it->actions.size() - 1)];
-            s.actionType = int(a.type);
+            s.actionType = int(a.type) + int(a.verb) * 16 + int(a.targetKind) * 64
+                           + int(a.zoomMode) * 256;
             s.moveMode = int(a.moveMode);
         }
     }

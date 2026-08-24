@@ -1,35 +1,21 @@
 <Page id="example_assist" name="Assist" autoClose="true" autoCloseIdleMs="3000">
   <Grid id="board" desktopMode="false" rows="1" columns="9" anchor="Bottom" offset="0,0" size="1080,150" gap="10" margin="0" aboveTaskbar="false" autoClose="true" autoCloseIdleMs="3000">
-    <Cell id="mag" row="0" col="0" icon="MouseMagnifier" label="Magnifier" activeState="magnifier">
-    <Action id="Command" value="toggleMagnifier"/>
-    </Cell>
-    <Cell id="gaze_reticle" row="0" col="1" icon="Calibrate" label="Gaze reticle" activeState="gazeReticle">
-    <Action id="Command" value="toggleGazeReticle"/>
-    </Cell>
-    <Cell id="gaze_follow" row="0" col="2" icon="MouseMagneticCursor" label="Gaze mouse" activeState="gazeMouseFollow">
-    <Action id="Command" value="toggleGazeMouseFollow"/>
-    </Cell>
+    <Cell id="mag" row="0" col="0" icon="MouseMagnifier" label="Magnifier" activeState="magnifier" command="toggleMagnifier"/>
+    <Cell id="gaze_reticle" row="0" col="1" icon="Calibrate" label="Gaze reticle" activeState="gazeReticle" command="toggleGazeReticle"/>
+    <Cell id="gaze_follow" row="0" col="2" icon="MouseMagneticCursor" label="Gaze mouse" activeState="gazeMouseFollow" command="toggleGazeMouseFollow"/>
     <Cell id="mouse_move" row="0" col="3" icon="MouseMoveTo" label="Move mouse
-(dwell)" activeState="mouseDwellMove">
-    <Action id="Command" value="mouseDwellMove"/>
-    </Cell>
+(dwell)" activeState="mouseDwellMove" command="mouseDwellMove"/>
     <Cell id="mag_pick" row="0" col="4" icon="ZoomToLocation" label="Move-to
-Zoom" activeState="mouseMoveMagPick">
-    <Action id="Command" value="toggleMouseMoveMagPick"/>
-    </Cell>
-    <Cell id="lts" row="0" col="5" icon="LookToScrollActive" label="Look↕Scroll" activeState="lookToScroll">
-    <Action id="Command" value="toggleLookToScroll"/>
-    </Cell>
+Zoom" activeState="mouseMoveMagPick" command="toggleMouseMoveMagPick"/>
+    <Cell id="lts" row="0" col="5" icon="LookToScrollActive" label="Look↕Scroll" activeState="lookToScroll" command="toggleLookToScroll"/>
     <Cell id="lts_hint" row="0" col="6" label="LTS: dwell hub to pause
 center resumes
 ← slow  → fast
 ↑ reset  ↓ quit" role="label"/>
-    <Cell id="edit_layout" row="0" col="7" icon="PhysicalKeys" label="Edit layout">
-    <Action id="Command" value="openLayoutEditor"/>
-    </Cell>
+    <Cell id="edit_layout" row="0" col="7" icon="PhysicalKeys" label="Edit layout" command="openLayoutEditor"/>
     <Cell id="main" row="0" col="8" icon="Menu" label="Main">
-    <Action id="Page" value="Close, Page, self"/>
-    <Action id="Page" value="Open, Grid, drawer"/>
+    <ClosePage value="-self"/>
+    <OpenGrid value="drawer"/>
     </Cell>
   </Grid>
 </Page>

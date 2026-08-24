@@ -91,6 +91,9 @@ public:
 
     bool applyPageAction(PageVerb verb, PageTargetKind kind, const QString& id,
                          QString* error = nullptr);
+    bool applyNav(const PageAction& action, const QString& sourcePageId,
+                  const QString& sourceTargetId, QString* error = nullptr);
+    [[nodiscard]] bool goBack(QString* error = nullptr);
 
     [[nodiscard]] bool onGaze(const GazePoint& point);
     /// Hit-test only: true if gaze is over a board/cell/zone (does not run dwell).
@@ -132,7 +135,27 @@ private:
         PageDocument doc;
     };
 
+    struct PageBreadcrumb {
+        QVector<PageDocument> attached;
+        RootChrome chrome = RootChrome::Docked;
+        QSet<QString> hiddenZones;
+    };
+
+    [[nodiscard]] PageBreadcrumb captureBreadcrumb() const;
+    void restoreBreadcrumb(PageBreadcrumb snap);
+    [[nodiscard]] bool applyNavMutation(const PageAction& action, const QString& sourcePageId,
+                                        const QString& sourceTargetId, QString* error);
+    [[nodiscard]] bool applyNavPage(PageVerb verb, PageNavScope scope, const QString& id,
+                                    const QString& sourcePageId, QString* error);
+    [[nodiscard]] bool applyNavGrid(PageVerb verb, PageNavScope scope, const QString& id,
+                                    QString* error);
+    [[nodiscard]] bool applyNavZone(PageVerb verb, PageNavScope scope, const QString& id,
+                                    const QString& sourceTargetId, QString* error);
+    void closePagesExcept(const QString& keepId);
+    [[nodiscard]] const PageZone* findZoneAnywhere(const QString& id) const;
+
     PageDocument m_root;
+    QVector<PageBreadcrumb> m_crumbs;
     QString m_layoutsDir;
     QHash<QString, PageDocument> m_memory;
     QVector<AttachedPage> m_attached;

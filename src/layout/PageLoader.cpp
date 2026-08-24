@@ -18,11 +18,7 @@ QString xmlError(QXmlStreamReader& xml, const QString& msg)
 
 bool parseBoolAttr(const QStringView v, bool defaultValue)
 {
-    const QString s = v.toString().trimmed().toLower();
-    if (s.isEmpty()) {
-        return defaultValue;
-    }
-    return s == QLatin1String("true") || s == QLatin1String("1") || s == QLatin1String("yes");
+    return PageDimParse::boolWord(v, defaultValue);
 }
 
 int parseIntAttr(const QStringView v, int defaultValue)
@@ -179,22 +175,17 @@ bool readActions(QXmlStreamReader& xml, const QString& parent, QVector<PageActio
             continue;
         }
         const QString name = xml.name().toString();
-        if (name == QLatin1String("Action")) {
+        if (isPageActionElementName(name)) {
             const QXmlStreamAttributes a = xml.attributes();
             const QString text = xml.readElementText(QXmlStreamReader::IncludeChildElements);
             PageAction act;
             QString err;
-            if (!parsePageAction(a, text, act, &err)) {
+            if (!parsePageActionElement(name, a, text, act, &err)) {
                 if (error) {
                     *error = xmlError(xml, err);
                 }
                 return false;
             }
-            actions.push_back(act);
-        } else if (name == QLatin1String("AHK")) {
-            PageAction act;
-            act.type = PageActionType::Ahk;
-            act.ahkSource = xml.readElementText(QXmlStreamReader::IncludeChildElements);
             actions.push_back(act);
         } else {
             return skipUnknownOrFail(xml, parent, error);
@@ -254,6 +245,13 @@ bool readCell(QXmlStreamReader& xml, PageCell& cell, QString* error)
             || r == QLatin1String("display") || cell.clusterSlot == QLatin1String("value")) {
             cell.interactive = false;
         }
+    }
+    QString attrErr;
+    if (!takePageActionAttributes(a, cell.actions, &attrErr)) {
+        if (error) {
+            *error = xmlError(xml, attrErr);
+        }
+        return false;
     }
     if (!readActions(xml, QStringLiteral("Cell"), cell.actions, error)) {
         return false;
@@ -443,6 +441,13 @@ bool readZone(QXmlStreamReader& xml, PageZone& zone, QString* error)
     }
     if (!zone.dwellSize.isSet()) {
         zone.dwellSize = zone.size;
+    }
+    QString attrErr;
+    if (!takePageActionAttributes(a, zone.actions, &attrErr)) {
+        if (error) {
+            *error = xmlError(xml, attrErr);
+        }
+        return false;
     }
     if (!readActions(xml, QStringLiteral("Zone"), zone.actions, error)) {
         return false;

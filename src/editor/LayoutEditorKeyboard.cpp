@@ -17,9 +17,10 @@ PageAction sendKey(const QString& key)
 PageAction openPage(const QString& id)
 {
     PageAction a;
-    a.type = PageActionType::Page;
+    a.type = PageActionType::Nav;
     a.verb = PageVerb::Open;
     a.targetKind = PageTargetKind::Page;
+    a.targetScope = PageNavScope::Id;
     a.targetId = id;
     return a;
 }
@@ -187,9 +188,10 @@ QVector<EditorLayer> makeTemplateLayers(EditorTemplate tmpl, const QString& id, 
         z.dwellSize.x = PageDim::pixels(300);
         z.dwellSize.y = PageDim::pixels(200);
         PageAction a;
-        a.type = PageActionType::Page;
+        a.type = PageActionType::Nav;
         a.verb = PageVerb::Open;
         a.targetKind = PageTargetKind::Grid;
+        a.targetScope = PageNavScope::Id;
         a.targetId = QStringLiteral("drawer");
         z.actions.push_back(a);
         d.zones.push_back(z);

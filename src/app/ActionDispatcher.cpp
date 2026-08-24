@@ -1,7 +1,9 @@
 #include "app/ActionDispatcher.h"
 
+#include "assist/MouseDwellMove.h"
 #include "input/KeyboardInjector.h"
 #include "input/MouseInjector.h"
+#include "layout/PageDim.h"
 #include "utils/Log.h"
 #include "utils/ScreenGrab.h"
 
@@ -9,6 +11,27 @@
 #include <QTimer>
 
 namespace gazer {
+
+namespace {
+
+MouseDwellMove::ArmPurpose clickPurpose(const QString& button)
+{
+    const QString b = button.trimmed().toLower();
+    if (b == QLatin1String("right")) {
+        return MouseDwellMove::ArmPurpose::CursorMoveRightClick;
+    }
+    if (b == QLatin1String("middle")) {
+        return MouseDwellMove::ArmPurpose::CursorMoveMiddleClick;
+    }
+    return MouseDwellMove::ArmPurpose::CursorMoveLeftClick;
+}
+
+void armMagPick(GazerServices& svc, MouseDwellMove::ArmPurpose purpose, double zoom)
+{
+    svc.mouseDwellMove().setArmed(true, purpose, zoom);
+}
+
+} // namespace
 
 ActionDispatcher::ActionDispatcher(GazerServices& services, QObject* parent)
     : QObject(parent)
@@ -37,10 +60,14 @@ bool ActionDispatcher::dispatchClick(const PageAction& a, QString* error)
     return ok;
 }
 
+bool ActionDispatcher::moveToGaze(QString* error)
+{
+    return m_svc.commands().run({QStringLiteral("mouseMoveToGaze"), {}}, error);
+}
+
 void ActionDispatcher::dispatchPage(const QVector<PageAction>& actions, const QString& sourcePageId,
                                     const QString& targetId)
 {
-    Q_UNUSED(targetId);
     auto notify = [this](const QString& msg) { emit statusMessage(msg); };
     for (const PageAction& a : actions) {
         switch (a.type) {
@@ -51,13 +78,10 @@ void ActionDispatcher::dispatchPage(const QVector<PageAction>& actions, const QS
             }
             break;
         }
-        case PageActionType::Page: {
+        case PageActionType::Nav:
+        case PageActionType::GoBack: {
             QString err;
-            QString tid = a.targetId;
-            if (tid.compare(QLatin1String("self"), Qt::CaseInsensitive) == 0) {
-                tid = sourcePageId;
-            }
-            if (!m_svc.pages().applyPageAction(a.verb, a.targetKind, tid, &err)) {
+            if (!m_svc.pages().applyNav(a, sourcePageId, targetId, &err)) {
                 notify(err.isEmpty() ? QStringLiteral("Page action failed") : err);
             }
             break;
@@ -109,7 +133,20 @@ void ActionDispatcher::dispatchPage(const QVector<PageAction>& actions, const QS
             QString err;
             bool ok = true;
             if (a.moveMode == PageMoveMode::Gaze) {
-                ok = m_svc.commands().run({QStringLiteral("mouseMoveToGaze"), sourcePageId}, &err);
+                if (a.zoomMode == PageZoomMode::Off) {
+                    ok = moveToGaze(&err);
+                } else {
+                    const double zoom = a.zoomMode == PageZoomMode::Level
+                                            ? double(a.zoomLevel)
+                                            : m_svc.settings().pickZoom;
+                    armMagPick(m_svc, MouseDwellMove::ArmPurpose::CursorMove, zoom);
+                    break;
+                }
+            } else if (a.moveMode == PageMoveMode::Direction) {
+                const int amount =
+                    a.moveAmount >= 0 ? a.moveAmount : m_svc.mouseAssist().moveAmountPx();
+                const QPoint d = PageDimParse::anchorDelta(a.moveDirection, amount);
+                ok = MouseInjector::moveBy(d.x(), d.y(), &err);
             } else {
                 const QRect desk = virtualDesktop();
                 const int x = qRound(a.moveX.resolve(desk.width(), desk.height()));
@@ -127,7 +164,13 @@ void ActionDispatcher::dispatchPage(const QVector<PageAction>& actions, const QS
         }
         case PageActionType::MoveAndClick: {
             QString err;
-            if (!m_svc.commands().run({QStringLiteral("mouseMoveToGaze"), sourcePageId}, &err)) {
+            if (a.zoomMode != PageZoomMode::Off) {
+                const double zoom = a.zoomMode == PageZoomMode::Level ? double(a.zoomLevel)
+                                                                      : m_svc.settings().pickZoom;
+                armMagPick(m_svc, clickPurpose(a.button), zoom);
+                break;
+            }
+            if (!moveToGaze(&err)) {
                 notify(err.isEmpty() ? QStringLiteral("MoveAndClick failed") : err);
                 break;
             }

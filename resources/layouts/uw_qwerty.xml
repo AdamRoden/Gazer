@@ -1,223 +1,85 @@
 <Page id="uw_qwerty" name="Qwerty">
   <Grid id="board" desktopMode="true" rows="4" columns="160" anchor="BottomLeft" offset="500,0" size="1600,280" gap="0" margin="0" aboveTaskbar="true" background="#000000" border="#999999" thickness="1" radius="2" scanGrace="200" activation="10,600,600,500,400,300,200,100">
-    <Cell id="esc" row="0" col="0" colSpan="9" label="Esc" background="#3d4f66" foreground="#ffffff">
-    <Action id="Command" value="escape"/>
-    </Cell>
-    <Cell id="n1" row="0" col="9" colSpan="10" label="1">
-    <Action id="Send" value="1"/>
-    </Cell>
-    <Cell id="n2" row="0" col="19" colSpan="10" label="2">
-    <Action id="Send" value="2"/>
-    </Cell>
-    <Cell id="n3" row="0" col="29" colSpan="10" label="3">
-    <Action id="Send" value="3"/>
-    </Cell>
-    <Cell id="n4" row="0" col="39" colSpan="10" label="4">
-    <Action id="Send" value="4"/>
-    </Cell>
-    <Cell id="n5" row="0" col="49" colSpan="10" label="5">
-    <Action id="Send" value="5"/>
-    </Cell>
-    <Cell id="n6" row="0" col="59" colSpan="10" label="6">
-    <Action id="Send" value="6"/>
-    </Cell>
-    <Cell id="n7" row="0" col="69" colSpan="10" label="7">
-    <Action id="Send" value="7"/>
-    </Cell>
-    <Cell id="n8" row="0" col="79" colSpan="10" label="8">
-    <Action id="Send" value="8"/>
-    </Cell>
-    <Cell id="n9" row="0" col="89" colSpan="10" label="9">
-    <Action id="Send" value="9"/>
-    </Cell>
-    <Cell id="n0" row="0" col="99" colSpan="10" label="0">
-    <Action id="Send" value="0"/>
-    </Cell>
-    <Cell id="minus" row="0" col="109" colSpan="10" label="-">
-    <Action id="Send" value="-"/>
-    </Cell>
-    <Cell id="equals" row="0" col="119" colSpan="11" label="=">
-    <Action id="Send" value="="/>
-    </Cell>
-    <Cell id="del" row="0" col="130" colSpan="10" label="Del" background="#3d4f66" foreground="#ffffff">
-    <Action id="Command" value="delete"/>
-    </Cell>
-    <Cell id="pgup" row="0" col="140" colSpan="10" label="Pg Up" background="#3d4f66" foreground="#ffffff">
-    <Action id="Command" value="pageUp"/>
-    </Cell>
-    <Cell id="bksp" row="0" col="150" colSpan="10" icon="BackOne" label="Backspace" background="#3d4f66" foreground="#ffffff">
-    <Action id="Command" value="backspace"/>
-    </Cell>
-    <Cell id="tab" row="1" col="0" colSpan="11" icon="Tab" label="Tab" background="#3d4f66" foreground="#ffffff">
-    <Action id="Command" value="tab"/>
-    </Cell>
-    <Cell id="k_q" row="1" col="11" colSpan="10" label="q">
-    <Action id="Send" value="q"/>
-    </Cell>
-    <Cell id="k_w" row="1" col="21" colSpan="10" label="w">
-    <Action id="Send" value="w"/>
-    </Cell>
-    <Cell id="k_e" row="1" col="31" colSpan="10" label="e">
-    <Action id="Send" value="e"/>
-    </Cell>
-    <Cell id="k_r" row="1" col="41" colSpan="10" label="r">
-    <Action id="Send" value="r"/>
-    </Cell>
-    <Cell id="k_t" row="1" col="51" colSpan="10" label="t">
-    <Action id="Send" value="t"/>
-    </Cell>
-    <Cell id="k_y" row="1" col="61" colSpan="10" label="y">
-    <Action id="Send" value="y"/>
-    </Cell>
-    <Cell id="k_u" row="1" col="71" colSpan="10" label="u">
-    <Action id="Send" value="u"/>
-    </Cell>
-    <Cell id="k_i" row="1" col="81" colSpan="10" label="i">
-    <Action id="Send" value="i"/>
-    </Cell>
-    <Cell id="k_o" row="1" col="91" colSpan="10" label="o">
-    <Action id="Send" value="o"/>
-    </Cell>
-    <Cell id="k_p" row="1" col="101" colSpan="10" label="p">
-    <Action id="Send" value="p"/>
-    </Cell>
-    <Cell id="lbrack" row="1" col="111" colSpan="10" label="[" scanGrace="300">
-    <Action id="Send" value="["/>
-    </Cell>
-    <Cell id="rbrack" row="1" col="121" colSpan="9" label="]" scanGrace="300">
-    <Action id="Send" value="]"/>
-    </Cell>
-    <Cell id="home" row="1" col="130" colSpan="10" label="Home" background="#3d4f66" foreground="#ffffff">
-    <Action id="Command" value="home"/>
-    </Cell>
-    <Cell id="up" row="1" col="140" colSpan="10" icon="UpArrowKey" label="Up" background="#3d4f66" foreground="#ffffff">
-    <Action id="Command" value="arrowUp"/>
-    </Cell>
-    <Cell id="end" row="1" col="150" colSpan="10" label="End" background="#3d4f66" foreground="#ffffff">
-    <Action id="Command" value="end"/>
-    </Cell>
+    <Cell id="esc" row="0" col="0" colSpan="9" label="Esc" background="#3d4f66" foreground="#ffffff" command="escape"/>
+    <Cell id="n1" row="0" col="9" colSpan="10" label="1" send="1"/>
+    <Cell id="n2" row="0" col="19" colSpan="10" label="2" send="2"/>
+    <Cell id="n3" row="0" col="29" colSpan="10" label="3" send="3"/>
+    <Cell id="n4" row="0" col="39" colSpan="10" label="4" send="4"/>
+    <Cell id="n5" row="0" col="49" colSpan="10" label="5" send="5"/>
+    <Cell id="n6" row="0" col="59" colSpan="10" label="6" send="6"/>
+    <Cell id="n7" row="0" col="69" colSpan="10" label="7" send="7"/>
+    <Cell id="n8" row="0" col="79" colSpan="10" label="8" send="8"/>
+    <Cell id="n9" row="0" col="89" colSpan="10" label="9" send="9"/>
+    <Cell id="n0" row="0" col="99" colSpan="10" label="0" send="0"/>
+    <Cell id="minus" row="0" col="109" colSpan="10" label="-" send="-"/>
+    <Cell id="equals" row="0" col="119" colSpan="11" label="=" send="="/>
+    <Cell id="del" row="0" col="130" colSpan="10" label="Del" background="#3d4f66" foreground="#ffffff" command="delete"/>
+    <Cell id="pgup" row="0" col="140" colSpan="10" label="Pg Up" background="#3d4f66" foreground="#ffffff" command="pageUp"/>
+    <Cell id="bksp" row="0" col="150" colSpan="10" icon="BackOne" label="Backspace" background="#3d4f66" foreground="#ffffff" command="backspace"/>
+    <Cell id="tab" row="1" col="0" colSpan="11" icon="Tab" label="Tab" background="#3d4f66" foreground="#ffffff" command="tab"/>
+    <Cell id="k_q" row="1" col="11" colSpan="10" label="q" send="q"/>
+    <Cell id="k_w" row="1" col="21" colSpan="10" label="w" send="w"/>
+    <Cell id="k_e" row="1" col="31" colSpan="10" label="e" send="e"/>
+    <Cell id="k_r" row="1" col="41" colSpan="10" label="r" send="r"/>
+    <Cell id="k_t" row="1" col="51" colSpan="10" label="t" send="t"/>
+    <Cell id="k_y" row="1" col="61" colSpan="10" label="y" send="y"/>
+    <Cell id="k_u" row="1" col="71" colSpan="10" label="u" send="u"/>
+    <Cell id="k_i" row="1" col="81" colSpan="10" label="i" send="i"/>
+    <Cell id="k_o" row="1" col="91" colSpan="10" label="o" send="o"/>
+    <Cell id="k_p" row="1" col="101" colSpan="10" label="p" send="p"/>
+    <Cell id="lbrack" row="1" col="111" colSpan="10" label="[" scanGrace="300" send="["/>
+    <Cell id="rbrack" row="1" col="121" colSpan="9" label="]" scanGrace="300" send="]"/>
+    <Cell id="home" row="1" col="130" colSpan="10" label="Home" background="#3d4f66" foreground="#ffffff" command="home"/>
+    <Cell id="up" row="1" col="140" colSpan="10" icon="UpArrowKey" label="Up" background="#3d4f66" foreground="#ffffff" command="arrowUp"/>
+    <Cell id="end" row="1" col="150" colSpan="10" label="End" background="#3d4f66" foreground="#ffffff" command="end"/>
     <Cell id="shift_l" row="2" col="0" colSpan="13" icon="Shift" label="Shift" background="#3d4f66" foreground="#ffffff">
-    <Action id="Page" value="Close, Page, self"/>
-    <Action id="Page" value="Open, Page, uw_qwerty_shift"/>
+    <ClosePage value="-self"/>
+    <OpenPage value="uw_qwerty_shift"/>
     </Cell>
-    <Cell id="k_a" row="2" col="13" colSpan="10" label="a">
-    <Action id="Send" value="a"/>
-    </Cell>
-    <Cell id="k_s" row="2" col="23" colSpan="10" label="s">
-    <Action id="Send" value="s"/>
-    </Cell>
-    <Cell id="k_d" row="2" col="33" colSpan="10" label="d">
-    <Action id="Send" value="d"/>
-    </Cell>
-    <Cell id="k_f" row="2" col="43" colSpan="10" label="f">
-    <Action id="Send" value="f"/>
-    </Cell>
-    <Cell id="k_g" row="2" col="53" colSpan="10" label="g">
-    <Action id="Send" value="g"/>
-    </Cell>
-    <Cell id="k_h" row="2" col="63" colSpan="10" label="h">
-    <Action id="Send" value="h"/>
-    </Cell>
-    <Cell id="k_j" row="2" col="73" colSpan="10" label="j">
-    <Action id="Send" value="j"/>
-    </Cell>
-    <Cell id="k_k" row="2" col="83" colSpan="10" label="k">
-    <Action id="Send" value="k"/>
-    </Cell>
-    <Cell id="k_l" row="2" col="93" colSpan="10" label="l">
-    <Action id="Send" value="l"/>
-    </Cell>
-    <Cell id="semi" row="2" col="103" colSpan="8" label=";">
-    <Action id="Send" value=";"/>
-    </Cell>
-    <Cell id="quote" row="2" col="111" colSpan="8" label="&apos;">
-    <Action id="Send" value="&apos;"/>
-    </Cell>
+    <Cell id="k_a" row="2" col="13" colSpan="10" label="a" send="a"/>
+    <Cell id="k_s" row="2" col="23" colSpan="10" label="s" send="s"/>
+    <Cell id="k_d" row="2" col="33" colSpan="10" label="d" send="d"/>
+    <Cell id="k_f" row="2" col="43" colSpan="10" label="f" send="f"/>
+    <Cell id="k_g" row="2" col="53" colSpan="10" label="g" send="g"/>
+    <Cell id="k_h" row="2" col="63" colSpan="10" label="h" send="h"/>
+    <Cell id="k_j" row="2" col="73" colSpan="10" label="j" send="j"/>
+    <Cell id="k_k" row="2" col="83" colSpan="10" label="k" send="k"/>
+    <Cell id="k_l" row="2" col="93" colSpan="10" label="l" send="l"/>
+    <Cell id="semi" row="2" col="103" colSpan="8" label=";" send=";"/>
+    <Cell id="quote" row="2" col="111" colSpan="8" label="&apos;" send="&apos;"/>
     <Cell id="shift_r" row="2" col="119" colSpan="11" icon="Shift" label="Shift" background="#3d4f66" foreground="#ffffff">
-    <Action id="Page" value="Close, Page, self"/>
-    <Action id="Page" value="Open, Page, uw_qwerty_shift"/>
+    <ClosePage value="-self"/>
+    <OpenPage value="uw_qwerty_shift"/>
     </Cell>
-    <Cell id="left" row="2" col="130" colSpan="10" icon="LeftArrowKey" label="Left" background="#3d4f66" foreground="#ffffff">
-    <Action id="Command" value="arrowLeft"/>
-    </Cell>
-    <Cell id="down" row="2" col="140" colSpan="10" icon="DownArrowKey" label="Down" background="#3d4f66" foreground="#ffffff">
-    <Action id="Command" value="arrowDown"/>
-    </Cell>
-    <Cell id="right" row="2" col="150" colSpan="10" icon="RightArrowKey" label="Right" background="#3d4f66" foreground="#ffffff">
-    <Action id="Command" value="arrowRight"/>
-    </Cell>
-    <Cell id="ctrl_l" row="3" col="0" colSpan="9" label="Ctrl" background="#3d4f66" foreground="#ffffff">
-    <Action id="Command" value="leftCtrl"/>
-    </Cell>
-    <Cell id="win" row="3" col="9" colSpan="9" icon="Win" label="Win" background="#3d4f66" foreground="#ffffff">
-    <Action id="Command" value="leftWin"/>
-    </Cell>
-    <Cell id="k_z" row="3" col="18" colSpan="9" label="z">
-    <Action id="Send" value="z"/>
-    </Cell>
-    <Cell id="k_x" row="3" col="27" colSpan="9" label="x">
-    <Action id="Send" value="x"/>
-    </Cell>
-    <Cell id="k_c" row="3" col="36" colSpan="10" label="c">
-    <Action id="Send" value="c"/>
-    </Cell>
-    <Cell id="k_v" row="3" col="46" colSpan="10" label="v">
-    <Action id="Send" value="v"/>
-    </Cell>
-    <Cell id="space" row="3" col="56" colSpan="14" icon="Space" label="Space">
-    <Action id="Command" value="space"/>
-    </Cell>
-    <Cell id="k_b" row="3" col="70" colSpan="10" label="b">
-    <Action id="Send" value="b"/>
-    </Cell>
-    <Cell id="k_n" row="3" col="80" colSpan="9" label="n">
-    <Action id="Send" value="n"/>
-    </Cell>
-    <Cell id="k_m" row="3" col="89" colSpan="9" label="m">
-    <Action id="Send" value="m"/>
-    </Cell>
-    <Cell id="comma" row="3" col="98" colSpan="8" label=",">
-    <Action id="Send" value=","/>
-    </Cell>
-    <Cell id="dot" row="3" col="106" colSpan="8" label=".">
-    <Action id="Send" value="."/>
-    </Cell>
-    <Cell id="slash" row="3" col="114" colSpan="8" label="/">
-    <Action id="Send" value="/"/>
-    </Cell>
-    <Cell id="ctrl_r" row="3" col="122" colSpan="9" label="Ctrl" background="#3d4f66" foreground="#ffffff">
-    <Action id="Command" value="leftCtrl"/>
-    </Cell>
-    <Cell id="alt" row="3" col="131" colSpan="9" label="Alt" background="#3d4f66" foreground="#ffffff">
-    <Action id="Command" value="leftAlt"/>
-    </Cell>
-    <Cell id="pgdn" row="3" col="140" colSpan="10" label="Pg Dn" background="#3d4f66" foreground="#ffffff">
-    <Action id="Command" value="pageDown"/>
-    </Cell>
-    <Cell id="enter" row="3" col="150" colSpan="10" icon="Enter" label="Enter" background="#3d4f66" foreground="#ffffff">
-    <Action id="Command" value="enter"/>
-    </Cell>
+    <Cell id="left" row="2" col="130" colSpan="10" icon="LeftArrowKey" label="Left" background="#3d4f66" foreground="#ffffff" command="arrowLeft"/>
+    <Cell id="down" row="2" col="140" colSpan="10" icon="DownArrowKey" label="Down" background="#3d4f66" foreground="#ffffff" command="arrowDown"/>
+    <Cell id="right" row="2" col="150" colSpan="10" icon="RightArrowKey" label="Right" background="#3d4f66" foreground="#ffffff" command="arrowRight"/>
+    <Cell id="ctrl_l" row="3" col="0" colSpan="9" label="Ctrl" background="#3d4f66" foreground="#ffffff" command="leftCtrl"/>
+    <Cell id="win" row="3" col="9" colSpan="9" icon="Win" label="Win" background="#3d4f66" foreground="#ffffff" command="leftWin"/>
+    <Cell id="k_z" row="3" col="18" colSpan="9" label="z" send="z"/>
+    <Cell id="k_x" row="3" col="27" colSpan="9" label="x" send="x"/>
+    <Cell id="k_c" row="3" col="36" colSpan="10" label="c" send="c"/>
+    <Cell id="k_v" row="3" col="46" colSpan="10" label="v" send="v"/>
+    <Cell id="space" row="3" col="56" colSpan="14" icon="Space" label="Space" command="space"/>
+    <Cell id="k_b" row="3" col="70" colSpan="10" label="b" send="b"/>
+    <Cell id="k_n" row="3" col="80" colSpan="9" label="n" send="n"/>
+    <Cell id="k_m" row="3" col="89" colSpan="9" label="m" send="m"/>
+    <Cell id="comma" row="3" col="98" colSpan="8" label="," send=","/>
+    <Cell id="dot" row="3" col="106" colSpan="8" label="." send="."/>
+    <Cell id="slash" row="3" col="114" colSpan="8" label="/" send="/"/>
+    <Cell id="ctrl_r" row="3" col="122" colSpan="9" label="Ctrl" background="#3d4f66" foreground="#ffffff" command="leftCtrl"/>
+    <Cell id="alt" row="3" col="131" colSpan="9" label="Alt" background="#3d4f66" foreground="#ffffff" command="leftAlt"/>
+    <Cell id="pgdn" row="3" col="140" colSpan="10" label="Pg Dn" background="#3d4f66" foreground="#ffffff" command="pageDown"/>
+    <Cell id="enter" row="3" col="150" colSpan="10" icon="Enter" label="Enter" background="#3d4f66" foreground="#ffffff" command="enter"/>
   </Grid>
-  <Zone id="more" anchor="TopRight" offset="-400,8" size="100,88" icon="More" label="More" background="#99000000">
-    <Action id="Page" value="Open, Page, example_keyboard_sym"/>
-  </Zone>
-  <Zone id="move_lclick" anchor="TopRight" offset="-400,104" size="100,88" icon="MouseLeftClick" label="Left" background="#99000000" activeState="mouseMoveAndLeftClick">
-    <Action id="Command" value="mouseMoveAndLeftClick"/>
-  </Zone>
-  <Zone id="move_rclick" anchor="TopRight" offset="-400,200" size="100,88" icon="MouseRightClick" label="Right" background="#99000000" activeState="mouseMoveAndRightClick" scanGrace="100">
-    <Action id="Command" value="mouseMoveAndRightClick"/>
-  </Zone>
+  <Zone id="more" anchor="TopRight" offset="-400,8" size="100,88" icon="More" label="More" background="#99000000" openPage="example_keyboard_sym"/>
+  <Zone id="move_lclick" anchor="TopRight" offset="-400,104" size="100,88" icon="MouseLeftClick" label="Left" background="#99000000" activeState="mouseMoveAndLeftClick" command="mouseMoveAndLeftClick"/>
+  <Zone id="move_rclick" anchor="TopRight" offset="-400,200" size="100,88" icon="MouseRightClick" label="Right" background="#99000000" activeState="mouseMoveAndRightClick" scanGrace="100" command="mouseMoveAndRightClick"/>
   <Zone id="to_right" anchor="TopRight" offset="-400,296" size="100,88" icon="ArrowPointingToRightBoundary" label="Right strip" background="#99000000">
-    <Action id="Page" value="Close, Page, self"/>
-    <Action id="Page" value="Open, Page, uw_right"/>
+    <ClosePage value="-self"/>
+    <OpenPage value="uw_right"/>
   </Zone>
-  <Zone id="mouse_kb" anchor="TopRight" offset="-400,392" size="100,88" icon="MouseMagneticCursor" label="Mouse" background="#99000000" scanGrace="100">
-    <Action id="Page" value="Open, Page, example_mouse"/>
-  </Zone>
-  <Zone id="sleep" anchor="TopRight" offset="-400,488" size="100,88" icon="Sleep" label="Sleep" background="#99000000" activeState="dwellSuspend">
-    <Action id="Command" value="toggleDwellSuspend"/>
-  </Zone>
-  <Zone id="lts" anchor="TopRight" offset="-400,584" size="100,88" icon="LookToScrollActive" label="Look↕Scroll" background="#99000000" activeState="lookToScroll">
-    <Action id="Command" value="toggleLookToScroll"/>
-  </Zone>
+  <Zone id="mouse_kb" anchor="TopRight" offset="-400,392" size="100,88" icon="MouseMagneticCursor" label="Mouse" background="#99000000" scanGrace="100" openPage="example_mouse"/>
+  <Zone id="sleep" anchor="TopRight" offset="-400,488" size="100,88" icon="Sleep" label="Sleep" background="#99000000" activeState="dwellSuspend" command="toggleDwellSuspend"/>
+  <Zone id="lts" anchor="TopRight" offset="-400,584" size="100,88" icon="LookToScrollActive" label="Look↕Scroll" background="#99000000" activeState="lookToScroll" command="toggleLookToScroll"/>
 </Page>

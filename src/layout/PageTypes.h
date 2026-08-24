@@ -167,11 +167,12 @@ struct PageDwell {
 
 enum class PageActionType {
     Send,
-    Page,
     Click,
     Move,
     MoveAndClick,
     Command,
+    Nav,
+    GoBack,
     Speak,
     Ahk,
     Unknown
@@ -179,7 +180,9 @@ enum class PageActionType {
 
 enum class PageVerb { Open, Close, Toggle };
 enum class PageTargetKind { Page, Grid, Zone };
-enum class PageMoveMode { Gaze, Absolute, Relative };
+enum class PageNavScope { Id, All, Self, Others };
+enum class PageZoomMode { Off, Settings, Level };
+enum class PageMoveMode { Gaze, Absolute, Relative, Direction };
 /// Exclusive root-shell slot. None = ordinary grid (not Docked/Drawer/Quit).
 enum class PageRootSlot { None, Drawer, Quit };
 
@@ -195,7 +198,9 @@ struct PageAction {
 
     PageVerb verb = PageVerb::Open;
     PageTargetKind targetKind = PageTargetKind::Page;
+    PageNavScope targetScope = PageNavScope::Id;
     QString targetId;
+    bool breadcrumb = false;
 
     QString button;
     int clickCount = 1;
@@ -205,6 +210,10 @@ struct PageAction {
     PageMoveMode moveMode = PageMoveMode::Gaze;
     PageDim moveX;
     PageDim moveY;
+    PageAnchor moveDirection = PageAnchor::Top;
+    /// -1 = use the mouse-assist step amount.
+    int moveAmount = -1;
+    PageZoomMode zoomMode = PageZoomMode::Off;
     int zoomLevel = 0;
 
     QString command;

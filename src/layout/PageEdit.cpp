@@ -352,7 +352,8 @@ void remapPageActionTargets(PageDocument& doc, const QHash<QString, QString>& id
 {
     auto remapActs = [&](QVector<PageAction>& acts) {
         for (PageAction& a : acts) {
-            if (a.type != PageActionType::Page || a.targetKind != PageTargetKind::Page) {
+            if (a.type != PageActionType::Nav || a.targetKind != PageTargetKind::Page
+                || a.targetScope != PageNavScope::Id) {
                 continue;
             }
             const auto it = idMap.constFind(a.targetId);

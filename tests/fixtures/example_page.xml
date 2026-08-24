@@ -8,16 +8,12 @@
     Send "{LAlt down}{Tab}{LAlt up}"
 }]]></AHK>
       </Cell>
-      <Cell id="sleep" row="1" col="0" label="Sleep">
-        <Action id="Command" value="Sleep"/>
-      </Cell>
+      <Cell id="sleep" row="1" col="0" label="Sleep" command="Sleep"/>
     </SubGrid>
     <Cell id="openKb" row="0" col="1" label="Keyboard" icon="Keyboard">
-      <Action id="Page" value="Open, Page, uw_qwerty"/>
-      <Action id="Send" value="Enter, Down, 50"/>
+      <OpenPage value="uw_qwerty"/>
+      <Send value="Enter, Down, 50"/>
     </Cell>
   </Grid>
-  <Zone id="edge" anchor="Bottom" offset="0,0" size="300,150" dwellOffset="0,240" dwellSize="300,200" label="Main" icon="Menu" dwellExempt="true">
-    <Action id="Page" value="Open, Grid, Quick Settings"/>
-  </Zone>
+  <Zone id="edge" anchor="Bottom" offset="0,0" size="300,150" dwellOffset="0,240" dwellSize="300,200" label="Main" icon="Menu" dwellExempt="true" openGrid="Quick Settings"/>
 </Page>

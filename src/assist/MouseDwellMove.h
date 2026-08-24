@@ -36,7 +36,8 @@ public:
     explicit MouseDwellMove(QObject* parent = nullptr);
     ~MouseDwellMove() override;
 
-    void setArmed(bool armed, ArmPurpose purpose = ArmPurpose::CursorMove);
+    void setArmed(bool armed, ArmPurpose purpose = ArmPurpose::CursorMove,
+                  double zoomOverride = 0.0);
     [[nodiscard]] bool isArmed() const { return m_armed; }
     [[nodiscard]] ArmPurpose armPurpose() const { return m_purpose; }
     [[nodiscard]] bool isLookToScrollPlace() const
@@ -122,6 +123,7 @@ private:
     bool m_armed = false;
     bool m_paused = false;
     ArmPurpose m_purpose = ArmPurpose::CursorMove;
+    double m_armZoom = 0.0;
     int m_moveDwellMs = 700;
     int m_magPickDwellMs = 700;
     int m_magPickStyle = 1;

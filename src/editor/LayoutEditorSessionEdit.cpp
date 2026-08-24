@@ -728,12 +728,13 @@ QStringList LayoutEditorSession::validate(const QStringList& catalogIds) const
         if (a.type == PageActionType::Command && a.command.trimmed().isEmpty()) {
             issues.push_back(QStringLiteral("%1: command name is empty").arg(where));
         }
-        if (a.type == PageActionType::Page && a.targetId.trimmed().isEmpty()) {
+        if (a.type == PageActionType::Nav && a.targetScope == PageNavScope::Id
+            && a.targetId.trimmed().isEmpty()) {
             issues.push_back(QStringLiteral("%1: page target is empty").arg(where));
         }
-        if (a.type == PageActionType::Page && a.targetKind == PageTargetKind::Page
-            && !a.targetId.isEmpty() && !catalogIds.isEmpty() && !catalogIds.contains(a.targetId)
-            && a.targetId != doc.id && a.targetId.compare(QLatin1String("self"), Qt::CaseInsensitive) != 0) {
+        if (a.type == PageActionType::Nav && a.targetKind == PageTargetKind::Page
+            && a.targetScope == PageNavScope::Id && !a.targetId.isEmpty() && !catalogIds.isEmpty()
+            && !catalogIds.contains(a.targetId) && a.targetId != doc.id) {
             issues.push_back(QStringLiteral("%1: unknown page '%2'").arg(where, a.targetId));
         }
         if (a.type == PageActionType::Speak && a.speakText.trimmed().isEmpty()) {
