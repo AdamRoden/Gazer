@@ -1,5 +1,9 @@
 <Page id="main_settings_button_timing" name="Button timing">
-  <Grid id="board" desktopMode="true" rows="12" columns="16" anchor="Top" offset="0,0" size="1600,1.0" gap="6" margin="12" aboveTaskbar="false" thickness="1" radius="4">
+  <Style id="group" background="#00000000" thickness="1" radius="8"/>
+  <Style id="row" background="#00000000" thickness="1" radius="6"/>
+  <Style id="plain" background="#00000000" thickness="0" radius="0"/>
+  <Style id="join" background="#00000000" thickness="0" radius="0"/>
+  <Grid id="board" desktopMode="true" rows="10" columns="16" anchor="Top" offset="0,0" size="1600,1.0" gap="6" margin="12" aboveTaskbar="false" thickness="1" radius="4">
     <SubGrid id="tabs" row="0" col="0" colSpan="16" rows="1" columns="6" gap="6">
       <Cell id="tab_buttons" row="0" col="0" label="Button" role="tab" interactive="false"/>
       <Cell id="tab_pointers" row="0" col="1" label="Pointer" role="tab">
@@ -24,54 +28,86 @@
       </Cell>
     </SubGrid>
 
-    <Cell id="page_title" row="1" col="0" colSpan="16" label="Button timing" caption="Board dwell timing, blink/scan grace, and completion flash duration" role="label" textStyle="title"/>
-    <Cell id="h_timing" row="2" col="0" colSpan="16" label="Timing" role="label" textStyle="section"/>
-    <Cell id="grace_label" row="3" col="0" colSpan="6" label="Blink grace" caption="Blink window without canceling dwell (ms)." role="label"/>
-    <Cell id="grace_dec" row="3" col="8" label="−" cluster="stepper.grace" clusterSlot="dec">
-    <Action id="Command" value="settings.nudge.dwellGraceMs.dec"/>
-    </Cell>
-    <Cell id="grace_val" row="3" col="9" colSpan="2" label="—" role="label" settingKey="dwellGraceMs" cluster="stepper.grace" clusterSlot="value"/>
-    <Cell id="grace_inc" row="3" col="11" label="+" cluster="stepper.grace" clusterSlot="inc">
-    <Action id="Command" value="settings.nudge.dwellGraceMs.inc"/>
-    </Cell>
-    <Cell id="grace_edit" row="3" col="12" label="Edit…" cluster="stepper.grace" clusterSlot="edit">
-    <Action id="Command" value="settings.edit.dwellGraceMs"/>
-    </Cell>
-    <Cell id="scan_label" row="4" col="0" colSpan="6" label="Scan grace" caption="Time on-target before dwell progress starts (ms)." role="label"/>
-    <Cell id="scan_dec" row="4" col="8" label="−" cluster="stepper.scan" clusterSlot="dec">
-    <Action id="Command" value="settings.nudge.scanGraceMs.dec"/>
-    </Cell>
-    <Cell id="scan_val" row="4" col="9" colSpan="2" label="—" role="label" settingKey="scanGraceMs" cluster="stepper.scan" clusterSlot="value"/>
-    <Cell id="scan_inc" row="4" col="11" label="+" cluster="stepper.scan" clusterSlot="inc">
-    <Action id="Command" value="settings.nudge.scanGraceMs.inc"/>
-    </Cell>
-    <Cell id="scan_edit" row="4" col="12" label="Edit…" cluster="stepper.scan" clusterSlot="edit">
-    <Action id="Command" value="settings.edit.scanGraceMs"/>
-    </Cell>
-    <Cell id="dwell_label" row="5" col="0" colSpan="6" label="Dwell sequence" caption="Comma-separated ms steps while holding. Last step repeats forever." role="label"/>
-    <Cell id="dwell_value" row="5" col="8" colSpan="4" label="—" role="label" settingKey="dwellMs" cluster="stepper.dwell" clusterSlot="value"/>
-    <Cell id="dwell_edit" row="5" col="12" label="Edit…" cluster="stepper.dwell" clusterSlot="edit">
-    <Action id="Command" value="settings.edit.dwellMs"/>
-    </Cell>
-    <Cell id="h_flash" row="6" col="0" colSpan="16" label="Feedback" role="label" textStyle="section"/>
-    <Cell id="fd_label" row="7" col="0" colSpan="6" label="Completion flash duration" caption="How long the completion flash is shown (ms)." role="label"/>
-    <Cell id="fd_dec" row="7" col="8" label="−" cluster="stepper.fd" clusterSlot="dec">
-    <Action id="Command" value="settings.nudge.flashMs.dec"/>
-    </Cell>
-    <Cell id="fd_val" row="7" col="9" colSpan="2" label="—" role="label" settingKey="flashMs" cluster="stepper.fd" clusterSlot="value"/>
-    <Cell id="fd_inc" row="7" col="11" label="+" cluster="stepper.fd" clusterSlot="inc">
-    <Action id="Command" value="settings.nudge.flashMs.inc"/>
-    </Cell>
-    <Cell id="h_presets" row="8" col="0" colSpan="16" label="Presets" role="label" textStyle="section"/>
-    <Cell id="p_label" row="9" col="0" colSpan="5" label="Quick packages" caption="Slow / Normal / Fast single-step dwell." role="label"/>
-    <Cell id="p_slow" row="9" col="8" colSpan="2" label="Slow" cluster="segment.preset" activeState="setting.dwell.slow">
-    <Action id="Command" value="settings.dwell.slow"/>
-    </Cell>
-    <Cell id="p_norm" row="9" col="10" colSpan="3" label="Normal" cluster="segment.preset" activeState="setting.dwell.normal">
-    <Action id="Command" value="settings.dwell.normal"/>
-    </Cell>
-    <Cell id="p_fast" row="9" col="13" colSpan="3" label="Fast" cluster="segment.preset" activeState="setting.dwell.fast">
-    <Action id="Command" value="settings.dwell.fast"/>
-    </Cell>
+    <Cell id="page_title" row="1" col="0" colSpan="16" label="Button timing" caption="Board dwell timing, blink/scan grace, and completion flash duration" role="label" textStyle="title" style="plain"/>
+
+    <SubGrid id="sec_timing" row="2" col="0" colSpan="16" rowSpan="4" rows="4" columns="1" rowWeights="1,2,2,2" gap="6" margin="6" style="group">
+      <Cell id="h_timing" row="0" col="0" label="Timing" role="label" textStyle="section" style="plain"/>
+      <SubGrid id="row_grace" row="1" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="grace_label" row="0" col="0" label="Blink grace" caption="Blink window without canceling dwell (ms)." role="label" style="plain"/>
+        <SubGrid id="act_grace" row="0" col="1" rows="1" columns="7" gap="0">
+          <Cell id="grace_dec" row="0" col="0" label="−" cluster="stepper.grace" clusterSlot="dec" style="join">
+            <Action id="Command" value="settings.nudge.dwellGraceMs.dec"/>
+          </Cell>
+          <Cell id="grace_val" row="0" col="1" colSpan="3" label="—" role="label" settingKey="dwellGraceMs" cluster="stepper.grace" clusterSlot="value" style="join"/>
+          <Cell id="grace_inc" row="0" col="4" label="+" cluster="stepper.grace" clusterSlot="inc" style="join">
+            <Action id="Command" value="settings.nudge.dwellGraceMs.inc"/>
+          </Cell>
+          <Cell id="grace_edit" row="0" col="5" colSpan="2" label="Edit…" cluster="stepper.grace" clusterSlot="edit" style="join">
+            <Action id="Command" value="settings.edit.dwellGraceMs"/>
+          </Cell>
+        </SubGrid>
+      </SubGrid>
+      <SubGrid id="row_scan" row="2" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="scan_label" row="0" col="0" label="Scan grace" caption="Time on-target before dwell progress starts (ms)." role="label" style="plain"/>
+        <SubGrid id="act_scan" row="0" col="1" rows="1" columns="7" gap="0">
+          <Cell id="scan_dec" row="0" col="0" label="−" cluster="stepper.scan" clusterSlot="dec" style="join">
+            <Action id="Command" value="settings.nudge.scanGraceMs.dec"/>
+          </Cell>
+          <Cell id="scan_val" row="0" col="1" colSpan="3" label="—" role="label" settingKey="scanGraceMs" cluster="stepper.scan" clusterSlot="value" style="join"/>
+          <Cell id="scan_inc" row="0" col="4" label="+" cluster="stepper.scan" clusterSlot="inc" style="join">
+            <Action id="Command" value="settings.nudge.scanGraceMs.inc"/>
+          </Cell>
+          <Cell id="scan_edit" row="0" col="5" colSpan="2" label="Edit…" cluster="stepper.scan" clusterSlot="edit" style="join">
+            <Action id="Command" value="settings.edit.scanGraceMs"/>
+          </Cell>
+        </SubGrid>
+      </SubGrid>
+      <SubGrid id="row_dwell" row="3" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="dwell_label" row="0" col="0" label="Dwell sequence" caption="Comma-separated ms steps while holding. Last step repeats forever." role="label" style="plain"/>
+        <SubGrid id="act_dwell" row="0" col="1" rows="1" columns="5" gap="0">
+          <Cell id="dwell_value" row="0" col="0" colSpan="3" label="—" role="label" settingKey="dwellMs" cluster="stepper.dwell" clusterSlot="value" style="join"/>
+          <Cell id="dwell_edit" row="0" col="3" colSpan="2" label="Edit…" cluster="stepper.dwell" clusterSlot="edit" style="join">
+            <Action id="Command" value="settings.edit.dwellMs"/>
+          </Cell>
+        </SubGrid>
+      </SubGrid>
+    </SubGrid>
+
+    <SubGrid id="sec_flash" row="6" col="0" colSpan="16" rowSpan="2" rows="2" columns="1" rowWeights="1,2" gap="6" margin="6" style="group">
+      <Cell id="h_flash" row="0" col="0" label="Feedback" role="label" textStyle="section" style="plain"/>
+      <SubGrid id="row_fd" row="1" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="fd_label" row="0" col="0" label="Completion flash duration" caption="How long the completion flash is shown (ms)." role="label" style="plain"/>
+        <SubGrid id="act_fd" row="0" col="1" rows="1" columns="7" gap="0">
+          <Cell id="fd_dec" row="0" col="0" label="−" cluster="stepper.fd" clusterSlot="dec" style="join">
+            <Action id="Command" value="settings.nudge.flashMs.dec"/>
+          </Cell>
+          <Cell id="fd_val" row="0" col="1" colSpan="3" label="—" role="label" settingKey="flashMs" cluster="stepper.fd" clusterSlot="value" style="join"/>
+          <Cell id="fd_inc" row="0" col="4" label="+" cluster="stepper.fd" clusterSlot="inc" style="join">
+            <Action id="Command" value="settings.nudge.flashMs.inc"/>
+          </Cell>
+          <Cell id="fd_edit" row="0" col="5" colSpan="2" label="Edit…" cluster="stepper.fd" clusterSlot="edit" style="join">
+            <Action id="Command" value="settings.edit.flashMs"/>
+          </Cell>
+        </SubGrid>
+      </SubGrid>
+    </SubGrid>
+
+    <SubGrid id="sec_presets" row="8" col="0" colSpan="16" rowSpan="2" rows="2" columns="1" rowWeights="1,2" gap="6" margin="6" style="group">
+      <Cell id="h_presets" row="0" col="0" label="Presets" role="label" textStyle="section" style="plain"/>
+      <SubGrid id="row_preset" row="1" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="p_label" row="0" col="0" label="Quick packages" caption="Slow / Normal / Fast single-step dwell." role="label" style="plain"/>
+        <SubGrid id="act_preset" row="0" col="1" rows="1" columns="3" gap="0">
+          <Cell id="p_slow" row="0" col="0" label="Slow" cluster="segment.preset" activeState="setting.dwell.slow" style="join">
+            <Action id="Command" value="settings.dwell.slow"/>
+          </Cell>
+          <Cell id="p_norm" row="0" col="1" label="Normal" cluster="segment.preset" activeState="setting.dwell.normal" style="join">
+            <Action id="Command" value="settings.dwell.normal"/>
+          </Cell>
+          <Cell id="p_fast" row="0" col="2" label="Fast" cluster="segment.preset" activeState="setting.dwell.fast" style="join">
+            <Action id="Command" value="settings.dwell.fast"/>
+          </Cell>
+        </SubGrid>
+      </SubGrid>
+    </SubGrid>
   </Grid>
 </Page>

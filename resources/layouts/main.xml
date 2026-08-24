@@ -6,14 +6,14 @@
   <Style id="quitNo" background="#2d6a4f" foreground="#ffffff"/>
 
   <Zone id="mainChip" anchor="Bottom" offset="0,0" size="200,100"
-        dwellOffset="0,300" dwellSize="300,200" aboveTaskbar="true"
+        dwellOffset="0,300" dwellSize="300,200" aboveTaskbar="false"
         style="chip" label="Main" icon="Menu"
         dwellExempt="true" visibleWhen="!expanded" shell="true">
     <Action id="Command" value="resumeDwell"/>
     <Action id="Page" value="Open, Page, main"/>
   </Zone>
   <Zone id="sleep" anchor="Bottom" offset="400,0" size="200,100"
-        dwellOffset="0,300" dwellSize="300,200" aboveTaskbar="true"
+        dwellOffset="0,300" dwellSize="300,200" aboveTaskbar="false"
         style="chip" label="Sleep" icon="Sleep"
         activeState="dwellSuspend" shell="true">
     <Action id="Command" value="toggleDwellSuspend"/>

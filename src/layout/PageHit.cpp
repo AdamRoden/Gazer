@@ -37,6 +37,46 @@ namespace {
 
 } // namespace
 
+namespace {
+
+double trackWeight(const QVector<double>& weights, int i)
+{
+    if (i >= 0 && i < weights.size() && weights[i] > 0.0) {
+        return weights[i];
+    }
+    return 1.0;
+}
+
+double trackWeightRange(const QVector<double>& weights, int count, int from, int span)
+{
+    double s = 0.0;
+    const int end = qMin(count, from + span);
+    for (int i = qMax(0, from); i < end; ++i) {
+        s += trackWeight(weights, i);
+    }
+    return s;
+}
+
+int trackIndexAt(const QVector<double>& weights, int count, double inner, int gap, double local)
+{
+    const double total = trackWeightRange(weights, count, 0, count);
+    if (total <= 0.0 || inner <= 0.0) {
+        return 0;
+    }
+    double y = 0.0;
+    for (int i = 0; i < count; ++i) {
+        const double h = inner * (trackWeight(weights, i) / total);
+        const double next = y + h + (i + 1 < count ? gap : 0);
+        if (local < next || i == count - 1) {
+            return i;
+        }
+        y = next;
+    }
+    return count - 1;
+}
+
+} // namespace
+
 QRectF cellRect(const PageGrid& grid, const QRectF& gridRect, int row, int col, int rowSpan,
                 int colSpan)
 {
@@ -50,11 +90,13 @@ QRectF cellRect(const PageGrid& grid, const QRectF& gridRect, int row, int col, 
         return {};
     }
     const double cellW = innerW / cols;
-    const double cellH = innerH / rows;
     const double x = gridRect.left() + margin + col * (cellW + gap);
-    const double y = gridRect.top() + margin + row * (cellH + gap);
     const double w = cellW * colSpan + gap * (colSpan - 1);
-    const double h = cellH * rowSpan + gap * (rowSpan - 1);
+    const double totalH = trackWeightRange(grid.rowWeights, rows, 0, rows);
+    const double before = trackWeightRange(grid.rowWeights, rows, 0, row);
+    const double spanH = trackWeightRange(grid.rowWeights, rows, row, rowSpan);
+    const double y = gridRect.top() + margin + innerH * (before / totalH) + gap * row;
+    const double h = innerH * (spanH / totalH) + gap * (rowSpan - 1);
     return QRectF(x, y, w, h);
 }
 
@@ -85,11 +127,10 @@ QPoint cellIndexAt(const PageGrid& grid, const QRectF& gridRect, const QPointF& 
         return {-1, -1};
     }
     const double strideW = innerW / cols + gap;
-    const double strideH = innerH / rows + gap;
     const double lx = pos.x() - gridRect.left() - margin;
     const double ly = pos.y() - gridRect.top() - margin;
     const int col = qBound(0, int(lx / qMax(1.0, strideW)), cols - 1);
-    const int row = qBound(0, int(ly / qMax(1.0, strideH)), rows - 1);
+    const int row = qBound(0, trackIndexAt(grid.rowWeights, rows, innerH, gap, ly), rows - 1);
     return {col, row};
 }
 
@@ -136,6 +177,7 @@ void walkGrid(const PageDocument& page, const PageGrid& grid, const QRectF& boun
         t.caption = cell.caption;
         t.textStyle = cell.textStyle;
         t.role = cell.role;
+        t.settingKey = cell.settingKey;
         t.dwellExempt = cell.dwellExempt;
         t.interactive = cell.interactive && !(dwellSuspended && !cell.dwellExempt);
         t.shell = layer || cell.shell;
@@ -202,6 +244,7 @@ QVector<PageTarget> collect(const PageDocument& page, const PageFrame& frame,
         t.label = z.label;
         t.icon = z.icon;
         t.caption = z.caption;
+        t.settingKey = z.settingKey;
         t.dwellExempt = z.dwellExempt;
         t.interactive = z.interactive && !(dwellSuspended && !z.dwellExempt);
         t.shell = z.shell;

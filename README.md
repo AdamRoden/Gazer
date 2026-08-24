@@ -175,6 +175,7 @@ A Grid is a placed rectangle of rows and columns. `desktopMode="true"` uses the 
 | `anchor` | `TopLeft`, `Top`, `Center`, `Bottom`, … |
 | `offset`, `size` | `x,y` dim pairs: pixels, axis proportion (`0.25`), or height proportion (`0.25h`) |
 | `rows`, `columns`, `gap`, `margin` | Cell mesh |
+| `rowWeights` | Relative row heights (`1,2,2` = header half as tall as each content row). Missing tracks are 1 |
 | `aboveTaskbar`, `drawerMotion`, `shell` | Z-order / drawer scale / always-on-top layer |
 | `chrome` | `drawer` or `quit` — exclusive root-shell slot |
 | `style`, `dwell` | Named style/dwell ids, plus inline chrome/dwell attrs |

@@ -27,6 +27,7 @@ struct PageTarget {
     QString caption;
     QString textStyle;
     QString role;
+    QString settingKey;
     bool dwellExempt = false;
     bool interactive = true;
     bool shell = false;

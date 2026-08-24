@@ -42,7 +42,7 @@ public:
     }
 
     void setState(int deadzonePx, int falloffPx, double activity, double centerProg, double dirX,
-                  double dirY, LtsIndicator style)
+                  double dirY, LtsIndicator style, double hubRadius)
     {
         m_deadzone = deadzonePx;
         m_falloff = qMax(40, falloffPx);
@@ -51,8 +51,9 @@ public:
         m_dirX = dirX;
         m_dirY = dirY;
         m_style = style;
+        m_hubR = qMax(8.0, hubRadius);
 
-        const int activator = qMax(14, m_deadzone / 3);
+        const int activator = qMax(8, qRound(m_hubR));
         const bool compact = m_style == LtsIndicator::PauseOnly;
         int side = activator * 2 + 36;
         if (!compact) {
@@ -63,6 +64,7 @@ public:
                 const int maxOuter = m_deadzone + qMax(48, m_falloff / 3);
                 side = maxOuter * 2 + 24;
             }
+            side = qMax(side, activator * 2 + 36);
         }
         if (side != m_box) {
             m_box = side;
@@ -186,7 +188,7 @@ private:
 
     void paintActivator(QPainter& p, const QPointF& c, const QColor& accent)
     {
-        const double hubR = qMax(14.0, m_deadzone / 3.0);
+        const double hubR = m_hubR;
         p.setPen(Qt::NoPen);
         p.setBrush(QColor(0, 0, 0, 50));
         p.drawEllipse(c, hubR, hubR);
@@ -196,12 +198,13 @@ private:
         p.setPen(QPen(QColor(accent.red(), accent.green(), accent.blue(), 150), 2.2, Qt::SolidLine,
                       Qt::RoundCap));
         p.drawEllipse(c, hubR, hubR);
-        paintRoundProgress(p, c, hubR - 1.5, m_centerProg, accent);
+        paintRoundProgress(p, c, qMax(4.0, hubR - 1.5), m_centerProg, accent);
     }
 
     int m_deadzone = 110;
     int m_falloff = 360;
     int m_box = 260;
+    double m_hubR = 27.0;
     double m_activity = 0.0;
     double m_centerProg = 0.0;
     double m_dirX = 0.0;
@@ -425,8 +428,27 @@ void LookToScroll::updateOverlay(const QPoint& center, double gazeDist, double d
         activity = easeNearDeadzone(t);
     }
     m_overlay->setState(m_deadzonePx, m_falloffPx, activity, centerProg, dirX, dirY,
-                        m_indicatorStyle);
+                        m_indicatorStyle, hubVisualRadiusPx());
     m_overlay->placeCenter(center);
+}
+
+double LookToScroll::screenHeightPx() const
+{
+    QScreen* s = QGuiApplication::screenAt(originPoint());
+    if (!s) {
+        s = QGuiApplication::primaryScreen();
+    }
+    return s ? double(s->geometry().height()) : 1080.0;
+}
+
+double LookToScroll::hubVisualRadiusPx() const
+{
+    return screenHeightPx() * (kLtsHubVisualDiameterFrac * 0.5);
+}
+
+double LookToScroll::hubDwellRadiusPx() const
+{
+    return screenHeightPx() * (kLtsHubDwellDiameterFrac * 0.5);
 }
 
 void LookToScroll::onGaze(const GazePoint& point, bool pauseInput)
@@ -461,7 +483,7 @@ void LookToScroll::onGaze(const GazePoint& point, bool pauseInput)
     const double dist = qSqrt(delta.x() * delta.x() + delta.y() * delta.y());
     const double dirX = dist > 1.0 ? delta.x() / dist : 0.0;
     const double dirY = dist > 1.0 ? delta.y() / dist : 0.0;
-    const double hubR = qMax(14.0, m_deadzonePx / 3.0);
+    const double hubR = hubDwellRadiusPx();
 
     const qint64 now = m_clock.elapsed();
     const double sampleDt =

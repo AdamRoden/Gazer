@@ -538,6 +538,17 @@ void LayoutEditorProperties::fillGrid(QFormLayout* form)
     b.integer(form, QStringLiteral("Rows"), g->rows, 1, 48, [this](int v) {
         applyGrid([&](PageGrid& grid) { grid.rows = v; }, QStringLiteral("Rows"));
     });
+    QString weights;
+    for (double w : g->rowWeights) {
+        if (!weights.isEmpty()) {
+            weights += QLatin1Char(',');
+        }
+        weights += QString::number(w, 'g', 8);
+    }
+    b.text(form, QStringLiteral("Row weights"), weights, [this](const QString& t) {
+        applyGrid([&](PageGrid& grid) { grid.rowWeights = parseRowWeights(t); },
+                  QStringLiteral("Row weights"));
+    });
     b.integer(form, QStringLiteral("Gap px"), g->gapPx, 0, 64, [this](int v) {
         applyGrid([&](PageGrid& grid) { grid.gapPx = v; }, QStringLiteral("Gap"));
     });

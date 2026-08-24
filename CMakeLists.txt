@@ -299,8 +299,7 @@ install(TARGETS Gazer RUNTIME DESTINATION bin)
 install(DIRECTORY resources/ DESTINATION share/gazer/resources)
 
 enable_testing()
-add_executable(GazerPageTests
-    tests/PageLoaderTest.cpp
+set(GAZER_PAGE_TEST_LIB
     src/layout/PageDim.cpp
     src/layout/PageActionParse.cpp
     src/layout/PageLoader.cpp
@@ -311,6 +310,13 @@ add_executable(GazerPageTests
     src/layout/PageEdit.cpp
     src/layout/PageCatalog.cpp
     src/layout/DwellRegionSpace.cpp
+)
+add_executable(GazerPageTests
+    tests/page_tests_main.cpp
+    tests/PageLoaderTest.cpp
+    tests/PageHitTest.cpp
+    tests/SettingsLayoutTest.cpp
+    ${GAZER_PAGE_TEST_LIB}
 )
 target_include_directories(GazerPageTests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(GazerPageTests PRIVATE Qt6::Core Qt6::Gui Qt6::Test)

@@ -5,6 +5,7 @@
 #include <QColor>
 #include <QObject>
 #include <QPixmap>
+#include <QPoint>
 #include <QRect>
 #include <QRectF>
 #include <QTimer>
@@ -24,6 +25,8 @@ public:
     void setActive(double maxBlurRadius);
     /// Global capture rect (frosted chrome union). Empty disables capture.
     void setCaptureRect(const QRect& globalRect);
+    /// Opaque overlay chrome in window-local pixels, plus the window's global origin.
+    void setUnderlay(QPixmap windowLocal, QPoint windowOrigin);
     void paint(QPainter& p, const QRectF& localRect, const PageBox& radii, const QColor& tint) const;
 
 signals:
@@ -41,6 +44,8 @@ private:
     QRect m_capture;
     QPixmap m_frosted;
     qint64 m_frostKey = 0;
+    QPixmap m_underlay;
+    QPoint m_underlayOrigin;
 };
 
 } // namespace gazer

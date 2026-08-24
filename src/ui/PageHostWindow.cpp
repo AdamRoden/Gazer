@@ -8,6 +8,7 @@
 #include <QKeyEvent>
 #include <QMouseEvent>
 #include <QPainter>
+#include <QPixmap>
 #include <QQuickPaintedItem>
 #include <QSet>
 #include <QStringList>
@@ -49,130 +50,9 @@ public:
         p->setCompositionMode(QPainter::CompositionMode_Source);
         p->fillRect(boundingRect(), Qt::transparent);
         p->restore();
-        const QPoint origin = m_host->m_origin;
-        const QTransform& xf = m_host->m_drawerXf;
-        auto mapRect = [&](const PageTarget& t, const QRectF& r) {
-            return PageHit::mapDrawer(t, r, xf, m_host->m_drawerScale).translated(-origin);
-        };
-        auto paintGrid = [&](const PageGridPaint& g) {
-            const QRectF r =
-                PageHit::mapDrawer(g.drawerMotion, g.visual, xf, m_host->m_drawerScale)
-                    .translated(-origin);
-            BoardPaint::paintSurface(*p, r, g.chrome, m_host->m_theme, &m_host->m_glass, true,
-                                     false, false, false, false);
-        };
-        auto paintClusters = [&](const QString& pageId, bool shell) {
-            QHash<QString, QRectF> clusters;
-            for (const PageTarget& t : m_host->m_targets) {
-                if (t.shell != shell || t.pageId != pageId || t.cluster.isEmpty()) {
-                    continue;
-                }
-                const QRectF c = mapRect(t, t.geom.contentOnScreen());
-                if (c.isEmpty()) {
-                    continue;
-                }
-                clusters[t.cluster] = clusters.value(t.cluster).isEmpty()
-                                          ? c
-                                          : clusters[t.cluster].united(c);
-            }
-            for (auto it = clusters.cbegin(); it != clusters.cend(); ++it) {
-                if (it.value().isEmpty()) {
-                    continue;
-                }
-                QColor fill = m_host->m_theme.cellBg;
-                if (fill.isValid()) {
-                    fill.setAlpha(qBound(80, fill.alpha(), 180));
-                    p->setPen(Qt::NoPen);
-                    p->setBrush(fill);
-                    p->drawRoundedRect(it.value(), 6.0, 6.0);
-                }
-                QColor stroke = m_host->m_theme.border;
-                stroke.setAlpha(qBound(40, stroke.alpha(), 90));
-                p->setBrush(Qt::NoBrush);
-                p->setPen(QPen(stroke, 1.0));
-                p->drawRoundedRect(it.value(), 6.0, 6.0);
-            }
-        };
-        auto paintTarget = [&](const PageTarget& t) {
-            const bool hovered = sessionKey(t) == m_host->m_hoverId;
-            const bool flashing = sessionKey(t) == m_host->m_flashId;
-            const bool active = m_host->m_activeIds.contains(sessionKey(t));
-            const double progress = hovered ? m_host->m_hoverProgress : 0.0;
-            const bool showProgress =
-                flashing || (hovered && (progress > 0.0 || m_host->m_revealProgress));
-            if (t.kind == PageTarget::Kind::Zone && t.geom.hidesUntilProgress() && !showProgress) {
-                return;
-            }
-            const QRectF content = mapRect(t, t.kind == PageTarget::Kind::Zone
-                                                  ? t.geom.visual
-                                                  : t.geom.contentOnScreen());
-            if (!content.isEmpty()) {
-                BoardPaint::paintTarget(*p, t, content, m_host->m_theme, &m_host->m_glass, hovered,
-                                        progress, flashing, active, m_host->m_progress,
-                                        m_host->m_previewColor, m_host->m_sliderScrubId,
-                                        m_host->m_sliderScrubT, m_host->m_sliderScrubValue,
-                                        m_host->m_sliderScrubProgress);
-            } else if (showProgress && !t.geom.progressZone.isEmpty()) {
-                const QRectF strip = mapRect(t, t.geom.progressZone);
-                BoardPaint::paintTarget(*p, t, strip, m_host->m_theme, &m_host->m_glass, hovered,
-                                        progress, flashing, active, m_host->m_progress,
-                                        m_host->m_previewColor, m_host->m_sliderScrubId,
-                                        m_host->m_sliderScrubT, m_host->m_sliderScrubValue,
-                                        m_host->m_sliderScrubProgress);
-            }
-        };
-        auto paintPage = [&](const QString& pageId, bool shell) {
-            for (const PageGridPaint& g : m_host->m_gridPaints) {
-                if (g.shell == shell && g.pageId == pageId) {
-                    paintGrid(g);
-                }
-            }
-            paintClusters(pageId, shell);
-            for (const PageTarget& t : m_host->m_targets) {
-                if (t.shell == shell && t.pageId == pageId) {
-                    paintTarget(t);
-                }
-            }
-        };
-        QStringList pageOrder;
-        auto notePage = [&](const QString& id, bool shell) {
-            if (shell) {
-                return;
-            }
-            if (!pageOrder.contains(id)) {
-                pageOrder.push_back(id);
-            }
-        };
-        for (const PageGridPaint& g : m_host->m_gridPaints) {
-            notePage(g.pageId, g.shell);
-        }
-        for (const PageTarget& t : m_host->m_targets) {
-            notePage(t.pageId, t.shell);
-        }
-        for (const QString& pid : pageOrder) {
-            paintPage(pid, false);
-        }
-        QStringList shellOrder;
-        auto noteShell = [&](const QString& id) {
-            if (!shellOrder.contains(id)) {
-                shellOrder.push_back(id);
-            }
-        };
-        for (const PageGridPaint& g : m_host->m_gridPaints) {
-            if (g.shell) {
-                noteShell(g.pageId);
-            }
-        }
-        for (const PageTarget& t : m_host->m_targets) {
-            if (t.shell) {
-                noteShell(t.pageId);
-            }
-        }
-        for (const QString& pid : shellOrder) {
-            paintPage(pid, true);
-        }
+        m_host->paintScene(*p, PageHostWindow::ChromePass::Live);
         if (!m_host->m_flashRect.isEmpty()) {
-            const QRectF fr = m_host->m_flashRect.translated(-origin);
+            const QRectF fr = m_host->m_flashRect.translated(-m_host->m_origin);
             const QColor fc = m_host->m_progress.resolvedFlashColor(m_host->m_theme.text);
             const PageBox radii =
                 m_host->m_flashRadii.isSet() ? m_host->m_flashRadii : PageBox::all(8.0);
@@ -240,6 +120,141 @@ void PageHostWindow::syncBoardSize()
     }
 }
 
+void PageHostWindow::paintScene(QPainter& p, ChromePass pass)
+{
+    const bool live = pass == ChromePass::Live;
+    GlassBackdrop* glass = live ? &m_glass : nullptr;
+    const QPoint origin = m_origin;
+    const QTransform& xf = m_drawerXf;
+    auto mapRect = [&](const PageTarget& t, const QRectF& r) {
+        return PageHit::mapDrawer(t, r, xf, m_drawerScale).translated(-origin);
+    };
+    auto paintGrid = [&](const PageGridPaint& g) {
+        if (!live && g.chrome.hasBlur()) {
+            return;
+        }
+        const QRectF r =
+            PageHit::mapDrawer(g.drawerMotion, g.visual, xf, m_drawerScale).translated(-origin);
+        BoardPaint::paintSurface(p, r, g.chrome, m_theme, glass, true, false, false, false, false);
+    };
+    auto paintClusters = [&](const QString& pageId, bool shell) {
+        QHash<QString, QRectF> clusters;
+        for (const PageTarget& t : m_targets) {
+            if (t.shell != shell || t.pageId != pageId || t.cluster.isEmpty()) {
+                continue;
+            }
+            if (!live && t.chrome.hasBlur()) {
+                continue;
+            }
+            const QRectF c = mapRect(t, t.geom.contentOnScreen());
+            if (c.isEmpty()) {
+                continue;
+            }
+            clusters[t.cluster] =
+                clusters.value(t.cluster).isEmpty() ? c : clusters[t.cluster].united(c);
+        }
+        for (auto it = clusters.cbegin(); it != clusters.cend(); ++it) {
+            if (it.value().isEmpty()) {
+                continue;
+            }
+            QColor fill = m_theme.cellBg;
+            if (fill.isValid()) {
+                fill.setAlpha(qBound(80, fill.alpha(), 180));
+                p.setPen(Qt::NoPen);
+                p.setBrush(fill);
+                p.drawRoundedRect(it.value(), 6.0, 6.0);
+            }
+            QColor stroke = m_theme.border;
+            stroke.setAlpha(qBound(40, stroke.alpha(), 90));
+            p.setBrush(Qt::NoBrush);
+            p.setPen(QPen(stroke, 1.0));
+            p.drawRoundedRect(it.value(), 6.0, 6.0);
+        }
+    };
+    auto paintTarget = [&](const PageTarget& t) {
+        if (!live && t.chrome.hasBlur()) {
+            return;
+        }
+        const bool hovered = live && sessionKey(t) == m_hoverId;
+        const bool flashing = live && sessionKey(t) == m_flashId;
+        const bool active = live && m_activeIds.contains(sessionKey(t));
+        const double progress = hovered ? m_hoverProgress : 0.0;
+        const bool showProgress = flashing || (hovered && (progress > 0.0 || m_revealProgress));
+        if (t.kind == PageTarget::Kind::Zone && t.geom.hidesUntilProgress() && !showProgress) {
+            return;
+        }
+        const QRectF content = mapRect(t, t.kind == PageTarget::Kind::Zone ? t.geom.visual
+                                                                          : t.geom.contentOnScreen());
+        if (!content.isEmpty()) {
+            BoardPaint::paintTarget(p, t, content, m_theme, glass, hovered, progress, flashing,
+                                    active, m_progress, m_previewColor,
+                                    live ? m_sliderScrubId : QString(),
+                                    live ? m_sliderScrubT : 0.0,
+                                    live ? m_sliderScrubValue : QString(),
+                                    live ? m_sliderScrubProgress : 0.0);
+        } else if (showProgress && !t.geom.progressZone.isEmpty()) {
+            const QRectF strip = mapRect(t, t.geom.progressZone);
+            BoardPaint::paintTarget(p, t, strip, m_theme, glass, hovered, progress, flashing,
+                                    active, m_progress, m_previewColor, m_sliderScrubId,
+                                    m_sliderScrubT, m_sliderScrubValue, m_sliderScrubProgress);
+        }
+    };
+    auto paintPage = [&](const QString& pageId, bool shell) {
+        for (const PageGridPaint& g : m_gridPaints) {
+            if (g.shell == shell && g.pageId == pageId) {
+                paintGrid(g);
+            }
+        }
+        paintClusters(pageId, shell);
+        for (const PageTarget& t : m_targets) {
+            if (t.shell == shell && t.pageId == pageId) {
+                paintTarget(t);
+            }
+        }
+    };
+    auto note = [](QStringList& order, const QString& id, bool wantShell, bool isShell) {
+        if (wantShell != isShell || id.isEmpty() || order.contains(id)) {
+            return;
+        }
+        order.push_back(id);
+    };
+    QStringList pageOrder;
+    for (const PageGridPaint& g : m_gridPaints) {
+        note(pageOrder, g.pageId, false, g.shell);
+    }
+    for (const PageTarget& t : m_targets) {
+        note(pageOrder, t.pageId, false, t.shell);
+    }
+    for (const QString& pid : pageOrder) {
+        paintPage(pid, false);
+    }
+    QStringList shellOrder;
+    for (const PageGridPaint& g : m_gridPaints) {
+        note(shellOrder, g.pageId, true, g.shell);
+    }
+    for (const PageTarget& t : m_targets) {
+        note(shellOrder, t.pageId, true, t.shell);
+    }
+    for (const QString& pid : shellOrder) {
+        paintPage(pid, true);
+    }
+}
+
+void PageHostWindow::refreshUnderlay()
+{
+    const QSize sz = size();
+    if (sz.width() < 1 || sz.height() < 1) {
+        m_glass.setUnderlay({}, {});
+        return;
+    }
+    QPixmap pm(sz);
+    pm.fill(Qt::transparent);
+    QPainter p(&pm);
+    p.setRenderHint(QPainter::Antialiasing, true);
+    paintScene(p, ChromePass::Underlay);
+    m_glass.setUnderlay(pm, m_origin);
+}
+
 void PageHostWindow::syncGlass()
 {
     double blur = 0.0;
@@ -293,6 +308,7 @@ void PageHostWindow::commit(QVector<PageTarget> targets, QVector<PageGridPaint> 
     cacheDrawerXf();
     syncGlass();
     fitToChrome();
+    refreshUnderlay();
     if (m_board) {
         m_board->update();
     }
@@ -301,6 +317,7 @@ void PageHostWindow::commit(QVector<PageTarget> targets, QVector<PageGridPaint> 
 void PageHostWindow::setTheme(const ThemeColors& theme)
 {
     m_theme = theme;
+    refreshUnderlay();
     if (m_board) {
         m_board->update();
     }
@@ -333,6 +350,7 @@ void PageHostWindow::setDrawerScale(double scale)
     m_drawerScale = scale;
     cacheDrawerXf();
     fitToChrome();
+    refreshUnderlay();
     if (m_board) {
         m_board->update();
     }
@@ -468,8 +486,6 @@ void PageHostWindow::keyPressEvent(QKeyEvent* event)
     }
     QQuickWindow::keyPressEvent(event);
 }
-
-
 
 void PageHostWindow::applyChrome()
 {

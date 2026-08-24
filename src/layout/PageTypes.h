@@ -6,6 +6,8 @@
 #include <QColor>
 #include <QHash>
 #include <QString>
+#include <QStringList>
+#include <QStringView>
 #include <QVector>
 #include <optional>
 
@@ -255,6 +257,8 @@ struct PageGrid {
     int colSpan = 1;
     int gapPx = 0;
     int marginPx = 0;
+    /// Relative row heights. Missing / non-positive entries count as 1.
+    QVector<double> rowWeights;
     bool aboveTaskbar = false;
     bool drawerMotion = false;
     bool autoClose = false;
@@ -269,6 +273,23 @@ struct PageGrid {
     QVector<PageGrid> subGrids;
     QVector<PageCell> cells;
 };
+
+[[nodiscard]] inline QVector<double> parseRowWeights(QStringView csv)
+{
+    QVector<double> out;
+    for (QString part : csv.toString().split(QLatin1Char(','))) {
+        part = part.trimmed();
+        if (part.isEmpty()) {
+            continue;
+        }
+        bool ok = false;
+        const double n = part.toDouble(&ok);
+        if (ok && n > 0.0) {
+            out.push_back(n);
+        }
+    }
+    return out;
+}
 
 struct PageZone : PageLeaf {
     bool desktopMode = false;

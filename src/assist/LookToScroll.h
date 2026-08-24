@@ -13,8 +13,12 @@
 
 namespace gazer {
 
+inline constexpr double kLtsHubVisualDiameterFrac = 0.05;
+inline constexpr double kLtsHubDwellDiameterFrac = 0.08;
+
 /// Circular deadzone around the cursor. Gaze outside scrolls (cubic ease + accel).
-/// Dwell the hub to pause and open the XML plus menu (`lts_menu`).
+/// Dwell the hub (`kLtsHubDwellDiameterFrac` of screen height) to pause and open `lts_menu`.
+/// Painted hub diameter is `kLtsHubVisualDiameterFrac` of screen height.
 class LookToScroll final : public QObject {
     Q_OBJECT
 
@@ -77,6 +81,9 @@ private:
     void pinCursorToOrigin();
     void pauseAtHub();
     [[nodiscard]] QPoint originPoint() const;
+    [[nodiscard]] double screenHeightPx() const;
+    [[nodiscard]] double hubVisualRadiusPx() const;
+    [[nodiscard]] double hubDwellRadiusPx() const;
     [[nodiscard]] static double easeNearDeadzone(double t);
 
     bool m_enabled = false;

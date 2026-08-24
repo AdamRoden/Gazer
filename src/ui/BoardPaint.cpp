@@ -118,7 +118,9 @@ void paintLabel(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeCo
 
     int titlePx = 14;
     int titleWeight = QFont::DemiBold;
-    int flags = int(Qt::AlignLeft | Qt::AlignVCenter | Qt::TextWordWrap);
+    const bool valueLabel = t.clusterSlot == QLatin1String("value");
+    int flags = int((valueLabel ? Qt::AlignHCenter : Qt::AlignLeft) | Qt::AlignVCenter
+                    | Qt::TextWordWrap);
     if (ts == QLatin1String("caption")) {
         titlePx = 12;
         titleWeight = QFont::Normal;
@@ -143,7 +145,8 @@ void paintLabel(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeCo
         return;
     }
 
-    const int capFlags = int(Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap);
+    const int capFlags =
+        int((valueLabel ? Qt::AlignHCenter : Qt::AlignLeft) | Qt::AlignTop | Qt::TextWordWrap);
     QFont tFont(family, titlePx, titleWeight);
     auto titleH = [&]() { return QFontMetricsF(tFont).boundingRect(pad, flags, t.label).height(); };
     const double capLine = QFontMetricsF(QFont(family, 12)).lineSpacing();
@@ -275,6 +278,9 @@ void paintSurface(QPainter& p, const QRectF& r, const PageChrome& chrome, const 
                                         grid ? QColor(10, 10, 11) : QColor(26, 27, 28));
     // Authored colors keep their alpha. Unset chrome still uses an opaque theme fill
     // so a board without a background stays a solid overlay.
+    const bool authoredFill =
+        chrome.background && chrome.background->isValid() && chrome.background->alpha() > 0;
+    const bool authoredThickness = chrome.thickness.has_value();
     QColor bg = chrome.background.value_or(themeBase);
     QColor border = chrome.borderColor.value_or(theme.border);
     PageBox thickness = chrome.thickness.value_or(PageBox::all(grid ? 1.0 : 0.0));
@@ -286,10 +292,10 @@ void paintSurface(QPainter& p, const QRectF& r, const PageChrome& chrome, const 
             thickness = PageBox::all(1.5);
         }
     } else if (hovered && interactive) {
-        if (chrome.background) {
+        if (authoredFill) {
             bg = bg.lighter(114);
         } else {
-            bg = theme.cellHover.isValid() ? theme.cellHover : bg.lighter(118);
+            bg = theme.cellHover.isValid() ? theme.cellHover : themeBase.lighter(118);
         }
         if (thickness.first() <= 0.0) {
             thickness = PageBox::all(1.0);
@@ -298,7 +304,7 @@ void paintSurface(QPainter& p, const QRectF& r, const PageChrome& chrome, const 
                 border.setAlpha(qBound(40, border.alpha(), 120));
             }
         }
-    } else if (!grid && !chrome.background && !clustered && thickness.first() <= 0.0) {
+    } else if (!grid && !chrome.background && !authoredThickness && thickness.first() <= 0.0) {
         thickness = PageBox::all(1.0);
         border = theme.border;
         border.setAlpha(qBound(28, border.alpha(), 70));

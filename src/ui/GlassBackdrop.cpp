@@ -73,6 +73,15 @@ void GlassBackdrop::setCaptureRect(const QRect& globalRect)
     }
 }
 
+void GlassBackdrop::setUnderlay(QPixmap windowLocal, QPoint windowOrigin)
+{
+    m_underlay = std::move(windowLocal);
+    m_underlayOrigin = windowOrigin;
+    if (m_radius > 0.0) {
+        invalidate();
+    }
+}
+
 void GlassBackdrop::invalidate()
 {
     if (m_radius <= 0.0 || m_capture.isEmpty() || !m_host || !m_host->isVisible()) {
@@ -108,6 +117,11 @@ void GlassBackdrop::rebuild()
     {
         const CaptureExclusion hideHost(m_host);
         raw = grabScreenRect(screen, grabGlobal);
+    }
+    if (!m_underlay.isNull() && !raw.isNull()) {
+        QPainter up(&raw);
+        up.setRenderHint(QPainter::SmoothPixmapTransform, true);
+        up.drawPixmap(m_underlayOrigin - grabGlobal.topLeft(), m_underlay);
     }
     QPixmap next = downscaleBlur(raw, m_radius);
     const qint64 key = next.cacheKey();

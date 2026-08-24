@@ -319,6 +319,9 @@ bool readGrid(QXmlStreamReader& xml, PageGrid& grid, bool nested, QString* error
     grid.colSpan = parseIntAttr(a.value(QStringLiteral("colSpan")), 1);
     grid.gapPx = parseIntAttr(a.value(QStringLiteral("gap")), 0);
     grid.marginPx = parseIntAttr(a.value(QStringLiteral("margin")), 0);
+    if (a.hasAttribute(QStringLiteral("rowWeights"))) {
+        grid.rowWeights = parseRowWeights(a.value(QStringLiteral("rowWeights")));
+    }
     grid.aboveTaskbar = parseBoolAttr(a.value(QStringLiteral("aboveTaskbar")), false);
     grid.drawerMotion = parseBoolAttr(a.value(QStringLiteral("drawerMotion")), false);
     const QString slot = a.value(QStringLiteral("chrome")).toString().trimmed().toLower();

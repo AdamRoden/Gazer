@@ -16,6 +16,7 @@
 
 class QCloseEvent;
 class QKeyEvent;
+class QPainter;
 class QQuickPaintedItem;
 
 namespace gazer {
@@ -63,6 +64,9 @@ private:
     void applyChrome();
     void applyInputFocusChrome();
     void cacheDrawerXf();
+    enum class ChromePass { Live, Underlay };
+    void paintScene(QPainter& p, ChromePass pass);
+    void refreshUnderlay();
 
     QQuickPaintedItem* m_board = nullptr;
     GlassBackdrop m_glass;

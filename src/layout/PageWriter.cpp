@@ -3,6 +3,7 @@
 #include "layout/PageDim.h"
 
 #include <QFile>
+#include <QStringList>
 #include <QXmlStreamWriter>
 
 namespace gazer {
@@ -287,6 +288,20 @@ void writeGrid(QXmlStreamWriter& xml, const PageGrid& grid)
     }
     attrInt(xml, QStringLiteral("gap"), grid.gapPx, 0);
     attrInt(xml, QStringLiteral("margin"), grid.marginPx, 0);
+    if (!grid.rowWeights.isEmpty()) {
+        bool nontrivial = grid.rowWeights.size() != grid.rows;
+        QStringList parts;
+        parts.reserve(grid.rowWeights.size());
+        for (double w : grid.rowWeights) {
+            if (!qFuzzyCompare(w + 1.0, 2.0)) {
+                nontrivial = true;
+            }
+            parts.push_back(QString::number(w, 'g', 8));
+        }
+        if (nontrivial) {
+            xml.writeAttribute(QStringLiteral("rowWeights"), parts.join(QLatin1Char(',')));
+        }
+    }
     attrBool(xml, QStringLiteral("aboveTaskbar"), grid.aboveTaskbar, false);
     attrBool(xml, QStringLiteral("drawerMotion"), grid.drawerMotion, false);
     if (grid.rootSlot == PageRootSlot::Drawer) {
