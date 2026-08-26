@@ -165,6 +165,8 @@ void PageSession::setDwellSuspended(bool on)
     m_props.insert(QStringLiteral("dwellSuspend"), on);
     if (on) {
         leaveGaze();
+    } else {
+        noteActivity();
     }
     rebuild();
     emit dwellSuspendChanged(on);
@@ -494,17 +496,7 @@ void PageSession::rebuild()
         m_host->commit(m_targets, m_gridPaints, m_drawerScale, reserved);
     }
     refreshActive();
-    if (autoCloseIdleMs() >= 0) {
-        if (!m_idleClockRunning) {
-            noteActivity();
-        }
-        if (!m_autoCloseTimer.isActive()) {
-            m_autoCloseTimer.start();
-        }
-    } else {
-        m_autoCloseTimer.stop();
-        m_idleClockRunning = false;
-    }
+    syncAutoClose();
 }
 
 void PageSession::refreshDecorated()
@@ -633,8 +625,26 @@ void PageSession::noteActivity()
     m_idleClockRunning = true;
 }
 
+void PageSession::syncAutoClose()
+{
+    if (m_dwellSuspended || autoCloseIdleMs() < 0) {
+        m_autoCloseTimer.stop();
+        m_idleClockRunning = false;
+        return;
+    }
+    if (!m_idleClockRunning) {
+        noteActivity();
+    }
+    if (!m_autoCloseTimer.isActive()) {
+        m_autoCloseTimer.start();
+    }
+}
+
 void PageSession::tickAutoClose()
 {
+    if (m_dwellSuspended) {
+        return;
+    }
     const int idle = autoCloseIdleMs();
     if (idle < 0 || !m_idleClockRunning) {
         return;
@@ -722,7 +732,7 @@ bool PageSession::onGaze(const GazePoint& point)
         return hitsChrome(point);
     }
     const QString id = hit ? sessionKey(*hit) : QString();
-    if (hit) {
+    if (hit && !m_dwellSuspended) {
         noteActivity();
     }
     if (id != m_hoverId) {

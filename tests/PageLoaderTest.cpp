@@ -168,13 +168,14 @@ void PageLoaderTest::pageChromeDefaults()
     QVERIFY(!grid.radius.has_value());
     const PageChrome cell =
         PageResolve::style(doc, doc.grids[0].cells[0].styleId, doc.grids[0].cells[0].style);
-    QCOMPARE(cell.resolvedThickness().first(), 1.0);
-    QCOMPARE(cell.resolvedRadius().first(), 0.0);
+    QCOMPARE(cell.resolvedThickness().first(), PageChrome::kDefaultThickness);
+    QCOMPARE(cell.resolvedRadius().first(), PageChrome::kDefaultRadius);
+    QCOMPARE(cell.resolvedRadius(true).first(), PageChrome::kClusteredRadius);
     QVERIFY(!cell.thickness.has_value());
     QVERIFY(!doc.zones.isEmpty());
     const PageChrome zone = PageResolve::zoneStyle(doc, doc.zones[0]);
-    QCOMPARE(zone.resolvedThickness().first(), 1.0);
-    QCOMPARE(zone.resolvedRadius().first(), 0.0);
+    QCOMPARE(zone.resolvedThickness().first(), PageChrome::kDefaultThickness);
+    QCOMPARE(zone.resolvedRadius().first(), PageChrome::kDefaultRadius);
     QVERIFY(!zone.radius.has_value());
 }
 

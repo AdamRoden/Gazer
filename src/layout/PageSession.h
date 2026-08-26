@@ -132,6 +132,7 @@ private:
     [[nodiscard]] bool blockedByLeaveGate(const PageTarget* hit);
     void noteActivity();
     void tickAutoClose();
+    void syncAutoClose();
     [[nodiscard]] int autoCloseIdleMs() const;
     void syncDrawerScale();
 

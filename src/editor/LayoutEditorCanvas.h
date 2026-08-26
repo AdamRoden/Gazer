@@ -49,11 +49,21 @@ private:
         double scaleX = 1.0;
         double scaleY = 1.0;
         QSize virtualScreen{1920, 1080};
+        QRect virtualDesktop{0, 0, 1920, 1080};
+        QVector<QRect> taskbars;
         QSize virtBoard{1, 1};
         QVector<PageGridPaint> grids;
         QVector<PageTarget> targets;
 
         [[nodiscard]] double px() const { return scaleX; }
+
+        [[nodiscard]] PageFrame pageFrame() const
+        {
+            PageFrame f;
+            f.screen = QRectF(0, 0, virtualScreen.width(), virtualScreen.height());
+            f.desktop = QRectF(virtualDesktop);
+            return f;
+        }
 
         [[nodiscard]] QPointF fromVirt(QPointF v) const
         {
@@ -71,6 +81,7 @@ private:
     [[nodiscard]] bool hitBoard(const QPoint& pos, const ScreenMap& m) const;
     [[nodiscard]] Drag hitHandle(const QPoint& pos, const ScreenMap& m) const;
     void paintMonitor(class QPainter& p, const ScreenMap& m) const;
+    void paintTaskbar(class QPainter& p, const ScreenMap& m) const;
     void paintPlacementPip(class QPainter& p, const ScreenMap& m) const;
     void paintBoard(class QPainter& p, const ScreenMap& m) const;
     [[nodiscard]] QHash<QString, QRectF> boardItemRects(const ScreenMap& m) const;

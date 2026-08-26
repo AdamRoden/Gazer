@@ -4,14 +4,17 @@
 #include "layout/PageEdit.h"
 #include "layout/PageHit.h"
 #include "ui/BoardPaint.h"
+#include "utils/ScreenGrab.h"
 
 #include <QContextMenuEvent>
+#include <QGuiApplication>
 #include <QKeyEvent>
 #include <QInputDialog>
 #include <QMenu>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPen>
+#include <QScreen>
 #include <QTimer>
 
 namespace gazer {
@@ -28,6 +31,20 @@ LayoutEditorCanvas::LayoutEditorCanvas(LayoutEditorSession& session, QWidget* pa
     connect(&m_session, &LayoutEditorSession::documentChanged, this, QOverload<>::of(&QWidget::update));
     connect(&m_session, &LayoutEditorSession::selectionChanged, this, QOverload<>::of(&QWidget::update));
     connect(&m_session, &LayoutEditorSession::placeKindChanged, this, [this]() { update(); });
+    auto bindScreens = [this]() {
+        for (QScreen* s : QGuiApplication::screens()) {
+            if (!s) {
+                continue;
+            }
+            connect(s, &QScreen::geometryChanged, this, QOverload<>::of(&QWidget::update),
+                    Qt::UniqueConnection);
+            connect(s, &QScreen::availableGeometryChanged, this, QOverload<>::of(&QWidget::update),
+                    Qt::UniqueConnection);
+        }
+    };
+    bindScreens();
+    connect(qGuiApp, &QGuiApplication::screenAdded, this, [bindScreens]() { bindScreens(); });
+    connect(qGuiApp, &QGuiApplication::primaryScreenChanged, this, QOverload<>::of(&QWidget::update));
 }
 
 void LayoutEditorCanvas::setTheme(const ThemeColors& theme)
@@ -84,7 +101,16 @@ void LayoutEditorCanvas::tickTestDwell()
 LayoutEditorCanvas::ScreenMap LayoutEditorCanvas::map() const
 {
     ScreenMap m;
-    m.virtualScreen = QSize(1920, 1080);
+    QRect screenGeo = overlayScreenGeometry();
+    if (screenGeo.isEmpty()) {
+        screenGeo = QRect(0, 0, 1920, 1080);
+    }
+    m.virtualScreen = screenGeo.size();
+    m.virtualDesktop = overlayDesktopLocal();
+    if (m.virtualDesktop.size().isEmpty()) {
+        m.virtualDesktop = QRect(QPoint(0, 0), m.virtualScreen);
+    }
+    m.taskbars = reservedStrips(QRect(QPoint(0, 0), m.virtualScreen), m.virtualDesktop);
     const QRectF box = QRectF(rect()).adjusted(24, 24, -24, -24);
     const double sx = box.width() / m.virtualScreen.width();
     const double sy = box.height() / m.virtualScreen.height();
@@ -98,18 +124,10 @@ LayoutEditorCanvas::ScreenMap LayoutEditorCanvas::map() const
     m.glass = m.screen.adjusted(-8, -8, 8, 8);
     m.bezel = m.glass.adjusted(-10, -10, 10, 10);
 
-    PageFrame frame;
-    frame.screen = QRectF(0, 0, m.virtualScreen.width(), m.virtualScreen.height());
-    frame.desktop = frame.screen;
+    const PageFrame frame = m.pageFrame();
     m.targets = PageHit::collect(m_session.document(), frame, {}, {}, false, &m.grids, true);
     QRectF boardVirt;
-    const PageGrid* fit = nullptr;
-    if (m_session.selection().target == EditorTarget::Item) {
-        fit = PageEdit::gridOwningCell(m_session.document(), m_session.selection().itemId);
-    }
-    if (!fit) {
-        fit = PageEdit::primaryGrid(m_session.document());
-    }
+    const PageGrid* fit = m_session.selectedGrid();
     if (fit) {
         for (const PageGridPaint& g : m.grids) {
             if (g.gridId == fit->id) {
@@ -261,13 +279,65 @@ void LayoutEditorCanvas::paintMonitor(QPainter& p, const ScreenMap& m) const
     p.drawRoundedRect(m.glass, 6, 6);
     p.setBrush(QColor(12, 14, 16));
     p.drawRect(m.screen);
+    paintTaskbar(p, m);
+}
+
+void LayoutEditorCanvas::paintTaskbar(QPainter& p, const ScreenMap& m) const
+{
+    if (m.taskbars.isEmpty()) {
+        return;
+    }
+    p.save();
+    p.setRenderHint(QPainter::Antialiasing, true);
+    p.setClipRect(m.screen);
+    const QRectF desk = m.fromVirt(m.virtualDesktop);
+    for (const QRect& virt : m.taskbars) {
+        const QRectF bar = m.fromVirt(virt);
+        if (bar.width() < 1.0 || bar.height() < 1.0) {
+            continue;
+        }
+        p.setPen(Qt::NoPen);
+        p.setBrush(QColor(32, 32, 38));
+        p.drawRect(bar);
+
+        const bool horizontal = bar.width() >= bar.height();
+        p.setPen(QPen(QColor(255, 255, 255, 32), 1));
+        if (horizontal) {
+            if (bar.center().y() >= desk.center().y()) {
+                p.drawLine(bar.topLeft() + QPointF(0, 0.5), bar.topRight() + QPointF(0, 0.5));
+            } else {
+                p.drawLine(bar.bottomLeft() + QPointF(0, -0.5),
+                           bar.bottomRight() + QPointF(0, -0.5));
+            }
+        } else if (bar.center().x() >= desk.center().x()) {
+            p.drawLine(bar.topLeft() + QPointF(0.5, 0), bar.bottomLeft() + QPointF(0.5, 0));
+        } else {
+            p.drawLine(bar.topRight() + QPointF(-0.5, 0), bar.bottomRight() + QPointF(-0.5, 0));
+        }
+
+        const double thick = horizontal ? bar.height() : bar.width();
+        const double icon = qBound(5.0, thick * 0.42, 16.0);
+        const double gap = icon * 0.38;
+        constexpr int kIcons = 5;
+        const double span = kIcons * icon + (kIcons - 1) * gap;
+        const QPointF origin = horizontal
+            ? QPointF(bar.center().x() - span / 2.0, bar.center().y() - icon / 2.0)
+            : QPointF(bar.center().x() - icon / 2.0, bar.center().y() - span / 2.0);
+        p.setPen(Qt::NoPen);
+        for (int i = 0; i < kIcons; ++i) {
+            const QRectF r = horizontal
+                ? QRectF(origin.x() + i * (icon + gap), origin.y(), icon, icon)
+                : QRectF(origin.x(), origin.y() + i * (icon + gap), icon, icon);
+            p.setBrush(i == 0 ? QColor(76, 194, 255, 210) : QColor(255, 255, 255, 38 + i * 10));
+            p.drawRoundedRect(r, qMin(3.0, icon * 0.28), qMin(3.0, icon * 0.28));
+        }
+    }
+    p.restore();
 }
 
 void LayoutEditorCanvas::paintBoard(QPainter& p, const ScreenMap& m) const
 {
-    PageFrame frame;
-    frame.screen = QRectF(0, 0, m.virtualScreen.width(), m.virtualScreen.height());
-    frame.desktop = frame.screen;
+    const PageFrame frame = m.pageFrame();
     QVector<PageGridPaint> grids;
     const QVector<PageTarget> targets =
         PageHit::collect(m_session.document(), frame, {}, {}, false, &grids, true);
@@ -545,7 +615,14 @@ void LayoutEditorCanvas::commitDrag(const QPoint& pos, const ScreenMap& m)
         QPoint topLeft = virtFromCanvas(m.board.topLeft().toPoint(), m);
         topLeft += QPoint(int(delta.x() / qMax(0.001, m.scaleX)),
                           int(delta.y() / qMax(0.001, m.scaleY)));
-        m_session.snapWindowTo(topLeft, m.virtualScreen);
+        QSize place = m.virtualScreen;
+        QPoint origin(0, 0);
+        const PageGrid* g = m_session.selectedGrid();
+        if (g && g->desktopMode) {
+            place = m.virtualDesktop.size();
+            origin = m.virtualDesktop.topLeft();
+        }
+        m_session.snapWindowTo(topLeft - origin, place);
         break;
     }
     case Drag::None:

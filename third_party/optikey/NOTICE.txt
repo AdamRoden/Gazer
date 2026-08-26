@@ -12,4 +12,5 @@ The runtime file is `resources/icons/key_symbols.json`. It is licensed under
 the GNU General Public License v3.0. See LICENSE.txt in this folder, or
 https://github.com/OptiKey/OptiKey/blob/main/LICENSE.txt
 
-Gazer’s own code remains MIT-licensed (see the repository LICENSE).
+Gazer as a whole is licensed under the GNU General Public License v3.0
+(see the repository LICENSE).

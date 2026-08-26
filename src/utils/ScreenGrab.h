@@ -5,6 +5,7 @@
 #include <QPixmap>
 #include <QRect>
 #include <QScreen>
+#include <QVector>
 
 namespace gazer {
 
@@ -39,6 +40,43 @@ namespace gazer {
         return s->availableGeometry();
     }
     return overlayScreenGeometry();
+}
+
+/// Work area in screen-local pixels (origin at the overlay screen's top-left).
+[[nodiscard]] inline QRect overlayDesktopLocal()
+{
+    const QRect screen = overlayScreenGeometry();
+    QRect desk = overlayDesktopGeometry().translated(-screen.topLeft());
+    const QRect local(QPoint(0, 0), screen.size());
+    desk = desk.intersected(local);
+    return desk.isEmpty() ? local : desk;
+}
+
+/// Reserved strips (taskbar and other shell chrome) in @p screen minus @p work.
+[[nodiscard]] inline QVector<QRect> reservedStrips(const QRect& screen, const QRect& work)
+{
+    QVector<QRect> out;
+    const QRect w = work.intersected(screen);
+    if (w.isEmpty() || w == screen) {
+        return out;
+    }
+    if (w.y() > screen.y()) {
+        out.push_back(QRect(screen.x(), screen.y(), screen.width(), w.y() - screen.y()));
+    }
+    const int workBottom = w.y() + w.height();
+    const int screenBottom = screen.y() + screen.height();
+    if (workBottom < screenBottom) {
+        out.push_back(QRect(screen.x(), workBottom, screen.width(), screenBottom - workBottom));
+    }
+    if (w.x() > screen.x()) {
+        out.push_back(QRect(screen.x(), w.y(), w.x() - screen.x(), w.height()));
+    }
+    const int workRight = w.x() + w.width();
+    const int screenRight = screen.x() + screen.width();
+    if (workRight < screenRight) {
+        out.push_back(QRect(workRight, w.y(), screenRight - workRight, w.height()));
+    }
+    return out;
 }
 
 /// Logical-pixel screenshot of `globalRect` on `screen`. Off-screen pixels stay `fill`.

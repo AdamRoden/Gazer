@@ -4,7 +4,7 @@ Gaze-driven AAC and system input for Windows. C++20 / Qt 6.
 
 Gazer turns live gaze (Tobii Eye Tracker 5, or the mouse as a fallback) into on-screen pages you dwell to activate. Pages can send keys, click, move the pointer, speak, and run assist tools (look-to-scroll, magnifier, gaze reticle). The long-term aim is one stack in place of OptiKey + OpenTrack + UCR + AutoHotkey.
 
-Version **0.4.0**. License: [MIT](LICENSE). Cell and zone icons are OptiKey geometries in `resources/icons/key_symbols.json` (GPL-3.0; see `third_party/optikey/`). Set `icon` to a name such as `Tab`, `MouseLeftClick`, `MinimizeDown`. Unknown names fall back to the label.
+Version **0.4.0**. License: [GPL-3.0](LICENSE). Cell and zone icons are OptiKey geometries in `resources/icons/key_symbols.json` (also GPL-3.0; see `third_party/optikey/`). Set `icon` to a name such as `Tab`, `MouseLeftClick`, `MinimizeDown`. Unknown names fall back to the label.
 
 ## What you get at launch
 
@@ -138,7 +138,7 @@ Pages live in `resources/layouts/*.xml`. Catalog id should match the filename st
 | Dims | Integer token = pixels (`150`). Token with `.` or `/` = proportion of the bounds (`0.5`, `1/2`). Arithmetic with `A_ScreenWidth` / `A_ScreenHeight` is pixels (`A_ScreenHeight/9*16`), evaluated against the placement surface passed at resolve time (work area when `desktopMode`). |
 | Style / dwell | Page inherits from settings, then overrides per field. Grids, cells, and zones inherit from the **page** (never from a grid). Named `style` / `dwell` plus inline attrs override individual members. |
 | Overlap | Topmost attached page’s grid is opaque. Shell grids/zones paint and hit above the rest. |
-| Auto-close | Idle on an `autoClose` grid collapses the drawer (root never destroys itself). |
+| Auto-close | Idle on an `autoClose` grid collapses the drawer (root never destroys itself). `suspendDwell` stops the idle timer; `resumeDwell` restarts it from zero. |
 | Zones | Chrome is hidden until dwell progress or activation flash. Engaged dwell includes the on-screen progress strip. |
 
 ### `<Page>`

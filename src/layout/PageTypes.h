@@ -107,20 +107,19 @@ struct PageChrome {
     [[nodiscard]] bool hasBlur() const { return blur.has_value() && *blur > 0.0; }
 
     static constexpr double kDefaultThickness = 1.0;
-    static constexpr double kDefaultRadius = 0.0;
+    static constexpr double kDefaultRadius = 8.0;
+    static constexpr double kClusteredRadius = 4.0;
 
     [[nodiscard]] static PageChrome defaults()
     {
         PageChrome c;
         c.thickness = PageBox::all(kDefaultThickness);
-        c.radius = PageBox::all(kDefaultRadius);
         return c;
     }
 
     [[nodiscard]] PageBox resolvedRadius(bool clustered = false) const
     {
-        (void)clustered;
-        return radius.value_or(PageBox::all(kDefaultRadius));
+        return radius.value_or(PageBox::all(clustered ? kClusteredRadius : kDefaultRadius));
     }
 
     [[nodiscard]] PageBox resolvedThickness() const
