@@ -1,5 +1,5 @@
-<Page id="uw_right" name="Right">
-  <Grid id="board" desktopMode="false" rows="8" columns="1" anchor="TopLeft" offset="2000,0" size="100,1034" gap="0" margin="0" aboveTaskbar="false" scanGrace="20" activation="100,400">
+<Page id="uw_right" name="Right" scanGrace="20" activation="100,400">
+  <Grid id="board" desktopMode="false" rows="8" columns="1" anchor="TopLeft" offset="2000,0" size="100,1034" gap="0" margin="0">
     <Cell id="more" row="0" col="0" icon="More" label="More" openPage="example_keyboard_sym"/>
     <Cell id="move_lclick" row="1" col="0" icon="MouseLeftClick" label="Left" activeState="mouseMoveAndLeftClick">
     <Command value="toggleMouseMoveMagPick"/>

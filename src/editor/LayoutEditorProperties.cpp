@@ -523,6 +523,11 @@ void LayoutEditorProperties::fillGrid(QFormLayout* form)
     b.check(form, QStringLiteral("Shell (always on top)"), g->shell, [this](bool on) {
         applyGrid([&](PageGrid& grid) { grid.shell = on; }, QStringLiteral("Shell"));
     });
+    if (g->rootSlot == PageRootSlot::None) {
+        b.check(form, QStringLiteral("Show"), g->show, [this](bool on) {
+            applyGrid([&](PageGrid& grid) { grid.show = on; }, QStringLiteral("Grid show"));
+        });
+    }
     b.check(form, QStringLiteral("Auto-close when idle"), g->autoClose, [this](bool on) {
         applyGrid([&](PageGrid& grid) { grid.autoClose = on; }, QStringLiteral("Grid auto close"));
     });
@@ -616,8 +621,8 @@ void LayoutEditorProperties::fillLeafIdentity(QFormLayout* form, const PageLeaf&
             [this](const QString& t) {
                 applyItem([&](PageLeaf& it) { it.clusterSlot = t; }, QStringLiteral("Cluster slot"));
             });
-    b.check(form, QStringLiteral("Visible"), item.visible, [this](bool on) {
-        applyItem([&](PageLeaf& it) { it.visible = on; }, QStringLiteral("Visible"));
+    b.check(form, QStringLiteral("Show"), item.show, [this](bool on) {
+        applyItem([&](PageLeaf& it) { it.show = on; }, QStringLiteral("Show"));
     });
     fillVisibleWhen(form, item);
     b.check(form, QStringLiteral("Shell (always on top)"), item.shell, [this](bool on) {
@@ -710,10 +715,6 @@ void LayoutEditorProperties::fillPlacement(QFormLayout* form)
         b.dim(form, QStringLiteral("Height"), g->size.y, [this](PageDim v) {
             applyGrid([&](PageGrid& grid) { grid.size.y = v; }, QStringLiteral("Height"));
         });
-        b.check(form, QStringLiteral("Above taskbar"), g->aboveTaskbar, [this](bool on) {
-            applyGrid([&](PageGrid& grid) { grid.aboveTaskbar = on; },
-                      QStringLiteral("Above taskbar"));
-        });
         b.check(form, QStringLiteral("Drawer motion"), g->drawerMotion, [this](bool on) {
             applyGrid([&](PageGrid& grid) { grid.drawerMotion = on; },
                       QStringLiteral("Drawer motion"));
@@ -748,10 +749,6 @@ void LayoutEditorProperties::fillPlacement(QFormLayout* form)
     b.heading(form, QStringLiteral("Progress zone (offset from page anchor)"));
     b.check(form, QStringLiteral("Desktop bounds"), z->desktopMode, [this](bool on) {
         applyZone([&](PageZone& zone) { zone.desktopMode = on; }, QStringLiteral("Desktop mode"));
-    });
-    b.check(form, QStringLiteral("Above taskbar"), z->aboveTaskbar, [this](bool on) {
-        applyZone([&](PageZone& zone) { zone.aboveTaskbar = on; },
-                  QStringLiteral("Above taskbar"));
     });
     b.combo(form, QStringLiteral("Anchor"), pageAnchorNames(), PageDimParse::anchorName(z->anchor),
             [this](const QString& t) {
@@ -887,10 +884,10 @@ void LayoutEditorProperties::fillAction(QFormLayout* form)
     b.check(form, QStringLiteral("Interactive"), item->interactive, [this](bool on) {
         applyItem([&](PageLeaf& it) { it.interactive = on; }, QStringLiteral("Interactive"));
     });
-    b.check(form, QStringLiteral("Still works while Sleep is on"), item->dwellExempt,
+    b.check(form, QStringLiteral("Still works while Sleep is on"), item->suspendExempt,
             [this](bool on) {
-                applyItem([&](PageLeaf& it) { it.dwellExempt = on; },
-                          QStringLiteral("Dwell exempt"));
+                applyItem([&](PageLeaf& it) { it.suspendExempt = on; },
+                          QStringLiteral("Suspend exempt"));
             });
     b.check(form, QStringLiteral("Loop until activated again"), item->actionLoop, [this](bool on) {
         applyItem([&](PageLeaf& it) { it.actionLoop = on; }, QStringLiteral("Action loop"));

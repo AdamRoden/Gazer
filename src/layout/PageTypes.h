@@ -16,11 +16,15 @@ namespace gazer {
 /// One offset/size component. Proportion iff the token contained `.` or `/`; else pixels.
 /// Suffix `h` (`0.25h`, `1/4h`) is a proportion of the reference *height* on either axis
 /// (square boards: `size="0.25h,0.25h"`).
+/// `Expression` is absolute pixels from `A_ScreenWidth` / `A_ScreenHeight` arithmetic
+/// (`A_ScreenHeight/9*16`).
 struct PageDim {
-    enum class Unit { Unset, Pixels, Proportion, HeightProportion };
+    enum class Unit { Unset, Pixels, Proportion, HeightProportion, Expression };
 
     Unit unit = Unit::Unset;
     double value = 0.0;
+    /// Original expression text when `unit == Expression`.
+    QString expr;
 
     [[nodiscard]] bool isSet() const { return unit != Unit::Unset; }
 
@@ -48,23 +52,26 @@ struct PageDim {
         return d;
     }
 
+    [[nodiscard]] static PageDim expression(const QString& text)
+    {
+        PageDim d;
+        d.unit = Unit::Expression;
+        d.expr = text.trimmed();
+        return d;
+    }
+
     /// @p axisRef is width for x / height for y. @p heightRef is the box height
     /// (used by HeightProportion on either axis). One-arg form uses @p axisRef for both.
+    /// Expressions use @p screenWidth / @p screenHeight (`A_ScreenWidth` / `A_ScreenHeight`).
     [[nodiscard]] double resolve(double axisRef) const { return resolve(axisRef, axisRef); }
 
     [[nodiscard]] double resolve(double axisRef, double heightRef) const
     {
-        if (unit == Unit::Pixels) {
-            return value;
-        }
-        if (unit == Unit::HeightProportion) {
-            return heightRef * value;
-        }
-        if (unit == Unit::Proportion) {
-            return axisRef * value;
-        }
-        return 0.0;
+        return resolve(axisRef, heightRef, 0.0, 0.0);
     }
+
+    [[nodiscard]] double resolve(double axisRef, double heightRef, double screenWidth,
+                                 double screenHeight) const;
 };
 
 struct PageDimPair {
@@ -95,19 +102,37 @@ struct PageChrome {
     std::optional<PageBox> radius;
     std::optional<double> blur;
     std::optional<ProgressStyle> progressStyle;
+    std::optional<QColor> progressColor;
 
     [[nodiscard]] bool hasBlur() const { return blur.has_value() && *blur > 0.0; }
 
+    static constexpr double kDefaultThickness = 1.0;
+    static constexpr double kDefaultRadius = 0.0;
+
+    [[nodiscard]] static PageChrome defaults()
+    {
+        PageChrome c;
+        c.thickness = PageBox::all(kDefaultThickness);
+        c.radius = PageBox::all(kDefaultRadius);
+        return c;
+    }
+
     [[nodiscard]] PageBox resolvedRadius(bool clustered = false) const
     {
-        return radius.value_or(PageBox::all(clustered ? 4.0 : 8.0));
+        (void)clustered;
+        return radius.value_or(PageBox::all(kDefaultRadius));
+    }
+
+    [[nodiscard]] PageBox resolvedThickness() const
+    {
+        return thickness.value_or(PageBox::all(kDefaultThickness));
     }
 
     [[nodiscard]] bool hasAny() const
     {
         return background.has_value() || foreground.has_value() || borderColor.has_value()
                || thickness.has_value() || radius.has_value() || blur.has_value()
-               || progressStyle.has_value();
+               || progressStyle.has_value() || progressColor.has_value();
     }
 
     [[nodiscard]] PageChrome withOverrides(const PageChrome& ovr) const
@@ -133,6 +158,9 @@ struct PageChrome {
         }
         if (ovr.progressStyle) {
             out.progressStyle = ovr.progressStyle;
+        }
+        if (ovr.progressColor) {
+            out.progressColor = ovr.progressColor;
         }
         return out;
     }
@@ -179,7 +207,7 @@ enum class PageActionType {
 };
 
 enum class PageVerb { Open, Close, Toggle };
-enum class PageTargetKind { Page, Grid, Zone };
+enum class PageTargetKind { Page, Grid, Zone, Cell };
 enum class PageNavScope { Id, All, Self, Others };
 enum class PageZoomMode { Off, Settings, Level };
 enum class PageMoveMode { Gaze, Absolute, Relative, Direction };
@@ -237,9 +265,10 @@ struct PageLeaf {
     QString textStyle;
     QString visibleWhen;
     bool interactive = true;
-    bool dwellExempt = false;
+    bool suspendExempt = false;
     bool actionLoop = false;
-    bool visible = true;
+    /// Omitted from the live session when false. Default shown.
+    bool show = true;
     bool shell = false;
     QVector<PageAction> actions;
 };
@@ -268,11 +297,13 @@ struct PageGrid {
     int marginPx = 0;
     /// Relative row heights. Missing / non-positive entries count as 1.
     QVector<double> rowWeights;
-    bool aboveTaskbar = false;
     bool drawerMotion = false;
     bool autoClose = false;
     int autoCloseIdleMs = -1;
     PageRootSlot rootSlot = PageRootSlot::None;
+    /// Ordinary grids with show=false are omitted from the live session.
+    /// Chrome-slot grids ignore this and follow root chrome.
+    bool show = true;
     /// Root chrome: painted and hit above every non-shell Grid/Zone.
     bool shell = false;
     QString styleId;
@@ -302,7 +333,6 @@ struct PageGrid {
 
 struct PageZone : PageLeaf {
     bool desktopMode = false;
-    bool aboveTaskbar = false;
     PageAnchor anchor = PageAnchor::TopLeft;
     PageDimPair offset;
     PageDimPair size;
@@ -330,6 +360,21 @@ struct PageDocument {
         return findGridIn(grids, gridId);
     }
 
+    [[nodiscard]] PageGrid* findGrid(const QString& gridId)
+    {
+        return const_cast<PageGrid*>(static_cast<const PageDocument*>(this)->findGrid(gridId));
+    }
+
+    [[nodiscard]] const PageCell* findCell(const QString& cellId) const
+    {
+        return findCellIn(grids, cellId);
+    }
+
+    [[nodiscard]] PageCell* findCell(const QString& cellId)
+    {
+        return const_cast<PageCell*>(static_cast<const PageDocument*>(this)->findCell(cellId));
+    }
+
     [[nodiscard]] const PageZone* findZone(const QString& zoneId) const
     {
         for (const PageZone& z : zones) {
@@ -338,6 +383,11 @@ struct PageDocument {
             }
         }
         return nullptr;
+    }
+
+    [[nodiscard]] PageZone* findZone(const QString& zoneId)
+    {
+        return const_cast<PageZone*>(static_cast<const PageDocument*>(this)->findZone(zoneId));
     }
 
 private:
@@ -349,6 +399,25 @@ private:
                 return &g;
             }
             if (const PageGrid* nested = findGridIn(g.subGrids, gridId)) {
+                return nested;
+            }
+        }
+        return nullptr;
+    }
+
+    [[nodiscard]] static const PageCell* findCellIn(const QVector<PageGrid>& nodes,
+                                                    const QString& cellId)
+    {
+        if (cellId.isEmpty()) {
+            return nullptr;
+        }
+        for (const PageGrid& g : nodes) {
+            for (const PageCell& c : g.cells) {
+                if (c.id == cellId) {
+                    return &c;
+                }
+            }
+            if (const PageCell* nested = findCellIn(g.subGrids, cellId)) {
                 return nested;
             }
         }

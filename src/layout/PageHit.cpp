@@ -102,14 +102,53 @@ QRectF cellRect(const PageGrid& grid, const QRectF& gridRect, int row, int col, 
 
 QRectF gridBounds(const PageGrid& grid, const PageFrame& frame)
 {
-    const QRectF& ref =
-        (grid.desktopMode || grid.aboveTaskbar) ? frame.desktop : frame.screen;
+    const QRectF& ref = grid.desktopMode ? frame.desktop : frame.screen;
     PageDimPair size = grid.size;
     if (!size.isSet()) {
         size.x = PageDim::pixels(600);
         size.y = PageDim::pixels(400);
     }
-    return PageDimParse::placeRect(ref, grid.anchor, grid.offset, size);
+    const QSizeF metrics(ref.width(), ref.height());
+    return PageDimParse::placeRect(ref, grid.anchor, grid.offset, size, metrics);
+}
+
+namespace {
+
+void accumulateGrid(const PageGrid& grid, const QRectF& bounds, const QSet<QString>& hiddenGrids,
+                    QRectF& u)
+{
+    if (!grid.id.isEmpty() && hiddenGrids.contains(grid.id)) {
+        return;
+    }
+    if (!bounds.isEmpty()) {
+        u = u.isEmpty() ? bounds : u.united(bounds);
+    }
+    for (const PageGrid& sub : grid.subGrids) {
+        const QRectF slot =
+            cellRect(grid, bounds, sub.row, sub.col, sub.rowSpan, sub.colSpan);
+        accumulateGrid(sub, slot, hiddenGrids, u);
+    }
+}
+
+} // namespace
+
+QRectF reservedBounds(const PageDocument& page, const PageFrame& frame,
+                      const QSet<QString>& hiddenGrids)
+{
+    QRectF u;
+    for (const PageGrid& g : page.grids) {
+        accumulateGrid(g, gridBounds(g, frame), hiddenGrids, u);
+    }
+    const QRectF screen = frame.screen.isEmpty() ? frame.desktop : frame.screen;
+    for (const PageZone& z : page.zones) {
+        const QRectF ref = z.desktopMode ? frame.desktop : frame.screen;
+        const QRectF vis = PageDetector::zoneFromDef(z, ref, screen).visual;
+        if (vis.isEmpty()) {
+            continue;
+        }
+        u = u.isEmpty() ? vis : u.united(vis);
+    }
+    return u;
 }
 
 QPoint cellIndexAt(const PageGrid& grid, const QRectF& gridRect, const QPointF& pos)
@@ -138,21 +177,23 @@ namespace {
 
 void walkGrid(const PageDocument& page, const PageGrid& grid, const QRectF& bounds,
               const QRectF& screen, const QSet<QString>& hiddenGrids, const QVariantMap& props,
-              bool dwellSuspended, bool shell, bool drawerMotion, QVector<const PageGrid*>& chain,
+              bool dwellSuspended, bool shell, bool drawerMotion, bool includeHidden,
               QVector<PageTarget>& out, QVector<PageGridPaint>* grids)
 {
+    if (!includeHidden && !grid.show && grid.rootSlot == PageRootSlot::None) {
+        return;
+    }
     if (!grid.id.isEmpty() && hiddenGrids.contains(grid.id)) {
         return;
     }
 
-    chain.push_back(&grid);
     const bool layer = shell || grid.shell;
     const bool drawer = drawerMotion || grid.drawerMotion;
 
     if (grids && (!grid.nested || grid.style.hasAny() || !grid.styleId.isEmpty())) {
         PageGridPaint gp;
         gp.visual = bounds;
-        gp.chrome = PageResolve::style(page, {}, chain, {}, {});
+        gp.chrome = PageResolve::style(page, grid.styleId, grid.style);
         gp.gridId = grid.id;
         gp.drawerMotion = drawer;
         gp.shell = layer;
@@ -160,7 +201,7 @@ void walkGrid(const PageDocument& page, const PageGrid& grid, const QRectF& boun
     }
 
     for (const PageCell& cell : grid.cells) {
-        if (!cell.visible) {
+        if (!includeHidden && !cell.show) {
             continue;
         }
         if (!evalVisibleWhen(cell.visibleWhen, props)) {
@@ -178,15 +219,15 @@ void walkGrid(const PageDocument& page, const PageGrid& grid, const QRectF& boun
         t.textStyle = cell.textStyle;
         t.role = cell.role;
         t.settingKey = cell.settingKey;
-        t.dwellExempt = cell.dwellExempt;
-        t.interactive = cell.interactive && !(dwellSuspended && !cell.dwellExempt);
+        t.suspendExempt = cell.suspendExempt;
+        t.interactive = cell.interactive && !(dwellSuspended && !cell.suspendExempt);
         t.shell = layer || cell.shell;
         t.drawerMotion = drawer;
         t.cluster = cell.cluster;
         t.clusterSlot = cell.clusterSlot;
         t.activeState = cell.activeState;
-        t.chrome = PageResolve::style(page, {}, chain, cell.styleId, cell.style);
-        t.dwell = PageResolve::dwell(page, {}, chain, cell.dwellId, cell.dwell);
+        t.chrome = PageResolve::style(page, cell.styleId, cell.style);
+        t.dwell = PageResolve::dwell(page, cell.dwellId, cell.dwell);
         t.actions = cell.actions;
         t.actionLoop = cell.actionLoop;
         t.geom = PageDetector::cell(visual, screen);
@@ -194,50 +235,46 @@ void walkGrid(const PageDocument& page, const PageGrid& grid, const QRectF& boun
     }
 
     for (const PageGrid& sub : grid.subGrids) {
+        if (!includeHidden && !sub.show && sub.rootSlot == PageRootSlot::None) {
+            continue;
+        }
         if (!sub.id.isEmpty() && hiddenGrids.contains(sub.id)) {
             continue;
         }
         const QRectF slot =
             cellRect(grid, bounds, sub.row, sub.col, sub.rowSpan, sub.colSpan);
-        walkGrid(page, sub, slot, screen, hiddenGrids, props, dwellSuspended, layer, drawer, chain,
-                 out, grids);
+        walkGrid(page, sub, slot, screen, hiddenGrids, props, dwellSuspended, layer, drawer,
+                 includeHidden, out, grids);
     }
-    chain.pop_back();
 }
 
 } // namespace
 
 QVector<PageTarget> collect(const PageDocument& page, const PageFrame& frame,
-                            const QSet<QString>& hiddenGrids, const QSet<QString>& hiddenZones,
-                            const QVariantMap& props, bool dwellSuspended,
-                            QVector<PageGridPaint>* grids)
+                            const QSet<QString>& hiddenGrids, const QVariantMap& props,
+                            bool dwellSuspended, QVector<PageGridPaint>* grids, bool includeHidden)
 {
     QVector<PageTarget> rest;
     QVector<PageTarget> shell;
     const QRectF screen = frame.screen.isEmpty() ? frame.desktop : frame.screen;
 
     for (const PageGrid& g : page.grids) {
-        QVector<const PageGrid*> chain;
         QVector<PageTarget> piece;
         walkGrid(page, g, gridBounds(g, frame), screen, hiddenGrids, props, dwellSuspended, g.shell,
-                 g.drawerMotion, chain, piece, grids);
+                 g.drawerMotion, includeHidden, piece, grids);
         for (PageTarget& t : piece) {
             (t.shell ? shell : rest).push_back(std::move(t));
         }
     }
 
     for (const PageZone& z : page.zones) {
-        if (!z.visible) {
-            continue;
-        }
-        if (!z.id.isEmpty() && hiddenZones.contains(z.id)) {
+        if (!includeHidden && !z.show) {
             continue;
         }
         if (!evalVisibleWhen(z.visibleWhen, props)) {
             continue;
         }
-        const QRectF bounds =
-            (z.desktopMode || z.aboveTaskbar) ? frame.desktop : frame.screen;
+        const QRectF bounds = z.desktopMode ? frame.desktop : frame.screen;
         PageTarget t;
         t.kind = PageTarget::Kind::Zone;
         t.id = z.id;
@@ -245,12 +282,12 @@ QVector<PageTarget> collect(const PageDocument& page, const PageFrame& frame,
         t.icon = z.icon;
         t.caption = z.caption;
         t.settingKey = z.settingKey;
-        t.dwellExempt = z.dwellExempt;
-        t.interactive = z.interactive && !(dwellSuspended && !z.dwellExempt);
+        t.suspendExempt = z.suspendExempt;
+        t.interactive = z.interactive && !(dwellSuspended && !z.suspendExempt);
         t.shell = z.shell;
         t.activeState = z.activeState;
-        t.chrome = PageResolve::zoneStyle(page, {}, z);
-        t.dwell = PageResolve::zoneDwell(page, {}, z);
+        t.chrome = PageResolve::zoneStyle(page, z);
+        t.dwell = PageResolve::zoneDwell(page, z);
         t.actions = z.actions;
         t.actionLoop = z.actionLoop;
         t.geom = PageDetector::zoneFromDef(z, bounds, screen);

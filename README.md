@@ -21,7 +21,7 @@ Exclusive chrome: **Docked**, **Drawer**, or **Quit**. Only one of those is up a
 - **Main** is shown only while docked (`visibleWhen="!expanded"`). Dwell it to grow the drawer from the bottom.
 - **Sleep** stays available while the drawer is open. Shell zones and grids paint and hit above other boards.
 - Gaze on the drawer or the dock chips counts as using the shell, so the drawer idle timer does not fire while you look at Sleep.
-- The drawer and quit grids sit above the Windows taskbar (`aboveTaskbar="true"`).
+- The host window stays above the Windows taskbar.
 
 The tray owns process lifetime. Closing a page does not quit the app.
 
@@ -82,7 +82,7 @@ Testers still need Tobii drivers for hardware gaze. Without a tracker, use the m
 2. Dwell a cell until progress completes. Last dwell step repeats while gaze holds.
 3. Open Keyboard, Mouse, Assist, or Settings as extra pages. They stay up after the drawer collapses.
 4. **Close** hides the drawer. **Close All** closes other pages and then collapses.
-5. **Pause dwell** / **Sleep** suspends dwell everywhere except `dwellExempt` unlock targets. A dim screen border leaves a gap at those targets.
+5. **Pause dwell** / **Sleep** suspends dwell everywhere except `suspendExempt` unlock targets. A dim screen border leaves a gap at those targets.
 6. Tray: show layout (raise host), show head-pose preview, quit.
 
 When pages overlap, the topmost page’s grid is opaque: gaze and paint do not fall through to the page underneath. Shell zones (dock chips) still win over everything.
@@ -99,7 +99,7 @@ When pages overlap, the topmost page’s grid is opaque: gaze and paint do not f
 | `uw_qwerty` (+ shift) | QWERTY keyboard |
 | `uw_right` | Right-hand board |
 
-`Page` actions open/close/toggle a **Page**, **Grid**, or **Zone** by id. `Open, Page, self` means the current page.
+`Page` actions open/close/toggle a **Page**. Grids, zones, and cells are shown or hidden (`ShowGrid` / `HideGrid`, `ShowZone` / `HideZone`, `ShowCell` / `HideCell`). Closing a page removes all of its elements with it.
 
 ## Architecture
 
@@ -135,7 +135,8 @@ Pages live in `resources/layouts/*.xml`. Catalog id should match the filename st
 
 | Rule | Behavior |
 |------|----------|
-| Dims | Integer token = pixels (`150`). Token with `.` or `/` = proportion of the bounds (`0.5`, `1/2`). |
+| Dims | Integer token = pixels (`150`). Token with `.` or `/` = proportion of the bounds (`0.5`, `1/2`). Arithmetic with `A_ScreenWidth` / `A_ScreenHeight` is pixels (`A_ScreenHeight/9*16`), evaluated against the placement surface passed at resolve time (work area when `desktopMode`). |
+| Style / dwell | Page inherits from settings, then overrides per field. Grids, cells, and zones inherit from the **page** (never from a grid). Named `style` / `dwell` plus inline attrs override individual members. |
 | Overlap | Topmost attached page’s grid is opaque. Shell grids/zones paint and hit above the rest. |
 | Auto-close | Idle on an `autoClose` grid collapses the drawer (root never destroys itself). |
 | Zones | Chrome is hidden until dwell progress or activation flash. Engaged dwell includes the on-screen progress strip. |
@@ -148,12 +149,13 @@ Pages live in `resources/layouts/*.xml`. Catalog id should match the filename st
 | `name` | Title |
 | `master` | Process-lifetime root. Only one. |
 | `autoClose`, `autoCloseIdleMs` | Page-level idle close |
+| chrome / dwell attrs | Override settings per field (`background`, `scanGrace`, `activation`, …). Grids, cells, and zones inherit these. |
 
 Child elements: `<Style>`, `<Dwell>`, `<Zone>`, `<Grid>`.
 
 ### `<Style>`
 
-Named or anonymous chrome. Cells, zones, and grids reference a named style with `style="id"` and may override the same attributes inline.
+Named or anonymous chrome. An unnamed `<Style>` (no `id`) sets the page default. Grids, cells, and zones reference a named style with `style="id"` and may override the same attributes inline. They inherit from the page, never from a parent grid.
 
 | Attribute | Description |
 |-----------|-------------|
@@ -162,7 +164,12 @@ Named or anonymous chrome. Cells, zones, and grids reference a named style with 
 | `thickness` | Border widths: one value, or `t,r,b,l` |
 | `radius` | Corner radii: one value, or `tl,tr,br,bl` |
 | `progressStyle` | How dwell progress is drawn. Comma-separated: `radial`, `border`, `fill` (center), `fillup`, `filldown`, `fillleft`, `fillright` |
+| `progressColor` | Dwell-progress accent (`#RRGGBB` or `#AARRGGBB`). Empty inherits settings. |
 | `blur` | Frosted-glass blur radius |
+
+### `<Dwell>`
+
+Named or anonymous timing. An unnamed `<Dwell>` (no `id`) sets the page default (`scanGrace`, `dwellGrace`, `activation`). Grids, cells, and zones inherit from the page, never from a parent grid. They may reference a named dwell with `dwell="id"` and override individual members inline.
 
 `visibleWhen` on cells and zones is a tiny predicate, **not** JavaScript: omitted = show; `ident` = show when that property is true; `!ident` = show when false. Known properties: `expanded`, `dwellSuspend`.
 
@@ -173,18 +180,19 @@ A Grid is a placed rectangle of rows and columns. `desktopMode="true"` uses the 
 | Attribute | Description |
 |-----------|-------------|
 | `anchor` | `TopLeft`, `Top`, `Center`, `Bottom`, … |
-| `offset`, `size` | `x,y` dim pairs: pixels, axis proportion (`0.25`), or height proportion (`0.25h`) |
+| `offset`, `size` | `x,y` dim pairs: pixels, axis proportion (`0.25`), height proportion (`0.25h`), or screen expressions (`A_ScreenHeight/9*16, A_ScreenHeight`) |
 | `rows`, `columns`, `gap`, `margin` | Cell mesh |
 | `rowWeights` | Relative row heights (`1,2,2` = header half as tall as each content row). Missing tracks are 1 |
-| `aboveTaskbar`, `drawerMotion`, `shell` | Z-order / drawer scale / always-on-top layer |
+| `drawerMotion`, `shell` | Drawer scale / always-on-top layer |
 | `chrome` | `drawer` or `quit` — exclusive root-shell slot |
+| `show` | `true` (default) or `false` — omit from the live session when false. Chrome-slot grids follow root chrome instead. |
 | `style`, `dwell` | Named style/dwell ids, plus inline chrome/dwell attrs |
 
-Cells use `row`, `col`, `rowSpan`, `colSpan`, `label`, `icon`, `caption`, `role` (`label`, `tab`, `slider`, `preview`, …), `visibleWhen`, `interactive`, `dwellExempt`. Nested `<SubGrid>` occupies a cell span.
+Cells use `row`, `col`, `rowSpan`, `colSpan`, `label`, `icon`, `caption`, `role` (`label`, `tab`, `slider`, `preview`, …), `show` (default true), `visibleWhen`, `interactive`, `suspendExempt`. Nested `<SubGrid>` occupies a cell span. Zones take the same `show` attribute.
 
 ### `<Zone>`
 
-Screen-anchored chip (dock Main/Sleep, keyboard edge keys). Same leaf fields as a cell, plus `anchor` / `offset` / `size`, optional `aboveTaskbar` / `desktopMode`, and optional `dwellOffset` / `dwellSize` for off-screen dwell.
+Screen-anchored chip (dock Main/Sleep, keyboard edge keys). Same leaf fields as a cell, plus `anchor` / `offset` / `size`, optional `desktopMode`, and optional `dwellOffset` / `dwellSize` for off-screen dwell.
 
 ### Actions
 
@@ -207,11 +215,13 @@ Action is generic: the specific thing to do is named as an attribute (on `<Actio
 <MoveAndClick value="left,4"/>
 <Command value="toggleLookToScroll"/>
 <OpenPage value="uw_qwerty, true"/>
-<OpenGrid value="board, true"/>
-<OpenZone value="more, true"/>
+<ShowGrid value="board, true"/>
+<ShowZone value="more, true"/>
+<ShowCell value="k_q"/>
 <ClosePage value="-self"/>
-<CloseGrid value="-all"/>
-<CloseZone value="-!self"/>
+<HideGrid value="-all"/>
+<HideZone value="-!self"/>
+<HideCell value="k_q"/>
 <GoBack/>
 <Speak value="Hello"/>
 ```
@@ -225,8 +235,10 @@ A cell or zone may have **one** action attribute. Multiple actions use child ele
 | `Move` | `gaze` (settings zoom), `gaze,0` (no magnify), `gaze,N`; or direction (`up`/`down`/anchor)[, amount px]; or `x,y` screen coords. Amount omitted uses the mouse-assist step. |
 | `MoveAndClick` | button[, zoom] — always move to gaze, then click. Zoom omitted means no magnify. |
 | `Command` | builtin or mapping-profile name |
-| `OpenPage` / `OpenGrid` / `OpenZone` | targetId[, true] — `true` saves a breadcrumb of the current page state |
-| `ClosePage` / `CloseGrid` / `CloseZone` | targetId[, true] — `-all`, `-self`, `-!self` (all except current) |
+| `OpenPage` | targetId[, true] — `true` saves a breadcrumb of the current page state |
+| `ShowGrid` / `ShowZone` / `ShowCell` | targetId[, true] — show a grid, zone, or cell (`openGrid` / `openZone` still load) |
+| `ClosePage` | targetId[, true] — `-all`, `-self`, `-!self` (all except current) |
+| `HideGrid` / `HideZone` / `HideCell` | targetId[, true] — hide a grid, zone, or cell (`closeGrid` / `closeZone` still load). `-all` hides ordinary targets of that kind (drawer/quit stay on their chrome slot). |
 | `GoBack` | (none) — restore the last breadcrumb |
 | `Speak` | TTS text |
 | `AHK` | element body (not executed yet) |

@@ -19,15 +19,12 @@ class PageLoaderTest final : public QObject {
     Q_OBJECT
 
 private slots:
-    void dimPixelsVsProportion();
-    void dimFraction();
-    void dimHeightRelative();
-    void placeRectBottom();
-    void placeRectHeightSquareAtPoint();
+    void expressionSizeRoundTrip();
     void ltsSpeedLadder();
     void parseRowWeightsCsv();
     void loadFixture();
     void inheritStyleAndDwell();
+    void pageChromeDefaults();
     void zoneDwellDefaultsAndOffset();
     void rejectMissingPageId();
     void rejectUnknownChild();
@@ -35,6 +32,7 @@ private slots:
     void rejectRemovedActionAliases();
     void loadMainPage();
     void loadQwertyXml();
+    void showAttribute();
     void loadConvertedBoards();
     void loadLtsMenu();
     void keyboardMainOpensDrawer();
@@ -56,57 +54,24 @@ private slots:
     void catalogUserCopyWinsPath();
 };
 
-void PageLoaderTest::dimPixelsVsProportion()
+void PageLoaderTest::expressionSizeRoundTrip()
 {
-    QCOMPARE(PageDimParse::parse(QStringLiteral("150")).unit, PageDim::Unit::Pixels);
-    QCOMPARE(PageDimParse::parse(QStringLiteral("150")).value, 150.0);
-    QCOMPARE(PageDimParse::parse(QStringLiteral("0.5")).unit, PageDim::Unit::Proportion);
-    QCOMPARE(PageDimParse::parse(QStringLiteral("0.5")).value, 0.5);
-    QCOMPARE(PageDimParse::parse(QStringLiteral("1.0")).resolve(1920), 1920.0);
-    QCOMPARE(PageDimParse::parse(QStringLiteral("1920")).resolve(100), 1920.0);
-    QCOMPARE(PageDimParse::parse(QStringLiteral("2")).unit, PageDim::Unit::Pixels);
-    QCOMPARE(PageDimParse::parse(QStringLiteral("2.0")).unit, PageDim::Unit::Proportion);
-}
-
-void PageLoaderTest::dimFraction()
-{
-    const PageDim d = PageDimParse::parse(QStringLiteral("-1/2"));
-    QCOMPARE(d.unit, PageDim::Unit::Proportion);
-    QCOMPARE(d.value, -0.5);
-    const PageDimPair p = PageDimParse::parsePair(QStringLiteral("1/2,1/4"));
-    QCOMPARE(p.x.resolve(200), 100.0);
-    QCOMPARE(p.y.resolve(200), 50.0);
-}
-
-void PageLoaderTest::dimHeightRelative()
-{
-    const PageDim h = PageDimParse::parse(QStringLiteral("0.25h"));
-    QCOMPARE(h.unit, PageDim::Unit::HeightProportion);
-    QCOMPARE(h.value, 0.25);
-    QCOMPARE(h.resolve(1920, 1080), 270.0);
-    const PageDim frac = PageDimParse::parse(QStringLiteral("1/4h"));
-    QCOMPARE(frac.unit, PageDim::Unit::HeightProportion);
-    QCOMPARE(frac.resolve(800, 400), 100.0);
+    const QByteArray xml = R"xml(
+<Page id="p">
+  <Grid id="g" size="A_ScreenHeight/9*16, A_ScreenHeight">
+    <Cell id="c" label="X"/>
+  </Grid>
+</Page>
+)xml";
+    PageDocument doc;
     QString err;
-    QVERIFY(PageDimParse::parse(QStringLiteral("150h"), &err).unit == PageDim::Unit::Unset);
-    QVERIFY(!err.isEmpty());
-}
-
-void PageLoaderTest::placeRectHeightSquareAtPoint()
-{
-    const QRectF desk(0, 0, 1920, 1040);
-    PageDimPair size;
-    size.x = PageDimParse::parse(QStringLiteral("0.25h"));
-    size.y = PageDimParse::parse(QStringLiteral("0.25h"));
-    const QPointF origin(1000, 500);
-    PageDimPair offset;
-    offset.x = PageDim::pixels(origin.x() - desk.center().x());
-    offset.y = PageDim::pixels(origin.y() - desk.center().y());
-    const QRectF r = PageDimParse::placeRect(desk, PageAnchor::Center, offset, size);
-    QCOMPARE(r.width(), 260.0);
-    QCOMPARE(r.height(), 260.0);
-    QCOMPARE(r.center().x(), origin.x());
-    QCOMPARE(r.center().y(), origin.y());
+    QVERIFY2(PageLoader::loadFromXml(xml, doc, &err), qPrintable(err));
+    QCOMPARE(doc.grids[0].size.x.unit, PageDim::Unit::Expression);
+    QCOMPARE(doc.grids[0].size.y.unit, PageDim::Unit::Expression);
+    PageDocument written;
+    QVERIFY2(PageLoader::loadFromXml(PageWriter::toBytes(doc), written, &err), qPrintable(err));
+    QCOMPARE(PageDimParse::token(written.grids[0].size.x), QStringLiteral("A_ScreenHeight/9*16"));
+    QCOMPARE(PageDimParse::token(written.grids[0].size.y), QStringLiteral("A_ScreenHeight"));
 }
 
 void PageLoaderTest::ltsSpeedLadder()
@@ -127,22 +92,6 @@ void PageLoaderTest::parseRowWeightsCsv()
     QCOMPARE(parseRowWeights(QStringLiteral("1,2,2,2")), QVector<double>({1.0, 2.0, 2.0, 2.0}));
     QCOMPARE(parseRowWeights(QStringLiteral(" 0, -1, 3 ")), QVector<double>({3.0}));
     QVERIFY(parseRowWeights(QStringLiteral("")).isEmpty());
-}
-
-void PageLoaderTest::placeRectBottom()
-{
-    const QRectF bounds(0, 0, 1920, 1080);
-    PageDimPair size;
-    size.x = PageDim::pixels(300);
-    size.y = PageDim::pixels(150);
-    PageDimPair offset;
-    offset.x = PageDim::pixels(0);
-    offset.y = PageDim::pixels(0);
-    const QRectF r = PageDimParse::placeRect(bounds, PageAnchor::Bottom, offset, size);
-    QCOMPARE(r.width(), 300.0);
-    QCOMPARE(r.height(), 150.0);
-    QCOMPARE(r.left(), 810.0);
-    QCOMPARE(r.top(), 930.0);
 }
 
 void PageLoaderTest::loadFixture()
@@ -184,7 +133,7 @@ void PageLoaderTest::loadFixture()
 
     const PageZone* z = doc.findZone(QStringLiteral("edge"));
     QVERIFY(z);
-    QCOMPARE(z->dwellExempt, true);
+    QCOMPARE(z->suspendExempt, true);
     QCOMPARE(z->dwellOffset.y.value, 240.0);
     QCOMPARE(z->dwellSize.x.value, 300.0);
     QCOMPARE(z->actions[0].targetKind, PageTargetKind::Grid);
@@ -196,13 +145,46 @@ void PageLoaderTest::loadFixture()
     QCOMPARE(doc.dwells.value(QStringLiteral("dwl")).activation->at(0), 0);
 }
 
-void PageLoaderTest::inheritStyleAndDwell()
+void PageLoaderTest::pageChromeDefaults()
 {
     const QByteArray xml = R"xml(
 <Page id="p">
-  <Style id="pageStl" background="#FF000000" radius="4"/>
+  <Grid id="g" size="100,100">
+    <Cell id="c" label="X"/>
+  </Grid>
+  <Zone id="z" size="80,40"/>
+</Page>
+)xml";
+    PageDocument doc;
+    QString err;
+    QVERIFY2(PageLoader::loadFromXml(xml, doc, &err), qPrintable(err));
+    QVERIFY(!doc.grids.isEmpty());
+    QVERIFY(!doc.grids[0].style.thickness.has_value());
+    QVERIFY(!doc.grids[0].style.radius.has_value());
+    const PageChrome grid = PageResolve::style(doc, doc.grids[0].styleId, doc.grids[0].style);
+    QCOMPARE(grid.resolvedThickness().first(), PageChrome::kDefaultThickness);
+    QCOMPARE(grid.resolvedRadius().first(), PageChrome::kDefaultRadius);
+    QVERIFY(!grid.thickness.has_value());
+    QVERIFY(!grid.radius.has_value());
+    const PageChrome cell =
+        PageResolve::style(doc, doc.grids[0].cells[0].styleId, doc.grids[0].cells[0].style);
+    QCOMPARE(cell.resolvedThickness().first(), 1.0);
+    QCOMPARE(cell.resolvedRadius().first(), 0.0);
+    QVERIFY(!cell.thickness.has_value());
+    QVERIFY(!doc.zones.isEmpty());
+    const PageChrome zone = PageResolve::zoneStyle(doc, doc.zones[0]);
+    QCOMPARE(zone.resolvedThickness().first(), 1.0);
+    QCOMPARE(zone.resolvedRadius().first(), 0.0);
+    QVERIFY(!zone.radius.has_value());
+}
+
+void PageLoaderTest::inheritStyleAndDwell()
+{
+    const QByteArray xml = R"xml(
+<Page id="p" background="#FF000000" radius="4" scanGrace="300" activation="800">
+  <Style id="pageStl" background="#111111" radius="2"/>
   <Style id="cellStl" foreground="#FFFFFFFF"/>
-  <Dwell id="slow" scanGrace="300" activation="800"/>
+  <Dwell id="slow" scanGrace="999" activation="50"/>
   <Grid id="g" style="pageStl" dwell="slow" rows="1" columns="1" size="100,100">
     <Cell id="c" style="cellStl" radius="12" scanGrace="50" label="X"/>
   </Grid>
@@ -215,16 +197,17 @@ void PageLoaderTest::inheritStyleAndDwell()
     const PageGrid& g = doc.grids[0];
     QVERIFY(!g.cells.isEmpty());
     const PageCell& cell = g.cells[0];
-    const QVector<const PageGrid*> chain{&g};
-    PageChrome system;
-    system.thickness = PageBox::all(1.0);
-    const PageChrome st = PageResolve::style(doc, system, chain, cell.styleId, cell.style);
+    const PageChrome st = PageResolve::style(doc, cell.styleId, cell.style);
     QVERIFY(st.background.has_value());
     QCOMPARE(st.background->rgb(), QColor(QStringLiteral("#FF000000")).rgb());
     QVERIFY(st.foreground.has_value());
     QCOMPARE(st.radius ? st.radius->first() : 0.0, 12.0);
-    QCOMPARE(st.thickness ? st.thickness->first() : 0.0, 1.0);
+    QVERIFY(!st.thickness.has_value());
+    QCOMPARE(st.resolvedThickness().first(), PageChrome::kDefaultThickness);
     QVERIFY(!st.progressStyle.has_value());
+    const PageChrome gridSt = PageResolve::style(doc, g.styleId, g.style);
+    QCOMPARE(gridSt.background->rgb(), QColor(QStringLiteral("#111111")).rgb());
+    QCOMPARE(gridSt.radius ? gridSt.radius->first() : 0.0, 2.0);
 
     PageChrome sides;
     sides.thickness = PageBox::fromToken(QStringLiteral("1,2,3,4"));
@@ -241,7 +224,7 @@ void PageLoaderTest::inheritStyleAndDwell()
 
     const QByteArray styleXml = R"xml(
 <Page id="p">
-  <Style id="chip" radius="0,0,12,12" progressStyle="fillup,border"/>
+  <Style id="chip" radius="0,0,12,12" progressStyle="fillup,border" progressColor="#00DCFF"/>
   <Zone id="z" style="chip" size="100,40"/>
 </Page>
 )xml";
@@ -250,21 +233,26 @@ void PageLoaderTest::inheritStyleAndDwell()
     const PageChrome named = styled.styles.value(QStringLiteral("chip"));
     QVERIFY(named.progressStyle.has_value());
     QCOMPARE(named.progressStyle->toCsv(), QStringLiteral("fillup,border"));
+    QVERIFY(named.progressColor.has_value());
+    QCOMPARE(named.progressColor->name(QColor::HexRgb).toUpper(), QStringLiteral("#00DCFF"));
     QCOMPARE(named.radius ? named.radius->at(0) : -1.0, 0.0);
     QCOMPARE(named.radius ? named.radius->at(1) : -1.0, 0.0);
     QCOMPARE(named.radius ? named.radius->at(2) : -1.0, 12.0);
     QCOMPARE(named.radius ? named.radius->at(3) : -1.0, 12.0);
     QVERIFY(!styled.zones.isEmpty());
-    const PageChrome zst =
-        PageResolve::zoneStyle(styled, PageChrome{}, styled.zones[0]);
+    const PageChrome zst = PageResolve::zoneStyle(styled, styled.zones[0]);
     QVERIFY(zst.progressStyle.has_value());
     QCOMPARE(zst.progressStyle->toCsv(), QStringLiteral("fillup,border"));
+    QVERIFY(zst.progressColor.has_value());
+    QCOMPARE(zst.progressColor->name(QColor::HexRgb).toUpper(), QStringLiteral("#00DCFF"));
     QCOMPARE(zst.radius ? zst.radius->at(2) : -1.0, 12.0);
 
     PageDocument written;
     QVERIFY2(PageLoader::loadFromXml(PageWriter::toBytes(styled), written, &err), qPrintable(err));
     QCOMPARE(written.styles.value(QStringLiteral("chip")).progressStyle->toCsv(),
              QStringLiteral("fillup,border"));
+    QCOMPARE(written.styles.value(QStringLiteral("chip")).progressColor->name(QColor::HexRgb).toUpper(),
+             QStringLiteral("#00DCFF"));
     QCOMPARE(written.styles.value(QStringLiteral("chip")).radius->toToken(),
              QStringLiteral("0,0,12,12"));
 
@@ -279,13 +267,14 @@ void PageLoaderTest::inheritStyleAndDwell()
     QCOMPARE(pv.style.fillDir, ProgressFillDir::Left);
     QVERIFY(!pv.style.border);
 
-    PageDwell sysDwell;
-    sysDwell.dwellGrace = 999;
-    const PageDwell dw = PageResolve::dwell(doc, sysDwell, chain, cell.dwellId, cell.dwell);
+    const PageDwell dw = PageResolve::dwell(doc, cell.dwellId, cell.dwell);
     QCOMPARE(dw.scanGrace.value_or(-1), 50);
-    QCOMPARE(dw.dwellGrace.value_or(-1), 999);
+    QVERIFY(!dw.dwellGrace.has_value());
     QVERIFY(dw.activation.has_value());
     QCOMPARE(dw.activation->at(0), 800);
+    const PageDwell gridDw = PageResolve::dwell(doc, g.dwellId, g.dwell);
+    QCOMPARE(gridDw.scanGrace.value_or(-1), 999);
+    QCOMPARE(gridDw.activation->at(0), 50);
 }
 
 void PageLoaderTest::zoneDwellDefaultsAndOffset()
@@ -383,11 +372,20 @@ void PageLoaderTest::loadQwertyXml()
         QStringLiteral(GAZER_SOURCE_DIR) + QStringLiteral("/resources/layouts/uw_qwerty.xml");
     QVERIFY2(PageLoader::loadFromFile(path, doc, &err), qPrintable(err));
     QCOMPARE(doc.id, QStringLiteral("uw_qwerty"));
-    QCOMPARE(doc.grids.size(), 1);
-    QVERIFY(doc.grids[0].cells.size() > 40);
-    QVERIFY(!doc.zones.isEmpty());
+    QCOMPARE(doc.grids.size(), 3);
+    const PageGrid* board = doc.findGrid(QStringLiteral("board"));
+    const PageGrid* vert1 = doc.findGrid(QStringLiteral("vert1"));
+    const PageGrid* vert2 = doc.findGrid(QStringLiteral("vert2"));
+    QVERIFY(board);
+    QVERIFY(vert1);
+    QVERIFY(vert2);
+    QVERIFY(board->cells.size() > 40);
+    QCOMPARE(board->show, true);
+    QCOMPARE(vert1->show, true);
+    QCOMPARE(vert2->show, false);
+    QVERIFY(doc.zones.isEmpty());
     bool hasSend = false;
-    for (const PageCell& c : doc.grids[0].cells) {
+    for (const PageCell& c : board->cells) {
         for (const PageAction& a : c.actions) {
             if (a.type == PageActionType::Send) {
                 hasSend = true;
@@ -395,6 +393,59 @@ void PageLoaderTest::loadQwertyXml()
         }
     }
     QVERIFY(hasSend);
+    QCOMPARE(vert1->cells[1].actions.size(), 1);
+    QCOMPARE(vert1->cells[1].actions[0].type, PageActionType::MoveAndClick);
+    QCOMPARE(vert1->cells[1].actions[0].button, QStringLiteral("left"));
+    QCOMPARE(vert1->cells[1].actions[0].zoomMode, PageZoomMode::Settings);
+}
+
+void PageLoaderTest::showAttribute()
+{
+    PageDocument doc;
+    QString err;
+    const QByteArray xml = R"xml(
+<Page id="p">
+  <Grid id="shown" size="100,100">
+    <Cell id="cshow"/>
+    <Cell id="chide" show="false"/>
+    <Cell id="cvis" visible="false"/>
+    <Cell id="cexem" dwellExempt="true"/>
+    <Cell id="csus" suspendExempt="true"/>
+  </Grid>
+  <Grid id="hidden" size="100,100" show="false"/>
+  <Grid id="legacy" size="100,100" open="false"/>
+  <Zone id="zshow" size="80,40"/>
+  <Zone id="zhide" size="80,40" show="false"/>
+  <Zone id="zvis" size="80,40" visible="false"/>
+</Page>
+)xml";
+    QVERIFY2(PageLoader::loadFromXml(xml, doc, &err), qPrintable(err));
+    QCOMPARE(doc.findGrid(QStringLiteral("shown"))->show, true);
+    QCOMPARE(doc.findGrid(QStringLiteral("hidden"))->show, false);
+    QCOMPARE(doc.findGrid(QStringLiteral("legacy"))->show, false);
+    QCOMPARE(doc.findCell(QStringLiteral("cshow"))->show, true);
+    QCOMPARE(doc.findCell(QStringLiteral("chide"))->show, false);
+    QCOMPARE(doc.findCell(QStringLiteral("cvis"))->show, false);
+    QCOMPARE(doc.findCell(QStringLiteral("cexem"))->suspendExempt, true);
+    QCOMPARE(doc.findCell(QStringLiteral("csus"))->suspendExempt, true);
+    QCOMPARE(doc.findZone(QStringLiteral("zshow"))->show, true);
+    QCOMPARE(doc.findZone(QStringLiteral("zhide"))->show, false);
+    QCOMPARE(doc.findZone(QStringLiteral("zvis"))->show, false);
+    const QByteArray written = PageWriter::toBytes(doc);
+    const QString text = QString::fromUtf8(written);
+    QVERIFY(text.contains(QStringLiteral("show=\"false\"")));
+    QVERIFY(!text.contains(QStringLiteral("show=\"true\"")));
+    QVERIFY(!text.contains(QStringLiteral("open=\"")));
+    QVERIFY(!text.contains(QStringLiteral("visible=\"")));
+    QVERIFY(text.contains(QStringLiteral("suspendExempt=\"true\"")));
+    QVERIFY(!text.contains(QStringLiteral("dwellExempt")));
+    PageDocument round;
+    QVERIFY2(PageLoader::loadFromXml(written, round, &err), qPrintable(err));
+    QCOMPARE(round.findGrid(QStringLiteral("hidden"))->show, false);
+    QCOMPARE(round.findGrid(QStringLiteral("shown"))->show, true);
+    QCOMPARE(round.findGrid(QStringLiteral("legacy"))->show, false);
+    QCOMPARE(round.findCell(QStringLiteral("chide"))->show, false);
+    QCOMPARE(round.findZone(QStringLiteral("zhide"))->show, false);
 }
 
 void PageLoaderTest::loadLtsMenu()
@@ -477,7 +528,8 @@ void PageLoaderTest::loadMainPage()
     QCOMPARE(doc.findGrid(QStringLiteral("drawer"))->cells.size(), 10);
     QCOMPARE(doc.zones[0].actions[1].targetKind, PageTargetKind::Page);
     QCOMPARE(doc.zones[0].actions[1].targetId, QStringLiteral("main"));
-    QVERIFY(doc.zones[1].dwellExempt);
+    QVERIFY(doc.zones[0].suspendExempt);
+    QVERIFY(doc.zones[1].suspendExempt);
     const PageCell* editor = nullptr;
     const PageCell* pause = nullptr;
     for (const PageCell& c : doc.findGrid(QStringLiteral("drawer"))->cells) {
@@ -492,7 +544,8 @@ void PageLoaderTest::loadMainPage()
     QCOMPARE(editor->actions[0].type, PageActionType::Command);
     QCOMPARE(editor->actions[0].command, QStringLiteral("openLayoutEditor"));
     QVERIFY(pause);
-    QVERIFY(pause->dwellExempt);
+    QVERIFY(pause->suspendExempt);
+    QCOMPARE(pause->actions[0].command, QStringLiteral("toggleDwellSuspend"));
     QCOMPARE(doc.findGrid(QStringLiteral("quit"))->cells[0].interactive, false);
     QVERIFY(doc.findGrid(QStringLiteral("drawer"))->shell);
     QVERIFY(doc.findGrid(QStringLiteral("quit"))->shell);
@@ -514,7 +567,6 @@ void PageLoaderTest::pageWriterRoundTripMain()
     QCOMPARE(dst.grids.size(), src.grids.size());
     QCOMPARE(dst.zones.size(), src.zones.size());
     QCOMPARE(dst.findZone(QStringLiteral("mainChip")) != nullptr, true);
-    QVERIFY(!dst.findZone(QStringLiteral("mainChip"))->aboveTaskbar);
     QCOMPARE(dst.findGrid(QStringLiteral("drawer")) != nullptr, true);
 }
 
@@ -696,6 +748,16 @@ void PageLoaderTest::cellSendAttribute()
 
     const QByteArray written = PageWriter::toBytes(doc);
     QVERIFY(QString::fromUtf8(written).contains(QStringLiteral("send=\"1\"")));
+
+    PageDocument mac;
+    const QByteArray macXml =
+        QByteArray("<Page id=\"p\"><Grid id=\"g\"><Cell id=\"c\" MoveAndClick=\"left\"/>"
+                   "</Grid></Page>");
+    QVERIFY2(PageLoader::loadFromXml(macXml, mac, &err), qPrintable(err));
+    QCOMPARE(mac.grids[0].cells[0].actions.size(), 1);
+    QCOMPARE(mac.grids[0].cells[0].actions[0].type, PageActionType::MoveAndClick);
+    QCOMPARE(mac.grids[0].cells[0].actions[0].button, QStringLiteral("left"));
+    QCOMPARE(mac.grids[0].cells[0].actions[0].zoomMode, PageZoomMode::Settings);
 }
 
 void PageLoaderTest::rejectTwoActionAttributes()
@@ -728,6 +790,13 @@ void PageLoaderTest::parseSpecificActionElements()
     QCOMPARE(a.button, QStringLiteral("left"));
     QCOMPARE(a.zoomMode, PageZoomMode::Level);
     QCOMPARE(a.zoomLevel, 3);
+    QVERIFY2(loadOneAction(QByteArray("<MoveAndClick value=\"right\"/>"), a, &err),
+             qPrintable(err));
+    QCOMPARE(a.button, QStringLiteral("right"));
+    QCOMPARE(a.zoomMode, PageZoomMode::Settings);
+    QVERIFY2(loadOneAction(QByteArray("<MoveAndClick value=\"left, 0\"/>"), a, &err),
+             qPrintable(err));
+    QCOMPARE(a.zoomMode, PageZoomMode::Off);
 }
 
 void PageLoaderTest::parseMoveVariants()
@@ -785,11 +854,33 @@ void PageLoaderTest::parseOpenPageBreadcrumb()
     QCOMPARE(a.targetScope, PageNavScope::Id);
     QCOMPARE(a.targetId, QStringLiteral("uw_qwerty"));
     QCOMPARE(a.breadcrumb, true);
-    QVERIFY2(loadOneAction(QByteArray("<OpenGrid value=\"board\"/>"), a, &err), qPrintable(err));
+    QVERIFY2(loadOneAction(QByteArray("<ShowGrid value=\"board\"/>"), a, &err), qPrintable(err));
     QCOMPARE(a.type, PageActionType::Nav);
+    QCOMPARE(a.verb, PageVerb::Open);
     QCOMPARE(a.targetKind, PageTargetKind::Grid);
     QCOMPARE(a.breadcrumb, false);
     QCOMPARE(a.targetId, QStringLiteral("board"));
+    QVERIFY2(loadOneAction(QByteArray("<OpenGrid value=\"board\"/>"), a, &err), qPrintable(err));
+    QCOMPARE(a.targetKind, PageTargetKind::Grid);
+    QCOMPARE(a.targetId, QStringLiteral("board"));
+    QVERIFY2(loadOneAction(QByteArray("<ShowCell value=\"k_q\"/>"), a, &err), qPrintable(err));
+    QCOMPARE(a.verb, PageVerb::Open);
+    QCOMPARE(a.targetKind, PageTargetKind::Cell);
+    QCOMPARE(a.targetId, QStringLiteral("k_q"));
+    PageAction show;
+    QVERIFY2(loadOneAction(QByteArray("<ShowGrid value=\"board\"/>"), show, &err), qPrintable(err));
+    PageDocument written;
+    written.id = QStringLiteral("t");
+    PageGrid g;
+    g.id = QStringLiteral("g");
+    PageCell c;
+    c.id = QStringLiteral("c");
+    c.actions.push_back(show);
+    g.cells.push_back(c);
+    written.grids.push_back(g);
+    const QString xml = QString::fromUtf8(PageWriter::toBytes(written));
+    QVERIFY(xml.contains(QStringLiteral("showGrid=\"board\"")));
+    QVERIFY(!xml.contains(QStringLiteral("openGrid")));
 }
 
 void PageLoaderTest::parseCloseSpecialsAndGoBack()
@@ -801,14 +892,22 @@ void PageLoaderTest::parseCloseSpecialsAndGoBack()
     QCOMPARE(a.verb, PageVerb::Close);
     QCOMPARE(a.targetKind, PageTargetKind::Page);
     QCOMPARE(a.targetScope, PageNavScope::Self);
-    QVERIFY2(loadOneAction(QByteArray("<CloseGrid value=\"-all, true\"/>"), a, &err),
+    QVERIFY2(loadOneAction(QByteArray("<HideGrid value=\"-all, true\"/>"), a, &err),
              qPrintable(err));
     QCOMPARE(a.targetKind, PageTargetKind::Grid);
     QCOMPARE(a.targetScope, PageNavScope::All);
     QCOMPARE(a.breadcrumb, true);
-    QVERIFY2(loadOneAction(QByteArray("<CloseZone value=\"-!self\"/>"), a, &err), qPrintable(err));
+    QVERIFY2(loadOneAction(QByteArray("<CloseGrid value=\"-all, true\"/>"), a, &err),
+             qPrintable(err));
+    QCOMPARE(a.targetKind, PageTargetKind::Grid);
+    QCOMPARE(a.targetScope, PageNavScope::All);
+    QVERIFY2(loadOneAction(QByteArray("<HideZone value=\"-!self\"/>"), a, &err), qPrintable(err));
     QCOMPARE(a.targetKind, PageTargetKind::Zone);
     QCOMPARE(a.targetScope, PageNavScope::Others);
+    QVERIFY2(loadOneAction(QByteArray("<HideCell value=\"k_q\"/>"), a, &err), qPrintable(err));
+    QCOMPARE(a.verb, PageVerb::Close);
+    QCOMPARE(a.targetKind, PageTargetKind::Cell);
+    QCOMPARE(a.targetId, QStringLiteral("k_q"));
     QVERIFY2(loadOneAction(QByteArray("<GoBack/>"), a, &err), qPrintable(err));
     QCOMPARE(a.type, PageActionType::GoBack);
 }

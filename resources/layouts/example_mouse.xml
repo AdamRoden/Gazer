@@ -1,5 +1,5 @@
 <Page id="example_mouse" name="Mouse">
-  <Grid id="board" desktopMode="true" rows="3" columns="9" anchor="Bottom" offset="0,0" size="1100,360" gap="8" margin="8" aboveTaskbar="false">
+  <Grid id="board" desktopMode="true" rows="3" columns="9" anchor="Bottom" offset="0,0" size="1100,360" gap="8" margin="8">
     <Cell id="lclick" row="0" col="0" icon="MouseLeftClick" label="Left" background="#1b4332" foreground="#ffffff" command="mouseLeftClick"/>
     <Cell id="ldbl" row="0" col="1" icon="MouseLeftDoubleClick" label="L×2" background="#1b4332" foreground="#ffffff" command="mouseLeftDoubleClick"/>
     <Cell id="rclick" row="0" col="2" icon="MouseRightClick" label="Right" background="#2d6a4f" foreground="#ffffff" command="mouseRightClick"/>
@@ -29,7 +29,7 @@ loop" background="#c1121f" foreground="#ffffff" activeState="loop.gazeClick" com
     <Cell id="lts" row="2" col="7" icon="LookToScrollActive" label="Look↕Scroll" background="#0a7ea4" foreground="#ffffff" activeState="lookToScroll" command="toggleLookToScroll"/>
     <Cell id="main" row="2" col="8" icon="Menu" label="Main" background="#0a7ea4" foreground="#ffffff">
     <ClosePage value="-self"/>
-    <OpenGrid value="drawer"/>
+    <ShowGrid value="drawer"/>
     </Cell>
   </Grid>
 </Page>

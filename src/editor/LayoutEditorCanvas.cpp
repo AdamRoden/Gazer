@@ -101,7 +101,7 @@ LayoutEditorCanvas::ScreenMap LayoutEditorCanvas::map() const
     PageFrame frame;
     frame.screen = QRectF(0, 0, m.virtualScreen.width(), m.virtualScreen.height());
     frame.desktop = frame.screen;
-    m.targets = PageHit::collect(m_session.document(), frame, {}, {}, {}, false, &m.grids);
+    m.targets = PageHit::collect(m_session.document(), frame, {}, {}, false, &m.grids, true);
     QRectF boardVirt;
     const PageGrid* fit = nullptr;
     if (m_session.selection().target == EditorTarget::Item) {
@@ -270,7 +270,7 @@ void LayoutEditorCanvas::paintBoard(QPainter& p, const ScreenMap& m) const
     frame.desktop = frame.screen;
     QVector<PageGridPaint> grids;
     const QVector<PageTarget> targets =
-        PageHit::collect(m_session.document(), frame, {}, {}, {}, false, &grids);
+        PageHit::collect(m_session.document(), frame, {}, {}, false, &grids, true);
     auto toCanvas = [&](const QRectF& virt) {
         return QRectF(m.fromVirt(virt.topLeft()),
                       QSizeF(virt.width() * m.scaleX, virt.height() * m.scaleY));

@@ -1,5 +1,5 @@
-<Page id="uw_qwerty_shift" name="Qwerty (shift)">
-  <Grid id="board" desktopMode="false" rows="4" columns="160" anchor="Bottom" offset="0,0" size="92,320" gap="2" margin="6" aboveTaskbar="true" background="#99000000" border="#00000000" scanGrace="200" activation="500,400,200,100,50,20">
+<Page id="uw_qwerty_shift" name="Qwerty (shift)" background="#99000000" border="#00000000" scanGrace="200" activation="500,400,200,100,50,20">
+  <Grid id="board" desktopMode="false" rows="4" columns="160" anchor="Bottom" offset="0,0" size="92,320" gap="2" margin="6" background="#99000000" border="#00000000">
     <Cell id="esc" row="0" col="0" colSpan="9" label="Esc" background="#3d4f66" foreground="#ffffff" command="escape"/>
     <Cell id="n1" row="0" col="9" colSpan="10" label="!" send="!"/>
     <Cell id="n2" row="0" col="19" colSpan="10" label="@" send="@"/>

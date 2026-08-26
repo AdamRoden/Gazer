@@ -1,26 +1,24 @@
-<Page id="main" master="true" name="Dock">
+<Page id="main" master="true" name="Dock" background="#00000000" blur="15" radius="16" thickness="0">
   <Style id="chip" background="#99000000" blur="15" radius="900,900,0,0" progressStyle="border, fillup"/>
-  <Style id="drawer" background="#99000000" blur="15"/>
-  <Style id="quitPrompt" background="#2b2d42" foreground="#edf2f4"/>
-  <Style id="quitYes" background="#9b2226" foreground="#ffffff"/>
-  <Style id="quitNo" background="#2d6a4f" foreground="#ffffff"/>
+  <Style id="drawer" background="#99000000"/>
+  <Style id="quitPrompt" background="#99000000" radius="12"/>
+  <Style id="quitYes" background="#9b2226" foreground="#ffffff" radius="12"/>
+  <Style id="quitNo" background="#2d6a4f" foreground="#ffffff" radius="12"/>
 
   <Zone id="mainChip" anchor="Bottom" offset="0,0" size="200,100"
-        dwellOffset="0,300" dwellSize="300,200" aboveTaskbar="false"
-        style="chip" label="Main" icon="Menu"
-        dwellExempt="true" visibleWhen="!expanded" shell="true">
+        dwellOffset="0,300" dwellSize="300,200"
+        style="chip" label="Main" icon="Menu" suspendExempt="true" visibleWhen="!expanded" shell="true">
     <Command value="resumeDwell"/>
     <OpenPage value="main"/>
   </Zone>
   <Zone id="sleep" anchor="Bottom" offset="400,0" size="200,100"
-        dwellOffset="0,300" dwellSize="300,200" aboveTaskbar="false"
+        dwellOffset="0,300" dwellSize="300,200"
         style="chip" label="Sleep" icon="Sleep"
         activeState="dwellSuspend" shell="true" command="toggleDwellSuspend"/>
 
   <Grid id="drawer" desktopMode="false" rows="1" columns="10"
-        anchor="Bottom" offset="0,0" size="1200,150"
-        style="drawer" gap="10" margin="10"
-        chrome="drawer" drawerMotion="true" aboveTaskbar="true" autoClose="true"
+        anchor="Bottom" offset="0,0" size="1200,150" style="drawer" gap="10" margin="10"
+        chrome="drawer" drawerMotion="true" autoClose="true"
         autoCloseIdleMs="3000" shell="true" >
     <Cell id="open_keyboard" row="0" col="0" label="Keyboard" icon="Keyboard" openPage="uw_qwerty"/>
     <Cell id="open_mouse" row="0" col="1" label="Mouse" icon="Mouse" openPage="example_mouse"/>
@@ -29,29 +27,28 @@
     <Cell id="open_settings" row="0" col="4" label="Settings" icon="SettingsIcon" openPage="main_settings_button_timing"/>
     <Cell id="open_editor" row="0" col="5" label="Editor" icon="EditAppIcon">
       <Command value="openLayoutEditor"/>
-      <CloseGrid value="drawer"/>
+      <HideGrid value="drawer"/>
     </Cell>
-    <Cell id="close" row="0" col="6" label="Dismiss" icon="ArrowPointingToBottomBoundaryIcon" closeGrid="drawer"/>
+    <Cell id="close" row="0" col="6" label="Dismiss" icon="ArrowPointingToBottomBoundaryIcon" hideGrid="drawer"/>
     <Cell id="close_all" row="0" col="7" label="Close All" icon="CollapseIcon">
       <Command value="closeOtherViews"/>
-      <CloseGrid value="drawer"/>
+      <HideGrid value="drawer"/>
     </Cell>
     <Cell id="dwell_suspend" row="0" col="8" label="Pause dwell" icon="Sleep" activeState="dwellSuspend" command="toggleDwellSuspend"/>
     <Cell id="quit" row="0" col="9" label="Quit" icon="Quit">
-      <CloseGrid value="drawer"/>
-      <OpenGrid value="quit"/>
+      <HideGrid value="drawer"/>
+      <ShowGrid value="quit"/>
     </Cell>
   </Grid>
 
   <Grid id="quit" desktopMode="true" rows="2" columns="2"
-        anchor="Center" offset="0,0" size="480,220"
-        gap="12" margin="16" chrome="quit" aboveTaskbar="true" shell="true">
-    <Cell id="prompt" row="0" col="0" colSpan="2" label="Quit Gazer?" role="label"
-          style="quitPrompt" interactive="false"/>
+        anchor="Center" offset="0,0" size="480,220" style="quitPrompt"
+        gap="12" margin="16" chrome="quit" shell="true">
+    <Cell id="prompt" row="0" col="0" colSpan="2" label="Quit Gazer?" role="label" background="#cc222222"/>
     <Cell id="yes_quit" row="1" col="0" label="Yes" icon="Yes" style="quitYes" command="quitApp"/>
     <Cell id="no_stay" row="1" col="1" label="No" icon="No" style="quitNo">
-      <CloseGrid value="quit"/>
-      <OpenGrid value="drawer"/>
+      <HideGrid value="quit"/>
+      <ShowGrid value="drawer"/>
     </Cell>
   </Grid>
 </Page>

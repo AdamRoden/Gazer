@@ -149,8 +149,11 @@ void ActionDispatcher::dispatchPage(const QVector<PageAction>& actions, const QS
                 ok = MouseInjector::moveBy(d.x(), d.y(), &err);
             } else {
                 const QRect desk = virtualDesktop();
-                const int x = qRound(a.moveX.resolve(desk.width(), desk.height()));
-                const int y = qRound(a.moveY.resolve(desk.height(), desk.height()));
+                const QRect screen = overlayScreenGeometry();
+                const int x = qRound(a.moveX.resolve(desk.width(), desk.height(), screen.width(),
+                                                     screen.height()));
+                const int y = qRound(a.moveY.resolve(desk.height(), desk.height(), screen.width(),
+                                                     screen.height()));
                 if (a.moveMode == PageMoveMode::Relative) {
                     ok = MouseInjector::moveBy(x, y, &err);
                 } else {
@@ -164,19 +167,25 @@ void ActionDispatcher::dispatchPage(const QVector<PageAction>& actions, const QS
         }
         case PageActionType::MoveAndClick: {
             QString err;
-            if (a.zoomMode != PageZoomMode::Off) {
-                const double zoom = a.zoomMode == PageZoomMode::Level ? double(a.zoomLevel)
-                                                                      : m_svc.settings().pickZoom;
-                armMagPick(m_svc, clickPurpose(a.button), zoom);
+            if (a.zoomMode == PageZoomMode::Off) {
+                if (!moveToGaze(&err)) {
+                    notify(err.isEmpty() ? QStringLiteral("MoveAndClick failed") : err);
+                    break;
+                }
+                if (!dispatchClick(a, &err)) {
+                    notify(err.isEmpty() ? QStringLiteral("MoveAndClick failed") : err);
+                }
                 break;
             }
-            if (!moveToGaze(&err)) {
-                notify(err.isEmpty() ? QStringLiteral("MoveAndClick failed") : err);
+            const MouseDwellMove::ArmPurpose purpose = clickPurpose(a.button);
+            if (a.zoomMode == PageZoomMode::Settings && m_svc.mouseDwellMove().isArmed()
+                && m_svc.mouseDwellMove().armPurpose() == purpose) {
+                m_svc.mouseDwellMove().setArmed(false);
                 break;
             }
-            if (!dispatchClick(a, &err)) {
-                notify(err.isEmpty() ? QStringLiteral("MoveAndClick failed") : err);
-            }
+            const double zoom =
+                a.zoomMode == PageZoomMode::Level ? double(a.zoomLevel) : 0.0;
+            armMagPick(m_svc, purpose, zoom);
             break;
         }
         case PageActionType::Ahk:

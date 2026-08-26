@@ -31,52 +31,24 @@ PageDwell namedOr(const PageDocument& page, const QString& id, const PageDwell& 
 
 } // namespace
 
-PageChrome style(const PageDocument& page, const PageChrome& system,
-                 const QVector<const PageGrid*>& gridChain, const QString& leafStyleId,
-                 const PageChrome& leafStyle)
+PageChrome style(const PageDocument& page, const QString& styleId, const PageChrome& inlineStyle)
 {
-    PageChrome c = system;
-    c = c.withOverrides(page.style);
-    for (const PageGrid* g : gridChain) {
-        if (!g) {
-            continue;
-        }
-        c = c.withOverrides(namedOr(page, g->styleId, g->style));
-    }
-    c = c.withOverrides(namedOr(page, leafStyleId, leafStyle));
-    return c;
+    return page.style.withOverrides(namedOr(page, styleId, inlineStyle));
 }
 
-PageDwell dwell(const PageDocument& page, const PageDwell& system,
-                const QVector<const PageGrid*>& gridChain, const QString& leafDwellId,
-                const PageDwell& leafDwell)
+PageDwell dwell(const PageDocument& page, const QString& dwellId, const PageDwell& inlineDwell)
 {
-    PageDwell d = system;
-    d = d.withOverrides(page.dwell);
-    for (const PageGrid* g : gridChain) {
-        if (!g) {
-            continue;
-        }
-        d = d.withOverrides(namedOr(page, g->dwellId, g->dwell));
-    }
-    d = d.withOverrides(namedOr(page, leafDwellId, leafDwell));
-    return d;
+    return page.dwell.withOverrides(namedOr(page, dwellId, inlineDwell));
 }
 
-PageChrome zoneStyle(const PageDocument& page, const PageChrome& system, const PageZone& zone)
+PageChrome zoneStyle(const PageDocument& page, const PageZone& zone)
 {
-    PageChrome c = system;
-    c = c.withOverrides(page.style);
-    c = c.withOverrides(namedOr(page, zone.styleId, zone.style));
-    return c;
+    return style(page, zone.styleId, zone.style);
 }
 
-PageDwell zoneDwell(const PageDocument& page, const PageDwell& system, const PageZone& zone)
+PageDwell zoneDwell(const PageDocument& page, const PageZone& zone)
 {
-    PageDwell d = system;
-    d = d.withOverrides(page.dwell);
-    d = d.withOverrides(namedOr(page, zone.dwellId, zone.dwell));
-    return d;
+    return dwell(page, zone.dwellId, zone.dwell);
 }
 
 } // namespace PageResolve

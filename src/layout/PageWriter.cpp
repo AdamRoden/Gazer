@@ -73,6 +73,7 @@ void writeChrome(QXmlStreamWriter& xml, const PageChrome& st)
             xml.writeAttribute(QStringLiteral("progressStyle"), csv);
         }
     }
+    attr(xml, QStringLiteral("progressColor"), colorTok(st.progressColor));
 }
 
 void writeDwell(QXmlStreamWriter& xml, const PageDwell& d)
@@ -117,9 +118,9 @@ void writeLeafAttrs(QXmlStreamWriter& xml, const PageLeaf& leaf)
     attr(xml, QStringLiteral("textStyle"), leaf.textStyle);
     attr(xml, QStringLiteral("visibleWhen"), leaf.visibleWhen);
     attrBool(xml, QStringLiteral("interactive"), leaf.interactive, true);
-    attrBool(xml, QStringLiteral("dwellExempt"), leaf.dwellExempt, false);
+    attrBool(xml, QStringLiteral("suspendExempt"), leaf.suspendExempt, false);
     attrBool(xml, QStringLiteral("actionLoop"), leaf.actionLoop, false);
-    attrBool(xml, QStringLiteral("visible"), leaf.visible, true);
+    attrBool(xml, QStringLiteral("show"), leaf.show, true);
     attrBool(xml, QStringLiteral("shell"), leaf.shell, false);
     writeChrome(xml, leaf.style);
     writeDwell(xml, leaf.dwell);
@@ -197,7 +198,6 @@ void writeGrid(QXmlStreamWriter& xml, const PageGrid& grid)
             xml.writeAttribute(QStringLiteral("rowWeights"), parts.join(QLatin1Char(',')));
         }
     }
-    attrBool(xml, QStringLiteral("aboveTaskbar"), grid.aboveTaskbar, false);
     attrBool(xml, QStringLiteral("drawerMotion"), grid.drawerMotion, false);
     if (grid.rootSlot == PageRootSlot::Drawer) {
         xml.writeAttribute(QStringLiteral("chrome"), QStringLiteral("drawer"));
@@ -206,6 +206,7 @@ void writeGrid(QXmlStreamWriter& xml, const PageGrid& grid)
     }
     attrBool(xml, QStringLiteral("autoClose"), grid.autoClose, false);
     attrInt(xml, QStringLiteral("autoCloseIdleMs"), grid.autoCloseIdleMs, -1);
+    attrBool(xml, QStringLiteral("show"), grid.show, true);
     attrBool(xml, QStringLiteral("shell"), grid.shell, false);
     attr(xml, QStringLiteral("style"), grid.styleId);
     attr(xml, QStringLiteral("dwell"), grid.dwellId);
@@ -261,7 +262,6 @@ QByteArray PageWriter::toBytes(const PageDocument& doc)
         xml.writeStartElement(QStringLiteral("Zone"));
         writeLeafAttrs(xml, z);
         writePlacement(xml, z.desktopMode, z.anchor, z.offset, z.size);
-        attrBool(xml, QStringLiteral("aboveTaskbar"), z.aboveTaskbar, false);
         attr(xml, QStringLiteral("dwellOffset"), pairTok(z.dwellOffset));
         attr(xml, QStringLiteral("dwellSize"), pairTok(z.dwellSize));
         const bool inlined = writeInlineAction(xml, z.actions);

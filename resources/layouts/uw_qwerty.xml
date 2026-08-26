@@ -1,5 +1,7 @@
-<Page id="uw_qwerty" name="Qwerty">
-  <Grid id="board" desktopMode="true" rows="4" columns="160" anchor="BottomLeft" offset="500,0" size="1600,280" gap="0" margin="0" aboveTaskbar="true" background="#000000" border="#999999" thickness="1" radius="2" scanGrace="200" activation="10,600,600,500,400,300,200,100">
+<Page id="uw_qwerty" name="Qwerty" scanGrace="200" activation="10,600,600,500,400,300,200,100">
+  <Dwell id="vert1" scanGrace="200" activation="200,600"/>
+  <Dwell id="vert2" scanGrace="100" activation="100,600"/>
+  <Grid id="board" rows="4" columns="160" anchor="TopLeft" offset="500,754" size="1600,280" gap="0" margin="0">
     <Cell id="esc" row="0" col="0" colSpan="9" label="Esc" background="#3d4f66" foreground="#ffffff" command="escape"/>
     <Cell id="n1" row="0" col="9" colSpan="10" label="1" send="1"/>
     <Cell id="n2" row="0" col="19" colSpan="10" label="2" send="2"/>
@@ -72,14 +74,27 @@
     <Cell id="pgdn" row="3" col="140" colSpan="10" label="Pg Dn" background="#3d4f66" foreground="#ffffff" command="pageDown"/>
     <Cell id="enter" row="3" col="150" colSpan="10" icon="Enter" label="Enter" background="#3d4f66" foreground="#ffffff" command="enter"/>
   </Grid>
-  <Zone id="more" anchor="TopRight" offset="-400,8" size="100,88" icon="More" label="More" background="#99000000" openPage="example_keyboard_sym"/>
-  <Zone id="move_lclick" anchor="TopRight" offset="-400,104" size="100,88" icon="MouseLeftClick" label="Left" background="#99000000" activeState="mouseMoveAndLeftClick" command="mouseMoveAndLeftClick"/>
-  <Zone id="move_rclick" anchor="TopRight" offset="-400,200" size="100,88" icon="MouseRightClick" label="Right" background="#99000000" activeState="mouseMoveAndRightClick" scanGrace="100" command="mouseMoveAndRightClick"/>
-  <Zone id="to_right" anchor="TopRight" offset="-400,296" size="100,88" icon="ArrowPointingToRightBoundary" label="Right strip" background="#99000000">
-    <ClosePage value="-self"/>
-    <OpenPage value="uw_right"/>
-  </Zone>
-  <Zone id="mouse_kb" anchor="TopRight" offset="-400,392" size="100,88" icon="MouseMagneticCursor" label="Mouse" background="#99000000" scanGrace="100" openPage="example_mouse"/>
-  <Zone id="sleep" anchor="TopRight" offset="-400,488" size="100,88" icon="Sleep" label="Sleep" background="#99000000" activeState="dwellSuspend" command="toggleDwellSuspend"/>
-  <Zone id="lts" anchor="TopRight" offset="-400,584" size="100,88" icon="LookToScrollActive" label="Look↕Scroll" background="#99000000" activeState="lookToScroll" command="toggleLookToScroll"/>
+  <Grid id="vert1" rows="6" columns="1" anchor="TopLeft" offset="2000,0" size="100,754">
+    <Cell id="more" row="0" col="0" icon="More" dwell="vert1" openPage="example_keyboard_sym"/>
+    <Cell id="move_lclick" row="1" col="0" icon="MouseLeftClick" dwell="vert1" activeState="mouseMoveAndLeftClick" moveAndClick="left"/>
+    <Cell id="move_rclick" row="2" col="0" icon="MouseRightClick" dwell="vert1" activeState="mouseMoveAndRightClick" moveAndClick="right"/>
+    <Cell id="edge" row="3" col="0" icon="ArrowPointingToRightBoundary" dwell="vert1">
+    <ToggleGrid value="board"/>
+    <ToggleGrid value="vert2"/>
+    <ToggleCell value="edge"/>
+    <ToggleCell value="keyboard"/>
+    </Cell>
+    <Cell id="keyboard" row="3" col="0" icon="Keyboard" show="false" dwell="vert1">
+    <ToggleGrid value="board"/>
+    <ToggleGrid value="vert2"/>
+    <ToggleCell value="edge"/>
+    <ToggleCell value="keyboard"/>
+    </Cell>
+    <Cell id="sleep" row="4" col="0" icon="Sleep" dwell="vert1" activeState="dwellSuspend" command="toggleDwellSuspend"/>
+    <Cell id="lts" row="5" col="0" icon="LookToScrollActive" dwell="vert1" activeState="lookToScroll" command="toggleLookToScroll"/>
+  </Grid>
+  <Grid id="vert2"  rows="2" columns="1" anchor="TopLeft" offset="2000,754" size="100,280"  show="false">
+    <Cell id="mid" row="0" col="0" label="Mid" dwell="vert2" command="windowMid"/>
+    <Cell id="max" row="1" col="0" label="Max" dwell="vert2" command="windowMax"/>
+  </Grid>
 </Page>

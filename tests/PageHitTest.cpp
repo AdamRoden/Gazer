@@ -34,12 +34,16 @@ private slots:
     void zoneDetectorUnrestrictedDwell();
     void zoneProgressCoercedWhenOffScreen();
     void collectEmitsGridChrome();
+    void screenExpressionSizes16by9();
+    void cellsInheritPageNotGrid();
     void cellRectSpan();
     void cellIndexAtMatchesCellRect();
     void cellRectRowWeights();
     void drawerMapIsIdentityAtFullScale();
     void drawerMapShrinksAboutBottom();
-    void aboveTaskbarUsesDesktop();
+    void drawerScaleMustNotMoveOtherChrome();
+    void reservedBoundsKeepsHiddenGrids();
+    void desktopModeUsesDesktop();
     void mainChipProgressOverlapsTaskbar();
     void hitMainChipOffScreen();
     void engagedZoneIncludesProgress();
@@ -47,6 +51,8 @@ private slots:
     void visibleWhenHidesMainChip();
     void sleepKeepsContentWhenSuspended();
     void edgeChipHidesUntilProgress();
+    void qwertyClosedGridHidden();
+    void showHidesGridCellAndZone();
     void edgeChipGazeHitsOnScreenChrome();
     void liveEditorGridHasOpaqueChrome();
     void overlappingBoardOccludesLowerPage();
@@ -157,7 +163,7 @@ void PageHitTest::collectEmitsGridChrome()
     frame.screen = QRectF(0, 0, 1920, 1080);
     frame.desktop = frame.screen;
     QVector<PageGridPaint> grids;
-    const QVector<PageTarget> t = PageHit::collect(doc, frame, {}, {}, {}, false, &grids);
+    const QVector<PageTarget> t = PageHit::collect(doc, frame, {}, {}, false, &grids);
     QCOMPARE(grids.size(), 1);
     QVERIFY(!grids[0].visual.isEmpty());
     QVERIFY(!grids[0].chrome.background.has_value());
@@ -165,6 +171,55 @@ void PageHitTest::collectEmitsGridChrome()
     const PageTarget* cell = PageHit::at(t, grids[0].visual.center());
     QVERIFY(cell);
     QCOMPARE(cell->kind, PageTarget::Kind::Cell);
+}
+
+void PageHitTest::screenExpressionSizes16by9()
+{
+    PageDocument doc;
+    QString err;
+    const QByteArray xml = R"xml(
+<Page id="p">
+  <Grid id="g" desktopMode="false" anchor="Center" size="A_ScreenHeight/9*16, A_ScreenHeight">
+    <Cell id="c" label="X"/>
+  </Grid>
+</Page>
+)xml";
+    QVERIFY2(PageLoader::loadFromXml(xml, doc, &err), qPrintable(err));
+    PageFrame frame;
+    frame.screen = QRectF(0, 0, 2560, 1080);
+    frame.desktop = QRectF(0, 0, 3840, 1080);
+    QVector<PageGridPaint> grids;
+    const QVector<PageTarget> t = PageHit::collect(doc, frame, {}, {}, false, &grids);
+    QCOMPARE(grids.size(), 1);
+    QCOMPARE(grids[0].visual.width(), 1920.0);
+    QCOMPARE(grids[0].visual.height(), 1080.0);
+    QCOMPARE(grids[0].visual.left(), 320.0);
+    QVERIFY(!t.isEmpty());
+}
+
+void PageHitTest::cellsInheritPageNotGrid()
+{
+    PageDocument doc;
+    QString err;
+    const QByteArray xml = R"xml(
+<Page id="p" background="#FF0000" radius="4">
+  <Grid id="g" background="#00FF00" radius="20" size="200,100">
+    <Cell id="c" label="X"/>
+  </Grid>
+</Page>
+)xml";
+    QVERIFY2(PageLoader::loadFromXml(xml, doc, &err), qPrintable(err));
+    PageFrame frame;
+    frame.screen = QRectF(0, 0, 1920, 1080);
+    frame.desktop = frame.screen;
+    QVector<PageGridPaint> grids;
+    const QVector<PageTarget> t = PageHit::collect(doc, frame, {}, {}, false, &grids);
+    QCOMPARE(grids.size(), 1);
+    QCOMPARE(grids[0].chrome.background->rgb(), QColor(QStringLiteral("#00FF00")).rgb());
+    QCOMPARE(grids[0].chrome.radius ? grids[0].chrome.radius->first() : -1.0, 20.0);
+    QVERIFY(!t.isEmpty());
+    QCOMPARE(t[0].chrome.background->rgb(), QColor(QStringLiteral("#FF0000")).rgb());
+    QCOMPARE(t[0].chrome.radius ? t[0].chrome.radius->first() : -1.0, 4.0);
 }
 
 void PageHitTest::cellRectSpan()
@@ -239,12 +294,66 @@ void PageHitTest::drawerMapShrinksAboutBottom()
     QVERIFY(PageHit::at(targets, mapped.center(), 0.5) != nullptr);
 }
 
-void PageHitTest::aboveTaskbarUsesDesktop()
+void PageHitTest::drawerScaleMustNotMoveOtherChrome()
+{
+    PageGridPaint drawer;
+    drawer.visual = QRectF(360, 930, 1200, 150);
+    drawer.drawerMotion = true;
+    PageGridPaint strip;
+    strip.visual = QRectF(2000, 0, 100, 754);
+    strip.drawerMotion = false;
+    const QVector<PageGridPaint> grids{drawer, strip};
+    const QRectF full = PageHit::paintBounds({}, grids, 1.0);
+    const QRectF scaled = PageHit::paintBounds({}, grids, 0.5);
+    QCOMPARE(full, PageHit::hostBounds({}, grids));
+    QCOMPARE(full.left(), 360.0);
+    QCOMPARE(full.right(), 2100.0);
+    QCOMPARE(scaled.right(), 2100.0);
+    QVERIFY(scaled.left() > full.left());
+    QCOMPARE(PageHit::mapDrawer(false, strip.visual, PageHit::drawerTransform({}, 0.5, grids), 0.5),
+             strip.visual);
+}
+
+void PageHitTest::reservedBoundsKeepsHiddenGrids()
+{
+    PageDocument doc;
+    doc.id = QStringLiteral("p");
+    PageGrid strip;
+    strip.id = QStringLiteral("vert1");
+    strip.anchor = PageAnchor::TopLeft;
+    strip.offset.x = PageDim::pixels(2000);
+    strip.offset.y = PageDim::pixels(0);
+    strip.size.x = PageDim::pixels(100);
+    strip.size.y = PageDim::pixels(754);
+    PageGrid board;
+    board.id = QStringLiteral("board");
+    board.anchor = PageAnchor::TopLeft;
+    board.offset.x = PageDim::pixels(500);
+    board.offset.y = PageDim::pixels(754);
+    board.size.x = PageDim::pixels(1600);
+    board.size.y = PageDim::pixels(280);
+    board.show = false;
+    doc.grids.push_back(strip);
+    doc.grids.push_back(board);
+    PageFrame frame;
+    frame.screen = QRectF(0, 0, 2560, 1080);
+    frame.desktop = frame.screen;
+    QVector<PageGridPaint> visible;
+    (void)PageHit::collect(doc, frame, {}, {}, false, &visible);
+    const QRectF shown = PageHit::hostBounds({}, visible);
+    QCOMPARE(shown.left(), 2000.0);
+    QCOMPARE(shown.right(), 2100.0);
+    const QRectF reserved = PageHit::reservedBounds(doc, frame);
+    QCOMPARE(reserved.left(), 500.0);
+    QCOMPARE(reserved.right(), 2100.0);
+    QVERIFY(reserved.contains(shown));
+}
+
+void PageHitTest::desktopModeUsesDesktop()
 {
     PageGrid g;
     g.id = QStringLiteral("drawer");
-    g.desktopMode = false;
-    g.aboveTaskbar = true;
+    g.desktopMode = true;
     g.anchor = PageAnchor::Bottom;
     g.size.x = PageDim::pixels(400);
     g.size.y = PageDim::pixels(80);
@@ -254,6 +363,22 @@ void PageHitTest::aboveTaskbarUsesDesktop()
     const QRectF r = PageHit::gridBounds(g, frame);
     QVERIFY(r.bottom() <= frame.desktop.bottom() + 0.51);
     QVERIFY(r.bottom() < frame.screen.bottom() - 1.0);
+
+    PageDocument settings;
+    QString err;
+    QVERIFY2(PageLoader::loadFromXml(
+                 QByteArray(R"xml(
+<Page id="p">
+  <Grid id="g" desktopMode="true" anchor="Top" size="A_ScreenHeight/9*16, A_ScreenHeight"/>
+</Page>
+)xml"),
+                 settings, &err),
+             qPrintable(err));
+    const QRectF board = PageHit::gridBounds(settings.grids[0], frame);
+    QCOMPARE(board.height(), 1040.0);
+    QCOMPARE(board.width(), 1040.0 * 16.0 / 9.0);
+    QCOMPARE(board.top(), frame.desktop.top());
+    QVERIFY(board.bottom() <= frame.desktop.bottom() + 0.51);
 }
 
 void PageHitTest::mainChipProgressOverlapsTaskbar()
@@ -267,8 +392,6 @@ void PageHitTest::mainChipProgressOverlapsTaskbar()
     const PageZone* sleep = doc.findZone(QStringLiteral("sleep"));
     QVERIFY(chip);
     QVERIFY(sleep);
-    QVERIFY(!chip->aboveTaskbar);
-    QVERIFY(!sleep->aboveTaskbar);
     PageFrame frame;
     frame.screen = QRectF(0, 0, 1920, 1080);
     frame.desktop = QRectF(0, 0, 1920, 1040);
@@ -374,7 +497,7 @@ void PageHitTest::visibleWhenHidesMainChip()
     QVariantMap expanded;
     expanded.insert(QStringLiteral("expanded"), true);
     const QSet<QString> hiddenGrids{QStringLiteral("drawer"), QStringLiteral("quit")};
-    const QVector<PageTarget> t = PageHit::collect(doc, frame, hiddenGrids, {}, expanded, false);
+    const QVector<PageTarget> t = PageHit::collect(doc, frame, hiddenGrids, expanded, false);
     QVERIFY(targetById(t, QStringLiteral("mainChip")) == nullptr);
     const PageTarget* sleep = targetById(t, QStringLiteral("sleep"));
     QVERIFY(sleep);
@@ -392,7 +515,7 @@ void PageHitTest::sleepKeepsContentWhenSuspended()
     frame.screen = QRectF(0, 0, 1920, 1080);
     frame.desktop = frame.screen;
     const QSet<QString> hiddenGrids{QStringLiteral("drawer"), QStringLiteral("quit")};
-    const QVector<PageTarget> t = PageHit::collect(doc, frame, hiddenGrids, {}, {}, true);
+    const QVector<PageTarget> t = PageHit::collect(doc, frame, hiddenGrids, {}, true);
     const PageTarget* sleep = nullptr;
     const PageTarget* main = nullptr;
     for (const PageTarget& x : t) {
@@ -403,12 +526,12 @@ void PageHitTest::sleepKeepsContentWhenSuspended()
         }
     }
     QVERIFY(sleep);
-    QVERIFY(sleep->dwellExempt);
+    QVERIFY(sleep->suspendExempt);
     QVERIFY(sleep->interactive);
     QVERIFY(!sleep->label.isEmpty() || !sleep->icon.isEmpty());
     QVERIFY(main);
     QVERIFY(main->interactive);
-    QVERIFY(main->dwellExempt);
+    QVERIFY(main->suspendExempt);
 }
 
 void PageHitTest::edgeChipHidesUntilProgress()
@@ -447,6 +570,71 @@ void PageHitTest::edgeChipHidesUntilProgress()
     QVERIFY(!kbSleep->geom.hidesUntilProgress());
 }
 
+void PageHitTest::qwertyClosedGridHidden()
+{
+    PageDocument kb;
+    QString err;
+    const QString kbPath =
+        QStringLiteral(GAZER_SOURCE_DIR) + QStringLiteral("/resources/layouts/uw_qwerty.xml");
+    QVERIFY2(PageLoader::loadFromFile(kbPath, kb, &err), qPrintable(err));
+    PageFrame frame;
+    frame.screen = QRectF(0, 0, 1920, 1080);
+    frame.desktop = frame.screen;
+    QVERIFY(!kb.findGrid(QStringLiteral("vert2"))->show);
+    const QVector<PageTarget> keys = PageHit::collect(kb, frame);
+    QVERIFY(targetById(keys, QStringLiteral("k_q")));
+    QVERIFY(targetById(keys, QStringLiteral("sleep")));
+    QVERIFY(!targetById(keys, QStringLiteral("max")));
+    const QVector<PageTarget> all = PageHit::collect(kb, frame, {}, {}, false, nullptr, true);
+    QVERIFY(targetById(all, QStringLiteral("max")));
+}
+
+void PageHitTest::showHidesGridCellAndZone()
+{
+    const QByteArray xml = R"xml(
+<Page id="p">
+  <Grid id="shown" size="200,200">
+    <Cell id="a" label="A"/>
+    <Cell id="b" label="B" show="false"/>
+  </Grid>
+  <Grid id="hidden" size="200,200" show="false">
+    <Cell id="c" label="C"/>
+  </Grid>
+  <Zone id="zshow" size="80,40"/>
+  <Zone id="zhide" size="80,40" show="false"/>
+</Page>
+)xml";
+    PageDocument doc;
+    QString err;
+    QVERIFY2(PageLoader::loadFromXml(xml, doc, &err), qPrintable(err));
+    PageFrame frame;
+    frame.screen = QRectF(0, 0, 1920, 1080);
+    frame.desktop = frame.screen;
+    QVector<PageGridPaint> grids;
+    const QVector<PageTarget> t = PageHit::collect(doc, frame, {}, {}, false, &grids);
+    QVERIFY(targetById(t, QStringLiteral("a")));
+    QVERIFY(!targetById(t, QStringLiteral("b")));
+    QVERIFY(!targetById(t, QStringLiteral("c")));
+    QVERIFY(targetById(t, QStringLiteral("zshow")));
+    QVERIFY(!targetById(t, QStringLiteral("zhide")));
+    bool sawShown = false;
+    bool sawHidden = false;
+    for (const PageGridPaint& g : grids) {
+        if (g.gridId == QLatin1String("shown")) {
+            sawShown = true;
+        }
+        if (g.gridId == QLatin1String("hidden")) {
+            sawHidden = true;
+        }
+    }
+    QVERIFY(sawShown);
+    QVERIFY(!sawHidden);
+    const QVector<PageTarget> all = PageHit::collect(doc, frame, {}, {}, false, nullptr, true);
+    QVERIFY(targetById(all, QStringLiteral("b")));
+    QVERIFY(targetById(all, QStringLiteral("c")));
+    QVERIFY(targetById(all, QStringLiteral("zhide")));
+}
+
 void PageHitTest::edgeChipGazeHitsOnScreenChrome()
 {
     PageDocument doc;
@@ -461,7 +649,7 @@ void PageHitTest::edgeChipGazeHitsOnScreenChrome()
     const QVector<PageTarget> t = PageHit::collect(doc, frame, hiddenGrids, {});
     const PageTarget* chip = targetById(t, QStringLiteral("mainChip"));
     QVERIFY(chip);
-    QVERIFY(chip->dwellExempt);
+    QVERIFY(chip->suspendExempt);
     QVERIFY(chip->geom.hidesUntilProgress());
     const QRectF scan = PageHit::gazeHitRect(*chip);
     QVERIFY(scan.contains(chip->geom.dwellZone.center()));
@@ -490,7 +678,7 @@ void PageHitTest::liveEditorGridHasOpaqueChrome()
     frame.screen = QRectF(0, 0, 1920, 1080);
     frame.desktop = frame.screen;
     QVector<PageGridPaint> grids;
-    (void)PageHit::collect(doc, frame, {}, {}, {}, false, &grids);
+    (void)PageHit::collect(doc, frame, {}, {}, false, &grids);
     QCOMPARE(grids.size(), 1);
     QVERIFY(grids[0].chrome.background.has_value());
     QCOMPARE(grids[0].chrome.background->alpha(), 255);
@@ -537,7 +725,7 @@ void PageHitTest::overlappingBoardOccludesLowerPage()
     QVector<PageGridPaint> grids;
     QVector<PageTarget> targets;
     QVector<PageGridPaint> g1;
-    QVector<PageTarget> t1 = PageHit::collect(settings, frame, {}, {}, {}, false, &g1);
+    QVector<PageTarget> t1 = PageHit::collect(settings, frame, {}, {}, false, &g1);
     for (PageGridPaint& gp : g1) {
         gp.pageId = settings.id;
         grids.push_back(gp);
@@ -548,7 +736,7 @@ void PageHitTest::overlappingBoardOccludesLowerPage()
         targets.push_back(t);
     }
     QVector<PageGridPaint> g2;
-    QVector<PageTarget> t2 = PageHit::collect(editor, frame, {}, {}, {}, false, &g2);
+    QVector<PageTarget> t2 = PageHit::collect(editor, frame, {}, {}, false, &g2);
     for (PageGridPaint& gp : g2) {
         gp.pageId = editor.id;
         grids.push_back(gp);

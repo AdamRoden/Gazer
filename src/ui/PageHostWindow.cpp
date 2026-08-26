@@ -52,10 +52,11 @@ public:
         p->restore();
         m_host->paintScene(*p, PageHostWindow::ChromePass::Live);
         if (!m_host->m_flashRect.isEmpty()) {
-            const QRectF fr = m_host->m_flashRect.translated(-m_host->m_origin);
+            const QRectF fr = m_host->m_flashRect.translated(-m_host->paintOrigin());
             const QColor fc = m_host->m_progress.resolvedFlashColor(m_host->m_theme.text);
             const PageBox radii =
-                m_host->m_flashRadii.isSet() ? m_host->m_flashRadii : PageBox::all(8.0);
+                m_host->m_flashRadii.isSet() ? m_host->m_flashRadii
+                                             : PageBox::all(PageChrome::kDefaultRadius);
             BoardPaint::fillRound(*p, fr, radii, fc);
             BoardPaint::strokeRound(*p, fr, radii, fc, PageBox::all(3.5));
         }
@@ -116,7 +117,6 @@ void PageHostWindow::syncBoardSize()
 {
     if (m_board) {
         m_board->setSize(QSizeF(width(), height()));
-        m_board->update();
     }
 }
 
@@ -124,7 +124,7 @@ void PageHostWindow::paintScene(QPainter& p, ChromePass pass)
 {
     const bool live = pass == ChromePass::Live;
     GlassBackdrop* glass = live ? &m_glass : nullptr;
-    const QPoint origin = m_origin;
+    const QPoint origin = paintOrigin();
     const QTransform& xf = m_drawerXf;
     auto mapRect = [&](const PageTarget& t, const QRectF& r) {
         return PageHit::mapDrawer(t, r, xf, m_drawerScale).translated(-origin);
@@ -252,7 +252,7 @@ void PageHostWindow::refreshUnderlay()
     QPainter p(&pm);
     p.setRenderHint(QPainter::Antialiasing, true);
     paintScene(p, ChromePass::Underlay);
-    m_glass.setUnderlay(pm, m_origin);
+    m_glass.setUnderlay(pm, paintOrigin());
 }
 
 void PageHostWindow::syncGlass()
@@ -277,9 +277,17 @@ void PageHostWindow::cacheDrawerXf()
     m_drawerXf = PageHit::drawerTransform(m_targets, m_drawerScale, m_gridPaints);
 }
 
+QPoint PageHostWindow::paintOrigin() const
+{
+    return geometry().topLeft();
+}
+
 void PageHostWindow::fitToChrome()
 {
-    const QRectF u = PageHit::paintBounds(m_targets, m_gridPaints, m_drawerScale);
+    QRectF u = PageHit::hostBounds(m_targets, m_gridPaints);
+    if (!m_reserved.isEmpty()) {
+        u = u.isEmpty() ? m_reserved : u.united(m_reserved);
+    }
     const int pad = qMax(8, qCeil(m_blurMax * 2.0));
     QRect geo(0, 0, 1, 1);
     if (!u.isEmpty()) {
@@ -300,10 +308,11 @@ void PageHostWindow::fitToChrome()
 }
 
 void PageHostWindow::commit(QVector<PageTarget> targets, QVector<PageGridPaint> grids,
-                            double drawerScale)
+                            double drawerScale, QRectF reserved)
 {
     m_targets = std::move(targets);
     m_gridPaints = std::move(grids);
+    m_reserved = reserved;
     m_drawerScale = drawerScale;
     cacheDrawerXf();
     syncGlass();
@@ -349,7 +358,6 @@ void PageHostWindow::setDrawerScale(double scale)
     }
     m_drawerScale = scale;
     cacheDrawerXf();
-    fitToChrome();
     refreshUnderlay();
     if (m_board) {
         m_board->update();

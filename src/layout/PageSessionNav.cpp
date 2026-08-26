@@ -1,5 +1,7 @@
 #include "layout/PageSession.h"
 
+#include "layout/PageNav.h"
+
 #include <QStringList>
 #include <utility>
 
@@ -17,8 +19,8 @@ QString sourcePage(const PageSession& s, const QString& sourcePageId)
 PageSession::PageBreadcrumb PageSession::captureBreadcrumb() const
 {
     PageBreadcrumb b;
+    b.root = m_root;
     b.chrome = m_chrome;
-    b.hiddenZones = m_hiddenZones;
     b.attached.reserve(m_attached.size());
     for (const AttachedPage& a : m_attached) {
         b.attached.push_back(a.doc);
@@ -45,13 +47,13 @@ void PageSession::restoreBreadcrumb(PageBreadcrumb snap)
         clearLeaveGate();
     }
 
+    m_root = std::move(snap.root);
     m_attached.clear();
     for (PageDocument& doc : snap.attached) {
         AttachedPage ap;
         ap.doc = std::move(doc);
         m_attached.push_back(std::move(ap));
     }
-    m_hiddenZones = std::move(snap.hiddenZones);
     m_chrome = snap.chrome;
     m_props.insert(QStringLiteral("expanded"), m_chrome != RootChrome::Docked);
     m_drawerTimer.stop();
@@ -60,22 +62,6 @@ void PageSession::restoreBreadcrumb(PageBreadcrumb snap)
     rebuild();
     raise();
     emit sessionChanged();
-}
-
-const PageZone* PageSession::findZoneAnywhere(const QString& id) const
-{
-    if (id.isEmpty()) {
-        return nullptr;
-    }
-    if (const PageZone* z = m_root.findZone(id)) {
-        return z;
-    }
-    for (const AttachedPage& a : m_attached) {
-        if (const PageZone* z = a.doc.findZone(id)) {
-            return z;
-        }
-    }
-    return nullptr;
 }
 
 void PageSession::closePagesExcept(const QString& keepId)
@@ -154,10 +140,10 @@ bool PageSession::applyNavMutation(const PageAction& action, const QString& sour
     case PageTargetKind::Page:
         return applyNavPage(action.verb, action.targetScope, action.targetId, sourcePageId, error);
     case PageTargetKind::Grid:
-        return applyNavGrid(action.verb, action.targetScope, action.targetId, error);
     case PageTargetKind::Zone:
-        return applyNavZone(action.verb, action.targetScope, action.targetId, sourceTargetId,
-                            error);
+    case PageTargetKind::Cell:
+        return applyShowNav(action.verb, action.targetKind, action.targetScope, action.targetId,
+                            sourcePageId, sourceTargetId, error);
     }
     if (error) {
         *error = QStringLiteral("Unknown navigation target kind");
@@ -228,123 +214,204 @@ bool PageSession::applyNavPage(PageVerb verb, PageNavScope scope, const QString&
     return false;
 }
 
-bool PageSession::applyNavGrid(PageVerb verb, PageNavScope scope, const QString& id, QString* error)
+const PageTarget* PageSession::sourceCell(const QString& sourcePageId,
+                                          const QString& sourceTargetId) const
 {
-    if (scope == PageNavScope::Others) {
-        if (error) {
-            *error = QStringLiteral("Grid target -!self is not supported");
+    if (sourceTargetId.isEmpty()) {
+        return nullptr;
+    }
+    if (!sourcePageId.isEmpty()) {
+        if (const PageTarget* t =
+                findTarget(sourcePageId + QLatin1Char('/') + sourceTargetId)) {
+            return t;
         }
-        return false;
     }
-    if (scope == PageNavScope::All || scope == PageNavScope::Self) {
-        if (verb == PageVerb::Open) {
-            if (error) {
-                *error = QStringLiteral("Open Grid %1 is not valid")
-                             .arg(scope == PageNavScope::All ? QStringLiteral("-all")
-                                                             : QStringLiteral("-self"));
-            }
-            return false;
+    if (const PageTarget* t = findTarget(sourceTargetId)) {
+        return t;
+    }
+    for (const PageTarget& t : m_targets) {
+        if (t.id == sourceTargetId
+            && (sourcePageId.isEmpty() || t.pageId == sourcePageId)) {
+            return &t;
         }
-        setRootChrome(RootChrome::Docked);
-        return true;
     }
-
-    const PageGrid* g = m_root.findGrid(id);
-    if (!g || g->rootSlot == PageRootSlot::None) {
-        if (error) {
-            *error = QStringLiteral("Unknown root chrome grid: %1").arg(id);
-        }
-        return false;
-    }
-    const RootChrome slot = chromeForSlot(g->rootSlot);
-    const bool showing = (m_chrome == slot);
-    bool show = true;
-    if (verb == PageVerb::Close) {
-        show = false;
-    } else if (verb == PageVerb::Toggle) {
-        show = !showing;
-    }
-    setRootChrome(show ? slot : RootChrome::Docked);
-    return true;
+    return nullptr;
 }
 
-bool PageSession::applyNavZone(PageVerb verb, PageNavScope scope, const QString& id,
-                               const QString& sourceTargetId, QString* error)
+PageNav::Docs PageSession::navDocs()
 {
-    QStringList ids;
-    if (scope == PageNavScope::All) {
-        auto collect = [&](const PageDocument& doc) {
-            for (const PageZone& z : doc.zones) {
-                if (!z.id.isEmpty()) {
-                    ids.push_back(z.id);
-                }
-            }
-        };
-        collect(m_root);
-        for (const AttachedPage& a : m_attached) {
-            collect(a.doc);
-        }
-    } else if (scope == PageNavScope::Self) {
-        if (!findZoneAnywhere(sourceTargetId)) {
+    PageNav::Docs d;
+    d.root = &m_root;
+    d.attached.reserve(m_attached.size());
+    for (AttachedPage& a : m_attached) {
+        d.attached.push_back(&a.doc);
+    }
+    return d;
+}
+
+bool PageSession::resolveShowSelf(PageTargetKind kind, const QString& sourcePageId,
+                                  const QString& sourceTargetId, QString* itemId, QString* preferPage,
+                                  QString* error)
+{
+    if (kind == PageTargetKind::Zone) {
+        const PageNav::Docs docs = navDocs();
+        if (!PageNav::locate(docs, sourcePageId, sourceTargetId, &PageDocument::findZone)
+            && !PageNav::locate(docs, {}, sourceTargetId, &PageDocument::findZone)) {
             if (error) {
                 *error = QStringLiteral("Zone -self requires a zone source");
             }
             return false;
         }
-        ids.push_back(sourceTargetId);
-    } else if (scope == PageNavScope::Others) {
-        if (!findZoneAnywhere(sourceTargetId)) {
+        *itemId = sourceTargetId;
+        return true;
+    }
+    const PageTarget* src = sourceCell(sourcePageId, sourceTargetId);
+    if (kind == PageTargetKind::Grid) {
+        if (!src || src->gridId.isEmpty()) {
+            if (error) {
+                *error = QStringLiteral("Grid -self requires a grid source");
+            }
+            return false;
+        }
+        *itemId = src->gridId;
+        *preferPage = src->pageId.isEmpty() ? m_root.id : src->pageId;
+        return true;
+    }
+    if (!src || src->kind != PageTarget::Kind::Cell) {
+        if (error) {
+            *error = QStringLiteral("Cell -self requires a cell source");
+        }
+        return false;
+    }
+    *itemId = src->id;
+    *preferPage = src->pageId.isEmpty() ? m_root.id : src->pageId;
+    return true;
+}
+
+bool PageSession::resolveShowSkip(PageTargetKind kind, const QString& sourcePageId,
+                                  const QString& sourceTargetId, QString* skipId, QString* skipPage,
+                                  QString* error)
+{
+    if (kind == PageTargetKind::Zone) {
+        const PageNav::Docs docs = navDocs();
+        if (!PageNav::locate(docs, sourcePageId, sourceTargetId, &PageDocument::findZone)
+            && !PageNav::locate(docs, {}, sourceTargetId, &PageDocument::findZone)) {
             if (error) {
                 *error = QStringLiteral("Zone -!self requires a zone source");
             }
             return false;
         }
-        auto collect = [&](const PageDocument& doc) {
-            for (const PageZone& z : doc.zones) {
-                if (!z.id.isEmpty() && z.id != sourceTargetId) {
-                    ids.push_back(z.id);
-                }
-            }
-        };
-        collect(m_root);
-        for (const AttachedPage& a : m_attached) {
-            collect(a.doc);
-        }
-    } else {
-        if (id.isEmpty()) {
+        *skipId = sourceTargetId;
+        *skipPage = sourcePageId;
+        return true;
+    }
+    const PageTarget* src = sourceCell(sourcePageId, sourceTargetId);
+    if (kind == PageTargetKind::Grid) {
+        if (!src || src->gridId.isEmpty()) {
             if (error) {
-                *error = QStringLiteral("Zone target is empty");
+                *error = QStringLiteral("Grid -!self requires a grid source");
             }
             return false;
         }
-        ids.push_back(id);
+        *skipId = src->gridId;
+        *skipPage = src->pageId;
+        return true;
+    }
+    if (!src || src->kind != PageTarget::Kind::Cell) {
+        if (error) {
+            *error = QStringLiteral("Cell -!self requires a cell source");
+        }
+        return false;
+    }
+    *skipId = sourceTargetId;
+    *skipPage = sourcePageId;
+    return true;
+}
+
+bool PageSession::applyShowNav(PageVerb verb, PageTargetKind kind, PageNavScope scope,
+                               const QString& id, const QString& sourcePageId,
+                               const QString& sourceTargetId, QString* error)
+{
+    const QString label = PageNav::kindLabel(kind);
+    if (scope == PageNavScope::All || scope == PageNavScope::Others) {
+        if (verb == PageVerb::Open && scope == PageNavScope::All) {
+            if (error) {
+                *error = QStringLiteral("Show %1 -all is not valid").arg(label);
+            }
+            return false;
+        }
+        QString skipId;
+        QString skipPage;
+        if (scope == PageNavScope::Others
+            && !resolveShowSkip(kind, sourcePageId, sourceTargetId, &skipId, &skipPage, error)) {
+            return false;
+        }
+        PageNav::applyScope(navDocs(), kind, verb, skipId, skipPage);
+        emitShowChanged();
+        return true;
     }
 
-    if (verb == PageVerb::Open && scope == PageNavScope::All) {
+    QString itemId = id;
+    QString preferPage = sourcePageId;
+    if (scope == PageNavScope::Self
+        && !resolveShowSelf(kind, sourcePageId, sourceTargetId, &itemId, &preferPage, error)) {
+        return false;
+    }
+    if (itemId.isEmpty()) {
         if (error) {
-            *error = QStringLiteral("Open Zone -all is not valid");
+            *error = QStringLiteral("%1 target is empty").arg(label);
         }
         return false;
     }
 
-    for (const QString& one : ids) {
-        const bool nowHidden = m_hiddenZones.contains(one);
-        bool show = true;
-        if (verb == PageVerb::Close) {
-            show = false;
-        } else if (verb == PageVerb::Toggle) {
-            show = nowHidden;
+    const PageNav::Docs docs = navDocs();
+    if (kind == PageTargetKind::Grid) {
+        PageGrid* g = PageNav::locate(docs, preferPage, itemId, &PageDocument::findGrid);
+        if (!g) {
+            if (error) {
+                *error = QStringLiteral("Unknown grid: %1").arg(itemId);
+            }
+            return false;
         }
-        if (show) {
-            m_hiddenZones.remove(one);
-        } else {
-            m_hiddenZones.insert(one);
+        if (g->rootSlot != PageRootSlot::None) {
+            const RootChrome slot = chromeForSlot(g->rootSlot);
+            const bool showing = (m_chrome == slot);
+            setRootChrome(PageNav::shownAfter(verb, showing) ? slot : RootChrome::Docked);
+            return true;
         }
+        g->show = PageNav::shownAfter(verb, g->show);
+        emitShowChanged();
+        return true;
     }
+    if (kind == PageTargetKind::Zone) {
+        PageZone* z = PageNav::locate(docs, preferPage, itemId, &PageDocument::findZone);
+        if (!z) {
+            if (error) {
+                *error = QStringLiteral("Unknown zone: %1").arg(itemId);
+            }
+            return false;
+        }
+        z->show = PageNav::shownAfter(verb, z->show);
+        emitShowChanged();
+        return true;
+    }
+    PageCell* c = PageNav::locate(docs, preferPage, itemId, &PageDocument::findCell);
+    if (!c) {
+        if (error) {
+            *error = QStringLiteral("Unknown cell: %1").arg(itemId);
+        }
+        return false;
+    }
+    c->show = PageNav::shownAfter(verb, c->show);
+    emitShowChanged();
+    return true;
+}
+
+void PageSession::emitShowChanged()
+{
     rebuild();
     raise();
     emit sessionChanged();
-    return true;
 }
 
 } // namespace gazer

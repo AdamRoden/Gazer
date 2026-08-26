@@ -1,9 +1,9 @@
-<Page id="main_settings_assist" name="Assist tools">
+<Page id="main_settings_assist" name="Assist tools" thickness="1" radius="4">
   <Style id="group" background="#00000000" thickness="1" radius="8"/>
   <Style id="row" background="#00000000" thickness="1" radius="6"/>
   <Style id="plain" background="#00000000" thickness="0" radius="0"/>
   <Style id="join" background="#00000000" thickness="0" radius="0"/>
-  <Grid id="board" desktopMode="true" rows="11" columns="16" anchor="Top" offset="0,0" size="1600,1.0" gap="6" margin="12" aboveTaskbar="false" thickness="1" radius="4">
+  <Grid id="board" desktopMode="true" rows="11" columns="16" anchor="Top" offset="0,0" size="A_ScreenHeight/9*16, A_ScreenHeight" gap="6" margin="12" thickness="1" radius="4">
     <SubGrid id="tabs" row="0" col="0" colSpan="16" rows="1" columns="6" gap="6">
       <Cell id="tab_buttons" row="0" col="0" label="Button" role="tab">
         <ClosePage value="-self"/>

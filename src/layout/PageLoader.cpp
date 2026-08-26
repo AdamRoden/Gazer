@@ -85,6 +85,9 @@ void applyChromeAttrs(const QXmlStreamAttributes& a, PageChrome& st)
             st.progressStyle = ProgressStyle::fromCsv(s);
         }
     }
+    if (a.hasAttribute(QStringLiteral("progressColor"))) {
+        st.progressColor = parseColorAttr(a.value(QStringLiteral("progressColor")));
+    }
 }
 
 void applyDwellAttrs(const QXmlStreamAttributes& a, PageDwell& d, QString* error)
@@ -128,8 +131,8 @@ bool skipUnknownOrFail(QXmlStreamReader& xml, const QString& parent, QString* er
 
 void applyCommonContent(const QXmlStreamAttributes& a, QString& label, QString& icon,
                         QString& caption, QString& settingKey, QString& activeState,
-                        QString& visibleWhen, bool& interactive, bool& dwellExempt,
-                        bool& actionLoop, bool& visible)
+                        QString& visibleWhen, bool& interactive, bool& suspendExempt,
+                        bool& actionLoop, bool& show)
 {
     if (a.hasAttribute(QStringLiteral("label"))) {
         label = a.value(QStringLiteral("label")).toString();
@@ -152,14 +155,18 @@ void applyCommonContent(const QXmlStreamAttributes& a, QString& label, QString& 
     if (a.hasAttribute(QStringLiteral("interactive"))) {
         interactive = parseBoolAttr(a.value(QStringLiteral("interactive")), true);
     }
-    if (a.hasAttribute(QStringLiteral("dwellExempt"))) {
-        dwellExempt = parseBoolAttr(a.value(QStringLiteral("dwellExempt")), false);
+    if (a.hasAttribute(QStringLiteral("suspendExempt"))) {
+        suspendExempt = parseBoolAttr(a.value(QStringLiteral("suspendExempt")), false);
+    } else if (a.hasAttribute(QStringLiteral("dwellExempt"))) {
+        suspendExempt = parseBoolAttr(a.value(QStringLiteral("dwellExempt")), false);
     }
     if (a.hasAttribute(QStringLiteral("actionLoop"))) {
         actionLoop = parseBoolAttr(a.value(QStringLiteral("actionLoop")), false);
     }
-    if (a.hasAttribute(QStringLiteral("visible"))) {
-        visible = parseBoolAttr(a.value(QStringLiteral("visible")), true);
+    if (a.hasAttribute(QStringLiteral("show"))) {
+        show = parseBoolAttr(a.value(QStringLiteral("show")), true);
+    } else if (a.hasAttribute(QStringLiteral("visible"))) {
+        show = parseBoolAttr(a.value(QStringLiteral("visible")), true);
     }
 }
 
@@ -203,14 +210,14 @@ bool isDwellSuspendCommand(const QString& name)
            || name == QLatin1String("resumeDwell");
 }
 
-void applyDwellExemptFromActions(bool& dwellExempt, const QVector<PageAction>& actions)
+void applySuspendExemptFromActions(bool& suspendExempt, const QVector<PageAction>& actions)
 {
-    if (dwellExempt) {
+    if (suspendExempt) {
         return;
     }
     for (const PageAction& a : actions) {
         if (a.type == PageActionType::Command && isDwellSuspendCommand(a.command)) {
-            dwellExempt = true;
+            suspendExempt = true;
             return;
         }
     }
@@ -236,8 +243,8 @@ bool readCell(QXmlStreamReader& xml, PageCell& cell, QString* error)
         return false;
     }
     applyCommonContent(a, cell.label, cell.icon, cell.caption, cell.settingKey, cell.activeState,
-                       cell.visibleWhen, cell.interactive, cell.dwellExempt, cell.actionLoop,
-                       cell.visible);
+                       cell.visibleWhen, cell.interactive, cell.suspendExempt, cell.actionLoop,
+                       cell.show);
     cell.shell = parseBoolAttr(a.value(QStringLiteral("shell")), false);
     if (!a.hasAttribute(QStringLiteral("interactive"))) {
         const QString r = cell.role.toLower();
@@ -256,7 +263,7 @@ bool readCell(QXmlStreamReader& xml, PageCell& cell, QString* error)
     if (!readActions(xml, QStringLiteral("Cell"), cell.actions, error)) {
         return false;
     }
-    applyDwellExemptFromActions(cell.dwellExempt, cell.actions);
+    applySuspendExemptFromActions(cell.suspendExempt, cell.actions);
     return true;
 }
 
@@ -320,7 +327,6 @@ bool readGrid(QXmlStreamReader& xml, PageGrid& grid, bool nested, QString* error
     if (a.hasAttribute(QStringLiteral("rowWeights"))) {
         grid.rowWeights = parseRowWeights(a.value(QStringLiteral("rowWeights")));
     }
-    grid.aboveTaskbar = parseBoolAttr(a.value(QStringLiteral("aboveTaskbar")), false);
     grid.drawerMotion = parseBoolAttr(a.value(QStringLiteral("drawerMotion")), false);
     const QString slot = a.value(QStringLiteral("chrome")).toString().trimmed().toLower();
     if (slot == QLatin1String("drawer")) {
@@ -332,6 +338,11 @@ bool readGrid(QXmlStreamReader& xml, PageGrid& grid, bool nested, QString* error
     }
     grid.autoClose = parseBoolAttr(a.value(QStringLiteral("autoClose")), false);
     grid.autoCloseIdleMs = parseIntAttr(a.value(QStringLiteral("autoCloseIdleMs")), -1);
+    if (a.hasAttribute(QStringLiteral("show"))) {
+        grid.show = parseBoolAttr(a.value(QStringLiteral("show")), true);
+    } else {
+        grid.show = parseBoolAttr(a.value(QStringLiteral("open")), true);
+    }
     grid.shell = parseBoolAttr(a.value(QStringLiteral("shell")), false);
     grid.styleId = a.value(QStringLiteral("style")).toString();
     grid.dwellId = a.value(QStringLiteral("dwell")).toString();
@@ -400,7 +411,6 @@ bool readZone(QXmlStreamReader& xml, PageZone& zone, QString* error)
     if (error && !error->isEmpty()) {
         return false;
     }
-    zone.aboveTaskbar = parseBoolAttr(a.value(QStringLiteral("aboveTaskbar")), false);
     if (a.hasAttribute(QStringLiteral("dwellOffset"))) {
         QString err;
         zone.dwellOffset =
@@ -424,8 +434,8 @@ bool readZone(QXmlStreamReader& xml, PageZone& zone, QString* error)
         }
     }
     applyCommonContent(a, zone.label, zone.icon, zone.caption, zone.settingKey, zone.activeState,
-                       zone.visibleWhen, zone.interactive, zone.dwellExempt, zone.actionLoop,
-                       zone.visible);
+                       zone.visibleWhen, zone.interactive, zone.suspendExempt, zone.actionLoop,
+                       zone.show);
     zone.shell = parseBoolAttr(a.value(QStringLiteral("shell")), false);
     if (!zone.size.isSet()) {
         zone.size.x = PageDim::pixels(200);
@@ -452,7 +462,7 @@ bool readZone(QXmlStreamReader& xml, PageZone& zone, QString* error)
     if (!readActions(xml, QStringLiteral("Zone"), zone.actions, error)) {
         return false;
     }
-    applyDwellExemptFromActions(zone.dwellExempt, zone.actions);
+    applySuspendExemptFromActions(zone.suspendExempt, zone.actions);
     return true;
 }
 

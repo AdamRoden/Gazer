@@ -1,5 +1,5 @@
 <Page id="example_keyboard" name="Keyboard">
-  <Grid id="board" desktopMode="true" rows="3" columns="12" anchor="Bottom" offset="0,0" size="1280,280" gap="4" margin="4" aboveTaskbar="false">
+  <Grid id="board" desktopMode="true" rows="3" columns="12" anchor="Bottom" offset="0,0" size="1280,280" gap="4" margin="4">
     <Cell id="tab" row="0" col="0" icon="Tab" label="Tab" background="#3d4f66" foreground="#ffffff" command="tab"/>
     <Cell id="ch_113_0_1" row="0" col="1" label="q" send="q"/>
     <Cell id="ch_119_0_2" row="0" col="2" label="w" send="w"/>
@@ -45,6 +45,6 @@
   </Grid>
   <Zone id="edge_main" anchor="Top" offset="0,0" size="420,156" icon="Menu" label="Main" background="#0a7ea4" foreground="#ffffff">
     <ClosePage value="-self"/>
-    <OpenGrid value="drawer"/>
+    <ShowGrid value="drawer"/>
   </Zone>
 </Page>

@@ -4,10 +4,12 @@
 
 #include <QPoint>
 #include <QRectF>
+#include <QSizeF>
 #include <QString>
 #include <QStringView>
 
 namespace gazer {
+
 namespace PageDimParse {
 
 [[nodiscard]] PageDim parse(const QString& token, QString* error = nullptr);
@@ -21,8 +23,9 @@ namespace PageDimParse {
 [[nodiscard]] bool strictBool(QStringView t, bool* out);
 
 /// Place a box of `size` at `anchor` on `bounds`, then add `offset`.
+/// @p screen feeds `A_ScreenWidth` / `A_ScreenHeight`. Empty uses `bounds`.
 [[nodiscard]] QRectF placeRect(const QRectF& bounds, PageAnchor anchor, const PageDimPair& offset,
-                               const PageDimPair& size);
+                               const PageDimPair& size, const QSizeF& screen = {});
 
 } // namespace PageDimParse
 } // namespace gazer

@@ -30,7 +30,8 @@ public:
 
     void setTheme(const ThemeColors& theme);
     void setProgressVisuals(const ProgressVisuals& visuals);
-    void commit(QVector<PageTarget> targets, QVector<PageGridPaint> grids, double drawerScale);
+    void commit(QVector<PageTarget> targets, QVector<PageGridPaint> grids, double drawerScale,
+                QRectF reserved = {});
     void setDrawerScale(double scale);
     void setActiveIds(QSet<QString> ids);
     void setHover(const QString& id, double progress, bool revealProgress = false);
@@ -64,6 +65,7 @@ private:
     void applyChrome();
     void applyInputFocusChrome();
     void cacheDrawerXf();
+    [[nodiscard]] QPoint paintOrigin() const;
     enum class ChromePass { Live, Underlay };
     void paintScene(QPainter& p, ChromePass pass);
     void refreshUnderlay();
@@ -74,6 +76,7 @@ private:
     ProgressVisuals m_progress;
     QVector<PageTarget> m_targets;
     QVector<PageGridPaint> m_gridPaints;
+    QRectF m_reserved;
     double m_drawerScale = 1.0;
     QTransform m_drawerXf;
     double m_blurMax = 0.0;

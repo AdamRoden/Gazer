@@ -2,26 +2,21 @@
 
 #include "layout/PageTypes.h"
 
-#include <QVector>
-
 namespace gazer {
 namespace PageResolve {
 
-/// Cell / nested SubGrid: leaf ← … ← SubGrid ← Grid ← Page ← System (per field).
-[[nodiscard]] PageChrome style(const PageDocument& page, const PageChrome& system,
-                               const QVector<const PageGrid*>& gridChain, const QString& leafStyleId,
-                               const PageChrome& leafStyle);
+/// Per-field: page ← named id ← inline.
+/// Paint/hit apply thickness/radius defaults; session globals apply dwell fallbacks.
+/// Grids never contribute style or dwell to cells, zones, or nested grids.
+[[nodiscard]] PageChrome style(const PageDocument& page, const QString& styleId,
+                               const PageChrome& inlineStyle);
 
-[[nodiscard]] PageDwell dwell(const PageDocument& page, const PageDwell& system,
-                              const QVector<const PageGrid*>& gridChain, const QString& leafDwellId,
-                              const PageDwell& leafDwell);
+[[nodiscard]] PageDwell dwell(const PageDocument& page, const QString& dwellId,
+                              const PageDwell& inlineDwell);
 
-/// Zone: leaf ← Page ← System.
-[[nodiscard]] PageChrome zoneStyle(const PageDocument& page, const PageChrome& system,
-                                   const PageZone& zone);
+[[nodiscard]] PageChrome zoneStyle(const PageDocument& page, const PageZone& zone);
 
-[[nodiscard]] PageDwell zoneDwell(const PageDocument& page, const PageDwell& system,
-                                  const PageZone& zone);
+[[nodiscard]] PageDwell zoneDwell(const PageDocument& page, const PageZone& zone);
 
 } // namespace PageResolve
 } // namespace gazer

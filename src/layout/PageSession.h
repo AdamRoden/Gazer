@@ -3,6 +3,7 @@
 #include "core/GazePoint.h"
 #include "layout/DwellStateMachine.h"
 #include "layout/PageHit.h"
+#include "layout/PageNav.h"
 #include "layout/PageTypes.h"
 #include "ui/PageHostWindow.h"
 #include "ui/ProgressVisuals.h"
@@ -123,8 +124,7 @@ private:
     [[nodiscard]] QSet<QString> hiddenRootGrids() const;
     [[nodiscard]] const PageTarget* findTarget(const QString& id) const;
     [[nodiscard]] QString xmlPathFor(const QString& id) const;
-    void ingest(const PageDocument& doc, const QSet<QString>& hiddenGrids,
-                const QSet<QString>& hiddenZones, QVector<PageTarget>& rest,
+    void ingest(const PageDocument& doc, const QSet<QString>& hiddenGrids, QVector<PageTarget>& rest,
                 QVector<PageTarget>& shellLayer, QVector<PageGridPaint>& restGrids,
                 QVector<PageGridPaint>& shellGrids);
     void armLeaveGate(const QString& pageId);
@@ -140,9 +140,9 @@ private:
     };
 
     struct PageBreadcrumb {
+        PageDocument root;
         QVector<PageDocument> attached;
         RootChrome chrome = RootChrome::Docked;
-        QSet<QString> hiddenZones;
     };
 
     [[nodiscard]] PageBreadcrumb captureBreadcrumb() const;
@@ -151,19 +151,26 @@ private:
                                         const QString& sourceTargetId, QString* error);
     [[nodiscard]] bool applyNavPage(PageVerb verb, PageNavScope scope, const QString& id,
                                     const QString& sourcePageId, QString* error);
-    [[nodiscard]] bool applyNavGrid(PageVerb verb, PageNavScope scope, const QString& id,
-                                    QString* error);
-    [[nodiscard]] bool applyNavZone(PageVerb verb, PageNavScope scope, const QString& id,
+    [[nodiscard]] bool applyShowNav(PageVerb verb, PageTargetKind kind, PageNavScope scope,
+                                    const QString& id, const QString& sourcePageId,
                                     const QString& sourceTargetId, QString* error);
+    [[nodiscard]] PageNav::Docs navDocs();
+    [[nodiscard]] bool resolveShowSelf(PageTargetKind kind, const QString& sourcePageId,
+                                       const QString& sourceTargetId, QString* itemId,
+                                       QString* preferPage, QString* error);
+    [[nodiscard]] bool resolveShowSkip(PageTargetKind kind, const QString& sourcePageId,
+                                       const QString& sourceTargetId, QString* skipId,
+                                       QString* skipPage, QString* error);
+    [[nodiscard]] const PageTarget* sourceCell(const QString& sourcePageId,
+                                               const QString& sourceTargetId) const;
     void closePagesExcept(const QString& keepId);
-    [[nodiscard]] const PageZone* findZoneAnywhere(const QString& id) const;
+    void emitShowChanged();
 
     PageDocument m_root;
     QVector<PageBreadcrumb> m_crumbs;
     QString m_layoutsDir;
     QHash<QString, PageDocument> m_memory;
     QVector<AttachedPage> m_attached;
-    QSet<QString> m_hiddenZones;
     QVariantMap m_props;
     bool m_dwellSuspended = false;
     bool m_autoCollapseMain = false;

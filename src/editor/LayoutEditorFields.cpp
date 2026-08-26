@@ -218,15 +218,18 @@ void PropertyBinder::dim(QFormLayout* form, const QString& label, const PageDim&
     h->setSpacing(6);
     auto* unit = new QComboBox;
     unit->addItems({QStringLiteral("unset"), QStringLiteral("px"), QStringLiteral("prop"),
-                    QStringLiteral("h-prop")});
+                    QStringLiteral("h-prop"), QStringLiteral("expr")});
     fitWidth(unit);
     fitWidth(row);
+    const bool isExpr = value.unit == PageDim::Unit::Expression;
     if (!value.isSet()) {
         unit->setCurrentIndex(0);
     } else if (value.unit == PageDim::Unit::Pixels) {
         unit->setCurrentIndex(1);
     } else if (value.unit == PageDim::Unit::HeightProportion) {
         unit->setCurrentIndex(3);
+    } else if (isExpr) {
+        unit->setCurrentIndex(4);
     } else {
         unit->setCurrentIndex(2);
     }
@@ -235,10 +238,15 @@ void PropertyBinder::dim(QFormLayout* form, const QString& label, const PageDim&
     spin->setDecimals(3);
     spin->setValue(value.value);
     spin->setButtonSymbols(QAbstractSpinBox::NoButtons);
-    spin->setEnabled(unit->currentIndex() != 0);
+    spin->setEnabled(unit->currentIndex() != 0 && !isExpr);
     fitWidth(spin);
+    auto* expr = new QLineEdit(value.expr);
+    expr->setPlaceholderText(QStringLiteral("A_ScreenHeight/9*16"));
+    fitWidth(expr);
+    expr->setVisible(isExpr);
+    spin->setVisible(!isExpr);
     bool* const loadingFlag = loading;
-    auto commit = [loadingFlag, unit, spin, apply]() {
+    auto commit = [loadingFlag, unit, spin, expr, apply]() {
         if (loadingFlag && *loadingFlag) {
             return;
         }
@@ -249,16 +257,31 @@ void PropertyBinder::dim(QFormLayout* form, const QString& label, const PageDim&
             d = PageDim::proportion(spin->value());
         } else if (unit->currentIndex() == 3) {
             d = PageDim::heightProportion(spin->value());
+        } else if (unit->currentIndex() == 4) {
+            QString err;
+            d = PageDimParse::parse(expr->text(), &err);
+            if (d.unit == PageDim::Unit::Unset) {
+                return;
+            }
         }
         apply(d);
     };
-    QObject::connect(unit, &QComboBox::currentIndexChanged, host, [spin, commit](int idx) {
-        spin->setEnabled(idx != 0);
+    auto sync = [unit, spin, expr]() {
+        const bool exprOn = unit->currentIndex() == 4;
+        spin->setVisible(!exprOn);
+        expr->setVisible(exprOn);
+        spin->setEnabled(unit->currentIndex() > 0 && !exprOn);
+        expr->setEnabled(exprOn);
+    };
+    QObject::connect(unit, &QComboBox::currentIndexChanged, host, [sync, commit](int) {
+        sync();
         commit();
     });
     QObject::connect(spin, &QDoubleSpinBox::editingFinished, host, commit);
+    QObject::connect(expr, &QLineEdit::editingFinished, host, commit);
     h->addWidget(unit);
     h->addWidget(spin, 1);
+    h->addWidget(expr, 1);
     form->addRow(label, row);
 }
 
@@ -347,7 +370,9 @@ void addChromeFields(PropertyBinder& b, QFormLayout* form, const PageChrome& st,
 {
     if (includeHeading) {
         b.heading(form, QStringLiteral("Style"));
-        b.note(form, QStringLiteral("Empty inherits the named style, then the page, then the theme."));
+        b.note(form, QStringLiteral("Empty inherits the named style, then the page, then "
+                                    "settings (thickness 1 / radius 0). Grids do not pass "
+                                    "style to cells or zones."));
     }
     b.color(form, QStringLiteral("Background"), st.background, [apply](std::optional<QColor> c) {
         apply(QStringLiteral("Background"), [&](PageChrome& s) { s.background = c; });
@@ -379,6 +404,10 @@ void addChromeFields(PropertyBinder& b, QFormLayout* form, const PageChrome& st,
                        s.isEmpty() ? std::nullopt : std::optional<ProgressStyle>(ProgressStyle::fromCsv(s));
                });
            });
+    b.color(form, QStringLiteral("Progress color"), st.progressColor,
+            [apply](std::optional<QColor> c) {
+                apply(QStringLiteral("Progress color"), [&](PageChrome& s) { s.progressColor = c; });
+            });
     b.note(form, QStringLiteral("Empty inherits. Tokens: radial, border, fill, fillup, "
                                 "filldown, fillleft, fillright."));
 }
@@ -442,6 +471,8 @@ void addDwellFields(PropertyBinder& b, QFormLayout* form, const PageDwell& dwell
 {
     if (includeHeading) {
         b.heading(form, QStringLiteral("Dwell"));
+        b.note(form, QStringLiteral("Empty inherits the named dwell, then the page, then "
+                                    "settings. Grids do not pass dwell to cells or zones."));
     }
     if (inheritApply) {
         addOptionalIdCombo(b, form, QStringLiteral("Inherit"), inheritIds, inheritCurrent,
@@ -611,19 +642,28 @@ void addActionFields(PropertyBinder& b, QFormLayout* form, const PageAction& act
                 [apply](const QString& t) {
                     apply(QStringLiteral("Click button"), [&](PageAction& a) { a.button = t; });
                 });
-        b.integer(form, QStringLiteral("Zoom (0 = none)"),
-                  action.zoomMode == PageZoomMode::Level ? action.zoomLevel : 0, 0, 16,
-                  [apply](int v) {
-                      apply(QStringLiteral("Zoom"), [&](PageAction& a) {
-                          if (v <= 0) {
-                              a.zoomMode = PageZoomMode::Off;
-                              a.zoomLevel = 0;
-                          } else {
-                              a.zoomMode = PageZoomMode::Level;
-                              a.zoomLevel = v;
-                          }
-                      });
-                  });
+        b.note(form, QStringLiteral("−1 arms dwell move+click (toggle, mag-pick follows Settings). "
+                                   "0 warps to gaze and clicks now. >0 mag-pick at that zoom."));
+        int zoomUi = -1;
+        if (action.zoomMode == PageZoomMode::Off) {
+            zoomUi = 0;
+        } else if (action.zoomMode == PageZoomMode::Level) {
+            zoomUi = action.zoomLevel;
+        }
+        b.integer(form, QStringLiteral("Zoom (−1 = settings)"), zoomUi, -1, 16, [apply](int v) {
+            apply(QStringLiteral("Zoom"), [&](PageAction& a) {
+                if (v < 0) {
+                    a.zoomMode = PageZoomMode::Settings;
+                    a.zoomLevel = 0;
+                } else if (v == 0) {
+                    a.zoomMode = PageZoomMode::Off;
+                    a.zoomLevel = 0;
+                } else {
+                    a.zoomMode = PageZoomMode::Level;
+                    a.zoomLevel = v;
+                }
+            });
+        });
     }
     if (action.type == PageActionType::Move) {
         QString mode = QStringLiteral("Gaze");

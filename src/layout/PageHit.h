@@ -28,7 +28,7 @@ struct PageTarget {
     QString textStyle;
     QString role;
     QString settingKey;
-    bool dwellExempt = false;
+    bool suspendExempt = false;
     bool interactive = true;
     bool shell = false;
     bool drawerMotion = false;
@@ -78,10 +78,10 @@ namespace PageHit {
 /// Zones are appended after grids so they win, matching root chips over the drawer.
 [[nodiscard]] QVector<PageTarget> collect(const PageDocument& page, const PageFrame& frame,
                                           const QSet<QString>& hiddenGrids = {},
-                                          const QSet<QString>& hiddenZones = {},
                                           const QVariantMap& props = {},
                                           bool dwellSuspended = false,
-                                          QVector<PageGridPaint>* grids = nullptr);
+                                          QVector<PageGridPaint>* grids = nullptr,
+                                          bool includeHidden = false);
 
 /// Topmost non-shell board whose visual contains pos. Empty if none.
 [[nodiscard]] QString coveringPageId(const QVector<PageGridPaint>& grids, const QPointF& pos,
@@ -109,6 +109,18 @@ namespace PageHit {
 /// Union of painted chrome in global coords (grids, on-screen content, progress strips).
 [[nodiscard]] QRectF paintBounds(const QVector<PageTarget>& targets,
                                  const QVector<PageGridPaint>& grids, double drawerScale = 1.0);
+/// Unscaled chrome union for the host window. Drawer scale must not move this, or
+/// non-drawer boards jump/shake while the drawer animates.
+[[nodiscard]] inline QRectF hostBounds(const QVector<PageTarget>& targets,
+                                       const QVector<PageGridPaint>& grids)
+{
+    return paintBounds(targets, grids, 1.0);
+}
+/// Authored grid/zone boxes, including show=false. Chrome-slot ids in @p hiddenGrids
+/// are omitted (drawer/quit follow root chrome). Host geometry must keep this space
+/// so ShowGrid/ShowZone do not move already-visible boards.
+[[nodiscard]] QRectF reservedBounds(const PageDocument& page, const PageFrame& frame,
+                                    const QSet<QString>& hiddenGrids = {});
 [[nodiscard]] QRectF frostedBounds(const QVector<PageTarget>& targets,
                                    const QVector<PageGridPaint>& grids, double drawerScale = 1.0);
 

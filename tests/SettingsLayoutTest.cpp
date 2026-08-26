@@ -1,3 +1,4 @@
+#include "layout/PageDim.h"
 #include "layout/PageHit.h"
 #include "layout/PageLoader.h"
 
@@ -46,6 +47,9 @@ void SettingsLayoutTest::pagesAnchorTop()
                              + QStringLiteral("/resources/layouts/") + id + QStringLiteral(".xml");
         QVERIFY2(PageLoader::loadFromFile(path, doc, &err), qPrintable(err));
         QCOMPARE(doc.grids[0].anchor, PageAnchor::Top);
+        QCOMPARE(doc.grids[0].desktopMode, true);
+        QCOMPARE(PageDimParse::token(doc.grids[0].size.x), QStringLiteral("A_ScreenHeight/9*16"));
+        QCOMPARE(PageDimParse::token(doc.grids[0].size.y), QStringLiteral("A_ScreenHeight"));
         QVERIFY(!doc.grids[0].style.background.has_value());
         QVERIFY(doc.styles.contains(QStringLiteral("plain")));
         QVERIFY(doc.styles.contains(QStringLiteral("join")));

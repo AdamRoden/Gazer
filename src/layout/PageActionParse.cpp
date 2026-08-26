@@ -6,6 +6,7 @@
 #include <QStringList>
 #include <QtGlobal>
 #include <QVector>
+#include <QXmlStreamAttribute>
 
 namespace gazer {
 
@@ -27,16 +28,26 @@ const ActionName kNames[] = {
      PageTargetKind::Page},
     {"command", "Command", PageActionType::Command, PageVerb::Open, PageTargetKind::Page},
     {"openPage", "OpenPage", PageActionType::Nav, PageVerb::Open, PageTargetKind::Page},
-    {"openGrid", "OpenGrid", PageActionType::Nav, PageVerb::Open, PageTargetKind::Grid},
-    {"openZone", "OpenZone", PageActionType::Nav, PageVerb::Open, PageTargetKind::Zone},
+    {"showGrid", "ShowGrid", PageActionType::Nav, PageVerb::Open, PageTargetKind::Grid},
+    {"showZone", "ShowZone", PageActionType::Nav, PageVerb::Open, PageTargetKind::Zone},
+    {"showCell", "ShowCell", PageActionType::Nav, PageVerb::Open, PageTargetKind::Cell},
     {"closePage", "ClosePage", PageActionType::Nav, PageVerb::Close, PageTargetKind::Page},
-    {"closeGrid", "CloseGrid", PageActionType::Nav, PageVerb::Close, PageTargetKind::Grid},
-    {"closeZone", "CloseZone", PageActionType::Nav, PageVerb::Close, PageTargetKind::Zone},
+    {"hideGrid", "HideGrid", PageActionType::Nav, PageVerb::Close, PageTargetKind::Grid},
+    {"hideZone", "HideZone", PageActionType::Nav, PageVerb::Close, PageTargetKind::Zone},
+    {"hideCell", "HideCell", PageActionType::Nav, PageVerb::Close, PageTargetKind::Cell},
     {"togglePage", "TogglePage", PageActionType::Nav, PageVerb::Toggle, PageTargetKind::Page},
     {"toggleGrid", "ToggleGrid", PageActionType::Nav, PageVerb::Toggle, PageTargetKind::Grid},
     {"toggleZone", "ToggleZone", PageActionType::Nav, PageVerb::Toggle, PageTargetKind::Zone},
+    {"toggleCell", "ToggleCell", PageActionType::Nav, PageVerb::Toggle, PageTargetKind::Cell},
     {"goBack", "GoBack", PageActionType::GoBack, PageVerb::Open, PageTargetKind::Page},
     {"speak", "Speak", PageActionType::Speak, PageVerb::Open, PageTargetKind::Page},
+};
+
+const ActionName kAliases[] = {
+    {"openGrid", "OpenGrid", PageActionType::Nav, PageVerb::Open, PageTargetKind::Grid},
+    {"openZone", "OpenZone", PageActionType::Nav, PageVerb::Open, PageTargetKind::Zone},
+    {"closeGrid", "CloseGrid", PageActionType::Nav, PageVerb::Close, PageTargetKind::Grid},
+    {"closeZone", "CloseZone", PageActionType::Nav, PageVerb::Close, PageTargetKind::Zone},
 };
 
 const ActionName* findName(QStringView raw)
@@ -45,8 +56,16 @@ const ActionName* findName(QStringView raw)
     if (n.isEmpty() || n == QLatin1String("action") || n == QLatin1String("page")) {
         return nullptr;
     }
+    auto match = [&](const ActionName& a) {
+        return n == QLatin1String(a.attr) || n == QString::fromLatin1(a.element).toLower();
+    };
     for (const ActionName& a : kNames) {
-        if (n == QLatin1String(a.attr) || n == QString::fromLatin1(a.element).toLower()) {
+        if (match(a)) {
+            return &a;
+        }
+    }
+    for (const ActionName& a : kAliases) {
+        if (match(a)) {
             return &a;
         }
     }
@@ -362,7 +381,7 @@ bool parseMoveParts(const QStringList& parts, PageAction& out, QString* error)
 bool parseMoveAndClickParts(const QStringList& parts, PageAction& out, QString* error)
 {
     out.type = PageActionType::MoveAndClick;
-    out.zoomMode = PageZoomMode::Off;
+    out.zoomMode = PageZoomMode::Settings;
     if (!parts.isEmpty()) {
         out.button = parts[0];
     }
@@ -416,9 +435,9 @@ bool parseLegacyPageParts(const QStringList& parts, PageAction& out, QString* er
     }
     PageVerb v = PageVerb::Open;
     const QString verb = parts[0].toLower();
-    if (verb == QLatin1String("open")) {
+    if (verb == QLatin1String("open") || verb == QLatin1String("show")) {
         v = PageVerb::Open;
-    } else if (verb == QLatin1String("close")) {
+    } else if (verb == QLatin1String("close") || verb == QLatin1String("hide")) {
         v = PageVerb::Close;
     } else if (verb == QLatin1String("toggle")) {
         v = PageVerb::Toggle;
@@ -436,6 +455,8 @@ bool parseLegacyPageParts(const QStringList& parts, PageAction& out, QString* er
         k = PageTargetKind::Grid;
     } else if (kind == QLatin1String("zone")) {
         k = PageTargetKind::Zone;
+    } else if (kind == QLatin1String("cell")) {
+        k = PageTargetKind::Cell;
     } else {
         if (error) {
             *error = QStringLiteral("Unknown Page target '%1'").arg(parts[1]);
@@ -497,10 +518,9 @@ QString actionValueFrom(const QXmlStreamAttributes& attrs, const QString& cdata)
 QVector<QPair<QString, QString>> collectActionAttrs(const QXmlStreamAttributes& attrs)
 {
     QVector<QPair<QString, QString>> found;
-    for (const ActionName& n : kNames) {
-        const QString name = QString::fromLatin1(n.attr);
-        if (attrs.hasAttribute(name)) {
-            found.push_back({name, attrs.value(name).toString()});
+    for (const QXmlStreamAttribute& a : attrs) {
+        if (const ActionName* n = findName(a.name())) {
+            found.push_back({QString::fromLatin1(n->attr), a.value().toString()});
         }
     }
     return found;
@@ -570,8 +590,11 @@ bool applyPageActionSpell(PageAction& a, const QString& spell)
     const PageActionType keep = n->type;
     a = PageAction{};
     applySpell(a, *n);
-    if (keep == PageActionType::Move) {
+    if (keep == PageActionType::Move || keep == PageActionType::MoveAndClick) {
         a.zoomMode = PageZoomMode::Settings;
+    }
+    if (keep == PageActionType::MoveAndClick) {
+        a.button = QStringLiteral("left");
     }
     return true;
 }
@@ -648,9 +671,9 @@ QString pageActionValueText(const PageAction& a)
             return csvJoin({btn, QString::number(a.zoomLevel)});
         }
         if (a.zoomMode == PageZoomMode::Off) {
-            return btn;
+            return csvJoin({btn, QStringLiteral("0")});
         }
-        return csvJoin({btn, QString::number(qMax(1, a.zoomLevel))});
+        return btn;
     }
     case PageActionType::Command:
         return a.command;

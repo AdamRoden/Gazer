@@ -132,6 +132,7 @@ set(GAZER_HEADERS
     src/layout/PageActionParse.h
     src/layout/PageLoader.h
     src/layout/PageResolve.h
+    src/layout/PageNav.h
     src/layout/PageDetector.h
     src/layout/PageHit.h
     src/layout/PageSession.h
@@ -315,6 +316,8 @@ set(GAZER_PAGE_TEST_LIB
 add_executable(GazerPageTests
     tests/page_tests_main.cpp
     tests/PageLoaderTest.cpp
+    tests/PageDimTest.cpp
+    tests/PageNavTest.cpp
     tests/PageHitTest.cpp
     tests/SettingsLayoutTest.cpp
     ${GAZER_PAGE_TEST_LIB}

@@ -1,5 +1,5 @@
 <Page id="example_keyboard_shift" name="Keyboard ⇧">
-  <Grid id="board" desktopMode="true" rows="3" columns="12" anchor="Bottom" offset="0,0" size="1280,280" gap="4" margin="4" aboveTaskbar="false">
+  <Grid id="board" desktopMode="true" rows="3" columns="12" anchor="Bottom" offset="0,0" size="1280,280" gap="4" margin="4">
     <Cell id="tab" row="0" col="0" icon="Tab" label="Tab" background="#3d4f66" foreground="#ffffff" command="tab"/>
     <Cell id="ch_81_0_1" row="0" col="1" label="Q" send="Q"/>
     <Cell id="ch_87_0_2" row="0" col="2" label="W" send="W"/>

@@ -9,6 +9,7 @@
 #include <QFileInfo>
 #include <QGuiApplication>
 #include <QScreen>
+#include <QSet>
 #include <QStringList>
 #include <QTimer>
 #include <QTransform>
@@ -113,7 +114,6 @@ bool PageSession::openRoot(const QString& xmlPath, QString* error)
         m_layoutsDir = QFileInfo(xmlPath).absolutePath();
     }
     m_attached.clear();
-    m_hiddenZones.clear();
     m_crumbs.clear();
     m_chrome = RootChrome::Docked;
     m_drawerPhase = DrawerPhase::Idle;
@@ -451,13 +451,12 @@ int PageSession::closeAttached()
 }
 
 void PageSession::ingest(const PageDocument& doc, const QSet<QString>& hiddenGrids,
-                         const QSet<QString>& hiddenZones, QVector<PageTarget>& rest,
-                         QVector<PageTarget>& shellLayer, QVector<PageGridPaint>& restGrids,
-                         QVector<PageGridPaint>& shellGrids)
+                         QVector<PageTarget>& rest, QVector<PageTarget>& shellLayer,
+                         QVector<PageGridPaint>& restGrids, QVector<PageGridPaint>& shellGrids)
 {
     QVector<PageGridPaint> g;
-    QVector<PageTarget> piece = PageHit::collect(doc, frame(), hiddenGrids, hiddenZones, m_props,
-                                                 m_dwellSuspended, &g);
+    QVector<PageTarget> piece =
+        PageHit::collect(doc, frame(), hiddenGrids, m_props, m_dwellSuspended, &g);
     for (PageGridPaint& gp : g) {
         gp.pageId = doc.id;
         (gp.shell ? shellGrids : restGrids).push_back(std::move(gp));
@@ -474,16 +473,25 @@ void PageSession::rebuild()
     QVector<PageTarget> shellLayer;
     QVector<PageGridPaint> restGrids;
     QVector<PageGridPaint> shellGrids;
-    ingest(m_root, hiddenRootGrids(), m_hiddenZones, rest, shellLayer, restGrids, shellGrids);
+    ingest(m_root, hiddenRootGrids(), rest, shellLayer, restGrids, shellGrids);
     for (const AttachedPage& a : m_attached) {
-        ingest(a.doc, {}, {}, rest, shellLayer, restGrids, shellGrids);
+        ingest(a.doc, {}, rest, shellLayer, restGrids, shellGrids);
     }
     rest.append(shellLayer);
     restGrids.append(shellGrids);
     m_targets = std::move(rest);
     m_gridPaints = std::move(restGrids);
     if (m_host) {
-        m_host->commit(m_targets, m_gridPaints, m_drawerScale);
+        const PageFrame fr = frame();
+        QRectF reserved = PageHit::reservedBounds(m_root, fr, hiddenRootGrids());
+        for (const AttachedPage& a : m_attached) {
+            const QRectF piece = PageHit::reservedBounds(a.doc, fr);
+            if (piece.isEmpty()) {
+                continue;
+            }
+            reserved = reserved.isEmpty() ? piece : reserved.united(piece);
+        }
+        m_host->commit(m_targets, m_gridPaints, m_drawerScale, reserved);
     }
     refreshActive();
     if (autoCloseIdleMs() >= 0) {

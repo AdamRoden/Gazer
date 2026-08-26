@@ -4,6 +4,7 @@
 #include <QtGlobal>
 
 namespace gazer {
+
 namespace PageDimParse {
 
 namespace {
@@ -13,7 +14,283 @@ QString norm(const QString& s)
     return s.trimmed().toLower();
 }
 
+[[nodiscard]] bool isNumericToken(const QString& t)
+{
+    if (t.isEmpty()) {
+        return false;
+    }
+    bool ok = false;
+    (void)t.toDouble(&ok);
+    if (!ok) {
+        return false;
+    }
+    for (const QChar c : t) {
+        if (c.isLetter() && c != QLatin1Char('e') && c != QLatin1Char('E')) {
+            return false;
+        }
+    }
+    return true;
+}
+
+[[nodiscard]] bool isSimpleFraction(const QString& t, double* out)
+{
+    const int slash = t.indexOf(QLatin1Char('/'));
+    if (slash <= 0 || t.indexOf(QLatin1Char('/'), slash + 1) >= 0) {
+        return false;
+    }
+    const QString num = t.left(slash).trimmed();
+    const QString den = t.mid(slash + 1).trimmed();
+    if (!isNumericToken(num) || !isNumericToken(den)) {
+        return false;
+    }
+    bool okNum = false;
+    bool okDen = false;
+    const double n = num.toDouble(&okNum);
+    const double d = den.toDouble(&okDen);
+    if (!okNum || !okDen || d == 0.0) {
+        return false;
+    }
+    if (out) {
+        *out = n / d;
+    }
+    return true;
+}
+
+struct ExprEval {
+    QString s;
+    int i = 0;
+    QString* error = nullptr;
+    double screenW = 0.0;
+    double screenH = 0.0;
+    bool failed = false;
+
+    void fail(const QString& msg)
+    {
+        if (!failed) {
+            failed = true;
+            if (error) {
+                *error = msg;
+            }
+        }
+    }
+
+    void skip()
+    {
+        while (i < s.size() && s.at(i).isSpace()) {
+            ++i;
+        }
+    }
+
+    bool eat(QChar c)
+    {
+        skip();
+        if (i < s.size() && s.at(i) == c) {
+            ++i;
+            return true;
+        }
+        return false;
+    }
+
+    double parse()
+    {
+        const double v = parseAdd();
+        skip();
+        if (!failed && i < s.size()) {
+            fail(QStringLiteral("Unexpected '%1' in '%2'").arg(s.mid(i), s));
+            return 0.0;
+        }
+        return failed ? 0.0 : v;
+    }
+
+    double parseAdd()
+    {
+        double v = parseMul();
+        for (;;) {
+            if (failed) {
+                return 0.0;
+            }
+            if (eat(QLatin1Char('+'))) {
+                v += parseMul();
+            } else if (eat(QLatin1Char('-'))) {
+                v -= parseMul();
+            } else {
+                return v;
+            }
+        }
+    }
+
+    double parseMul()
+    {
+        double v = parseUnary();
+        for (;;) {
+            if (failed) {
+                return 0.0;
+            }
+            if (eat(QLatin1Char('*'))) {
+                v *= parseUnary();
+            } else if (eat(QLatin1Char('/'))) {
+                const double d = parseUnary();
+                if (d == 0.0) {
+                    fail(QStringLiteral("Division by zero in '%1'").arg(s));
+                    return 0.0;
+                }
+                v /= d;
+            } else {
+                return v;
+            }
+        }
+    }
+
+    double parseUnary()
+    {
+        if (eat(QLatin1Char('+'))) {
+            return parseUnary();
+        }
+        if (eat(QLatin1Char('-'))) {
+            return -parseUnary();
+        }
+        return parsePrimary();
+    }
+
+    double parsePrimary()
+    {
+        skip();
+        if (failed) {
+            return 0.0;
+        }
+        if (i >= s.size()) {
+            fail(QStringLiteral("Incomplete expression '%1'").arg(s));
+            return 0.0;
+        }
+        if (eat(QLatin1Char('('))) {
+            const double v = parseAdd();
+            if (!eat(QLatin1Char(')'))) {
+                fail(QStringLiteral("Missing ')' in '%1'").arg(s));
+                return 0.0;
+            }
+            return v;
+        }
+        const QChar c = s.at(i);
+        if (c.isLetter() || c == QLatin1Char('_')) {
+            const int start = i;
+            ++i;
+            while (i < s.size()) {
+                const QChar n = s.at(i);
+                if (!n.isLetterOrNumber() && n != QLatin1Char('_')) {
+                    break;
+                }
+                ++i;
+            }
+            const QString id = s.mid(start, i - start);
+            const QString key = id.toLower();
+            if (key == QLatin1String("a_screenwidth")) {
+                return screenW;
+            }
+            if (key == QLatin1String("a_screenheight")) {
+                return screenH;
+            }
+            fail(QStringLiteral("Unknown identifier '%1'").arg(id));
+            return 0.0;
+        }
+        if (c.isDigit() || c == QLatin1Char('.')) {
+            const int start = i;
+            bool seenDot = false;
+            while (i < s.size()) {
+                const QChar n = s.at(i);
+                if (n.isDigit()) {
+                    ++i;
+                    continue;
+                }
+                if (n == QLatin1Char('.') && !seenDot) {
+                    seenDot = true;
+                    ++i;
+                    continue;
+                }
+                if ((n == QLatin1Char('e') || n == QLatin1Char('E')) && i + 1 < s.size()) {
+                    const QChar next = s.at(i + 1);
+                    if (next.isDigit() || next == QLatin1Char('+') || next == QLatin1Char('-')) {
+                        i += 2;
+                        while (i < s.size() && s.at(i).isDigit()) {
+                            ++i;
+                        }
+                        break;
+                    }
+                }
+                break;
+            }
+            const QString num = s.mid(start, i - start);
+            bool ok = false;
+            const double v = num.toDouble(&ok);
+            if (!ok) {
+                fail(QStringLiteral("Invalid number '%1' in '%2'").arg(num, s));
+                return 0.0;
+            }
+            return v;
+        }
+        fail(QStringLiteral("Unexpected '%1' in '%2'").arg(QString(c), s));
+        return 0.0;
+    }
+};
+
 } // namespace
+
+double evalDimExpression(const QString& expr, double screenW, double screenH, QString* error)
+{
+    ExprEval e;
+    e.s = expr.trimmed();
+    e.error = error;
+    e.screenW = screenW;
+    e.screenH = screenH;
+    if (e.s.isEmpty()) {
+        if (error) {
+            *error = QStringLiteral("Empty expression");
+        }
+        return 0.0;
+    }
+    return e.parse();
+}
+
+bool looksLikeExpression(const QString& t)
+{
+    for (const QChar c : t) {
+        if (c.isLetter() || c == QLatin1Char('_') || c == QLatin1Char('*')
+            || c == QLatin1Char('+') || c == QLatin1Char('(') || c == QLatin1Char(')')) {
+            return true;
+        }
+    }
+    int slashes = 0;
+    int minuses = 0;
+    for (int i = 0; i < t.size(); ++i) {
+        if (t.at(i) == QLatin1Char('/')) {
+            ++slashes;
+        } else if (t.at(i) == QLatin1Char('-') && i > 0) {
+            ++minuses;
+        }
+    }
+    return slashes > 1 || minuses > 0;
+}
+
+} // namespace PageDimParse
+
+double PageDim::resolve(double axisRef, double heightRef, double screenWidth,
+                        double screenHeight) const
+{
+    if (unit == Unit::Pixels) {
+        return value;
+    }
+    if (unit == Unit::HeightProportion) {
+        return heightRef * value;
+    }
+    if (unit == Unit::Proportion) {
+        return axisRef * value;
+    }
+    if (unit == Unit::Expression) {
+        return PageDimParse::evalDimExpression(expr, screenWidth, screenHeight, nullptr);
+    }
+    return 0.0;
+}
+
+namespace PageDimParse {
 
 PageDim parse(const QString& token, QString* error)
 {
@@ -24,32 +301,18 @@ PageDim parse(const QString& token, QString* error)
 
     bool heightRel = false;
     if (t.size() > 1 && (t.endsWith(QLatin1Char('h')) || t.endsWith(QLatin1Char('H')))) {
-        heightRel = true;
-        t.chop(1);
-        t = t.trimmed();
+        const QString body = t.chopped(1).trimmed();
+        if (isNumericToken(body) || isSimpleFraction(body, nullptr)) {
+            heightRel = true;
+            t = body;
+        }
     }
 
     PageDim dim;
-    if (t.contains(QLatin1Char('/'))) {
-        const QStringList parts = t.split(QLatin1Char('/'));
-        if (parts.size() != 2) {
-            if (error) {
-                *error = QStringLiteral("Invalid fraction '%1'").arg(token);
-            }
-            return {};
-        }
-        bool okNum = false;
-        bool okDen = false;
-        const double num = parts[0].trimmed().toDouble(&okNum);
-        const double den = parts[1].trimmed().toDouble(&okDen);
-        if (!okNum || !okDen || den == 0.0) {
-            if (error) {
-                *error = QStringLiteral("Invalid fraction '%1'").arg(token);
-            }
-            return {};
-        }
-        dim = PageDim::proportion(num / den);
-    } else {
+    double frac = 0.0;
+    if (isSimpleFraction(t, &frac)) {
+        dim = PageDim::proportion(frac);
+    } else if (isNumericToken(t)) {
         bool ok = false;
         const double v = t.toDouble(&ok);
         if (!ok) {
@@ -59,9 +322,30 @@ PageDim parse(const QString& token, QString* error)
             return {};
         }
         dim = t.contains(QLatin1Char('.')) ? PageDim::proportion(v) : PageDim::pixels(v);
+    } else if (looksLikeExpression(t) || t.contains(QLatin1Char('/'))) {
+        if (heightRel) {
+            if (error) {
+                *error = QStringLiteral("Height suffix cannot apply to expression '%1'").arg(token);
+            }
+            return {};
+        }
+        QString err;
+        (void)evalDimExpression(t, 1920.0, 1080.0, &err);
+        if (!err.isEmpty()) {
+            if (error) {
+                *error = err;
+            }
+            return {};
+        }
+        dim = PageDim::expression(t);
+    } else {
+        if (error) {
+            *error = QStringLiteral("Invalid dimension '%1'").arg(token);
+        }
+        return {};
     }
     if (heightRel) {
-        if (dim.unit == PageDim::Unit::Pixels) {
+        if (dim.unit == PageDim::Unit::Pixels || dim.unit == PageDim::Unit::Expression) {
             if (error) {
                 *error = QStringLiteral("Height suffix requires a proportion '%1'").arg(token);
             }
@@ -203,6 +487,9 @@ QString token(const PageDim& d)
     if (!d.isSet()) {
         return {};
     }
+    if (d.unit == PageDim::Unit::Expression) {
+        return d.expr;
+    }
     if (d.unit == PageDim::Unit::Proportion || d.unit == PageDim::Unit::HeightProportion) {
         QString t = QString::number(d.value, 'g', 8);
         if (d.unit == PageDim::Unit::HeightProportion) {
@@ -286,14 +573,16 @@ bool boolWord(QStringView t, bool defaultValue)
 }
 
 QRectF placeRect(const QRectF& bounds, PageAnchor anchor, const PageDimPair& offset,
-                 const PageDimPair& size)
+                 const PageDimPair& size, const QSizeF& screen)
 {
     const double bw = bounds.width();
     const double bh = bounds.height();
-    const double w = size.x.isSet() ? size.x.resolve(bw, bh) : 0.0;
-    const double h = size.y.isSet() ? size.y.resolve(bh, bh) : 0.0;
-    const double ox = offset.x.isSet() ? offset.x.resolve(bw, bh) : 0.0;
-    const double oy = offset.y.isSet() ? offset.y.resolve(bh, bh) : 0.0;
+    const double sw = screen.width() > 0.0 ? screen.width() : bw;
+    const double sh = screen.height() > 0.0 ? screen.height() : bh;
+    const double w = size.x.isSet() ? size.x.resolve(bw, bh, sw, sh) : 0.0;
+    const double h = size.y.isSet() ? size.y.resolve(bh, bh, sw, sh) : 0.0;
+    const double ox = offset.x.isSet() ? offset.x.resolve(bw, bh, sw, sh) : 0.0;
+    const double oy = offset.y.isSet() ? offset.y.resolve(bh, bh, sw, sh) : 0.0;
 
     double x = bounds.left();
     double y = bounds.top();

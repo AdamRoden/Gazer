@@ -170,7 +170,7 @@ void paintLabel(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeCo
 void paintTab(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeColors& theme,
               bool hovered, bool selected, double progress)
 {
-    const double radius = t.chrome.radius ? t.chrome.radius->first() : 6.0;
+    const double radius = t.chrome.resolvedRadius().first();
     if (hovered && !selected) {
         QColor fill = theme.bgSurfaceHover.isValid() ? theme.bgSurfaceHover : theme.cellHover;
         fill.setAlpha(qBound(24, fill.alpha(), 80));
@@ -283,7 +283,7 @@ void paintSurface(QPainter& p, const QRectF& r, const PageChrome& chrome, const 
     const bool authoredThickness = chrome.thickness.has_value();
     QColor bg = chrome.background.value_or(themeBase);
     QColor border = chrome.borderColor.value_or(theme.border);
-    PageBox thickness = chrome.thickness.value_or(PageBox::all(grid ? 1.0 : 0.0));
+    PageBox thickness = chrome.resolvedThickness();
 
     if (active) {
         bg = theme.cellActive;
@@ -333,6 +333,10 @@ void paintTarget(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeC
     ProgressVisuals vis = pv;
     if (t.chrome.progressStyle) {
         vis.applyStyle(*t.chrome.progressStyle);
+    }
+    if (t.chrome.progressColor && t.chrome.progressColor->isValid()) {
+        vis.progressColor = *t.chrome.progressColor;
+        vis.borderColor = *t.chrome.progressColor;
     }
     const QColor fg = (active && !t.activeState.isEmpty())
                           ? t.chrome.foreground.value_or(theme.accent)
