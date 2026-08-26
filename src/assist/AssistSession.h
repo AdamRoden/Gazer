@@ -15,7 +15,9 @@ public:
         LookToScrollPlaceCursor,
         MouseDwell,
         MagPickPoint,
-        GazeFollow
+        GazeFollow,
+        ComboMouse,
+        ComboMousePlaceCursor
     };
 
     explicit AssistSession(QObject* parent = nullptr);
@@ -27,6 +29,10 @@ public:
     [[nodiscard]] bool freesScreenForAim() const;
     /// Alias used by older call sites — same as freesScreenForAim().
     [[nodiscard]] bool blocksBoards() const { return freesScreenForAim(); }
+    /// Pause gaze→mouse follow (aim modes plus ComboMouse while the wheel is up).
+    [[nodiscard]] bool pausesGazeFollow() const;
+    /// ComboMouse wheel owns the sample; boards must not dwell it.
+    [[nodiscard]] bool overlayHasGazePriority() const;
 
     /// Modes that share MouseDwellMove (direct / place-cursor / mag-pick).
     [[nodiscard]] static bool isMouseDwellFamily(Mode m);

@@ -8,6 +8,7 @@ class ActionLoopService;
 class AppSettings;
 class GazeMouseFollow;
 class GazeReticle;
+class ComboMouse;
 class LookToScroll;
 class MagnifierOverlay;
 class MouseAssistState;
@@ -18,6 +19,7 @@ class SettingsUi;
 struct ActiveStateContext {
     const AppSettings* settings = nullptr;
     const LookToScroll* lookToScroll = nullptr;
+    const ComboMouse* comboMouse = nullptr;
     const MouseDwellMove* mouseDwellMove = nullptr;
     const MagnifierOverlay* magnifier = nullptr;
     const GazeReticle* gazeReticle = nullptr;

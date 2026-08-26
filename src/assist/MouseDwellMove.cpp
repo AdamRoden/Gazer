@@ -182,6 +182,8 @@ const char* MouseDwellMove::purposeName(ArmPurpose purpose)
     switch (purpose) {
     case ArmPurpose::LookToScrollPlace:
         return "ltsPlace";
+    case ArmPurpose::ComboMousePlace:
+        return "comboMousePlace";
     case ArmPurpose::CursorMoveClickLoop:
         return "clickLoop";
     case ArmPurpose::CursorMoveLeftClick:
@@ -226,7 +228,8 @@ void MouseDwellMove::setPhase(Phase phase)
 
 bool MouseDwellMove::useMagPickThisArm() const
 {
-    if (m_purpose == ArmPurpose::LookToScrollPlace) {
+    if (m_purpose == ArmPurpose::LookToScrollPlace
+        || m_purpose == ArmPurpose::ComboMousePlace) {
         return false;
     }
     const bool cursorMove = m_purpose == ArmPurpose::CursorMove
@@ -419,7 +422,8 @@ void MouseDwellMove::setMagPickEnabled(bool enabled)
         return;
     }
     m_magPickEnabled = enabled;
-    if (!m_armed || m_purpose == ArmPurpose::LookToScrollPlace || m_phase == Phase::MagPoint) {
+    if (!m_armed || m_purpose == ArmPurpose::LookToScrollPlace
+        || m_purpose == ArmPurpose::ComboMousePlace || m_phase == Phase::MagPoint) {
         return;
     }
     if (m_magOverlay) {
@@ -537,7 +541,8 @@ void MouseDwellMove::startAimPhase()
 {
     m_outsideSelectsNewRegion = false;
     m_mag = {};
-    if (m_purpose != ArmPurpose::LookToScrollPlace) {
+    if (m_purpose != ArmPurpose::LookToScrollPlace
+        && m_purpose != ArmPurpose::ComboMousePlace) {
         if (const auto fs = m_foresight.peek(m_clock.elapsed())) {
             QScreen* screen = QGuiApplication::screenAt(*fs);
             if (!screen) {

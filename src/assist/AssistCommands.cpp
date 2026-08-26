@@ -6,6 +6,7 @@
 #include "assist/AssistSession.h"
 #include "assist/GazeMouseFollow.h"
 #include "assist/GazeReticle.h"
+#include "assist/ComboMouse.h"
 #include "assist/LookToScroll.h"
 #include "assist/MouseAssistState.h"
 #include "assist/MouseDwellMove.h"
@@ -30,6 +31,7 @@ void registerAssistCommands(AssistCommandContext& ctx)
     auto* session = ctx.session;
     auto* pages = ctx.pages;
     auto* lts = ctx.lookToScroll;
+    auto* combo = ctx.comboMouse;
     auto* mouseDwell = ctx.mouseDwellMove;
     auto* follow = ctx.gazeMouseFollow;
     auto* reticle = ctx.gazeReticle;
@@ -45,13 +47,15 @@ void registerAssistCommands(AssistCommandContext& ctx)
     auto isDwellSuspended = ctx.isDwellSuspended;
 
     // When leaving a mode, tear down the tool that owns it — except soft handoffs
-    // within the mouse-dwell family, and LTS kept alive under any mouse-dwell aim.
+    // within the mouse-dwell family, and LTS kept alive under Move-to / LTS place.
     QObject::connect(session, &AssistSession::leaving, session,
-                     [lts, mouseDwell, follow](Mode left, Mode next) {
+                     [lts, combo, mouseDwell, follow](Mode left, Mode next) {
                          switch (left) {
                          case Mode::LookToScroll:
-                             // Soft: Move-to / place-cursor / mag-pick while LTS stays on.
-                             if (AssistSession::isMouseDwellFamily(next)) {
+                             // Soft: Move-to / LTS place / mag-pick while LTS stays on.
+                             // ComboMouse place is exclusive — drop LTS.
+                             if (AssistSession::isMouseDwellFamily(next)
+                                 && next != Mode::ComboMousePlaceCursor) {
                                  break;
                              }
                              lts->setEnabled(false);
@@ -60,13 +64,32 @@ void registerAssistCommands(AssistCommandContext& ctx)
                          case Mode::MouseDwell:
                          case Mode::MagPickPoint:
                              if (AssistSession::sameMouseDwellFamily(left, next)
-                                 || next == Mode::LookToScroll) {
+                                 || next == Mode::LookToScroll || next == Mode::ComboMouse) {
                                  break;
                              }
                              mouseDwell->setArmed(false);
                              break;
+                         case Mode::ComboMousePlaceCursor:
+                             if (next == Mode::ComboMouse) {
+                                 break;
+                             }
+                             if (!AssistSession::sameMouseDwellFamily(left, next)) {
+                                 mouseDwell->setArmed(false);
+                             }
+                             if (combo) {
+                                 combo->setEnabled(false);
+                             }
+                             break;
                          case Mode::GazeFollow:
                              follow->setEnabled(false);
+                             break;
+                         case Mode::ComboMouse:
+                             if (next == Mode::ComboMousePlaceCursor) {
+                                 break;
+                             }
+                             if (combo) {
+                                 combo->setEnabled(false);
+                             }
                              break;
                          case Mode::None:
                              break;
@@ -89,6 +112,8 @@ void registerAssistCommands(AssistCommandContext& ctx)
                          }
                          if (mouseDwell->isLookToScrollPlace()) {
                              session->enter(Mode::LookToScrollPlaceCursor);
+                         } else if (mouseDwell->isComboMousePlace()) {
+                             session->enter(Mode::ComboMousePlaceCursor);
                          } else if (mouseDwell->isMagPointPhase()) {
                              session->enter(Mode::MagPickPoint);
                          } else {
@@ -104,7 +129,9 @@ void registerAssistCommands(AssistCommandContext& ctx)
                                     && mouseDwell->isArmed()) {
                              session->enter(mouseDwell->isLookToScrollPlace()
                                                 ? Mode::LookToScrollPlaceCursor
-                                                : Mode::MouseDwell);
+                                                : mouseDwell->isComboMousePlace()
+                                                      ? Mode::ComboMousePlaceCursor
+                                                      : Mode::MouseDwell);
                          }
                      });
 
@@ -162,7 +189,16 @@ void registerAssistCommands(AssistCommandContext& ctx)
 
     // After a successful place, enable or unsuspend LTS (purpose lives on the tool).
     QObject::connect(mouseDwell, &MouseDwellMove::movedTo, session,
-                     [mouseDwell, lts, notify](QPoint pos) {
+                     [mouseDwell, lts, combo, session, notify](QPoint pos) {
+                         if (mouseDwell->armPurpose() == ArmPurpose::ComboMousePlace) {
+                             if (combo) {
+                                 combo->setEnabled(true);
+                                 combo->showAt(pos);
+                                 session->enter(Mode::ComboMouse);
+                                 notify(QStringLiteral("ComboMouse ready"));
+                             }
+                             return;
+                         }
                          if (mouseDwell->armPurpose() != ArmPurpose::LookToScrollPlace) {
                              return;
                          }
@@ -175,6 +211,39 @@ void registerAssistCommands(AssistCommandContext& ctx)
                              notify(QStringLiteral("Look↕Scroll resumed (cursor placed)"));
                          }
                      });
+
+    if (combo) {
+        combo->setHoldFn([mouseAssist](bool down) {
+            if (!mouseAssist) {
+                return false;
+            }
+            return mouseAssist->setHeld(QStringLiteral("left"), down);
+        });
+        combo->setHeldQuery([mouseAssist]() {
+            return mouseAssist && mouseAssist->isLeftHeld();
+        });
+        QObject::connect(combo, &ComboMouse::placeRequested, session,
+                         [mouseDwell, combo, notify]() {
+                             if (!combo || !combo->isEnabled() || !mouseDwell) {
+                                 return;
+                             }
+                             mouseDwell->setArmed(true, ArmPurpose::ComboMousePlace);
+                             notify(QStringLiteral("ComboMouse: dwell to place"));
+                         });
+        QObject::connect(combo, &ComboMouse::enabledChanged, session,
+                         [session, mouseDwell, combo, notify](bool on) {
+                             if (on) {
+                                 return;
+                             }
+                             if (mouseDwell && mouseDwell->isComboMousePlace()) {
+                                 mouseDwell->setArmed(false);
+                             }
+                             if (session->mode() == Mode::ComboMouse) {
+                                 session->leave(Mode::ComboMouse);
+                             }
+                             notify(QStringLiteral("ComboMouse OFF"));
+                         });
+    }
 
     QObject::connect(follow, &GazeMouseFollow::enabledChanged, session, [session](bool on) {
         if (on) {
@@ -271,6 +340,25 @@ void registerAssistCommands(AssistCommandContext& ctx)
         return true;
     });
 
+    commands->registerBuiltin(QStringLiteral("toggleComboMouse"),
+                              [combo, mouseDwell, notify](QString*) {
+                                  if (!combo || !mouseDwell) {
+                                      return false;
+                                  }
+                                  if (combo->isEnabled()) {
+                                      combo->setEnabled(false);
+                                      return true;
+                                  }
+                                  if (mouseDwell->isComboMousePlace()) {
+                                      mouseDwell->setArmed(false);
+                                      notify(QStringLiteral("ComboMouse cancelled"));
+                                      return true;
+                                  }
+                                  mouseDwell->setArmed(true, ArmPurpose::ComboMousePlace);
+                                  notify(QStringLiteral("ComboMouse: dwell to place"));
+                                  return true;
+                              });
+
     commands->registerBuiltin(QStringLiteral("mouseDwellMove"), [mouseDwell](QString*) {
         mouseDwell->toggle();
         return true;
@@ -287,7 +375,8 @@ void registerAssistCommands(AssistCommandContext& ctx)
 
     // Assist sticky: dwell move+click re-arm (not timed actionLoop series steps).
     commands->registerBuiltin(
-        QStringLiteral("mouseDwellClickLoop"), [mouseDwell, refresh, notify](QString*) {
+        QStringLiteral("mouseDwellClickLoop"),
+        [mouseDwell, refresh, notify](QString*) {
             using Purpose = MouseDwellMove::ArmPurpose;
             if (mouseDwell->isArmed()
                 && mouseDwell->armPurpose() == Purpose::CursorMoveClickLoop) {

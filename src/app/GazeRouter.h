@@ -8,6 +8,7 @@ class AssistSession;
 class GazeMouseFollow;
 class GazeReticle;
 class PageSession;
+class ComboMouse;
 class LookToScroll;
 class MagnifierOverlay;
 class MouseDwellMove;
@@ -18,6 +19,7 @@ public:
     void setPages(PageSession* pages) { m_pages = pages; }
     void setAssistSession(AssistSession* session) { m_session = session; }
     void setLookToScroll(LookToScroll* lts) { m_lookToScroll = lts; }
+    void setComboMouse(ComboMouse* c) { m_comboMouse = c; }
     void setMouseDwellMove(MouseDwellMove* move) { m_mouseDwell = move; }
     void setMagnifier(MagnifierOverlay* mag) { m_magnifier = mag; }
     void setGazeReticle(GazeReticle* r) { m_gazeReticle = r; }
@@ -29,6 +31,7 @@ private:
     PageSession* m_pages = nullptr;
     AssistSession* m_session = nullptr;
     LookToScroll* m_lookToScroll = nullptr;
+    ComboMouse* m_comboMouse = nullptr;
     MouseDwellMove* m_mouseDwell = nullptr;
     MagnifierOverlay* m_magnifier = nullptr;
     GazeReticle* m_gazeReticle = nullptr;

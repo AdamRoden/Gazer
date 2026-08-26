@@ -76,6 +76,7 @@ set(GAZER_SOURCES
     src/assist/PhraseService.cpp
     src/assist/ScriptHost.cpp
     src/assist/LookToScroll.cpp
+    src/assist/ComboMouse.cpp
     src/assist/MouseDwellMove.cpp
     src/assist/MouseAssistState.cpp
     src/assist/GazeReticle.cpp
@@ -154,6 +155,8 @@ set(GAZER_HEADERS
     src/assist/PhraseService.h
     src/assist/ScriptHost.h
     src/assist/LookToScroll.h
+    src/assist/ComboMouse.h
+    src/assist/ComboMouseHit.h
     src/assist/LtsSpeed.h
     src/assist/LtsIndicator.h
     src/assist/MouseDwellMove.h
@@ -320,6 +323,7 @@ add_executable(GazerPageTests
     tests/PageNavTest.cpp
     tests/PageHitTest.cpp
     tests/SettingsLayoutTest.cpp
+    tests/ComboMouseTest.cpp
     ${GAZER_PAGE_TEST_LIB}
 )
 target_include_directories(GazerPageTests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)

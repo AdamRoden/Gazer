@@ -11,6 +11,7 @@ class AssistSession;
 class CommandRegistry;
 class GazeMouseFollow;
 class GazeReticle;
+class ComboMouse;
 class LookToScroll;
 class MagnifierOverlay;
 class MouseAssistState;
@@ -23,6 +24,7 @@ struct AssistCommandContext {
     AssistSession* session = nullptr;
     PageSession* pages = nullptr;
     LookToScroll* lookToScroll = nullptr;
+    ComboMouse* comboMouse = nullptr;
     MouseDwellMove* mouseDwellMove = nullptr;
     MagnifierOverlay* magnifier = nullptr;
     GazeReticle* gazeReticle = nullptr;

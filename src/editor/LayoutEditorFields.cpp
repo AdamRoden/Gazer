@@ -792,6 +792,7 @@ QString friendlyCommandLabel(const QString& commandId)
         {QStringLiteral("mouseDwellMove"), QStringLiteral("Dwell-move cursor")},
         {QStringLiteral("toggleMagnifier"), QStringLiteral("Magnifier")},
         {QStringLiteral("toggleLookToScroll"), QStringLiteral("Look to scroll")},
+        {QStringLiteral("toggleComboMouse"), QStringLiteral("ComboMouse")},
         {QStringLiteral("toggleGazeReticle"), QStringLiteral("Gaze reticle")},
         {QStringLiteral("toggleGazeMouseFollow"), QStringLiteral("Cursor follows gaze")},
     };

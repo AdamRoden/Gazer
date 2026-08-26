@@ -8,10 +8,7 @@
     <Cell id="mag_pick" row="0" col="4" icon="ZoomToLocation" label="Move-to
 Zoom" activeState="mouseMoveMagPick" command="toggleMouseMoveMagPick"/>
     <Cell id="lts" row="0" col="5" icon="LookToScrollActive" label="Look↕Scroll" activeState="lookToScroll" command="toggleLookToScroll"/>
-    <Cell id="lts_hint" row="0" col="6" label="LTS: dwell hub to pause
-look away → pause ring
-look at ring → resume
-← slow  → fast" role="label"/>
+    <Cell id="combo" row="0" col="6" icon="PieSlice5" label="ComboMouse" activeState="comboMouse" command="toggleComboMouse"/>
     <Cell id="edit_layout" row="0" col="7" icon="PhysicalKeys" label="Edit layout" command="openLayoutEditor"/>
     <Cell id="main" row="0" col="8" icon="Menu" label="Main">
     <ClosePage value="-self"/>

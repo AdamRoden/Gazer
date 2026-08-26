@@ -33,11 +33,13 @@ public:
         }
     }
 
+    /// Show + raise once. Already-visible overlays stay put; call raiseStack to restack.
     void showOverlay()
     {
-        if (!isVisible()) {
-            show();
+        if (isVisible()) {
+            return;
         }
+        show();
         raiseStack();
         emit stackChanged();
     }

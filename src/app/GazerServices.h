@@ -9,6 +9,7 @@
 #include "assist/AssistSession.h"
 #include "assist/GazeMouseFollow.h"
 #include "assist/GazeReticle.h"
+#include "assist/ComboMouse.h"
 #include "assist/LookToScroll.h"
 #include "assist/MouseAssistState.h"
 #include "assist/MouseDwellMove.h"
@@ -56,6 +57,7 @@ public:
     CommandRegistry& commands() { return *m_commands; }
     ScriptHost& scripts() { return *m_scripts; }
     LookToScroll& lookToScroll() { return *m_lookToScroll; }
+    ComboMouse& comboMouse() { return *m_comboMouse; }
     MagnifierOverlay& magnifier() { return *m_magnifier; }
     MouseDwellMove& mouseDwellMove() { return *m_mouseDwellMove; }
     MouseAssistState& mouseAssist() { return *m_mouseAssist; }
@@ -99,6 +101,7 @@ private:
     std::unique_ptr<CommandRegistry> m_commands;
     std::unique_ptr<ScriptHost> m_scripts;
     std::unique_ptr<LookToScroll> m_lookToScroll;
+    std::unique_ptr<ComboMouse> m_comboMouse;
     std::unique_ptr<MagnifierOverlay> m_magnifier;
     std::unique_ptr<MouseDwellMove> m_mouseDwellMove;
     std::unique_ptr<MouseAssistState> m_mouseAssist;

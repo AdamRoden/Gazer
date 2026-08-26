@@ -27,6 +27,7 @@ public:
     enum class ArmPurpose {
         CursorMove,           ///< Normal move-to (honors mag-pick setting).
         LookToScrollPlace,    ///< Place scroll origin for LTS (always direct).
+        ComboMousePlace,      ///< Place ComboMouse origin (always direct).
         CursorMoveClickLoop,  ///< Same as CursorMove, then left-click and re-arm until off.
         CursorMoveLeftClick,  ///< Move-to, then one left click and disarm.
         CursorMoveRightClick, ///< Move-to, then one right click and disarm.
@@ -43,6 +44,10 @@ public:
     [[nodiscard]] bool isLookToScrollPlace() const
     {
         return m_armed && m_purpose == ArmPurpose::LookToScrollPlace;
+    }
+    [[nodiscard]] bool isComboMousePlace() const
+    {
+        return m_armed && m_purpose == ArmPurpose::ComboMousePlace;
     }
     [[nodiscard]] bool isClickLoop() const
     {

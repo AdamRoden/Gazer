@@ -20,7 +20,7 @@
     <Cell id="move_rclick" row="1" col="8" icon="MouseRightButtonClick" label="Move+R" background="#f4a261" foreground="#1a1a1a" activeState="mouseMoveAndRightClick" command="mouseMoveAndRightClick"/>
     <Cell id="dwell_move" row="2" col="0" icon="MouseMoveTo" label="Move to…" background="#e9c46a" foreground="#1a1a1a" activeState="mouseDwellMove" command="mouseDwellMove"/>
     <Cell id="mag_pick" row="2" col="1" icon="ZoomToLocation" label="Mag pick" background="#f4a261" foreground="#1a1a1a" activeState="mouseMoveMagPick" command="toggleMouseMoveMagPick"/>
-    <Cell id="mag_center" row="2" col="2" icon="LookToScrollBoundsScreenPoint" label="Mag @dwell" background="#e76f51" foreground="#ffffff" activeState="mouseMoveMagPickCenter" command="toggleMouseMoveMagPickCenter"/>
+    <Cell id="combo" row="2" col="2" icon="PieSlice5" label="ComboMouse" background="#e9c46a" foreground="#1a1a1a" activeState="comboMouse" command="toggleComboMouse"/>
     <Cell id="movestep" row="2" col="3" icon="SizeAndPosition" label="Step 40 px" background="#3d4f66" foreground="#ffffff" command="cycleMouseMoveAmount"/>
     <Cell id="scrstep" row="2" col="4" icon="LookToScrollSpeedMedium" label="Scroll ×3" background="#3d4f66" foreground="#ffffff" command="cycleMouseScrollAmount"/>
     <Cell id="click_loop" row="2" col="5" icon="RepeatMouseAction" label="Gaze click

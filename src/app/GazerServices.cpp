@@ -71,6 +71,7 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
     m_phrases = std::make_unique<PhraseService>(*m_tts, *m_input, *m_mapping);
     m_commands = std::make_unique<CommandRegistry>(*m_mapping);
     m_lookToScroll = std::make_unique<LookToScroll>();
+    m_comboMouse = std::make_unique<ComboMouse>();
     m_magnifier = std::make_unique<MagnifierOverlay>();
     m_mouseDwellMove = std::make_unique<MouseDwellMove>();
     m_mouseAssist = std::make_unique<MouseAssistState>(*m_input);
@@ -143,6 +144,8 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
 
     connect(m_lookToScroll.get(), &LookToScroll::enabledChanged, this,
             [this](bool) { refreshActiveIndicators(); });
+    connect(m_comboMouse.get(), &ComboMouse::enabledChanged, this,
+            [this](bool) { refreshActiveIndicators(); });
     connect(m_lookToScroll.get(), &LookToScroll::scrollSuspendedChanged, this,
             [this](bool) { refreshActiveIndicators(); });
     connect(m_lookToScroll.get(), &LookToScroll::maxNotchesPerSecChanged, this,
@@ -186,6 +189,7 @@ ActiveStateContext GazerServices::activeStateContext() const
     ActiveStateContext ctx;
     ctx.settings = &m_settings;
     ctx.lookToScroll = m_lookToScroll.get();
+    ctx.comboMouse = m_comboMouse.get();
     ctx.mouseDwellMove = m_mouseDwellMove.get();
     ctx.magnifier = m_magnifier.get();
     ctx.gazeReticle = m_gazeReticle.get();
@@ -201,6 +205,12 @@ void GazerServices::setDwellSuspended(bool on)
 {
     if (m_pages) {
         m_pages->setDwellSuspended(on);
+    }
+    if (m_comboMouse) {
+        m_comboMouse->setPaused(on);
+    }
+    if (m_mouseDwellMove) {
+        m_mouseDwellMove->setPaused(on);
     }
     if (on && m_mouseAssist) {
         m_mouseAssist->releaseAllHolds();
@@ -303,6 +313,13 @@ void GazerServices::applySettings(bool persist)
     m_lookToScroll->setCenterDwellMs(m_settings.ltsCenterDwellMs);
     m_lookToScroll->setIndicatorStyle(m_settings.ltsIndicatorStyle);
 
+    m_comboMouse->setAccent(boardPv.progressColor);
+    m_comboMouse->setTheme(m_settings.resolvedTheme());
+    m_comboMouse->setProgressVisuals(boardPv);
+    m_comboMouse->setScanGraceMs(m_settings.scanGraceMs);
+    m_comboMouse->setDwellGraceMs(m_settings.dwellGraceMs);
+    m_comboMouse->setDwellSequence(m_settings.dwellSequence);
+
     m_magnifier->setZoom(m_settings.magZoom);
     m_magnifier->setLensSize(m_settings.magLensSize);
     m_magnifier->setFollowProfile(m_settings.magFollowProfile);
@@ -349,6 +366,7 @@ void GazerServices::registerDomainCommands()
     m_assistCmdCtx->session = m_assistSession.get();
     m_assistCmdCtx->pages = m_pages.get();
     m_assistCmdCtx->lookToScroll = m_lookToScroll.get();
+    m_assistCmdCtx->comboMouse = m_comboMouse.get();
     m_assistCmdCtx->mouseDwellMove = m_mouseDwellMove.get();
     m_assistCmdCtx->magnifier = m_magnifier.get();
     m_assistCmdCtx->gazeReticle = m_gazeReticle.get();

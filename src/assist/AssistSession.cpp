@@ -12,13 +12,24 @@ AssistSession::AssistSession(QObject* parent)
 bool AssistSession::freesScreenForAim() const
 {
     return m_mode == Mode::MouseDwell || m_mode == Mode::MagPickPoint
-           || m_mode == Mode::LookToScrollPlaceCursor;
+           || m_mode == Mode::LookToScrollPlaceCursor
+           || m_mode == Mode::ComboMousePlaceCursor;
+}
+
+bool AssistSession::pausesGazeFollow() const
+{
+    return freesScreenForAim() || m_mode == Mode::ComboMouse;
+}
+
+bool AssistSession::overlayHasGazePriority() const
+{
+    return m_mode == Mode::ComboMouse;
 }
 
 bool AssistSession::isMouseDwellFamily(Mode m)
 {
     return m == Mode::MouseDwell || m == Mode::MagPickPoint
-           || m == Mode::LookToScrollPlaceCursor;
+           || m == Mode::LookToScrollPlaceCursor || m == Mode::ComboMousePlaceCursor;
 }
 
 bool AssistSession::sameMouseDwellFamily(Mode a, Mode b)

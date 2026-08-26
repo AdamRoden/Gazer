@@ -57,12 +57,20 @@ bool Application::initialize()
         }
         m_restacking = true;
         m_svc->pages().raise();
+        if (OverlaySurface* combo = m_svc->comboMouse().overlay()) {
+            if (combo->isVisible()) {
+                combo->raiseStack();
+            }
+        }
         if (m_dwellSuspendOverlay && m_dwellSuspendOverlay->isVisible()) {
             m_dwellSuspendOverlay->raiseStack();
         }
         m_restacking = false;
     };
     connect(m_dwellSuspendOverlay.get(), &OverlaySurface::stackChanged, this, restackChrome);
+    if (m_svc->comboMouse().overlay()) {
+        connect(m_svc->comboMouse().overlay(), &OverlaySurface::stackChanged, this, restackChrome);
+    }
 
     // Domain owns loops + lifecycle; shell only supplies the dispatcher.
     m_svc->bindActionDispatch(
@@ -75,6 +83,7 @@ bool Application::initialize()
     m_gazeRouter.setPages(&m_svc->pages());
     m_gazeRouter.setAssistSession(&m_svc->assistSession());
     m_gazeRouter.setLookToScroll(&m_svc->lookToScroll());
+    m_gazeRouter.setComboMouse(&m_svc->comboMouse());
     m_gazeRouter.setMouseDwellMove(&m_svc->mouseDwellMove());
     m_gazeRouter.setMagnifier(&m_svc->magnifier());
     m_gazeRouter.setGazeReticle(&m_svc->gazeReticle());
@@ -408,6 +417,7 @@ void Application::shutdownUi()
     if (m_svc) {
         m_svc->magnifier().setEnabledLens(false);
         m_svc->lookToScroll().setEnabled(false);
+        m_svc->comboMouse().setEnabled(false);
         m_svc->mouseDwellMove().setArmed(false);
         m_svc->mouseAssist().releaseAllHolds();
         m_svc->tts().stop();

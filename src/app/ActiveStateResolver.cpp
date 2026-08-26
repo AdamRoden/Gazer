@@ -4,6 +4,7 @@
 #include "assist/ActionLoopService.h"
 #include "assist/GazeMouseFollow.h"
 #include "assist/GazeReticle.h"
+#include "assist/ComboMouse.h"
 #include "assist/LookToScroll.h"
 #include "assist/MouseAssistState.h"
 #include "assist/MouseDwellMove.h"
@@ -38,6 +39,12 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
     }
     if (key == QLatin1String("lookToScroll.suspended")) {
         return ctx.lookToScroll && ctx.lookToScroll->isScrollSuspended();
+    }
+    if (key == QLatin1String("comboMouse")) {
+        return ctx.comboMouse && ctx.comboMouse->isEnabled();
+    }
+    if (key == QLatin1String("comboMouse.drag")) {
+        return ctx.comboMouse && ctx.comboMouse->isDragHeld();
     }
     if (key == QLatin1String("mouseDwellMove")) {
         return ctx.mouseDwellMove && ctx.mouseDwellMove->isArmed()

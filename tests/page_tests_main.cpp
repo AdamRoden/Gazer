@@ -11,6 +11,7 @@ QObject* createPageDimTest();
 QObject* createPageNavTest();
 QObject* createPageHitTest();
 QObject* createSettingsLayoutTest();
+QObject* createComboMouseTest();
 
 namespace {
 
@@ -47,5 +48,7 @@ int main(int argc, char** argv)
     status |= QTest::qExec(hits.get(), rest);
     std::unique_ptr<QObject> settings(createSettingsLayoutTest());
     status |= QTest::qExec(settings.get(), rest);
+    std::unique_ptr<QObject> combo(createComboMouseTest());
+    status |= QTest::qExec(combo.get(), rest);
     return status;
 }
