@@ -1,5 +1,8 @@
 ﻿#include "ui/PageHostWindow.h"
 
+#include "input/KeyGlyphs.h"
+#include "input/KeyNames.h"
+
 #include "ui/BoardPaint.h"
 #include "utils/WinOverlay.h"
 
@@ -175,9 +178,21 @@ void PageHostWindow::paintScene(QPainter& p, ChromePass pass)
         if (!live && t.chrome.hasBlur()) {
             return;
         }
+        PageTarget vis = t;
+        QString sendKey;
+        for (const PageAction& a : t.actions) {
+            if (a.type != PageActionType::Send || a.sendKey.isEmpty()
+                || !a.sendEdge.trimmed().isEmpty() || KeyNames::isModifier(a.sendKey)) {
+                continue;
+            }
+            sendKey = a.sendKey;
+            break;
+        }
+        vis.label = KeyGlyphs::displayLabel(t.label, sendKey, m_shiftHeld);
         const bool hovered = live && sessionKey(t) == m_hoverId;
         const bool flashing = live && sessionKey(t) == m_flashId;
         const bool active = live && m_activeIds.contains(sessionKey(t));
+        const bool locked = live && m_lockedIds.contains(sessionKey(t));
         const double progress = hovered ? m_hoverProgress : 0.0;
         const bool showProgress = flashing || (hovered && (progress > 0.0 || m_revealProgress));
         if (t.kind == PageTarget::Kind::Zone && t.geom.hidesUntilProgress() && !showProgress) {
@@ -186,17 +201,18 @@ void PageHostWindow::paintScene(QPainter& p, ChromePass pass)
         const QRectF content = mapRect(t, t.kind == PageTarget::Kind::Zone ? t.geom.visual
                                                                           : t.geom.contentOnScreen());
         if (!content.isEmpty()) {
-            BoardPaint::paintTarget(p, t, content, m_theme, glass, hovered, progress, flashing,
+            BoardPaint::paintTarget(p, vis, content, m_theme, glass, hovered, progress, flashing,
                                     active, m_progress, m_previewColor,
                                     live ? m_sliderScrubId : QString(),
                                     live ? m_sliderScrubT : 0.0,
                                     live ? m_sliderScrubValue : QString(),
-                                    live ? m_sliderScrubProgress : 0.0);
+                                    live ? m_sliderScrubProgress : 0.0, locked);
         } else if (showProgress && !t.geom.progressZone.isEmpty()) {
             const QRectF strip = mapRect(t, t.geom.progressZone);
-            BoardPaint::paintTarget(p, t, strip, m_theme, glass, hovered, progress, flashing,
+            BoardPaint::paintTarget(p, vis, strip, m_theme, glass, hovered, progress, flashing,
                                     active, m_progress, m_previewColor, m_sliderScrubId,
-                                    m_sliderScrubT, m_sliderScrubValue, m_sliderScrubProgress);
+                                    m_sliderScrubT, m_sliderScrubValue, m_sliderScrubProgress,
+                                    locked);
         }
     };
     auto paintPage = [&](const QString& pageId, bool shell) {
@@ -346,6 +362,28 @@ void PageHostWindow::setActiveIds(QSet<QString> ids)
         return;
     }
     m_activeIds = std::move(ids);
+    if (m_board) {
+        m_board->update();
+    }
+}
+
+void PageHostWindow::setLockedIds(QSet<QString> ids)
+{
+    if (ids == m_lockedIds) {
+        return;
+    }
+    m_lockedIds = std::move(ids);
+    if (m_board) {
+        m_board->update();
+    }
+}
+
+void PageHostWindow::setShiftHeld(bool on)
+{
+    if (m_shiftHeld == on) {
+        return;
+    }
+    m_shiftHeld = on;
     if (m_board) {
         m_board->update();
     }

@@ -53,6 +53,7 @@ set(GAZER_SOURCES
     src/core/StreamEngineLib.cpp
     src/layout/PageDim.cpp
     src/layout/PageActionParse.cpp
+    src/layout/PageActionParseFields.cpp
     src/layout/PageLoader.cpp
     src/layout/PageResolve.cpp
     src/layout/PageDetector.cpp
@@ -66,6 +67,8 @@ set(GAZER_SOURCES
     src/layout/DwellRegionSpace.cpp
     src/layout/DwellStateMachine.cpp
     src/input/KeyboardInjector.cpp
+    src/input/KeyStateManager.cpp
+    src/input/KeyGlyphs.cpp
     src/input/MouseInjector.cpp
     src/input/PixelScroller.cpp
     src/input/VirtualGamepad.cpp
@@ -145,6 +148,8 @@ set(GAZER_HEADERS
     src/layout/InvalidGazeGrace.h
     src/input/InputTypes.h
     src/input/KeyboardInjector.h
+    src/input/KeyStateManager.h
+    src/input/KeyGlyphs.h
     src/input/MouseInjector.h
     src/input/PixelScroller.h
     src/input/VirtualGamepad.h
@@ -309,6 +314,7 @@ enable_testing()
 set(GAZER_PAGE_TEST_LIB
     src/layout/PageDim.cpp
     src/layout/PageActionParse.cpp
+    src/layout/PageActionParseFields.cpp
     src/layout/PageLoader.cpp
     src/layout/PageResolve.cpp
     src/layout/PageDetector.cpp
@@ -328,6 +334,9 @@ add_executable(GazerPageTests
     tests/SettingsLayoutTest.cpp
     tests/ComboMouseTest.cpp
     tests/AhkLauncherTest.cpp
+    tests/KeyStateManagerTest.cpp
+    src/input/KeyStateManager.cpp
+    src/input/KeyGlyphs.cpp
     ${GAZER_PAGE_TEST_LIB}
 )
 target_include_directories(GazerPageTests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)

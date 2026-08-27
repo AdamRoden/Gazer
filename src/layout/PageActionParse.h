@@ -30,4 +30,16 @@ namespace gazer {
 [[nodiscard]] bool applyPageActionSpell(PageAction& a, const QString& spell);
 [[nodiscard]] QStringList pageActionSpells();
 
+[[nodiscard]] QString pageActionClickKindText(PageClickKind k);
+[[nodiscard]] QStringList pageActionClickKindChoices();
+[[nodiscard]] bool applyPageActionClickKind(PageAction& a, const QString& token,
+                                            QString* error = nullptr);
+
+[[nodiscard]] QString pageActionZoomText(const PageAction& a);
+[[nodiscard]] QStringList pageActionZoomChoices();
+[[nodiscard]] bool applyPageActionZoom(PageAction& a, const QString& token,
+                                       QString* error = nullptr);
+
+[[nodiscard]] QString pageActionCompassToken(PageAnchor a);
+
 } // namespace gazer

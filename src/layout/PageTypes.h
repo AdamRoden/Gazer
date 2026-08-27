@@ -208,8 +208,9 @@ enum class PageActionType {
 enum class PageVerb { Open, Close, Toggle };
 enum class PageTargetKind { Page, Grid, Zone, Cell };
 enum class PageNavScope { Id, All, Self, Others };
-enum class PageZoomMode { Off, Settings, Level };
+enum class PageZoomMode { Off, Settings, Level, Foresight, ForesightBonus };
 enum class PageMoveMode { Gaze, Absolute, Relative, Direction };
+enum class PageClickKind { Default, Double, Down, Up, Toggle };
 /// Exclusive root-shell slot. None = ordinary grid (not Docked/Drawer/Quit).
 enum class PageRootSlot { None, Drawer, Quit };
 
@@ -230,9 +231,7 @@ struct PageAction {
     bool breadcrumb = false;
 
     QString button;
-    int clickCount = 1;
-    QString clickEdge;
-    int speed = 0;
+    PageClickKind clickKind = PageClickKind::Default;
 
     PageMoveMode moveMode = PageMoveMode::Gaze;
     PageDim moveX;

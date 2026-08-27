@@ -643,7 +643,7 @@ bool LayoutEditorWindow::promptNewPage()
     auto* nameEdit = new QLineEdit(QStringLiteral("Untitled"));
     auto* tmpl = new QComboBox;
     tmpl->addItem(QStringLiteral("Blank"), int(EditorTemplate::Blank));
-    tmpl->addItem(QStringLiteral("Full keyboard (with shift/sym)"), int(EditorTemplate::Keyboard));
+    tmpl->addItem(QStringLiteral("Full keyboard"), int(EditorTemplate::Keyboard));
     tmpl->addItem(QStringLiteral("Keyboard row"), int(EditorTemplate::KeyboardRow));
     tmpl->addItem(QStringLiteral("Settings row"), int(EditorTemplate::SettingsRow));
     tmpl->addItem(QStringLiteral("Zone chip"), int(EditorTemplate::EdgeChip));

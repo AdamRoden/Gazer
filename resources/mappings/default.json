@@ -70,6 +70,12 @@
     "windowMax": [
       { "type": "keyCombo", "keys": ["Control", "Alt", "W"] }
     ],
+    "rightClick": [
+      { "type": "mouseClick", "button": "right" }
+    ],
+    "middleClick": [
+      { "type": "mouseClick", "button": "middle" }
+    ],
     "mouseRightClick": [
       { "type": "mouseClick", "button": "right" }
     ],

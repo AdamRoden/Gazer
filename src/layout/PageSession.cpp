@@ -126,6 +126,7 @@ bool PageSession::openRoot(const QString& xmlPath, QString* error)
         connect(m_host.get(), &PageHostWindow::targetClicked, this, [this](const QString& id) {
             activateTarget(id);
         });
+        m_host->setShiftHeld(m_shiftHeld);
     }
     m_dwell.setEnabled(true);
     rebuild();
@@ -510,20 +511,44 @@ void PageSession::refreshDecorated()
     rebuild();
 }
 
+void PageSession::setShiftHeld(bool on)
+{
+    if (m_shiftHeld == on) {
+        return;
+    }
+    m_shiftHeld = on;
+    if (m_host) {
+        m_host->setShiftHeld(on);
+    }
+}
+
 void PageSession::refreshActive()
 {
     if (!m_host) {
         return;
     }
     QSet<QString> ids;
+    QSet<QString> locked;
     if (m_active) {
         for (const PageTarget& t : m_targets) {
-            if (!t.activeState.isEmpty() && m_active(t.activeState)) {
+            if (t.activeState.isEmpty()) {
+                continue;
+            }
+            if (m_active(t.activeState)) {
                 ids.insert(sessionKey(t));
+            }
+            QString lockKey = t.activeState;
+            if (lockKey.startsWith(QLatin1String("mod.")) && !lockKey.endsWith(QLatin1String(".locked"))
+                && !lockKey.endsWith(QLatin1String(".down"))) {
+                lockKey += QStringLiteral(".locked");
+            }
+            if (lockKey.endsWith(QLatin1String(".locked")) && m_active(lockKey)) {
+                locked.insert(sessionKey(t));
             }
         }
     }
     m_host->setActiveIds(std::move(ids));
+    m_host->setLockedIds(std::move(locked));
 }
 
 int PageSession::autoCloseIdleMs() const

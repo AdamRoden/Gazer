@@ -1,5 +1,6 @@
 #include "utils/Log.h"
 
+#include <QCoreApplication>
 #include <QStringList>
 #include <QTest>
 #include <memory>
@@ -13,6 +14,7 @@ QObject* createPageHitTest();
 QObject* createSettingsLayoutTest();
 QObject* createComboMouseTest();
 QObject* createAhkLauncherTest();
+QObject* createKeyStateManagerTest();
 
 namespace {
 
@@ -37,6 +39,7 @@ QStringList argsWithoutDashO(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
+    QCoreApplication app(argc, argv);
     int status = 0;
     const QStringList rest = argsWithoutDashO(argc, argv);
     std::unique_ptr<QObject> pages(createPageLoaderTest());
@@ -53,5 +56,7 @@ int main(int argc, char** argv)
     status |= QTest::qExec(combo.get(), rest);
     std::unique_ptr<QObject> ahk(createAhkLauncherTest());
     status |= QTest::qExec(ahk.get(), rest);
+    std::unique_ptr<QObject> keys(createKeyStateManagerTest());
+    status |= QTest::qExec(keys.get(), rest);
     return status;
 }

@@ -8,6 +8,7 @@
 #include "assist/LookToScroll.h"
 #include "assist/MouseAssistState.h"
 #include "assist/MouseDwellMove.h"
+#include "input/KeyStateManager.h"
 #include "ui/MagnifierOverlay.h"
 #include "app/SettingsUi.h"
 #include "ui/PickStyle.h"
@@ -46,24 +47,26 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
     if (key == QLatin1String("comboMouse.drag")) {
         return ctx.comboMouse && ctx.comboMouse->isDragHeld();
     }
-    if (key == QLatin1String("mouseDwellMove")) {
-        return ctx.mouseDwellMove && ctx.mouseDwellMove->isArmed()
-               && ctx.mouseDwellMove->armPurpose() == MouseDwellMove::ArmPurpose::CursorMove;
-    }
-    if (key == QLatin1String("mouseMoveAndLeftClick")) {
-        return ctx.mouseDwellMove && ctx.mouseDwellMove->isArmed()
-               && ctx.mouseDwellMove->armPurpose()
-                      == MouseDwellMove::ArmPurpose::CursorMoveLeftClick;
-    }
-    if (key == QLatin1String("mouseMoveAndRightClick")) {
-        return ctx.mouseDwellMove && ctx.mouseDwellMove->isArmed()
-               && ctx.mouseDwellMove->armPurpose()
-                      == MouseDwellMove::ArmPurpose::CursorMoveRightClick;
-    }
-    if (key == QLatin1String("mouseMoveAndMiddleClick")) {
-        return ctx.mouseDwellMove && ctx.mouseDwellMove->isArmed()
-               && ctx.mouseDwellMove->armPurpose()
-                      == MouseDwellMove::ArmPurpose::CursorMoveMiddleClick;
+    {
+        using ArmPurpose = MouseDwellMove::ArmPurpose;
+        static const struct {
+            const char* id;
+            ArmPurpose purpose;
+        } kArm[] = {
+            {"mouseDwellMove", ArmPurpose::CursorMove},
+            {"leftClickAtGaze", ArmPurpose::CursorMoveLeftClick},
+            {"mouseMoveAndLeftClick", ArmPurpose::CursorMoveLeftClick},
+            {"rightClickAtGaze", ArmPurpose::CursorMoveRightClick},
+            {"mouseMoveAndRightClick", ArmPurpose::CursorMoveRightClick},
+            {"middleClickAtGaze", ArmPurpose::CursorMoveMiddleClick},
+            {"mouseMoveAndMiddleClick", ArmPurpose::CursorMoveMiddleClick},
+        };
+        for (const auto& e : kArm) {
+            if (key == QLatin1String(e.id)) {
+                return ctx.mouseDwellMove && ctx.mouseDwellMove->isArmed()
+                       && ctx.mouseDwellMove->armPurpose() == e.purpose;
+            }
+        }
     }
     // Gaze click loop: assist sticky registered on ActionLoopService + live arm state.
     if (key == QLatin1String("loop.gazeClick") || key == QLatin1String("mouseDwellClickLoop")) {
@@ -110,6 +113,22 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
     }
     if (key == QLatin1String("mouse.anyHold")) {
         return ctx.mouseAssist && ctx.mouseAssist->anyButtonHeld();
+    }
+    if (key == QLatin1String("mod.any")) {
+        return ctx.keyState && ctx.keyState->anyHeld();
+    }
+    if (key.startsWith(QLatin1String("mod."))) {
+        const QString rest = key.mid(4);
+        if (!ctx.keyState) {
+            return false;
+        }
+        if (rest.endsWith(QLatin1String(".locked"))) {
+            return ctx.keyState->isLocked(rest.left(rest.size() - 7));
+        }
+        if (rest.endsWith(QLatin1String(".down"))) {
+            return ctx.keyState->state(rest.left(rest.size() - 5)) == KeyHoldState::Down;
+        }
+        return ctx.keyState->isHeld(rest);
     }
     if (!ctx.settings) {
         return false;

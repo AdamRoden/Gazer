@@ -17,6 +17,7 @@ private slots:
     void offScreenHoleAndRingStillHit();
     void overlayRectStaysOnScreen();
     void allCornersHaveFiveButtons();
+    void yellowRingSnapsEightWays();
 };
 
 void ComboMouseTest::deadzoneAndDriftAndOutside()
@@ -232,6 +233,19 @@ void ComboMouseTest::allCornersHaveFiveButtons()
             QCOMPARE(h.slice, s.slice);
         }
     }
+}
+
+void ComboMouseTest::yellowRingSnapsEightWays()
+{
+    QCOMPARE(ComboMouseHit::snap8(QPointF(10, 0)), QPoint(1, 0));
+    QCOMPARE(ComboMouseHit::snap8(QPointF(10, 10)), QPoint(1, 1));
+    QCOMPARE(ComboMouseHit::snap8(QPointF(0, 10)), QPoint(0, 1));
+    QCOMPARE(ComboMouseHit::snap8(QPointF(-10, 10)), QPoint(-1, 1));
+    QCOMPARE(ComboMouseHit::snap8(QPointF(-10, 0)), QPoint(-1, 0));
+    QCOMPARE(ComboMouseHit::snap8(QPointF(-10, -10)), QPoint(-1, -1));
+    QCOMPARE(ComboMouseHit::snap8(QPointF(0, -10)), QPoint(0, -1));
+    QCOMPARE(ComboMouseHit::snap8(QPointF(10, -10)), QPoint(1, -1));
+    QCOMPARE(ComboMouseHit::snap8(QPointF(0, 0)), QPoint(0, 0));
 }
 
 QObject* createComboMouseTest()

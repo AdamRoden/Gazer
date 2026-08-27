@@ -7,6 +7,8 @@
 #include "layout/PageTypes.h"
 #include "assist/AssistCommands.h"
 #include "input/InputTypes.h"
+#include "input/KeyboardInjector.h"
+#include "input/KeyStateManager.h"
 #include "utils/Log.h"
 
 #include <QColor>
@@ -65,7 +67,11 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
 
     m_catalog = std::make_unique<PageCatalog>();
     m_pages = std::make_unique<PageSession>();
-    m_input = std::make_unique<InputService>();
+    m_keyState = std::make_unique<KeyStateManager>();
+    m_keyState->setInjector([](const QString& key, bool down, QString* error) {
+        return down ? KeyboardInjector::keyDown(key, error) : KeyboardInjector::keyUp(key, error);
+    });
+    m_input = std::make_unique<InputService>(*m_keyState);
     m_mapping = std::make_unique<MappingEngine>(*m_input);
     m_tts = std::make_unique<TtsService>();
     m_phrases = std::make_unique<PhraseService>(*m_tts, *m_input, *m_mapping);
@@ -160,6 +166,12 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
             [this](bool) { refreshActiveIndicators(); });
     connect(m_mouseAssist.get(), &MouseAssistState::holdsChanged, this,
             [this]() { refreshActiveIndicators(); });
+    connect(m_keyState.get(), &KeyStateManager::stateChanged, this, [this]() {
+        if (m_pages) {
+            m_pages->setShiftHeld(m_keyState->isHeld(QStringLiteral("shift")));
+        }
+        refreshActiveIndicators();
+    });
     connect(m_mouseAssist.get(), &MouseAssistState::amountsChanged, this,
             [this]() { refreshMouseAmountLabels(); });
     connect(m_gazeReticle.get(), &GazeReticle::enabledChanged, this,
@@ -196,6 +208,7 @@ ActiveStateContext GazerServices::activeStateContext() const
     ctx.gazeReticle = m_gazeReticle.get();
     ctx.gazeMouseFollow = m_gazeMouseFollow.get();
     ctx.mouseAssist = m_mouseAssist.get();
+    ctx.keyState = m_keyState.get();
     ctx.actionLoops = m_actionLoops.get();
     ctx.settingsUi = m_settingsUi.get();
     ctx.dwellSuspended = isDwellSuspended();
@@ -215,6 +228,10 @@ void GazerServices::setDwellSuspended(bool on)
     }
     if (on && m_mouseAssist) {
         m_mouseAssist->releaseAllHolds();
+    }
+    if (on && m_keyState) {
+        QString ignored;
+        (void)m_keyState->releaseAll(&ignored);
     }
 }
 
@@ -382,6 +399,20 @@ void GazerServices::registerDomainCommands()
     m_assistCmdCtx->isDwellSuspended = [this]() { return isDwellSuspended(); };
     registerAssistCommands(*m_assistCmdCtx);
 
+    auto cycleMod = [this](const QString& key) {
+        return [this, key](QString* error) { return m_keyState->cycle(key, error); };
+    };
+    m_commands->registerBuiltin(QStringLiteral("leftCtrl"), cycleMod(QStringLiteral("Control")));
+    m_commands->registerBuiltin(QStringLiteral("rightCtrl"), cycleMod(QStringLiteral("RControl")));
+    m_commands->registerBuiltin(QStringLiteral("leftAlt"), cycleMod(QStringLiteral("Alt")));
+    m_commands->registerBuiltin(QStringLiteral("rightAlt"), cycleMod(QStringLiteral("Alt")));
+    m_commands->registerBuiltin(QStringLiteral("leftWin"), cycleMod(QStringLiteral("LWin")));
+    m_commands->registerBuiltin(QStringLiteral("rightWin"), cycleMod(QStringLiteral("RWin")));
+    m_commands->registerBuiltin(QStringLiteral("leftShift"), cycleMod(QStringLiteral("Shift")));
+    m_commands->registerBuiltin(QStringLiteral("rightShift"), cycleMod(QStringLiteral("RShift")));
+    m_commands->registerBuiltin(QStringLiteral("releaseModifiers"),
+                                 [this](QString* error) { return m_keyState->releaseAll(error); });
+
     m_commands->registerBuiltin(QStringLiteral("mouseMoveToGaze"), [this](QString* error) {
         if (!m_lastGaze.valid) {
             if (error) {
@@ -395,12 +426,24 @@ void GazerServices::registerDomainCommands()
         o.dy = qRound(m_lastGaze.y);
         return m_input->execute(o, error);
     });
-    m_commands->registerBuiltin(QStringLiteral("mouseLeftClick"), [this](QString* error) {
-        InputOutput o;
-        o.type = InputOutput::Type::MouseClick;
-        o.button = QStringLiteral("left");
-        return m_input->execute(o, error);
-    });
+    auto clickAtCursor = [this](const QString& button) {
+        return [this, button](QString* error) {
+            InputOutput o;
+            o.type = InputOutput::Type::MouseClick;
+            o.button = button;
+            return m_input->execute(o, error);
+        };
+    };
+    m_commands->registerBuiltin(QStringLiteral("leftClick"), clickAtCursor(QStringLiteral("left")));
+    m_commands->registerBuiltin(QStringLiteral("mouseLeftClick"),
+                                clickAtCursor(QStringLiteral("left")));
+    m_commands->registerBuiltin(QStringLiteral("rightClick"), clickAtCursor(QStringLiteral("right")));
+    m_commands->registerBuiltin(QStringLiteral("mouseRightClick"),
+                                clickAtCursor(QStringLiteral("right")));
+    m_commands->registerBuiltin(QStringLiteral("middleClick"),
+                                clickAtCursor(QStringLiteral("middle")));
+    m_commands->registerBuiltin(QStringLiteral("mouseMiddleClick"),
+                                clickAtCursor(QStringLiteral("middle")));
     // Shared sticky policy: stop layout actionLoops + assist sticky (gaze click loop).
     m_commands->registerBuiltin(QStringLiteral("stopAllActionLoops"), [this](QString*) {
         if (m_actionLoops) {
@@ -411,6 +454,10 @@ void GazerServices::registerDomainCommands()
         }
         if (m_mouseAssist) {
             m_mouseAssist->releaseAllHolds();
+        }
+        if (m_keyState) {
+            QString ignored;
+            (void)m_keyState->releaseAll(&ignored);
         }
         refreshActiveIndicators();
         notifyStatus(QStringLiteral("All action loops stopped"));

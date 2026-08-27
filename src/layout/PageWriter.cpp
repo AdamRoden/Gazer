@@ -158,7 +158,7 @@ bool writeInlineAction(QXmlStreamWriter& xml, const QVector<PageAction>& acts)
     if (a.type == PageActionType::GoBack && value.isEmpty()) {
         value = QStringLiteral("true");
     }
-    attr(xml, name, value);
+    xml.writeAttribute(name, value);
     return true;
 }
 

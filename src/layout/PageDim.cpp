@@ -420,35 +420,41 @@ PageAnchor parseAnchor(const QString& name, bool* ok)
     if (ok) {
         *ok = true;
     }
-    if (n.isEmpty() || n == QLatin1String("topleft")) {
+    if (n.isEmpty() || n == QLatin1String("topleft") || n == QLatin1String("nw")
+        || n == QLatin1String("northwest")) {
         return PageAnchor::TopLeft;
     }
     if (n == QLatin1String("top") || n == QLatin1String("topcenter")
-        || n == QLatin1String("up")) {
+        || n == QLatin1String("up") || n == QLatin1String("n") || n == QLatin1String("north")) {
         return PageAnchor::Top;
     }
-    if (n == QLatin1String("topright")) {
+    if (n == QLatin1String("topright") || n == QLatin1String("ne")
+        || n == QLatin1String("northeast")) {
         return PageAnchor::TopRight;
     }
     if (n == QLatin1String("left") || n == QLatin1String("leftcenter")
-        || n == QLatin1String("centerleft")) {
+        || n == QLatin1String("centerleft") || n == QLatin1String("w")
+        || n == QLatin1String("west")) {
         return PageAnchor::Left;
     }
     if (n == QLatin1String("center")) {
         return PageAnchor::Center;
     }
     if (n == QLatin1String("right") || n == QLatin1String("rightcenter")
-        || n == QLatin1String("centerright")) {
+        || n == QLatin1String("centerright") || n == QLatin1String("e")
+        || n == QLatin1String("east")) {
         return PageAnchor::Right;
     }
-    if (n == QLatin1String("bottomleft")) {
+    if (n == QLatin1String("bottomleft") || n == QLatin1String("sw")
+        || n == QLatin1String("southwest")) {
         return PageAnchor::BottomLeft;
     }
     if (n == QLatin1String("bottom") || n == QLatin1String("bottomcenter")
-        || n == QLatin1String("down")) {
+        || n == QLatin1String("down") || n == QLatin1String("s") || n == QLatin1String("south")) {
         return PageAnchor::Bottom;
     }
-    if (n == QLatin1String("bottomright")) {
+    if (n == QLatin1String("bottomright") || n == QLatin1String("se")
+        || n == QLatin1String("southeast")) {
         return PageAnchor::BottomRight;
     }
     if (ok) {

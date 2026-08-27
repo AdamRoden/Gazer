@@ -617,116 +617,38 @@ void addActionFields(PropertyBinder& b, QFormLayout* form, const PageAction& act
         });
     }
     if (action.type == PageActionType::Click) {
-        b.combo(form, QStringLiteral("Button"),
-                {QStringLiteral("left"), QStringLiteral("right"), QStringLiteral("middle")},
-                action.button.isEmpty() ? QStringLiteral("left") : action.button,
-                [apply](const QString& t) {
-                    apply(QStringLiteral("Click button"), [&](PageAction& a) { a.button = t; });
+        b.combo(form, QStringLiteral("Type"), pageActionClickKindChoices(),
+                pageActionClickKindText(action.clickKind), [apply](const QString& t) {
+                    apply(QStringLiteral("Click type"),
+                          [&](PageAction& a) { (void)applyPageActionClickKind(a, t); });
                 });
-        b.integer(form, QStringLiteral("Count"), action.clickCount, 1, 16, [apply](int v) {
-            apply(QStringLiteral("Click count"), [&](PageAction& a) { a.clickCount = v; });
-        });
-        b.combo(form, QStringLiteral("Click edge"),
-                {QString(), QStringLiteral("Down"), QStringLiteral("Up")}, action.clickEdge,
-                [apply](const QString& t) {
-                    apply(QStringLiteral("Click edge"), [&](PageAction& a) { a.clickEdge = t; });
-                });
-        b.integer(form, QStringLiteral("Speed"), action.speed, 0, 10000, [apply](int v) {
-            apply(QStringLiteral("Click speed"), [&](PageAction& a) { a.speed = v; });
-        });
     }
-    if (action.type == PageActionType::MoveAndClick) {
-        b.combo(form, QStringLiteral("Button"),
-                {QStringLiteral("left"), QStringLiteral("right"), QStringLiteral("middle")},
-                action.button.isEmpty() ? QStringLiteral("left") : action.button,
-                [apply](const QString& t) {
-                    apply(QStringLiteral("Click button"), [&](PageAction& a) { a.button = t; });
-                });
-        b.note(form, QStringLiteral("−1 arms dwell move+click (toggle, mag-pick follows Settings). "
-                                   "0 warps to gaze and clicks now. >0 mag-pick at that zoom."));
-        int zoomUi = -1;
-        if (action.zoomMode == PageZoomMode::Off) {
-            zoomUi = 0;
-        } else if (action.zoomMode == PageZoomMode::Level) {
-            zoomUi = action.zoomLevel;
+    auto zoomCombo = [&]() {
+        b.note(form, QStringLiteral("default = Settings mag-pick. 0 = no magnify (warp now). "
+                                   "N = N× zoom. −1 = foresight. −2 = foresight + bonus zoom."));
+        const QString z = pageActionZoomText(action);
+        QStringList zs = pageActionZoomChoices();
+        if (!zs.contains(z)) {
+            zs.insert(1, z);
         }
-        b.integer(form, QStringLiteral("Zoom (−1 = settings)"), zoomUi, -1, 16, [apply](int v) {
-            apply(QStringLiteral("Zoom"), [&](PageAction& a) {
-                if (v < 0) {
-                    a.zoomMode = PageZoomMode::Settings;
-                    a.zoomLevel = 0;
-                } else if (v == 0) {
-                    a.zoomMode = PageZoomMode::Off;
-                    a.zoomLevel = 0;
-                } else {
-                    a.zoomMode = PageZoomMode::Level;
-                    a.zoomLevel = v;
-                }
-            });
+        b.combo(form, QStringLiteral("Zoom"), zs, z, [apply](const QString& t) {
+            apply(QStringLiteral("Zoom"), [&](PageAction& a) { (void)applyPageActionZoom(a, t); });
         });
+    };
+    if (action.type == PageActionType::MoveAndClick) {
+        zoomCombo();
     }
     if (action.type == PageActionType::Move) {
-        QString mode = QStringLiteral("Gaze");
-        if (action.moveMode == PageMoveMode::Absolute) {
-            mode = QStringLiteral("Absolute");
-        } else if (action.moveMode == PageMoveMode::Relative) {
-            mode = QStringLiteral("Relative");
-        } else if (action.moveMode == PageMoveMode::Direction) {
-            mode = QStringLiteral("Direction");
-        }
-        b.combo(form, QStringLiteral("Mode"),
-                {QStringLiteral("Gaze"), QStringLiteral("Direction"), QStringLiteral("Absolute"),
-                 QStringLiteral("Relative")},
-                mode, [apply](const QString& t) {
-                    apply(QStringLiteral("Move mode"), [&](PageAction& a) {
-                        a.type = PageActionType::Move;
-                        if (t == QLatin1String("Absolute")) {
-                            a.moveMode = PageMoveMode::Absolute;
-                        } else if (t == QLatin1String("Relative")) {
-                            a.moveMode = PageMoveMode::Relative;
-                        } else if (t == QLatin1String("Direction")) {
-                            a.moveMode = PageMoveMode::Direction;
-                        } else {
-                            a.moveMode = PageMoveMode::Gaze;
-                        }
-                    });
-                });
         if (action.moveMode == PageMoveMode::Gaze) {
-            b.note(form, QStringLiteral("−1 uses Settings zoom (mag-pick). 0 warps to gaze with no "
-                                       "magnify. >0 mag-pick at that zoom."));
-            int zoomUi = -1;
-            if (action.zoomMode == PageZoomMode::Off) {
-                zoomUi = 0;
-            } else if (action.zoomMode == PageZoomMode::Level) {
-                zoomUi = action.zoomLevel;
-            }
-            b.integer(form, QStringLiteral("Zoom (−1 = settings)"), zoomUi, -1, 16,
-                      [apply](int v) {
-                          apply(QStringLiteral("Zoom"), [&](PageAction& a) {
-                              if (v < 0) {
-                                  a.zoomMode = PageZoomMode::Settings;
-                                  a.zoomLevel = 0;
-                              } else if (v == 0) {
-                                  a.zoomMode = PageZoomMode::Off;
-                                  a.zoomLevel = 0;
-                              } else {
-                                  a.zoomMode = PageZoomMode::Level;
-                                  a.zoomLevel = v;
-                              }
-                          });
-                      });
+            zoomCombo();
         }
         if (action.moveMode == PageMoveMode::Direction) {
-            QString dir = QStringLiteral("up");
-            if (action.moveDirection == PageAnchor::Bottom) {
-                dir = QStringLiteral("down");
-            } else if (action.moveDirection != PageAnchor::Top) {
-                dir = PageDimParse::anchorName(action.moveDirection);
-            }
-            QStringList dirs = pageAnchorNames();
-            dirs.prepend(QStringLiteral("down"));
-            dirs.prepend(QStringLiteral("up"));
-            b.combo(form, QStringLiteral("Direction"), dirs, dir, [apply](const QString& t) {
+            const QStringList dirs = {QStringLiteral("n"),  QStringLiteral("s"),
+                                      QStringLiteral("e"),  QStringLiteral("w"),
+                                      QStringLiteral("ne"), QStringLiteral("nw"),
+                                      QStringLiteral("se"), QStringLiteral("sw")};
+            b.combo(form, QStringLiteral("Direction"), dirs,
+                    pageActionCompassToken(action.moveDirection), [apply](const QString& t) {
                 apply(QStringLiteral("Move direction"), [&](PageAction& a) {
                     bool ok = false;
                     a.moveDirection = PageDimParse::parseAnchor(t, &ok);
@@ -787,8 +709,17 @@ QString friendlyCommandLabel(const QString& commandId)
         {QStringLiteral("backspace"), QStringLiteral("Backspace")},
         {QStringLiteral("space"), QStringLiteral("Space")},
         {QStringLiteral("escape"), QStringLiteral("Escape")},
-        {QStringLiteral("mouseLeftClick"), QStringLiteral("Left click")},
-        {QStringLiteral("mouseRightClick"), QStringLiteral("Right click")},
+        {QStringLiteral("leftCtrl"), QStringLiteral("Ctrl (cycle)")},
+        {QStringLiteral("leftAlt"), QStringLiteral("Alt (cycle)")},
+        {QStringLiteral("leftWin"), QStringLiteral("Win (cycle)")},
+        {QStringLiteral("leftShift"), QStringLiteral("Shift (cycle)")},
+        {QStringLiteral("releaseModifiers"), QStringLiteral("Release modifiers")},
+        {QStringLiteral("leftClick"), QStringLiteral("Left click")},
+        {QStringLiteral("rightClick"), QStringLiteral("Right click")},
+        {QStringLiteral("middleClick"), QStringLiteral("Middle click")},
+        {QStringLiteral("leftClickAtGaze"), QStringLiteral("Left click at gaze")},
+        {QStringLiteral("rightClickAtGaze"), QStringLiteral("Right click at gaze")},
+        {QStringLiteral("middleClickAtGaze"), QStringLiteral("Middle click at gaze")},
         {QStringLiteral("mouseDwellMove"), QStringLiteral("Dwell-move cursor")},
         {QStringLiteral("toggleMagnifier"), QStringLiteral("Magnifier")},
         {QStringLiteral("toggleLookToScroll"), QStringLiteral("Look to scroll")},

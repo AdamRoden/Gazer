@@ -4,7 +4,7 @@ Gaze-driven AAC and system input for Windows. C++20 / Qt 6.
 
 Gazer turns live gaze (Tobii Eye Tracker 5, or the mouse as a fallback) into on-screen pages you dwell to activate. Pages can send keys, click, move the pointer, speak, and run assist tools (look-to-scroll, magnifier, gaze reticle). The long-term aim is one stack in place of OptiKey + OpenTrack + UCR + AutoHotkey.
 
-Version **0.4.0**. License: [GPL-3.0](LICENSE). Cell and zone icons are OptiKey geometries in `resources/icons/key_symbols.json` (also GPL-3.0; see `third_party/optikey/`). Set `icon` to a name such as `Tab`, `MouseLeftClick`, `MinimizeDown`. Unknown names fall back to the label.
+Version **0.4.0**. License: [GPL-3.0](LICENSE). Cell and zone icons are OptiKey geometries in `resources/icons/key_symbols.json` (also GPL-3.0; see `third_party/optikey/`). Set `icon` to a name such as `Tab`, `LeftClick`, `MinimizeDown`. Unknown names fall back to the label.
 
 ## What you get at launch
 
@@ -37,7 +37,7 @@ The designer edits **Page XML** (the same files the runtime loads). Three panes:
 | Center | **Fit grid** (default): the selected grid fills the canvas. Uncheck it to see true placement on a 1920×1080 virtual display. Click / Shift-click to select; drag to move; accent handles resize; arrows nudge (Shift = 16 px); Delete removes. **Esc** cancels click-to-place. Zones show the progress chip and the dwell region. |
 | Right | Tabs follow the selection: **Page**; **Grid / Style / Placement**; **Cell** or **Zone / Style / Placement / Action**; named **Style** or **Dwell** alone. Placement holds anchor, offset, row/col/span, and zone progress/dwell regions. Cell and zone dwell inherit/overrides sit at the bottom of Action. |
 
-File → New asks for id, name, and a template (blank, QWERTY + Shift, keyboard row, settings row, zone chip). File → Open lists shipped and user `*.xml` pages. **Save** of a shipped file writes a user copy to `%AppData%\Gazer\layouts` and leaves `resources/` unchanged. The toolbar layer combo appears for keyboard families (`id`, `id_shift`, `id_sym`, `id_sym_shift`). **Test on canvas** (F6) plays a dwell ring. **Test on desktop** (F5) attaches the current page (and sibling layers) on the live host. Master roots cannot be live-tested. Empty actions warn before Save and F5.
+File → New asks for id, name, and a template (blank, full keyboard, keyboard row, settings row, zone chip). File → Open lists shipped and user `*.xml` pages. **Save** of a shipped file writes a user copy to `%AppData%\Gazer\layouts` and leaves `resources/` unchanged. The toolbar layer combo appears for keyboard families that still ship a symbols layer (`id`, `id_sym`). Shift is a modifier on the same board (labels switch to the shifted glyph). **Test on canvas** (F6) plays a dwell ring. **Test on desktop** (F5) attaches the current page (and sibling layers) on the live host. Master roots cannot be live-tested. Empty actions warn before Save and F5.
 
 ## Requirements
 
@@ -204,15 +204,18 @@ Action is generic: the specific thing to do is named as an attribute (on `<Actio
 <Cell openPage="uw_qwerty, true"/>
 
 <Send value="a"/>
-<Click value="left"/>
-<Move value="gaze"/>
-<Move value="gaze,0"/>
-<Move value="gaze,4"/>
-<Move value="up"/>
-<Move value="down,40"/>
-<Move value="100,200"/>
-<MoveAndClick value="left"/>
-<MoveAndClick value="left,4"/>
+<LeftClick/>
+<LeftClick value="double"/>
+<LeftClick value="toggle"/>
+<LeftClickAtGaze/>
+<LeftClickAtGaze value="0"/>
+<LeftClickAtGaze value="4"/>
+<LeftClickAtGaze value="-1"/>
+<MouseMoveToGaze/>
+<MouseMoveToGaze value="0"/>
+<MouseMoveByDirection value="n"/>
+<MouseMoveByDirection value="se,40"/>
+<MouseMoveToPoint value="100,200"/>
 <Command value="toggleLookToScroll"/>
 <OpenPage value="uw_qwerty, true"/>
 <ShowGrid value="board, true"/>
@@ -231,9 +234,11 @@ A cell or zone may have **one** action attribute. Multiple actions use child ele
 | Name | `value` |
 |------|---------|
 | `Send` | key[, Down\|Up[, durationMs]] |
-| `Click` | left\|right\|middle |
-| `Move` | `gaze` (settings zoom), `gaze,0` (no magnify), `gaze,N`; or direction (`up`/`down`/anchor)[, amount px]; or `x,y` screen coords. Amount omitted uses the mouse-assist step. |
-| `MoveAndClick` | button[, zoom] — always move to gaze, then click. Zoom omitted means no magnify. |
+| `LeftClick` / `MiddleClick` / `RightClick` | type: `default` / `double` / `down` / `up` / `toggle` (omit for a default click) |
+| `LeftClickAtGaze` / `MiddleClickAtGaze` / `RightClickAtGaze` | zoom: omit/`default` = Settings mag-pick; `0` = warp to gaze, no magnify; `N` = N× zoom; `-1` = foresight; `-2` = foresight with bonus zoom |
+| `MouseMoveToGaze` | same zoom tokens as click-at-gaze |
+| `MouseMoveByDirection` | `n`/`s`/`e`/`w`/`ne`/`nw`/`se`/`sw`[, amount px] — amount omitted uses the mouse-assist step |
+| `MouseMoveToPoint` | `x,y` screen coords |
 | `Command` | builtin or mapping-profile name |
 | `OpenPage` | targetId[, true] — `true` saves a breadcrumb of the current page state |
 | `ShowGrid` / `ShowZone` / `ShowCell` | targetId[, true] — show a grid, zone, or cell (`openGrid` / `openZone` still load) |
@@ -243,7 +248,7 @@ A cell or zone may have **one** action attribute. Multiple actions use child ele
 | `Speak` | TTS text |
 | `AHK` | element body / CDATA — written to a temp `.ahk` and started with a local AutoHotkey install (v2 preferred; `#Requires AutoHotkey v1` selects v1). AutoHotkey is not bundled; set `GAZER_AHK` to an exe to override discovery. |
 
-`<Action send="a"/>` is the same as `<Send value="a"/>`. Legacy `<Action id="Send" value="a"/>` still loads.
+`<Action send="a"/>` is the same as `<Send value="a"/>`. Legacy `<Action id="Send" value="a"/>` still loads. `Click` / `Move` / `MoveAndClick` still load (old `left`/`gaze`/`up` values) but the names above are the ones to use.
 
 ### Example
 
@@ -273,7 +278,8 @@ Builtins first; unknown names fall through to the mapping profile.
 | `mouseDwellMove` | Dwell to place the cursor |
 | `mouseDwellClickLoop` | Sticky dwell-move then click |
 | `mouseMoveToGaze` | Jump cursor to last valid gaze |
-| `mouseLeftClick` | Left click at cursor |
+| `leftClick` / `rightClick` / `middleClick` | Click at cursor |
+| `leftClickAtGaze` / `rightClickAtGaze` / `middleClickAtGaze` | Dwell-move then click |
 | `stopAllActionLoops` | Stop sticky series and assist loops |
 | `openPreview` | Head-pose preview |
 | `openLayoutEditor` | XML page designer |

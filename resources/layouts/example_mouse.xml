@@ -1,24 +1,24 @@
 <Page id="example_mouse" name="Mouse">
   <Grid id="board" desktopMode="true" rows="3" columns="9" anchor="Bottom" offset="0,0" size="1100,360" gap="8" margin="8">
-    <Cell id="lclick" row="0" col="0" icon="MouseLeftClick" label="Left" background="#1b4332" foreground="#ffffff" command="mouseLeftClick"/>
-    <Cell id="ldbl" row="0" col="1" icon="MouseLeftDoubleClick" label="L×2" background="#1b4332" foreground="#ffffff" command="mouseLeftDoubleClick"/>
-    <Cell id="rclick" row="0" col="2" icon="MouseRightClick" label="Right" background="#2d6a4f" foreground="#ffffff" command="mouseRightClick"/>
-    <Cell id="rdbl" row="0" col="3" icon="MouseRightButtonDoubleClick" label="R×2" background="#2d6a4f" foreground="#ffffff" command="mouseRightDoubleClick"/>
-    <Cell id="mclick" row="0" col="4" icon="MouseMiddleClick" label="Middle" background="#40916c" foreground="#ffffff" command="mouseMiddleClick"/>
-    <Cell id="ldownup" row="0" col="5" icon="MouseLeftDownUp" label="L Hold" background="#9b2226" foreground="#ffffff" activeState="mouse.leftHold" command="mouseLeftDownUp"/>
-    <Cell id="rdownup" row="0" col="6" icon="MouseRightDownUp" label="R Hold" background="#9b2226" foreground="#ffffff" activeState="mouse.rightHold" command="mouseRightDownUp"/>
-    <Cell id="mdownup" row="0" col="7" icon="MouseMiddleDownUp" label="M Hold" background="#9b2226" foreground="#ffffff" activeState="mouse.middleHold" command="mouseMiddleDownUp"/>
-    <Cell id="move_lclick" row="0" col="8" icon="MouseLeftButtonClick" label="Move+L" background="#e9c46a" foreground="#1a1a1a" activeState="mouseMoveAndLeftClick" command="mouseMoveAndLeftClick"/>
-    <Cell id="nudge_up" row="1" col="0" icon="ArrowPointingToTop" label="Up" background="#264653" foreground="#ffffff" command="mouseMoveUp"/>
-    <Cell id="nudge_left" row="1" col="1" icon="ArrowPointingToLeft" label="Left" background="#264653" foreground="#ffffff" command="mouseMoveLeft"/>
-    <Cell id="nudge_right" row="1" col="2" icon="ArrowPointingToRight" label="Right" background="#264653" foreground="#ffffff" command="mouseMoveRight"/>
-    <Cell id="nudge_down" row="1" col="3" icon="ArrowPointingToBottom" label="Down" background="#264653" foreground="#ffffff" command="mouseMoveDown"/>
+    <Cell id="lclick" row="0" col="0" icon="LeftClick" label="Left" background="#1b4332" foreground="#ffffff" leftClick=""/>
+    <Cell id="ldbl" row="0" col="1" icon="LeftDoubleClick" label="L×2" background="#1b4332" foreground="#ffffff" leftClick="double"/>
+    <Cell id="rclick" row="0" col="2" icon="RightClick" label="Right" background="#2d6a4f" foreground="#ffffff" rightClick=""/>
+    <Cell id="rdbl" row="0" col="3" icon="RightButtonDoubleClick" label="R×2" background="#2d6a4f" foreground="#ffffff" rightClick="double"/>
+    <Cell id="mclick" row="0" col="4" icon="MiddleClick" label="Middle" background="#40916c" foreground="#ffffff" middleClick=""/>
+    <Cell id="ldownup" row="0" col="5" icon="LeftDownUp" label="L Hold" background="#9b2226" foreground="#ffffff" activeState="mouse.leftHold" leftClick="toggle"/>
+    <Cell id="rdownup" row="0" col="6" icon="RightDownUp" label="R Hold" background="#9b2226" foreground="#ffffff" activeState="mouse.rightHold" rightClick="toggle"/>
+    <Cell id="mdownup" row="0" col="7" icon="MiddleDownUp" label="M Hold" background="#9b2226" foreground="#ffffff" activeState="mouse.middleHold" middleClick="toggle"/>
+    <Cell id="move_lclick" row="0" col="8" icon="LeftClickAtGaze" label="Move+L" background="#e9c46a" foreground="#1a1a1a" activeState="leftClickAtGaze" leftClickAtGaze=""/>
+    <Cell id="nudge_up" row="1" col="0" icon="ArrowPointingToTop" label="Up" background="#264653" foreground="#ffffff" mouseMoveByDirection="n"/>
+    <Cell id="nudge_left" row="1" col="1" icon="ArrowPointingToLeft" label="Left" background="#264653" foreground="#ffffff" mouseMoveByDirection="w"/>
+    <Cell id="nudge_right" row="1" col="2" icon="ArrowPointingToRight" label="Right" background="#264653" foreground="#ffffff" mouseMoveByDirection="e"/>
+    <Cell id="nudge_down" row="1" col="3" icon="ArrowPointingToBottom" label="Down" background="#264653" foreground="#ffffff" mouseMoveByDirection="s"/>
     <Cell id="sc_up" row="1" col="4" icon="MouseScrollToTop" label="Scroll ↑" background="#1d3557" foreground="#ffffff" command="mouseScrollUp"/>
     <Cell id="sc_down" row="1" col="5" icon="MouseScrollToBottom" label="Scroll ↓" background="#1d3557" foreground="#ffffff" command="mouseScrollDown"/>
     <Cell id="sc_left" row="1" col="6" icon="MouseScrollToLeft" label="Scroll ←" background="#1d3557" foreground="#ffffff" command="mouseScrollLeft"/>
     <Cell id="sc_right" row="1" col="7" icon="MouseScrollToRight" label="Scroll →" background="#1d3557" foreground="#ffffff" command="mouseScrollRight"/>
-    <Cell id="move_rclick" row="1" col="8" icon="MouseRightButtonClick" label="Move+R" background="#f4a261" foreground="#1a1a1a" activeState="mouseMoveAndRightClick" command="mouseMoveAndRightClick"/>
-    <Cell id="dwell_move" row="2" col="0" icon="MouseMoveTo" label="Move to…" background="#e9c46a" foreground="#1a1a1a" activeState="mouseDwellMove" command="mouseDwellMove"/>
+    <Cell id="move_rclick" row="1" col="8" icon="RightClickAtGaze" label="Move+R" background="#f4a261" foreground="#1a1a1a" activeState="rightClickAtGaze" rightClickAtGaze=""/>
+    <Cell id="dwell_move" row="2" col="0" icon="MouseMoveTo" label="Move to…" background="#e9c46a" foreground="#1a1a1a" activeState="mouseDwellMove" mouseMoveToGaze=""/>
     <Cell id="mag_pick" row="2" col="1" icon="ZoomToLocation" label="Mag pick" background="#f4a261" foreground="#1a1a1a" activeState="mouseMoveMagPick" command="toggleMouseMoveMagPick"/>
     <Cell id="combo" row="2" col="2" icon="PieSlice5" label="ComboMouse" background="#e9c46a" foreground="#1a1a1a" activeState="comboMouse" command="toggleComboMouse"/>
     <Cell id="movestep" row="2" col="3" icon="SizeAndPosition" label="Step 40 px" background="#3d4f66" foreground="#ffffff" command="cycleMouseMoveAmount"/>

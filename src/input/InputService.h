@@ -9,12 +9,14 @@
 
 namespace gazer {
 
+class KeyStateManager;
+
 /// Facade over keyboard, mouse, and virtual gamepad injectors.
 class InputService final : public QObject {
     Q_OBJECT
 
 public:
-    explicit InputService(QObject* parent = nullptr);
+    explicit InputService(KeyStateManager& keys, QObject* parent = nullptr);
 
     [[nodiscard]] bool execute(const InputOutput& output, QString* error = nullptr);
     [[nodiscard]] bool executeAll(const QVector<InputOutput>& outputs, QString* error = nullptr);
@@ -26,6 +28,7 @@ signals:
     void failed(const QString& error);
 
 private:
+    KeyStateManager& m_keys;
     VirtualGamepad m_gamepad;
 };
 

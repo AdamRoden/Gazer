@@ -1,5 +1,6 @@
 #include "input/KeyboardInjector.h"
 
+#include "input/KeyGlyphs.h"
 #include "utils/Log.h"
 
 #ifdef Q_OS_WIN
@@ -35,6 +36,15 @@ WORD virtualKeyFromName(QString name)
         {"RCONTROL", VK_RCONTROL}, {"SHIFT", VK_SHIFT},  {"LSHIFT", VK_LSHIFT},
         {"RSHIFT", VK_RSHIFT},   {"ALT", VK_MENU},       {"MENU", VK_MENU},
         {"LWIN", VK_LWIN},       {"RWIN", VK_RWIN},      {"WIN", VK_LWIN},
+        {"OEMMINUS", VK_OEM_MINUS}, {"OEM_MINUS", VK_OEM_MINUS},
+        {"OEMPLUS", VK_OEM_PLUS},   {"OEM_PLUS", VK_OEM_PLUS},
+        {"OEMCOMMA", VK_OEM_COMMA}, {"OEM_COMMA", VK_OEM_COMMA},
+        {"OEMPERIOD", VK_OEM_PERIOD}, {"OEM_PERIOD", VK_OEM_PERIOD},
+        {"OEM1", VK_OEM_1},      {"OEM_1", VK_OEM_1},     {"OEM2", VK_OEM_2},
+        {"OEM_2", VK_OEM_2},     {"OEM3", VK_OEM_3},      {"OEM_3", VK_OEM_3},
+        {"OEM4", VK_OEM_4},      {"OEM_4", VK_OEM_4},     {"OEM5", VK_OEM_5},
+        {"OEM_5", VK_OEM_5},     {"OEM6", VK_OEM_6},      {"OEM_6", VK_OEM_6},
+        {"OEM7", VK_OEM_7},      {"OEM_7", VK_OEM_7},
         {"F1", VK_F1},           {"F2", VK_F2},          {"F3", VK_F3},
         {"F4", VK_F4},           {"F5", VK_F5},          {"F6", VK_F6},
         {"F7", VK_F7},           {"F8", VK_F8},          {"F9", VK_F9},
@@ -52,6 +62,10 @@ WORD virtualKeyFromName(QString name)
         }
         if (c >= QLatin1Char('0') && c <= QLatin1Char('9')) {
             return static_cast<WORD>(c.unicode());
+        }
+        const KeyGlyphs::Stroke st = KeyGlyphs::strokeForSend(name.trimmed(), false);
+        if (st.key.compare(name.trimmed(), Qt::CaseInsensitive) != 0) {
+            return virtualKeyFromName(st.key);
         }
     }
     return 0;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QPoint>
 #include <QPointF>
 #include <QRect>
 #include <QRectF>
@@ -64,6 +65,21 @@ struct Layout {
     const double dx = gaze.x() - origin.x();
     const double dy = gaze.y() - origin.y();
     return wrap360(qRadiansToDegrees(qAtan2(dy, dx)) + 90.0);
+}
+
+/// Snap a gaze offset to one of eight unit steps (N/NE/E/SE/S/SW/W/NW).
+[[nodiscard]] inline QPoint snap8(QPointF dir)
+{
+    const double len = qSqrt(dir.x() * dir.x() + dir.y() * dir.y());
+    if (len < 0.01) {
+        return {};
+    }
+    const double ang = qAtan2(dir.y(), dir.x());
+    int oct = int(qRound(ang / qDegreesToRadians(45.0)));
+    oct = ((oct % 8) + 8) % 8;
+    static const int dx[8] = {1, 1, 0, -1, -1, -1, 0, 1};
+    static const int dy[8] = {0, 1, 1, 1, 0, -1, -1, -1};
+    return {dx[oct], dy[oct]};
 }
 
 [[nodiscard]] inline QPointF pointOnRay(QPointF origin, double clockwiseFromTop, double radius)

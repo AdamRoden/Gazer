@@ -404,21 +404,24 @@ void registerAssistCommands(AssistCommandContext& ctx)
             return true;
         };
     };
-    commands->registerBuiltin(
-        QStringLiteral("mouseMoveAndLeftClick"),
-        toggleMoveClick(ArmPurpose::CursorMoveLeftClick,
-                        QStringLiteral("Move + left click — dwell to place, then click"),
-                        QStringLiteral("Move + left click OFF")));
-    commands->registerBuiltin(
-        QStringLiteral("mouseMoveAndRightClick"),
-        toggleMoveClick(ArmPurpose::CursorMoveRightClick,
-                        QStringLiteral("Move + right click — dwell to place, then click"),
-                        QStringLiteral("Move + right click OFF")));
-    commands->registerBuiltin(
-        QStringLiteral("mouseMoveAndMiddleClick"),
-        toggleMoveClick(ArmPurpose::CursorMoveMiddleClick,
-                        QStringLiteral("Move + middle click — dwell to place, then click"),
-                        QStringLiteral("Move + middle click OFF")));
+    const auto leftAtGaze = toggleMoveClick(
+        ArmPurpose::CursorMoveLeftClick,
+        QStringLiteral("Left click at gaze — dwell to place, then click"),
+        QStringLiteral("Left click at gaze OFF"));
+    const auto rightAtGaze = toggleMoveClick(
+        ArmPurpose::CursorMoveRightClick,
+        QStringLiteral("Right click at gaze — dwell to place, then click"),
+        QStringLiteral("Right click at gaze OFF"));
+    const auto middleAtGaze = toggleMoveClick(
+        ArmPurpose::CursorMoveMiddleClick,
+        QStringLiteral("Middle click at gaze — dwell to place, then click"),
+        QStringLiteral("Middle click at gaze OFF"));
+    commands->registerBuiltin(QStringLiteral("leftClickAtGaze"), leftAtGaze);
+    commands->registerBuiltin(QStringLiteral("mouseMoveAndLeftClick"), leftAtGaze);
+    commands->registerBuiltin(QStringLiteral("rightClickAtGaze"), rightAtGaze);
+    commands->registerBuiltin(QStringLiteral("mouseMoveAndRightClick"), rightAtGaze);
+    commands->registerBuiltin(QStringLiteral("middleClickAtGaze"), middleAtGaze);
+    commands->registerBuiltin(QStringLiteral("mouseMoveAndMiddleClick"), middleAtGaze);
     commands->registerBuiltin(QStringLiteral("toggleGazeReticle"),
                               [reticle, mag, refresh, notify](QString*) {
                                   const bool turningOn = !reticle->isEnabled();

@@ -1,7 +1,7 @@
-<Page id="main" master="true" name="Dock" background="#00000000" blur="15" radius="16" thickness="0">
-  <Style id="chip" background="#99000000" blur="15" radius="900,900,0,0" progressStyle="border, fillup"/>
-  <Style id="drawer" background="#99000000"/>
-  <Style id="quitPrompt" background="#99000000" radius="12"/>
+<Page id="main" master="true" name="Dock" background="#00000000" blur="25" radius="16" thickness="0">
+  <Style id="chip" background="#cc000000" blur="25" radius="900,900,0,0" progressStyle="border, fillup"/>
+  <Style id="drawer" background="#cc000000"/>
+  <Style id="quitPrompt" background="#cc000000" radius="12"/>
   <Style id="quitYes" background="#9b2226" foreground="#ffffff" radius="12"/>
   <Style id="quitNo" background="#2d6a4f" foreground="#ffffff" radius="12"/>
 

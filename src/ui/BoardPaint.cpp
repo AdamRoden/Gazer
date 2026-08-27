@@ -10,6 +10,7 @@
 #include <QFontMetricsF>
 #include <QPainter>
 #include <QPainterPath>
+#include <QPen>
 #include <QtMath>
 
 namespace gazer {
@@ -319,10 +320,28 @@ void paintSurface(QPainter& p, const QRectF& r, const PageChrome& chrome, const 
     strokeRound(p, r, radii, border, thickness);
 }
 
+void paintLockRadio(QPainter& p, const QRectF& r, const QColor& color)
+{
+    const double d = qBound(8.0, qMin(r.width(), r.height()) * 0.22, 16.0);
+    if (d < 6.0 || r.width() < d + 6.0 || r.height() < d + 6.0) {
+        return;
+    }
+    const QRectF outer(r.right() - d - 3.5, r.top() + 3.5, d, d);
+    QColor ring = color.isValid() ? color : QColor(255, 255, 255);
+    p.setBrush(Qt::NoBrush);
+    p.setPen(QPen(ring, qMax(1.3, d * 0.14), Qt::SolidLine, Qt::RoundCap));
+    p.drawEllipse(outer);
+    const double inset = d * 0.28;
+    p.setPen(Qt::NoPen);
+    p.setBrush(ring);
+    p.drawEllipse(outer.adjusted(inset, inset, -inset, -inset));
+}
+
 void paintTarget(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeColors& theme,
                  GlassBackdrop* glass, bool hovered, double progress, bool flashing, bool active,
                  const ProgressVisuals& pv, const QColor& previewColor, const QString& sliderScrubId,
-                 double sliderScrubT, const QString& sliderScrubValue, double sliderScrubProgress)
+                 double sliderScrubT, const QString& sliderScrubValue, double sliderScrubProgress,
+                 bool locked)
 {
     if (r.isEmpty()) {
         return;
@@ -370,6 +389,9 @@ void paintTarget(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeC
         const QColor fc = vis.resolvedFlashColor(fg);
         fillRound(p, r, radii, fc);
         strokeRound(p, r, radii, fc, PageBox::all(3.5));
+    }
+    if (locked) {
+        paintLockRadio(p, r, theme.accent.isValid() ? theme.accent : fg);
     }
 }
 

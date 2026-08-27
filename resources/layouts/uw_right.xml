@@ -1,12 +1,12 @@
 <Page id="uw_right" name="Right" scanGrace="20" activation="100,400">
   <Grid id="board" desktopMode="false" rows="8" columns="1" anchor="TopLeft" offset="2000,0" size="100,1034" gap="0" margin="0">
     <Cell id="more" row="0" col="0" icon="More" label="More" openPage="example_keyboard_sym"/>
-    <Cell id="move_lclick" row="1" col="0" icon="MouseLeftClick" label="Left" activeState="mouseMoveAndLeftClick">
+    <Cell id="move_lclick" row="1" col="0" icon="LeftClick" label="Left" activeState="leftClickAtGaze">
     <Command value="toggleMouseMoveMagPick"/>
-    <Command value="mouseMoveAndLeftClick"/>
+    <Command value="leftClickAtGaze"/>
     <Command value="toggleMouseMoveMagPick"/>
     </Cell>
-    <Cell id="move_rclick" row="2" col="0" icon="MouseRightClick" label="Right" activeState="mouseMoveAndRightClick" scanGrace="100" command="mouseMoveAndRightClick"/>
+    <Cell id="move_rclick" row="2" col="0" icon="RightClick" label="Right" activeState="rightClickAtGaze" scanGrace="100" command="rightClickAtGaze"/>
     <Cell id="keyboard" row="3" col="0" icon="Keyboard" label="Keyboard">
     <ClosePage value="-self"/>
     <OpenPage value="uw_qwerty"/>

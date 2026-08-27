@@ -12,10 +12,7 @@
     <Cell id="ch_111_0_9" row="0" col="9" label="o" send="o"/>
     <Cell id="ch_112_0_10" row="0" col="10" label="p" send="p"/>
     <Cell id="bksp" row="0" col="11" icon="BackOne" label="⌫" background="#3d4f66" foreground="#ffffff" command="backspace"/>
-    <Cell id="shift" row="1" col="0" icon="Shift" label="⇧" background="#3d4f66" foreground="#ffffff">
-    <ClosePage value="-self"/>
-    <OpenPage value="example_keyboard_shift"/>
-    </Cell>
+    <Cell id="shift" row="1" col="0" icon="Shift" label="⇧" background="#3d4f66" foreground="#ffffff" activeState="mod.shift" command="leftShift"/>
     <Cell id="ch_97_1_1" row="1" col="1" label="a" send="a"/>
     <Cell id="ch_115_1_2" row="1" col="2" label="s" send="s"/>
     <Cell id="ch_100_1_3" row="1" col="3" label="d" send="d"/>
@@ -27,7 +24,7 @@
     <Cell id="ch_108_1_9" row="1" col="9" label="l" send="l"/>
     <Cell id="comma" row="1" col="10" label="," send=","/>
     <Cell id="quote" row="1" col="11" label="&apos;" send="&apos;"/>
-    <Cell id="cmd" row="2" col="0" icon="Win" label="⌘" background="#3d4f66" foreground="#ffffff"/>
+    <Cell id="cmd" row="2" col="0" icon="Win" label="⌘" background="#3d4f66" foreground="#ffffff" activeState="mod.win" command="leftWin"/>
     <Cell id="sym" row="2" col="1" icon="NumericAndSymbols" label="123?" background="#0a7ea4" foreground="#ffffff">
     <ClosePage value="-self"/>
     <OpenPage value="example_keyboard_sym"/>

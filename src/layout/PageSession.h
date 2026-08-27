@@ -78,6 +78,7 @@ public:
     void setLoopStopPage(LoopStopPageFn fn) { m_loopStopPage = std::move(fn); }
     void refreshDecorated();
     void refreshActive();
+    void setShiftHeld(bool on);
 
     void setTheme(const ThemeColors& theme);
     void setProgressVisuals(const ProgressVisuals& visuals);
@@ -174,6 +175,7 @@ private:
     QVector<AttachedPage> m_attached;
     QVariantMap m_props;
     bool m_dwellSuspended = false;
+    bool m_shiftHeld = false;
     bool m_autoCollapseMain = false;
     QVector<PageTarget> m_targets;
     QVector<PageGridPaint> m_gridPaints;

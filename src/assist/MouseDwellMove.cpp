@@ -226,6 +226,20 @@ void MouseDwellMove::setPhase(Phase phase)
     }
 }
 
+bool MouseDwellMove::armWantsForesight() const
+{
+    if (m_purpose == ArmPurpose::LookToScrollPlace
+        || m_purpose == ArmPurpose::ComboMousePlace) {
+        return false;
+    }
+    return m_armZoom.wantsForesight(m_foresight.isEnabled());
+}
+
+bool MouseDwellMove::armWantsBonusZoom() const
+{
+    return m_armZoom.wantsBonus(m_foresightDoubleZoom);
+}
+
 bool MouseDwellMove::useMagPickThisArm() const
 {
     if (m_purpose == ArmPurpose::LookToScrollPlace
@@ -240,16 +254,21 @@ bool MouseDwellMove::useMagPickThisArm() const
     if (!cursorMove) {
         return false;
     }
-    return m_armZoom > 0.0 || m_magPickEnabled;
+    return m_armZoom.useMagPick(m_magPickEnabled);
 }
 
-void MouseDwellMove::setArmed(bool armed, ArmPurpose purpose, double zoomOverride)
+void MouseDwellMove::setArmed(bool armed, ArmPurpose purpose)
 {
-    const double nextZoom = (armed && zoomOverride > 0.0) ? zoomOverride : 0.0;
+    setArmed(armed, purpose, ArmZoom::settings());
+}
+
+void MouseDwellMove::setArmed(bool armed, ArmPurpose purpose, ArmZoom zoom)
+{
+    const ArmZoom next = armed ? zoom : ArmZoom::settings();
     if (m_armed == armed) {
-        if (armed && (m_purpose != purpose || m_armZoom != nextZoom)) {
+        if (armed && (m_purpose != purpose || !(m_armZoom == next))) {
             m_purpose = purpose;
-            m_armZoom = nextZoom;
+            m_armZoom = next;
             m_paused = false;
             resetDwell();
             if (m_magOverlay) {
@@ -258,12 +277,12 @@ void MouseDwellMove::setArmed(bool armed, ArmPurpose purpose, double zoomOverrid
             startAimPhase();
             markSelectDeadline();
             GAZER_INFO << "MouseDwellMove purpose →" << purposeName(purpose)
-                       << (m_armZoom > 0.0 ? "zoom" : "direct");
+                       << (useMagPickThisArm() ? "zoom" : "direct");
             emit armedChanged(true);
         }
         return;
     }
-    m_armZoom = nextZoom;
+    m_armZoom = next;
     m_armed = armed;
     m_paused = false;
     m_gateRect = {};
@@ -345,8 +364,8 @@ void MouseDwellMove::applyDwellForPhase()
 {
     const bool choosingRegion = m_phase == Phase::MagRegion
                                 || (m_phase == Phase::MagPoint && m_outsideSelectsNewRegion
-                                    && m_magPickEnabled
-                                    && (!m_magGazeInside || m_foresightDoubleZoom));
+                                    && useMagPickThisArm()
+                                    && (!m_magGazeInside || armWantsBonusZoom()));
     m_dwell.setDwellMs(choosingRegion ? m_magPickDwellMs : m_moveDwellMs);
 }
 
@@ -496,7 +515,7 @@ void MouseDwellMove::hideUi()
 
 void MouseDwellMove::onBackgroundGaze(const GazePoint& point, bool overUi)
 {
-    if (!m_foresight.isEnabled() || m_armed) {
+    if (m_armed) {
         return;
     }
     m_foresight.sample(point, overUi, m_clock.elapsed());
@@ -516,7 +535,7 @@ MagPresentation MouseDwellMove::makePreClickSpec(const QPoint& center) const
 {
     MagPresentation spec;
     spec.srcCenter = center;
-    spec.zoom = m_armZoom > 0.0 ? m_armZoom : m_pickZoom;
+    spec.zoom = m_armZoom.resolvedLevel(m_pickZoom);
     QScreen* screen = QGuiApplication::screenAt(center);
     if (!screen) {
         screen = QGuiApplication::primaryScreen();
@@ -532,7 +551,7 @@ MagPresentation MouseDwellMove::makeForesightSpec(const QPoint& srcCenter, const
     MagPresentation spec;
     spec.srcCenter = srcCenter;
     spec.destCenter = destCenter;
-    spec.zoom = m_armZoom > 0.0 ? m_armZoom : m_pickZoom;
+    spec.zoom = m_armZoom.resolvedLevel(m_pickZoom);
     spec.destSide = destSide;
     return spec;
 }
@@ -542,7 +561,7 @@ void MouseDwellMove::startAimPhase()
     m_outsideSelectsNewRegion = false;
     m_mag = {};
     if (m_purpose != ArmPurpose::LookToScrollPlace
-        && m_purpose != ArmPurpose::ComboMousePlace) {
+        && m_purpose != ArmPurpose::ComboMousePlace && armWantsForesight()) {
         if (const auto fs = m_foresight.peek(m_clock.elapsed())) {
             QScreen* screen = QGuiApplication::screenAt(*fs);
             if (!screen) {
@@ -602,9 +621,9 @@ bool MouseDwellMove::beginMagPick(const MagPresentation& spec, bool outsideSelec
 
     QString hint = QStringLiteral("Dwell to pick point (static zoom)");
     if (outsideSelectsNewRegion) {
-        if (m_magPickEnabled && m_foresightDoubleZoom) {
+        if (useMagPickThisArm() && armWantsBonusZoom()) {
             hint = QStringLiteral("Foresight — dwell inside to zoom again, outside for a new region");
-        } else if (m_magPickEnabled) {
+        } else if (useMagPickThisArm()) {
             hint = QStringLiteral("Foresight — dwell inside to place, outside for pre-click zoom");
         } else {
             hint = QStringLiteral("Foresight — dwell inside to place");
@@ -813,7 +832,7 @@ void MouseDwellMove::onGazeInZoom(const QPointF& g, double dtSec)
     if (!m_magDisplayRect.contains(fire.toPoint())) {
         fire = m_dwell.smoothPos();
     }
-    if (m_outsideSelectsNewRegion && m_magPickEnabled && m_foresightDoubleZoom) {
+    if (m_outsideSelectsNewRegion && useMagPickThisArm() && armWantsBonusZoom()) {
         const int side = m_mag.destSide > 0 ? m_mag.destSide
                                             : destSideFor(QGuiApplication::primaryScreen());
         if (!beginMagPick(makeForesightSpec(mapDisplayToSource(fire),

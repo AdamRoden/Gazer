@@ -1,14 +1,13 @@
 #include "app/ActionDispatcher.h"
 
 #include "assist/MouseDwellMove.h"
-#include "input/KeyboardInjector.h"
+#include "input/KeyStateManager.h"
 #include "input/MouseInjector.h"
 #include "layout/PageDim.h"
 #include "utils/Log.h"
 #include "utils/ScreenGrab.h"
 
 #include <QtGlobal>
-#include <QTimer>
 
 namespace gazer {
 
@@ -26,9 +25,26 @@ MouseDwellMove::ArmPurpose clickPurpose(const QString& button)
     return MouseDwellMove::ArmPurpose::CursorMoveLeftClick;
 }
 
-void armMagPick(GazerServices& svc, MouseDwellMove::ArmPurpose purpose, double zoom)
+MouseDwellMove::ArmZoom armZoomFrom(const PageAction& a)
 {
-    svc.mouseDwellMove().setArmed(true, purpose, zoom);
+    switch (a.zoomMode) {
+    case PageZoomMode::Off:
+        return MouseDwellMove::ArmZoom::direct();
+    case PageZoomMode::Level:
+        return MouseDwellMove::ArmZoom::at(double(a.zoomLevel));
+    case PageZoomMode::Foresight:
+        return MouseDwellMove::ArmZoom::foresight();
+    case PageZoomMode::ForesightBonus:
+        return MouseDwellMove::ArmZoom::foresightBonus();
+    case PageZoomMode::Settings:
+        break;
+    }
+    return MouseDwellMove::ArmZoom::settings();
+}
+
+void armMagPick(GazerServices& svc, MouseDwellMove::ArmPurpose purpose, const PageAction& a)
+{
+    svc.mouseDwellMove().setArmed(true, purpose, armZoomFrom(a));
 }
 
 } // namespace
@@ -42,18 +58,28 @@ ActionDispatcher::ActionDispatcher(GazerServices& services, QObject* parent)
 bool ActionDispatcher::dispatchClick(const PageAction& a, QString* error)
 {
     const QString btn = a.button.isEmpty() ? QStringLiteral("left") : a.button;
-    const QString edge = a.clickEdge.trimmed().toLower();
-    if (edge == QLatin1String("down")) {
+    switch (a.clickKind) {
+    case PageClickKind::Toggle: {
+        const bool down = (btn == QLatin1String("right"))   ? !m_svc.mouseAssist().isRightHeld()
+                          : (btn == QLatin1String("middle")) ? !m_svc.mouseAssist().isMiddleHeld()
+                                                            : !m_svc.mouseAssist().isLeftHeld();
+        return m_svc.mouseAssist().setHeld(btn, down, error);
+    }
+    case PageClickKind::Down:
         return m_svc.mouseAssist().setHeld(btn, true, error);
-    }
-    if (edge == QLatin1String("up")) {
+    case PageClickKind::Up:
         return m_svc.mouseAssist().setHeld(btn, false, error);
+    case PageClickKind::Double: {
+        const bool ok = MouseInjector::doubleClick(btn, error);
+        if (ok) {
+            m_svc.mouseAssist().markReleased(btn);
+        }
+        return ok;
     }
-    const int n = qMax(1, a.clickCount);
-    bool ok = true;
-    for (int i = 0; i < n && ok; ++i) {
-        ok = MouseInjector::click(btn, error);
+    case PageClickKind::Default:
+        break;
     }
+    const bool ok = MouseInjector::click(btn, error);
     if (ok) {
         m_svc.mouseAssist().markReleased(btn);
     }
@@ -99,25 +125,18 @@ void ActionDispatcher::dispatchPage(const QVector<PageAction>& actions, const QS
             }
             const QString edge = a.sendEdge.trimmed().toLower();
             QString err;
+            bool ok = true;
+            KeyStateManager& keys = m_svc.keyState();
             if (edge == QLatin1String("down")) {
-                if (!KeyboardInjector::keyDown(a.sendKey, &err)) {
-                    notify(err.isEmpty() ? QStringLiteral("Send Down failed") : err);
-                }
+                ok = keys.down(a.sendKey, &err);
             } else if (edge == QLatin1String("up")) {
-                if (!KeyboardInjector::keyUp(a.sendKey, &err)) {
-                    notify(err.isEmpty() ? QStringLiteral("Send Up failed") : err);
-                }
+                ok = keys.up(a.sendKey, &err);
             } else if (a.sendDurationMs > 0) {
-                if (!KeyboardInjector::keyDown(a.sendKey, &err)) {
-                    notify(err.isEmpty() ? QStringLiteral("Send failed") : err);
-                    break;
-                }
-                const QString key = a.sendKey;
-                QTimer::singleShot(a.sendDurationMs, this, [key]() {
-                    QString ignored;
-                    (void)KeyboardInjector::keyUp(key, &ignored);
-                });
-            } else if (!KeyboardInjector::tapKey(a.sendKey, &err)) {
+                ok = keys.hold(a.sendKey, a.sendDurationMs, &err);
+            } else {
+                ok = keys.activate(a.sendKey, &err);
+            }
+            if (!ok) {
                 notify(err.isEmpty() ? QStringLiteral("Send failed") : err);
             }
             break;
@@ -136,10 +155,7 @@ void ActionDispatcher::dispatchPage(const QVector<PageAction>& actions, const QS
                 if (a.zoomMode == PageZoomMode::Off) {
                     ok = moveToGaze(&err);
                 } else {
-                    const double zoom = a.zoomMode == PageZoomMode::Level
-                                            ? double(a.zoomLevel)
-                                            : m_svc.settings().pickZoom;
-                    armMagPick(m_svc, MouseDwellMove::ArmPurpose::CursorMove, zoom);
+                    armMagPick(m_svc, MouseDwellMove::ArmPurpose::CursorMove, a);
                     break;
                 }
             } else if (a.moveMode == PageMoveMode::Direction) {
@@ -178,14 +194,12 @@ void ActionDispatcher::dispatchPage(const QVector<PageAction>& actions, const QS
                 break;
             }
             const MouseDwellMove::ArmPurpose purpose = clickPurpose(a.button);
-            if (a.zoomMode == PageZoomMode::Settings && m_svc.mouseDwellMove().isArmed()
+            if (m_svc.mouseDwellMove().isArmed()
                 && m_svc.mouseDwellMove().armPurpose() == purpose) {
                 m_svc.mouseDwellMove().setArmed(false);
                 break;
             }
-            const double zoom =
-                a.zoomMode == PageZoomMode::Level ? double(a.zoomLevel) : 0.0;
-            armMagPick(m_svc, purpose, zoom);
+            armMagPick(m_svc, purpose, a);
             break;
         }
         case PageActionType::Ahk: {

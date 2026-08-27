@@ -1,10 +1,10 @@
-#include "layout/PageActionParse.h"
+﻿#include "layout/PageActionParse.h"
 
+#include "layout/PageActionParseFields.h"
 #include "layout/PageDim.h"
 
 #include <QPair>
 #include <QStringList>
-#include <QtGlobal>
 #include <QVector>
 #include <QXmlStreamAttribute>
 
@@ -12,42 +12,173 @@ namespace gazer {
 
 namespace {
 
+using pageaction::buttonKey;
+using pageaction::compassToken;
+using pageaction::csvJoin;
+using pageaction::clickKindText;
+using pageaction::navTargetText;
+using pageaction::parseClickKindToken;
+using pageaction::parseClickKindValue;
+using pageaction::parseCommandValue;
+using pageaction::parseGazeClick;
+using pageaction::parseGazeMove;
+using pageaction::parseLegacyClick;
+using pageaction::parseLegacyMove;
+using pageaction::parseLegacyMoveAndClick;
+using pageaction::parseLegacyPageParts;
+using pageaction::parseMoveDir;
+using pageaction::parseMovePoint;
+using pageaction::parseNavValue;
+using pageaction::parseSendValue;
+using pageaction::parseSpeakValue;
+using pageaction::parseZoomSpec;
+using pageaction::splitCsv;
+using pageaction::zoomSpecText;
+
+
+struct ActionName;
+
+using ParseFn = bool (*)(const QString& value, PageAction& out, QString* error);
+using MatchFn = bool (*)(const PageAction& a, const ActionName& n);
+
 struct ActionName {
     const char* attr;
     const char* element;
     PageActionType type;
-    PageVerb verb;
-    PageTargetKind kind;
+    PageVerb verb = PageVerb::Open;
+    PageTargetKind kind = PageTargetKind::Page;
+    const char* button = nullptr;
+    bool listed = true;
+    ParseFn parse = nullptr;
+    MatchFn match = nullptr;
 };
 
+
+
+bool matchButton(const PageAction& a, const ActionName& n)
+{
+    const QString want = n.button ? QString::fromLatin1(n.button) : QStringLiteral("left");
+    return buttonKey(a.button) == want;
+}
+
+bool matchGaze(const PageAction& a, const ActionName&)
+{
+    return a.moveMode == PageMoveMode::Gaze;
+}
+
+bool matchDir(const PageAction& a, const ActionName&)
+{
+    return a.moveMode == PageMoveMode::Direction;
+}
+
+bool matchPoint(const PageAction& a, const ActionName&)
+{
+    return a.moveMode == PageMoveMode::Absolute || a.moveMode == PageMoveMode::Relative;
+}
+
+void applyBasics(PageAction& out, const ActionName& n)
+{
+    out.type = n.type;
+    if (n.button) {
+        out.button = QString::fromLatin1(n.button);
+    }
+    if (n.type == PageActionType::Nav) {
+        out.verb = n.verb;
+        out.targetKind = n.kind;
+    }
+}
+
 const ActionName kNames[] = {
-    {"send", "Send", PageActionType::Send, PageVerb::Open, PageTargetKind::Page},
-    {"click", "Click", PageActionType::Click, PageVerb::Open, PageTargetKind::Page},
-    {"move", "Move", PageActionType::Move, PageVerb::Open, PageTargetKind::Page},
+    {"send", "Send", PageActionType::Send, PageVerb::Open, PageTargetKind::Page, nullptr, true,
+     parseSendValue},
+    {"leftClick", "LeftClick", PageActionType::Click, PageVerb::Open, PageTargetKind::Page, "left",
+     true, parseClickKindValue, matchButton},
+    {"middleClick", "MiddleClick", PageActionType::Click, PageVerb::Open, PageTargetKind::Page,
+     "middle", true, parseClickKindValue, matchButton},
+    {"rightClick", "RightClick", PageActionType::Click, PageVerb::Open, PageTargetKind::Page,
+     "right", true, parseClickKindValue, matchButton},
+    {"leftClickAtGaze", "LeftClickAtGaze", PageActionType::MoveAndClick, PageVerb::Open,
+     PageTargetKind::Page, "left", true, parseGazeClick, matchButton},
+    {"middleClickAtGaze", "MiddleClickAtGaze", PageActionType::MoveAndClick, PageVerb::Open,
+     PageTargetKind::Page, "middle", true, parseGazeClick, matchButton},
+    {"rightClickAtGaze", "RightClickAtGaze", PageActionType::MoveAndClick, PageVerb::Open,
+     PageTargetKind::Page, "right", true, parseGazeClick, matchButton},
+    {"mouseMoveByDirection", "MouseMoveByDirection", PageActionType::Move, PageVerb::Open,
+     PageTargetKind::Page, nullptr, true, parseMoveDir, matchDir},
+    {"mouseMoveToGaze", "MouseMoveToGaze", PageActionType::Move, PageVerb::Open,
+     PageTargetKind::Page, nullptr, true, parseGazeMove, matchGaze},
+    {"mouseMoveToPoint", "MouseMoveToPoint", PageActionType::Move, PageVerb::Open,
+     PageTargetKind::Page, nullptr, true, parseMovePoint, matchPoint},
+    {"click", "Click", PageActionType::Click, PageVerb::Open, PageTargetKind::Page, nullptr, false,
+     parseLegacyClick},
+    {"move", "Move", PageActionType::Move, PageVerb::Open, PageTargetKind::Page, nullptr, false,
+     parseLegacyMove},
     {"moveAndClick", "MoveAndClick", PageActionType::MoveAndClick, PageVerb::Open,
-     PageTargetKind::Page},
-    {"command", "Command", PageActionType::Command, PageVerb::Open, PageTargetKind::Page},
-    {"openPage", "OpenPage", PageActionType::Nav, PageVerb::Open, PageTargetKind::Page},
-    {"showGrid", "ShowGrid", PageActionType::Nav, PageVerb::Open, PageTargetKind::Grid},
-    {"showZone", "ShowZone", PageActionType::Nav, PageVerb::Open, PageTargetKind::Zone},
-    {"showCell", "ShowCell", PageActionType::Nav, PageVerb::Open, PageTargetKind::Cell},
-    {"closePage", "ClosePage", PageActionType::Nav, PageVerb::Close, PageTargetKind::Page},
-    {"hideGrid", "HideGrid", PageActionType::Nav, PageVerb::Close, PageTargetKind::Grid},
-    {"hideZone", "HideZone", PageActionType::Nav, PageVerb::Close, PageTargetKind::Zone},
-    {"hideCell", "HideCell", PageActionType::Nav, PageVerb::Close, PageTargetKind::Cell},
-    {"togglePage", "TogglePage", PageActionType::Nav, PageVerb::Toggle, PageTargetKind::Page},
-    {"toggleGrid", "ToggleGrid", PageActionType::Nav, PageVerb::Toggle, PageTargetKind::Grid},
-    {"toggleZone", "ToggleZone", PageActionType::Nav, PageVerb::Toggle, PageTargetKind::Zone},
-    {"toggleCell", "ToggleCell", PageActionType::Nav, PageVerb::Toggle, PageTargetKind::Cell},
-    {"goBack", "GoBack", PageActionType::GoBack, PageVerb::Open, PageTargetKind::Page},
-    {"speak", "Speak", PageActionType::Speak, PageVerb::Open, PageTargetKind::Page},
+     PageTargetKind::Page, nullptr, false, parseLegacyMoveAndClick},
+    {"command", "Command", PageActionType::Command, PageVerb::Open, PageTargetKind::Page, nullptr,
+     true, parseCommandValue},
+    {"openPage", "OpenPage", PageActionType::Nav, PageVerb::Open, PageTargetKind::Page, nullptr,
+     true, parseNavValue},
+    {"showGrid", "ShowGrid", PageActionType::Nav, PageVerb::Open, PageTargetKind::Grid, nullptr, true,
+     parseNavValue},
+    {"showZone", "ShowZone", PageActionType::Nav, PageVerb::Open, PageTargetKind::Zone, nullptr, true,
+     parseNavValue},
+    {"showCell", "ShowCell", PageActionType::Nav, PageVerb::Open, PageTargetKind::Cell, nullptr, true,
+     parseNavValue},
+    {"closePage", "ClosePage", PageActionType::Nav, PageVerb::Close, PageTargetKind::Page, nullptr,
+     true, parseNavValue},
+    {"hideGrid", "HideGrid", PageActionType::Nav, PageVerb::Close, PageTargetKind::Grid, nullptr,
+     true, parseNavValue},
+    {"hideZone", "HideZone", PageActionType::Nav, PageVerb::Close, PageTargetKind::Zone, nullptr,
+     true, parseNavValue},
+    {"hideCell", "HideCell", PageActionType::Nav, PageVerb::Close, PageTargetKind::Cell, nullptr,
+     true, parseNavValue},
+    {"togglePage", "TogglePage", PageActionType::Nav, PageVerb::Toggle, PageTargetKind::Page, nullptr,
+     true, parseNavValue},
+    {"toggleGrid", "ToggleGrid", PageActionType::Nav, PageVerb::Toggle, PageTargetKind::Grid, nullptr,
+     true, parseNavValue},
+    {"toggleZone", "ToggleZone", PageActionType::Nav, PageVerb::Toggle, PageTargetKind::Zone, nullptr,
+     true, parseNavValue},
+    {"toggleCell", "ToggleCell", PageActionType::Nav, PageVerb::Toggle, PageTargetKind::Cell, nullptr,
+     true, parseNavValue},
+    {"goBack", "GoBack", PageActionType::GoBack},
+    {"speak", "Speak", PageActionType::Speak, PageVerb::Open, PageTargetKind::Page, nullptr, true,
+     parseSpeakValue},
 };
 
 const ActionName kAliases[] = {
-    {"openGrid", "OpenGrid", PageActionType::Nav, PageVerb::Open, PageTargetKind::Grid},
-    {"openZone", "OpenZone", PageActionType::Nav, PageVerb::Open, PageTargetKind::Zone},
-    {"closeGrid", "CloseGrid", PageActionType::Nav, PageVerb::Close, PageTargetKind::Grid},
-    {"closeZone", "CloseZone", PageActionType::Nav, PageVerb::Close, PageTargetKind::Zone},
+    {"openGrid", "OpenGrid", PageActionType::Nav, PageVerb::Open, PageTargetKind::Grid, nullptr,
+     false, parseNavValue},
+    {"openZone", "OpenZone", PageActionType::Nav, PageVerb::Open, PageTargetKind::Zone, nullptr,
+     false, parseNavValue},
+    {"closeGrid", "CloseGrid", PageActionType::Nav, PageVerb::Close, PageTargetKind::Grid, nullptr,
+     false, parseNavValue},
+    {"closeZone", "CloseZone", PageActionType::Nav, PageVerb::Close, PageTargetKind::Zone, nullptr,
+     false, parseNavValue},
+    {"mouseClickLeft", "MouseClickLeft", PageActionType::Click, PageVerb::Open, PageTargetKind::Page,
+     "left", false, parseClickKindValue, matchButton},
+    {"mouseLeftClick", "MouseLeftClick", PageActionType::Click, PageVerb::Open, PageTargetKind::Page,
+     "left", false, parseClickKindValue, matchButton},
+    {"mouseClickMiddle", "MouseClickMiddle", PageActionType::Click, PageVerb::Open,
+     PageTargetKind::Page, "middle", false, parseClickKindValue, matchButton},
+    {"mouseMiddleClick", "MouseMiddleClick", PageActionType::Click, PageVerb::Open,
+     PageTargetKind::Page, "middle", false, parseClickKindValue, matchButton},
+    {"mouseClickRight", "MouseClickRight", PageActionType::Click, PageVerb::Open,
+     PageTargetKind::Page, "right", false, parseClickKindValue, matchButton},
+    {"mouseRightClick", "MouseRightClick", PageActionType::Click, PageVerb::Open,
+     PageTargetKind::Page, "right", false, parseClickKindValue, matchButton},
+    {"mouseClickAtGazeLeft", "MouseClickAtGazeLeft", PageActionType::MoveAndClick, PageVerb::Open,
+     PageTargetKind::Page, "left", false, parseGazeClick, matchButton},
+    {"mouseMoveAndLeftClick", "MouseMoveAndLeftClick", PageActionType::MoveAndClick, PageVerb::Open,
+     PageTargetKind::Page, "left", false, parseGazeClick, matchButton},
+    {"mouseClickAtGazeMiddle", "MouseClickAtGazeMiddle", PageActionType::MoveAndClick, PageVerb::Open,
+     PageTargetKind::Page, "middle", false, parseGazeClick, matchButton},
+    {"mouseMoveAndMiddleClick", "MouseMoveAndMiddleClick", PageActionType::MoveAndClick,
+     PageVerb::Open, PageTargetKind::Page, "middle", false, parseGazeClick, matchButton},
+    {"mouseClickAtGazeRight", "MouseClickAtGazeRight", PageActionType::MoveAndClick, PageVerb::Open,
+     PageTargetKind::Page, "right", false, parseGazeClick, matchButton},
+    {"mouseMoveAndRightClick", "MouseMoveAndRightClick", PageActionType::MoveAndClick, PageVerb::Open,
+     PageTargetKind::Page, "right", false, parseGazeClick, matchButton},
 };
 
 const ActionName* findName(QStringView raw)
@@ -74,437 +205,36 @@ const ActionName* findName(QStringView raw)
 
 const ActionName* findName(const PageAction& a)
 {
+    const ActionName* legacy = nullptr;
     for (const ActionName& n : kNames) {
         if (n.type != a.type) {
             continue;
         }
-        if (a.type == PageActionType::Nav
-            && (n.verb != a.verb || n.kind != a.targetKind)) {
+        if (a.type == PageActionType::Nav && (n.verb != a.verb || n.kind != a.targetKind)) {
+            continue;
+        }
+        if (!n.listed) {
+            if (!legacy) {
+                legacy = &n;
+            }
+            continue;
+        }
+        if (n.match && !n.match(a, n)) {
             continue;
         }
         return &n;
     }
-    return nullptr;
-}
-
-QStringList splitCsv(const QString& value)
-{
-    QStringList out;
-    for (const QString& p : value.split(QLatin1Char(','))) {
-        out.push_back(p.trimmed());
-    }
-    while (!out.isEmpty() && out.last().isEmpty()) {
-        out.removeLast();
-    }
-    return out;
-}
-
-QString csvJoin(const QStringList& parts)
-{
-    int last = parts.size();
-    while (last > 0 && parts.at(last - 1).isEmpty()) {
-        --last;
-    }
-    QStringList out;
-    out.reserve(last);
-    for (int i = 0; i < last; ++i) {
-        out.push_back(parts.at(i));
-    }
-    return out.join(QStringLiteral(", "));
-}
-
-bool isEdgeToken(const QString& t)
-{
-    const QString l = t.trimmed().toLower();
-    return l == QLatin1String("down") || l == QLatin1String("up");
-}
-
-bool parseIntToken(const QString& t, int* out, QString* error, const char* what)
-{
-    const QString s = t.trimmed();
-    if (s.isEmpty()) {
-        return true;
-    }
-    bool ok = false;
-    const int v = s.toInt(&ok);
-    if (!ok) {
-        if (error) {
-            *error = QStringLiteral("%1 must be an integer, got '%2'")
-                         .arg(QString::fromLatin1(what), t);
-        }
-        return false;
-    }
-    *out = v;
-    return true;
-}
-
-bool looksNumeric(const QString& t)
-{
-    const QString s = t.trimmed();
-    if (s.isEmpty()) {
-        return false;
-    }
-    bool ok = false;
-    (void)s.toDouble(&ok);
-    return ok || s.contains(QLatin1Char('/'));
-}
-
-void applySpell(PageAction& out, const ActionName& n)
-{
-    out.type = n.type;
-    if (n.type == PageActionType::Nav) {
-        out.verb = n.verb;
-        out.targetKind = n.kind;
-    }
-}
-
-bool parseNavTarget(const QString& tok, PageAction& out)
-{
-    const QString t = tok.trimmed();
-    const QString l = t.toLower();
-    if (t == QLatin1String("-all") || l == QLatin1String("all")) {
-        out.targetScope = PageNavScope::All;
-        out.targetId.clear();
-        return true;
-    }
-    if (t == QLatin1String("-self") || l == QLatin1String("self")) {
-        out.targetScope = PageNavScope::Self;
-        out.targetId.clear();
-        return true;
-    }
-    if (t == QLatin1String("-!self") || t == QLatin1String("!self")) {
-        out.targetScope = PageNavScope::Others;
-        out.targetId.clear();
-        return true;
-    }
-    out.targetScope = PageNavScope::Id;
-    out.targetId = t;
-    return true;
-}
-
-QString navTargetText(const PageAction& a)
-{
-    switch (a.targetScope) {
-    case PageNavScope::All:
-        return QStringLiteral("-all");
-    case PageNavScope::Self:
-        return QStringLiteral("-self");
-    case PageNavScope::Others:
-        return QStringLiteral("-!self");
-    case PageNavScope::Id:
-        break;
-    }
-    return a.targetId;
-}
-
-bool parseSendParts(const QStringList& parts, PageAction& out, QString* error)
-{
-    out.type = PageActionType::Send;
-    if (!parts.isEmpty()) {
-        out.sendKey = parts[0];
-    }
-    int i = 1;
-    if (i < parts.size() && isEdgeToken(parts[i])) {
-        out.sendEdge = parts[i];
-        ++i;
-    } else if (i < parts.size() && parts[i].isEmpty()) {
-        ++i;
-    }
-    if (i < parts.size()) {
-        if (!parseIntToken(parts[i], &out.sendDurationMs, error, "Send duration")) {
-            return false;
-        }
-        ++i;
-    }
-    if (i < parts.size()) {
-        if (error) {
-            *error = QStringLiteral("Unexpected extra Send field '%1'").arg(parts[i]);
-        }
-        return false;
-    }
-    return true;
-}
-
-bool parseClickParts(const QStringList& parts, PageAction& out, QString* error)
-{
-    out.type = PageActionType::Click;
-    if (!parts.isEmpty()) {
-        out.button = parts[0];
-    }
-    int i = 1;
-    const int n = parts.size();
-    if (i < n && isEdgeToken(parts[i])) {
-    } else if (i < n) {
-        if (!parseIntToken(parts[i], &out.clickCount, error, "Click count")) {
-            return false;
-        }
-        ++i;
-    }
-    if (i < n && isEdgeToken(parts[i])) {
-        out.clickEdge = parts[i];
-        ++i;
-    } else if (i < n && parts[i].isEmpty()) {
-        ++i;
-    }
-    if (i < n) {
-        if (!parseIntToken(parts[i], &out.speed, error, "Click speed")) {
-            return false;
-        }
-        ++i;
-    }
-    if (i < n) {
-        if (error) {
-            *error = QStringLiteral("Unexpected extra field '%1'").arg(parts[i]);
-        }
-        return false;
-    }
-    return true;
-}
-
-bool parseZoomInt(const QString& tok, PageZoomMode omitted, PageAction& out, QString* error)
-{
-    if (tok.trimmed().isEmpty()) {
-        out.zoomMode = omitted;
-        return true;
-    }
-    int z = 0;
-    if (!parseIntToken(tok, &z, error, "Zoom")) {
-        return false;
-    }
-    if (z <= 0) {
-        out.zoomMode = PageZoomMode::Off;
-        out.zoomLevel = 0;
-    } else {
-        out.zoomMode = PageZoomMode::Level;
-        out.zoomLevel = z;
-    }
-    return true;
-}
-
-bool parseMoveParts(const QStringList& parts, PageAction& out, QString* error)
-{
-    out.type = PageActionType::Move;
-    if (parts.isEmpty()) {
-        out.moveMode = PageMoveMode::Gaze;
-        out.zoomMode = PageZoomMode::Settings;
-        return true;
-    }
-    const QString m0 = parts[0].trimmed();
-    const QString l0 = m0.toLower();
-
-    if (l0 == QLatin1String("gaze")) {
-        out.moveMode = PageMoveMode::Gaze;
-        if (parts.size() >= 2) {
-            if (!parseZoomInt(parts[1], PageZoomMode::Settings, out, error)) {
-                return false;
-            }
-        } else {
-            out.zoomMode = PageZoomMode::Settings;
-        }
-        if (parts.size() >= 3) {
-            if (error) {
-                *error = QStringLiteral("Unexpected extra Move field '%1'").arg(parts[2]);
-            }
-            return false;
-        }
-        return true;
-    }
-
-    if (l0 == QLatin1String("relative") || l0 == QLatin1String("absolute")) {
-        out.moveMode =
-            l0 == QLatin1String("relative") ? PageMoveMode::Relative : PageMoveMode::Absolute;
-        if (parts.size() >= 2) {
-            out.moveX = PageDimParse::parse(parts[1], error);
-            if (error && !error->isEmpty()) {
-                return false;
-            }
-        }
-        if (parts.size() >= 3) {
-            out.moveY = PageDimParse::parse(parts[2], error);
-            if (error && !error->isEmpty()) {
-                return false;
-            }
-        }
-        if (parts.size() >= 4) {
-            if (error) {
-                *error = QStringLiteral("Unexpected extra Move field '%1'").arg(parts[3]);
-            }
-            return false;
-        }
-        return true;
-    }
-
-    bool anchorOk = false;
-    const PageAnchor anchor = PageDimParse::parseAnchor(m0, &anchorOk);
-    if (anchorOk && !looksNumeric(m0)) {
-        out.moveMode = PageMoveMode::Direction;
-        out.moveDirection = anchor;
-        if (parts.size() >= 2 && !parts[1].isEmpty()) {
-            if (!parseIntToken(parts[1], &out.moveAmount, error, "Move amount")) {
-                return false;
-            }
-        }
-        if (parts.size() >= 3) {
-            if (error) {
-                *error = QStringLiteral("Unexpected extra Move field '%1'").arg(parts[2]);
-            }
-            return false;
-        }
-        return true;
-    }
-
-    if (parts.size() >= 2) {
-        out.moveMode = PageMoveMode::Absolute;
-        out.moveX = PageDimParse::parse(parts[0], error);
-        if (error && !error->isEmpty()) {
-            return false;
-        }
-        out.moveY = PageDimParse::parse(parts[1], error);
-        if (error && !error->isEmpty()) {
-            return false;
-        }
-        if (parts.size() >= 3) {
-            if (error) {
-                *error = QStringLiteral("Unexpected extra Move field '%1'").arg(parts[2]);
-            }
-            return false;
-        }
-        return true;
-    }
-
-    if (error) {
-        *error = QStringLiteral("Unknown Move value '%1'").arg(parts[0]);
-    }
-    return false;
-}
-
-bool parseMoveAndClickParts(const QStringList& parts, PageAction& out, QString* error)
-{
-    out.type = PageActionType::MoveAndClick;
-    out.zoomMode = PageZoomMode::Settings;
-    if (!parts.isEmpty()) {
-        out.button = parts[0];
-    }
-    if (parts.size() >= 2) {
-        if (!parseZoomInt(parts[1], PageZoomMode::Off, out, error)) {
-            return false;
-        }
-    }
-    if (parts.size() >= 3) {
-        if (error) {
-            *error = QStringLiteral("Unexpected extra MoveAndClick field '%1'").arg(parts[2]);
-        }
-        return false;
-    }
-    return true;
-}
-
-bool parseNavParts(const ActionName& n, const QStringList& parts, PageAction& out, QString* error)
-{
-    applySpell(out, n);
-    if (!parts.isEmpty()) {
-        parseNavTarget(parts[0], out);
-    }
-    if (parts.size() >= 2 && !parts[1].isEmpty()) {
-        bool flag = false;
-        if (!PageDimParse::strictBool(parts[1], &flag)) {
-            if (error) {
-                *error = QStringLiteral("Expected true/false breadcrumb flag, got '%1'")
-                             .arg(parts[1]);
-            }
-            return false;
-        }
-        out.breadcrumb = flag;
-    }
-    if (parts.size() >= 3) {
-        if (error) {
-            *error = QStringLiteral("Unexpected extra field '%1'").arg(parts[2]);
-        }
-        return false;
-    }
-    return true;
-}
-
-bool parseLegacyPageParts(const QStringList& parts, PageAction& out, QString* error)
-{
-    if (parts.size() < 2) {
-        if (error) {
-            *error = QStringLiteral("Page needs at least 2 value field(s)");
-        }
-        return false;
-    }
-    PageVerb v = PageVerb::Open;
-    const QString verb = parts[0].toLower();
-    if (verb == QLatin1String("open") || verb == QLatin1String("show")) {
-        v = PageVerb::Open;
-    } else if (verb == QLatin1String("close") || verb == QLatin1String("hide")) {
-        v = PageVerb::Close;
-    } else if (verb == QLatin1String("toggle")) {
-        v = PageVerb::Toggle;
-    } else {
-        if (error) {
-            *error = QStringLiteral("Unknown Page verb '%1'").arg(parts[0]);
-        }
-        return false;
-    }
-    PageTargetKind k = PageTargetKind::Page;
-    const QString kind = parts[1].toLower();
-    if (kind == QLatin1String("page")) {
-        k = PageTargetKind::Page;
-    } else if (kind == QLatin1String("grid")) {
-        k = PageTargetKind::Grid;
-    } else if (kind == QLatin1String("zone")) {
-        k = PageTargetKind::Zone;
-    } else if (kind == QLatin1String("cell")) {
-        k = PageTargetKind::Cell;
-    } else {
-        if (error) {
-            *error = QStringLiteral("Unknown Page target '%1'").arg(parts[1]);
-        }
-        return false;
-    }
-    out.type = PageActionType::Nav;
-    out.verb = v;
-    out.targetKind = k;
-    if (parts.size() >= 3) {
-        parseNavTarget(parts[2], out);
-    }
-    return true;
+    return legacy;
 }
 
 bool fillFromName(const ActionName& n, const QString& value, PageAction& out, QString* error)
 {
     out.value = value;
-    applySpell(out, n);
-    const QStringList parts = splitCsv(value);
-    switch (n.type) {
-    case PageActionType::Send:
-        return parseSendParts(parts, out, error);
-    case PageActionType::Click:
-        return parseClickParts(parts, out, error);
-    case PageActionType::Move:
-        return parseMoveParts(parts, out, error);
-    case PageActionType::MoveAndClick:
-        return parseMoveAndClickParts(parts, out, error);
-    case PageActionType::Command:
-        out.command = value.trimmed();
+    applyBasics(out, n);
+    if (!n.parse) {
         return true;
-    case PageActionType::Nav:
-        return parseNavParts(n, parts, out, error);
-    case PageActionType::GoBack:
-        return true;
-    case PageActionType::Speak:
-        out.speakText = value;
-        return true;
-    case PageActionType::Ahk:
-        return true;
-    case PageActionType::Unknown:
-        break;
     }
-    if (error) {
-        *error = QStringLiteral("Unknown action type");
-    }
-    return false;
+    return n.parse(value, out, error);
 }
 
 QString actionValueFrom(const QXmlStreamAttributes& attrs, const QString& cdata)
@@ -587,14 +317,11 @@ bool applyPageActionSpell(PageAction& a, const QString& spell)
     if (!n) {
         return false;
     }
-    const PageActionType keep = n->type;
     a = PageAction{};
-    applySpell(a, *n);
-    if (keep == PageActionType::Move || keep == PageActionType::MoveAndClick) {
-        a.zoomMode = PageZoomMode::Settings;
-    }
-    if (keep == PageActionType::MoveAndClick) {
-        a.button = QStringLiteral("left");
+    applyBasics(a, *n);
+    if (n->parse) {
+        QString ignored;
+        (void)n->parse(QString(), a, &ignored);
     }
     return true;
 }
@@ -603,10 +330,53 @@ QStringList pageActionSpells()
 {
     QStringList out{QStringLiteral("(none)")};
     for (const ActionName& n : kNames) {
+        if (!n.listed) {
+            continue;
+        }
         out.push_back(QString::fromLatin1(n.element));
     }
     out.push_back(QStringLiteral("AHK"));
     return out;
+}
+
+QString pageActionClickKindText(PageClickKind k)
+{
+    const QString t = clickKindText(k);
+    return t.isEmpty() ? QStringLiteral("default") : t;
+}
+
+QStringList pageActionClickKindChoices()
+{
+    return {QStringLiteral("default"), QStringLiteral("double"), QStringLiteral("down"),
+            QStringLiteral("up"), QStringLiteral("toggle")};
+}
+
+bool applyPageActionClickKind(PageAction& a, const QString& token, QString* error)
+{
+    return parseClickKindToken(token, a, error);
+}
+
+QString pageActionZoomText(const PageAction& a)
+{
+    const QString t = zoomSpecText(a);
+    return t.isEmpty() ? QStringLiteral("default") : t;
+}
+
+QStringList pageActionZoomChoices()
+{
+    return {QStringLiteral("default"), QStringLiteral("0"), QStringLiteral("-1"),
+            QStringLiteral("-2"),      QStringLiteral("2"), QStringLiteral("3"),
+            QStringLiteral("4"),       QStringLiteral("5"), QStringLiteral("6")};
+}
+
+bool applyPageActionZoom(PageAction& a, const QString& token, QString* error)
+{
+    return parseZoomSpec(token, a, error);
+}
+
+QString pageActionCompassToken(PageAnchor a)
+{
+    return compassToken(a);
 }
 
 QString pageActionValueText(const PageAction& a)
@@ -622,38 +392,14 @@ QString pageActionValueText(const PageAction& a)
         }
         return csvJoin(parts);
     }
-    case PageActionType::Click: {
-        QStringList parts{a.button.isEmpty() ? QStringLiteral("left") : a.button};
-        if (a.clickCount != 1 || a.speed != 0) {
-            parts.push_back(QString::number(a.clickCount));
-        }
-        if (!a.clickEdge.isEmpty()) {
-            parts.push_back(a.clickEdge);
-        }
-        if (a.speed != 0) {
-            parts.push_back(QString::number(a.speed));
-        }
-        return csvJoin(parts);
-    }
+    case PageActionType::Click:
+        return clickKindText(a.clickKind);
     case PageActionType::Move: {
         if (a.moveMode == PageMoveMode::Gaze) {
-            if (a.zoomMode == PageZoomMode::Off) {
-                return csvJoin({QStringLiteral("gaze"), QStringLiteral("0")});
-            }
-            if (a.zoomMode == PageZoomMode::Level) {
-                return csvJoin({QStringLiteral("gaze"), QString::number(a.zoomLevel)});
-            }
-            return QStringLiteral("gaze");
+            return zoomSpecText(a);
         }
         if (a.moveMode == PageMoveMode::Direction) {
-            QString dir;
-            if (a.moveDirection == PageAnchor::Top) {
-                dir = QStringLiteral("up");
-            } else if (a.moveDirection == PageAnchor::Bottom) {
-                dir = QStringLiteral("down");
-            } else {
-                dir = PageDimParse::anchorName(a.moveDirection);
-            }
+            const QString dir = compassToken(a.moveDirection);
             if (a.moveAmount >= 0) {
                 return csvJoin({dir, QString::number(a.moveAmount)});
             }
@@ -665,16 +411,8 @@ QString pageActionValueText(const PageAction& a)
         }
         return csvJoin({PageDimParse::token(a.moveX), PageDimParse::token(a.moveY)});
     }
-    case PageActionType::MoveAndClick: {
-        const QString btn = a.button.isEmpty() ? QStringLiteral("left") : a.button;
-        if (a.zoomMode == PageZoomMode::Level && a.zoomLevel > 0) {
-            return csvJoin({btn, QString::number(a.zoomLevel)});
-        }
-        if (a.zoomMode == PageZoomMode::Off) {
-            return csvJoin({btn, QStringLiteral("0")});
-        }
-        return btn;
-    }
+    case PageActionType::MoveAndClick:
+        return zoomSpecText(a);
     case PageActionType::Command:
         return a.command;
     case PageActionType::Nav: {

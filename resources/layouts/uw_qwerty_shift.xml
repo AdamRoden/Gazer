@@ -32,10 +32,7 @@
     <Cell id="home" row="1" col="130" colSpan="10" label="Home" background="#3d4f66" foreground="#ffffff" command="home"/>
     <Cell id="up" row="1" col="140" colSpan="10" icon="UpArrowKey" label="Up" background="#3d4f66" foreground="#ffffff" command="arrowUp"/>
     <Cell id="end" row="1" col="150" colSpan="10" label="End" background="#3d4f66" foreground="#ffffff" command="end"/>
-    <Cell id="shift_l" row="2" col="0" colSpan="13" icon="Shift" label="Shift" background="#e9c46a" foreground="#1a1a1a">
-    <ClosePage value="-self"/>
-    <OpenPage value="uw_qwerty"/>
-    </Cell>
+    <Cell id="shift_l" row="2" col="0" colSpan="13" icon="Shift" label="Shift" background="#e9c46a" foreground="#1a1a1a" activeState="mod.shift" command="leftShift"/>
     <Cell id="k_a" row="2" col="13" colSpan="10" label="A" send="A"/>
     <Cell id="k_s" row="2" col="23" colSpan="10" label="S" send="S"/>
     <Cell id="k_d" row="2" col="33" colSpan="10" label="D" send="D"/>
@@ -47,15 +44,12 @@
     <Cell id="k_l" row="2" col="93" colSpan="10" label="L" send="L"/>
     <Cell id="semi" row="2" col="103" colSpan="8" label=":" send=":"/>
     <Cell id="quote" row="2" col="111" colSpan="8" label="&quot;" send="&quot;"/>
-    <Cell id="shift_r" row="2" col="119" colSpan="11" icon="Shift" label="Shift" background="#e9c46a" foreground="#1a1a1a">
-    <ClosePage value="-self"/>
-    <OpenPage value="uw_qwerty"/>
-    </Cell>
+    <Cell id="shift_r" row="2" col="119" colSpan="11" icon="Shift" label="Shift" background="#e9c46a" foreground="#1a1a1a" activeState="mod.shift" command="leftShift"/>
     <Cell id="left" row="2" col="130" colSpan="10" icon="LeftArrowKey" label="Left" background="#3d4f66" foreground="#ffffff" command="arrowLeft"/>
     <Cell id="down" row="2" col="140" colSpan="10" icon="DownArrowKey" label="Down" background="#3d4f66" foreground="#ffffff" command="arrowDown"/>
     <Cell id="right" row="2" col="150" colSpan="10" icon="RightArrowKey" label="Right" background="#3d4f66" foreground="#ffffff" command="arrowRight"/>
-    <Cell id="ctrl_l" row="3" col="0" colSpan="9" label="Ctrl" background="#3d4f66" foreground="#ffffff" command="leftCtrl"/>
-    <Cell id="win" row="3" col="9" colSpan="9" icon="Win" label="Win" background="#3d4f66" foreground="#ffffff" command="leftWin"/>
+    <Cell id="ctrl_l" row="3" col="0" colSpan="9" label="Ctrl" background="#3d4f66" foreground="#ffffff" activeState="mod.ctrl" command="leftCtrl"/>
+    <Cell id="win" row="3" col="9" colSpan="9" icon="Win" label="Win" background="#3d4f66" foreground="#ffffff" activeState="mod.win" command="leftWin"/>
     <Cell id="k_z" row="3" col="18" colSpan="9" label="Z" send="Z"/>
     <Cell id="k_x" row="3" col="27" colSpan="9" label="X" send="X"/>
     <Cell id="k_c" row="3" col="36" colSpan="10" label="C" send="C"/>
@@ -67,14 +61,14 @@
     <Cell id="comma" row="3" col="98" colSpan="8" label="&lt;" send="&lt;"/>
     <Cell id="dot" row="3" col="106" colSpan="8" label="&gt;" send="&gt;"/>
     <Cell id="slash" row="3" col="114" colSpan="8" label="?" send="?"/>
-    <Cell id="ctrl_r" row="3" col="122" colSpan="9" label="Ctrl" background="#3d4f66" foreground="#ffffff" command="leftCtrl"/>
-    <Cell id="alt" row="3" col="131" colSpan="9" label="Alt" background="#3d4f66" foreground="#ffffff" command="leftAlt"/>
+    <Cell id="ctrl_r" row="3" col="122" colSpan="9" label="Ctrl" background="#3d4f66" foreground="#ffffff" activeState="mod.ctrl" command="leftCtrl"/>
+    <Cell id="alt" row="3" col="131" colSpan="9" label="Alt" background="#3d4f66" foreground="#ffffff" activeState="mod.alt" command="leftAlt"/>
     <Cell id="pgdn" row="3" col="140" colSpan="10" label="Pg Dn" background="#3d4f66" foreground="#ffffff" command="pageDown"/>
     <Cell id="enter" row="3" col="150" colSpan="10" icon="Enter" label="Enter" background="#3d4f66" foreground="#ffffff" command="enter"/>
   </Grid>
   <Zone id="more" anchor="TopRight" offset="-8,8" size="100,88" icon="More" label="More" background="#99000000" openPage="example_keyboard_sym"/>
-  <Zone id="move_lclick" anchor="TopRight" offset="-8,104" size="100,88" icon="MouseLeftClick" label="Left" background="#99000000" activeState="mouseMoveAndLeftClick" command="mouseMoveAndLeftClick"/>
-  <Zone id="move_rclick" anchor="TopRight" offset="-8,200" size="100,88" icon="MouseRightClick" label="Right" background="#99000000" activeState="mouseMoveAndRightClick" scanGrace="100" command="mouseMoveAndRightClick"/>
+  <Zone id="move_lclick" anchor="TopRight" offset="-8,104" size="100,88" icon="LeftClick" label="Left" background="#99000000" activeState="leftClickAtGaze" leftClickAtGaze=""/>
+  <Zone id="move_rclick" anchor="TopRight" offset="-8,200" size="100,88" icon="RightClick" label="Right" background="#99000000" activeState="rightClickAtGaze" scanGrace="100" rightClickAtGaze=""/>
   <Zone id="to_right" anchor="TopRight" offset="-8,296" size="100,88" icon="ArrowPointingToRightBoundary" label="Right strip" background="#99000000">
     <ClosePage value="-self"/>
     <OpenPage value="uw_right"/>

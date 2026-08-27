@@ -699,7 +699,7 @@ void PageLoaderTest::actionEmptyEdgeRoundTrip()
     PageAction click;
     click.type = PageActionType::Click;
     click.button = QStringLiteral("left");
-    click.speed = 5;
+    click.clickKind = PageClickKind::Double;
     PageAction mac;
     mac.type = PageActionType::MoveAndClick;
     mac.button = QStringLiteral("right");
@@ -716,9 +716,8 @@ void PageLoaderTest::actionEmptyEdgeRoundTrip()
     QCOMPARE(out.grids[0].cells[0].actions[0].sendKey, QStringLiteral("Enter"));
     QCOMPARE(out.grids[0].cells[0].actions[0].sendEdge, QString());
     QCOMPARE(out.grids[0].cells[0].actions[0].sendDurationMs, 40);
-    QCOMPARE(out.grids[0].cells[0].actions[1].clickCount, 1);
-    QCOMPARE(out.grids[0].cells[0].actions[1].clickEdge, QString());
-    QCOMPARE(out.grids[0].cells[0].actions[1].speed, 5);
+    QCOMPARE(out.grids[0].cells[0].actions[1].clickKind, PageClickKind::Double);
+    QCOMPARE(out.grids[0].cells[0].actions[1].button.toLower(), QStringLiteral("left"));
     QCOMPARE(out.grids[0].cells[0].actions[2].zoomMode, PageZoomMode::Level);
     QCOMPARE(out.grids[0].cells[0].actions[2].zoomLevel, 2);
 }
@@ -731,8 +730,7 @@ void PageLoaderTest::parseClickDownAsEdge()
              qPrintable(err));
     QCOMPARE(a.type, PageActionType::Click);
     QCOMPARE(a.button, QStringLiteral("left"));
-    QCOMPARE(a.clickCount, 1);
-    QCOMPARE(a.clickEdge.toLower(), QStringLiteral("down"));
+    QCOMPARE(a.clickKind, PageClickKind::Down);
 }
 
 void PageLoaderTest::parseSendDurationWithoutEdge()
@@ -766,6 +764,19 @@ void PageLoaderTest::cellSendAttribute()
     QCOMPARE(doc.grids[0].cells[0].actions.size(), 1);
     QCOMPARE(doc.grids[0].cells[0].actions[0].type, PageActionType::Send);
     QCOMPARE(doc.grids[0].cells[0].actions[0].sendKey, QStringLiteral("1"));
+
+    PageDocument comma;
+    const QByteArray commaXml =
+        QByteArray("<Page id=\"p\"><Grid id=\"g\"><Cell id=\"c\" label=\",\" send=\",\"/>"
+                   "</Grid></Page>");
+    QVERIFY2(PageLoader::loadFromXml(commaXml, comma, &err), qPrintable(err));
+    QCOMPARE(comma.grids[0].cells[0].actions[0].sendKey, QStringLiteral(","));
+    PageAction a;
+    QVERIFY2(loadOneAction(QByteArray("<Send value=\",\"/>"), a, &err), qPrintable(err));
+    QCOMPARE(a.sendKey, QStringLiteral(","));
+    QVERIFY2(loadOneAction(QByteArray("<Send value=\", Down\"/>"), a, &err), qPrintable(err));
+    QCOMPARE(a.sendKey, QStringLiteral(","));
+    QCOMPARE(a.sendEdge.toLower(), QStringLiteral("down"));
 
     const QByteArray written = PageWriter::toBytes(doc);
     QVERIFY(QString::fromUtf8(written).contains(QStringLiteral("send=\"1\"")));
@@ -818,6 +829,39 @@ void PageLoaderTest::parseSpecificActionElements()
     QVERIFY2(loadOneAction(QByteArray("<MoveAndClick value=\"left, 0\"/>"), a, &err),
              qPrintable(err));
     QCOMPARE(a.zoomMode, PageZoomMode::Off);
+    QVERIFY2(loadOneAction(QByteArray("<LeftClick value=\"toggle\"/>"), a, &err),
+             qPrintable(err));
+    QCOMPARE(a.type, PageActionType::Click);
+    QCOMPARE(a.button.toLower(), QStringLiteral("left"));
+    QCOMPARE(a.clickKind, PageClickKind::Toggle);
+    QVERIFY2(loadOneAction(QByteArray("<RightClick value=\"double\"/>"), a, &err),
+             qPrintable(err));
+    QCOMPARE(a.button.toLower(), QStringLiteral("right"));
+    QCOMPARE(a.clickKind, PageClickKind::Double);
+    QVERIFY2(loadOneAction(QByteArray("<LeftClickAtGaze value=\"-1\"/>"), a, &err),
+             qPrintable(err));
+    QCOMPARE(a.type, PageActionType::MoveAndClick);
+    QCOMPARE(a.button.toLower(), QStringLiteral("left"));
+    QCOMPARE(a.zoomMode, PageZoomMode::Foresight);
+    QVERIFY2(loadOneAction(QByteArray("<MiddleClickAtGaze value=\"-2\"/>"), a, &err),
+             qPrintable(err));
+    QCOMPARE(a.button.toLower(), QStringLiteral("middle"));
+    QCOMPARE(a.zoomMode, PageZoomMode::ForesightBonus);
+    QVERIFY2(loadOneAction(QByteArray("<MouseMoveToGaze value=\"0\"/>"), a, &err),
+             qPrintable(err));
+    QCOMPARE(a.type, PageActionType::Move);
+    QCOMPARE(a.moveMode, PageMoveMode::Gaze);
+    QCOMPARE(a.zoomMode, PageZoomMode::Off);
+    QVERIFY2(loadOneAction(QByteArray("<MouseMoveByDirection value=\"se, 40\"/>"), a, &err),
+             qPrintable(err));
+    QCOMPARE(a.moveMode, PageMoveMode::Direction);
+    QCOMPARE(a.moveDirection, PageAnchor::BottomRight);
+    QCOMPARE(a.moveAmount, 40);
+    QVERIFY2(loadOneAction(QByteArray("<MouseMoveToPoint value=\"100, 200\"/>"), a, &err),
+             qPrintable(err));
+    QCOMPARE(a.moveMode, PageMoveMode::Absolute);
+    QCOMPARE(int(a.moveX.value), 100);
+    QCOMPARE(int(a.moveY.value), 200);
 }
 
 void PageLoaderTest::parseMoveVariants()
@@ -841,8 +885,13 @@ void PageLoaderTest::parseMoveVariants()
         g.cells.push_back(c);
         doc.grids.push_back(g);
         const QString xml = QString::fromUtf8(PageWriter::toBytes(doc));
-        QVERIFY(xml.contains(QStringLiteral("gaze, 0")));
+        QVERIFY(xml.contains(QStringLiteral("mouseMoveToGaze=\"0\""))
+                || xml.contains(QStringLiteral("MouseMoveToGaze")));
     }
+    QVERIFY2(loadOneAction(QByteArray("<Move value=\"gaze, -1\"/>"), a, &err), qPrintable(err));
+    QCOMPARE(a.zoomMode, PageZoomMode::Foresight);
+    QVERIFY2(loadOneAction(QByteArray("<Move value=\"gaze, -2\"/>"), a, &err), qPrintable(err));
+    QCOMPARE(a.zoomMode, PageZoomMode::ForesightBonus);
     QVERIFY2(loadOneAction(QByteArray("<Move value=\"gaze, 4\"/>"), a, &err), qPrintable(err));
     QCOMPARE(a.moveMode, PageMoveMode::Gaze);
     QCOMPARE(a.zoomMode, PageZoomMode::Level);

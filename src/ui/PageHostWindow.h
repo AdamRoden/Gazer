@@ -34,6 +34,8 @@ public:
                 QRectF reserved = {});
     void setDrawerScale(double scale);
     void setActiveIds(QSet<QString> ids);
+    void setLockedIds(QSet<QString> ids);
+    void setShiftHeld(bool on);
     void setHover(const QString& id, double progress, bool revealProgress = false);
     void flash(const QString& id);
     void setPreviewColor(const QColor& color);
@@ -81,6 +83,8 @@ private:
     QTransform m_drawerXf;
     double m_blurMax = 0.0;
     QSet<QString> m_activeIds;
+    QSet<QString> m_lockedIds;
+    bool m_shiftHeld = false;
     QString m_hoverId;
     double m_hoverProgress = 0.0;
     bool m_revealProgress = false;

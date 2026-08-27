@@ -25,11 +25,11 @@ struct SliceSpec {
 };
 
 constexpr SliceSpec kSlices[] = {
-    {ComboMouseHit::Slice::Right, "MouseRightClick"},
+    {ComboMouseHit::Slice::Right, "RightClick"},
     {ComboMouseHit::Slice::Move, "SizeAndPosition"},
     {ComboMouseHit::Slice::Cancel, "Quit"},
-    {ComboMouseHit::Slice::Drag, "MouseLeftDownUp"},
-    {ComboMouseHit::Slice::Left, "MouseLeftClick"},
+    {ComboMouseHit::Slice::Drag, "LeftDownUp"},
+    {ComboMouseHit::Slice::Left, "LeftClick"},
 };
 
 [[nodiscard]] QPainterPath wedgePath(const QPointF& c, const ComboMouseHit::Wedge& w)
@@ -491,14 +491,9 @@ QString ComboMouse::hitId(const ComboMouseHit::Result& h)
 
 void ComboMouse::nudgeToward(const QPointF& dir)
 {
-    if (qAbs(dir.x()) < 0.01 && qAbs(dir.y()) < 0.01) {
+    const QPoint step = ComboMouseHit::snap8(dir);
+    if (step.x() == 0 && step.y() == 0) {
         return;
-    }
-    QPoint step(0, 0);
-    if (qAbs(dir.x()) >= qAbs(dir.y())) {
-        step.setX(dir.x() > 0.0 ? 1 : -1);
-    } else {
-        step.setY(dir.y() > 0.0 ? 1 : -1);
     }
     moveOrigin(m_origin + step);
 }

@@ -37,8 +37,79 @@ public:
     explicit MouseDwellMove(QObject* parent = nullptr);
     ~MouseDwellMove() override;
 
-    void setArmed(bool armed, ArmPurpose purpose = ArmPurpose::CursorMove,
-                  double zoomOverride = 0.0);
+    struct ArmZoom {
+        enum class Kind { Settings, Direct, Level, Foresight, ForesightBonus };
+        Kind kind = Kind::Settings;
+        double level = 0.0;
+
+        ArmZoom() = default;
+        ArmZoom(Kind k, double n) : kind(k), level(n) {}
+
+        static ArmZoom settings() { return {}; }
+        static ArmZoom direct() { return {Kind::Direct, 0.0}; }
+        static ArmZoom at(double n) { return {Kind::Level, n}; }
+        static ArmZoom foresight() { return {Kind::Foresight, 0.0}; }
+        static ArmZoom foresightBonus() { return {Kind::ForesightBonus, 0.0}; }
+
+        [[nodiscard]] bool operator==(const ArmZoom& o) const
+        {
+            return kind == o.kind && level == o.level;
+        }
+
+        [[nodiscard]] bool useMagPick(bool settingsEnabled) const
+        {
+            switch (kind) {
+            case Kind::Direct:
+                return false;
+            case Kind::Level:
+                return level > 0.0;
+            case Kind::Foresight:
+            case Kind::ForesightBonus:
+                return true;
+            case Kind::Settings:
+                break;
+            }
+            return settingsEnabled;
+        }
+
+        [[nodiscard]] bool wantsForesight(bool settingsEnabled) const
+        {
+            switch (kind) {
+            case Kind::Foresight:
+            case Kind::ForesightBonus:
+                return true;
+            case Kind::Settings:
+                return settingsEnabled;
+            case Kind::Direct:
+            case Kind::Level:
+                break;
+            }
+            return false;
+        }
+
+        [[nodiscard]] bool wantsBonus(bool settingsBonus) const
+        {
+            switch (kind) {
+            case Kind::ForesightBonus:
+                return true;
+            case Kind::Settings:
+                return settingsBonus;
+            case Kind::Foresight:
+            case Kind::Direct:
+            case Kind::Level:
+                break;
+            }
+            return false;
+        }
+
+        [[nodiscard]] double resolvedLevel(double fallback) const
+        {
+            return level > 0.0 ? level : fallback;
+        }
+    };
+
+    void setArmed(bool armed, ArmPurpose purpose = ArmPurpose::CursorMove);
+    void setArmed(bool armed, ArmPurpose purpose, ArmZoom zoom);
     [[nodiscard]] bool isArmed() const { return m_armed; }
     [[nodiscard]] ArmPurpose armPurpose() const { return m_purpose; }
     [[nodiscard]] bool isLookToScrollPlace() const
@@ -120,6 +191,8 @@ private:
     void markSelectDeadline();
     [[nodiscard]] bool selectTimedOut(qint64 nowMs) const;
     [[nodiscard]] bool useMagPickThisArm() const;
+    [[nodiscard]] bool armWantsForesight() const;
+    [[nodiscard]] bool armWantsBonusZoom() const;
     void applyDwellForPhase();
     void syncPickOverlayStyle();
     [[nodiscard]] int styleForPhase() const;
@@ -128,7 +201,7 @@ private:
     bool m_armed = false;
     bool m_paused = false;
     ArmPurpose m_purpose = ArmPurpose::CursorMove;
-    double m_armZoom = 0.0;
+    ArmZoom m_armZoom;
     int m_moveDwellMs = 700;
     int m_magPickDwellMs = 700;
     int m_magPickStyle = 1;

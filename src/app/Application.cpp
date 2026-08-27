@@ -421,6 +421,8 @@ void Application::shutdownUi()
         m_svc->comboMouse().setEnabled(false);
         m_svc->mouseDwellMove().setArmed(false);
         m_svc->mouseAssist().releaseAllHolds();
+        QString ignored;
+        (void)m_svc->keyState().releaseAll(&ignored);
         m_svc->tts().stop();
         m_svc->pages().hideHost();
     }

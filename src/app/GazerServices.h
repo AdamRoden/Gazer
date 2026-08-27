@@ -18,6 +18,7 @@
 #include "assist/ScriptHost.h"
 #include "assist/TtsService.h"
 #include "input/InputService.h"
+#include "input/KeyStateManager.h"
 #include "layout/PageCatalog.h"
 #include "layout/PageTypes.h"
 #include "mapping/MappingEngine.h"
@@ -52,6 +53,7 @@ public:
     PageCatalog& catalog() { return *m_catalog; }
     PageSession& pages() { return *m_pages; }
     InputService& input() { return *m_input; }
+    KeyStateManager& keyState() { return *m_keyState; }
     MappingEngine& mapping() { return *m_mapping; }
     TtsService& tts() { return *m_tts; }
     PhraseService& phrases() { return *m_phrases; }
@@ -96,6 +98,7 @@ private:
 
     std::unique_ptr<PageCatalog> m_catalog;
     std::unique_ptr<PageSession> m_pages;
+    std::unique_ptr<KeyStateManager> m_keyState;
     std::unique_ptr<InputService> m_input;
     std::unique_ptr<MappingEngine> m_mapping;
     std::unique_ptr<TtsService> m_tts;

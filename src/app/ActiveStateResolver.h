@@ -11,6 +11,7 @@ class GazeReticle;
 class ComboMouse;
 class LookToScroll;
 class MagnifierOverlay;
+class KeyStateManager;
 class MouseAssistState;
 class MouseDwellMove;
 class SettingsUi;
@@ -25,6 +26,7 @@ struct ActiveStateContext {
     const GazeReticle* gazeReticle = nullptr;
     const GazeMouseFollow* gazeMouseFollow = nullptr;
     const MouseAssistState* mouseAssist = nullptr;
+    const KeyStateManager* keyState = nullptr;
     const ActionLoopService* actionLoops = nullptr;
     const SettingsUi* settingsUi = nullptr;
     bool dwellSuspended = false;

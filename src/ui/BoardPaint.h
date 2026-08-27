@@ -35,7 +35,8 @@ void paintSurface(QPainter& p, const QRectF& r, const PageChrome& chrome, const 
 void paintTarget(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeColors& theme,
                  GlassBackdrop* glass, bool hovered, double progress, bool flashing, bool active,
                  const ProgressVisuals& pv, const QColor& previewColor, const QString& sliderScrubId,
-                 double sliderScrubT, const QString& sliderScrubValue, double sliderScrubProgress);
+                 double sliderScrubT, const QString& sliderScrubValue, double sliderScrubProgress,
+                 bool locked = false);
 
 } // namespace BoardPaint
 } // namespace gazer

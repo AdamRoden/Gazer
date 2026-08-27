@@ -25,6 +25,14 @@ PageAction openPage(const QString& id)
     return a;
 }
 
+PageAction commandAction(const QString& name)
+{
+    PageAction a;
+    a.type = PageActionType::Command;
+    a.command = name;
+    return a;
+}
+
 PageCell keyCell(const QString& id, const QString& label, int row, int col, const QString& send)
 {
     PageCell c;
@@ -70,53 +78,52 @@ QVector<EditorLayer> makeBlankLayers()
 
 QVector<PageDocument> makeKeyboardFamily(const QString& id, const QString& name)
 {
-    auto makeLayer = [&](const QString& suffix, const QString& layerName, bool shifted) {
-        PageDocument d;
-        d.id = id + suffix;
-        d.name = name + (layerName.isEmpty() ? QString() : QStringLiteral(" ") + layerName);
-        d.autoClose = true;
-        PageGrid g = boardGrid(10, 4, 1100, 360);
-        const QString row1 = shifted ? QStringLiteral("QWERTYUIOP") : QStringLiteral("qwertyuiop");
-        const QString row2 = shifted ? QStringLiteral("ASDFGHJKL") : QStringLiteral("asdfghjkl");
-        const QString row3 = shifted ? QStringLiteral("ZXCVBNM") : QStringLiteral("zxcvbnm");
-        auto addRow = [&](const QString& keys, int row, int col0) {
-            for (int i = 0; i < keys.size(); ++i) {
-                const QString ch = keys.mid(i, 1);
-                g.cells.push_back(keyCell(QStringLiteral("k_%1_%2").arg(row).arg(i), ch, row,
-                                          col0 + i, ch));
-            }
-        };
-        addRow(row1, 0, 0);
-        addRow(row2, 1, 0);
-        addRow(row3, 2, 0);
-        PageCell space;
-        space.id = QStringLiteral("space");
-        space.label = QStringLiteral("Space");
-        space.row = 3;
-        space.col = 2;
-        space.colSpan = 5;
-        space.actions.push_back(sendKey(QStringLiteral("Space")));
-        g.cells.push_back(space);
-        PageCell shift;
-        shift.id = QStringLiteral("shift");
-        shift.label = QStringLiteral("Shift");
-        shift.row = 3;
-        shift.col = 0;
-        shift.colSpan = 2;
-        shift.actions.push_back(openPage(shifted ? id : id + QStringLiteral("_shift")));
-        g.cells.push_back(shift);
-        PageCell bk;
-        bk.id = QStringLiteral("back");
-        bk.label = QStringLiteral("Bksp");
-        bk.row = 3;
-        bk.col = 7;
-        bk.colSpan = 3;
-        bk.actions.push_back(sendKey(QStringLiteral("Backspace")));
-        g.cells.push_back(bk);
-        d.grids.push_back(std::move(g));
-        return d;
+    PageDocument d;
+    d.id = id;
+    d.name = name;
+    d.autoClose = true;
+    PageGrid g = boardGrid(10, 4, 1100, 360);
+    const QString row1 = QStringLiteral("qwertyuiop");
+    const QString row2 = QStringLiteral("asdfghjkl");
+    const QString row3 = QStringLiteral("zxcvbnm");
+    auto addRow = [&](const QString& keys, int row, int col0) {
+        for (int i = 0; i < keys.size(); ++i) {
+            const QString ch = keys.mid(i, 1);
+            g.cells.push_back(keyCell(QStringLiteral("k_%1_%2").arg(row).arg(i), ch, row, col0 + i,
+                                      ch));
+        }
     };
-    return {makeLayer({}, {}, false), makeLayer(QStringLiteral("_shift"), QStringLiteral("Shift"), true)};
+    addRow(row1, 0, 0);
+    addRow(row2, 1, 0);
+    addRow(row3, 2, 0);
+    PageCell space;
+    space.id = QStringLiteral("space");
+    space.label = QStringLiteral("Space");
+    space.row = 3;
+    space.col = 2;
+    space.colSpan = 5;
+    space.actions.push_back(sendKey(QStringLiteral("Space")));
+    g.cells.push_back(space);
+    PageCell shift;
+    shift.id = QStringLiteral("shift");
+    shift.label = QStringLiteral("Shift");
+    shift.icon = QStringLiteral("Shift");
+    shift.row = 3;
+    shift.col = 0;
+    shift.colSpan = 2;
+    shift.activeState = QStringLiteral("mod.shift");
+    shift.actions.push_back(commandAction(QStringLiteral("leftShift")));
+    g.cells.push_back(shift);
+    PageCell bk;
+    bk.id = QStringLiteral("back");
+    bk.label = QStringLiteral("Bksp");
+    bk.row = 3;
+    bk.col = 7;
+    bk.colSpan = 3;
+    bk.actions.push_back(sendKey(QStringLiteral("Backspace")));
+    g.cells.push_back(bk);
+    d.grids.push_back(std::move(g));
+    return {std::move(d)};
 }
 
 QVector<EditorLayer> makeTemplateLayers(EditorTemplate tmpl, const QString& id, const QString& name)
@@ -125,8 +132,7 @@ QVector<EditorLayer> makeTemplateLayers(EditorTemplate tmpl, const QString& id, 
         const QString boardId = id.trimmed().isEmpty() ? QStringLiteral("untitled") : id.trimmed();
         const QString boardName = name.trimmed().isEmpty() ? boardId : name.trimmed();
         const auto family = makeKeyboardFamily(boardId, boardName);
-        return {{QStringLiteral("Base"), {}, family[0]},
-                {QStringLiteral("Shift"), QStringLiteral("_shift"), family[1]}};
+        return {{QStringLiteral("Base"), {}, family[0]}};
     }
 
     PageDocument d = makeBlankDocument();

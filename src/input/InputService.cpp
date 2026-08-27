@@ -1,13 +1,15 @@
 #include "input/InputService.h"
 
 #include "input/KeyboardInjector.h"
+#include "input/KeyStateManager.h"
 #include "input/MouseInjector.h"
 #include "utils/Log.h"
 
 namespace gazer {
 
-InputService::InputService(QObject* parent)
+InputService::InputService(KeyStateManager& keys, QObject* parent)
     : QObject(parent)
+    , m_keys(keys)
 {
 }
 
@@ -19,15 +21,18 @@ bool InputService::execute(const InputOutput& output, QString* error)
 
     switch (output.type) {
     case InputOutput::Type::KeyTap:
-        ok = KeyboardInjector::tapKey(output.key, &err);
+        ok = m_keys.activate(output.key, &err);
         summary = QStringLiteral("keyTap %1").arg(output.key);
         break;
     case InputOutput::Type::KeyCombo:
-        ok = KeyboardInjector::combo(QStringList(output.keys.begin(), output.keys.end()), &err);
+        ok = m_keys.combo(QStringList(output.keys.begin(), output.keys.end()), &err);
         summary = QStringLiteral("keyCombo %1").arg(output.keys.join(QLatin1Char('+')));
         break;
     case InputOutput::Type::Text:
         ok = KeyboardInjector::typeText(output.value, &err);
+        if (ok) {
+            ok = m_keys.releaseOneShot(&err);
+        }
         summary = QStringLiteral("text \"%1\"").arg(output.value);
         break;
     case InputOutput::Type::MouseClick:
