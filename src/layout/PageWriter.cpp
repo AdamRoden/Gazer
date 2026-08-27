@@ -130,7 +130,11 @@ void writeAction(QXmlStreamWriter& xml, const PageAction& a)
 {
     if (a.type == PageActionType::Ahk) {
         xml.writeStartElement(QStringLiteral("AHK"));
-        xml.writeCharacters(a.ahkSource);
+        if (a.ahkSource.contains(QLatin1String("]]>"))) {
+            xml.writeCharacters(a.ahkSource);
+        } else {
+            xml.writeCDATA(a.ahkSource);
+        }
         xml.writeEndElement();
         return;
     }

@@ -23,6 +23,7 @@ private slots:
     void ltsSpeedLadder();
     void parseRowWeightsCsv();
     void loadFixture();
+    void ahkCdataRoundTrip();
     void inheritStyleAndDwell();
     void pageChromeDefaults();
     void zoneDwellDefaultsAndOffset();
@@ -143,6 +144,25 @@ void PageLoaderTest::loadFixture()
     QVERIFY(doc.dwells.contains(QStringLiteral("dwl")));
     QCOMPARE(doc.dwells.value(QStringLiteral("dwl")).activation->size(), 9);
     QCOMPARE(doc.dwells.value(QStringLiteral("dwl")).activation->at(0), 0);
+}
+
+void PageLoaderTest::ahkCdataRoundTrip()
+{
+    PageDocument doc;
+    QString err;
+    const QString fixture =
+        QStringLiteral(GAZER_TEST_FIXTURES) + QStringLiteral("/example_page.xml");
+    QVERIFY2(PageLoader::loadFromFile(fixture, doc, &err), qPrintable(err));
+    const QByteArray written = PageWriter::toBytes(doc);
+    QVERIFY(QString::fromUtf8(written).contains(QStringLiteral("<![CDATA[")));
+    PageDocument round;
+    QVERIFY2(PageLoader::loadFromXml(written, round, &err), qPrintable(err));
+    const PageGrid* g = round.findGrid(QStringLiteral("Quick Settings"));
+    QVERIFY(g);
+    QVERIFY(!g->subGrids.isEmpty());
+    QVERIFY(!g->subGrids[0].cells.isEmpty());
+    QCOMPARE(g->subGrids[0].cells[0].actions[0].type, PageActionType::Ahk);
+    QVERIFY(g->subGrids[0].cells[0].actions[0].ahkSource.contains(QStringLiteral("LAlt")));
 }
 
 void PageLoaderTest::pageChromeDefaults()

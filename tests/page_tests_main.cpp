@@ -12,6 +12,7 @@ QObject* createPageNavTest();
 QObject* createPageHitTest();
 QObject* createSettingsLayoutTest();
 QObject* createComboMouseTest();
+QObject* createAhkLauncherTest();
 
 namespace {
 
@@ -50,5 +51,7 @@ int main(int argc, char** argv)
     status |= QTest::qExec(settings.get(), rest);
     std::unique_ptr<QObject> combo(createComboMouseTest());
     status |= QTest::qExec(combo.get(), rest);
+    std::unique_ptr<QObject> ahk(createAhkLauncherTest());
+    status |= QTest::qExec(ahk.get(), rest);
     return status;
 }

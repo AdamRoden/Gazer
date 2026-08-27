@@ -75,6 +75,7 @@ set(GAZER_SOURCES
     src/assist/TtsService.cpp
     src/assist/PhraseService.cpp
     src/assist/ScriptHost.cpp
+    src/assist/AhkLauncher.cpp
     src/assist/LookToScroll.cpp
     src/assist/ComboMouse.cpp
     src/assist/MouseDwellMove.cpp
@@ -154,6 +155,7 @@ set(GAZER_HEADERS
     src/assist/TtsService.h
     src/assist/PhraseService.h
     src/assist/ScriptHost.h
+    src/assist/AhkLauncher.h
     src/assist/LookToScroll.h
     src/assist/ComboMouse.h
     src/assist/ComboMouseHit.h
@@ -315,6 +317,7 @@ set(GAZER_PAGE_TEST_LIB
     src/layout/PageEdit.cpp
     src/layout/PageCatalog.cpp
     src/layout/DwellRegionSpace.cpp
+    src/assist/AhkLauncher.cpp
 )
 add_executable(GazerPageTests
     tests/page_tests_main.cpp
@@ -324,6 +327,7 @@ add_executable(GazerPageTests
     tests/PageHitTest.cpp
     tests/SettingsLayoutTest.cpp
     tests/ComboMouseTest.cpp
+    tests/AhkLauncherTest.cpp
     ${GAZER_PAGE_TEST_LIB}
 )
 target_include_directories(GazerPageTests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)

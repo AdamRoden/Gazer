@@ -5,6 +5,7 @@
 #include "app/CommandRegistry.h"
 #include "core/GazePoint.h"
 #include "assist/ActionLoopService.h"
+#include "assist/AhkLauncher.h"
 #include "assist/AssistCommands.h"
 #include "assist/AssistSession.h"
 #include "assist/GazeMouseFollow.h"
@@ -56,6 +57,7 @@ public:
     PhraseService& phrases() { return *m_phrases; }
     CommandRegistry& commands() { return *m_commands; }
     ScriptHost& scripts() { return *m_scripts; }
+    AhkLauncher& ahk() { return *m_ahk; }
     LookToScroll& lookToScroll() { return *m_lookToScroll; }
     ComboMouse& comboMouse() { return *m_comboMouse; }
     MagnifierOverlay& magnifier() { return *m_magnifier; }
@@ -100,6 +102,7 @@ private:
     std::unique_ptr<PhraseService> m_phrases;
     std::unique_ptr<CommandRegistry> m_commands;
     std::unique_ptr<ScriptHost> m_scripts;
+    std::unique_ptr<AhkLauncher> m_ahk;
     std::unique_ptr<LookToScroll> m_lookToScroll;
     std::unique_ptr<ComboMouse> m_comboMouse;
     std::unique_ptr<MagnifierOverlay> m_magnifier;

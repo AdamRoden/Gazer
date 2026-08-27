@@ -188,9 +188,13 @@ void ActionDispatcher::dispatchPage(const QVector<PageAction>& actions, const QS
             armMagPick(m_svc, purpose, zoom);
             break;
         }
-        case PageActionType::Ahk:
-            notify(QStringLiteral("AHK actions are not supported"));
+        case PageActionType::Ahk: {
+            QString err;
+            if (!m_svc.ahk().run(a.ahkSource, &err)) {
+                notify(err.isEmpty() ? QStringLiteral("AHK failed") : err);
+            }
             break;
+        }
         case PageActionType::Unknown:
             GAZER_WARN << "Unknown Page action on" << targetId;
             break;

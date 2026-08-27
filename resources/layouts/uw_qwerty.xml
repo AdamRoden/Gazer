@@ -1,4 +1,4 @@
-<Page id="uw_qwerty" name="Qwerty" scanGrace="200" activation="10,600,600,500,400,300,200,100">
+<Page id="uw_qwerty" name="Qwerty" radius="0" scanGrace="200" activation="10,600,600,500,400,300,200,100">
   <Dwell id="vert1" scanGrace="200" activation="200,600"/>
   <Dwell id="vert2" scanGrace="100" activation="100,600"/>
   <Grid id="board" rows="4" columns="160" anchor="TopLeft" offset="500,754" size="1600,280" gap="0" margin="0">
@@ -95,6 +95,21 @@
   </Grid>
   <Grid id="vert2"  rows="2" columns="1" anchor="TopLeft" offset="2000,754" size="100,280"  show="false">
     <Cell id="mid" row="0" col="0" label="Mid" dwell="vert2" command="windowMid"/>
-    <Cell id="max" row="1" col="0" label="Max" dwell="vert2" command="windowMax"/>
+    <Cell id="max" row="1" col="0" label="Max" dwell="vert2">
+    <AHK><![CDATA[
+    {
+    try { 
+    Title := WinGetTitle("A")
+    xPos := 494
+    yPos := -6
+    v_nWidthN := 1514
+    v_nHeightN := A_ScreenHeight-32
+    WinRestore Title 
+    WinMove xPos, yPos, v_nWidthN, v_nHeightN, Title
+    } catch { 
+    }
+    }
+    ]]></AHK>
+    </Cell>
   </Grid>
 </Page>

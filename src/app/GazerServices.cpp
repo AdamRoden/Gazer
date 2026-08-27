@@ -80,6 +80,7 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
     m_assistSession = std::make_unique<AssistSession>();
     m_actionLoops = std::make_unique<ActionLoopService>();
     m_scripts = std::make_unique<ScriptHost>(*m_phrases, *m_commands, *m_input, *m_pages);
+    m_ahk = std::make_unique<AhkLauncher>();
 
     m_catalog->setDirectory(layoutsDir);
     const QString userLayouts =

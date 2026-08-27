@@ -241,7 +241,7 @@ A cell or zone may have **one** action attribute. Multiple actions use child ele
 | `HideGrid` / `HideZone` / `HideCell` | targetId[, true] — hide a grid, zone, or cell (`closeGrid` / `closeZone` still load). `-all` hides ordinary targets of that kind (drawer/quit stay on their chrome slot). |
 | `GoBack` | (none) — restore the last breadcrumb |
 | `Speak` | TTS text |
-| `AHK` | element body (not executed yet) |
+| `AHK` | element body / CDATA — written to a temp `.ahk` and started with a local AutoHotkey install (v2 preferred; `#Requires AutoHotkey v1` selects v1). AutoHotkey is not bundled; set `GAZER_AHK` to an exe to override discovery. |
 
 `<Action send="a"/>` is the same as `<Send value="a"/>`. Legacy `<Action id="Send" value="a"/>` still loads.
 
