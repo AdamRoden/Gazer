@@ -12,6 +12,7 @@
 #include <QObject>
 #include <QPoint>
 #include <QPointF>
+#include <QRectF>
 #include <QString>
 #include <QVector>
 #include <functional>
@@ -64,14 +65,8 @@ signals:
 private:
     class WheelOverlay;
 
-    struct Metrics {
-        double deadzone = 60.0;
-        double ringOuter = 120.0;
-        double pieOuter = 220.0;
-    };
-
-    [[nodiscard]] Metrics metrics() const;
-    [[nodiscard]] double screenHeightPx() const;
+    [[nodiscard]] ComboMouseHit::Layout layout() const;
+    [[nodiscard]] QRectF screenRect() const;
     void hideWheel();
     void pinCursor();
     void moveOrigin(const QPoint& pos);
@@ -83,12 +78,16 @@ private:
     void setDragHeld(bool held);
     void releaseDrag();
     [[nodiscard]] bool holdingLeft() const;
+    void adoptLayout(const ComboMouseHit::Layout& L);
+    void pushOverlay(const ComboMouseHit::Layout& L, ComboMouseHit::Band band,
+                     ComboMouseHit::Slice slice, double dwellProg, QPointF dir);
 
     bool m_enabled = false;
     bool m_wheelVisible = false;
     bool m_localHeld = false;
     bool m_paused = false;
     QPoint m_origin;
+    ComboMouseHit::Layout m_layout;
     QColor m_accent;
     ThemeColors m_theme = ThemeColors::darkPreset();
     ProgressVisuals m_progress;

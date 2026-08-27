@@ -6,12 +6,12 @@
 #include "utils/Log.h"
 #include "utils/ScreenGrab.h"
 
-#include <QGuiApplication>
 #include <QPainter>
 #include <QPainterPath>
 #include <QPaintEvent>
 #include <QPen>
-#include <QScreen>
+#include <QRect>
+#include <QRectF>
 #include <QString>
 #include <QtMath>
 
@@ -32,16 +32,16 @@ constexpr SliceSpec kSlices[] = {
     {ComboMouseHit::Slice::Left, "MouseLeftClick"},
 };
 
-[[nodiscard]] QPainterPath wedgePath(const QPointF& c, double inner, double outer, int sliceIndex)
+[[nodiscard]] QPainterPath wedgePath(const QPointF& c, const ComboMouseHit::Wedge& w)
 {
-    const double startDeg = 90.0 - sliceIndex * ComboMouseHit::kSliceDeg;
+    const double qtStart = 90.0 - w.startCw;
     QPainterPath slice;
     slice.moveTo(c);
-    slice.arcTo(QRectF(c.x() - outer, c.y() - outer, outer * 2.0, outer * 2.0), startDeg,
-                -ComboMouseHit::kSliceDeg);
+    slice.arcTo(QRectF(c.x() - w.outer, c.y() - w.outer, w.outer * 2.0, w.outer * 2.0), qtStart,
+                -w.spanDeg);
     slice.closeSubpath();
     QPainterPath hole;
-    hole.addEllipse(c, inner, inner);
+    hole.addEllipse(c, w.inner, w.inner);
     return slice.subtracted(hole);
 }
 
@@ -69,8 +69,8 @@ void paintPathProgress(QPainter& p, const QPainterPath& zone, const QPointF& c, 
     }
     if (vis.style.radial) {
         const qreal penW = 5.0;
-        const QRectF arc(c.x() - outerR + penW, c.y() - outerR + penW,
-                         (outerR - penW) * 2.0, (outerR - penW) * 2.0);
+        const QRectF arc(c.x() - outerR + penW, c.y() - outerR + penW, (outerR - penW) * 2.0,
+                         (outerR - penW) * 2.0);
         p.setBrush(Qt::NoBrush);
         QColor track = vis.progressColor;
         track.setAlpha(70);
@@ -87,11 +87,11 @@ class ComboMouse::WheelOverlay final : public OverlaySurface {
 public:
     WheelOverlay() { hide(); }
 
-    void setState(const ComboMouse::Metrics& m, ComboMouseHit::Band band,
+    void setState(const ComboMouseHit::Layout& layout, ComboMouseHit::Band band,
                   ComboMouseHit::Slice slice, double dwellProg, bool dragHeld, QPointF dir,
                   const QColor& accent, const ThemeColors& theme, const ProgressVisuals& progress)
     {
-        m_m = m;
+        m_layout = layout;
         m_band = band;
         m_slice = slice;
         m_dwellProg = qBound(0.0, dwellProg, 1.0);
@@ -102,17 +102,19 @@ public:
         if (accent.isValid()) {
             m_accent = accent;
         }
-        const int side = qMax(160, qRound(m.pieOuter * 2.0) + 28);
-        if (side != m_box) {
-            m_box = side;
-            resize(m_box, m_box);
-        }
         update();
     }
 
-    void placeCenter(const QPoint& screenCenter)
+    void place(const QPoint& origin, const QRectF& screen)
     {
-        move(screenCenter.x() - width() / 2, screenCenter.y() - height() / 2);
+        const QRect wr = ComboMouseHit::overlayRect(QPointF(origin), m_layout, screen);
+        m_originLocal = QPointF(origin) - QPointF(wr.topLeft());
+        if (wr.size() != size()) {
+            resize(wr.size());
+        }
+        if (pos() != wr.topLeft()) {
+            move(wr.topLeft());
+        }
         showOverlay();
         update();
     }
@@ -122,67 +124,66 @@ protected:
     {
         QPainter p(this);
         p.setRenderHint(QPainter::Antialiasing, true);
-        const QPointF c(rect().center());
+        const QPointF c = m_originLocal;
         const QColor cyan = m_accent.isValid() ? m_accent : ThemeColors::defaultProgressColor();
-        paintPie(p, c, cyan);
+        paintCommands(p, c, cyan);
         paintYellowRing(p, c, cyan);
     }
 
 private:
-    void paintPie(QPainter& p, const QPointF& c, const QColor& cyan)
+    void paintCommands(QPainter& p, const QPointF& c, const QColor& cyan)
     {
-        const double outer = m_m.pieOuter;
-        const double inner = m_m.ringOuter;
-        for (int i = 0; i < ComboMouseHit::kSliceCount; ++i) {
-            const auto id = ComboMouseHit::Slice(i);
-            const bool hover = m_band == ComboMouseHit::Band::Slice && m_slice == id;
-            const bool armed = id == ComboMouseHit::Slice::Drag && m_dragHeld;
-            const QPainterPath wedge = wedgePath(c, inner, outer, i);
-            const double prog = hover ? m_dwellProg : 0.0;
-
-            QColor fill(12, 14, 18, hover || armed ? 230 : 210);
-            if (armed && m_theme.cellActive.isValid()) {
-                fill = m_theme.cellActive;
-            }
-            p.setPen(Qt::NoPen);
-            p.setBrush(fill);
-            p.drawPath(wedge);
-
-            const QColor primary = m_theme.accent.isValid() ? m_theme.accent : cyan;
-            p.setBrush(Qt::NoBrush);
-            p.setPen(QPen(armed && m_theme.accentHover.isValid() ? m_theme.accentHover : primary,
-                          hover || armed ? 3.0 : 2.0, Qt::SolidLine, Qt::FlatCap, Qt::RoundJoin));
-            p.drawPath(wedge);
-
-            ProgressVisuals vis = m_progress;
-            vis.style.fillBackground = true;
-            vis.style.border = false;
-            vis.style.radial = true;
-            vis.fillColor = QColor(cyan.red(), cyan.green(), cyan.blue(), 90);
-            vis.progressColor = cyan;
-            vis.borderColor = primary;
-            const double startDeg = 90.0 - i * ComboMouseHit::kSliceDeg;
-            paintPathProgress(p, wedge, c, outer, startDeg, -ComboMouseHit::kSliceDeg,
-                              qMax(hover ? 0.08 : 0.0, prog), vis);
-
-            const double midDeg = i * ComboMouseHit::kSliceDeg + ComboMouseHit::kSliceDeg * 0.5;
-            const double rad = qDegreesToRadians(midDeg - 90.0);
-            const double midR = (inner + outer) * 0.5;
-            const QPointF mid(c.x() + qCos(rad) * midR, c.y() + qSin(rad) * midR);
-            const double iconSide = qBound(56.0, (outer - inner) * 0.78, 108.0);
-            const QRectF icon(mid.x() - iconSide * 0.5, mid.y() - iconSide * 0.5, iconSide,
-                              iconSide);
-            const QColor fg = armed && m_theme.accent.isValid()
-                                 ? m_theme.accent
-                                 : QColor(255, 255, 255, 235);
-            KeySymbols::paint(p, QLatin1String(kSlices[i].icon), icon, fg);
+        for (int i = 0; i < m_layout.wedgeCount; ++i) {
+            paintWedge(p, c, cyan, m_layout.wedges[i]);
         }
+    }
+
+    void paintWedge(QPainter& p, const QPointF& c, const QColor& cyan, const ComboMouseHit::Wedge& w)
+    {
+        const bool hover = m_band == ComboMouseHit::Band::Slice && m_slice == w.id;
+        const bool armed = w.id == ComboMouseHit::Slice::Drag && m_dragHeld;
+        const QPainterPath zone = wedgePath(c, w);
+
+        QColor fill(12, 14, 18, hover || armed ? 230 : 210);
+        if (armed && m_theme.cellActive.isValid()) {
+            fill = m_theme.cellActive;
+        }
+        p.setPen(Qt::NoPen);
+        p.setBrush(fill);
+        p.drawPath(zone);
+
+        const QColor primary = m_theme.accent.isValid() ? m_theme.accent : cyan;
+        p.setBrush(Qt::NoBrush);
+        p.setPen(QPen(armed && m_theme.accentHover.isValid() ? m_theme.accentHover : primary,
+                      hover || armed ? 3.0 : 2.0, Qt::SolidLine, Qt::FlatCap, Qt::RoundJoin));
+        p.drawPath(zone);
+
+        ProgressVisuals vis = m_progress;
+        vis.style.fillBackground = true;
+        vis.style.border = false;
+        vis.style.radial = true;
+        vis.fillColor = QColor(cyan.red(), cyan.green(), cyan.blue(), 90);
+        vis.progressColor = cyan;
+        vis.borderColor = primary;
+        const double qtStart = 90.0 - w.startCw;
+        const double prog = hover ? qMax(0.08, m_dwellProg) : 0.0;
+        paintPathProgress(p, zone, c, w.outer, qtStart, -w.spanDeg, prog, vis);
+
+        const double midDeg = w.startCw + w.spanDeg * 0.5;
+        const double rad = qDegreesToRadians(midDeg - 90.0);
+        const double midR = (w.inner + w.outer) * 0.5;
+        const QPointF mid(c.x() + qCos(rad) * midR, c.y() + qSin(rad) * midR);
+        const double iconSide = qBound(40.0, (w.outer - w.inner) * 0.78, 108.0);
+        const QRectF icon(mid.x() - iconSide * 0.5, mid.y() - iconSide * 0.5, iconSide, iconSide);
+        const QColor fg =
+            armed && m_theme.accent.isValid() ? m_theme.accent : QColor(255, 255, 255, 235);
+        KeySymbols::paint(p, QLatin1String(kSlices[int(w.id)].icon), icon, fg);
     }
 
     void paintYellowRing(QPainter& p, const QPointF& c, const QColor& cyan)
     {
-        const double inner = m_m.deadzone;
-        const double outer = m_m.ringOuter;
+        const double inner = m_layout.deadzone;
+        const double outer = m_layout.ringOuter;
         QPainterPath ring;
         ring.addEllipse(c, outer, outer);
         QPainterPath hole;
@@ -212,7 +213,7 @@ private:
         }
     }
 
-    ComboMouse::Metrics m_m;
+    ComboMouseHit::Layout m_layout;
     ComboMouseHit::Band m_band = ComboMouseHit::Band::None;
     ComboMouseHit::Slice m_slice = ComboMouseHit::Slice::Right;
     double m_dwellProg = 0.0;
@@ -221,7 +222,7 @@ private:
     QColor m_accent = ThemeColors::defaultProgressColor();
     ThemeColors m_theme = ThemeColors::darkPreset();
     ProgressVisuals m_progress;
-    int m_box = 0;
+    QPointF m_originLocal;
 };
 
 ComboMouse::ComboMouse(QObject* parent)
@@ -281,24 +282,37 @@ void ComboMouse::setAccent(const QColor& c)
     m_accent = c;
 }
 
-double ComboMouse::screenHeightPx() const
+QRectF ComboMouse::screenRect() const
 {
-    QScreen* s = QGuiApplication::screenAt(m_origin);
-    if (!s) {
-        s = QGuiApplication::primaryScreen();
-    }
-    return s ? double(qMax(200, s->geometry().height())) : 1080.0;
+    return QRectF(overlayScreenGeometry());
 }
 
-ComboMouse::Metrics ComboMouse::metrics() const
+ComboMouseHit::Layout ComboMouse::layout() const
 {
-    Metrics m;
-    const double screenH = screenHeightPx();
-    m.deadzone = ComboMouseHit::kHoleRadiusPx;
-    m.ringOuter = ComboMouseHit::kRingOuterPx;
+    const QRectF screen = screenRect();
+    const double screenH = screen.height() >= 200.0 ? screen.height() : 1080.0;
     const double pieThick = qBound(52.0, screenH * 0.08, 92.0);
-    m.pieOuter = qMax(m.ringOuter + pieThick, qBound(140.0, screenH * 0.16, 280.0));
-    return m;
+    const double fullPie =
+        qMax(ComboMouseHit::kRingOuterPx + pieThick, qBound(140.0, screenH * 0.16, 280.0));
+    return ComboMouseHit::makeLayout(QPointF(m_origin), screen, ComboMouseHit::kHoleRadiusPx,
+                                     ComboMouseHit::kRingOuterPx, fullPie);
+}
+
+void ComboMouse::adoptLayout(const ComboMouseHit::Layout& L)
+{
+    if (!ComboMouseHit::packingEqual(L, m_layout)) {
+        m_dwell.leave();
+    }
+    m_layout = L;
+}
+
+void ComboMouse::pushOverlay(const ComboMouseHit::Layout& L, ComboMouseHit::Band band,
+                             ComboMouseHit::Slice slice, double dwellProg, QPointF dir)
+{
+    adoptLayout(L);
+    m_overlay->setState(L, band, slice, dwellProg, isDragHeld(), dir, m_accent, m_theme,
+                        m_progress);
+    m_overlay->place(m_origin, screenRect());
 }
 
 void ComboMouse::setEnabled(bool enabled)
@@ -326,10 +340,10 @@ void ComboMouse::showAt(const QPoint& pos)
     pinCursor();
     m_wheelVisible = true;
     m_dwell.leave();
-    const Metrics m = metrics();
-    m_overlay->setState(m, ComboMouseHit::Band::Deadzone, ComboMouseHit::Slice::Right, 0.0,
+    m_layout = layout();
+    m_overlay->setState(m_layout, ComboMouseHit::Band::Deadzone, ComboMouseHit::Slice::Right, 0.0,
                         isDragHeld(), {}, m_accent, m_theme, m_progress);
-    m_overlay->placeCenter(m_origin);
+    m_overlay->place(m_origin, screenRect());
     emit wheelVisibleChanged(true);
 }
 
@@ -365,16 +379,12 @@ void ComboMouse::pinCursor()
 
 void ComboMouse::clampOrigin()
 {
-    const Metrics m = metrics();
-    const QRect work = overlayDesktopGeometry();
-    const int pad = qRound(m.pieOuter) + 4;
-    const QRect inner = work.adjusted(pad, pad, -pad, -pad);
-    if (inner.width() < 8 || inner.height() < 8) {
-        m_origin = work.center();
+    const QRect work = overlayScreenGeometry();
+    if (work.width() < 2 || work.height() < 2) {
         return;
     }
-    m_origin.setX(qBound(inner.left(), m_origin.x(), inner.right()));
-    m_origin.setY(qBound(inner.top(), m_origin.y(), inner.bottom()));
+    m_origin.setX(qBound(work.left(), m_origin.x(), work.left() + work.width() - 1));
+    m_origin.setY(qBound(work.top(), m_origin.y(), work.top() + work.height() - 1));
 }
 
 void ComboMouse::moveOrigin(const QPoint& pos)
@@ -383,7 +393,11 @@ void ComboMouse::moveOrigin(const QPoint& pos)
     clampOrigin();
     pinCursor();
     if (m_wheelVisible && m_overlay) {
-        m_overlay->placeCenter(m_origin);
+        adoptLayout(layout());
+        m_overlay->setState(m_layout, ComboMouseHit::Band::Drift, ComboMouseHit::Slice::Right,
+                            m_dwell.progress(), isDragHeld(), m_nudgeDir, m_accent, m_theme,
+                            m_progress);
+        m_overlay->place(m_origin, screenRect());
     }
 }
 
@@ -515,9 +529,7 @@ bool ComboMouse::containsGaze(const GazePoint& point) const
     if (!m_wheelVisible || !point.valid) {
         return false;
     }
-    const Metrics m = metrics();
-    const auto h =
-        ComboMouseHit::hit(point.toPointF(), QPointF(m_origin), m.deadzone, m.ringOuter, m.pieOuter);
+    const auto h = ComboMouseHit::hit(point.toPointF(), QPointF(m_origin), layout());
     return h.band != ComboMouseHit::Band::None;
 }
 
@@ -531,32 +543,27 @@ void ComboMouse::onGaze(const GazePoint& point, bool pauseInput)
         gp.timestampMs = m_clock.elapsed();
     }
 
+    const ComboMouseHit::Layout L = layout();
     if (!gp.valid || pauseInput || m_paused) {
         m_dwell.leave();
-        const Metrics m = metrics();
-        m_overlay->setState(m, ComboMouseHit::Band::Deadzone, ComboMouseHit::Slice::Right, 0.0,
-                            isDragHeld(), {}, m_accent, m_theme, m_progress);
+        pushOverlay(L, ComboMouseHit::Band::Deadzone, ComboMouseHit::Slice::Right, 0.0, {});
         return;
     }
 
-    const Metrics met = metrics();
     const QPointF g = gp.toPointF();
-    const auto h =
-        ComboMouseHit::hit(g, QPointF(m_origin), met.deadzone, met.ringOuter, met.pieOuter);
+    const auto h = ComboMouseHit::hit(g, QPointF(m_origin), L);
     if (h.band == ComboMouseHit::Band::Drift) {
         m_nudgeDir = g - QPointF(m_origin);
     }
     if (h.band == ComboMouseHit::Band::Deadzone) {
         pinCursor();
     }
+    adoptLayout(L);
     m_dwell.onGazeSample(gp, hitId(h));
     if (!m_wheelVisible) {
         return;
     }
-
-    m_overlay->setState(met, h.band, h.slice, m_dwell.progress(), isDragHeld(), m_nudgeDir, m_accent,
-                        m_theme, m_progress);
-    m_overlay->placeCenter(m_origin);
+    pushOverlay(L, h.band, h.slice, m_dwell.progress(), m_nudgeDir);
 }
 
 } // namespace gazer

@@ -112,6 +112,7 @@ bool Application::initialize()
         return true;
     });
     m_svc->commands().registerBuiltin(QStringLiteral("closeOtherViews"), [this](QString*) {
+        m_svc->comboMouse().setEnabled(false);
         const int pages = m_svc->pages().closeAttached();
         updateTrayStatus();
         if (m_tray) {
