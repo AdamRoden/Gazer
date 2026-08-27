@@ -91,6 +91,7 @@ set(GAZER_SOURCES
     src/assist/LookToScroll.cpp
     src/assist/ComboMouse.cpp
     src/assist/MouseDwellMove.cpp
+    src/assist/MouseDwellMoveMag.cpp
     src/assist/MouseAssistState.cpp
     src/assist/GazeReticle.cpp
     src/assist/GazeMouseFollow.cpp
@@ -118,8 +119,11 @@ set(GAZER_SOURCES
     src/editor/LayoutEditorCanvas.cpp
     src/editor/LayoutEditorToolbox.cpp
     src/editor/LayoutEditorFields.cpp
+    src/editor/LayoutEditorFieldsGroups.cpp
     src/editor/LayoutEditorProperties.cpp
+    src/editor/LayoutEditorPropertiesFill.cpp
     src/editor/LayoutEditorWindow.cpp
+    src/editor/LayoutEditorWindowFile.cpp
     src/utils/WinOverlay.cpp
 )
 
@@ -346,6 +350,7 @@ add_executable(GazerPageTests
     tests/PageDimTest.cpp
     tests/PageNavTest.cpp
     tests/PageHitTest.cpp
+    tests/PageHitLiveTest.cpp
     tests/SettingsLayoutTest.cpp
     tests/ComboMouseTest.cpp
     tests/AhkLauncherTest.cpp

@@ -40,7 +40,8 @@ Do **not** start with `README.md` (user manual). Use this file, then the folder 
 - `SettingsUi` methods are split by board: `SettingsUi.cpp` (shared), `SettingsNumpad.cpp`, `SettingsArrayEditor.cpp`, `SettingsColorPicker.cpp`, `SettingsOpacity.cpp`, `SettingsHexEditor.cpp`, `SettingsSliderGaze.cpp`, `SettingsCommands.cpp`. Helpers: `SettingsPageBuild.h`, `SettingsUiInternal.h`.
 - `AppSettings` JSON is `AppSettingsIo.cpp`; theme palette is `AppSettingsTheme.cpp`.
 - `PageSession` drawer/quit is `PageSessionChrome.cpp`; gaze/dwell is `PageSessionGaze.cpp`.
-- Head-preview math/shaders: `ui/PreviewGeometry.*`. Page XML action tests: `tests/PageLoaderActionTest.cpp`.
+- Head-preview math/shaders: `ui/PreviewGeometry.*`. Page XML action tests: `tests/PageLoaderActionTest.cpp`. Live hit tests: `tests/PageHitLiveTest.cpp`.
+- Editor inspector forms: `LayoutEditorPropertiesFill.cpp`, `LayoutEditorFieldsGroups.cpp`. File dialogs: `LayoutEditorWindowFile.cpp`.
 - Keyboard XML cell ids like `ch_113_0_1` are codepoints, not key names.
 
 ## Do not read

@@ -12,6 +12,7 @@ QObject* createPageLoaderActionTest();
 QObject* createPageDimTest();
 QObject* createPageNavTest();
 QObject* createPageHitTest();
+QObject* createPageHitLiveTest();
 QObject* createSettingsLayoutTest();
 QObject* createComboMouseTest();
 QObject* createAhkLauncherTest();
@@ -53,6 +54,8 @@ int main(int argc, char** argv)
     status |= QTest::qExec(nav.get(), rest);
     std::unique_ptr<QObject> hits(createPageHitTest());
     status |= QTest::qExec(hits.get(), rest);
+    std::unique_ptr<QObject> hitLive(createPageHitLiveTest());
+    status |= QTest::qExec(hitLive.get(), rest);
     std::unique_ptr<QObject> settings(createSettingsLayoutTest());
     status |= QTest::qExec(settings.get(), rest);
     std::unique_ptr<QObject> combo(createComboMouseTest());
