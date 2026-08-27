@@ -98,6 +98,7 @@ set(GAZER_SOURCES
     src/assist/AssistCommands.cpp
     src/assist/ActionLoopService.cpp
     src/ui/PreviewWindow.cpp
+    src/ui/PreviewGeometry.cpp
     src/ui/StlMesh.cpp
     src/ui/PageHostWindow.cpp
     src/ui/BoardPaint.cpp
@@ -190,6 +191,7 @@ set(GAZER_HEADERS
     src/assist/ForesightMemory.h
     src/assist/MagLayout.h
     src/ui/PreviewWindow.h
+    src/ui/PreviewGeometry.h
     src/ui/StlMesh.h
     src/ui/PageHostWindow.h
     src/ui/BoardPaint.h
@@ -340,6 +342,7 @@ set(GAZER_PAGE_TEST_LIB
 add_executable(GazerPageTests
     tests/page_tests_main.cpp
     tests/PageLoaderTest.cpp
+    tests/PageLoaderActionTest.cpp
     tests/PageDimTest.cpp
     tests/PageNavTest.cpp
     tests/PageHitTest.cpp

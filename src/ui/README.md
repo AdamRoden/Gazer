@@ -11,5 +11,5 @@ Host surface, board paint, overlays, theme.
 | `KeySymbols` | OptiKey icons from `resources/icons/key_symbols.json` (do not open that JSON) |
 | `GlassBackdrop` | Frosted blur |
 | `MagnifierOverlay` / `DwellSuspendOverlay` / `OverlaySurface.h` | Overlay HWNDs |
-| `PreviewWindow` / `StlMesh` | Head-pose preview |
+| `PreviewWindow` / `PreviewGeometry` / `StlMesh` | Head-pose preview (geometry/shaders in PreviewGeometry) |
 | `TrayIcon` / `AppIcon.h` | Tray + brand |

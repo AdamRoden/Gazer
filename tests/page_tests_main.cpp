@@ -8,6 +8,7 @@
 Q_LOGGING_CATEGORY(lcGazer, "gazer")
 
 QObject* createPageLoaderTest();
+QObject* createPageLoaderActionTest();
 QObject* createPageDimTest();
 QObject* createPageNavTest();
 QObject* createPageHitTest();
@@ -44,6 +45,8 @@ int main(int argc, char** argv)
     const QStringList rest = argsWithoutDashO(argc, argv);
     std::unique_ptr<QObject> pages(createPageLoaderTest());
     status |= QTest::qExec(pages.get(), argc, argv);
+    std::unique_ptr<QObject> pageActions(createPageLoaderActionTest());
+    status |= QTest::qExec(pageActions.get(), rest);
     std::unique_ptr<QObject> dims(createPageDimTest());
     status |= QTest::qExec(dims.get(), rest);
     std::unique_ptr<QObject> nav(createPageNavTest());
