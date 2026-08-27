@@ -67,6 +67,7 @@ private:
     void applyChrome();
     void applyInputFocusChrome();
     void cacheDrawerXf();
+    void syncFrost(bool grabNow);
     [[nodiscard]] QPoint paintOrigin() const;
     enum class ChromePass { Live, Underlay };
     void paintScene(QPainter& p, ChromePass pass);

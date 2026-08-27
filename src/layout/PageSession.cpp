@@ -587,9 +587,9 @@ void PageSession::playDrawerAppear()
     m_drawerPhase = DrawerPhase::Appear;
     m_drawerScale = kDrawerMinScale;
     m_drawerClock.restart();
-    m_drawerTimer.start();
     rebuild();
     raise();
+    m_drawerTimer.start();
     emit sessionChanged();
 }
 

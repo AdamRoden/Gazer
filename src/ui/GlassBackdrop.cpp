@@ -82,6 +82,17 @@ void GlassBackdrop::setUnderlay(QPixmap windowLocal, QPoint windowOrigin)
     }
 }
 
+void GlassBackdrop::captureNow()
+{
+    m_timer.stop();
+    rebuild();
+}
+
+void GlassBackdrop::stopRefresh()
+{
+    m_timer.stop();
+}
+
 void GlassBackdrop::invalidate()
 {
     if (m_radius <= 0.0 || m_capture.isEmpty() || !m_host || !m_host->isVisible()) {
@@ -93,7 +104,7 @@ void GlassBackdrop::invalidate()
 
 void GlassBackdrop::rebuild()
 {
-    if (m_radius <= 0.0 || m_capture.isEmpty() || !m_host || !m_host->isVisible()) {
+    if (m_radius <= 0.0 || m_capture.isEmpty() || !m_host) {
         m_frosted = {};
         m_frostKey = 0;
         return;

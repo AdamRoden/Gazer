@@ -27,6 +27,10 @@ public:
     void setCaptureRect(const QRect& globalRect);
     /// Opaque overlay chrome in window-local pixels, plus the window's global origin.
     void setUnderlay(QPixmap windowLocal, QPoint windowOrigin);
+    /// Grab the capture rect immediately so frost exists before motion.
+    void captureNow();
+    /// Cancel debounce / periodic recapture. Host uses this while chrome is moving.
+    void stopRefresh();
     void paint(QPainter& p, const QRectF& localRect, const PageBox& radii, const QColor& tint) const;
 
 signals:

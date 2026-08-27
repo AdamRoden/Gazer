@@ -121,8 +121,10 @@ namespace PageHit {
 /// so ShowGrid/ShowZone do not move already-visible boards.
 [[nodiscard]] QRectF reservedBounds(const PageDocument& page, const PageFrame& frame,
                                     const QSet<QString>& hiddenGrids = {});
+/// Screen area frosted chrome occupies after any motion (drawer scale, etc.)
+/// completes. Capture must use this rest pose, not the in-flight bounds.
 [[nodiscard]] QRectF frostedBounds(const QVector<PageTarget>& targets,
-                                   const QVector<PageGridPaint>& grids, double drawerScale = 1.0);
+                                   const QVector<PageGridPaint>& grids);
 
 [[nodiscard]] bool shapeContains(const QRectF& r, const PageChrome& chrome, bool clustered,
                                  const QPointF& pos);

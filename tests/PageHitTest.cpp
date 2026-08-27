@@ -42,6 +42,7 @@ private slots:
     void drawerMapIsIdentityAtFullScale();
     void drawerMapShrinksAboutBottom();
     void drawerScaleMustNotMoveOtherChrome();
+    void frostedBoundsUsesRestPose();
     void reservedBoundsKeepsHiddenGrids();
     void desktopModeUsesDesktop();
     void mainChipProgressOverlapsTaskbar();
@@ -312,6 +313,33 @@ void PageHitTest::drawerScaleMustNotMoveOtherChrome()
     QVERIFY(scaled.left() > full.left());
     QCOMPARE(PageHit::mapDrawer(false, strip.visual, PageHit::drawerTransform({}, 0.5, grids), 0.5),
              strip.visual);
+}
+
+void PageHitTest::frostedBoundsUsesRestPose()
+{
+    PageGridPaint drawer;
+    drawer.visual = QRectF(360, 930, 1200, 150);
+    drawer.drawerMotion = true;
+    drawer.chrome.blur = 25.0;
+    PageGridPaint strip;
+    strip.visual = QRectF(2000, 0, 100, 754);
+    strip.drawerMotion = false;
+    strip.chrome.blur = 15.0;
+    PageTarget cell;
+    cell.drawerMotion = true;
+    cell.chrome.blur = 25.0;
+    cell.geom.visual = QRectF(370, 940, 80, 130);
+    cell.geom.dwellZone = cell.geom.visual;
+    cell.geom.progressZone = cell.geom.visual;
+    PageGridPaint opaque;
+    opaque.visual = QRectF(0, 0, 80, 80);
+    const QVector<PageGridPaint> grids{drawer, strip, opaque};
+    const QVector<PageTarget> targets{cell};
+    const QRectF frost = PageHit::frostedBounds(targets, grids);
+    QCOMPARE(frost, drawer.visual.united(strip.visual));
+    QVERIFY(frost.contains(cell.geom.visual));
+    QCOMPARE(PageHit::frostedBounds({}, {opaque}), QRectF());
+    QVERIFY(PageHit::paintBounds({cell}, {drawer}, 0.5).left() > drawer.visual.left());
 }
 
 void PageHitTest::reservedBoundsKeepsHiddenGrids()

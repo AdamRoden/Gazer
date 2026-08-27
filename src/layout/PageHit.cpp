@@ -555,10 +555,8 @@ bool shapeContains(const QRectF& r, const PageChrome& chrome, bool clustered, co
     return roundedBoxContains(r, chrome.resolvedRadius(clustered), pos);
 }
 
-QRectF frostedBounds(const QVector<PageTarget>& targets, const QVector<PageGridPaint>& grids,
-                     double drawerScale)
+QRectF frostedBounds(const QVector<PageTarget>& targets, const QVector<PageGridPaint>& grids)
 {
-    const QTransform xf = drawerTransform(targets, drawerScale, grids);
     QRectF u;
     auto add = [&](const QRectF& r) {
         if (r.isEmpty()) {
@@ -568,12 +566,12 @@ QRectF frostedBounds(const QVector<PageTarget>& targets, const QVector<PageGridP
     };
     for (const PageGridPaint& g : grids) {
         if (g.chrome.hasBlur()) {
-            add(mapDrawer(g.drawerMotion, g.visual, xf, drawerScale));
+            add(g.visual);
         }
     }
     for (const PageTarget& t : targets) {
         if (t.chrome.hasBlur()) {
-            add(mapDrawer(t, t.geom.contentOnScreen(), xf, drawerScale));
+            add(t.geom.contentOnScreen());
         }
     }
     return u;

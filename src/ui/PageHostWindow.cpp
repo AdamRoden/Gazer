@@ -271,6 +271,24 @@ void PageHostWindow::refreshUnderlay()
     m_glass.setUnderlay(pm, paintOrigin());
 }
 
+void PageHostWindow::syncFrost(bool grabNow)
+{
+    const bool rest = m_drawerScale >= 0.999;
+    if (grabNow) {
+        refreshUnderlay();
+        m_glass.captureNow();
+        if (!rest) {
+            m_glass.stopRefresh();
+        }
+        return;
+    }
+    if (rest) {
+        refreshUnderlay();
+        return;
+    }
+    m_glass.stopRefresh();
+}
+
 void PageHostWindow::syncGlass()
 {
     double blur = 0.0;
@@ -280,7 +298,7 @@ void PageHostWindow::syncGlass()
     for (const PageTarget& t : m_targets) {
         blur = qMax(blur, t.chrome.blur.value_or(0.0));
     }
-    const QRect cap = PageHit::frostedBounds(m_targets, m_gridPaints, m_drawerScale).toAlignedRect();
+    const QRect cap = PageHit::frostedBounds(m_targets, m_gridPaints).toAlignedRect();
     m_glass.setCaptureRect(cap);
     if (!qFuzzyCompare(blur + 1.0, m_blurMax + 1.0)) {
         m_blurMax = blur;
@@ -333,7 +351,7 @@ void PageHostWindow::commit(QVector<PageTarget> targets, QVector<PageGridPaint> 
     cacheDrawerXf();
     syncGlass();
     fitToChrome();
-    refreshUnderlay();
+    syncFrost(true);
     if (m_board) {
         m_board->update();
     }
@@ -396,7 +414,7 @@ void PageHostWindow::setDrawerScale(double scale)
     }
     m_drawerScale = scale;
     cacheDrawerXf();
-    refreshUnderlay();
+    syncFrost(false);
     if (m_board) {
         m_board->update();
     }
