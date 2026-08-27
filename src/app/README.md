@@ -10,7 +10,7 @@ Composition root, settings, command dispatch.
 | `CommandRegistry` | Builtin names, then mapping profile. Catalog: `Commands.md` |
 | `GazeRouter` | Gaze sample → session + assist |
 | `ActiveStateResolver` | `visibleWhen` / `activeState` keys (`mod.shift`, …) |
-| `AppSettings` | Persisted prefs. Keys/ranges live in spec tables in the `.cpp` |
+| `AppSettings` | Persisted prefs. Spec tables + nudge/display in `.cpp`; JSON in `AppSettingsIo.cpp`; palette in `AppSettingsTheme.cpp` |
 | `SettingsUi.h` | Live settings boards (numpad, array, color, hex, opacity, slider) |
 | `SettingsUi.cpp` | Ctor, decorate, live attach, keyboard focus |
 | `SettingsNumpad.cpp` | Numeric editor |

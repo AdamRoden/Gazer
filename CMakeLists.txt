@@ -41,6 +41,8 @@ set(GAZER_SOURCES
     src/app/Application.cpp
     src/app/ActionDispatcher.cpp
     src/app/AppSettings.cpp
+    src/app/AppSettingsIo.cpp
+    src/app/AppSettingsTheme.cpp
     src/app/ActiveStateResolver.cpp
     src/app/GazeRouter.cpp
     src/app/GazerServices.cpp
@@ -66,6 +68,8 @@ set(GAZER_SOURCES
     src/layout/PageSession.cpp
     src/layout/PageSessionAttach.cpp
     src/layout/PageSessionNav.cpp
+    src/layout/PageSessionChrome.cpp
+    src/layout/PageSessionGaze.cpp
     src/layout/PageWriter.cpp
     src/layout/PageEdit.cpp
     src/layout/PageCatalog.cpp

@@ -12,7 +12,7 @@ Page XML model and the live dwell session.
 | `PageResolve` | Dims → geometry |
 | `PageHit` / `PageDetector` | Gaze pick, overlap |
 | `PageCatalog` | Shipped + `%AppData%\Gazer\layouts` |
-| `PageSession*` | Attach, nav, drawer/quit chrome. `PageSession.h` does not include paint types; use `ui/PageHostWindow.h` / `ui/Theme.h` at the call site |
+| `PageSession*` | Live session. `PageSession.cpp` attach/rebuild; `Attach` placement; `Nav` show/hide; `Chrome` drawer/quit; `Gaze` dwell/hit. Header does not include paint types |
 | `DwellStateMachine` / `DwellRegionSpace` / `InvalidGazeGrace.h` | Dwell timing |
 | `PageNav.h` | Open/close/show/hide target parse |
 
