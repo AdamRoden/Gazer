@@ -36,6 +36,7 @@ Do **not** start with `README.md` (user manual). Use this file, then the folder 
 ## Naming traps
 
 - `PageDim` **struct** is in `layout/PageTypes.h`. `layout/PageDim.h` is parse / `placeRect` only.
+- `GazerServices.h` and `PageSession.h` are façades. Include `assist/LookToScroll.h`, `ui/PageHostWindow.h`, `ui/Theme.h`, etc. at the call site — do not expect those types from the façade.
 - `SettingsUi` methods are split by board: `SettingsUi.cpp` (shared), `SettingsNumpad.cpp`, `SettingsArrayEditor.cpp`, `SettingsColorPicker.cpp`, `SettingsOpacity.cpp`, `SettingsHexEditor.cpp`, `SettingsSliderGaze.cpp`, `SettingsCommands.cpp`. Helpers: `SettingsPageBuild.h`, `SettingsUiInternal.h`.
 - Keyboard XML cell ids like `ch_113_0_1` are codepoints, not key names.
 

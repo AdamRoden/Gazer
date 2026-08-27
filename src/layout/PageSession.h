@@ -5,9 +5,6 @@
 #include "layout/PageHit.h"
 #include "layout/PageNav.h"
 #include "layout/PageTypes.h"
-#include "ui/PageHostWindow.h"
-#include "ui/ProgressVisuals.h"
-#include "ui/Theme.h"
 
 #include <QElapsedTimer>
 #include <QHash>
@@ -28,6 +25,9 @@
 namespace gazer {
 
 class PageCatalog;
+class PageHostWindow;
+struct ProgressVisuals;
+struct ThemeColors;
 
 class PageSession final : public QObject {
     Q_OBJECT
@@ -44,6 +44,7 @@ public:
     enum class RootChrome { Docked, Drawer, Quit };
 
     explicit PageSession(QObject* parent = nullptr);
+    ~PageSession() override;
 
     [[nodiscard]] bool openRoot(const QString& xmlPath, QString* error = nullptr);
     void setLayoutsDirectory(const QString& dir) { m_layoutsDir = dir; }

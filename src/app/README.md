@@ -5,7 +5,7 @@ Composition root, settings, command dispatch.
 | File | Role |
 |------|------|
 | `Application` | Tracker, tray, preview, editor, overlays over `GazerServices` |
-| `GazerServices` | Owns domain services (pages, input, assist, settings UI) |
+| `GazerServices` | Owns domain services. Header is a façade — include the domain header at the call site |
 | `ActionDispatcher` | `PageAction` → commands / clicks / speak |
 | `CommandRegistry` | Builtin names, then mapping profile |
 | `GazeRouter` | Gaze sample → session + assist |

@@ -1,9 +1,15 @@
 #include "app/ActionDispatcher.h"
 
+#include "app/CommandRegistry.h"
+#include "app/GazerServices.h"
+#include "assist/AhkLauncher.h"
+#include "assist/MouseAssistState.h"
 #include "assist/MouseDwellMove.h"
+#include "assist/PhraseService.h"
 #include "input/KeyStateManager.h"
 #include "input/MouseInjector.h"
 #include "layout/PageDim.h"
+#include "layout/PageSession.h"
 #include "utils/Log.h"
 #include "utils/ScreenGrab.h"
 

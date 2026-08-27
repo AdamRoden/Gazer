@@ -1,19 +1,22 @@
 #pragma once
 
-#include "app/ActionDispatcher.h"
 #include "app/GazeRouter.h"
-#include "app/GazerServices.h"
-#include "core/ITracker.h"
-#include "ui/DwellSuspendOverlay.h"
 #include "layout/PageTypes.h"
-#include "ui/PreviewWindow.h"
-#include "ui/TrayIcon.h"
 
 #include <QObject>
 #include <QVector>
 #include <memory>
 
 namespace gazer {
+
+class ActionDispatcher;
+class DwellSuspendOverlay;
+class GazerServices;
+class ITracker;
+class LayoutEditorWindow;
+class OverlayStackWatch;
+class PreviewWindow;
+class TrayIcon;
 
 /// Shell: tracker + tray/preview/overlays over GazerServices.
 class Application final : public QObject {
@@ -46,9 +49,9 @@ private:
     GazeRouter m_gazeRouter;
     std::unique_ptr<DwellSuspendOverlay> m_dwellSuspendOverlay;
     std::unique_ptr<PreviewWindow> m_preview;
-    std::unique_ptr<class LayoutEditorWindow> m_editor;
+    std::unique_ptr<LayoutEditorWindow> m_editor;
     std::unique_ptr<TrayIcon> m_tray;
-    std::unique_ptr<class OverlayStackWatch> m_stackWatch;
+    std::unique_ptr<OverlayStackWatch> m_stackWatch;
     bool m_restacking = false;
 };
 

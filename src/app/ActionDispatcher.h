@@ -1,6 +1,5 @@
 #pragma once
 
-#include "app/GazerServices.h"
 #include "layout/PageTypes.h"
 
 #include <QObject>
@@ -8,6 +7,8 @@
 #include <QVector>
 
 namespace gazer {
+
+class GazerServices;
 
 /// Routes page actions using GazerServices.
 class ActionDispatcher final : public QObject {

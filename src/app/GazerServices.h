@@ -2,27 +2,8 @@
 
 #include "app/ActiveStateResolver.h"
 #include "app/AppSettings.h"
-#include "app/CommandRegistry.h"
 #include "core/GazePoint.h"
-#include "assist/ActionLoopService.h"
-#include "assist/AhkLauncher.h"
-#include "assist/AssistCommands.h"
-#include "assist/AssistSession.h"
-#include "assist/GazeMouseFollow.h"
-#include "assist/GazeReticle.h"
-#include "assist/ComboMouse.h"
-#include "assist/LookToScroll.h"
-#include "assist/MouseAssistState.h"
-#include "assist/MouseDwellMove.h"
-#include "assist/PhraseService.h"
-#include "assist/ScriptHost.h"
-#include "assist/TtsService.h"
-#include "input/InputService.h"
-#include "input/KeyStateManager.h"
-#include "layout/PageCatalog.h"
 #include "layout/PageTypes.h"
-#include "mapping/MappingEngine.h"
-#include "ui/MagnifierOverlay.h"
 
 #include <QObject>
 #include <QString>
@@ -31,10 +12,30 @@
 
 namespace gazer {
 
-class SettingsUi;
+class ActionLoopService;
+class AhkLauncher;
+class AssistSession;
+struct AssistCommandContext;
+class ComboMouse;
+class CommandRegistry;
+class GazeMouseFollow;
+class GazeReticle;
+class InputService;
+class KeyStateManager;
+class LookToScroll;
+class MagnifierOverlay;
+class MappingEngine;
+class MouseAssistState;
+class MouseDwellMove;
+class PageCatalog;
 class PageSession;
+class PhraseService;
+class ScriptHost;
+class SettingsUi;
+class TtsService;
 
 /// Composition root for domain services (not tray/tracker UI shell).
+/// Accessors return references; include the domain header at the call site.
 class GazerServices final : public QObject {
     Q_OBJECT
 

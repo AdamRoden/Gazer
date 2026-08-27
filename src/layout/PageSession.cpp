@@ -2,6 +2,9 @@
 
 #include "layout/PageCatalog.h"
 #include "layout/PageLoader.h"
+#include "ui/PageHostWindow.h"
+#include "ui/ProgressVisuals.h"
+#include "ui/Theme.h"
 #include "utils/Log.h"
 #include "utils/ScreenGrab.h"
 
@@ -99,6 +102,8 @@ PageSession::PageSession(QObject* parent)
         onScreens();
     });
 }
+
+PageSession::~PageSession() = default;
 
 bool PageSession::openRoot(const QString& xmlPath, QString* error)
 {

@@ -1,6 +1,7 @@
 #include "layout/PageSession.h"
 
 #include "layout/PageDim.h"
+#include "ui/PageHostWindow.h"
 
 #include <QPointF>
 #include <QTransform>
