@@ -16,7 +16,14 @@ namespace {
 
 #ifdef Q_OS_WIN
 
-WORD virtualKeyFromName(QString name)
+// Cluster keys share VKs with the numpad. KEYEVENTF_EXTENDEDKEY is what
+// distinguishes them; without it Shift+Up is Shift+Numpad8.
+struct VkStroke {
+    WORD vk = 0;
+    bool extended = false;
+};
+
+VkStroke namedStroke(QString name)
 {
     name = name.trimmed();
     const QString u = name.toUpper();
@@ -24,59 +31,73 @@ WORD virtualKeyFromName(QString name)
     static const struct {
         const char* n;
         WORD vk;
+        bool extended;
     } table[] = {
-        {"BACK", VK_BACK},       {"BACKSPACE", VK_BACK}, {"RETURN", VK_RETURN},
-        {"ENTER", VK_RETURN},    {"TAB", VK_TAB},        {"ESCAPE", VK_ESCAPE},
-        {"ESC", VK_ESCAPE},      {"SPACE", VK_SPACE},    {"DELETE", VK_DELETE},
-        {"DEL", VK_DELETE},      {"INSERT", VK_INSERT},  {"HOME", VK_HOME},
-        {"END", VK_END},         {"PRIOR", VK_PRIOR},    {"PAGEUP", VK_PRIOR},
-        {"NEXT", VK_NEXT},       {"PAGEDOWN", VK_NEXT},  {"LEFT", VK_LEFT},
-        {"RIGHT", VK_RIGHT},     {"UP", VK_UP},          {"DOWN", VK_DOWN},
-        {"CONTROL", VK_CONTROL}, {"CTRL", VK_CONTROL},   {"LCONTROL", VK_LCONTROL},
-        {"RCONTROL", VK_RCONTROL}, {"SHIFT", VK_SHIFT},  {"LSHIFT", VK_LSHIFT},
-        {"RSHIFT", VK_RSHIFT},   {"ALT", VK_MENU},       {"MENU", VK_MENU},
-        {"LWIN", VK_LWIN},       {"RWIN", VK_RWIN},      {"WIN", VK_LWIN},
-        {"OEMMINUS", VK_OEM_MINUS}, {"OEM_MINUS", VK_OEM_MINUS},
-        {"OEMPLUS", VK_OEM_PLUS},   {"OEM_PLUS", VK_OEM_PLUS},
-        {"OEMCOMMA", VK_OEM_COMMA}, {"OEM_COMMA", VK_OEM_COMMA},
-        {"OEMPERIOD", VK_OEM_PERIOD}, {"OEM_PERIOD", VK_OEM_PERIOD},
-        {"OEM1", VK_OEM_1},      {"OEM_1", VK_OEM_1},     {"OEM2", VK_OEM_2},
-        {"OEM_2", VK_OEM_2},     {"OEM3", VK_OEM_3},      {"OEM_3", VK_OEM_3},
-        {"OEM4", VK_OEM_4},      {"OEM_4", VK_OEM_4},     {"OEM5", VK_OEM_5},
-        {"OEM_5", VK_OEM_5},     {"OEM6", VK_OEM_6},      {"OEM_6", VK_OEM_6},
-        {"OEM7", VK_OEM_7},      {"OEM_7", VK_OEM_7},
-        {"F1", VK_F1},           {"F2", VK_F2},          {"F3", VK_F3},
-        {"F4", VK_F4},           {"F5", VK_F5},          {"F6", VK_F6},
-        {"F7", VK_F7},           {"F8", VK_F8},          {"F9", VK_F9},
-        {"F10", VK_F10},         {"F11", VK_F11},        {"F12", VK_F12},
+        {"BACK", VK_BACK, false},       {"BACKSPACE", VK_BACK, false},
+        {"RETURN", VK_RETURN, false},   {"ENTER", VK_RETURN, false},
+        {"TAB", VK_TAB, false},         {"ESCAPE", VK_ESCAPE, false},
+        {"ESC", VK_ESCAPE, false},      {"SPACE", VK_SPACE, false},
+        {"DELETE", VK_DELETE, true},    {"DEL", VK_DELETE, true},
+        {"INSERT", VK_INSERT, true},    {"HOME", VK_HOME, true},
+        {"END", VK_END, true},          {"PRIOR", VK_PRIOR, true},
+        {"PAGEUP", VK_PRIOR, true},     {"NEXT", VK_NEXT, true},
+        {"PAGEDOWN", VK_NEXT, true},    {"LEFT", VK_LEFT, true},
+        {"RIGHT", VK_RIGHT, true},      {"UP", VK_UP, true},
+        {"DOWN", VK_DOWN, true},
+        {"CONTROL", VK_CONTROL, false}, {"CTRL", VK_CONTROL, false},
+        {"LCONTROL", VK_LCONTROL, false}, {"RCONTROL", VK_RCONTROL, true},
+        {"SHIFT", VK_SHIFT, false},     {"LSHIFT", VK_LSHIFT, false},
+        {"RSHIFT", VK_RSHIFT, false},   {"ALT", VK_MENU, false},
+        {"MENU", VK_MENU, false},
+        {"LWIN", VK_LWIN, true},        {"RWIN", VK_RWIN, true},
+        {"WIN", VK_LWIN, true},
+        {"OEMMINUS", VK_OEM_MINUS, false}, {"OEM_MINUS", VK_OEM_MINUS, false},
+        {"OEMPLUS", VK_OEM_PLUS, false},   {"OEM_PLUS", VK_OEM_PLUS, false},
+        {"OEMCOMMA", VK_OEM_COMMA, false}, {"OEM_COMMA", VK_OEM_COMMA, false},
+        {"OEMPERIOD", VK_OEM_PERIOD, false}, {"OEM_PERIOD", VK_OEM_PERIOD, false},
+        {"OEM1", VK_OEM_1, false},      {"OEM_1", VK_OEM_1, false},
+        {"OEM2", VK_OEM_2, false},      {"OEM_2", VK_OEM_2, false},
+        {"OEM3", VK_OEM_3, false},      {"OEM_3", VK_OEM_3, false},
+        {"OEM4", VK_OEM_4, false},      {"OEM_4", VK_OEM_4, false},
+        {"OEM5", VK_OEM_5, false},      {"OEM_5", VK_OEM_5, false},
+        {"OEM6", VK_OEM_6, false},      {"OEM_6", VK_OEM_6, false},
+        {"OEM7", VK_OEM_7, false},      {"OEM_7", VK_OEM_7, false},
+        {"F1", VK_F1, false},           {"F2", VK_F2, false},
+        {"F3", VK_F3, false},           {"F4", VK_F4, false},
+        {"F5", VK_F5, false},           {"F6", VK_F6, false},
+        {"F7", VK_F7, false},           {"F8", VK_F8, false},
+        {"F9", VK_F9, false},           {"F10", VK_F10, false},
+        {"F11", VK_F11, false},         {"F12", VK_F12, false},
     };
     for (const auto& e : table) {
         if (u == QLatin1String(e.n)) {
-            return e.vk;
+            return {e.vk, e.extended};
         }
     }
     if (u.size() == 1) {
         const QChar c = u[0];
         if (c >= QLatin1Char('A') && c <= QLatin1Char('Z')) {
-            return static_cast<WORD>(c.unicode());
+            return {static_cast<WORD>(c.unicode()), false};
         }
         if (c >= QLatin1Char('0') && c <= QLatin1Char('9')) {
-            return static_cast<WORD>(c.unicode());
+            return {static_cast<WORD>(c.unicode()), false};
         }
         const KeyGlyphs::Stroke st = KeyGlyphs::strokeForSend(name.trimmed(), false);
         if (st.key.compare(name.trimmed(), Qt::CaseInsensitive) != 0) {
-            return virtualKeyFromName(st.key);
+            return namedStroke(st.key);
         }
     }
-    return 0;
+    return {};
 }
 
-bool sendVk(WORD vk, bool keyUp)
+bool sendVk(VkStroke stroke, bool keyUp)
 {
     INPUT in{};
     in.type = INPUT_KEYBOARD;
-    in.ki.wVk = vk;
-    in.ki.dwFlags = keyUp ? KEYEVENTF_KEYUP : 0;
+    in.ki.wVk = stroke.vk;
+    in.ki.wScan = static_cast<WORD>(MapVirtualKeyW(stroke.vk, MAPVK_VK_TO_VSC));
+    in.ki.dwFlags = (stroke.extended ? KEYEVENTF_EXTENDEDKEY : 0)
+                    | (keyUp ? KEYEVENTF_KEYUP : 0);
     return SendInput(1, &in, sizeof(INPUT)) == 1;
 }
 
@@ -99,14 +120,14 @@ namespace {
 bool sendNamed(const QString& keyName, bool up, QString* error)
 {
 #ifdef Q_OS_WIN
-    const WORD vk = virtualKeyFromName(keyName);
-    if (vk == 0) {
+    const VkStroke stroke = namedStroke(keyName);
+    if (stroke.vk == 0) {
         if (error) {
             *error = QStringLiteral("Unknown key: %1").arg(keyName);
         }
         return false;
     }
-    if (!sendVk(vk, up)) {
+    if (!sendVk(stroke, up)) {
         if (error) {
             *error = QStringLiteral("SendInput failed for key %1").arg(keyName);
         }
@@ -132,7 +153,7 @@ bool KeyboardInjector::tapKey(const QString& keyName, QString* error)
 bool KeyboardInjector::keyDown(const QString& keyName, QString* error)
 {
 #ifdef Q_OS_WIN
-    if (virtualKeyFromName(keyName) != 0) {
+    if (namedStroke(keyName).vk != 0) {
         return sendNamed(keyName, false, error);
     }
     if (keyName.size() == 1) {
@@ -154,7 +175,7 @@ bool KeyboardInjector::keyDown(const QString& keyName, QString* error)
 bool KeyboardInjector::keyUp(const QString& keyName, QString* error)
 {
 #ifdef Q_OS_WIN
-    if (virtualKeyFromName(keyName) != 0) {
+    if (namedStroke(keyName).vk != 0) {
         return sendNamed(keyName, true, error);
     }
     if (keyName.size() == 1) {
@@ -182,28 +203,28 @@ bool KeyboardInjector::combo(const QStringList& keys, QString* error)
         }
         return false;
     }
-    QVector<WORD> vks;
-    vks.reserve(keys.size());
+    QVector<VkStroke> strokes;
+    strokes.reserve(keys.size());
     for (const QString& k : keys) {
-        const WORD vk = virtualKeyFromName(k);
-        if (vk == 0) {
+        const VkStroke stroke = namedStroke(k);
+        if (stroke.vk == 0) {
             if (error) {
                 *error = QStringLiteral("Unknown key in combo: %1").arg(k);
             }
             return false;
         }
-        vks.push_back(vk);
+        strokes.push_back(stroke);
     }
-    for (WORD vk : vks) {
-        if (!sendVk(vk, false)) {
+    for (const VkStroke& stroke : strokes) {
+        if (!sendVk(stroke, false)) {
             if (error) {
                 *error = QStringLiteral("SendInput key-down failed");
             }
             return false;
         }
     }
-    for (int i = vks.size() - 1; i >= 0; --i) {
-        if (!sendVk(vks[i], true)) {
+    for (int i = strokes.size() - 1; i >= 0; --i) {
+        if (!sendVk(strokes[i], true)) {
             if (error) {
                 *error = QStringLiteral("SendInput key-up failed");
             }
