@@ -3,7 +3,6 @@
 #include "layout/ChromeBlur.h"
 #include "layout/RoundBox.h"
 #include "utils/ScreenGrab.h"
-#include "utils/WinOverlay.h"
 
 #include <QGuiApplication>
 #include <QImage>
@@ -124,11 +123,13 @@ void GlassBackdrop::rebuild()
         return;
     }
 
-    QPixmap raw;
-    {
-        const CaptureExclusion hideHost(m_host);
-        raw = grabScreenRect(screen, grabGlobal);
-    }
+    // Do not toggle WDA_EXCLUDEFROMCAPTURE on the live host. That affinity is
+    // per-HWND, so a settings-sized board would cloak the whole monitor on some
+    // GPU / Windows builds. Underlay stamps this window's non-frosted chrome
+    // (so a drawer still frosts the board beneath it). Recapture only on
+    // geometry / underlay change — a periodic grab would blur the previous
+    // frost into itself.
+    QPixmap raw = grabScreenRect(screen, grabGlobal);
     if (!m_underlay.isNull() && !raw.isNull()) {
         QPainter up(&raw);
         up.setRenderHint(QPainter::SmoothPixmapTransform, true);
@@ -137,17 +138,10 @@ void GlassBackdrop::rebuild()
     QPixmap next = downscaleBlur(raw, m_radius);
     const qint64 key = next.cacheKey();
     if (key != 0 && key == m_frostKey) {
-        if (m_host->isVisible() && m_radius > 0.0 && !m_capture.isEmpty()) {
-            m_timer.start(500);
-        }
         return;
     }
     m_frosted = std::move(next);
     m_frostKey = key;
-
-    if (m_host->isVisible() && m_radius > 0.0 && !m_capture.isEmpty()) {
-        m_timer.start(500);
-    }
     emit updated();
 }
 

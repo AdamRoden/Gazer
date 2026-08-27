@@ -103,7 +103,7 @@ PageHostWindow::PageHostWindow(QWindow* parent)
     m_raiseTimer.setSingleShot(true);
     connect(&m_raiseTimer, &QTimer::timeout, this, [this]() {
         if (isVisible()) {
-            raiseAboveTaskbar(this);
+            raiseAboveTaskbar(this, /*onlyIfTaskbarOccludes=*/true);
         }
     });
     connect(&m_flashTimer, &QTimer::timeout, this, [this]() {
@@ -555,8 +555,10 @@ void PageHostWindow::applyChrome()
 {
     applyOverlayWindowChrome(this, /*excludeFromCapture=*/false);
     applyInputFocusChrome();
-    raiseAboveTaskbar(this);
-    // Explorer restacks Shell_TrayWnd after a show; win again on a short delay.
+    setOverlayStackHost(this);
+    raiseAboveTaskbar(this, /*onlyIfTaskbarOccludes=*/true);
+    // Explorer restacks Shell_TrayWnd after a show; hop again if it landed on us.
+    // Owned overlays follow this window through the hop.
     m_raiseTimer.start(180);
 }
 
@@ -573,7 +575,8 @@ void PageHostWindow::raiseHost()
         showHost();
         return;
     }
-    applyChrome();
+    raiseAboveTaskbar(this, /*onlyIfTaskbarOccludes=*/true);
+    m_raiseTimer.start(180);
 }
 
 QString PageHostWindow::mouseHit(const QPointF& global) const

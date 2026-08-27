@@ -71,73 +71,21 @@ inline void applyOverlayWindowChrome(QWidget* w, bool excludeFromCapture = true)
     applyOverlayWindowChrome(w->windowHandle(), excludeFromCapture);
 }
 
-/// Temporarily exclude `w` from screen capture; restores the previous affinity.
-class CaptureExclusion {
-public:
-    explicit CaptureExclusion(QWindow* w)
-    {
-#ifdef Q_OS_WIN
-        if (!w) {
-            return;
-        }
-        m_hwnd = reinterpret_cast<HWND>(w->winId());
-        if (!m_hwnd) {
-            return;
-        }
-        if (!GetWindowDisplayAffinity(m_hwnd, &m_prev)) {
-            m_prev = WDA_NONE;
-        }
-        SetWindowDisplayAffinity(m_hwnd, WDA_EXCLUDEFROMCAPTURE);
-#else
-        Q_UNUSED(w);
-#endif
-    }
+/// Restack a topmost overlay in the TOPMOST band.
+/// Already-topmost windows ignore a second HWND_TOPMOST, so hopping via
+/// HWND_NOTOPMOST is the only way past Shell_TrayWnd or another topmost peer.
+/// That hop flashes the desktop if @p w is a full-screen board — pass
+/// @p onlyIfTaskbarOccludes for those. Small tool overlays should hop always so
+/// they stay above the board. Returns true if z-order changed.
+bool raiseAboveTaskbar(QWindow* w, bool onlyIfTaskbarOccludes = false);
 
-    ~CaptureExclusion()
-    {
-#ifdef Q_OS_WIN
-        if (m_hwnd) {
-            SetWindowDisplayAffinity(m_hwnd, m_prev);
-        }
-#endif
-    }
+/// Tool overlays are Win32-owned by this host so they stay above it through
+/// TOPMOST hops. Call when the host HWND is created or recreated.
+void setOverlayStackHost(QWindow* host);
 
-    CaptureExclusion(const CaptureExclusion&) = delete;
-    CaptureExclusion& operator=(const CaptureExclusion&) = delete;
-
-private:
-#ifdef Q_OS_WIN
-    HWND m_hwnd = nullptr;
-    DWORD m_prev = WDA_NONE;
-#endif
-};
-
-/// Restack a topmost overlay above the Windows taskbar (same TOPMOST band).
-/// Already-topmost windows ignore a second HWND_TOPMOST, so this drops out of
-/// the band and re-enters it. Explorer restacks Shell_TrayWnd after a show or
-/// app activate; call again on a short delay.
-inline void raiseAboveTaskbar(QWindow* w)
-{
-    if (!w) {
-        return;
-    }
-#ifdef Q_OS_WIN
-    const HWND hwnd = reinterpret_cast<HWND>(w->winId());
-    if (!hwnd) {
-        return;
-    }
-    LONG_PTR ex = GetWindowLongPtr(hwnd, GWL_EXSTYLE);
-    ex |= WS_EX_TOPMOST | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW;
-    ex &= ~WS_EX_APPWINDOW;
-    SetWindowLongPtr(hwnd, GWL_EXSTYLE, ex);
-
-    constexpr UINT flags = SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_FRAMECHANGED;
-    SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, flags);
-    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, flags);
-#else
-    Q_UNUSED(w);
-#endif
-}
+/// Parent @p overlay to the stack host (no-op until a host is set).
+void registerOverlayWindow(QWindow* overlay);
+void unregisterOverlayWindow(QWindow* overlay);
 
 /// Debounced restack when another process takes the foreground. Explorer then
 /// restacks Shell_TrayWnd onto the top of the TOPMOST band.

@@ -16,6 +16,8 @@ class QWindow;
 namespace gazer {
 
 /// Screen-behind frost for style.blur fills. Owns capture, blur, and refresh.
+/// Does not toggle window display affinity on the live host (that cloaks a
+/// full-screen board). Recaptures on geometry / underlay change, not on a timer.
 class GlassBackdrop final : public QObject {
     Q_OBJECT
 
@@ -29,7 +31,7 @@ public:
     void setUnderlay(QPixmap windowLocal, QPoint windowOrigin);
     /// Grab the capture rect immediately so frost exists before motion.
     void captureNow();
-    /// Cancel debounce / periodic recapture. Host uses this while chrome is moving.
+    /// Cancel the geometry debounce. Host uses this while chrome is moving.
     void stopRefresh();
     void paint(QPainter& p, const QRectF& localRect, const PageBox& radii, const QColor& tint) const;
 

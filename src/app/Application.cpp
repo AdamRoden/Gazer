@@ -74,7 +74,8 @@ bool Application::initialize()
             return;
         }
         m_restacking = true;
-        m_svc->pages().raise();
+        // Overlays are Win32-owned by the board, so hopping the board last
+        // keeps Overlay > Board > Taskbar without a HWND insert dance.
         if (OverlaySurface* combo = m_svc->comboMouse().overlay()) {
             if (combo->isVisible()) {
                 combo->raiseStack();
@@ -83,6 +84,7 @@ bool Application::initialize()
         if (m_dwellSuspendOverlay && m_dwellSuspendOverlay->isVisible()) {
             m_dwellSuspendOverlay->raiseStack();
         }
+        m_svc->pages().raise();
         m_restacking = false;
     };
     connect(m_dwellSuspendOverlay.get(), &OverlaySurface::stackChanged, this, restackChrome);
