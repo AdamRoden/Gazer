@@ -11,7 +11,7 @@ Do **not** start with `README.md` (user manual). Use this file, then the folder 
 | Page XML schema / actions | `docs/page-xml.md`, then `src/layout/README.md` |
 | Parser / hit / session | `src/layout/` — `PageLoader`, `PageHit`, `PageSession*` |
 | Settings keys, JSON, editors | `src/app/README.md`, `AppSettings.h`, spec tables in `AppSettings.cpp` |
-| Builtins / mapping fallthrough | `src/app/CommandRegistry.*`, `src/assist/AssistCommands.cpp`, `README.md` Commands |
+| Builtins / mapping fallthrough | `src/app/Commands.md`, then the file listed in that table |
 | Assist (LTS, mag, dwell-move) | `src/assist/README.md` |
 | Page designer | `src/editor/README.md` |
 | Paint / host window / theme | `src/ui/README.md` |

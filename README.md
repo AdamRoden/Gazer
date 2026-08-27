@@ -135,7 +135,7 @@ Boards are XML in `resources/layouts/*.xml` (catalog id = filename stem). Schema
 
 ## Commands
 
-Builtins first; unknown names fall through to the mapping profile.
+Builtins first; unknown names fall through to the mapping profile. Full catalog (aliases, settings patterns, mapping-only names): [src/app/Commands.md](src/app/Commands.md).
 
 | Command | Role |
 |---------|------|

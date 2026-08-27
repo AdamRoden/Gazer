@@ -7,6 +7,7 @@
 #include <QString>
 #include <QStringList>
 #include <functional>
+#include <initializer_list>
 
 namespace gazer {
 
@@ -27,6 +28,9 @@ public:
 
     void registerBuiltin(const QString& name, Handler handler);
     void registerBuiltin(const QString& name, InvHandler handler);
+    /// Same handler under several names (canonical first). See `src/app/Commands.md`.
+    void registerBuiltin(std::initializer_list<const char*> names, Handler handler);
+    void registerBuiltin(std::initializer_list<const char*> names, InvHandler handler);
     [[nodiscard]] bool isBuiltin(const QString& name) const;
     [[nodiscard]] QStringList names() const;
 

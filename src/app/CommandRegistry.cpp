@@ -24,6 +24,20 @@ void CommandRegistry::registerBuiltin(const QString& name, InvHandler handler)
     m_builtins.insert(name, std::move(handler));
 }
 
+void CommandRegistry::registerBuiltin(std::initializer_list<const char*> names, Handler handler)
+{
+    for (const char* n : names) {
+        registerBuiltin(QLatin1String(n), handler);
+    }
+}
+
+void CommandRegistry::registerBuiltin(std::initializer_list<const char*> names, InvHandler handler)
+{
+    for (const char* n : names) {
+        registerBuiltin(QLatin1String(n), handler);
+    }
+}
+
 bool CommandRegistry::isBuiltin(const QString& name) const
 {
     return m_builtins.contains(name);

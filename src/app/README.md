@@ -7,7 +7,7 @@ Composition root, settings, command dispatch.
 | `Application` | Tracker, tray, preview, editor, overlays over `GazerServices` |
 | `GazerServices` | Owns domain services. Header is a façade — include the domain header at the call site |
 | `ActionDispatcher` | `PageAction` → commands / clicks / speak |
-| `CommandRegistry` | Builtin names, then mapping profile |
+| `CommandRegistry` | Builtin names, then mapping profile. Catalog: `Commands.md` |
 | `GazeRouter` | Gaze sample → session + assist |
 | `ActiveStateResolver` | `visibleWhen` / `activeState` keys (`mod.shift`, …) |
 | `AppSettings` | Persisted prefs. Keys/ranges live in spec tables in the `.cpp` |

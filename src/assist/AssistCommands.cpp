@@ -416,12 +416,9 @@ void registerAssistCommands(AssistCommandContext& ctx)
         ArmPurpose::CursorMoveMiddleClick,
         QStringLiteral("Middle click at gaze — dwell to place, then click"),
         QStringLiteral("Middle click at gaze OFF"));
-    commands->registerBuiltin(QStringLiteral("leftClickAtGaze"), leftAtGaze);
-    commands->registerBuiltin(QStringLiteral("mouseMoveAndLeftClick"), leftAtGaze);
-    commands->registerBuiltin(QStringLiteral("rightClickAtGaze"), rightAtGaze);
-    commands->registerBuiltin(QStringLiteral("mouseMoveAndRightClick"), rightAtGaze);
-    commands->registerBuiltin(QStringLiteral("middleClickAtGaze"), middleAtGaze);
-    commands->registerBuiltin(QStringLiteral("mouseMoveAndMiddleClick"), middleAtGaze);
+    commands->registerBuiltin({"leftClickAtGaze", "mouseMoveAndLeftClick"}, leftAtGaze);
+    commands->registerBuiltin({"rightClickAtGaze", "mouseMoveAndRightClick"}, rightAtGaze);
+    commands->registerBuiltin({"middleClickAtGaze", "mouseMoveAndMiddleClick"}, middleAtGaze);
     commands->registerBuiltin(QStringLiteral("toggleGazeReticle"),
                               [reticle, mag, refresh, notify](QString*) {
                                   const bool turningOn = !reticle->isEnabled();
