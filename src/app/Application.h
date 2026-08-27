@@ -48,6 +48,7 @@ private:
     std::unique_ptr<PreviewWindow> m_preview;
     std::unique_ptr<class LayoutEditorWindow> m_editor;
     std::unique_ptr<TrayIcon> m_tray;
+    std::unique_ptr<class OverlayStackWatch> m_stackWatch;
     bool m_restacking = false;
 };
 

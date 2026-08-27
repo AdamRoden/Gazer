@@ -110,6 +110,7 @@ set(GAZER_SOURCES
     src/editor/LayoutEditorFields.cpp
     src/editor/LayoutEditorProperties.cpp
     src/editor/LayoutEditorWindow.cpp
+    src/utils/WinOverlay.cpp
 )
 
 set(GAZER_HEADERS

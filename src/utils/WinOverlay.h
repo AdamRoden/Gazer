@@ -1,7 +1,11 @@
 #pragma once
 
+#include <QObject>
+#include <QTimer>
 #include <QWidget>
 #include <QWindow>
+
+#include <functional>
 
 #ifdef Q_OS_WIN
 #  ifndef WIN32_LEAN_AND_MEAN
@@ -109,7 +113,9 @@ private:
 };
 
 /// Restack a topmost overlay above the Windows taskbar (same TOPMOST band).
-/// Explorer often restacks Shell_TrayWnd after a show; call again on a short delay.
+/// Already-topmost windows ignore a second HWND_TOPMOST, so this drops out of
+/// the band and re-enters it. Explorer restacks Shell_TrayWnd after a show or
+/// app activate; call again on a short delay.
 inline void raiseAboveTaskbar(QWindow* w)
 {
     if (!w) {
@@ -125,11 +131,31 @@ inline void raiseAboveTaskbar(QWindow* w)
     ex &= ~WS_EX_APPWINDOW;
     SetWindowLongPtr(hwnd, GWL_EXSTYLE, ex);
 
-    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0,
-                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW | SWP_FRAMECHANGED);
+    constexpr UINT flags = SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_FRAMECHANGED;
+    SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, flags);
+    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, flags);
 #else
     Q_UNUSED(w);
 #endif
 }
+
+/// Debounced restack when another process takes the foreground. Explorer then
+/// restacks Shell_TrayWnd onto the top of the TOPMOST band.
+class OverlayStackWatch final : public QObject {
+public:
+    explicit OverlayStackWatch(std::function<void()> restack, QObject* parent = nullptr);
+    ~OverlayStackWatch() override;
+
+    OverlayStackWatch(const OverlayStackWatch&) = delete;
+    OverlayStackWatch& operator=(const OverlayStackWatch&) = delete;
+
+private:
+#ifdef Q_OS_WIN
+    static void CALLBACK hookProc(HWINEVENTHOOK, DWORD, HWND, LONG, LONG, DWORD, DWORD);
+    HWINEVENTHOOK m_hook = nullptr;
+#endif
+    std::function<void()> m_restack;
+    QTimer m_debounce;
+};
 
 } // namespace gazer

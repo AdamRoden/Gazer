@@ -10,6 +10,7 @@
 #include "core/TrackerMouse.h"
 #include "core/TrackerTobii.h"
 #include "utils/Log.h"
+#include "utils/WinOverlay.h"
 
 #include <QApplication>
 #include <QCoreApplication>
@@ -71,6 +72,7 @@ bool Application::initialize()
     if (m_svc->comboMouse().overlay()) {
         connect(m_svc->comboMouse().overlay(), &OverlaySurface::stackChanged, this, restackChrome);
     }
+    m_stackWatch = std::make_unique<OverlayStackWatch>(restackChrome);
 
     // Domain owns loops + lifecycle; shell only supplies the dispatcher.
     m_svc->bindActionDispatch(
