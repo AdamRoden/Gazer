@@ -21,6 +21,8 @@ class CommandRegistry;
 class PageSession;
 
 /// Settings boards: live value decoration, numeric editor, color picker, settings commands.
+/// Implementations: SettingsUi.cpp (shared), SettingsNumpad, SettingsArrayEditor,
+/// SettingsColorPicker, SettingsOpacity, SettingsHexEditor, SettingsSliderGaze, SettingsCommands.
 class SettingsUi {
 public:
     using ApplyFn = std::function<void(bool persist)>;

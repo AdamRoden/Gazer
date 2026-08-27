@@ -45,7 +45,12 @@ set(GAZER_SOURCES
     src/app/GazeRouter.cpp
     src/app/GazerServices.cpp
     src/app/SettingsUi.cpp
-    src/app/SettingsEditors.cpp
+    src/app/SettingsNumpad.cpp
+    src/app/SettingsArrayEditor.cpp
+    src/app/SettingsColorPicker.cpp
+    src/app/SettingsOpacity.cpp
+    src/app/SettingsHexEditor.cpp
+    src/app/SettingsSliderGaze.cpp
     src/app/SettingsCommands.cpp
     src/app/CommandRegistry.cpp
     src/core/TrackerMouse.cpp
@@ -121,6 +126,8 @@ set(GAZER_HEADERS
     src/app/GazeRouter.h
     src/app/GazerServices.h
     src/app/SettingsUi.h
+    src/app/SettingsPageBuild.h
+    src/app/SettingsUiInternal.h
     src/app/CommandRegistry.h
     src/core/GazePoint.h
     src/core/HeadPose.h
