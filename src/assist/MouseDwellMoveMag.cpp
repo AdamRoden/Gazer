@@ -236,10 +236,13 @@ void MouseDwellMove::onGazeInZoom(const QPointF& g, double dtSec)
         return;
     }
 
-    m_lastMagGaze = g;
     const bool done = m_dwell.sample(g, dtSec);
-    const QPoint local(qRound(g.x() - m_magDisplayRect.left()),
-                       qRound(g.y() - m_magDisplayRect.top()));
+    const QPointF follow = m_dwell.smoothPos();
+    const QPoint local(
+        qBound(0, qRound(follow.x() - m_magDisplayRect.left()),
+               qMax(0, m_magDisplayRect.width() - 1)),
+        qBound(0, qRound(follow.y() - m_magDisplayRect.top()),
+               qMax(0, m_magDisplayRect.height() - 1)));
     m_magOverlay->setPickLocal(local);
     m_magOverlay->setProgress(m_dwell.progress());
     emit progressChanged(m_dwell.progress());
@@ -247,20 +250,16 @@ void MouseDwellMove::onGazeInZoom(const QPointF& g, double dtSec)
         return;
     }
 
-    QPointF fire = m_lastMagGaze;
-    if (!m_magDisplayRect.contains(fire.toPoint())) {
-        fire = m_dwell.smoothPos();
-    }
     if (m_outsideSelectsNewRegion && useMagPickThisArm() && armWantsBonusZoom()) {
         const int side = m_mag.destSide > 0 ? m_mag.destSide
                                             : destSideFor(QGuiApplication::primaryScreen());
-        if (!beginMagPick(makeForesightSpec(mapDisplayToSource(fire),
-                                            QPoint(qRound(fire.x()), qRound(fire.y())), side),
+        if (!beginMagPick(makeForesightSpec(mapDisplayToSource(follow),
+                                            QPoint(qRound(follow.x()), qRound(follow.y())), side),
                           /*outsideSelectsNewRegion=*/false)) {
-            finishMagPoint(fire);
+            finishMagPoint(follow);
         }
     } else {
-        finishMagPoint(fire);
+        finishMagPoint(follow);
     }
 }
 

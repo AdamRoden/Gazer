@@ -11,7 +11,6 @@ GazeMouseFollow::GazeMouseFollow(QObject* parent)
     : QObject(parent)
 {
     m_clock.start();
-    m_stickiness = GazeFollowStickiness::fromProfile(1);
 }
 
 void GazeMouseFollow::setEnabled(bool enabled)
@@ -32,7 +31,7 @@ void GazeMouseFollow::toggle()
     setEnabled(!m_enabled);
 }
 
-void GazeMouseFollow::setFollowProfile(int profile)
+void GazeMouseFollow::setFollowProfile(GazeFollowProfile profile)
 {
     m_stickiness = GazeFollowStickiness::fromProfile(profile);
 }

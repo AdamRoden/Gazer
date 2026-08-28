@@ -1,6 +1,7 @@
 #include "app/SettingsUi.h"
 
 #include "app/CommandRegistry.h"
+#include "assist/GazeFollowProfile.h"
 #include "assist/LtsIndicator.h"
 #include "ui/PickStyle.h"
 #include "ui/Theme.h"
@@ -271,9 +272,10 @@ void SettingsUi::registerCommands()
         &AppSettings::setDwellPreset);
     registerIntChoices(
         {
-            {"settings.mag.follow.sticky", 0, "Mag follow: Sticky"},
-            {"settings.mag.follow.balanced", 1, "Mag follow: Balanced"},
-            {"settings.mag.follow.snappy", 2, "Mag follow: Snappy"},
+            {"settings.mag.follow.slow", int(GazeFollowProfile::Slow), "Gaze follow: Slow"},
+            {"settings.mag.follow.sticky", int(GazeFollowProfile::Sticky), "Gaze follow: Sticky"},
+            {"settings.mag.follow.smooth", int(GazeFollowProfile::Smooth), "Gaze follow: Smooth"},
+            {"settings.mag.follow.snappy", int(GazeFollowProfile::Snappy), "Gaze follow: Snappy"},
         },
         &AppSettings::setMagFollowProfile);
     registerIntChoices(

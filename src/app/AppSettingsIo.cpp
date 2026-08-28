@@ -1,5 +1,6 @@
 #include "app/AppSettings.h"
 
+#include "assist/GazeFollowProfile.h"
 #include "assist/LtsIndicator.h"
 #include "ui/Theme.h"
 #include "ui/ThemeScheme.h"
@@ -145,7 +146,8 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
     pickZoom = o.value(QStringLiteral("pickZoom")).toDouble(pickZoom);
     pickWindowPx = o.value(QStringLiteral("pickWindowPx")).toInt(pickWindowPx);
     pickWindowRound = o.value(QStringLiteral("pickWindowRound")).toBool(pickWindowRound);
-    magFollowProfile = o.value(QStringLiteral("magFollowProfile")).toInt(magFollowProfile);
+    magFollowProfile = gazeFollowProfileFromInt(
+        o.value(QStringLiteral("magFollowProfile")).toInt(int(magFollowProfile)));
     ltsDeadzonePx = o.value(QStringLiteral("ltsDeadzonePx")).toInt(ltsDeadzonePx);
     ltsFalloffPx = o.value(QStringLiteral("ltsFalloffPx")).toInt(ltsFalloffPx);
     ltsMaxNotchesPerSec =
@@ -272,7 +274,7 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     o.insert(QStringLiteral("pickZoom"), copy.pickZoom);
     o.insert(QStringLiteral("pickWindowPx"), copy.pickWindowPx);
     o.insert(QStringLiteral("pickWindowRound"), copy.pickWindowRound);
-    o.insert(QStringLiteral("magFollowProfile"), copy.magFollowProfile);
+    o.insert(QStringLiteral("magFollowProfile"), int(copy.magFollowProfile));
     o.insert(QStringLiteral("ltsDeadzonePx"), copy.ltsDeadzonePx);
     o.insert(QStringLiteral("ltsFalloffPx"), copy.ltsFalloffPx);
     o.insert(QStringLiteral("ltsMaxNotchesPerSec"), copy.ltsMaxNotchesPerSec);

@@ -102,7 +102,7 @@ Patterns, not every generated name:
 | `settings.session.autoCollapse.toggle` / `.startDocked.toggle` | Session |
 | `settings.speech.alsoType.toggle` | Speak also types |
 | `settings.dwell.slow` / `.normal` / `.fast` | Dwell presets |
-| `settings.mag.follow.sticky` / `.balanced` / `.snappy` | Lens follow |
+| `settings.mag.follow.slow` / `.sticky` / `.smooth` / `.snappy` | Gaze follow (lens, cursor, mag-pick) |
 | `settings.lts.indicator.fan` / `.orb` / `.pause` | LTS HUD |
 | `settings.tracker.auto` / `.mouse` | Tracker pref (restart) |
 | `settings.magPickStyle.*.toggle` / `settings.mousePickStyle.*.toggle` | Pick visuals |

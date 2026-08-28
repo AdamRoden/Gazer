@@ -20,7 +20,7 @@ public:
     void setEnabled(bool enabled);
     [[nodiscard]] bool isEnabled() const { return m_enabled; }
     void toggle();
-    void setFollowProfile(int profile);
+    void setFollowProfile(GazeFollowProfile profile);
     void onGaze(const GazePoint& point, bool pauseInput = false);
 
 signals:

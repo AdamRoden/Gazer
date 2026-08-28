@@ -3,7 +3,7 @@
   <Style id="row" background="#00000000" thickness="1" radius="6"/>
   <Style id="plain" background="#00000000" thickness="0" radius="0"/>
   <Style id="join" background="#00000000" thickness="0" radius="0"/>
-  <Grid id="board" desktopMode="true" rows="13" columns="16" anchor="Top" offset="0,0" size="A_ScreenHeight/9*16, A_ScreenHeight" gap="6" margin="12" thickness="1" radius="4">
+  <Grid id="board" desktopMode="true" rows="12" columns="16" anchor="Top" offset="0,0" size="A_ScreenHeight/9*16, A_ScreenHeight" gap="6" margin="12" thickness="1" radius="4">
     <SubGrid id="tabs" row="0" col="0" colSpan="16" rows="1" columns="6" gap="6">
       <Cell id="tab_buttons" row="0" col="0" label="Button" role="tab">
         <ClosePage value="-self"/>
@@ -42,7 +42,7 @@
       </SubGrid>
     </SubGrid>
 
-    <SubGrid id="sec_lens" row="4" col="0" colSpan="16" rowSpan="4" rows="4" columns="1" rowWeights="1,2,2,2" gap="6" margin="6" style="group">
+    <SubGrid id="sec_lens" row="4" col="0" colSpan="16" rowSpan="3" rows="3" columns="1" rowWeights="1,2,2" gap="6" margin="6" style="group">
       <Cell id="h_lens" row="0" col="0" label="Live lens" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_z" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="z_l" row="0" col="0" label="Magnifier lens zoom" caption="Live lens magnification. Not used by pre-click or foresight." role="label" style="plain"/>
@@ -62,18 +62,9 @@
           <Cell id="l_edit" row="0" col="5" colSpan="2" label="Edit…" style="join" command="settings.edit.magLensSize"/>
         </SubGrid>
       </SubGrid>
-      <SubGrid id="row_follow" row="3" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="f_l" row="0" col="0" label="Magnifier lens follow" caption="Sticky / Balanced / Snappy tracking for the live lens." role="label" style="plain"/>
-        <SubGrid id="act_follow" row="0" col="1" rows="1" columns="4" gap="0" style="row">
-          <Cell id="f_s" row="0" col="0" label="Sticky" activeState="setting.magFollow.0" style="join" command="settings.mag.follow.sticky"/>
-          <Cell id="f_v" row="0" col="1" label="—" role="value" settingKey="magFollowProfile" style="join"/>
-          <Cell id="f_b" row="0" col="2" label="Balanced" activeState="setting.magFollow.1" style="join" command="settings.mag.follow.balanced"/>
-          <Cell id="f_n" row="0" col="3" label="Snappy" activeState="setting.magFollow.2" style="join" command="settings.mag.follow.snappy"/>
-        </SubGrid>
-      </SubGrid>
     </SubGrid>
 
-    <SubGrid id="sec_help" row="8" col="0" colSpan="16" rowSpan="3" rows="3" columns="1" rowWeights="1,2,2" gap="6" margin="6" style="group">
+    <SubGrid id="sec_help" row="7" col="0" colSpan="16" rowSpan="3" rows="3" columns="1" rowWeights="1,2,2" gap="6" margin="6" style="group">
       <Cell id="h_help" row="0" col="0" label="Helpers" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_help1" row="1" col="0" rows="1" columns="2" gap="0" style="row">
         <Cell id="reticle" row="0" col="0" label="Gaze Indicator" icon="ApplicationIcon" role="toggle" activeState="gazeReticle" style="join" command="toggleGazeReticle"/>
@@ -85,7 +76,7 @@
       </SubGrid>
     </SubGrid>
 
-    <SubGrid id="sec_combo" row="11" col="0" colSpan="16" rowSpan="2" rows="2" columns="1" rowWeights="1,2" gap="6" margin="6" style="group">
+    <SubGrid id="sec_combo" row="10" col="0" colSpan="16" rowSpan="2" rows="2" columns="1" rowWeights="1,2" gap="6" margin="6" style="group">
       <Cell id="h_combo" row="0" col="0" label="ComboMouse" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_combo_on" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="combo_l" row="0" col="0" label="ComboMouse" caption="Dwell to place, then drift and click from the pie." role="label" style="plain"/>

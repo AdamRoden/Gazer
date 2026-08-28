@@ -1,5 +1,6 @@
 #include "app/AppSettings.h"
 
+#include "assist/GazeFollowProfile.h"
 #include "assist/LtsIndicator.h"
 #include "assist/LtsSpeed.h"
 #include "ui/PickStyle.h"
@@ -191,7 +192,7 @@ void AppSettings::clamp()
         double v = qBound(s.min, this->*s.member, s.max);
         this->*s.member = s.snap ? s.snap(v) : v;
     }
-    magFollowProfile = qBound(0, magFollowProfile, 2);
+    magFollowProfile = gazeFollowProfileFromInt(int(magFollowProfile));
     ltsIndicatorStyle = ltsIndicatorFromInt(int(ltsIndicatorStyle));
     customContrast = snapContrastPercent(customContrast);
     magPickStyle = PickStyle::sanitizeMag(magPickStyle);
@@ -271,7 +272,7 @@ int AppSettings::dwellPreset() const
 
 void AppSettings::setMagFollowProfile(int profile)
 {
-    magFollowProfile = qBound(0, profile, 2);
+    magFollowProfile = gazeFollowProfileFromInt(profile);
 }
 
 void AppSettings::setLtsIndicatorStyle(int style)
@@ -352,8 +353,7 @@ QString AppSettings::displayValue(const QString& key) const
         return QString::number(this->*s->member, 'f', places) + QLatin1String(s->suffix);
     }
     if (key == QLatin1String("magFollowProfile")) {
-        static const char* names[] = {"Sticky", "Balanced", "Snappy"};
-        return QLatin1String(names[qBound(0, magFollowProfile, 2)]);
+        return QLatin1String(gazeFollowProfileName(magFollowProfile));
     }
     if (key == QLatin1String("ltsIndicatorStyle")) {
         return QLatin1String(ltsIndicatorName(ltsIndicatorStyle));

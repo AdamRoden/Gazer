@@ -191,6 +191,7 @@ set(GAZER_HEADERS
     src/assist/AssistCommands.h
     src/assist/ActionLoopService.h
     src/assist/GazeDwellTracker.h
+    src/assist/GazeFollowProfile.h
     src/assist/GazeFollowStickiness.h
     src/assist/ForesightMemory.h
     src/assist/MagLayout.h

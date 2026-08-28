@@ -1,5 +1,5 @@
 <Page id="example_assist" name="Assist" autoClose="true" autoCloseIdleMs="3000">
-  <Grid id="board" desktopMode="false" rows="1" columns="9" anchor="Bottom" offset="0,0" size="1080,150" gap="10" margin="0" autoClose="true" autoCloseIdleMs="3000">
+  <Grid id="board" desktopMode="false" rows="1" columns="10" anchor="Bottom" offset="0,0" size="1200,150" gap="10" margin="0" autoClose="true" autoCloseIdleMs="3000">
     <Cell id="mag" row="0" col="0" icon="MouseMagnifier" label="Magnifier" activeState="magnifier" command="toggleMagnifier"/>
     <Cell id="gaze_reticle" row="0" col="1" icon="Calibrate" label="Gaze reticle" activeState="gazeReticle" command="toggleGazeReticle"/>
     <Cell id="gaze_follow" row="0" col="2" icon="MouseMagneticCursor" label="Gaze mouse" activeState="gazeMouseFollow" command="toggleGazeMouseFollow"/>
@@ -7,10 +7,11 @@
 (dwell)" activeState="mouseDwellMove" command="mouseDwellMove"/>
     <Cell id="mag_pick" row="0" col="4" icon="ZoomToLocation" label="Move-to
 Zoom" activeState="mouseMoveMagPick" command="toggleMouseMoveMagPick"/>
-    <Cell id="lts" row="0" col="5" icon="LookToScrollActive" label="Look↕Scroll" activeState="lookToScroll" command="toggleLookToScroll"/>
-    <Cell id="combo" row="0" col="6" icon="PieSlice5" label="ComboMouse" activeState="comboMouse" command="toggleComboMouse"/>
-    <Cell id="edit_layout" row="0" col="7" icon="PhysicalKeys" label="Edit layout" command="openLayoutEditor"/>
-    <Cell id="main" row="0" col="8" icon="Menu" label="Main">
+    <Cell id="foresight" row="0" col="5" icon="AutoModeIcon" label="Foresight" activeState="mouseMoveForesight" command="toggleMouseMoveForesight"/>
+    <Cell id="lts" row="0" col="6" icon="LookToScrollActive" label="Look↕Scroll" activeState="lookToScroll" command="toggleLookToScroll"/>
+    <Cell id="combo" row="0" col="7" icon="PieSlice5" label="ComboMouse" activeState="comboMouse" command="toggleComboMouse"/>
+    <Cell id="edit_layout" row="0" col="8" icon="PhysicalKeys" label="Edit layout" command="openLayoutEditor"/>
+    <Cell id="main" row="0" col="9" icon="Menu" label="Main">
     <ClosePage value="-self"/>
     <ShowGrid value="drawer"/>
     </Cell>

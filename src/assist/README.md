@@ -10,7 +10,7 @@ Gaze tools on top of the page session.
 | `MouseDwellMove` | Dwell to warp cursor. Overlays in `MouseDwellMove_p.h`; mag-pick in `MouseDwellMoveMag.cpp` |
 | `MouseAssistState` | Shared pointer-assist flags |
 | `GazeReticle` / `GazeMouseFollow` | Marker / cursor-follows-gaze |
-| `GazeDwellTracker.h` / `GazeFollowStickiness.h` / `ForesightMemory.h` / `MagLayout.h` | Shared helpers |
+| `GazeDwellTracker.h` / `GazeFollowProfile.h` / `GazeFollowStickiness.h` / `ForesightMemory.h` / `MagLayout.h` | Shared helpers |
 | `ActionLoopService` | Sticky command series |
 | `ScriptHost` | `gazer.*` QJS |
 | `AhkLauncher` | Temp `.ahk` + local AutoHotkey |

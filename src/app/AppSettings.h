@@ -1,5 +1,6 @@
 #pragma once
 
+#include "assist/GazeFollowProfile.h"
 #include "assist/LtsIndicator.h"
 #include "ui/Theme.h"
 #include "ui/ThemeScheme.h"
@@ -40,6 +41,8 @@ struct AppSettings {
     /// When foresight and pre-click zoom both apply: a second zoom inside the
     /// foresight region. Off = place the cursor if the pick is inside foresight.
     bool mouseMoveForesightSecondZoom = false;
+    /// Gaze follow for the live lens, gaze→mouse, reticle, dwell-move, mag-pick.
+    GazeFollowProfile magFollowProfile = GazeFollowProfile::Sticky;
 
     // --- Progress visuals (boards + mouse-move) ---
     bool progressRadial = true;
@@ -65,7 +68,6 @@ struct AppSettings {
     // --- Live lens (assistant magnifier; not used by pre-click / foresight) ---
     double magZoom = 2.0;
     int magLensSize = 440;
-    int magFollowProfile = 1;
     /// Static pick zoom shared by pre-click and foresight (not the live lens).
     double pickZoom = 4.0;
     int pickWindowPx = 880;

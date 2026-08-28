@@ -1,39 +1,30 @@
 #pragma once
 
+#include "assist/GazeFollowProfile.h"
+
 #include <QLineF>
 #include <QPointF>
 #include <QtGlobal>
 
 namespace gazer {
 
-/// Shared magnifier-style stickiness (error → EMA alpha). Used by magnifier,
-/// gaze reticle, and gaze→mouse so one profile drives all three.
+/// Shared error→EMA follow. One `GazeFollowProfile` drives the live lens,
+/// reticle, gaze→mouse, dwell-move cursor, mag-pick, and foresight.
 struct GazeFollowStickiness {
     double jitterPx = 6.0;
     double fullTrackPx = 140.0;
     double alphaMin = 0.05;
     double alphaMax = 0.88;
 
-    static GazeFollowStickiness fromProfile(int profile)
+    static GazeFollowStickiness fromProfile(GazeFollowProfile profile)
     {
-        GazeFollowStickiness s;
-        switch (qBound(0, profile, 2)) {
-        case 0: // sticky
-            s.jitterPx = 12.0;
-            s.fullTrackPx = 200.0;
-            s.alphaMin = 0.03;
-            s.alphaMax = 0.72;
-            break;
-        case 2: // snappy
-            s.jitterPx = 3.0;
-            s.fullTrackPx = 90.0;
-            s.alphaMin = 0.12;
-            s.alphaMax = 0.95;
-            break;
-        default: // balanced
-            break;
-        }
-        return s;
+        static const GazeFollowStickiness kTable[] = {
+            {12.0, 200.0, 0.03, 0.72}, // Slow
+            {6.0, 140.0, 0.05, 0.88},  // Sticky
+            {4.5, 115.0, 0.08, 0.92},  // Smooth
+            {3.0, 90.0, 0.12, 0.95},   // Snappy
+        };
+        return kTable[int(gazeFollowProfileFromInt(int(profile)))];
     }
 
     [[nodiscard]] double alphaForError(double errorPx) const
@@ -58,6 +49,12 @@ struct GazeFollowStickiness {
         const double a = alphaForError(err);
         smooth.setX(smooth.x() * (1.0 - a) + raw.x() * a);
         smooth.setY(smooth.y() * (1.0 - a) + raw.y() * a);
+    }
+
+    void smoothPoint(QPointF& smooth, const QPointF& raw) const
+    {
+        bool valid = true;
+        smoothPoint(smooth, valid, raw);
     }
 };
 

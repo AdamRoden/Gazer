@@ -210,7 +210,7 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
     if (key == QLatin1String("setting.speakAlsoType")) {
         return s.speakAlsoType;
     }
-    if (indexKeyEquals(key, QLatin1String("setting.magFollow."), s.magFollowProfile)) {
+    if (indexKeyEquals(key, QLatin1String("setting.magFollow."), int(s.magFollowProfile))) {
         return true;
     }
     if (indexKeyEquals(key, QLatin1String("setting.tracker."), s.trackerPref)) {

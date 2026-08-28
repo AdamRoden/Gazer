@@ -24,7 +24,7 @@ public:
     void setEnabled(bool enabled);
     [[nodiscard]] bool isEnabled() const { return m_enabled; }
     void toggle();
-    void setFollowProfile(int profile);
+    void setFollowProfile(GazeFollowProfile profile);
     void setColor(const QColor& c);
     void onGaze(const GazePoint& point);
 

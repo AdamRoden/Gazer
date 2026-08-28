@@ -24,11 +24,10 @@ public:
 
     void setZoom(double factor);
     void setLensSize(int px);
-    void setFollowProfile(int profile);
+    void setFollowProfile(GazeFollowProfile profile);
     void setAccent(const QColor& c);
     [[nodiscard]] double zoom() const { return m_zoom; }
     [[nodiscard]] int lensSize() const { return m_lensSize; }
-    [[nodiscard]] int followProfile() const { return m_followProfile; }
 
     void onGaze(const GazePoint& point);
 
@@ -60,7 +59,6 @@ private:
 
     GazeFollowStickiness m_stickiness;
     double m_placeEpsilonPx = 0.75;
-    int m_followProfile = 1;
     QColor m_accent = ThemeColors::defaultProgressColor();
 };
 

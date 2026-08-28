@@ -57,7 +57,6 @@ GazeReticle::GazeReticle(QObject* parent)
 {
     m_clock.start();
     m_overlay = std::make_unique<Overlay>();
-    m_stickiness = GazeFollowStickiness::fromProfile(1);
 }
 
 GazeReticle::~GazeReticle() = default;
@@ -83,7 +82,7 @@ void GazeReticle::toggle()
     setEnabled(!m_enabled);
 }
 
-void GazeReticle::setFollowProfile(int profile)
+void GazeReticle::setFollowProfile(GazeFollowProfile profile)
 {
     m_stickiness = GazeFollowStickiness::fromProfile(profile);
 }

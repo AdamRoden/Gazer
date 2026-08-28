@@ -1,5 +1,7 @@
 #pragma once
 
+#include "assist/GazeFollowStickiness.h"
+
 #include <QPointF>
 #include <QtMath>
 
@@ -22,7 +24,10 @@ public:
         m_cancelRadiusPx = qMax(m_freezeRadiusPx, m_cancelRadiusPx);
     }
     void setCancelRadiusPx(int px) { m_cancelRadiusPx = qMax(m_freezeRadiusPx, px); }
-    void setFollowAlpha(double a) { m_followAlpha = qBound(0.05, a, 1.0); }
+    void setFollowProfile(GazeFollowProfile profile)
+    {
+        m_stickiness = GazeFollowStickiness::fromProfile(profile);
+    }
     void setCommitTrackAlpha(double a) { m_commitTrackAlpha = qBound(0.0, a, 1.0); }
     void setReverseScale(double s) { m_reverseScale = qMax(0.5, s); }
 
@@ -50,8 +55,7 @@ public:
             return false;
         }
 
-        m_smoothPos.setX(m_smoothPos.x() * (1.0 - m_followAlpha) + gaze.x() * m_followAlpha);
-        m_smoothPos.setY(m_smoothPos.y() * (1.0 - m_followAlpha) + gaze.y() * m_followAlpha);
+        m_stickiness.smoothPoint(m_smoothPos, gaze);
 
         const double dx = m_smoothPos.x() - m_commitPos.x();
         const double dy = m_smoothPos.y() - m_commitPos.y();
@@ -96,7 +100,7 @@ private:
     int m_stableRadiusPx = 72;
     int m_freezeRadiusPx = 100;
     int m_cancelRadiusPx = 180;
-    double m_followAlpha = 0.36;
+    GazeFollowStickiness m_stickiness;
     double m_commitTrackAlpha = 0.16;
     double m_reverseScale = 1.6;
     bool m_tracking = false;

@@ -63,10 +63,9 @@ void MagnifierOverlay::setLensSize(int px)
     m_sourceRadius = qMax(20, static_cast<int>(m_lensSize / (2.0 * m_zoom)));
 }
 
-void MagnifierOverlay::setFollowProfile(int profile)
+void MagnifierOverlay::setFollowProfile(GazeFollowProfile profile)
 {
-    m_followProfile = qBound(0, profile, 2);
-    m_stickiness = GazeFollowStickiness::fromProfile(m_followProfile);
+    m_stickiness = GazeFollowStickiness::fromProfile(profile);
 }
 
 void MagnifierOverlay::setAccent(const QColor& c)

@@ -132,6 +132,7 @@ public:
     void gateUntilGazeLeaves(const QRect& screenRect);
 
     void setDwellMs(int ms);
+    void setFollowProfile(GazeFollowProfile profile);
     void setMagPickDwellMs(int ms);
     void setMagPickStyle(int flags);
     void setMousePickStyle(int flags);
@@ -229,7 +230,6 @@ private:
     QRect m_magDisplayRect;
     MagPresentation m_mag;
     bool m_outsideSelectsNewRegion = false;
-    QPointF m_lastMagGaze;
     bool m_magGazeInside = true;
 
     ForesightMemory m_foresight;

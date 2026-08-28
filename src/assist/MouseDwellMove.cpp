@@ -189,6 +189,12 @@ void MouseDwellMove::setDwellMs(int ms)
     applyDwellForPhase();
 }
 
+void MouseDwellMove::setFollowProfile(GazeFollowProfile profile)
+{
+    m_dwell.setFollowProfile(profile);
+    m_foresight.setFollowProfile(profile);
+}
+
 void MouseDwellMove::setMagPickDwellMs(int ms)
 {
     m_magPickDwellMs = qMax(50, ms);

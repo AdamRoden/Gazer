@@ -38,6 +38,7 @@ bool SettingsUi::beginSliderScrub(const QString& channel)
     m_scrubRevert = m_colorDraft;
     m_scrubDwell.reset();
     m_scrubDwell.setDwellMs(m_settings.mouseMoveDwellMs);
+    m_scrubDwell.setFollowProfile(m_settings.magFollowProfile);
     m_scrubGrace.reset();
     m_scrubGrace.graceMs = qMax(0, m_settings.dwellGraceMs);
     if (!m_scrubClock.isValid()) {

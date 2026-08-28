@@ -31,6 +31,8 @@ public:
         m_dwell.setDwellMs(m_dwellMs);
     }
 
+    void setFollowProfile(GazeFollowProfile profile) { m_dwell.setFollowProfile(profile); }
+
     void clear()
     {
         m_havePoint = false;
