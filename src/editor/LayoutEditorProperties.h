@@ -85,7 +85,8 @@ private:
 
     LayoutEditorSession& m_session;
     QTabWidget* m_tabs = nullptr;
-    std::array<Page, 4> m_pages{};
+    static constexpr int kTabCount = 5;
+    std::array<Page, kTabCount> m_pages{};
     bool m_loading = false;
     bool m_applying = false;
     Kind m_kind = Kind::Page;

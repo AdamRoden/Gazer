@@ -34,18 +34,18 @@
       <Cell id="h_prog" row="0" col="0" label="Progress" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_bp" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="bp_label" row="0" col="0" label="Button progress" caption="Progress styles for board cells." role="label" style="plain"/>
-        <SubGrid id="act_bp" row="0" col="1" rows="1" columns="3" gap="0">
-          <Cell id="bp_r" row="0" col="0" label="Ring" cluster="segment.btnprog" activeState="setting.progressRadial" style="join" command="settings.progress.radial.toggle"/>
-          <Cell id="bp_f" row="0" col="1" label="Fill" cluster="segment.btnprog" activeState="setting.progressFill" style="join" command="settings.progress.fill.toggle"/>
-          <Cell id="bp_b" row="0" col="2" label="Border" cluster="segment.btnprog" activeState="setting.progressBorder" style="join" command="settings.progress.border.toggle"/>
+        <SubGrid id="act_bp" row="0" col="1" rows="1" columns="3" gap="0" style="row">
+          <Cell id="bp_r" row="0" col="0" label="Ring" activeState="setting.progressRadial" style="join" command="settings.progress.radial.toggle"/>
+          <Cell id="bp_f" row="0" col="1" label="Fill" activeState="setting.progressFill" style="join" command="settings.progress.fill.toggle"/>
+          <Cell id="bp_b" row="0" col="2" label="Border" activeState="setting.progressBorder" style="join" command="settings.progress.border.toggle"/>
         </SubGrid>
       </SubGrid>
       <SubGrid id="row_pp" row="2" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="pp_label" row="0" col="0" label="Pointer progress" caption="Progress styles for pointer dwell." role="label" style="plain"/>
-        <SubGrid id="act_pp" row="0" col="1" rows="1" columns="3" gap="0">
-          <Cell id="pp_r" row="0" col="0" label="Ring" cluster="segment.ptrprog" activeState="setting.mouseProgressRadial" style="join" command="settings.mouseProgress.radial.toggle"/>
-          <Cell id="pp_f" row="0" col="1" label="Fill" cluster="segment.ptrprog" activeState="setting.mouseProgressFill" style="join" command="settings.mouseProgress.fill.toggle"/>
-          <Cell id="pp_b" row="0" col="2" label="Border" cluster="segment.ptrprog" activeState="setting.mouseProgressBorder" style="join" command="settings.mouseProgress.border.toggle"/>
+        <SubGrid id="act_pp" row="0" col="1" rows="1" columns="3" gap="0" style="row">
+          <Cell id="pp_r" row="0" col="0" label="Ring" activeState="setting.mouseProgressRadial" style="join" command="settings.mouseProgress.radial.toggle"/>
+          <Cell id="pp_f" row="0" col="1" label="Fill" activeState="setting.mouseProgressFill" style="join" command="settings.mouseProgress.fill.toggle"/>
+          <Cell id="pp_b" row="0" col="2" label="Border" activeState="setting.mouseProgressBorder" style="join" command="settings.mouseProgress.border.toggle"/>
         </SubGrid>
       </SubGrid>
     </SubGrid>
@@ -54,19 +54,19 @@
       <Cell id="h_icons" row="0" col="0" label="Icons" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_pi" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="pi_label" row="0" col="0" label="Pointer icon" caption="Markers for the final move / click point. Combine any." role="label" style="plain"/>
-        <SubGrid id="act_pi" row="0" col="1" rows="1" columns="3" gap="0">
-          <Cell id="pi_cur" row="0" col="0" label="Cursor" cluster="segment.picon" activeState="setting.mousePick.cursor" style="join" command="settings.mousePickStyle.cursor.toggle"/>
-          <Cell id="pi_dot" row="0" col="1" label="Dot" cluster="segment.picon" activeState="setting.mousePick.dot" style="join" command="settings.mousePickStyle.dot.toggle"/>
-          <Cell id="pi_xh" row="0" col="2" label="Crosshair" cluster="segment.picon" activeState="setting.mousePick.crosshair" style="join" command="settings.mousePickStyle.crosshair.toggle"/>
+        <SubGrid id="act_pi" row="0" col="1" rows="1" columns="3" gap="0" style="row">
+          <Cell id="pi_cur" row="0" col="0" label="Cursor" activeState="setting.mousePick.cursor" style="join" command="settings.mousePickStyle.cursor.toggle"/>
+          <Cell id="pi_dot" row="0" col="1" label="Dot" activeState="setting.mousePick.dot" style="join" command="settings.mousePickStyle.dot.toggle"/>
+          <Cell id="pi_xh" row="0" col="2" label="Crosshair" activeState="setting.mousePick.crosshair" style="join" command="settings.mousePickStyle.crosshair.toggle"/>
         </SubGrid>
       </SubGrid>
       <SubGrid id="row_zi" row="2" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="zi_label" row="0" col="0" label="Zoom icon" caption="Markers for choosing the region to magnify. Combine any." role="label" style="plain"/>
-        <SubGrid id="act_zi" row="0" col="1" rows="1" columns="4" gap="0">
-          <Cell id="zi_cur" row="0" col="0" label="Cursor" cluster="segment.zicon" activeState="setting.magPick.cursor" style="join" command="settings.magPickStyle.cursor.toggle"/>
-          <Cell id="zi_dot" row="0" col="1" label="Dot" cluster="segment.zicon" activeState="setting.magPick.dot" style="join" command="settings.magPickStyle.dot.toggle"/>
-          <Cell id="zi_xh" row="0" col="2" label="Crosshair" cluster="segment.zicon" activeState="setting.magPick.crosshair" style="join" command="settings.magPickStyle.crosshair.toggle"/>
-          <Cell id="zi_gz" row="0" col="3" label="Gaze" cluster="segment.zicon" activeState="setting.magPick.gaze" style="join" command="settings.magPickStyle.gaze.toggle"/>
+        <SubGrid id="act_zi" row="0" col="1" rows="1" columns="4" gap="0" style="row">
+          <Cell id="zi_cur" row="0" col="0" label="Cursor" activeState="setting.magPick.cursor" style="join" command="settings.magPickStyle.cursor.toggle"/>
+          <Cell id="zi_dot" row="0" col="1" label="Dot" activeState="setting.magPick.dot" style="join" command="settings.magPickStyle.dot.toggle"/>
+          <Cell id="zi_xh" row="0" col="2" label="Crosshair" activeState="setting.magPick.crosshair" style="join" command="settings.magPickStyle.crosshair.toggle"/>
+          <Cell id="zi_gz" row="0" col="3" label="Gaze" activeState="setting.magPick.gaze" style="join" command="settings.magPickStyle.gaze.toggle"/>
         </SubGrid>
       </SubGrid>
     </SubGrid>
@@ -75,27 +75,27 @@
       <Cell id="h_zw" row="0" col="0" label="Zoom window" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_zl" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="zl_label" row="0" col="0" label="Zoom level" caption="Static magnification for foresight and magnify." role="label" style="plain"/>
-        <SubGrid id="act_zl" row="0" col="1" rows="1" columns="7" gap="0">
-          <Cell id="zl_dec" row="0" col="0" label="−" cluster="stepper.zl" clusterSlot="dec" style="join" command="settings.nudge.pickZoom.dec"/>
-          <Cell id="zl_val" row="0" col="1" colSpan="3" label="—" role="label" settingKey="pickZoom" cluster="stepper.zl" clusterSlot="value" style="join"/>
-          <Cell id="zl_inc" row="0" col="4" label="+" cluster="stepper.zl" clusterSlot="inc" style="join" command="settings.nudge.pickZoom.inc"/>
-          <Cell id="zl_edit" row="0" col="5" colSpan="2" label="Edit…" cluster="stepper.zl" clusterSlot="edit" style="join" command="settings.edit.pickZoom"/>
+        <SubGrid id="act_zl" row="0" col="1" rows="1" columns="7" gap="0" style="row">
+          <Cell id="zl_dec" row="0" col="0" label="−" style="join" command="settings.nudge.pickZoom.dec"/>
+          <Cell id="zl_val" row="0" col="1" colSpan="3" label="—" role="value" settingKey="pickZoom" style="join"/>
+          <Cell id="zl_inc" row="0" col="4" label="+" style="join" command="settings.nudge.pickZoom.inc"/>
+          <Cell id="zl_edit" row="0" col="5" colSpan="2" label="Edit…" style="join" command="settings.edit.pickZoom"/>
         </SubGrid>
       </SubGrid>
       <SubGrid id="row_zs" row="2" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="zs_label" row="0" col="0" label="Zoom size" caption="Window size in pixels. Full screen uses the monitor short axis." role="label" style="plain"/>
-        <SubGrid id="act_zs" row="0" col="1" rows="1" columns="7" gap="0">
-          <Cell id="zs_dec" row="0" col="0" label="−" cluster="stepper.zs" clusterSlot="dec" style="join" command="settings.nudge.pickWindowPx.dec"/>
-          <Cell id="zs_val" row="0" col="1" colSpan="3" label="—" role="label" settingKey="pickWindowPx" cluster="stepper.zs" clusterSlot="value" style="join"/>
-          <Cell id="zs_inc" row="0" col="4" label="+" cluster="stepper.zs" clusterSlot="inc" style="join" command="settings.nudge.pickWindowPx.inc"/>
-          <Cell id="zs_full" row="0" col="5" colSpan="2" icon="BrowserFullscreen" label="Full screen" role="toggle" activeState="mouseMoveMagPickFullScreen" cluster="stepper.zs" style="join" command="toggleMouseMoveMagPickFullScreen"/>
+        <SubGrid id="act_zs" row="0" col="1" rows="1" columns="7" gap="0" style="row">
+          <Cell id="zs_dec" row="0" col="0" label="−" style="join" command="settings.nudge.pickWindowPx.dec"/>
+          <Cell id="zs_val" row="0" col="1" colSpan="3" label="—" role="value" settingKey="pickWindowPx" style="join"/>
+          <Cell id="zs_inc" row="0" col="4" label="+" style="join" command="settings.nudge.pickWindowPx.inc"/>
+          <Cell id="zs_full" row="0" col="5" colSpan="2" icon="BrowserFullscreen" label="Full screen" role="toggle" activeState="mouseMoveMagPickFullScreen" style="join" command="toggleMouseMoveMagPickFullScreen"/>
         </SubGrid>
       </SubGrid>
       <SubGrid id="row_shape" row="3" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="zs_shape_l" row="0" col="0" label="Window shape" caption="Inscribe the zoom window in a circle or keep a square." role="label" style="plain"/>
-        <SubGrid id="act_shape" row="0" col="1" rows="1" columns="2" gap="0">
-          <Cell id="zs_round" row="0" col="0" label="Round" cluster="segment.shape" activeState="setting.pickWindow.round" style="join" command="settings.pickWindow.round"/>
-          <Cell id="zs_sq" row="0" col="1" label="Square" cluster="segment.shape" activeState="setting.pickWindow.square" style="join" command="settings.pickWindow.square"/>
+        <SubGrid id="act_shape" row="0" col="1" rows="1" columns="2" gap="0" style="row">
+          <Cell id="zs_round" row="0" col="0" label="Round" activeState="setting.pickWindow.round" style="join" command="settings.pickWindow.round"/>
+          <Cell id="zs_sq" row="0" col="1" label="Square" activeState="setting.pickWindow.square" style="join" command="settings.pickWindow.square"/>
         </SubGrid>
       </SubGrid>
     </SubGrid>

@@ -113,8 +113,6 @@ void writeLeafAttrs(QXmlStreamWriter& xml, const PageLeaf& leaf)
     attr(xml, QStringLiteral("settingKey"), leaf.settingKey);
     attr(xml, QStringLiteral("activeState"), leaf.activeState);
     attr(xml, QStringLiteral("role"), leaf.role);
-    attr(xml, QStringLiteral("cluster"), leaf.cluster);
-    attr(xml, QStringLiteral("clusterSlot"), leaf.clusterSlot);
     attr(xml, QStringLiteral("textStyle"), leaf.textStyle);
     attr(xml, QStringLiteral("visibleWhen"), leaf.visibleWhen);
     attrBool(xml, QStringLiteral("interactive"), leaf.interactive, true);

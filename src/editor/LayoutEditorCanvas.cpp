@@ -361,7 +361,7 @@ void LayoutEditorCanvas::paintBoard(QPainter& p, const ScreenMap& m) const
     }
     for (const PageGridPaint& g : grids) {
         BoardPaint::paintSurface(p, toCanvas(g.visual), g.chrome, m_theme, nullptr, true, false,
-                                 false, false, false);
+                                 false, false);
     }
     for (const PageTarget& t : targets) {
         const bool hovered = t.id == m_hoverId;

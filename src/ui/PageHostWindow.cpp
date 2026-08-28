@@ -138,41 +138,7 @@ void PageHostWindow::paintScene(QPainter& p, ChromePass pass)
         }
         const QRectF r =
             PageHit::mapDrawer(g.drawerMotion, g.visual, xf, m_drawerScale).translated(-origin);
-        BoardPaint::paintSurface(p, r, g.chrome, m_theme, glass, true, false, false, false, false);
-    };
-    auto paintClusters = [&](const QString& pageId, bool shell) {
-        QHash<QString, QRectF> clusters;
-        for (const PageTarget& t : m_targets) {
-            if (t.shell != shell || t.pageId != pageId || t.cluster.isEmpty()) {
-                continue;
-            }
-            if (!live && t.chrome.hasBlur()) {
-                continue;
-            }
-            const QRectF c = mapRect(t, t.geom.contentOnScreen());
-            if (c.isEmpty()) {
-                continue;
-            }
-            clusters[t.cluster] =
-                clusters.value(t.cluster).isEmpty() ? c : clusters[t.cluster].united(c);
-        }
-        for (auto it = clusters.cbegin(); it != clusters.cend(); ++it) {
-            if (it.value().isEmpty()) {
-                continue;
-            }
-            QColor fill = m_theme.cellBg;
-            if (fill.isValid()) {
-                fill.setAlpha(qBound(80, fill.alpha(), 180));
-                p.setPen(Qt::NoPen);
-                p.setBrush(fill);
-                p.drawRoundedRect(it.value(), 6.0, 6.0);
-            }
-            QColor stroke = m_theme.border;
-            stroke.setAlpha(qBound(40, stroke.alpha(), 90));
-            p.setBrush(Qt::NoBrush);
-            p.setPen(QPen(stroke, 1.0));
-            p.drawRoundedRect(it.value(), 6.0, 6.0);
-        }
+        BoardPaint::paintSurface(p, r, g.chrome, m_theme, glass, true, false, false, false);
     };
     auto paintTarget = [&](const PageTarget& t) {
         if (!live && t.chrome.hasBlur()) {
@@ -221,7 +187,6 @@ void PageHostWindow::paintScene(QPainter& p, ChromePass pass)
                 paintGrid(g);
             }
         }
-        paintClusters(pageId, shell);
         for (const PageTarget& t : m_targets) {
             if (t.shell == shell && t.pageId == pageId) {
                 paintTarget(t);
@@ -452,8 +417,7 @@ void PageHostWindow::flash(const QString& id)
             r = t.geom.progressZone;
         }
         m_flashRect = PageHit::mapDrawer(t, r, xf, m_drawerScale);
-        const bool clustered = !t.cluster.isEmpty();
-        m_flashRadii = t.chrome.resolvedRadius(clustered);
+        m_flashRadii = t.chrome.resolvedRadius();
         break;
     }
     m_flashTimer.start(qMax(40, m_progress.flashMs));
@@ -595,7 +559,6 @@ QString PageHostWindow::mouseHit(const QPointF& global) const
         const QString key = sessionKey(t);
         const bool showProgress = (key == m_flashId)
                                   || (key == m_hoverId && m_hoverProgress > 0.0);
-        const bool clustered = !t.cluster.isEmpty();
         if (t.kind == PageTarget::Kind::Zone && !showProgress) {
             const QRectF dwell = PageHit::mapDrawer(t, t.geom.dwellZone, xf, m_drawerScale);
             if (dwell.contains(global)) {
@@ -605,13 +568,12 @@ QString PageHostWindow::mouseHit(const QPointF& global) const
         }
         const QRectF content =
             PageHit::mapDrawer(t, t.geom.contentOnScreen(), xf, m_drawerScale);
-        if (!content.isEmpty()
-            && PageHit::shapeContains(content, t.chrome, clustered, global)) {
+        if (!content.isEmpty() && PageHit::shapeContains(content, t.chrome, global)) {
             return key;
         }
         if (showProgress) {
             const QRectF strip = PageHit::mapDrawer(t, t.geom.progressZone, xf, m_drawerScale);
-            if (PageHit::shapeContains(strip, t.chrome, clustered, global)) {
+            if (PageHit::shapeContains(strip, t.chrome, global)) {
                 return key;
             }
         }

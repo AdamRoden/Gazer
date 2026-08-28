@@ -192,7 +192,7 @@ bool PageSession::hitsPage(const QString& id, const QPointF& pos) const
             continue;
         }
         const QRectF z = PageHit::mapDrawer(g.drawerMotion, g.visual, xf, m_drawerScale);
-        if (PageHit::shapeContains(z, g.chrome, false, pos)) {
+        if (PageHit::shapeContains(z, g.chrome, pos)) {
             return true;
         }
     }

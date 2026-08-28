@@ -48,7 +48,6 @@ PageDocument SettingsUi::buildArrayDocument() const
                                   QStringLiteral("settings.array.nudge.%1.dec").arg(i), decBg));
         PageCell val = cell(QStringLiteral("val_%1").arg(i), QStringLiteral("%1 ms").arg(ms), i, 1,
                             {}, valBg, 1, false, QStringLiteral("value"));
-        val.clusterSlot = QStringLiteral("value");
         grid.cells.push_back(val);
         grid.cells.push_back(cell(QStringLiteral("inc_%1").arg(i), QStringLiteral("+"), i, 2,
                                   QStringLiteral("settings.array.nudge.%1.inc").arg(i), incBg));

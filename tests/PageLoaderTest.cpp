@@ -178,7 +178,6 @@ void PageLoaderTest::pageChromeDefaults()
         PageResolve::style(doc, doc.grids[0].cells[0].styleId, doc.grids[0].cells[0].style);
     QCOMPARE(cell.resolvedThickness().first(), PageChrome::kDefaultThickness);
     QCOMPARE(cell.resolvedRadius().first(), PageChrome::kDefaultRadius);
-    QCOMPARE(cell.resolvedRadius(true).first(), PageChrome::kClusteredRadius);
     QVERIFY(!cell.thickness.has_value());
     QVERIFY(!doc.zones.isEmpty());
     const PageChrome zone = PageResolve::zoneStyle(doc, doc.zones[0]);

@@ -234,8 +234,6 @@ bool readCell(QXmlStreamReader& xml, PageCell& cell, QString* error)
     cell.styleId = a.value(QStringLiteral("style")).toString();
     cell.dwellId = a.value(QStringLiteral("dwell")).toString();
     cell.role = a.value(QStringLiteral("role")).toString();
-    cell.cluster = a.value(QStringLiteral("cluster")).toString();
-    cell.clusterSlot = a.value(QStringLiteral("clusterSlot")).toString();
     cell.textStyle = a.value(QStringLiteral("textStyle")).toString();
     applyChromeAttrs(a, cell.style);
     applyDwellAttrs(a, cell.dwell, error);
@@ -249,7 +247,7 @@ bool readCell(QXmlStreamReader& xml, PageCell& cell, QString* error)
     if (!a.hasAttribute(QStringLiteral("interactive"))) {
         const QString r = cell.role.toLower();
         if (r == QLatin1String("label") || r == QLatin1String("value")
-            || r == QLatin1String("display") || cell.clusterSlot == QLatin1String("value")) {
+            || r == QLatin1String("display")) {
             cell.interactive = false;
         }
     }

@@ -30,8 +30,7 @@ void paintTab(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeColo
 void paintIconAndText(QPainter& p, const PageTarget& t, const QRectF& r, const QColor& fg,
                       const ThemeColors& theme);
 void paintSurface(QPainter& p, const QRectF& r, const PageChrome& chrome, const ThemeColors& theme,
-                  GlassBackdrop* glass, bool grid, bool hovered, bool active,
-                  bool interactive, bool clustered);
+                  GlassBackdrop* glass, bool grid, bool hovered, bool active, bool interactive);
 void paintTarget(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeColors& theme,
                  GlassBackdrop* glass, bool hovered, double progress, bool flashing, bool active,
                  const ProgressVisuals& pv, const QColor& previewColor, const QString& sliderScrubId,

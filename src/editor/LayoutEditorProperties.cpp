@@ -55,6 +55,7 @@ LayoutEditorProperties::LayoutEditorProperties(LayoutEditorSession& session, QWi
     m_tabs->addTab(makePage(&m_pages[1].form, &m_pages[1].scroll), QStringLiteral("Style"));
     m_tabs->addTab(makePage(&m_pages[2].form, &m_pages[2].scroll), QStringLiteral("Dwell"));
     m_tabs->addTab(makePage(&m_pages[3].form, &m_pages[3].scroll), QStringLiteral("Action"));
+    m_tabs->addTab(makePage(&m_pages[4].form, &m_pages[4].scroll), QStringLiteral("Placement"));
     m_tabs->setElideMode(Qt::ElideRight);
     m_tabs->setUsesScrollButtons(false);
     root->addWidget(m_tabs, 1);
@@ -112,14 +113,6 @@ void LayoutEditorProperties::showGridTab()
 void LayoutEditorProperties::showDwellTab()
 {
     const Kind kind = currentKind();
-    if (kind == Kind::Cell || kind == Kind::Zone) {
-        for (int i = 0; i < m_tabs->count(); ++i) {
-            if (m_tabs->isTabVisible(i) && m_tabs->tabText(i) == QLatin1String("Action")) {
-                m_tabs->setCurrentIndex(i);
-                return;
-            }
-        }
-    }
     if (kind == Kind::Dwell) {
         m_tabs->setCurrentIndex(0);
         return;
@@ -186,18 +179,18 @@ void LayoutEditorProperties::syncTabs(Kind kind)
     QStringList titles;
     switch (kind) {
     case Kind::Page:
-        titles = {QStringLiteral("Page")};
+        titles = {QStringLiteral("Page"), QStringLiteral("Dwell"), QStringLiteral("Style")};
         break;
     case Kind::Grid:
-        titles = {QStringLiteral("Grid"), QStringLiteral("Style"), QStringLiteral("Placement")};
+        titles = {QStringLiteral("Grid"), QStringLiteral("Placement"), QStringLiteral("Style")};
         break;
     case Kind::Cell:
-        titles = {QStringLiteral("Cell"), QStringLiteral("Style"), QStringLiteral("Placement"),
-                  QStringLiteral("Action")};
+        titles = {QStringLiteral("Cell"), QStringLiteral("Placement"), QStringLiteral("Action"),
+                  QStringLiteral("Dwell"), QStringLiteral("Style")};
         break;
     case Kind::Zone:
-        titles = {QStringLiteral("Zone"), QStringLiteral("Style"), QStringLiteral("Placement"),
-                  QStringLiteral("Action")};
+        titles = {QStringLiteral("Zone"), QStringLiteral("Placement"), QStringLiteral("Action"),
+                  QStringLiteral("Dwell"), QStringLiteral("Style")};
         break;
     case Kind::Style:
         titles = {QStringLiteral("Style")};
@@ -206,7 +199,7 @@ void LayoutEditorProperties::syncTabs(Kind kind)
         titles = {QStringLiteral("Dwell")};
         break;
     }
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < kTabCount; ++i) {
         if (i < titles.size()) {
             m_tabs->setTabText(i, titles[i]);
             m_tabs->setTabVisible(i, true);
@@ -225,14 +218,8 @@ void LayoutEditorProperties::rebuild()
     m_loading = true;
     const Kind kind = currentKind();
     QString keep = m_tabs->tabText(m_tabs->currentIndex());
-    if (kind == Kind::Page && (keep == QLatin1String("Style") || keep == QLatin1String("Dwell"))) {
-        keep = QStringLiteral("Page");
-    }
-    if (keep == QLatin1String("Dwell") && (kind == Kind::Cell || kind == Kind::Zone)) {
-        keep = QStringLiteral("Action");
-    }
-    int scrollY[4] = {};
-    for (int i = 0; i < 4; ++i) {
+    int scrollY[kTabCount] = {};
+    for (int i = 0; i < kTabCount; ++i) {
         if (m_pages[i].scroll) {
             scrollY[i] = m_pages[i].scroll->verticalScrollBar()->value();
         }
@@ -244,23 +231,27 @@ void LayoutEditorProperties::rebuild()
     switch (kind) {
     case Kind::Page:
         fillPage(m_pages[0].form);
+        fillDwell(m_pages[1].form);
+        fillStyle(m_pages[2].form);
         break;
     case Kind::Grid:
         fillGrid(m_pages[0].form);
-        fillStyle(m_pages[1].form);
-        fillPlacement(m_pages[2].form);
+        fillPlacement(m_pages[1].form);
+        fillStyle(m_pages[2].form);
         break;
     case Kind::Cell:
         fillCell(m_pages[0].form);
-        fillStyle(m_pages[1].form);
-        fillPlacement(m_pages[2].form);
-        fillAction(m_pages[3].form);
+        fillPlacement(m_pages[1].form);
+        fillAction(m_pages[2].form);
+        fillDwell(m_pages[3].form);
+        fillStyle(m_pages[4].form);
         break;
     case Kind::Zone:
         fillZone(m_pages[0].form);
-        fillStyle(m_pages[1].form);
-        fillPlacement(m_pages[2].form);
-        fillAction(m_pages[3].form);
+        fillPlacement(m_pages[1].form);
+        fillAction(m_pages[2].form);
+        fillDwell(m_pages[3].form);
+        fillStyle(m_pages[4].form);
         break;
     case Kind::Style:
         fillStyle(m_pages[0].form);
@@ -277,7 +268,7 @@ void LayoutEditorProperties::rebuild()
         }
     }
     m_tabs->setCurrentIndex(idx);
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < kTabCount; ++i) {
         if (m_pages[i].scroll) {
             m_pages[i].scroll->verticalScrollBar()->setValue(scrollY[i]);
         }

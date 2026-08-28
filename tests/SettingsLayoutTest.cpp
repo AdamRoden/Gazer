@@ -118,7 +118,7 @@ void SettingsLayoutTest::stepperWidths()
     const PageTarget* inc = targetById(t, QStringLiteral("grace_inc"));
     const PageTarget* edit = targetById(t, QStringLiteral("grace_edit"));
     QVERIFY(dec && val && inc && edit);
-    QCOMPARE(val->clusterSlot, QStringLiteral("value"));
+    QCOMPARE(val->role, QStringLiteral("value"));
     QVERIFY(dec->geom.visual.width() < edit->geom.visual.width());
     QVERIFY(edit->geom.visual.width() < val->geom.visual.width());
     QCOMPARE(dec->geom.visual.width(), inc->geom.visual.width());
@@ -138,7 +138,7 @@ void SettingsLayoutTest::valueLabelKeepsKey()
     const QVector<PageTarget> t = PageHit::collect(doc, frame);
     const PageTarget* val = targetById(t, QStringLiteral("grace_val"));
     QVERIFY(val);
-    QCOMPARE(val->role, QStringLiteral("label"));
+    QCOMPARE(val->role, QStringLiteral("value"));
     QCOMPARE(val->settingKey, QStringLiteral("dwellGraceMs"));
 }
 

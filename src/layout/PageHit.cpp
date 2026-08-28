@@ -223,8 +223,6 @@ void walkGrid(const PageDocument& page, const PageGrid& grid, const QRectF& boun
         t.interactive = cell.interactive && !(dwellSuspended && !cell.suspendExempt);
         t.shell = layer || cell.shell;
         t.drawerMotion = drawer;
-        t.cluster = cell.cluster;
-        t.clusterSlot = cell.clusterSlot;
         t.activeState = cell.activeState;
         t.chrome = PageResolve::style(page, cell.styleId, cell.style);
         t.dwell = PageResolve::dwell(page, cell.dwellId, cell.dwell);
@@ -475,11 +473,10 @@ const PageTarget* hit(const QVector<PageTarget>& targets, const QPointF& pos, bo
         if (!cover.isEmpty() && !t.shell && t.pageId != cover) {
             continue;
         }
-        const bool clustered = !t.cluster.isEmpty();
         if (progress) {
             QRectF z = t.geom.progressZone;
             z = mapDrawer(t, z, xf, drawerScale);
-            if (shapeContains(z, t.chrome, clustered, pos)) {
+            if (shapeContains(z, t.chrome, pos)) {
                 return &t;
             }
         } else {
@@ -506,7 +503,7 @@ QString coveringPageId(const QVector<PageGridPaint>& grids, const QPointF& pos, 
             continue;
         }
         const QRectF z = mapDrawer(g.drawerMotion, g.visual, xf, drawerScale);
-        if (shapeContains(z, g.chrome, false, pos)) {
+        if (shapeContains(z, g.chrome, pos)) {
             return g.pageId;
         }
     }
@@ -550,9 +547,9 @@ QRectF paintBounds(const QVector<PageTarget>& targets, const QVector<PageGridPai
     return u;
 }
 
-bool shapeContains(const QRectF& r, const PageChrome& chrome, bool clustered, const QPointF& pos)
+bool shapeContains(const QRectF& r, const PageChrome& chrome, const QPointF& pos)
 {
-    return roundedBoxContains(r, chrome.resolvedRadius(clustered), pos);
+    return roundedBoxContains(r, chrome.resolvedRadius(), pos);
 }
 
 QRectF frostedBounds(const QVector<PageTarget>& targets, const QVector<PageGridPaint>& grids)

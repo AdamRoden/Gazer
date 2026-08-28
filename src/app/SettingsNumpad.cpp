@@ -61,8 +61,7 @@ PageDocument SettingsUi::buildNumpadDocument() const
     PageCell display =
         cell(QStringLiteral("display"),
              m_numpadBuffer.isEmpty() ? QStringLiteral("0") : m_numpadBuffer, 1, 0, {}, sw.value, 4,
-             false, QStringLiteral("label"));
-    display.clusterSlot = QStringLiteral("value");
+             false, QStringLiteral("value"));
     grid.cells.push_back(display);
     auto key = [&](const QString& id, const QString& label, int row, int col, const QString& cmd,
                    const QColor& bg = QColor()) {

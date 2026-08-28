@@ -119,7 +119,7 @@ void paintLabel(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeCo
 
     int titlePx = 14;
     int titleWeight = QFont::DemiBold;
-    const bool valueLabel = t.clusterSlot == QLatin1String("value");
+    const bool valueLabel = t.role.compare(QLatin1String("value"), Qt::CaseInsensitive) == 0;
     int flags = int((valueLabel ? Qt::AlignHCenter : Qt::AlignLeft) | Qt::AlignVCenter
                     | Qt::TextWordWrap);
     if (ts == QLatin1String("caption")) {
@@ -211,14 +211,6 @@ void paintIconAndText(QPainter& p, const PageTarget& t, const QRectF& r, const Q
     int startPx = 14;
     const int weight = QFont::DemiBold;
 
-    if (t.clusterSlot == QLatin1String("value")) {
-        p.setPen(theme.accent);
-        const int px = fontPxToFit(family, QFont::DemiBold, 18, 12, t.label, textR, flags);
-        p.setFont(QFont(family, px, QFont::DemiBold));
-        p.drawText(textR, flags, t.label);
-        return;
-    }
-
     if (hasIcon && hasText && h >= 52.0 && w >= 40.0) {
         const qreal labelBand = qBound(18.0, h * 0.28, 30.0);
         const QRectF iconArea(r.left() + pad, r.top() + pad, w - 2.0 * pad,
@@ -268,13 +260,12 @@ QColor opaqueFill(const QColor& c, const QColor& fallback)
 }
 
 void paintSurface(QPainter& p, const QRectF& r, const PageChrome& chrome, const ThemeColors& theme,
-                  GlassBackdrop* glass, bool grid, bool hovered, bool active, bool interactive,
-                  bool clustered)
+                  GlassBackdrop* glass, bool grid, bool hovered, bool active, bool interactive)
 {
     if (r.isEmpty()) {
         return;
     }
-    const PageBox radii = chrome.resolvedRadius(clustered);
+    const PageBox radii = chrome.resolvedRadius();
     const QColor themeBase = opaqueFill(grid ? theme.bgMain : theme.cellBg,
                                         grid ? QColor(10, 10, 11) : QColor(26, 27, 28));
     // Authored colors keep their alpha. Unset chrome still uses an opaque theme fill
@@ -346,8 +337,7 @@ void paintTarget(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeC
     if (r.isEmpty()) {
         return;
     }
-    const bool clustered = !t.cluster.isEmpty();
-    const PageBox radii = t.chrome.resolvedRadius(clustered);
+    const PageBox radii = t.chrome.resolvedRadius();
     const double radius = radii.first();
     ProgressVisuals vis = pv;
     if (t.chrome.progressStyle) {
@@ -361,7 +351,7 @@ void paintTarget(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeC
                           ? t.chrome.foreground.value_or(theme.accent)
                           : t.chrome.foreground.value_or(theme.text);
     if (t.role == QLatin1String("slider")) {
-        paintSurface(p, r, t.chrome, theme, glass, false, false, false, false, clustered);
+        paintSurface(p, r, t.chrome, theme, glass, false, false, false, false);
         const QString channel = t.caption.isEmpty() ? t.id : t.caption;
         const bool scrubbing =
             !sliderScrubId.isEmpty()
@@ -374,12 +364,12 @@ void paintTarget(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeC
         paintLabel(p, t, r, theme);
     } else if (t.role == QLatin1String("tab")) {
         paintTab(p, t, r, theme, hovered, active || !t.interactive, progress);
-    } else if (t.role == QLatin1String("label")) {
-        paintSurface(p, r, t.chrome, theme, glass, false, false, false, false, clustered);
+    } else if (t.role == QLatin1String("label") || t.role == QLatin1String("value")) {
+        paintSurface(p, r, t.chrome, theme, glass, false, false, false, false);
         paintLabel(p, t, r, theme);
     } else {
         paintSurface(p, r, t.chrome, theme, glass, false, hovered,
-                     active && !t.activeState.isEmpty(), t.interactive, clustered);
+                     active && !t.activeState.isEmpty(), t.interactive);
         paintIconAndText(p, t, r, fg, theme);
         if (hovered && progress > 0.0 && t.interactive) {
             paintProgress(p, r, progress, vis.withItemFlash(fg), ProgressShape::RoundedRect, radii);

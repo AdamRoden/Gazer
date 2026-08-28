@@ -108,7 +108,6 @@ struct PageChrome {
 
     static constexpr double kDefaultThickness = 1.0;
     static constexpr double kDefaultRadius = 8.0;
-    static constexpr double kClusteredRadius = 4.0;
 
     [[nodiscard]] static PageChrome defaults()
     {
@@ -117,9 +116,9 @@ struct PageChrome {
         return c;
     }
 
-    [[nodiscard]] PageBox resolvedRadius(bool clustered = false) const
+    [[nodiscard]] PageBox resolvedRadius() const
     {
-        return radius.value_or(PageBox::all(clustered ? kClusteredRadius : kDefaultRadius));
+        return radius.value_or(PageBox::all(kDefaultRadius));
     }
 
     [[nodiscard]] PageBox resolvedThickness() const
@@ -258,8 +257,6 @@ struct PageLeaf {
     QString settingKey;
     QString activeState;
     QString role;
-    QString cluster;
-    QString clusterSlot;
     QString textStyle;
     QString visibleWhen;
     bool interactive = true;

@@ -32,8 +32,6 @@ struct PageTarget {
     bool interactive = true;
     bool shell = false;
     bool drawerMotion = false;
-    QString cluster;
-    QString clusterSlot;
     QString activeState;
     PageChrome chrome;
     PageDwell dwell;
@@ -126,7 +124,7 @@ namespace PageHit {
 [[nodiscard]] QRectF frostedBounds(const QVector<PageTarget>& targets,
                                    const QVector<PageGridPaint>& grids);
 
-[[nodiscard]] bool shapeContains(const QRectF& r, const PageChrome& chrome, bool clustered,
+[[nodiscard]] bool shapeContains(const QRectF& r, const PageChrome& chrome,
                                  const QPointF& pos);
 
 /// Scan: dwell AABB. After scan grace (`engagedId` matches): dwell ∪ unrounded

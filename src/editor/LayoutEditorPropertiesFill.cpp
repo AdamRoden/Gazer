@@ -31,12 +31,6 @@ void LayoutEditorProperties::fillPage(QFormLayout* form)
             applyDoc([&](PageDocument& doc) { doc.autoCloseIdleMs = v; }, QStringLiteral("Idle ms"));
         });
     }
-    addChromeFields(b, form, d.style, [this](const QString& undo, const auto& mut) {
-        applyDoc([&](PageDocument& doc) { mut(doc.style); }, undo);
-    });
-    addDwellFields(b, form, d.dwell, [this](const QString& undo, const auto& mut) {
-        applyDoc([&](PageDocument& doc) { mut(doc.dwell); }, undo);
-    });
 }
 
 void LayoutEditorProperties::fillGrid(QFormLayout* form)
@@ -157,8 +151,8 @@ void LayoutEditorProperties::fillLeafIdentity(QFormLayout* form, const PageLeaf&
         applyItem([&](PageLeaf& it) { it.icon = t; }, QStringLiteral("Icon"));
     });
     b.combo(form, QStringLiteral("Role"),
-            {QString(), QStringLiteral("label"), QStringLiteral("tab"), QStringLiteral("toggle"),
-             QStringLiteral("slider"), QStringLiteral("preview")},
+            {QString(), QStringLiteral("label"), QStringLiteral("value"), QStringLiteral("tab"),
+             QStringLiteral("toggle"), QStringLiteral("slider"), QStringLiteral("preview")},
             item.role, [this](const QString& t) {
                 applyItem([&](PageLeaf& it) { it.role = t; }, QStringLiteral("Role"));
             });
@@ -171,18 +165,6 @@ void LayoutEditorProperties::fillLeafIdentity(QFormLayout* form, const PageLeaf&
     b.text(form, QStringLiteral("Setting key"), item.settingKey, [this](const QString& t) {
         applyItem([&](PageLeaf& it) { it.settingKey = t; }, QStringLiteral("Setting key"));
     });
-    b.text(form, QStringLiteral("Cluster"), item.cluster, [this](const QString& t) {
-        applyItem([&](PageLeaf& it) { it.cluster = t; }, QStringLiteral("Cluster"));
-    });
-    QStringList slotNames = {QString(), QStringLiteral("dec"), QStringLiteral("value"),
-                             QStringLiteral("inc"), QStringLiteral("edit")};
-    if (!item.clusterSlot.isEmpty() && !slotNames.contains(item.clusterSlot)) {
-        slotNames.push_back(item.clusterSlot);
-    }
-    b.combo(form, QStringLiteral("Cluster slot"), slotNames, item.clusterSlot,
-            [this](const QString& t) {
-                applyItem([&](PageLeaf& it) { it.clusterSlot = t; }, QStringLiteral("Cluster slot"));
-            });
     b.check(form, QStringLiteral("Show"), item.show, [this](bool on) {
         applyItem([&](PageLeaf& it) { it.show = on; }, QStringLiteral("Show"));
     });
@@ -376,6 +358,13 @@ void LayoutEditorProperties::fillStyle(QFormLayout* form)
             });
         return;
     }
+    if (kind == Kind::Page) {
+        const PageDocument& d = m_session.document();
+        addChromeFields(b, form, d.style, [this](const QString& undo, const auto& mut) {
+            applyDoc([&](PageDocument& doc) { mut(doc.style); }, undo);
+        });
+        return;
+    }
     if (kind == Kind::Grid) {
         const PageGrid* g = m_session.selectedGrid();
         if (!g) {
@@ -434,6 +423,28 @@ void LayoutEditorProperties::fillDwell(QFormLayout* form)
             });
         return;
     }
+    if (kind == Kind::Page) {
+        const PageDocument& d = m_session.document();
+        addDwellFields(b, form, d.dwell, [this](const QString& undo, const auto& mut) {
+            applyDoc([&](PageDocument& doc) { mut(doc.dwell); }, undo);
+        });
+        return;
+    }
+    if (kind == Kind::Cell || kind == Kind::Zone) {
+        const PageLeaf* item = m_session.selectedItem();
+        if (!item) {
+            return;
+        }
+        addDwellFields(
+            b, form, item->dwell,
+            [this](const QString& undo, const auto& mut) {
+                applyItem([&](PageLeaf& it) { mut(it.dwell); }, undo);
+            },
+            true, m_session.document().dwells.keys(), item->dwellId, [this](const QString& t) {
+                applyItem([&](PageLeaf& it) { it.dwellId = t; }, QStringLiteral("Dwell"));
+            });
+        return;
+    }
 }
 
 void LayoutEditorProperties::fillAction(QFormLayout* form)
@@ -469,14 +480,6 @@ void LayoutEditorProperties::fillAction(QFormLayout* form)
                               m_session.setActions(id, std::move(next));
                               rebuildIfNeeded();
                           });
-    addDwellFields(
-        b, form, item->dwell,
-        [this](const QString& undo, const auto& mut) {
-            applyItem([&](PageLeaf& it) { mut(it.dwell); }, undo);
-        },
-        true, m_session.document().dwells.keys(), item->dwellId, [this](const QString& t) {
-            applyItem([&](PageLeaf& it) { it.dwellId = t; }, QStringLiteral("Dwell"));
-        });
 }
 
 } // namespace gazer

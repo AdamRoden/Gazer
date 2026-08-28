@@ -52,7 +52,6 @@ PageDocument SettingsUi::buildHexDocument() const
         m_hexBuffer.isEmpty() ? QStringLiteral("#") : QStringLiteral("#%1").arg(m_hexBuffer);
     PageCell display = cell(QStringLiteral("display"), shown, 0, 0, {}, pal.value, 4, false,
                             QStringLiteral("value"));
-    display.clusterSlot = QStringLiteral("value");
     grid.cells.push_back(display);
 
     const char* keys[] = {"1", "2", "3", "A", "4", "5", "6", "B",
