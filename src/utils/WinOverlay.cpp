@@ -2,12 +2,9 @@
 
 #include <QPointer>
 #include <QVector>
+#include <QtMath>
 
 #include <algorithm>
-
-#ifdef Q_OS_WIN
-#  include <cwchar>
-#endif
 
 namespace gazer {
 
@@ -15,6 +12,11 @@ namespace {
 OverlayStackWatch* g_watch = nullptr;
 QWindow* g_stackHost = nullptr;
 QVector<QPointer<QWindow>> g_overlays;
+int g_passDepth = 0;
+#ifdef Q_OS_WIN
+HWND g_punchedHost = nullptr;
+LONG_PTR g_punchedEx = 0;
+#endif
 
 void attachOne(QWindow* overlay)
 {
@@ -34,87 +36,222 @@ void pruneOverlays()
 }
 
 #ifdef Q_OS_WIN
-bool isTaskbarHwnd(HWND hwnd)
+constexpr UINT kZFlags = SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE;
+
+void applyExStyle(HWND hwnd, LONG_PTR ex, bool frameChanged)
 {
-    wchar_t cls[64] = {};
-    if (GetClassNameW(hwnd, cls, 64) <= 0) {
-        return false;
+    SetWindowLongPtr(hwnd, GWL_EXSTYLE, ex);
+    UINT flags = kZFlags | SWP_NOZORDER;
+    if (frameChanged) {
+        flags |= SWP_FRAMECHANGED;
     }
-    return wcscmp(cls, L"Shell_TrayWnd") == 0
-           || wcscmp(cls, L"Shell_SecondaryTrayWnd") == 0;
+    SetWindowPos(hwnd, nullptr, 0, 0, 0, 0, flags);
 }
 
-bool taskbarOccludes(HWND hwnd)
+bool isOwnZWindow(HWND self, HWND other)
+{
+    if (!other || other == self) {
+        return true;
+    }
+    DWORD pid = 0;
+    GetWindowThreadProcessId(other, &pid);
+    if (pid == GetCurrentProcessId()) {
+        return true;
+    }
+    for (HWND owner = GetWindow(other, GW_OWNER); owner; owner = GetWindow(owner, GW_OWNER)) {
+        if (owner == self) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool foreignWindowOccludes(HWND hwnd)
 {
     RECT wr{};
-    if (!GetWindowRect(hwnd, &wr)) {
+    if (!GetWindowRect(hwnd, &wr) || wr.right <= wr.left || wr.bottom <= wr.top) {
         return false;
     }
     for (HWND cur = GetWindow(hwnd, GW_HWNDPREV); cur; cur = GetWindow(cur, GW_HWNDPREV)) {
-        if (!IsWindowVisible(cur) || !isTaskbarHwnd(cur)) {
+        if (!IsWindowVisible(cur) || isOwnZWindow(hwnd, cur)) {
             continue;
         }
-        RECT tr{};
-        if (!GetWindowRect(cur, &tr)) {
+        RECT orc{};
+        if (!GetWindowRect(cur, &orc)) {
             continue;
         }
         RECT hit{};
-        if (IntersectRect(&hit, &wr, &tr)) {
+        if (IntersectRect(&hit, &wr, &orc)) {
             return true;
         }
     }
     return false;
 }
 
-bool hasVisibleWindowAbove(HWND hwnd)
+void flushHitTestCache()
 {
-    for (HWND cur = GetWindow(hwnd, GW_HWNDPREV); cur; cur = GetWindow(cur, GW_HWNDPREV)) {
-        if (IsWindowVisible(cur)) {
-            return true;
-        }
+    INPUT move{};
+    move.type = INPUT_MOUSE;
+    move.mi.dwFlags = MOUSEEVENTF_MOVE;
+    SendInput(1, &move, sizeof(INPUT));
+}
+
+HWND hwndOf(QWindow* w)
+{
+    if (!w) {
+        return nullptr;
     }
-    return false;
+    return reinterpret_cast<HWND>(w->winId());
+}
+
+void punchHost()
+{
+    const HWND hwnd = hwndOf(g_stackHost);
+    if (!hwnd || !IsWindowVisible(hwnd)) {
+        return;
+    }
+    const LONG_PTR ex = GetWindowLongPtr(hwnd, GWL_EXSTYLE);
+    if ((ex & WS_EX_TRANSPARENT) != 0) {
+        return;
+    }
+    g_punchedHost = hwnd;
+    g_punchedEx = ex;
+    applyExStyle(hwnd, ex | WS_EX_TRANSPARENT, /*frameChanged=*/false);
+}
+
+void restoreHost()
+{
+    if (g_punchedHost && IsWindow(g_punchedHost)) {
+        applyExStyle(g_punchedHost, g_punchedEx, /*frameChanged=*/false);
+    }
+    g_punchedHost = nullptr;
+    g_punchedEx = 0;
 }
 #endif
 }
 
-bool raiseAboveTaskbar(QWindow* w, bool onlyIfTaskbarOccludes)
+void applyOverlayClickThrough(QWindow* w)
+{
+    if (!w) {
+        return;
+    }
+#ifdef Q_OS_WIN
+    const HWND hwnd = hwndOf(w);
+    if (!hwnd) {
+        return;
+    }
+    const LONG_PTR ex = GetWindowLongPtr(hwnd, GWL_EXSTYLE);
+    if ((ex & WS_EX_TRANSPARENT) != 0) {
+        return;
+    }
+    applyExStyle(hwnd, ex | WS_EX_TRANSPARENT, /*frameChanged=*/true);
+#else
+    Q_UNUSED(w);
+#endif
+}
+
+void applyOverlayClickThrough(QWidget* w)
+{
+    if (!w) {
+        return;
+    }
+#ifdef Q_OS_WIN
+    (void)w->winId();
+#endif
+    applyOverlayClickThrough(w->windowHandle());
+}
+
+QPoint logicalGlobalFromNative(const QWindow* w, QPoint native)
+{
+#ifdef Q_OS_WIN
+    if (!w) {
+        return native;
+    }
+    const HWND hwnd = reinterpret_cast<HWND>(w->winId());
+    RECT wr{};
+    if (hwnd && GetWindowRect(hwnd, &wr) && wr.right > wr.left && wr.bottom > wr.top) {
+        const QRect g = w->geometry();
+        if (g.width() > 0 && g.height() > 0) {
+            const double fx = double(native.x() - wr.left) / double(wr.right - wr.left);
+            const double fy = double(native.y() - wr.top) / double(wr.bottom - wr.top);
+            return QPoint(g.x() + qRound(fx * g.width()), g.y() + qRound(fy * g.height()));
+        }
+    }
+    const qreal dpr = w->devicePixelRatio();
+    if (dpr > 0.0) {
+        return QPoint(qRound(native.x() / dpr), qRound(native.y() / dpr));
+    }
+#else
+    Q_UNUSED(w);
+#endif
+    return native;
+}
+
+OverlayInputPassThrough::OverlayInputPassThrough()
+{
+#ifdef Q_OS_WIN
+    if (g_passDepth++ == 0) {
+        punchHost();
+        flushHitTestCache();
+    }
+#endif
+}
+
+OverlayInputPassThrough::~OverlayInputPassThrough()
+{
+#ifdef Q_OS_WIN
+    if (g_passDepth > 0) {
+        --g_passDepth;
+    }
+    if (g_passDepth == 0) {
+        restoreHost();
+        flushHitTestCache();
+        if (g_stackHost) {
+            raiseInTopmostBand(g_stackHost);
+        }
+    }
+#endif
+}
+
+bool OverlayInputPassThrough::active()
+{
+    return g_passDepth > 0;
+}
+
+bool raiseInTopmostBand(QWindow* w)
 {
     if (!w) {
         return false;
     }
 #ifdef Q_OS_WIN
-    const HWND hwnd = reinterpret_cast<HWND>(w->winId());
+    const HWND hwnd = hwndOf(w);
     if (!hwnd) {
         return false;
     }
 
-    const bool alreadyTopmost =
-        (GetWindowLongPtr(hwnd, GWL_EXSTYLE) & WS_EX_TOPMOST) != 0;
+    const LONG_PTR prevEx = GetWindowLongPtr(hwnd, GWL_EXSTYLE);
+    const bool alreadyTopmost = (prevEx & WS_EX_TOPMOST) != 0;
 
-    LONG_PTR ex = GetWindowLongPtr(hwnd, GWL_EXSTYLE);
-    ex |= WS_EX_TOPMOST | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW;
+    LONG_PTR ex = prevEx;
+    ex |= WS_EX_TOPMOST | WS_EX_TOOLWINDOW;
     ex &= ~WS_EX_APPWINDOW;
-    SetWindowLongPtr(hwnd, GWL_EXSTYLE, ex);
+    if (ex != prevEx) {
+        applyExStyle(hwnd, ex, /*frameChanged=*/true);
+    }
 
-    constexpr UINT flags = SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_FRAMECHANGED;
     if (!alreadyTopmost) {
-        SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, flags);
+        SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, kZFlags);
         return true;
     }
-    if (onlyIfTaskbarOccludes) {
-        if (!taskbarOccludes(hwnd)) {
-            return false;
-        }
-    } else if (!hasVisibleWindowAbove(hwnd)) {
+    if (!foreignWindowOccludes(hwnd)) {
         return false;
     }
-    SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, flags);
-    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, flags);
+    // Stay in the TOPMOST band. HWND_TOPMOST is a no-op when already topmost;
+    // HWND_NOTOPMOST would flash whatever is under a full-screen board.
+    SetWindowPos(hwnd, HWND_TOP, 0, 0, 0, 0, kZFlags);
     return true;
 #else
     Q_UNUSED(w);
-    Q_UNUSED(onlyIfTaskbarOccludes);
     return false;
 #endif
 }

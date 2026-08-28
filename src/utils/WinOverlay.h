@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QObject>
+#include <QPoint>
 #include <QTimer>
 #include <QWidget>
 #include <QWindow>
@@ -71,16 +72,38 @@ inline void applyOverlayWindowChrome(QWidget* w, bool excludeFromCapture = true)
     applyOverlayWindowChrome(w->windowHandle(), excludeFromCapture);
 }
 
-/// Restack a topmost overlay in the TOPMOST band.
-/// Already-topmost windows ignore a second HWND_TOPMOST, so hopping via
-/// HWND_NOTOPMOST is the only way past Shell_TrayWnd or another topmost peer.
-/// That hop flashes the desktop if @p w is a full-screen board — pass
-/// @p onlyIfTaskbarOccludes for those. Small tool overlays should hop always so
-/// they stay above the board. Returns true if z-order changed.
-bool raiseAboveTaskbar(QWindow* w, bool onlyIfTaskbarOccludes = false);
+/// WS_EX_TRANSPARENT so hit-testing (and SendInput) skips this HWND.
+/// Tool overlays always want this; the board does not (WM_NCHITTEST hits cells).
+void applyOverlayClickThrough(QWindow* w);
+void applyOverlayClickThrough(QWidget* w);
 
-/// Tool overlays are Win32-owned by this host so they stay above it through
-/// TOPMOST hops. Call when the host HWND is created or recreated.
+/// Map a WM_NCHITTEST lParam (physical virtual-desktop pixels) to Qt logical
+/// global coordinates. Falls back to devicePixelRatio if GetWindowRect fails.
+QPoint logicalGlobalFromNative(const QWindow* w, QPoint native);
+
+/// While alive, the board host is click-through so SendInput button/wheel
+/// reaches the OS. Tool overlays are permanently click-through. Nested scopes
+/// share one punch. The board is not hidden and does not leave the TOPMOST band.
+class OverlayInputPassThrough final {
+public:
+    OverlayInputPassThrough();
+    ~OverlayInputPassThrough();
+
+    OverlayInputPassThrough(const OverlayInputPassThrough&) = delete;
+    OverlayInputPassThrough& operator=(const OverlayInputPassThrough&) = delete;
+    OverlayInputPassThrough(OverlayInputPassThrough&&) = delete;
+    OverlayInputPassThrough& operator=(OverlayInputPassThrough&&) = delete;
+
+    [[nodiscard]] static bool active();
+};
+
+/// Front of the TOPMOST band via HWND_TOP. Never HWND_NOTOPMOST (that hop
+/// flashes the desktop). Same-process / owned windows are ignored. Returns
+/// true if z-order changed.
+bool raiseInTopmostBand(QWindow* w);
+
+/// Tool overlays are Win32-owned by this host so they stay above it.
+/// Call when the host HWND is created or recreated.
 void setOverlayStackHost(QWindow* host);
 
 /// Parent @p overlay to the stack host (no-op until a host is set).

@@ -1,6 +1,7 @@
 #include "input/MouseInjector.h"
 
 #include "utils/Log.h"
+#include "utils/WinOverlay.h"
 
 #include <QCursor>
 #include <QGuiApplication>
@@ -18,6 +19,20 @@ namespace gazer {
 namespace {
 
 #ifdef Q_OS_WIN
+
+int vkForDownFlag(DWORD down)
+{
+    if (down == MOUSEEVENTF_LEFTDOWN) {
+        return VK_LBUTTON;
+    }
+    if (down == MOUSEEVENTF_RIGHTDOWN) {
+        return VK_RBUTTON;
+    }
+    if (down == MOUSEEVENTF_MIDDLEDOWN) {
+        return VK_MBUTTON;
+    }
+    return 0;
+}
 
 bool buttonFlags(const QString& button, DWORD* down, DWORD* up, QString* error)
 {
@@ -43,13 +58,42 @@ bool buttonFlags(const QString& button, DWORD* down, DWORD* up, QString* error)
     return false;
 }
 
+bool sendMouseInputs(INPUT* inputs, UINT count)
+{
+    return SendInput(count, inputs, sizeof(INPUT)) == count;
+}
+
 bool sendMouseFlag(DWORD flag, DWORD data = 0)
 {
     INPUT in{};
     in.type = INPUT_MOUSE;
     in.mi.dwFlags = flag;
     in.mi.mouseData = data;
-    return SendInput(1, &in, sizeof(INPUT)) == 1;
+    return sendMouseInputs(&in, 1);
+}
+
+bool clickOnce(DWORD down, DWORD up, QString* error)
+{
+    INPUT inputs[3]{};
+    UINT n = 0;
+    if (const int vk = vkForDownFlag(down); vk != 0 && (GetAsyncKeyState(vk) & 0x8000)) {
+        inputs[n].type = INPUT_MOUSE;
+        inputs[n].mi.dwFlags = up;
+        ++n;
+    }
+    inputs[n].type = INPUT_MOUSE;
+    inputs[n].mi.dwFlags = down;
+    ++n;
+    inputs[n].type = INPUT_MOUSE;
+    inputs[n].mi.dwFlags = up;
+    ++n;
+    if (!sendMouseInputs(inputs, n)) {
+        if (error) {
+            *error = QStringLiteral("SendInput mouse click failed");
+        }
+        return false;
+    }
+    return true;
 }
 
 #endif
@@ -64,19 +108,8 @@ bool MouseInjector::click(const QString& button, QString* error)
     if (!buttonFlags(button, &down, &up, error)) {
         return false;
     }
-
-    INPUT inputs[2]{};
-    inputs[0].type = INPUT_MOUSE;
-    inputs[0].mi.dwFlags = down;
-    inputs[1].type = INPUT_MOUSE;
-    inputs[1].mi.dwFlags = up;
-    if (SendInput(2, inputs, sizeof(INPUT)) != 2) {
-        if (error) {
-            *error = QStringLiteral("SendInput mouse click failed");
-        }
-        return false;
-    }
-    return true;
+    OverlayInputPassThrough pass;
+    return clickOnce(down, up, error);
 #else
     Q_UNUSED(button);
     if (error) {
@@ -89,11 +122,13 @@ bool MouseInjector::click(const QString& button, QString* error)
 bool MouseInjector::doubleClick(const QString& button, QString* error)
 {
 #ifdef Q_OS_WIN
-    // Two full clicks; system double-click timing accepts rapid pair.
-    if (!click(button, error)) {
+    DWORD down = 0;
+    DWORD up = 0;
+    if (!buttonFlags(button, &down, &up, error)) {
         return false;
     }
-    return click(button, error);
+    OverlayInputPassThrough pass;
+    return clickOnce(down, up, error) && clickOnce(down, up, error);
 #else
     Q_UNUSED(button);
     if (error) {
@@ -111,6 +146,7 @@ bool MouseInjector::buttonDown(const QString& button, QString* error)
     if (!buttonFlags(button, &down, &up, error)) {
         return false;
     }
+    OverlayInputPassThrough pass;
     if (!sendMouseFlag(down)) {
         if (error) {
             *error = QStringLiteral("SendInput mouse down failed");
@@ -135,6 +171,7 @@ bool MouseInjector::buttonUp(const QString& button, QString* error)
     if (!buttonFlags(button, &down, &up, error)) {
         return false;
     }
+    OverlayInputPassThrough pass;
     if (!sendMouseFlag(up)) {
         if (error) {
             *error = QStringLiteral("SendInput mouse up failed");
@@ -191,11 +228,12 @@ bool MouseInjector::scrollDelta(int wheelDelta, QString* error)
     if (wheelDelta == 0) {
         return true;
     }
+    OverlayInputPassThrough pass;
     INPUT in{};
     in.type = INPUT_MOUSE;
     in.mi.dwFlags = MOUSEEVENTF_WHEEL;
     in.mi.mouseData = static_cast<DWORD>(wheelDelta);
-    if (SendInput(1, &in, sizeof(INPUT)) != 1) {
+    if (!sendMouseInputs(&in, 1)) {
         if (error) {
             *error = QStringLiteral("SendInput mouse scroll failed");
         }
@@ -217,11 +255,12 @@ bool MouseInjector::scrollHorizontalDelta(int wheelDelta, QString* error)
     if (wheelDelta == 0) {
         return true;
     }
+    OverlayInputPassThrough pass;
     INPUT in{};
     in.type = INPUT_MOUSE;
     in.mi.dwFlags = MOUSEEVENTF_HWHEEL;
     in.mi.mouseData = static_cast<DWORD>(wheelDelta);
-    if (SendInput(1, &in, sizeof(INPUT)) != 1) {
+    if (!sendMouseInputs(&in, 1)) {
         if (error) {
             *error = QStringLiteral("SendInput horizontal scroll failed");
         }

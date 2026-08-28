@@ -31,16 +31,13 @@ public:
     }
 
     /// Restack this overlay on top of the TOPMOST band. Does not emit stackChanged.
-    /// Always hops if another topmost window is above us (small HWND, unlike the
-    /// board which only hops when the taskbar occludes it). Owned by the board
-    /// host so a board hop keeps us above it.
+    /// Owned by the board host so a board restack keeps us above it.
     void raiseStack()
     {
-        bindStackHost();
-        applyOverlayWindowChrome(this, /*excludeFromCapture=*/true);
+        applyToolChrome();
         raise();
         if (QWindow* wh = windowHandle()) {
-            raiseAboveTaskbar(wh);
+            raiseInTopmostBand(wh);
         }
     }
 
@@ -63,8 +60,7 @@ protected:
     void showEvent(QShowEvent* event) override
     {
         QWidget::showEvent(event);
-        bindStackHost();
-        applyOverlayWindowChrome(this, /*excludeFromCapture=*/true);
+        applyToolChrome();
     }
 
     void hideEvent(QHideEvent* event) override
@@ -74,12 +70,14 @@ protected:
     }
 
 private:
-    void bindStackHost()
+    void applyToolChrome()
     {
         (void)winId();
         if (QWindow* wh = windowHandle()) {
             registerOverlayWindow(wh);
         }
+        applyOverlayWindowChrome(this, /*excludeFromCapture=*/true);
+        applyOverlayClickThrough(this);
     }
 };
 

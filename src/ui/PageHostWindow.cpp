@@ -103,7 +103,7 @@ PageHostWindow::PageHostWindow(QWindow* parent)
     m_raiseTimer.setSingleShot(true);
     connect(&m_raiseTimer, &QTimer::timeout, this, [this]() {
         if (isVisible()) {
-            raiseAboveTaskbar(this, /*onlyIfTaskbarOccludes=*/true);
+            raiseInTopmostBand(this);
         }
     });
     connect(&m_flashTimer, &QTimer::timeout, this, [this]() {
@@ -556,9 +556,9 @@ void PageHostWindow::applyChrome()
     applyOverlayWindowChrome(this, /*excludeFromCapture=*/false);
     applyInputFocusChrome();
     setOverlayStackHost(this);
-    raiseAboveTaskbar(this, /*onlyIfTaskbarOccludes=*/true);
-    // Explorer restacks Shell_TrayWnd after a show; hop again if it landed on us.
-    // Owned overlays follow this window through the hop.
+    raiseInTopmostBand(this);
+    // Explorer restacks Shell_TrayWnd after a show; HWND_TOP again if it landed on us.
+    // Owned overlays stay above this window.
     m_raiseTimer.start(180);
 }
 
@@ -575,7 +575,7 @@ void PageHostWindow::raiseHost()
         showHost();
         return;
     }
-    raiseAboveTaskbar(this, /*onlyIfTaskbarOccludes=*/true);
+    raiseInTopmostBand(this);
     m_raiseTimer.start(180);
 }
 
@@ -632,7 +632,12 @@ bool PageHostWindow::nativeEvent(const QByteArray& eventType, void* message, qin
     if (eventType == QByteArrayLiteral("windows_generic_MSG") && message && result) {
         MSG* msg = static_cast<MSG*>(message);
         if (msg->message == WM_NCHITTEST) {
-            const QPoint gp(GET_X_LPARAM(msg->lParam), GET_Y_LPARAM(msg->lParam));
+            if (OverlayInputPassThrough::active()) {
+                *result = HTTRANSPARENT;
+                return true;
+            }
+            const QPoint native(GET_X_LPARAM(msg->lParam), GET_Y_LPARAM(msg->lParam));
+            const QPoint gp = logicalGlobalFromNative(this, native);
             if (mouseHit(gp).isEmpty()) {
                 *result = HTTRANSPARENT;
                 return true;

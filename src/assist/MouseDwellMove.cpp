@@ -475,12 +475,6 @@ void MouseDwellMove::completeMoveCycle(const QPoint& target)
             setArmed(false);
             return;
         }
-        if (m_magOverlay) {
-            m_magOverlay->hide();
-        }
-        if (m_cursor) {
-            m_cursor->hide();
-        }
         resetDwell();
         startAimPhase();
         markSelectDeadline();

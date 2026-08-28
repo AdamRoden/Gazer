@@ -74,8 +74,8 @@ bool Application::initialize()
             return;
         }
         m_restacking = true;
-        // Overlays are Win32-owned by the board, so hopping the board last
-        // keeps Overlay > Board > Taskbar without a HWND insert dance.
+        // Overlays are Win32-owned by the board, so restacking the board last
+        // keeps Overlay > Board > other windows without leaving the TOPMOST band.
         if (OverlaySurface* combo = m_svc->comboMouse().overlay()) {
             if (combo->isVisible()) {
                 combo->raiseStack();
