@@ -136,8 +136,8 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
     mouseMoveForesight = o.value(QStringLiteral("mouseMoveForesight")).toBool(mouseMoveForesight);
     mouseMoveForesightDwellMs =
         o.value(QStringLiteral("mouseMoveForesightDwellMs")).toInt(mouseMoveForesightDwellMs);
-    mouseMoveForesightDoubleZoom =
-        o.value(QStringLiteral("mouseMoveForesightDoubleZoom")).toBool(mouseMoveForesightDoubleZoom);
+    mouseMoveForesightSecondZoom =
+        o.value(QStringLiteral("mouseMoveForesightSecondZoom")).toBool(mouseMoveForesightSecondZoom);
     magPickStyle = o.value(QStringLiteral("magPickStyle")).toInt(magPickStyle);
     mousePickStyle = o.value(QStringLiteral("mousePickStyle")).toInt(mousePickStyle);
     magZoom = o.value(QStringLiteral("magZoom")).toDouble(magZoom);
@@ -264,7 +264,7 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     o.insert(QStringLiteral("mouseMoveMagPickFullScreen"), copy.mouseMoveMagPickFullScreen);
     o.insert(QStringLiteral("mouseMoveForesight"), copy.mouseMoveForesight);
     o.insert(QStringLiteral("mouseMoveForesightDwellMs"), copy.mouseMoveForesightDwellMs);
-    o.insert(QStringLiteral("mouseMoveForesightDoubleZoom"), copy.mouseMoveForesightDoubleZoom);
+    o.insert(QStringLiteral("mouseMoveForesightSecondZoom"), copy.mouseMoveForesightSecondZoom);
     o.insert(QStringLiteral("magPickStyle"), copy.magPickStyle);
     o.insert(QStringLiteral("mousePickStyle"), copy.mousePickStyle);
     o.insert(QStringLiteral("magZoom"), copy.magZoom);

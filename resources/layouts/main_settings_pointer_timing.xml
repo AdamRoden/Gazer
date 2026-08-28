@@ -65,7 +65,7 @@
       </SubGrid>
       <SubGrid id="row_fs" row="2" col="0" rows="1" columns="2" gap="0" style="row">
         <Cell id="fs_on" row="0" col="0" icon="AutoModeIcon" label="Foresight" role="toggle" activeState="mouseMoveForesight" style="join" command="toggleMouseMoveForesight"/>
-        <Cell id="fs_dbl" row="0" col="1" icon="ZoomToLocation" label="Bonus zoom" role="toggle" activeState="mouseMoveForesightDoubleZoom" style="join" command="toggleMouseMoveForesightDoubleZoom"/>
+        <Cell id="fs_scnd" row="0" col="1" icon="ZoomToLocation" label="Second zoom" role="toggle" activeState="mouseMoveForesightSecondZoom" style="join" command="toggleMouseMoveForesightSecondZoom"/>
       </SubGrid>
     </SubGrid>
 

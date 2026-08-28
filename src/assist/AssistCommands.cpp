@@ -480,12 +480,12 @@ void registerAssistCommands(AssistCommandContext& ctx)
             return true;
         });
     commands->registerBuiltin(
-        QStringLiteral("toggleMouseMoveForesightDoubleZoom"),
+        QStringLiteral("toggleMouseMoveForesightSecondZoom"),
         [settings, mouseDwell, applySettings, notify](QString*) {
-            settings->mouseMoveForesightDoubleZoom = !settings->mouseMoveForesightDoubleZoom;
-            mouseDwell->setForesightDoubleZoom(settings->mouseMoveForesightDoubleZoom);
+            settings->mouseMoveForesightSecondZoom = !settings->mouseMoveForesightSecondZoom;
+            mouseDwell->setForesightSecondZoom(settings->mouseMoveForesightSecondZoom);
             applySettings(true);
-            notify(settings->mouseMoveForesightDoubleZoom
+            notify(settings->mouseMoveForesightSecondZoom
                        ? QStringLiteral("Foresight double-zoom ON")
                        : QStringLiteral("Foresight double-zoom OFF"));
             return true;

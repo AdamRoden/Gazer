@@ -155,8 +155,8 @@ public:
     void setForesightEnabled(bool enabled);
     [[nodiscard]] bool isForesightEnabled() const { return m_foresight.isEnabled(); }
     void setForesightDwellMs(int ms);
-    void setForesightDoubleZoom(bool on);
-    [[nodiscard]] bool isForesightDoubleZoom() const { return m_foresightDoubleZoom; }
+    void setForesightSecondZoom(bool on);
+    [[nodiscard]] bool isForesightSecondZoom() const { return m_ForesightSecondZoom; }
 
     void onBackgroundGaze(const GazePoint& point, bool overUi);
     void onGaze(const GazePoint& point);
@@ -209,7 +209,7 @@ private:
     bool m_magPickEnabled = false;
     bool m_magPickCenterOnDwell = true;
     bool m_magPickFullScreen = false;
-    bool m_foresightDoubleZoom = false;
+    bool m_ForesightSecondZoom = false;
     double m_pickZoom = 4.0;
     int m_pickWindowPx = 880;
     bool m_pickWindowRound = false;

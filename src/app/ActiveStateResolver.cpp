@@ -87,8 +87,8 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
     if (key == QLatin1String("mouseMoveForesight")) {
         return ctx.settings && ctx.settings->mouseMoveForesight;
     }
-    if (key == QLatin1String("mouseMoveForesightDoubleZoom")) {
-        return ctx.settings && ctx.settings->mouseMoveForesightDoubleZoom;
+    if (key == QLatin1String("mouseMoveForesightSecondZoom")) {
+        return ctx.settings && ctx.settings->mouseMoveForesightSecondZoom;
     }
     if (key == QLatin1String("magnifier")) {
         return ctx.magnifier && ctx.magnifier->isEnabledLens();

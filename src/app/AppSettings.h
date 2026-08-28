@@ -39,7 +39,7 @@ struct AppSettings {
     int mouseMoveForesightDwellMs = 400;
     /// When foresight and pre-click zoom both apply: a second zoom inside the
     /// foresight region. Off = place the cursor if the pick is inside foresight.
-    bool mouseMoveForesightDoubleZoom = false;
+    bool mouseMoveForesightSecondZoom = false;
 
     // --- Progress visuals (boards + mouse-move) ---
     bool progressRadial = true;

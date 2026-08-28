@@ -56,7 +56,7 @@ When adding a command: register it, add a row here, and list every alias in the 
 | `toggleMouseMoveMagPickCenter` | Mag-pick center on dwell vs screen |
 | `toggleMouseMoveMagPickFullScreen` | Mag-pick full-screen zoom |
 | `toggleMouseMoveForesight` | Foresight on/off |
-| `toggleMouseMoveForesightDoubleZoom` | Second zoom inside foresight |
+| `toggleMouseMoveForesightSecondZoom` | Second zoom inside foresight |
 
 ## Input / loops (`GazerServices.cpp`)
 

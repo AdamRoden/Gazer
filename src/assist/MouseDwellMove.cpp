@@ -75,7 +75,7 @@ bool MouseDwellMove::armWantsForesight() const
 
 bool MouseDwellMove::armWantsBonusZoom() const
 {
-    return m_armZoom.wantsBonus(m_foresightDoubleZoom);
+    return m_armZoom.wantsBonus(m_ForesightSecondZoom);
 }
 
 bool MouseDwellMove::useMagPickThisArm() const
@@ -328,9 +328,9 @@ void MouseDwellMove::setForesightDwellMs(int ms)
     m_foresight.setDwellMs(ms);
 }
 
-void MouseDwellMove::setForesightDoubleZoom(bool on)
+void MouseDwellMove::setForesightSecondZoom(bool on)
 {
-    m_foresightDoubleZoom = on;
+    m_ForesightSecondZoom = on;
 }
 
 void MouseDwellMove::resetDwell()
