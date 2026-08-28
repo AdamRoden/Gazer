@@ -9,7 +9,7 @@
   3. Builds an MSI with WiX Toolset CLI v7.
 
 .PARAMETER Version
-  MSI ProductVersion (major.minor.patch, each 0-65535). Default: from CMakeLists or 0.4.0
+  MSI ProductVersion (major.minor.patch, each 0-65535). Default: from CMakeLists or 0.5.0
 
 .PARAMETER Configuration
   CMake build type. Default: Release
@@ -22,7 +22,7 @@
 
 .EXAMPLE
   .\scripts\build-msi.ps1
-  .\scripts\build-msi.ps1 -Version 0.4.1 -SkipBuild
+  .\scripts\build-msi.ps1 -Version 0.5.1 -SkipBuild
 #>
 [CmdletBinding()]
 param(
@@ -85,7 +85,7 @@ if (-not $Version) {
     if ($cm -match 'project\s*\(\s*Gazer\s+VERSION\s+([0-9]+\.[0-9]+\.[0-9]+)') {
         $Version = $Matches[1]
     } else {
-        $Version = "0.4.0"
+        $Version = "0.5.0"
     }
 }
 if ($Version -notmatch '^\d+\.\d+\.\d+(\.\d+)?$') {

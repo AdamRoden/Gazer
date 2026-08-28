@@ -65,7 +65,7 @@ int main(int argc, char* argv[])
     QApplication qapp(argc, argv);
     QApplication::setApplicationName(QStringLiteral("Gazer"));
     QApplication::setOrganizationName(QStringLiteral("Gazer"));
-    QApplication::setApplicationVersion(QStringLiteral("0.4.0"));
+    QApplication::setApplicationVersion(QStringLiteral("0.5.0"));
     // Tray owns lifetime; closing the preview must not quit.
     QApplication::setQuitOnLastWindowClosed(false);
 

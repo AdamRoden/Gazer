@@ -3,7 +3,7 @@
   Gazer beta MSI (WiX v5+ / CLI v7).
 
   Build via scripts/build-msi.ps1 (stages payload, then):
-    wix build -acceptEula wix7 -ext WixToolset.UI.wixext -bindpath Payload=... packaging\Gazer.wxs -d Version=0.4.0 -o dist\Gazer-0.4.0-beta.msi
+    wix build -acceptEula wix7 -ext WixToolset.UI.wixext -bindpath Payload=... packaging\Gazer.wxs -d Version=0.5.0 -o dist\Gazer-0.5.0-beta.msi
 -->
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
      xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
