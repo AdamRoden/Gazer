@@ -54,6 +54,7 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
             ArmPurpose purpose;
         } kArm[] = {
             {"mouseDwellMove", ArmPurpose::CursorMove},
+            {"mouseMoveToGaze", ArmPurpose::CursorMove},
             {"leftClickAtGaze", ArmPurpose::CursorMoveLeftClick},
             {"mouseMoveAndLeftClick", ArmPurpose::CursorMoveLeftClick},
             {"rightClickAtGaze", ArmPurpose::CursorMoveRightClick},

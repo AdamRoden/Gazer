@@ -48,11 +48,6 @@ MouseDwellMove::ArmZoom armZoomFrom(const PageAction& a)
     return MouseDwellMove::ArmZoom::settings();
 }
 
-void armMagPick(GazerServices& svc, MouseDwellMove::ArmPurpose purpose, const PageAction& a)
-{
-    svc.mouseDwellMove().setArmed(true, purpose, armZoomFrom(a));
-}
-
 } // namespace
 
 ActionDispatcher::ActionDispatcher(GazerServices& services, QObject* parent)
@@ -90,11 +85,6 @@ bool ActionDispatcher::dispatchClick(const PageAction& a, QString* error)
         m_svc.mouseAssist().markReleased(btn);
     }
     return ok;
-}
-
-bool ActionDispatcher::moveToGaze(QString* error)
-{
-    return m_svc.commands().run({QStringLiteral("mouseMoveToGaze"), {}}, error);
 }
 
 void ActionDispatcher::dispatchPage(const QVector<PageAction>& actions, const QString& sourcePageId,
@@ -158,12 +148,9 @@ void ActionDispatcher::dispatchPage(const QVector<PageAction>& actions, const QS
             QString err;
             bool ok = true;
             if (a.moveMode == PageMoveMode::Gaze) {
-                if (a.zoomMode == PageZoomMode::Off) {
-                    ok = moveToGaze(&err);
-                } else {
-                    armMagPick(m_svc, MouseDwellMove::ArmPurpose::CursorMove, a);
-                    break;
-                }
+                m_svc.mouseDwellMove().toggleArmed(MouseDwellMove::ArmPurpose::CursorMove,
+                                                   armZoomFrom(a));
+                break;
             } else if (a.moveMode == PageMoveMode::Direction) {
                 const int amount =
                     a.moveAmount >= 0 ? a.moveAmount : m_svc.mouseAssist().moveAmountPx();
@@ -188,24 +175,7 @@ void ActionDispatcher::dispatchPage(const QVector<PageAction>& actions, const QS
             break;
         }
         case PageActionType::MoveAndClick: {
-            QString err;
-            if (a.zoomMode == PageZoomMode::Off) {
-                if (!moveToGaze(&err)) {
-                    notify(err.isEmpty() ? QStringLiteral("MoveAndClick failed") : err);
-                    break;
-                }
-                if (!dispatchClick(a, &err)) {
-                    notify(err.isEmpty() ? QStringLiteral("MoveAndClick failed") : err);
-                }
-                break;
-            }
-            const MouseDwellMove::ArmPurpose purpose = clickPurpose(a.button);
-            if (m_svc.mouseDwellMove().isArmed()
-                && m_svc.mouseDwellMove().armPurpose() == purpose) {
-                m_svc.mouseDwellMove().setArmed(false);
-                break;
-            }
-            armMagPick(m_svc, purpose, a);
+            m_svc.mouseDwellMove().toggleArmed(clickPurpose(a.button), armZoomFrom(a));
             break;
         }
         case PageActionType::Ahk: {

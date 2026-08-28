@@ -22,6 +22,7 @@ When adding a command: register it, add a row here, and list every alias in the 
 | `leftClick` | `mouseLeftClick` |
 | `rightClick` | `mouseRightClick` |
 | `middleClick` | `mouseMiddleClick` |
+| `mouseDwellMove` | `mouseMoveToGaze` |
 | `openPage` / `loadPage` | script aliases `openLayout` / `loadLayout` (`ScriptHost`, not CommandRegistry) |
 
 `toggleDwellSuspend` / `suspendDwell` / `resumeDwell` are **not** aliases (different handlers).
@@ -49,7 +50,7 @@ When adding a command: register it, add a row here, and list every alias in the 
 | `toggleGazeReticle` | Gaze marker (exclusive with magnifier) |
 | `toggleGazeMouseFollow` | Cursor follows gaze |
 | `toggleComboMouse` | Arm ComboMouse place, or disable |
-| `mouseDwellMove` | Toggle dwell-to-warp cursor |
+| `mouseDwellMove` (alias above) | Toggle dwell-to-warp cursor |
 | `mouseDwellClickLoop` | Sticky dwell-move then click |
 | `leftClickAtGaze` (alias above) | Dwell-move then one click |
 | `toggleMouseMoveMagPick` | Settings: magnify pick |
@@ -66,7 +67,6 @@ Builtins **shadow** mapping keys of the same name (`leftCtrl` in `default.json` 
 |---------|------|
 | `leftCtrl` / `rightCtrl` / `leftAlt` / `rightAlt` / `leftWin` / `rightWin` / `leftShift` / `rightShift` | Modifier cycle (Up → Down → LockedDown) |
 | `releaseModifiers` | Release all modifiers |
-| `mouseMoveToGaze` | Warp cursor to last valid gaze |
 | `leftClick` (alias above) | Click at cursor |
 | `stopAllActionLoops` | Stop sticky series, click-loop, holds, modifiers |
 

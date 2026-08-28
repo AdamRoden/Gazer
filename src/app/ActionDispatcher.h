@@ -25,7 +25,6 @@ signals:
 
 private:
     [[nodiscard]] bool dispatchClick(const PageAction& a, QString* error);
-    [[nodiscard]] bool moveToGaze(QString* error);
 
     GazerServices& m_svc;
 };

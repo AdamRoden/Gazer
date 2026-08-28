@@ -148,7 +148,6 @@ Builtins first; unknown names fall through to the mapping profile. Full catalog 
 | `toggleGazeMouseFollow` | Cursor follows gaze |
 | `mouseDwellMove` | Dwell to place the cursor |
 | `mouseDwellClickLoop` | Sticky dwell-move then click |
-| `mouseMoveToGaze` | Jump cursor to last valid gaze |
 | `leftClick` / `rightClick` / `middleClick` | Click at cursor |
 | `leftClickAtGaze` / `rightClickAtGaze` / `middleClickAtGaze` | Dwell-move then click |
 | `stopAllActionLoops` | Stop sticky series and assist loops |

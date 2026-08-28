@@ -431,19 +431,6 @@ void GazerServices::registerDomainCommands()
     m_commands->registerBuiltin(QStringLiteral("releaseModifiers"),
                                  [this](QString* error) { return m_keyState->releaseAll(error); });
 
-    m_commands->registerBuiltin(QStringLiteral("mouseMoveToGaze"), [this](QString* error) {
-        if (!m_lastGaze.valid) {
-            if (error) {
-                *error = QStringLiteral("No valid gaze sample");
-            }
-            return false;
-        }
-        InputOutput o;
-        o.type = InputOutput::Type::MouseMoveTo;
-        o.dx = qRound(m_lastGaze.x);
-        o.dy = qRound(m_lastGaze.y);
-        return m_input->execute(o, error);
-    });
     auto clickAtCursor = [this](const QString& button) {
         return [this, button](QString* error) {
             InputOutput o;

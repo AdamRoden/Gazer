@@ -2,7 +2,6 @@
 
 #include "app/ActiveStateResolver.h"
 #include "app/AppSettings.h"
-#include "core/GazePoint.h"
 #include "layout/PageTypes.h"
 
 #include <QObject>
@@ -71,10 +70,6 @@ public:
     AssistSession& assistSession() { return *m_assistSession; }
     ActionLoopService& actionLoops() { return *m_actionLoops; }
 
-    /// Last valid gaze sample (for mouseMoveToGaze command / loops).
-    void setLastGaze(const GazePoint& g) { m_lastGaze = g; }
-    [[nodiscard]] GazePoint lastGaze() const { return m_lastGaze; }
-
     SettingsUi& settingsUi() { return *m_settingsUi; }
     AppSettings& settings() { return m_settings; }
     [[nodiscard]] const AppSettings& settings() const { return m_settings; }
@@ -119,7 +114,6 @@ private:
     std::unique_ptr<AssistCommandContext> m_assistCmdCtx;
     std::unique_ptr<SettingsUi> m_settingsUi;
     AppSettings m_settings;
-    GazePoint m_lastGaze;
 };
 
 } // namespace gazer

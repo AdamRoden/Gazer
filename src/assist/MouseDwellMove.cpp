@@ -139,9 +139,18 @@ void MouseDwellMove::setArmed(bool armed, ArmPurpose purpose, ArmZoom zoom)
     emit armedChanged(m_armed);
 }
 
-void MouseDwellMove::toggle()
+void MouseDwellMove::toggleArmed(ArmPurpose purpose)
 {
-    setArmed(!m_armed, ArmPurpose::CursorMove);
+    toggleArmed(purpose, ArmZoom::settings());
+}
+
+void MouseDwellMove::toggleArmed(ArmPurpose purpose, ArmZoom zoom)
+{
+    if (m_armed && m_purpose == purpose) {
+        setArmed(false);
+        return;
+    }
+    setArmed(true, purpose, zoom);
 }
 
 void MouseDwellMove::gateUntilGazeLeaves(const QRect& screenRect)

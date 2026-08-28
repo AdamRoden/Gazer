@@ -338,9 +338,6 @@ void Application::wireTracker()
 
 void Application::onGaze(const gazer::GazePoint& point)
 {
-    if (point.valid) {
-        m_svc->setLastGaze(point);
-    }
     // Commit / follow color sliders before board dwell so leaving a slider can
     // activate minus/plus on the same sample.
     m_svc->settingsUi().onGaze(point);

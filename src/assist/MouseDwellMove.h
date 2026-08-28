@@ -110,6 +110,8 @@ public:
 
     void setArmed(bool armed, ArmPurpose purpose = ArmPurpose::CursorMove);
     void setArmed(bool armed, ArmPurpose purpose, ArmZoom zoom);
+    void toggleArmed(ArmPurpose purpose);
+    void toggleArmed(ArmPurpose purpose, ArmZoom zoom);
     [[nodiscard]] bool isArmed() const { return m_armed; }
     [[nodiscard]] ArmPurpose armPurpose() const { return m_purpose; }
     [[nodiscard]] bool isLookToScrollPlace() const
@@ -124,8 +126,6 @@ public:
     {
         return m_armed && m_purpose == ArmPurpose::CursorMoveClickLoop;
     }
-    void toggle();
-
     void setPaused(bool paused);
     [[nodiscard]] bool isPaused() const { return m_paused; }
 

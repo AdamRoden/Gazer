@@ -283,7 +283,7 @@ void addActionFields(PropertyBinder& b, QFormLayout* form, const PageAction& act
                 });
     }
     auto zoomCombo = [&]() {
-        b.note(form, QStringLiteral("default = Settings mag-pick. 0 = no magnify (warp now). "
+        b.note(form, QStringLiteral("default = Settings mag-pick. 0 = dwell-move, no magnify. "
                                    "N = N× zoom. −1 = foresight. −2 = foresight + bonus zoom."));
         const QString z = pageActionZoomText(action);
         QStringList zs = pageActionZoomChoices();
@@ -380,6 +380,7 @@ QString friendlyCommandLabel(const QString& commandId)
         {QStringLiteral("rightClickAtGaze"), QStringLiteral("Right click at gaze")},
         {QStringLiteral("middleClickAtGaze"), QStringLiteral("Middle click at gaze")},
         {QStringLiteral("mouseDwellMove"), QStringLiteral("Dwell-move cursor")},
+        {QStringLiteral("mouseMoveToGaze"), QStringLiteral("Dwell-move cursor")},
         {QStringLiteral("toggleMagnifier"), QStringLiteral("Magnifier")},
         {QStringLiteral("toggleLookToScroll"), QStringLiteral("Look to scroll")},
         {QStringLiteral("toggleComboMouse"), QStringLiteral("ComboMouse")},

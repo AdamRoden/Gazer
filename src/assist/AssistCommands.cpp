@@ -359,8 +359,8 @@ void registerAssistCommands(AssistCommandContext& ctx)
                                   return true;
                               });
 
-    commands->registerBuiltin(QStringLiteral("mouseDwellMove"), [mouseDwell](QString*) {
-        mouseDwell->toggle();
+    commands->registerBuiltin({"mouseDwellMove", "mouseMoveToGaze"}, [mouseDwell](QString*) {
+        mouseDwell->toggleArmed(ArmPurpose::CursorMove);
         return true;
     });
     // Keep assist sticky registry in sync whenever click-loop arms/disarms
@@ -377,29 +377,19 @@ void registerAssistCommands(AssistCommandContext& ctx)
     commands->registerBuiltin(
         QStringLiteral("mouseDwellClickLoop"),
         [mouseDwell, refresh, notify](QString*) {
-            using Purpose = MouseDwellMove::ArmPurpose;
-            if (mouseDwell->isArmed()
-                && mouseDwell->armPurpose() == Purpose::CursorMoveClickLoop) {
-                mouseDwell->setArmed(false);
-                notify(QStringLiteral("Gaze click loop OFF"));
-            } else {
-                mouseDwell->setArmed(true, Purpose::CursorMoveClickLoop);
-                notify(QStringLiteral(
-                    "Gaze click loop ON — dwell to move (mag-pick if enabled), then click"));
-            }
+            mouseDwell->toggleArmed(ArmPurpose::CursorMoveClickLoop);
+            notify(mouseDwell->isArmed()
+                       ? QStringLiteral(
+                             "Gaze click loop ON — dwell to move (mag-pick if enabled), then click")
+                       : QStringLiteral("Gaze click loop OFF"));
             refresh();
             return true;
         });
     auto toggleMoveClick = [mouseDwell, refresh, notify](ArmPurpose purpose, const QString& onMsg,
                                                          const QString& offMsg) {
         return [mouseDwell, refresh, notify, purpose, onMsg, offMsg](QString*) {
-            if (mouseDwell->isArmed() && mouseDwell->armPurpose() == purpose) {
-                mouseDwell->setArmed(false);
-                notify(offMsg);
-            } else {
-                mouseDwell->setArmed(true, purpose);
-                notify(onMsg);
-            }
+            mouseDwell->toggleArmed(purpose);
+            notify(mouseDwell->isArmed() ? onMsg : offMsg);
             refresh();
             return true;
         };

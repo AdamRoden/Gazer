@@ -106,7 +106,7 @@ A cell or zone may have **one** action attribute. Multiple actions use child ele
 |------|---------|
 | `Send` | key[, Down\|Up[, durationMs]] |
 | `LeftClick` / `MiddleClick` / `RightClick` | type: `default` / `double` / `down` / `up` / `toggle` (omit for a default click) |
-| `LeftClickAtGaze` / `MiddleClickAtGaze` / `RightClickAtGaze` | zoom: omit/`default` = Settings mag-pick; `0` = warp to gaze, no magnify; `N` = N× zoom; `-1` = foresight; `-2` = foresight with bonus zoom |
+| `LeftClickAtGaze` / `MiddleClickAtGaze` / `RightClickAtGaze` | zoom: omit/`default` = Settings mag-pick; `0` = dwell-move, no magnify; `N` = N× zoom; `-1` = foresight; `-2` = foresight with bonus zoom |
 | `MouseMoveToGaze` | same zoom tokens as click-at-gaze |
 | `MouseMoveByDirection` | `n`/`s`/`e`/`w`/`ne`/`nw`/`se`/`sw`[, amount px] — amount omitted uses the mouse-assist step |
 | `MouseMoveToPoint` | `x,y` screen coords |
