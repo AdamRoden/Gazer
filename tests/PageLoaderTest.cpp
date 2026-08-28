@@ -72,8 +72,9 @@ void PageLoaderTest::ltsSpeedLadder()
     QCOMPARE(nudgeLtsSpeed(5.0, +1), 10.0);
     QCOMPARE(nudgeLtsSpeed(5.0, -1), 1.0);
     QCOMPARE(nudgeLtsSpeed(1.0, -1), 1.0);
-    QCOMPARE(nudgeLtsSpeed(50.0, +1), 50.0);
-    QCOMPARE(nudgeLtsSpeed(20.0, +1), 50.0);
+    QCOMPARE(nudgeLtsSpeed(40.0, +1), 40.0);
+    QCOMPARE(nudgeLtsSpeed(20.0, +1), 40.0);
+    QCOMPARE(snapLtsSpeed(50.0), 40.0);
 }
 
 void PageLoaderTest::parseRowWeightsCsv()

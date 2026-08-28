@@ -130,6 +130,8 @@ public:
     [[nodiscard]] bool isPaused() const { return m_paused; }
 
     void gateUntilGazeLeaves(const QRect& screenRect);
+    /// Hold this long after gaze leaves the gate before pick dwell begins (blink grace).
+    void setGateGraceMs(int ms);
 
     void setDwellMs(int ms);
     void setFollowProfile(GazeFollowProfile profile);
@@ -218,6 +220,8 @@ private:
     int m_selectTimeoutMs = 5000;
     qint64 m_selectDeadlineMs = -1;
     QRect m_gateRect;
+    int m_gateGraceMs = 180;
+    qint64 m_gateLeftMs = -1;
 
     GazeDwellTracker m_dwell;
     QElapsedTimer m_clock;

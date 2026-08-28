@@ -1,5 +1,6 @@
 #pragma once
 
+#include "assist/ComboMouseHit.h"
 #include "assist/GazeFollowProfile.h"
 #include "assist/LtsIndicator.h"
 #include "ui/Theme.h"
@@ -79,8 +80,19 @@ struct AppSettings {
     /// Scroll rate grows by this factor each second gaze stays outside deadzone.
     double ltsAccelPerSec = 0.45;
     int ltsCenterDwellMs = 650;
-    bool ltsPlaceCursorFirst = true;
     LtsIndicator ltsIndicatorStyle = LtsIndicator::Fan;
+
+    // --- ComboMouse (inner drift annulus + outer command annulus) ---
+    /// Inner radius of the drift ring (px). Hole / deadzone.
+    int comboInnerRadiusPx = ComboMouseHit::kDefaultInnerRadiusPx;
+    /// Shared radius where the drift ring meets the command pie (px).
+    int comboSharedRadiusPx = ComboMouseHit::kDefaultSharedRadiusPx;
+    /// Outer radius of the command pie (px).
+    int comboOuterRadiusPx = ComboMouseHit::kDefaultOuterRadiusPx;
+    /// Drift-ring fill (#AARRGGBB).
+    QString comboInnerColor = ComboMouseHit::kDefaultInnerFill.name(QColor::HexArgb).toUpper();
+    /// Command-slice fill (#AARRGGBB).
+    QString comboOuterColor = ComboMouseHit::kDefaultOuterFill.name(QColor::HexArgb).toUpper();
 
     // --- Session ---
     bool autoCollapseMain = true;

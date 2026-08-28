@@ -1,6 +1,7 @@
 #include "utils/WinOverlay.h"
 
 #include <QPointer>
+#include <QSet>
 #include <QVector>
 #include <QtMath>
 
@@ -11,8 +12,15 @@ namespace gazer {
 namespace {
 OverlayStackWatch* g_watch = nullptr;
 QWindow* g_stackHost = nullptr;
-QVector<QPointer<QWindow>> g_overlays;
 int g_passDepth = 0;
+bool g_restacking = false;
+
+struct OverlayEntry {
+    QPointer<QWindow> window;
+    OverlayLayer layer = OverlayLayer::Assist;
+};
+
+QVector<OverlayEntry> g_overlays;
 #ifdef Q_OS_WIN
 HWND g_punchedHost = nullptr;
 LONG_PTR g_punchedEx = 0;
@@ -31,12 +39,12 @@ void attachOne(QWindow* overlay)
 void pruneOverlays()
 {
     g_overlays.erase(std::remove_if(g_overlays.begin(), g_overlays.end(),
-                                    [](const QPointer<QWindow>& o) { return o.isNull(); }),
+                                    [](const OverlayEntry& e) { return e.window.isNull(); }),
                      g_overlays.end());
 }
 
 #ifdef Q_OS_WIN
-constexpr UINT kZFlags = SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE;
+constexpr UINT kZFlags = SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOOWNERZORDER;
 
 void applyExStyle(HWND hwnd, LONG_PTR ex, bool frameChanged)
 {
@@ -206,9 +214,7 @@ OverlayInputPassThrough::~OverlayInputPassThrough()
     if (g_passDepth == 0) {
         restoreHost();
         flushHitTestCache();
-        if (g_stackHost) {
-            raiseInTopmostBand(g_stackHost);
-        }
+        restackGazerBand();
     }
 #endif
 }
@@ -256,39 +262,157 @@ bool raiseInTopmostBand(QWindow* w)
 #endif
 }
 
+#ifdef Q_OS_WIN
+void ensureTopmostStyle(HWND hwnd)
+{
+    if (!hwnd) {
+        return;
+    }
+    const LONG_PTR prevEx = GetWindowLongPtr(hwnd, GWL_EXSTYLE);
+    LONG_PTR ex = prevEx;
+    ex |= WS_EX_TOPMOST | WS_EX_TOOLWINDOW;
+    ex &= ~WS_EX_APPWINDOW;
+    if (ex != prevEx) {
+        applyExStyle(hwnd, ex, /*frameChanged=*/false);
+    }
+}
+
+QVector<HWND> gazerBandBackToFront()
+{
+    QVector<HWND> out;
+    auto push = [&](QWindow* w) {
+        if (!w || !w->isVisible()) {
+            return;
+        }
+        const HWND hwnd = hwndOf(w);
+        if (hwnd && IsWindowVisible(hwnd)) {
+            out.push_back(hwnd);
+        }
+    };
+    push(g_stackHost);
+    auto appendLayer = [&](OverlayLayer layer) {
+        for (const OverlayEntry& e : g_overlays) {
+            if (e.layer == layer) {
+                push(e.window.data());
+            }
+        }
+    };
+    appendLayer(OverlayLayer::Assist);
+    appendLayer(OverlayLayer::MagPick);
+    appendLayer(OverlayLayer::Magnifier);
+    appendLayer(OverlayLayer::Reticle);
+    return out;
+}
+
+QVector<HWND> actualGazerFrontToBack(const QSet<HWND>& gazer)
+{
+    QVector<HWND> out;
+    const HWND desktop = GetDesktopWindow();
+    for (HWND h = GetWindow(desktop, GW_CHILD); h; h = GetWindow(h, GW_HWNDNEXT)) {
+        if (!IsWindowVisible(h) || !gazer.contains(h)) {
+            continue;
+        }
+        out.push_back(h);
+    }
+    return out;
+}
+
+bool gazerOrderMatches(const QVector<HWND>& backToFront)
+{
+    QSet<HWND> gazer;
+    QVector<HWND> expectedFrontToBack;
+    expectedFrontToBack.reserve(backToFront.size());
+    for (int i = backToFront.size() - 1; i >= 0; --i) {
+        expectedFrontToBack.push_back(backToFront.at(i));
+        gazer.insert(backToFront.at(i));
+    }
+    return actualGazerFrontToBack(gazer) == expectedFrontToBack;
+}
+
+bool gazerBandNeedsRestack()
+{
+    const QVector<HWND> band = gazerBandBackToFront();
+    if (band.isEmpty()) {
+        return false;
+    }
+    for (HWND hwnd : band) {
+        if (foreignWindowOccludes(hwnd)) {
+            return true;
+        }
+    }
+    return !gazerOrderMatches(band);
+}
+
+void applyGazerBandOrder()
+{
+    const QVector<HWND> band = gazerBandBackToFront();
+    for (HWND hwnd : band) {
+        ensureTopmostStyle(hwnd);
+        // HWND_TOPMOST (not HWND_TOP): reassert the topmost band so the taskbar
+        // and other TOPMOST / borderless-fullscreen apps cannot sit in front.
+        // Last raise is the front of the Gazer band. Never HWND_NOTOPMOST.
+        SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, kZFlags);
+    }
+}
+#endif
+
+void restackGazerBand()
+{
+    if (g_restacking) {
+        return;
+    }
+    pruneOverlays();
+#ifdef Q_OS_WIN
+    if (!gazerBandNeedsRestack()) {
+        return;
+    }
+    g_restacking = true;
+    applyGazerBandOrder();
+    g_restacking = false;
+#else
+    if (g_stackHost) {
+        raiseInTopmostBand(g_stackHost);
+    }
+    for (const OverlayEntry& e : g_overlays) {
+        raiseInTopmostBand(e.window.data());
+    }
+#endif
+}
+
 void setOverlayStackHost(QWindow* host)
 {
     g_stackHost = host;
     pruneOverlays();
-    for (const QPointer<QWindow>& o : g_overlays) {
-        attachOne(o);
+    for (const OverlayEntry& e : g_overlays) {
+        attachOne(e.window.data());
     }
 }
 
-void registerOverlayWindow(QWindow* overlay)
+void registerOverlayWindow(QWindow* overlay, OverlayLayer layer)
 {
     if (!overlay) {
         return;
     }
     pruneOverlays();
-    bool found = false;
-    for (const QPointer<QWindow>& o : g_overlays) {
-        if (o.data() == overlay) {
-            found = true;
-            break;
+    for (OverlayEntry& e : g_overlays) {
+        if (e.window.data() == overlay) {
+            e.layer = layer;
+            attachOne(overlay);
+            return;
         }
     }
-    if (!found) {
-        g_overlays.append(overlay);
-    }
+    OverlayEntry e;
+    e.window = overlay;
+    e.layer = layer;
+    g_overlays.append(e);
     attachOne(overlay);
 }
 
 void unregisterOverlayWindow(QWindow* overlay)
 {
     g_overlays.erase(std::remove_if(g_overlays.begin(), g_overlays.end(),
-                                    [overlay](const QPointer<QWindow>& o) {
-                                        return o.isNull() || o.data() == overlay;
+                                    [overlay](const OverlayEntry& e) {
+                                        return e.window.isNull() || e.window.data() == overlay;
                                     }),
                      g_overlays.end());
 }
@@ -297,16 +421,24 @@ OverlayStackWatch::OverlayStackWatch(std::function<void()> restack, QObject* par
     : QObject(parent)
     , m_restack(std::move(restack))
 {
-    m_debounce.setSingleShot(true);
-    m_debounce.setInterval(180);
-    QObject::connect(&m_debounce, &QTimer::timeout, this, [this]() {
+    auto fire = [this]() {
         if (m_restack) {
             m_restack();
+        } else {
+            restackGazerBand();
         }
-    });
+    };
+    m_debounce.setSingleShot(true);
+    m_debounce.setInterval(180);
+    QObject::connect(&m_debounce, &QTimer::timeout, this, fire);
+    m_poll.setInterval(300);
+    QObject::connect(&m_poll, &QTimer::timeout, this, fire);
+    m_poll.start();
     g_watch = this;
 #ifdef Q_OS_WIN
-    m_hook = SetWinEventHook(EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_FOREGROUND, nullptr,
+    // Foreground, movesize, minimize, switch — Explorer restacks Shell_TrayWnd
+    // after these. Exclusive-fullscreen still wins (OS); we reassert TOPMOST.
+    m_hook = SetWinEventHook(EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_MINIMIZEEND, nullptr,
                              &OverlayStackWatch::hookProc, 0, 0,
                              WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS);
 #endif

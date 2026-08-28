@@ -18,6 +18,7 @@ private slots:
     void overlayRectStaysOnScreen();
     void allCornersHaveFiveButtons();
     void yellowRingSnapsEightWays();
+    void radiiStayAsGiven();
 };
 
 void ComboMouseTest::deadzoneAndDriftAndOutside()
@@ -115,7 +116,7 @@ void ComboMouseTest::halfLeftKeepsFiveSlices()
     const auto L = ComboMouseHit::makeLayout(o, screen, 60, 120, 200);
     QCOMPARE(L.arcSpanDeg, 180.0);
     QCOMPARE(L.wedgeCount, ComboMouseHit::kSliceCount);
-    QVERIFY(L.pieOuter > 200.0);
+    QCOMPARE(L.pieOuter, 200.0);
 
     auto at = [&](double x, double y) { return ComboMouseHit::hit(QPointF(x, y), o, L); };
 
@@ -233,6 +234,32 @@ void ComboMouseTest::allCornersHaveFiveButtons()
             QCOMPARE(h.slice, s.slice);
         }
     }
+}
+
+void ComboMouseTest::radiiStayAsGiven()
+{
+    const QRectF screen(0, 0, 1920, 1080);
+    const auto center = ComboMouseHit::makeLayout(QPointF(960, 540), screen, 50, 110, 210);
+    QCOMPARE(center.deadzone, 50.0);
+    QCOMPARE(center.ringOuter, 110.0);
+    QCOMPARE(center.pieOuter, 210.0);
+
+    const auto edge = ComboMouseHit::makeLayout(QPointF(0, 540), screen, 50, 110, 210);
+    QCOMPARE(edge.deadzone, 50.0);
+    QCOMPARE(edge.ringOuter, 110.0);
+    QCOMPARE(edge.pieOuter, 210.0);
+
+    const auto corner = ComboMouseHit::makeLayout(QPointF(0, 0), screen, 50, 110, 210);
+    QCOMPARE(corner.deadzone, 50.0);
+    QCOMPARE(corner.ringOuter, 110.0);
+    QCOMPARE(corner.pieOuter, 210.0);
+    const auto* right = ComboMouseHit::wedgeById(corner, ComboMouseHit::Slice::Right);
+    const auto* move = ComboMouseHit::wedgeById(corner, ComboMouseHit::Slice::Move);
+    QVERIFY(right && move);
+    QCOMPARE(right->inner, 110.0);
+    QCOMPARE(right->outer, 160.0);
+    QCOMPARE(move->inner, 160.0);
+    QCOMPARE(move->outer, 210.0);
 }
 
 void ComboMouseTest::yellowRingSnapsEightWays()

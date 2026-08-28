@@ -4,6 +4,30 @@ Gaze-driven AAC and system input for Windows. C++20 / Qt 6. Live UI is one frame
 
 Do **not** start with `README.md` (user manual). Use this file, then the folder map for the task.
 
+## Live z-order (front → back)
+
+This is load-bearing. Wrong HWND stacking or paint order looks like “missing” chrome, mag covering the drawer, or flashing.
+
+**HWND band** (always `WS_EX_TOPMOST`, above the taskbar and other apps, including fullscreen). Never `HWND_NOTOPMOST` — that hop flashes the desktop. Restack only when a foreign window occludes Gazer or Gazer-internal order is wrong (`WinOverlay::restackGazerBand`). `OverlayStackWatch` hooks other-process foreground/move/minimize and polls so other apps cannot sit in front of Gazer. Exclusive-mode fullscreen can still win until it yields; we reassert TOPMOST then.
+
+| Front | HWND |
+|-------|------|
+| 1 | `GazeReticle` |
+| 2 | `MagnifierOverlay` (live lens) |
+| 3 | `MouseDwellMove` mag-pick |
+| 4 | Other assist overlays (ComboMouse, LTS ring, dwell-move cursor, dwell-suspend) |
+| 5 | Single `PageHostWindow` (all boards) |
+
+Do **not** split master chrome into a second HWND. Mag overlays stay in front of the master page.
+
+**Inside `PageHostWindow`**, front → back (paint/hit back-to-front; hit-test walks reverse). Each page is one layer (its grids and cells stay together). A cell on a buried grid does not come forward when dwelled; only the unoccluded part hit-tests.
+
+1. Zones on the main master page
+2. Grids / cells on the main master page
+3. Each open page, newest in front: that page’s zones, then its grids / cells
+
+Do not `raise()` / `HWND_TOP` an overlay on every gaze sample. `showOverlay()` is a no-op when already visible.
+
 ## Start here
 
 | Task | Open |

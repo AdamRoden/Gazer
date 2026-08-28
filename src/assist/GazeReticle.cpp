@@ -13,6 +13,7 @@ class GazeReticle::Overlay final : public OverlaySurface {
 public:
     Overlay()
     {
+        setOverlayLayer(OverlayLayer::Reticle);
         resize(156, 156);
         hide();
     }

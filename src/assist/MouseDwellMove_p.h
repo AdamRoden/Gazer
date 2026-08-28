@@ -63,7 +63,11 @@ private:
 
 class MouseDwellMove::MagPickOverlay final : public OverlaySurface {
 public:
-    MagPickOverlay() { hide(); }
+    MagPickOverlay()
+    {
+        setOverlayLayer(OverlayLayer::MagPick);
+        hide();
+    }
 
     void showCapture(const QPixmap& pm, const QRect& destGlobal, const QString& hint, bool round)
     {

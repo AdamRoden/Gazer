@@ -132,7 +132,66 @@ void PageSession::applyDwellFor(const PageTarget* t)
     m_dwell.setDwellSequence(seq);
 }
 
-bool PageSession::onGaze(const GazePoint& point)
+QTransform PageSession::hitXf() const
+{
+    return PageHit::drawerTransform(m_targets, m_drawerScale, m_gridPaints);
+}
+
+const PageTarget* PageSession::findLiveTarget(const QString& pageId, const QString& targetId) const
+{
+    if (targetId.isEmpty()) {
+        return nullptr;
+    }
+    if (const PageTarget* t = findTarget(targetId)) {
+        return t;
+    }
+    for (const PageTarget& cand : m_targets) {
+        if (cand.id == targetId && (pageId.isEmpty() || cand.pageId == pageId)) {
+            return &cand;
+        }
+    }
+    return nullptr;
+}
+
+PageSession::GazeHit PageSession::classifyGaze(const GazePoint& point) const
+{
+    GazeHit out;
+    if (!hasRoot() || !point.valid) {
+        return out;
+    }
+    const QTransform xf = hitXf();
+    const QPointF g = point.toPointF();
+    const QString engaged =
+        (m_dwell.isScanGraceComplete() && !m_hoverId.isEmpty()) ? m_hoverId : QString();
+    const PageTarget* hit = PageHit::at(m_targets, g, m_drawerScale, engaged, m_gridPaints, &xf);
+    out.target = hit;
+    if (hit) {
+        out.overBoard = true;
+        out.overMaster = hit->master;
+        out.overActivator = !m_aimActivator.isEmpty() && sessionKey(*hit) == m_aimActivator;
+    }
+    if (!out.overMaster) {
+        for (int i = m_gridPaints.size() - 1; i >= 0; --i) {
+            const PageGridPaint& gp = m_gridPaints.at(i);
+            if (!gp.master || gp.visual.isEmpty()) {
+                continue;
+            }
+            const QRectF z = PageHit::mapDrawer(gp.drawerMotion, gp.visual, xf, m_drawerScale);
+            if (PageHit::shapeContains(z, gp.chrome, g)) {
+                out.overMaster = true;
+                out.overBoard = true;
+                break;
+            }
+        }
+    }
+    if (!out.overBoard) {
+        out.overBoard =
+            !PageHit::coveringPageId(m_gridPaints, g, m_drawerScale, m_targets, &xf).isEmpty();
+    }
+    return out;
+}
+
+bool PageSession::feedGaze(const GazePoint& point, const GazeHit& classified, GazeScope scope)
 {
     if (!hasRoot()) {
         return false;
@@ -144,14 +203,17 @@ bool PageSession::onGaze(const GazePoint& point)
         return !m_hoverId.isEmpty();
     }
     m_lastGaze = point;
-    const QTransform* xf = m_host ? &m_host->drawerXf() : nullptr;
-    const QString engaged =
-        (m_dwell.isScanGraceComplete() && !m_hoverId.isEmpty()) ? m_hoverId : QString();
-    const PageTarget* hit = PageHit::at(m_targets, point.toPointF(), m_drawerScale, engaged,
-                                        m_gridPaints, xf);
+    const PageTarget* hit = classified.target;
+    if (scope == GazeScope::MasterAndActivator) {
+        const bool allow = (hit && hit->master) || classified.overActivator;
+        if (!allow) {
+            leaveGaze();
+            return classified.overMaster;
+        }
+    }
     if (blockedByLeaveGate(hit)) {
         leaveGaze();
-        return hitsChrome(point);
+        return classified.overBoard;
     }
     const QString id = hit ? sessionKey(*hit) : QString();
     if (hit && !m_dwellSuspended) {
@@ -167,17 +229,39 @@ bool PageSession::onGaze(const GazePoint& point)
     return hit != nullptr;
 }
 
+bool PageSession::onGaze(const GazePoint& point, GazeScope scope)
+{
+    return feedGaze(point, classifyGaze(point), scope);
+}
+
 bool PageSession::hitsChrome(const GazePoint& point) const
 {
-    if (!hasRoot() || !point.valid) {
-        return false;
+    return classifyGaze(point).overBoard;
+}
+
+QRect PageSession::targetScreenRect(const QString& pageId, const QString& targetId) const
+{
+    const PageTarget* t = findLiveTarget(pageId, targetId);
+    if (!t) {
+        return {};
     }
-    const QTransform* xf = m_host ? &m_host->drawerXf() : nullptr;
-    const QPointF g = point.toPointF();
-    if (PageHit::at(m_targets, g, m_drawerScale, {}, m_gridPaints, xf)) {
-        return true;
+    const QTransform xf = hitXf();
+    QRectF r = PageHit::gazeHitRect(*t, {});
+    r = PageHit::mapDrawer(*t, r, xf, m_drawerScale);
+    return r.toAlignedRect();
+}
+
+void PageSession::setAimActivator(const QString& pageId, const QString& targetId)
+{
+    m_aimActivator.clear();
+    if (const PageTarget* t = findLiveTarget(pageId, targetId)) {
+        m_aimActivator = sessionKey(*t);
     }
-    return !PageHit::coveringPageId(m_gridPaints, g, m_drawerScale, m_targets, xf).isEmpty();
+}
+
+void PageSession::clearAimActivator()
+{
+    m_aimActivator.clear();
 }
 
 bool PageSession::hitsPage(const QString& id, const QPointF& pos) const
@@ -185,8 +269,7 @@ bool PageSession::hitsPage(const QString& id, const QPointF& pos) const
     if (id.isEmpty()) {
         return false;
     }
-    const QTransform xf = m_host ? m_host->drawerXf()
-                                 : PageHit::drawerTransform(m_targets, m_drawerScale, m_gridPaints);
+    const QTransform xf = hitXf();
     for (const PageGridPaint& g : m_gridPaints) {
         if (g.pageId != id || g.visual.isEmpty()) {
             continue;
@@ -225,8 +308,7 @@ void PageSession::hideHost()
 QVector<QRect> PageSession::unpauseGapRects() const
 {
     QVector<QRect> gaps;
-    const QTransform xf = m_host ? m_host->drawerXf()
-                                 : PageHit::drawerTransform(m_targets, m_drawerScale, m_gridPaints);
+    const QTransform xf = hitXf();
     const QString engaged =
         (m_dwell.isScanGraceComplete() && !m_hoverId.isEmpty()) ? m_hoverId : QString();
     auto isUnpause = [](const PageTarget& t) {

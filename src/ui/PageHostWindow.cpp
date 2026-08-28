@@ -11,6 +11,7 @@
 #include <QKeyEvent>
 #include <QMouseEvent>
 #include <QPainter>
+#include <QPainterPath>
 #include <QPixmap>
 #include <QQuickPaintedItem>
 #include <QSet>
@@ -60,8 +61,37 @@ public:
             const PageBox radii =
                 m_host->m_flashRadii.isSet() ? m_host->m_flashRadii
                                              : PageBox::all(PageChrome::kDefaultRadius);
+            p->save();
+            const QHash<QString, int> stack =
+                PageHit::pageStackOrder(m_host->m_targets, m_host->m_gridPaints);
+            int flashZ = -1;
+            for (const PageTarget& t : m_host->m_targets) {
+                if (sessionKey(t) == m_host->m_flashId) {
+                    flashZ = stack.value(t.pageId, -1);
+                    break;
+                }
+            }
+            QPainterPath holes;
+            const QPoint origin = m_host->paintOrigin();
+            for (const PageGridPaint& g : m_host->m_gridPaints) {
+                if (stack.value(g.pageId, -1) <= flashZ) {
+                    continue;
+                }
+                const QRectF r = PageHit::mapDrawer(g.drawerMotion, g.visual, m_host->m_drawerXf,
+                                                    m_host->m_drawerScale)
+                                     .translated(-origin);
+                if (!r.isEmpty()) {
+                    holes.addRect(r);
+                }
+            }
+            if (!holes.isEmpty()) {
+                QPainterPath window;
+                window.addRect(boundingRect());
+                p->setClipPath(window.subtracted(holes), Qt::IntersectClip);
+            }
             BoardPaint::fillRound(*p, fr, radii, fc);
             BoardPaint::strokeRound(*p, fr, radii, fc, PageBox::all(3.5));
+            p->restore();
         }
     }
 
@@ -103,7 +133,7 @@ PageHostWindow::PageHostWindow(QWindow* parent)
     m_raiseTimer.setSingleShot(true);
     connect(&m_raiseTimer, &QTimer::timeout, this, [this]() {
         if (isVisible()) {
-            raiseInTopmostBand(this);
+            restackGazerBand();
         }
     });
     connect(&m_flashTimer, &QTimer::timeout, this, [this]() {
@@ -181,43 +211,36 @@ void PageHostWindow::paintScene(QPainter& p, ChromePass pass)
                                     locked);
         }
     };
-    auto paintPage = [&](const QString& pageId, bool shell) {
+    // Back-to-front: each page as one layer (grids + cells + zones). Attached
+    // oldest first, master last so it paints in front of every open page.
+    QStringList pageOrder;
+    auto notePage = [&](const QString& id) {
+        if (!id.isEmpty() && !pageOrder.contains(id)) {
+            pageOrder.push_back(id);
+        }
+    };
+    for (const PageTarget& t : m_targets) {
+        notePage(t.pageId);
+    }
+    for (const PageGridPaint& g : m_gridPaints) {
+        notePage(g.pageId);
+    }
+    for (const QString& pageId : pageOrder) {
         for (const PageGridPaint& g : m_gridPaints) {
-            if (g.shell == shell && g.pageId == pageId) {
+            if (g.pageId == pageId) {
                 paintGrid(g);
             }
         }
         for (const PageTarget& t : m_targets) {
-            if (t.shell == shell && t.pageId == pageId) {
+            if (t.pageId == pageId && t.kind != PageTarget::Kind::Zone) {
                 paintTarget(t);
             }
         }
-    };
-    auto note = [](QStringList& order, const QString& id, bool wantShell, bool isShell) {
-        if (wantShell != isShell || id.isEmpty() || order.contains(id)) {
-            return;
+        for (const PageTarget& t : m_targets) {
+            if (t.pageId == pageId && t.kind == PageTarget::Kind::Zone) {
+                paintTarget(t);
+            }
         }
-        order.push_back(id);
-    };
-    QStringList pageOrder;
-    for (const PageGridPaint& g : m_gridPaints) {
-        note(pageOrder, g.pageId, false, g.shell);
-    }
-    for (const PageTarget& t : m_targets) {
-        note(pageOrder, t.pageId, false, t.shell);
-    }
-    for (const QString& pid : pageOrder) {
-        paintPage(pid, false);
-    }
-    QStringList shellOrder;
-    for (const PageGridPaint& g : m_gridPaints) {
-        note(shellOrder, g.pageId, true, g.shell);
-    }
-    for (const PageTarget& t : m_targets) {
-        note(shellOrder, t.pageId, true, t.shell);
-    }
-    for (const QString& pid : shellOrder) {
-        paintPage(pid, true);
     }
 }
 
@@ -520,9 +543,8 @@ void PageHostWindow::applyChrome()
     applyOverlayWindowChrome(this, /*excludeFromCapture=*/false);
     applyInputFocusChrome();
     setOverlayStackHost(this);
-    raiseInTopmostBand(this);
-    // Explorer restacks Shell_TrayWnd after a show; HWND_TOP again if it landed on us.
-    // Owned overlays stay above this window.
+    restackGazerBand();
+    // Explorer restacks Shell_TrayWnd after a show; reassert the band if it landed on us.
     m_raiseTimer.start(180);
 }
 
@@ -539,21 +561,19 @@ void PageHostWindow::raiseHost()
         showHost();
         return;
     }
-    raiseInTopmostBand(this);
+    restackGazerBand();
     m_raiseTimer.start(180);
 }
 
 QString PageHostWindow::mouseHit(const QPointF& global) const
 {
     const QTransform& xf = m_drawerXf;
-    const QString cover =
-        PageHit::coveringPageId(m_gridPaints, global, m_drawerScale, m_targets, &xf);
+    const PageGridPaint* cover =
+        PageHit::coveringGrid(m_gridPaints, global, m_drawerScale, m_targets, &xf);
+    const QHash<QString, int> stack = PageHit::pageStackOrder(m_targets, m_gridPaints);
     for (int i = m_targets.size() - 1; i >= 0; --i) {
         const PageTarget& t = m_targets.at(i);
-        if (!t.interactive) {
-            continue;
-        }
-        if (!cover.isEmpty() && !t.shell && t.pageId != cover) {
+        if (!t.interactive || PageHit::buriedByCover(t, cover, stack)) {
             continue;
         }
         const QString key = sessionKey(t);

@@ -3,7 +3,7 @@
   <Style id="row" background="#00000000" thickness="1" radius="6"/>
   <Style id="plain" background="#00000000" thickness="0" radius="0"/>
   <Style id="join" background="#00000000" thickness="0" radius="0"/>
-  <Grid id="board" desktopMode="true" rows="12" columns="16" anchor="Top" offset="0,0" size="A_ScreenHeight/9*16, A_ScreenHeight" gap="6" margin="12" thickness="1" radius="4">
+  <Grid id="board" desktopMode="true" rows="17" columns="16" anchor="Top" offset="0,0" size="A_ScreenHeight/9*16, A_ScreenHeight" gap="6" margin="12" thickness="1" radius="4">
     <SubGrid id="tabs" row="0" col="0" colSpan="16" rows="1" columns="6" gap="6">
       <Cell id="tab_buttons" row="0" col="0" label="Button" role="tab">
         <ClosePage value="-self"/>
@@ -76,11 +76,46 @@
       </SubGrid>
     </SubGrid>
 
-    <SubGrid id="sec_combo" row="10" col="0" colSpan="16" rowSpan="2" rows="2" columns="1" rowWeights="1,2" gap="6" margin="6" style="group">
+    <SubGrid id="sec_combo" row="10" col="0" colSpan="16" rowSpan="7" rows="7" columns="1" rowWeights="1,2,2,2,2,2,2" gap="6" margin="6" style="group">
       <Cell id="h_combo" row="0" col="0" label="ComboMouse" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_combo_on" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="combo_l" row="0" col="0" label="ComboMouse" caption="Dwell to place, then drift and click from the pie." role="label" style="plain"/>
         <Cell id="combo_on" row="0" col="1" label="Toggle" icon="PieSlice5" role="toggle" activeState="comboMouse" command="toggleComboMouse"/>
+      </SubGrid>
+      <SubGrid id="row_combo_inner" row="2" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="ci_l" row="0" col="0" label="Inner radius" caption="Inner edge of the drift ring (px)." role="label" style="plain"/>
+        <SubGrid id="act_ci" row="0" col="1" rows="1" columns="7" gap="0" style="row">
+          <Cell id="ci_dec" row="0" col="0" label="−" style="join" command="settings.nudge.comboInnerRadiusPx.dec"/>
+          <Cell id="ci_val" row="0" col="1" colSpan="3" label="—" role="value" settingKey="comboInnerRadiusPx" style="join"/>
+          <Cell id="ci_inc" row="0" col="4" label="+" style="join" command="settings.nudge.comboInnerRadiusPx.inc"/>
+          <Cell id="ci_edit" row="0" col="5" colSpan="2" label="Edit…" style="join" command="settings.edit.comboInnerRadiusPx"/>
+        </SubGrid>
+      </SubGrid>
+      <SubGrid id="row_combo_shared" row="3" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="cs_l" row="0" col="0" label="Shared radius" caption="Where the drift ring meets the command pie (px)." role="label" style="plain"/>
+        <SubGrid id="act_cs" row="0" col="1" rows="1" columns="7" gap="0" style="row">
+          <Cell id="cs_dec" row="0" col="0" label="−" style="join" command="settings.nudge.comboSharedRadiusPx.dec"/>
+          <Cell id="cs_val" row="0" col="1" colSpan="3" label="—" role="value" settingKey="comboSharedRadiusPx" style="join"/>
+          <Cell id="cs_inc" row="0" col="4" label="+" style="join" command="settings.nudge.comboSharedRadiusPx.inc"/>
+          <Cell id="cs_edit" row="0" col="5" colSpan="2" label="Edit…" style="join" command="settings.edit.comboSharedRadiusPx"/>
+        </SubGrid>
+      </SubGrid>
+      <SubGrid id="row_combo_outer" row="4" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="co_l" row="0" col="0" label="Outer radius" caption="Outer edge of the command pie (px)." role="label" style="plain"/>
+        <SubGrid id="act_co" row="0" col="1" rows="1" columns="7" gap="0" style="row">
+          <Cell id="co_dec" row="0" col="0" label="−" style="join" command="settings.nudge.comboOuterRadiusPx.dec"/>
+          <Cell id="co_val" row="0" col="1" colSpan="3" label="—" role="value" settingKey="comboOuterRadiusPx" style="join"/>
+          <Cell id="co_inc" row="0" col="4" label="+" style="join" command="settings.nudge.comboOuterRadiusPx.inc"/>
+          <Cell id="co_edit" row="0" col="5" colSpan="2" label="Edit…" style="join" command="settings.edit.comboOuterRadiusPx"/>
+        </SubGrid>
+      </SubGrid>
+      <SubGrid id="row_combo_inner_c" row="5" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="cic_l" row="0" col="0" label="Inner ring" caption="Color and opacity of the drift ring." role="label" style="plain"/>
+        <Cell id="cic_sw" row="0" col="1" label="Inner color" settingKey="comboInnerColor" command="settings.edit.color.comboInnerColor"/>
+      </SubGrid>
+      <SubGrid id="row_combo_outer_c" row="6" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="coc_l" row="0" col="0" label="Outer ring" caption="Color and opacity of the command slices." role="label" style="plain"/>
+        <Cell id="coc_sw" row="0" col="1" label="Outer color" settingKey="comboOuterColor" command="settings.edit.color.comboOuterColor"/>
       </SubGrid>
     </SubGrid>
   </Grid>

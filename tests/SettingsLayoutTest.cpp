@@ -2,6 +2,7 @@
 #include "layout/PageHit.h"
 #include "layout/PageLoader.h"
 
+#include <QFile>
 #include <QStringList>
 #include <QtTest>
 
@@ -30,6 +31,7 @@ private slots:
     void timingSectionUsesRowWeights();
     void stepperWidths();
     void valueLabelKeepsKey();
+    void ltsHasNoMaxSpeedOrPlaceCursor();
 };
 
 void SettingsLayoutTest::pagesAnchorTop()
@@ -140,6 +142,18 @@ void SettingsLayoutTest::valueLabelKeepsKey()
     QVERIFY(val);
     QCOMPARE(val->role, QStringLiteral("value"));
     QCOMPARE(val->settingKey, QStringLiteral("dwellGraceMs"));
+}
+
+void SettingsLayoutTest::ltsHasNoMaxSpeedOrPlaceCursor()
+{
+    QFile f(QStringLiteral(GAZER_SOURCE_DIR)
+            + QStringLiteral("/resources/layouts/main_settings_lts.xml"));
+    QVERIFY(f.open(QIODevice::ReadOnly | QIODevice::Text));
+    const QByteArray xml = f.readAll();
+    QVERIFY(!xml.contains("ltsMaxNotchesPerSec"));
+    QVERIFY(!xml.contains("lts.placeCursor"));
+    QVERIFY(!xml.contains("Place cursor first"));
+    QVERIFY(!xml.contains("ltsPlaceCursorFirst"));
 }
 
 QObject* createSettingsLayoutTest()

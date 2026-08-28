@@ -63,7 +63,9 @@ public:
     [[nodiscard]] const QVector<PageTarget>& targets() const { return m_targets; }
     [[nodiscard]] const QVector<PageGridPaint>& gridPaints() const { return m_gridPaints; }
     [[nodiscard]] double drawerScale() const { return m_drawerScale; }
-    /// Attach or refresh an in-memory page. decorate=true runs the session decorator.
+    /// Attach or replace an in-memory page. decorate=true runs the session decorator.
+    /// A new page, or restack of a buried one, resets dwell and arms leave-gate.
+    /// Replacing the already-top page is a live refresh: dwell sequence continues.
     [[nodiscard]] bool attachDocument(PageDocument doc, QString* error = nullptr,
                                       bool decorate = false);
     void registerMemoryPage(PageDocument doc);
@@ -100,9 +102,29 @@ public:
                   const QString& sourceTargetId, QString* error = nullptr);
     [[nodiscard]] bool goBack(QString* error = nullptr);
 
-    [[nodiscard]] bool onGaze(const GazePoint& point);
+    /// All boards, or only the master page plus the cell that armed mouse-dwell-move.
+    enum class GazeScope { All, MasterAndActivator };
+
+    /// One hit-test. `target` is valid until the next rebuild.
+    struct GazeHit {
+        const PageTarget* target = nullptr;
+        bool overBoard = false;
+        bool overMaster = false;
+        bool overActivator = false;
+    };
+
+    [[nodiscard]] GazeHit classifyGaze(const GazePoint& point) const;
+    /// Apply dwell using a prior `classifyGaze` result (no second hit-test).
+    bool feedGaze(const GazePoint& point, const GazeHit& classified,
+                  GazeScope scope = GazeScope::All);
+    [[nodiscard]] bool onGaze(const GazePoint& point, GazeScope scope = GazeScope::All);
     /// Hit-test only: true if gaze is over a board/cell/zone (does not run dwell).
     [[nodiscard]] bool hitsChrome(const GazePoint& point) const;
+    /// Screen rect of a live target (page id + cell/zone id, or a session key).
+    [[nodiscard]] QRect targetScreenRect(const QString& pageId, const QString& targetId) const;
+    /// Cell that armed mouse-dwell-move; still dwellable so the action can be cancelled.
+    void setAimActivator(const QString& pageId, const QString& targetId);
+    void clearAimActivator();
     /// True if @p pos is inside a painted grid of page @p id (including shell grids).
     [[nodiscard]] bool hitsPage(const QString& id, const QPointF& pos) const;
     void leaveGaze();
@@ -125,10 +147,13 @@ private:
     [[nodiscard]] RootChrome chromeForSlot(PageRootSlot slot) const;
     [[nodiscard]] QSet<QString> hiddenRootGrids() const;
     [[nodiscard]] const PageTarget* findTarget(const QString& id) const;
+    [[nodiscard]] const PageTarget* findLiveTarget(const QString& pageId,
+                                                   const QString& targetId) const;
     [[nodiscard]] QString xmlPathFor(const QString& id) const;
-    void ingest(const PageDocument& doc, const QSet<QString>& hiddenGrids, QVector<PageTarget>& rest,
-                QVector<PageTarget>& shellLayer, QVector<PageGridPaint>& restGrids,
-                QVector<PageGridPaint>& shellGrids);
+    void ingest(const PageDocument& doc, const QSet<QString>& hiddenGrids, bool isMaster,
+                QVector<PageTarget>& targets, QVector<PageGridPaint>& gridPaints);
+    void ensureHost();
+    [[nodiscard]] QTransform hitXf() const;
     void armLeaveGate(const QString& pageId);
     void clearLeaveGate();
     [[nodiscard]] bool blockedByLeaveGate(const PageTarget* hit);
@@ -200,6 +225,7 @@ private:
     GazePoint m_lastGaze;
     QString m_leaveGatePage;
     QString m_leaveGateKey;
+    QString m_aimActivator;
 
     RootChrome m_chrome = RootChrome::Docked;
     QTimer m_drawerTimer;

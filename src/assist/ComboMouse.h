@@ -3,7 +3,6 @@
 #include "assist/ComboMouseHit.h"
 #include "core/GazePoint.h"
 #include "layout/DwellStateMachine.h"
-#include "ui/OverlaySurface.h"
 #include "ui/ProgressVisuals.h"
 #include "ui/Theme.h"
 
@@ -12,6 +11,7 @@
 #include <QObject>
 #include <QPoint>
 #include <QPointF>
+#include <QRect>
 #include <QRectF>
 #include <QString>
 #include <QVector>
@@ -20,7 +20,7 @@
 
 namespace gazer {
 
-/// Gaze pie HUD: dwell to place, then deadzone / yellow drift ring / command slices.
+/// Gaze pie HUD: dwell to place, then deadzone / inner drift annulus / outer command annulus.
 class ComboMouse final : public QObject {
     Q_OBJECT
 
@@ -35,8 +35,6 @@ public:
     [[nodiscard]] bool isEnabled() const { return m_enabled; }
     [[nodiscard]] bool isWheelVisible() const { return m_wheelVisible; }
     [[nodiscard]] bool isDragHeld() const;
-    [[nodiscard]] OverlaySurface* overlay() const;
-
     void setHoldFn(HoldFn fn) { m_hold = std::move(fn); }
     void setHeldQuery(HeldQuery q) { m_heldQuery = std::move(q); }
     void setScanGraceMs(int ms);
@@ -46,8 +44,12 @@ public:
     void setAccent(const QColor& c);
     void setTheme(const ThemeColors& theme) { m_theme = theme; }
     void setProgressVisuals(const ProgressVisuals& v) { m_progress = v; }
+    void setRadii(int innerPx, int sharedPx, int outerPx);
+    void setAnnulusColors(const QColor& inner, const QColor& outer);
     void setPaused(bool paused);
 
+    /// Screen rect around the last origin (used to gate place-cursor after Move).
+    [[nodiscard]] QRect originGateRect() const;
     /// Show the wheel at @p pos (after a place dwell). Pins the OS cursor to the hole.
     void showAt(const QPoint& pos);
     /// Hide the wheel and ask the host to re-arm place-cursor (Move slice).
@@ -88,6 +90,13 @@ private:
     bool m_paused = false;
     QPoint m_origin;
     ComboMouseHit::Layout m_layout;
+    ComboMouseHit::Band m_band = ComboMouseHit::Band::Deadzone;
+    ComboMouseHit::Slice m_slice = ComboMouseHit::Slice::Right;
+    double m_innerPx = ComboMouseHit::kHoleRadiusPx;
+    double m_sharedPx = ComboMouseHit::kRingOuterPx;
+    double m_outerPx = ComboMouseHit::kPieOuterPx;
+    QColor m_innerColor = ComboMouseHit::kDefaultInnerFill;
+    QColor m_outerColor = ComboMouseHit::kDefaultOuterFill;
     QColor m_accent;
     ThemeColors m_theme = ThemeColors::darkPreset();
     ProgressVisuals m_progress;

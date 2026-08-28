@@ -48,6 +48,7 @@ public:
 
     static constexpr const char* kColorKeys[] = {
         "progressColor",      "progressFillColor",   "progressBorderColor", "flashColor",
+        "comboInnerColor",    "comboOuterColor",
         "customBgColor",      "customPrimaryColor",  "customSecondaryColor", "customTertiaryColor",
         "customSurfaceColor", "customTextColor",     "customDangerColor"};
 

@@ -45,6 +45,11 @@ private slots:
     void frostedBoundsUsesRestPose();
     void reservedBoundsKeepsHiddenGrids();
     void desktopModeUsesDesktop();
+    void masterZonesBeatOpenGrids();
+    void masterGridCoversOpenTargets();
+    void frontPageGridOccludesBackPage();
+    void visibleCellRemainderHits();
+    void engagedHullDoesNotPierceCover();
 };
 
 void PageHitTest::roundedBoxFitsSemicircle()
@@ -395,6 +400,153 @@ void PageHitTest::desktopModeUsesDesktop()
     QCOMPARE(board.width(), 1040.0 * 16.0 / 9.0);
     QCOMPARE(board.top(), frame.desktop.top());
     QVERIFY(board.bottom() <= frame.desktop.bottom() + 0.51);
+}
+
+namespace {
+
+PageTarget hitCell(bool master, PageTarget::Kind kind, const QString& id, const QString& pageId)
+{
+    PageTarget t;
+    t.kind = kind;
+    t.interactive = true;
+    t.master = master;
+    t.pageId = pageId;
+    t.id = id;
+    t.geom.dwellZone = QRectF(0, 0, 100, 100);
+    t.geom.progressZone = t.geom.dwellZone;
+    t.geom.visual = t.geom.dwellZone;
+    return t;
+}
+
+PageGridPaint hitGrid(bool master, const QString& pageId)
+{
+    PageGridPaint g;
+    g.pageId = pageId;
+    g.master = master;
+    g.visual = QRectF(0, 0, 100, 100);
+    return g;
+}
+
+} // namespace
+
+void PageHitTest::masterZonesBeatOpenGrids()
+{
+    const PageTarget openGrid = hitCell(false, PageTarget::Kind::Cell, QStringLiteral("key"),
+                                        QStringLiteral("kb"));
+    const PageTarget openZone = hitCell(false, PageTarget::Kind::Zone, QStringLiteral("openZone"),
+                                        QStringLiteral("kb"));
+    const PageTarget masterGrid = hitCell(true, PageTarget::Kind::Cell, QStringLiteral("drawer"),
+                                          QStringLiteral("main"));
+    const PageTarget masterZone = hitCell(true, PageTarget::Kind::Zone, QStringLiteral("chip"),
+                                          QStringLiteral("main"));
+
+    // One open page then master: cells, zones per page (master in front).
+    const QVector<PageTarget> backToFront{openGrid, openZone, masterGrid, masterZone};
+    QCOMPARE(PageHit::at(backToFront, QPointF(50, 50))->id, QStringLiteral("chip"));
+
+    const QVector<PageTarget> withoutMasterZone{openGrid, openZone, masterGrid};
+    QCOMPARE(PageHit::at(withoutMasterZone, QPointF(50, 50))->id, QStringLiteral("drawer"));
+
+    const QVector<PageTarget> openOnly{openGrid, openZone};
+    QCOMPARE(PageHit::at(openOnly, QPointF(50, 50))->id, QStringLiteral("openZone"));
+}
+
+void PageHitTest::masterGridCoversOpenTargets()
+{
+    const PageGridPaint openPaint = hitGrid(false, QStringLiteral("kb"));
+    const PageGridPaint masterPaint = hitGrid(true, QStringLiteral("main"));
+    const QVector<PageGridPaint> grids{openPaint, masterPaint};
+
+    const PageTarget openCell = hitCell(false, PageTarget::Kind::Cell, QStringLiteral("key"),
+                                        QStringLiteral("kb"));
+    const PageTarget openZone = hitCell(false, PageTarget::Kind::Zone, QStringLiteral("openZone"),
+                                        QStringLiteral("kb"));
+    const PageTarget masterCell = hitCell(true, PageTarget::Kind::Cell, QStringLiteral("drawer"),
+                                          QStringLiteral("main"));
+    const PageTarget masterZone = hitCell(true, PageTarget::Kind::Zone, QStringLiteral("chip"),
+                                          QStringLiteral("main"));
+
+    QCOMPARE(PageHit::coveringPageId(grids, QPointF(50, 50)), QStringLiteral("main"));
+    const QVector<PageTarget> all{openCell, openZone, masterCell, masterZone};
+    QCOMPARE(PageHit::at(all, QPointF(50, 50), 1.0, {}, grids)->id, QStringLiteral("chip"));
+
+    const QVector<PageTarget> noMasterZone{openCell, openZone, masterCell};
+    QCOMPARE(PageHit::at(noMasterZone, QPointF(50, 50), 1.0, {}, grids)->id,
+             QStringLiteral("drawer"));
+
+    const QVector<PageTarget> openOnly{openCell, openZone};
+    QVERIFY(PageHit::at(openOnly, QPointF(50, 50), 1.0, {}, grids) == nullptr);
+}
+
+void PageHitTest::frontPageGridOccludesBackPage()
+{
+    const PageGridPaint older = hitGrid(false, QStringLiteral("kb"));
+    const PageGridPaint newer = hitGrid(false, QStringLiteral("settings"));
+    const QVector<PageGridPaint> grids{older, newer};
+
+    const PageTarget olderCell = hitCell(false, PageTarget::Kind::Cell, QStringLiteral("key"),
+                                         QStringLiteral("kb"));
+    const PageTarget olderZone = hitCell(false, PageTarget::Kind::Zone, QStringLiteral("more"),
+                                         QStringLiteral("kb"));
+    const PageTarget newerCell = hitCell(false, PageTarget::Kind::Cell, QStringLiteral("row"),
+                                         QStringLiteral("settings"));
+
+    QCOMPARE(PageHit::coveringPageId(grids, QPointF(50, 50)), QStringLiteral("settings"));
+
+    // Per-page layers: kb (cells, zones) then settings. Newer grid buries older cells and zones.
+    const QVector<PageTarget> layer{olderCell, olderZone, newerCell};
+    QCOMPARE(PageHit::at(layer, QPointF(50, 50), 1.0, {}, grids)->id, QStringLiteral("row"));
+}
+
+void PageHitTest::visibleCellRemainderHits()
+{
+    PageGridPaint older = hitGrid(false, QStringLiteral("kb"));
+    older.visual = QRectF(0, 0, 100, 100);
+    PageGridPaint newer = hitGrid(false, QStringLiteral("settings"));
+    newer.visual = QRectF(50, 0, 100, 100);
+    const QVector<PageGridPaint> grids{older, newer};
+
+    PageTarget olderCell = hitCell(false, PageTarget::Kind::Cell, QStringLiteral("key"),
+                                   QStringLiteral("kb"));
+    olderCell.geom.dwellZone = QRectF(0, 0, 100, 100);
+    olderCell.geom.progressZone = olderCell.geom.dwellZone;
+    olderCell.geom.visual = olderCell.geom.dwellZone;
+    PageTarget newerCell = hitCell(false, PageTarget::Kind::Cell, QStringLiteral("row"),
+                                   QStringLiteral("settings"));
+    newerCell.geom.dwellZone = QRectF(50, 0, 100, 100);
+    newerCell.geom.progressZone = newerCell.geom.dwellZone;
+    newerCell.geom.visual = newerCell.geom.dwellZone;
+
+    const QVector<PageTarget> layer{olderCell, newerCell};
+    QCOMPARE(PageHit::at(layer, QPointF(25, 50), 1.0, {}, grids)->id, QStringLiteral("key"));
+    QCOMPARE(PageHit::at(layer, QPointF(75, 50), 1.0, {}, grids)->id, QStringLiteral("row"));
+}
+
+void PageHitTest::engagedHullDoesNotPierceCover()
+{
+    PageGridPaint older = hitGrid(false, QStringLiteral("kb"));
+    older.visual = QRectF(0, 0, 80, 80);
+    PageGridPaint newer = hitGrid(false, QStringLiteral("settings"));
+    newer.visual = QRectF(40, 0, 80, 80);
+    const QVector<PageGridPaint> grids{older, newer};
+
+    PageTarget olderZone = hitCell(false, PageTarget::Kind::Zone, QStringLiteral("more"),
+                                   QStringLiteral("kb"));
+    olderZone.geom.dwellZone = QRectF(0, 0, 80, 80);
+    olderZone.geom.progressZone = QRectF(0, 0, 120, 80);
+    olderZone.geom.visual = olderZone.geom.progressZone;
+    PageTarget newerCell = hitCell(false, PageTarget::Kind::Cell, QStringLiteral("row"),
+                                   QStringLiteral("settings"));
+    newerCell.geom.dwellZone = QRectF(40, 0, 80, 80);
+    newerCell.geom.progressZone = newerCell.geom.dwellZone;
+    newerCell.geom.visual = newerCell.geom.dwellZone;
+
+    const QVector<PageTarget> layer{olderZone, newerCell};
+    const QString engaged = sessionKey(olderZone);
+    QVERIFY(PageHit::gazeHitPolygon(olderZone, engaged).containsPoint(QPointF(100, 40),
+                                                                      Qt::WindingFill));
+    QCOMPARE(PageHit::at(layer, QPointF(100, 40), 1.0, engaged, grids)->id, QStringLiteral("row"));
+    QCOMPARE(PageHit::at(layer, QPointF(20, 40), 1.0, engaged, grids)->id, QStringLiteral("more"));
 }
 
 QObject* createPageHitTest()

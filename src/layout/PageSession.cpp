@@ -127,19 +127,27 @@ bool PageSession::openRoot(const QString& xmlPath, QString* error)
     m_drawerTimer.stop();
     m_props.insert(QStringLiteral("expanded"), false);
 
-    if (!m_host) {
-        m_host = std::make_unique<PageHostWindow>();
-        connect(m_host.get(), &PageHostWindow::targetClicked, this, [this](const QString& id) {
-            activateTarget(id);
-        });
-        m_host->setShiftHeld(m_shiftHeld);
-    }
+    ensureHost();
     m_dwell.setEnabled(true);
     rebuild();
-    m_host->showHost();
+    if (m_host) {
+        m_host->showHost();
+    }
     GAZER_INFO << "Page root opened" << m_root.id << "from" << xmlPath;
     emit sessionChanged();
     return true;
+}
+
+void PageSession::ensureHost()
+{
+    if (m_host) {
+        return;
+    }
+    m_host = std::make_unique<PageHostWindow>();
+    connect(m_host.get(), &PageHostWindow::targetClicked, this, [this](const QString& id) {
+        activateTarget(id);
+    });
+    m_host->setShiftHeld(m_shiftHeld);
 }
 
 void PageSession::setTheme(const ThemeColors& theme)
@@ -276,11 +284,16 @@ bool PageSession::attachDocument(PageDocument doc, QString* error, bool decorate
             m_attached[i].doc = std::move(doc);
             if (i != m_attached.size() - 1) {
                 m_attached.move(i, m_attached.size() - 1);
+                leaveGaze();
+                rebuild();
+                raise();
+                armLeaveGate(id);
+            } else {
+                rebuild();
+                if (!m_hoverId.isEmpty() && !findTarget(m_hoverId)) {
+                    leaveGaze();
+                }
             }
-            leaveGaze();
-            rebuild();
-            raise();
-            armLeaveGate(id);
             emit sessionChanged();
             return true;
         }
@@ -395,37 +408,33 @@ int PageSession::closeAttached()
     return n;
 }
 
-void PageSession::ingest(const PageDocument& doc, const QSet<QString>& hiddenGrids,
-                         QVector<PageTarget>& rest, QVector<PageTarget>& shellLayer,
-                         QVector<PageGridPaint>& restGrids, QVector<PageGridPaint>& shellGrids)
+void PageSession::ingest(const PageDocument& doc, const QSet<QString>& hiddenGrids, bool isMaster,
+                         QVector<PageTarget>& targets, QVector<PageGridPaint>& gridPaints)
 {
     QVector<PageGridPaint> g;
     QVector<PageTarget> piece =
         PageHit::collect(doc, frame(), hiddenGrids, m_props, m_dwellSuspended, &g);
     for (PageGridPaint& gp : g) {
         gp.pageId = doc.id;
-        (gp.shell ? shellGrids : restGrids).push_back(std::move(gp));
+        gp.master = isMaster;
+        gridPaints.push_back(std::move(gp));
     }
     for (PageTarget& t : piece) {
         t.pageId = doc.id;
-        (t.shell ? shellLayer : rest).push_back(std::move(t));
+        t.master = isMaster;
+        targets.push_back(std::move(t));
     }
 }
 
 void PageSession::rebuild()
 {
-    QVector<PageTarget> rest;
-    QVector<PageTarget> shellLayer;
-    QVector<PageGridPaint> restGrids;
-    QVector<PageGridPaint> shellGrids;
-    ingest(m_root, hiddenRootGrids(), rest, shellLayer, restGrids, shellGrids);
+    m_targets.clear();
+    m_gridPaints.clear();
     for (const AttachedPage& a : m_attached) {
-        ingest(a.doc, {}, rest, shellLayer, restGrids, shellGrids);
+        ingest(a.doc, {}, false, m_targets, m_gridPaints);
     }
-    rest.append(shellLayer);
-    restGrids.append(shellGrids);
-    m_targets = std::move(rest);
-    m_gridPaints = std::move(restGrids);
+    ingest(m_root, hiddenRootGrids(), true, m_targets, m_gridPaints);
+
     if (m_host) {
         const PageFrame fr = frame();
         QRectF reserved = PageHit::reservedBounds(m_root, fr, hiddenRootGrids());
@@ -466,9 +475,6 @@ void PageSession::setShiftHeld(bool on)
 
 void PageSession::refreshActive()
 {
-    if (!m_host) {
-        return;
-    }
     QSet<QString> ids;
     QSet<QString> locked;
     if (m_active) {
@@ -489,8 +495,10 @@ void PageSession::refreshActive()
             }
         }
     }
-    m_host->setActiveIds(std::move(ids));
-    m_host->setLockedIds(std::move(locked));
+    if (m_host) {
+        m_host->setActiveIds(std::move(ids));
+        m_host->setLockedIds(std::move(locked));
+    }
 }
 
 } // namespace gazer

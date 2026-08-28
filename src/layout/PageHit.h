@@ -3,6 +3,7 @@
 #include "layout/PageDetector.h"
 #include "layout/PageTypes.h"
 
+#include <QHash>
 #include <QPoint>
 #include <QPointF>
 #include <QPolygonF>
@@ -31,6 +32,8 @@ struct PageTarget {
     bool suspendExempt = false;
     bool interactive = true;
     bool shell = false;
+    /// Live root (main master) page. Master paints and hits in front of attached pages.
+    bool master = false;
     bool drawerMotion = false;
     QString activeState;
     PageChrome chrome;
@@ -60,6 +63,7 @@ struct PageGridPaint {
     QString gridId;
     bool drawerMotion = false;
     bool shell = false;
+    bool master = false;
 };
 
 namespace PageHit {
@@ -72,8 +76,9 @@ namespace PageHit {
 /// Column in x, row in y. {-1,-1} if pos is outside the grid rect.
 [[nodiscard]] QPoint cellIndexAt(const PageGrid& grid, const QRectF& gridRect, const QPointF& pos);
 
-/// Front-to-back paint order. Hit-test walks this in reverse (topmost first).
-/// Zones are appended after grids so they win, matching root chips over the drawer.
+/// Per-page collect order: grid cells, then zones. Live session appends each
+/// page as one layer (attached oldest→newest, then master). Front-to-back:
+/// master (zones, then grids/cells), then each open page the same way.
 [[nodiscard]] QVector<PageTarget> collect(const PageDocument& page, const PageFrame& frame,
                                           const QSet<QString>& hiddenGrids = {},
                                           const QVariantMap& props = {},
@@ -81,10 +86,45 @@ namespace PageHit {
                                           QVector<PageGridPaint>* grids = nullptr,
                                           bool includeHidden = false);
 
-/// Topmost non-shell board whose visual contains pos. Empty if none.
+/// Topmost painted grid whose visual contains pos (master included). Null if none.
+[[nodiscard]] const PageGridPaint* coveringGrid(const QVector<PageGridPaint>& grids,
+                                                const QPointF& pos, double drawerScale = 1.0,
+                                                const QVector<PageTarget>& targets = {},
+                                                const QTransform* xf = nullptr);
 [[nodiscard]] QString coveringPageId(const QVector<PageGridPaint>& grids, const QPointF& pos,
                                      double drawerScale = 1.0, const QVector<PageTarget>& targets = {},
                                      const QTransform* xf = nullptr);
+
+/// First-seen pageId order (back→front). Higher value is in front.
+[[nodiscard]] inline QHash<QString, int> pageStackOrder(const QVector<PageTarget>& targets,
+                                                        const QVector<PageGridPaint>& grids = {})
+{
+    QHash<QString, int> z;
+    auto note = [&](const QString& id) {
+        if (id.isEmpty() || z.contains(id)) {
+            return;
+        }
+        z.insert(id, z.size());
+    };
+    for (const PageTarget& t : targets) {
+        note(t.pageId);
+    }
+    for (const PageGridPaint& g : grids) {
+        note(g.pageId);
+    }
+    return z;
+}
+
+/// True when @p cover is a grid of a page in front of @p t. Same-page grids do
+/// not bury their own cells. A behind-page grid does not bury a front page.
+[[nodiscard]] inline bool buriedByCover(const PageTarget& t, const PageGridPaint* cover,
+                                        const QHash<QString, int>& stack)
+{
+    if (!cover || cover->pageId == t.pageId) {
+        return false;
+    }
+    return stack.value(cover->pageId, -1) > stack.value(t.pageId, -1);
+}
 
 [[nodiscard]] const PageTarget* at(const QVector<PageTarget>& targets, const QPointF& gaze,
                                    double drawerScale = 1.0, const QString& engagedId = {},

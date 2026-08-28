@@ -16,12 +16,42 @@
 
 #include <QPoint>
 #include <QPointF>
+#include <QRect>
+#include <utility>
 
 namespace gazer {
 
 namespace {
 const QString kGazeClickLoopKey = QStringLiteral("loop.gazeClick");
 } // namespace
+
+PageDispatchFn wrapPageAimGate(PageSession* pages, MouseDwellMove* mouseDwell,
+                               PageDispatchFn inner)
+{
+    return [pages, mouseDwell, inner = std::move(inner)](const QVector<PageAction>& actions,
+                                                         const QString& pageId,
+                                                         const QString& targetId) {
+        const bool wasArmed = mouseDwell && mouseDwell->isArmed();
+        const auto prevPurpose = mouseDwell ? mouseDwell->armPurpose()
+                                            : MouseDwellMove::ArmPurpose::CursorMove;
+        if (inner) {
+            inner(actions, pageId, targetId);
+        }
+        if (!pages || !mouseDwell) {
+            return;
+        }
+        if (mouseDwell->isArmed()
+            && (!wasArmed || mouseDwell->armPurpose() != prevPurpose) && !targetId.isEmpty()) {
+            const QRect gate = pages->targetScreenRect(pageId, targetId);
+            if (!gate.isEmpty()) {
+                mouseDwell->gateUntilGazeLeaves(gate);
+                pages->setAimActivator(pageId, targetId);
+            }
+        } else if (!mouseDwell->isArmed()) {
+            pages->clearAimActivator();
+        }
+    };
+}
 
 void registerAssistCommands(AssistCommandContext& ctx)
 {
@@ -98,8 +128,11 @@ void registerAssistCommands(AssistCommandContext& ctx)
 
     // Mouse dwell drives session mode from its arm purpose + phase.
     QObject::connect(mouseDwell, &MouseDwellMove::armedChanged, session,
-                     [session, mouseDwell, lts](bool armed) {
+                     [session, mouseDwell, lts, pages](bool armed) {
                          if (!armed) {
+                             if (pages) {
+                                 pages->clearAimActivator();
+                             }
                              const Mode m = session->mode();
                              if (AssistSession::isMouseDwellFamily(m)) {
                                  session->leave(m);
@@ -228,6 +261,7 @@ void registerAssistCommands(AssistCommandContext& ctx)
                                  return;
                              }
                              mouseDwell->setArmed(true, ArmPurpose::ComboMousePlace);
+                             mouseDwell->gateUntilGazeLeaves(combo->originGateRect());
                              notify(QStringLiteral("ComboMouse: dwell to place"));
                          });
         QObject::connect(combo, &ComboMouse::enabledChanged, session,
@@ -306,7 +340,7 @@ void registerAssistCommands(AssistCommandContext& ctx)
     });
     commands->registerBuiltin(
         QStringLiteral("toggleLookToScroll"),
-        [lts, mouseDwell, settings, notify](QString*) {
+        [lts, mouseDwell, notify](QString*) {
             if (lts->isEnabled()) {
                 lts->setEnabled(false);
                 if (mouseDwell->isLookToScrollPlace()) {
@@ -319,14 +353,8 @@ void registerAssistCommands(AssistCommandContext& ctx)
                 notify(QStringLiteral("Look↕Scroll cancelled"));
                 return true;
             }
-            if (settings->ltsPlaceCursorFirst) {
-                mouseDwell->setArmed(true, ArmPurpose::LookToScrollPlace);
-                notify(QStringLiteral(
-                    "Look↕Scroll: dwell to place cursor, then look to scroll"));
-            } else {
-                lts->setEnabled(true);
-                notify(QStringLiteral("Look↕Scroll ON"));
-            }
+            mouseDwell->setArmed(true, ArmPurpose::LookToScrollPlace);
+            notify(QStringLiteral("Look↕Scroll: dwell to place cursor, then look to scroll"));
             return true;
         });
 

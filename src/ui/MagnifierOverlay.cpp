@@ -16,6 +16,7 @@ namespace gazer {
 MagnifierOverlay::MagnifierOverlay(QWidget* parent)
     : OverlaySurface(parent)
 {
+    setOverlayLayer(OverlayLayer::Magnifier);
     resize(m_lensSize, m_lensSize);
     hide();
 
@@ -121,7 +122,6 @@ void MagnifierOverlay::refreshCapture(const QPoint& screenCenter)
 void MagnifierOverlay::reposition(const QPoint& screenCenter)
 {
     move(screenCenter.x() - m_lensSize / 2, screenCenter.y() - m_lensSize / 2);
-    raiseStack();
 }
 
 void MagnifierOverlay::paintEvent(QPaintEvent* /*event*/)

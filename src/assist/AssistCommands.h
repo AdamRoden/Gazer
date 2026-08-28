@@ -1,5 +1,7 @@
 #pragma once
 
+#include "layout/PageTypes.h"
+
 #include <QString>
 #include <functional>
 
@@ -40,5 +42,13 @@ struct AssistCommandContext {
 };
 
 void registerAssistCommands(AssistCommandContext& ctx);
+
+using PageDispatchFn = std::function<void(const QVector<PageAction>& actions, const QString& pageId,
+                                          const QString& targetId)>;
+
+/// After a page action arms mouse-dwell-move, gate the activator cell so aim
+/// does not fire on the same dwell. Combo overlay place keeps its own origin gate.
+PageDispatchFn wrapPageAimGate(PageSession* pages, MouseDwellMove* mouseDwell,
+                               PageDispatchFn inner);
 
 } // namespace gazer

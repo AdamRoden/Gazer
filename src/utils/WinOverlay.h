@@ -97,24 +97,43 @@ public:
     [[nodiscard]] static bool active();
 };
 
-/// Front of the TOPMOST band via HWND_TOP. Never HWND_NOTOPMOST (that hop
-/// flashes the desktop). Same-process / owned windows are ignored. Returns
-/// true if z-order changed.
+/// Front-to-back Gazer HWND band (always TOPMOST, above the taskbar and other
+/// apps, including borderless fullscreen). Never HWND_NOTOPMOST — that hop
+/// flashes the desktop.
+///
+/// 0 GazeReticle
+/// 1 MagnifierOverlay (live lens)
+/// 2 MouseDwellMove mag-pick
+/// 3 Other assist overlays (combo, LTS ring, dwell cursor, dwell-suspend)
+/// 4 PageHostWindow (master page, then each open page as one layer)
+enum class OverlayLayer {
+    Assist = 0,
+    MagPick = 1,
+    Magnifier = 2,
+    Reticle = 3
+};
+
+/// Front of the TOPMOST band via HWND_TOP. Never HWND_NOTOPMOST.
+/// Same-process / owned windows are ignored. Returns true if z-order changed.
 bool raiseInTopmostBand(QWindow* w);
+
+/// Rebuild the Gazer TOPMOST band back-to-front. No-op when order is already
+/// correct and no foreign window occludes any Gazer HWND (avoids flashing).
+void restackGazerBand();
 
 /// Tool overlays are Win32-owned by this host so they stay above it.
 /// Call when the host HWND is created or recreated.
 void setOverlayStackHost(QWindow* host);
 
 /// Parent @p overlay to the stack host (no-op until a host is set).
-void registerOverlayWindow(QWindow* overlay);
+void registerOverlayWindow(QWindow* overlay, OverlayLayer layer = OverlayLayer::Assist);
 void unregisterOverlayWindow(QWindow* overlay);
 
-/// Debounced restack when another process takes the foreground. Explorer then
-/// restacks Shell_TrayWnd onto the top of the TOPMOST band.
+/// Watches other processes (foreground, minimize, move) and polls so fullscreen
+/// / tray restacks cannot sit in front of Gazer. Debounced; skips a no-op restack.
 class OverlayStackWatch final : public QObject {
 public:
-    explicit OverlayStackWatch(std::function<void()> restack, QObject* parent = nullptr);
+    explicit OverlayStackWatch(std::function<void()> restack = {}, QObject* parent = nullptr);
     ~OverlayStackWatch() override;
 
     OverlayStackWatch(const OverlayStackWatch&) = delete;
@@ -127,6 +146,7 @@ private:
 #endif
     std::function<void()> m_restack;
     QTimer m_debounce;
+    QTimer m_poll;
 };
 
 } // namespace gazer

@@ -52,7 +52,6 @@ private:
     std::unique_ptr<LayoutEditorWindow> m_editor;
     std::unique_ptr<TrayIcon> m_tray;
     std::unique_ptr<OverlayStackWatch> m_stackWatch;
-    bool m_restacking = false;
 };
 
 } // namespace gazer

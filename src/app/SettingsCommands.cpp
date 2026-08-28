@@ -99,8 +99,6 @@ void SettingsUi::registerCommands()
         {"settings.mouseProgress.radial.toggle", &AppSettings::mouseProgressRadial, "Mouse radial"},
         {"settings.mouseProgress.fill.toggle", &AppSettings::mouseProgressFill, "Mouse fill"},
         {"settings.mouseProgress.border.toggle", &AppSettings::mouseProgressBorder, "Mouse border"},
-        {"settings.lts.placeCursor.toggle", &AppSettings::ltsPlaceCursorFirst,
-         "LTS place cursor first"},
         {"settings.session.autoCollapse.toggle", &AppSettings::autoCollapseMain,
          "Auto-collapse Main"},
         {"settings.session.startDocked.toggle", &AppSettings::startDocked, "Start docked"},

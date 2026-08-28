@@ -124,6 +124,7 @@ void MouseDwellMove::setArmed(bool armed, ArmPurpose purpose, ArmZoom zoom)
     m_armed = armed;
     m_paused = false;
     m_gateRect = {};
+    m_gateLeftMs = -1;
     m_purpose = armed ? purpose : ArmPurpose::CursorMove;
     resetDwell();
     if (!m_armed) {
@@ -159,11 +160,17 @@ void MouseDwellMove::gateUntilGazeLeaves(const QRect& screenRect)
         return;
     }
     m_gateRect = screenRect.adjusted(-16, -16, 16, 16);
+    m_gateLeftMs = -1;
     if (m_phase != Phase::MagPoint) {
         hideUi();
         resetDwell();
     }
     m_selectDeadlineMs = -1;
+}
+
+void MouseDwellMove::setGateGraceMs(int ms)
+{
+    m_gateGraceMs = qMax(0, ms);
 }
 
 void MouseDwellMove::setPaused(bool paused)
@@ -397,13 +404,26 @@ void MouseDwellMove::onGaze(const GazePoint& point)
         if (!point.valid) {
             return;
         }
-        if (m_gateRect.contains(QPoint(qRound(point.x), qRound(point.y)))) {
+        const QPoint gp(qRound(point.x), qRound(point.y));
+        if (m_gateRect.contains(gp)) {
+            m_gateLeftMs = -1;
+            if (m_phase != Phase::MagPoint) {
+                hideUi();
+            }
+            return;
+        }
+        const qint64 nowMs = m_clock.elapsed();
+        if (m_gateLeftMs < 0) {
+            m_gateLeftMs = nowMs;
+        }
+        if (nowMs - m_gateLeftMs < m_gateGraceMs) {
             if (m_phase != Phase::MagPoint) {
                 hideUi();
             }
             return;
         }
         m_gateRect = {};
+        m_gateLeftMs = -1;
         resetDwell();
         markSelectDeadline();
     }

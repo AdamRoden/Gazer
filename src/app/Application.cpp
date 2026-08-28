@@ -23,7 +23,6 @@
 #include "layout/PageSession.h"
 #include "ui/DwellSuspendOverlay.h"
 #include "ui/MagnifierOverlay.h"
-#include "ui/OverlaySurface.h"
 #include "ui/PreviewWindow.h"
 #include "ui/TrayIcon.h"
 #include "utils/Log.h"
@@ -69,29 +68,7 @@ bool Application::initialize()
     m_preview = std::make_unique<PreviewWindow>();
     m_tray = std::make_unique<TrayIcon>();
     m_dwellSuspendOverlay = std::make_unique<DwellSuspendOverlay>();
-    auto restackChrome = [this]() {
-        if (m_restacking) {
-            return;
-        }
-        m_restacking = true;
-        // Overlays are Win32-owned by the board, so restacking the board last
-        // keeps Overlay > Board > other windows without leaving the TOPMOST band.
-        if (OverlaySurface* combo = m_svc->comboMouse().overlay()) {
-            if (combo->isVisible()) {
-                combo->raiseStack();
-            }
-        }
-        if (m_dwellSuspendOverlay && m_dwellSuspendOverlay->isVisible()) {
-            m_dwellSuspendOverlay->raiseStack();
-        }
-        m_svc->pages().raise();
-        m_restacking = false;
-    };
-    connect(m_dwellSuspendOverlay.get(), &OverlaySurface::stackChanged, this, restackChrome);
-    if (m_svc->comboMouse().overlay()) {
-        connect(m_svc->comboMouse().overlay(), &OverlaySurface::stackChanged, this, restackChrome);
-    }
-    m_stackWatch = std::make_unique<OverlayStackWatch>(restackChrome);
+    m_stackWatch = std::make_unique<OverlayStackWatch>();
 
     // Domain owns loops + lifecycle; shell only supplies the dispatcher.
     m_svc->bindActionDispatch(

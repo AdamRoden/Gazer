@@ -43,9 +43,9 @@ When adding a command: register it, add a row here, and list every alias in the 
 |---------|------|
 | `toggleDwellSuspend` | Flip global dwell pause |
 | `suspendDwell` / `resumeDwell` | Set pause on/off |
-| `toggleLookToScroll` | Gaze scroll (may arm place-cursor first) |
+| `toggleLookToScroll` | Gaze scroll (always place-cursor first) |
 | `lts.resume` / `lts.quit` / `lts.reset` | LTS while on |
-| `lts.speed.slower` / `lts.speed.faster` | LTS max speed |
+| `lts.speed.slower` / `lts.speed.faster` | LTS peak speed (1, 5, 10, 20, 40) |
 | `toggleMagnifier` | Live lens (exclusive with reticle) |
 | `toggleGazeReticle` | Gaze marker (exclusive with magnifier) |
 | `toggleGazeMouseFollow` | Cursor follows gaze |
@@ -98,7 +98,6 @@ Patterns, not every generated name:
 | `settings.hex.digit.*` / `.backspace` / `.clear` / `.save` / `.cancel` | Hex keys |
 | `settings.opacity.*` / `settings.flash.foreground` / `.custom` | Flash opacity / custom flash |
 | `settings.progress.*.toggle` / `settings.mouseProgress.*.toggle` | Progress bits |
-| `settings.lts.placeCursor.toggle` | LTS place-cursor-first |
 | `settings.session.autoCollapse.toggle` / `.startDocked.toggle` | Session |
 | `settings.speech.alsoType.toggle` | Speak also types |
 | `settings.dwell.slow` / `.normal` / `.fast` | Dwell presets |

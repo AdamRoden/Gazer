@@ -79,6 +79,18 @@ constexpr IntSpec kIntSpecs[] = {
     {"ltsCenterDwellMs", "LTS center dwell",
      "Dwell the hub to pause and open the plus menu (ms).",
      " ms", &AppSettings::ltsCenterDwellMs, 200, 2500, 50},
+    {"comboInnerRadiusPx", "ComboMouse inner radius",
+     "Inner edge of the drift ring (px). Hole / deadzone.", " px",
+     &AppSettings::comboInnerRadiusPx, ComboMouseHit::kMinInnerRadiusPx,
+     ComboMouseHit::kMaxInnerRadiusPx, 8},
+    {"comboSharedRadiusPx", "ComboMouse shared radius",
+     "Where the drift ring meets the command pie (px).", " px",
+     &AppSettings::comboSharedRadiusPx, ComboMouseHit::kMinSharedRadiusPx,
+     ComboMouseHit::kMaxSharedRadiusPx, 8},
+    {"comboOuterRadiusPx", "ComboMouse outer radius",
+     "Outer edge of the command pie (px).", " px",
+     &AppSettings::comboOuterRadiusPx, ComboMouseHit::kMinOuterRadiusPx,
+     ComboMouseHit::kMaxOuterRadiusPx, 8},
     {"flashMs", "Completion flash duration", "How long the completion flash is shown (ms).", " ms",
      &AppSettings::flashMs, 40, 1000, 20},
     {"flashForegroundOpacity", "Flash opacity",
@@ -92,8 +104,6 @@ constexpr DoubleSpec kDoubleSpecs[] = {
     {"pickZoom", "Zoom level",
      "Static magnification for magnify and foresight (1.25–8).", "",
      &AppSettings::pickZoom, 1.25, 8.0, 0.25, 2},
-    {"ltsMaxNotchesPerSec", "LTS max speed", "Peak scroll rate (1, 5, 10, 20, 50).", " n/s",
-     &AppSettings::ltsMaxNotchesPerSec, 1.0, 50.0, 1.0, 0, snapLtsSpeed, nudgeLtsSpeed},
     {"ltsAccelPerSec", "LTS accel/s", "Speed growth while outside deadzone.", " /s",
      &AppSettings::ltsAccelPerSec, 0.0, 2.0, 0.05, 2},
 };
@@ -106,6 +116,10 @@ const ColorSpec kColorSpecs[] = {
     {"progressBorderColor", "Border highlight", &AppSettings::progressBorderColor,
      ThemeColors::defaultProgressColor()},
     {"flashColor", "Flash color", &AppSettings::flashColor, Qt::white},
+    {"comboInnerColor", "ComboMouse inner ring", &AppSettings::comboInnerColor,
+     ComboMouseHit::kDefaultInnerFill},
+    {"comboOuterColor", "ComboMouse outer ring", &AppSettings::comboOuterColor,
+     ComboMouseHit::kDefaultOuterFill},
     {"customBgColor", "Background", &AppSettings::customBgColor, QColor(10, 10, 11)},
     {"customPrimaryColor", "Primary", &AppSettings::customPrimaryColor, QColor(138, 180, 248)},
     {"customSecondaryColor", "Secondary", &AppSettings::customSecondaryColor,
@@ -117,7 +131,6 @@ const ColorSpec kColorSpecs[] = {
 };
 
 constexpr BoolSpec kBoolSpecs[] = {
-    {"ltsPlaceCursorFirst", &AppSettings::ltsPlaceCursorFirst},
     {"autoCollapseMain", &AppSettings::autoCollapseMain},
     {"startDocked", &AppSettings::startDocked},
     {"layoutAutoClose", &AppSettings::layoutAutoClose},
@@ -206,6 +219,15 @@ void AppSettings::clamp()
     if (!mouseProgressRadial && !mouseProgressFill && !mouseProgressBorder) {
         mouseProgressRadial = true;
     }
+    ltsMaxNotchesPerSec = snapLtsSpeed(qBound(1.0, ltsMaxNotchesPerSec, 40.0));
+
+    double inner = comboInnerRadiusPx;
+    double shared = comboSharedRadiusPx;
+    double outer = comboOuterRadiusPx;
+    ComboMouseHit::clampRadii(inner, shared, outer);
+    comboInnerRadiusPx = qRound(inner);
+    comboSharedRadiusPx = qRound(shared);
+    comboOuterRadiusPx = qRound(outer);
 }
 
 bool AppSettings::nudge(const QString& key, int dir)
@@ -219,14 +241,17 @@ bool AppSettings::nudge(const QString& key, int dir)
     }
     if (const IntSpec* s = findInt(key)) {
         this->*s->member = qBound(s->min, this->*s->member + dir * s->step, s->max);
+        clamp();
         return true;
     }
     if (const DoubleSpec* s = findDouble(key)) {
         if (s->nudge) {
             this->*s->member = s->nudge(this->*s->member, dir);
+            clamp();
             return true;
         }
         this->*s->member = qBound(s->min, this->*s->member + dir * s->step, s->max);
+        clamp();
         return true;
     }
     return false;
@@ -433,6 +458,12 @@ QString AppSettings::settingDescription(const QString& key)
     }
     if (key == QLatin1String("customTertiaryColor")) {
         return QStringLiteral("Highlighted background (active cells).");
+    }
+    if (key == QLatin1String("comboInnerColor")) {
+        return QStringLiteral("Fill color and opacity of the ComboMouse drift ring.");
+    }
+    if (key == QLatin1String("comboOuterColor")) {
+        return QStringLiteral("Fill color and opacity of the ComboMouse command slices.");
     }
     if (isColorKey(key)) {
         return QStringLiteral("Color used for dwell progress or completion flash.");

@@ -31,10 +31,9 @@
 
 #include <QColor>
 #include <QDir>
-#include <QPoint>
 #include <QStandardPaths>
 #include <QtGlobal>
-#include <functional>
+#include <utility>
 
 namespace gazer {
 
@@ -208,10 +207,11 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
 
 void GazerServices::bindActionDispatch(ActionDispatchFn dispatch)
 {
-    m_pages->setDispatch(dispatch);
+    auto gated = wrapPageAimGate(m_pages.get(), m_mouseDwellMove.get(), std::move(dispatch));
+    m_pages->setDispatch(gated);
     m_actionLoops->setDispatchFn(
-        [dispatch](const QVector<PageAction>& acts, const QString& pageId) {
-            dispatch(acts, pageId, {});
+        [gated](const QVector<PageAction>& acts, const QString& pageId) {
+            gated(acts, pageId, {});
         });
 }
 
@@ -320,6 +320,7 @@ void GazerServices::applySettings(bool persist)
     }
 
     m_mouseDwellMove->setDwellMs(m_settings.mouseMoveDwellMs);
+    m_mouseDwellMove->setGateGraceMs(m_settings.dwellGraceMs);
     m_mouseDwellMove->setFollowProfile(m_settings.magFollowProfile);
     m_mouseDwellMove->setMagPickDwellMs(m_settings.magPickDwellMs);
     m_mouseDwellMove->setMagPickStyle(m_settings.magPickStyle);
@@ -353,6 +354,10 @@ void GazerServices::applySettings(bool persist)
     m_comboMouse->setAccent(boardPv.progressColor);
     m_comboMouse->setTheme(m_settings.resolvedTheme());
     m_comboMouse->setProgressVisuals(boardPv);
+    m_comboMouse->setRadii(m_settings.comboInnerRadiusPx, m_settings.comboSharedRadiusPx,
+                           m_settings.comboOuterRadiusPx);
+    m_comboMouse->setAnnulusColors(m_settings.colorKey(QStringLiteral("comboInnerColor")),
+                                   m_settings.colorKey(QStringLiteral("comboOuterColor")));
     m_comboMouse->setScanGraceMs(m_settings.scanGraceMs);
     m_comboMouse->setDwellGraceMs(m_settings.dwellGraceMs);
     m_comboMouse->setDwellSequence(m_settings.dwellSequence);

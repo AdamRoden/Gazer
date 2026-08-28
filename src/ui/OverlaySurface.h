@@ -23,6 +23,14 @@ public:
         setAttribute(Qt::WA_QuitOnClose, false);
     }
 
+    void setOverlayLayer(OverlayLayer layer)
+    {
+        m_layer = layer;
+        if (QWindow* wh = windowHandle()) {
+            registerOverlayWindow(wh, m_layer);
+        }
+    }
+
     ~OverlaySurface() override
     {
         if (QWindow* wh = windowHandle()) {
@@ -30,18 +38,14 @@ public:
         }
     }
 
-    /// Restack this overlay on top of the TOPMOST band. Does not emit stackChanged.
-    /// Owned by the board host so a board restack keeps us above it.
+    /// Reassert the Gazer TOPMOST band. No-op when order is already correct.
     void raiseStack()
     {
         applyToolChrome();
-        raise();
-        if (QWindow* wh = windowHandle()) {
-            raiseInTopmostBand(wh);
-        }
+        restackGazerBand();
     }
 
-    /// Show + raise once. Already-visible overlays stay put; call raiseStack to restack.
+    /// Show once. Already-visible overlays stay put (no z-order hop / flash).
     void showOverlay()
     {
         if (isVisible()) {
@@ -74,11 +78,13 @@ private:
     {
         (void)winId();
         if (QWindow* wh = windowHandle()) {
-            registerOverlayWindow(wh);
+            registerOverlayWindow(wh, m_layer);
         }
         applyOverlayWindowChrome(this, /*excludeFromCapture=*/true);
         applyOverlayClickThrough(this);
     }
+
+    OverlayLayer m_layer = OverlayLayer::Assist;
 };
 
 } // namespace gazer

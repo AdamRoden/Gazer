@@ -53,9 +53,9 @@ void PageSession::armLeaveGate(const QString& pageId)
     m_leaveGatePage = pageId;
     m_leaveGateKey.clear();
     if (m_lastGaze.valid && !pageId.isEmpty()) {
-        const QTransform* xf = m_host ? &m_host->drawerXf() : nullptr;
+        const QTransform xf = hitXf();
         const PageTarget* hit =
-            PageHit::at(m_targets, m_lastGaze.toPointF(), m_drawerScale, {}, m_gridPaints, xf);
+            PageHit::at(m_targets, m_lastGaze.toPointF(), m_drawerScale, {}, m_gridPaints, &xf);
         if (hit && hit->interactive && hit->pageId == pageId) {
             m_leaveGateKey = sessionKey(*hit);
         }

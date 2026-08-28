@@ -154,10 +154,13 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
         o.value(QStringLiteral("ltsMaxNotchesPerSec")).toDouble(ltsMaxNotchesPerSec);
     ltsAccelPerSec = o.value(QStringLiteral("ltsAccelPerSec")).toDouble(ltsAccelPerSec);
     ltsCenterDwellMs = o.value(QStringLiteral("ltsCenterDwellMs")).toInt(ltsCenterDwellMs);
-    ltsPlaceCursorFirst =
-        o.value(QStringLiteral("ltsPlaceCursorFirst")).toBool(ltsPlaceCursorFirst);
     ltsIndicatorStyle =
         ltsIndicatorFromInt(o.value(QStringLiteral("ltsIndicatorStyle")).toInt(int(ltsIndicatorStyle)));
+    comboInnerRadiusPx = o.value(QStringLiteral("comboInnerRadiusPx")).toInt(comboInnerRadiusPx);
+    comboSharedRadiusPx = o.value(QStringLiteral("comboSharedRadiusPx")).toInt(comboSharedRadiusPx);
+    comboOuterRadiusPx = o.value(QStringLiteral("comboOuterRadiusPx")).toInt(comboOuterRadiusPx);
+    comboInnerColor = o.value(QStringLiteral("comboInnerColor")).toString(comboInnerColor);
+    comboOuterColor = o.value(QStringLiteral("comboOuterColor")).toString(comboOuterColor);
     autoCollapseMain = o.value(QStringLiteral("autoCollapseMain")).toBool(autoCollapseMain);
     startDocked = o.value(QStringLiteral("startDocked")).toBool(startDocked);
     layoutAutoClose = o.value(QStringLiteral("layoutAutoClose")).toBool(layoutAutoClose);
@@ -280,8 +283,12 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     o.insert(QStringLiteral("ltsMaxNotchesPerSec"), copy.ltsMaxNotchesPerSec);
     o.insert(QStringLiteral("ltsAccelPerSec"), copy.ltsAccelPerSec);
     o.insert(QStringLiteral("ltsCenterDwellMs"), copy.ltsCenterDwellMs);
-    o.insert(QStringLiteral("ltsPlaceCursorFirst"), copy.ltsPlaceCursorFirst);
     o.insert(QStringLiteral("ltsIndicatorStyle"), int(copy.ltsIndicatorStyle));
+    o.insert(QStringLiteral("comboInnerRadiusPx"), copy.comboInnerRadiusPx);
+    o.insert(QStringLiteral("comboSharedRadiusPx"), copy.comboSharedRadiusPx);
+    o.insert(QStringLiteral("comboOuterRadiusPx"), copy.comboOuterRadiusPx);
+    o.insert(QStringLiteral("comboInnerColor"), copy.comboInnerColor);
+    o.insert(QStringLiteral("comboOuterColor"), copy.comboOuterColor);
     o.insert(QStringLiteral("autoCollapseMain"), copy.autoCollapseMain);
     o.insert(QStringLiteral("startDocked"), copy.startDocked);
     o.insert(QStringLiteral("layoutAutoClose"), copy.layoutAutoClose);

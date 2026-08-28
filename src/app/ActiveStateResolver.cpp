@@ -135,9 +135,6 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
         return false;
     }
     const AppSettings& s = *ctx.settings;
-    if (key == QLatin1String("lts.placeCursorFirst")) {
-        return s.ltsPlaceCursorFirst;
-    }
     if (indexKeyEquals(key, QLatin1String("setting.ltsIndicator."), int(s.ltsIndicatorStyle))) {
         return true;
     }

@@ -4,6 +4,7 @@
 #include "layout/PageResolve.h"
 #include "layout/RoundBox.h"
 
+#include <QHash>
 #include <QPolygonF>
 #include <QTransform>
 #include <QtGlobal>
@@ -464,13 +465,11 @@ const PageTarget* hit(const QVector<PageTarget>& targets, const QPointF& pos, bo
 {
     const QTransform local = cachedXf ? QTransform() : drawerTransform(targets, drawerScale, grids);
     const QTransform& xf = cachedXf ? *cachedXf : local;
-    const QString cover = coveringPageId(grids, pos, drawerScale, targets, &xf);
+    const PageGridPaint* cover = coveringGrid(grids, pos, drawerScale, targets, &xf);
+    const QHash<QString, int> stack = pageStackOrder(targets, grids);
     for (int i = targets.size() - 1; i >= 0; --i) {
         const PageTarget& t = targets[i];
-        if (!t.interactive) {
-            continue;
-        }
-        if (!cover.isEmpty() && !t.shell && t.pageId != cover) {
+        if (!t.interactive || buriedByCover(t, cover, stack)) {
             continue;
         }
         if (progress) {
@@ -492,22 +491,30 @@ const PageTarget* hit(const QVector<PageTarget>& targets, const QPointF& pos, bo
 
 } // namespace
 
-QString coveringPageId(const QVector<PageGridPaint>& grids, const QPointF& pos, double drawerScale,
-                       const QVector<PageTarget>& targets, const QTransform* cachedXf)
+const PageGridPaint* coveringGrid(const QVector<PageGridPaint>& grids, const QPointF& pos,
+                                  double drawerScale, const QVector<PageTarget>& targets,
+                                  const QTransform* cachedXf)
 {
     const QTransform local = cachedXf ? QTransform() : drawerTransform(targets, drawerScale, grids);
     const QTransform& xf = cachedXf ? *cachedXf : local;
     for (int i = grids.size() - 1; i >= 0; --i) {
         const PageGridPaint& g = grids[i];
-        if (g.shell || g.visual.isEmpty()) {
+        if (g.visual.isEmpty()) {
             continue;
         }
         const QRectF z = mapDrawer(g.drawerMotion, g.visual, xf, drawerScale);
         if (shapeContains(z, g.chrome, pos)) {
-            return g.pageId;
+            return &g;
         }
     }
-    return {};
+    return nullptr;
+}
+
+QString coveringPageId(const QVector<PageGridPaint>& grids, const QPointF& pos, double drawerScale,
+                       const QVector<PageTarget>& targets, const QTransform* cachedXf)
+{
+    const PageGridPaint* g = coveringGrid(grids, pos, drawerScale, targets, cachedXf);
+    return g ? g->pageId : QString();
 }
 
 const PageTarget* at(const QVector<PageTarget>& targets, const QPointF& gaze, double drawerScale,

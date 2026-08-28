@@ -28,7 +28,7 @@
       </Cell>
     </SubGrid>
 
-    <Cell id="page_title" row="1" col="0" colSpan="16" label="Look to scroll" caption="Deadzone, falloff, speed, indicator, and cursor placement for look-to-scroll" role="label" textStyle="title" style="plain"/>
+    <Cell id="page_title" row="1" col="0" colSpan="16" label="Look to scroll" caption="Deadzone, falloff, accel, and indicator. Peak speed is set from the look-to-scroll plus (1, 5, 10, 20, 40)." role="label" textStyle="title" style="plain"/>
 
     <SubGrid id="sec_dist" row="2" col="0" colSpan="16" rowSpan="3" rows="3" columns="1" rowWeights="1,2,2" gap="6" margin="6" style="group">
       <Cell id="h_dist" row="0" col="0" label="Distance" role="label" textStyle="section" style="plain"/>
@@ -52,19 +52,10 @@
       </SubGrid>
     </SubGrid>
 
-    <SubGrid id="sec_spd" row="5" col="0" colSpan="16" rowSpan="3" rows="3" columns="1" rowWeights="1,2,2" gap="6" margin="6" style="group">
+    <SubGrid id="sec_spd" row="5" col="0" colSpan="16" rowSpan="3" rows="2" columns="1" rowWeights="1,2" gap="6" margin="6" style="group">
       <Cell id="h_spd" row="0" col="0" label="Speed" role="label" textStyle="section" style="plain"/>
-      <SubGrid id="row_sp" row="1" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="sp_l" row="0" col="0" label="Max speed" caption="Peak notches per second." role="label" style="plain"/>
-        <SubGrid id="act_sp" row="0" col="1" rows="1" columns="7" gap="0" style="row">
-          <Cell id="sp_dec" row="0" col="0" label="−" style="join" command="settings.nudge.ltsMaxNotchesPerSec.dec"/>
-          <Cell id="sp_val" row="0" col="1" colSpan="3" label="—" role="value" settingKey="ltsMaxNotchesPerSec" style="join"/>
-          <Cell id="sp_inc" row="0" col="4" label="+" style="join" command="settings.nudge.ltsMaxNotchesPerSec.inc"/>
-          <Cell id="sp_edit" row="0" col="5" colSpan="2" label="Edit…" style="join" command="settings.edit.ltsMaxNotchesPerSec"/>
-        </SubGrid>
-      </SubGrid>
-      <SubGrid id="row_accel" row="2" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="accel_label" row="0" col="0" label="Accel / s" caption="Speed growth while outside deadzone." role="label" style="plain"/>
+      <SubGrid id="row_accel" row="1" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="accel_label" row="0" col="0" label="Accel / s" caption="Speed growth while outside deadzone. Peak rate is 1, 5, 10, 20, or 40 from the plus menu." role="label" style="plain"/>
         <SubGrid id="act_accel" row="0" col="1" rows="1" columns="7" gap="0" style="row">
           <Cell id="accel_dec" row="0" col="0" label="−" style="join" command="settings.nudge.ltsAccelPerSec.dec"/>
           <Cell id="accel_val" row="0" col="1" colSpan="3" label="—" role="value" settingKey="ltsAccelPerSec" style="join"/>
@@ -74,7 +65,7 @@
       </SubGrid>
     </SubGrid>
 
-    <SubGrid id="sec_ind" row="8" col="0" colSpan="16" rowSpan="2" rows="2" columns="1" rowWeights="1,2" gap="6" margin="6" style="group">
+    <SubGrid id="sec_ind" row="8" col="0" colSpan="16" rowSpan="4" rows="2" columns="1" rowWeights="1,2" gap="6" margin="6" style="group">
       <Cell id="h_ind" row="0" col="0" label="Indicator" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_ind" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="ind_l" row="0" col="0" label="Scroll indicator" caption="Fan wedge, stretching orb, or hub/menu only." role="label" style="plain"/>
@@ -83,13 +74,6 @@
           <Cell id="ind_orb" row="0" col="1" label="Orb" activeState="setting.ltsIndicator.1" style="join" command="settings.lts.indicator.orb"/>
           <Cell id="ind_pause" row="0" col="2" label="Pause" activeState="setting.ltsIndicator.2" style="join" command="settings.lts.indicator.pause"/>
         </SubGrid>
-      </SubGrid>
-    </SubGrid>
-
-    <SubGrid id="sec_place" row="10" col="0" colSpan="16" rowSpan="2" rows="2" columns="1" rowWeights="1,2" gap="6" margin="6" style="group">
-      <Cell id="h_place" row="0" col="0" label="Placement" role="label" textStyle="section" style="plain"/>
-      <SubGrid id="row_place" row="1" col="0" rows="1" columns="1" gap="0" style="row">
-        <Cell id="pl_t" row="0" col="0" label="Place cursor first" caption="Arm mouse-move before enabling scroll." icon="MouseMoveToPointIcon" role="toggle" activeState="lts.placeCursorFirst" style="join" command="settings.lts.placeCursor.toggle"/>
       </SubGrid>
     </SubGrid>
   </Grid>

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QColor>
 #include <QPoint>
 #include <QPointF>
 #include <QRect>
@@ -14,10 +15,23 @@ inline constexpr double kSliceDeg = 360.0 / double(kSliceCount);
 inline constexpr double kCornerInnerSliceDeg = 45.0;
 inline constexpr double kCornerOuterSliceDeg = 30.0;
 inline constexpr double kCornerArcSpanDeg = 90.0;
-/// Hole / yellow-ring radii (120px and 240px diameters).
-inline constexpr double kHoleRadiusPx = 60.0;
-inline constexpr double kRingOuterPx = 120.0;
-inline constexpr double kHalfPieScale = 1.5;
+/// Defaults: inner drift-ring radius, shared radius, outer command-pie radius.
+inline constexpr int kMinInnerRadiusPx = 20;
+inline constexpr int kMaxInnerRadiusPx = 200;
+inline constexpr int kMinSharedRadiusPx = 60;
+inline constexpr int kMaxSharedRadiusPx = 400;
+inline constexpr int kMinOuterRadiusPx = 120;
+inline constexpr int kMaxOuterRadiusPx = 600;
+inline constexpr int kDefaultInnerRadiusPx = 40;
+inline constexpr int kDefaultSharedRadiusPx = 80;
+inline constexpr int kDefaultOuterRadiusPx = 180;
+inline constexpr double kHoleRadiusPx = double(kDefaultInnerRadiusPx);
+inline constexpr double kRingOuterPx = double(kDefaultSharedRadiusPx);
+inline constexpr double kPieOuterPx = double(kDefaultOuterRadiusPx);
+inline constexpr double kMinInnerThicknessPx = 20.0;
+inline constexpr double kMinOuterThicknessPx = 40.0;
+inline const QColor kDefaultInnerFill{255, 196, 40, 80};
+inline const QColor kDefaultOuterFill{12, 14, 18, 210};
 
 /// Clockwise from 12 o'clock: Right, Move, Cancel, Drag, Left.
 enum class Slice { Right = 0, Move, Cancel, Drag, Left };
@@ -41,7 +55,7 @@ struct Wedge {
 struct Layout {
     double deadzone = kHoleRadiusPx;
     double ringOuter = kRingOuterPx;
-    double pieOuter = 220.0;
+    double pieOuter = kPieOuterPx;
     double arcStartDeg = 0.0;
     double arcSpanDeg = 360.0;
     int wedgeCount = 0;
@@ -92,8 +106,29 @@ struct Layout {
 {
     return qFuzzyCompare(a.arcStartDeg + 1.0, b.arcStartDeg + 1.0)
            && qFuzzyCompare(a.arcSpanDeg + 1.0, b.arcSpanDeg + 1.0)
+           && qFuzzyCompare(a.deadzone + 1.0, b.deadzone + 1.0)
+           && qFuzzyCompare(a.ringOuter + 1.0, b.ringOuter + 1.0)
            && qFuzzyCompare(a.pieOuter + 1.0, b.pieOuter + 1.0)
            && a.wedgeCount == b.wedgeCount;
+}
+
+inline void clampRadii(double& inner, double& shared, double& outer)
+{
+    inner = qBound(double(kMinInnerRadiusPx), inner, double(kMaxInnerRadiusPx));
+    shared = qBound(double(kMinSharedRadiusPx), shared, double(kMaxSharedRadiusPx));
+    outer = qBound(double(kMinOuterRadiusPx), outer, double(kMaxOuterRadiusPx));
+    if (shared < inner + kMinInnerThicknessPx) {
+        shared = qMin(double(kMaxSharedRadiusPx), inner + kMinInnerThicknessPx);
+    }
+    if (outer < shared + kMinOuterThicknessPx) {
+        outer = qMin(double(kMaxOuterRadiusPx), shared + kMinOuterThicknessPx);
+    }
+    if (shared > outer - kMinOuterThicknessPx) {
+        shared = qMax(double(kMinSharedRadiusPx), outer - kMinOuterThicknessPx);
+    }
+    if (inner > shared - kMinInnerThicknessPx) {
+        inner = qMax(double(kMinInnerRadiusPx), shared - kMinInnerThicknessPx);
+    }
 }
 
 [[nodiscard]] inline const Wedge* wedgeById(const Layout& L, Slice id)
@@ -176,6 +211,7 @@ inline void interiorArc(bool nearL, bool nearR, bool nearT, bool nearB, double& 
 [[nodiscard]] inline Layout makeLayout(QPointF origin, const QRectF& screen, double deadzone,
                                        double ringOuter, double fullPieOuter)
 {
+    clampRadii(deadzone, ringOuter, fullPieOuter);
     Layout L;
     L.deadzone = deadzone;
     L.ringOuter = ringOuter;
@@ -187,9 +223,7 @@ inline void interiorArc(bool nearL, bool nearR, bool nearT, bool nearB, double& 
     interiorArc(nearL, nearR, nearT, nearB, L.arcStartDeg, L.arcSpanDeg);
 
     if (L.arcSpanDeg <= kCornerArcSpanDeg + 1e-6) {
-        const double band = qBound(56.0, fullPieOuter - ringOuter, 100.0);
-        const double innerOuter = ringOuter + band;
-        L.pieOuter = innerOuter + band;
+        const double innerOuter = ringOuter + (fullPieOuter - ringOuter) * 0.5;
         const double s = L.arcStartDeg;
         addWedge(L, Slice::Right, ringOuter, innerOuter, s, kCornerInnerSliceDeg);
         addWedge(L, Slice::Left, ringOuter, innerOuter, s + kCornerInnerSliceDeg,
@@ -200,10 +234,6 @@ inline void interiorArc(bool nearL, bool nearR, bool nearT, bool nearB, double& 
         addWedge(L, Slice::Drag, innerOuter, L.pieOuter, s + 2.0 * kCornerOuterSliceDeg,
                  kCornerOuterSliceDeg);
         return L;
-    }
-    if (L.arcSpanDeg < 360.0) {
-        L.pieOuter = qMax(fullPieOuter * kHalfPieScale,
-                          ringOuter + (fullPieOuter - ringOuter) * kHalfPieScale);
     }
     fillClockwiseBand(L, ringOuter, L.pieOuter, L.arcStartDeg, L.arcSpanDeg);
     return L;
