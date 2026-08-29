@@ -40,7 +40,7 @@ void SettingsLayoutTest::pagesAnchorTop()
                              QStringLiteral("main_settings_pointer_timing"),
                              QStringLiteral("main_settings_styles"),
                              QStringLiteral("main_settings_assist"),
-                             QStringLiteral("main_settings_lts"),
+                             QStringLiteral("main_settings_overlays"),
                              QStringLiteral("main_settings_theme")};
     for (const QString& id : ids) {
         PageDocument doc;
@@ -147,7 +147,7 @@ void SettingsLayoutTest::valueLabelKeepsKey()
 void SettingsLayoutTest::ltsHasNoMaxSpeedOrPlaceCursor()
 {
     QFile f(QStringLiteral(GAZER_SOURCE_DIR)
-            + QStringLiteral("/resources/layouts/main_settings_lts.xml"));
+            + QStringLiteral("/resources/layouts/main_settings_overlays.xml"));
     QVERIFY(f.open(QIODevice::ReadOnly | QIODevice::Text));
     const QByteArray xml = f.readAll();
     QVERIFY(!xml.contains("ltsMaxNotchesPerSec"));

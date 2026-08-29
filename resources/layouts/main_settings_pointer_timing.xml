@@ -18,9 +18,9 @@
         <ClosePage value="-self"/>
         <OpenPage value="main_settings_assist"/>
       </Cell>
-      <Cell id="tab_lts" row="0" col="4" label="LTS" role="tab">
+      <Cell id="tab_overlay" row="0" col="4" label="Overlay" role="tab">
         <ClosePage value="-self"/>
-        <OpenPage value="main_settings_lts"/>
+        <OpenPage value="main_settings_overlays"/>
       </Cell>
       <Cell id="tab_theme" row="0" col="5" label="Theme" role="tab">
         <ClosePage value="-self"/>
