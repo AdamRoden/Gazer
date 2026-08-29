@@ -88,7 +88,7 @@ void paint(QPainter& p, const QPointF& c, int flags, double progress, const Prog
     }
 
     if (progress > 0.01
-        && (visuals.style.radial || visuals.style.fillBackground || visuals.style.border)) {
+        && visuals.style.any()) {
         const qreal s = has(flags, GazeIndicator) ? 128.0 : 64.0;
         paintProgress(p, QRectF(c.x() - s * 0.5, c.y() - s * 0.5, s, s), progress, visuals,
                       ProgressShape::Ellipse);

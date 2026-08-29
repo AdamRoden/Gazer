@@ -1,8 +1,10 @@
 #include "layout/PageDim.h"
+#include "layout/PageEdit.h"
 #include "layout/PageHit.h"
 #include "layout/PageLoader.h"
 
 #include <QFile>
+#include <QSet>
 #include <QStringList>
 #include <QtTest>
 
@@ -32,6 +34,7 @@ private slots:
     void stepperWidths();
     void valueLabelKeepsKey();
     void ltsHasNoMaxSpeedOrPlaceCursor();
+    void overlayIdsAreUnique();
 };
 
 void SettingsLayoutTest::pagesAnchorTop()
@@ -154,6 +157,24 @@ void SettingsLayoutTest::ltsHasNoMaxSpeedOrPlaceCursor()
     QVERIFY(!xml.contains("lts.placeCursor"));
     QVERIFY(!xml.contains("Place cursor first"));
     QVERIFY(!xml.contains("ltsPlaceCursorFirst"));
+}
+
+void SettingsLayoutTest::overlayIdsAreUnique()
+{
+    PageDocument doc;
+    QString err;
+    const QString path = QStringLiteral(GAZER_SOURCE_DIR)
+                         + QStringLiteral("/resources/layouts/main_settings_overlays.xml");
+    QVERIFY2(PageLoader::loadFromFile(path, doc, &err), qPrintable(err));
+    const QStringList ids = PageEdit::allIds(doc);
+    QSet<QString> seen;
+    for (const QString& id : ids) {
+        QVERIFY2(!seen.contains(id), qPrintable(id));
+        seen.insert(id);
+    }
+    QVERIFY(seen.contains(QStringLiteral("row_ind")));
+    QVERIFY(seen.contains(QStringLiteral("row_combo_style")));
+    QVERIFY(seen.contains(QStringLiteral("combo_on")));
 }
 
 QObject* createSettingsLayoutTest()

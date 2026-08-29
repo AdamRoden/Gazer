@@ -67,7 +67,7 @@ void addChromeFields(PropertyBinder& b, QFormLayout* form, const PageChrome& st,
             [apply](std::optional<QColor> c) {
                 apply(QStringLiteral("Progress color"), [&](PageChrome& s) { s.progressColor = c; });
             });
-    b.note(form, QStringLiteral("Empty inherits. Tokens: radial, border, fill, fillup, "
+    b.note(form, QStringLiteral("Empty inherits. Tokens: radial, pie, border, fill, fillup, "
                                 "filldown, fillleft, fillright."));
 }
 

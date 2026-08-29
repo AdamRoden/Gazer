@@ -205,18 +205,13 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
             customContrast = snapContrastPercent(cv.toInt(customContrast));
         }
     }
-    progressRadial = o.value(QStringLiteral("progressRadial")).toBool(progressRadial);
-    progressFill = o.value(QStringLiteral("progressFill")).toBool(progressFill);
-    progressBorder = o.value(QStringLiteral("progressBorder")).toBool(progressBorder);
+    for (const StyleToggle& t : kStyleToggles) {
+        styleFlag(t) = o.value(QLatin1String(t.jsonKey)).toBool(styleFlag(t));
+    }
     progressColor = o.value(QStringLiteral("progressColor")).toString(progressColor);
     progressFillColor = o.value(QStringLiteral("progressFillColor")).toString(progressFillColor);
     progressBorderColor =
         o.value(QStringLiteral("progressBorderColor")).toString(progressBorderColor);
-    mouseProgressRadial =
-        o.value(QStringLiteral("mouseProgressRadial")).toBool(mouseProgressRadial);
-    mouseProgressFill = o.value(QStringLiteral("mouseProgressFill")).toBool(mouseProgressFill);
-    mouseProgressBorder =
-        o.value(QStringLiteral("mouseProgressBorder")).toBool(mouseProgressBorder);
     flashUseForeground = o.value(QStringLiteral("flashUseForeground")).toBool(flashUseForeground);
     flashForegroundOpacity =
         o.value(QStringLiteral("flashForegroundOpacity")).toInt(flashForegroundOpacity);
@@ -309,15 +304,12 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     o.insert(QStringLiteral("customDangerColor"), copy.customDangerColor);
     o.insert(QStringLiteral("themeBrightness"), copy.themeBrightness);
     o.insert(QStringLiteral("customContrast"), copy.customContrast);
-    o.insert(QStringLiteral("progressRadial"), copy.progressRadial);
-    o.insert(QStringLiteral("progressFill"), copy.progressFill);
-    o.insert(QStringLiteral("progressBorder"), copy.progressBorder);
+    for (const StyleToggle& t : kStyleToggles) {
+        o.insert(QLatin1String(t.jsonKey), copy.styleFlag(t));
+    }
     o.insert(QStringLiteral("progressColor"), copy.progressColor);
     o.insert(QStringLiteral("progressFillColor"), copy.progressFillColor);
     o.insert(QStringLiteral("progressBorderColor"), copy.progressBorderColor);
-    o.insert(QStringLiteral("mouseProgressRadial"), copy.mouseProgressRadial);
-    o.insert(QStringLiteral("mouseProgressFill"), copy.mouseProgressFill);
-    o.insert(QStringLiteral("mouseProgressBorder"), copy.mouseProgressBorder);
     o.insert(QStringLiteral("flashUseForeground"), copy.flashUseForeground);
     o.insert(QStringLiteral("flashForegroundOpacity"), copy.flashForegroundOpacity);
     o.insert(QStringLiteral("flashColor"), copy.flashColor);

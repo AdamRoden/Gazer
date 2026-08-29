@@ -10,14 +10,36 @@ enum class ProgressFillDir { None, Center, Up, Down, Right, Left };
 /// Dwell-progress shape tokens. CSV is the XML/JSON boundary only.
 struct ProgressStyle {
     bool radial = true;
+    bool pie = false;
     bool fillBackground = false;
     ProgressFillDir fillDir = ProgressFillDir::Center;
     bool border = false;
+
+    [[nodiscard]] bool any() const
+    {
+        return radial || pie || fillBackground || border;
+    }
+
+    void ensureDefault()
+    {
+        if (!any()) {
+            radial = true;
+        }
+    }
+
+    /// Pointer dwell: ring + border (boards default to ring only).
+    [[nodiscard]] static ProgressStyle pointerDefaults()
+    {
+        ProgressStyle s;
+        s.border = true;
+        return s;
+    }
 
     [[nodiscard]] static ProgressStyle fromCsv(const QString& csv)
     {
         ProgressStyle s;
         s.radial = false;
+        s.pie = false;
         s.fillBackground = false;
         s.fillDir = ProgressFillDir::Center;
         s.border = false;
@@ -26,6 +48,8 @@ struct ProgressStyle {
             p = p.trimmed();
             if (p == QLatin1String("radial") || p == QLatin1String("ring")) {
                 s.radial = true;
+            } else if (p == QLatin1String("pie")) {
+                s.pie = true;
             } else if (p == QLatin1String("fill") || p == QLatin1String("background")) {
                 s.fillBackground = true;
                 s.fillDir = ProgressFillDir::Center;
@@ -45,9 +69,7 @@ struct ProgressStyle {
                 s.border = true;
             }
         }
-        if (!s.radial && !s.fillBackground && !s.border) {
-            s.radial = true;
-        }
+        s.ensureDefault();
         return s;
     }
 
@@ -56,6 +78,9 @@ struct ProgressStyle {
         QStringList p;
         if (radial) {
             p << QStringLiteral("radial");
+        }
+        if (pie) {
+            p << QStringLiteral("pie");
         }
         if (fillBackground) {
             switch (fillDir) {

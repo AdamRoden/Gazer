@@ -147,23 +147,10 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
     if (key == QLatin1String("setting.dwell.fast")) {
         return s.dwellPreset() == 2;
     }
-    if (key == QLatin1String("setting.progressRadial")) {
-        return s.progressRadial;
-    }
-    if (key == QLatin1String("setting.progressFill")) {
-        return s.progressFill;
-    }
-    if (key == QLatin1String("setting.progressBorder")) {
-        return s.progressBorder;
-    }
-    if (key == QLatin1String("setting.mouseProgressRadial")) {
-        return s.mouseProgressRadial;
-    }
-    if (key == QLatin1String("setting.mouseProgressFill")) {
-        return s.mouseProgressFill;
-    }
-    if (key == QLatin1String("setting.mouseProgressBorder")) {
-        return s.mouseProgressBorder;
+    if (key.startsWith(QLatin1String("setting."))) {
+        if (const AppSettings::StyleToggle* t = AppSettings::findStyleToggle(key.mid(8))) {
+            return s.styleFlag(*t);
+        }
     }
     if (key == QLatin1String("setting.flashUseForeground")) {
         return s.flashUseForeground;

@@ -34,7 +34,7 @@ Named or anonymous chrome. An unnamed `<Style>` (no `id`) sets the page default.
 | `background`, `foreground`, `border` | Colors (`#RRGGBB` or `#AARRGGBB`) |
 | `thickness` | Border widths: one value, or `t,r,b,l` |
 | `radius` | Corner radii: one value, or `tl,tr,br,bl` |
-| `progressStyle` | How dwell progress is drawn. Comma-separated: `radial`, `border`, `fill` (center), `fillup`, `filldown`, `fillleft`, `fillright` |
+| `progressStyle` | How dwell progress is drawn. Comma-separated: `radial`, `pie`, `border`, `fill` (center), `fillup`, `filldown`, `fillleft`, `fillright` |
 | `progressColor` | Dwell-progress accent (`#RRGGBB` or `#AARRGGBB`). Empty inherits settings. |
 | `blur` | Frosted-glass blur radius |
 
@@ -59,7 +59,7 @@ A Grid is a placed rectangle of rows and columns. `desktopMode="true"` uses the 
 | `show` | `true` (default) or `false` — omit from the live session when false. Chrome-slot grids follow root chrome instead. |
 | `style`, `dwell` | Named style/dwell ids, plus inline chrome/dwell attrs |
 
-Cells use `row`, `col`, `rowSpan`, `colSpan`, `label`, `icon`, `caption`, `role` (`label`, `tab`, `slider`, `preview`, …), `show` (default true), `visibleWhen`, `interactive`, `suspendExempt`. Nested `<SubGrid>` occupies a cell span. Zones take the same `show` attribute.
+Cells use `row`, `col`, `rowSpan`, `colSpan`, `label`, `icon`, `caption`, `role` (`label`, `tab`, `slider`, `preview`, …), `textStyle` (`caption`, `body`, `title`, `section`, `key` — fill the cell with the glyph), `show` (default true), `visibleWhen`, `interactive`, `suspendExempt`. Nested `<SubGrid>` occupies a cell span. Zones take the same `show` attribute.
 
 ## `<Zone>`
 

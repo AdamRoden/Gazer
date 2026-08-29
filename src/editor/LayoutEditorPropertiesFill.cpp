@@ -158,7 +158,7 @@ void LayoutEditorProperties::fillLeafIdentity(QFormLayout* form, const PageLeaf&
             });
     b.combo(form, QStringLiteral("Text style"),
             {QString(), QStringLiteral("caption"), QStringLiteral("body"), QStringLiteral("title"),
-             QStringLiteral("section")},
+             QStringLiteral("section"), QStringLiteral("key")},
             item.textStyle, [this](const QString& t) {
                 applyItem([&](PageLeaf& it) { it.textStyle = t; }, QStringLiteral("Text style"));
             });

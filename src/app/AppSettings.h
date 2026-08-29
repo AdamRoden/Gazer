@@ -3,6 +3,7 @@
 #include "assist/ComboMouseHit.h"
 #include "assist/GazeFollowProfile.h"
 #include "assist/LtsIndicator.h"
+#include "layout/ProgressStyle.h"
 #include "ui/Theme.h"
 #include "ui/ThemeScheme.h"
 
@@ -46,15 +47,11 @@ struct AppSettings {
     GazeFollowProfile magFollowProfile = GazeFollowProfile::Sticky;
 
     // --- Progress visuals (boards + mouse-move) ---
-    bool progressRadial = true;
-    bool progressFill = false;
-    bool progressBorder = false;
+    ProgressStyle progress;
+    ProgressStyle mouseProgress = ProgressStyle::pointerDefaults();
     QString progressColor = QStringLiteral("#00DCFF");
     QString progressFillColor = QStringLiteral("#00B4DC46");
     QString progressBorderColor = QStringLiteral("#00DCFF");
-    bool mouseProgressRadial = true;
-    bool mouseProgressFill = false;
-    bool mouseProgressBorder = true;
     /// PickStyle flags: first dwell (region) and final click/move dwell.
     int magPickStyle = 1;   // Cursor
     int mousePickStyle = 1; // Cursor
@@ -155,6 +152,39 @@ struct AppSettings {
     }
     [[nodiscard]] static AppSettings defaults();
     [[nodiscard]] static QString defaultFilePath();
+
+    /// JSON keys stay `progressRadial` / `mouseProgressPie` / … for compatibility.
+    struct StyleToggle {
+        const char* jsonKey;
+        const char* command;
+        const char* label;
+        ProgressStyle AppSettings::* group;
+        bool ProgressStyle::* flag;
+    };
+    static constexpr StyleToggle kStyleToggles[] = {
+        {"progressRadial", "settings.progress.radial.toggle", "Radial", &AppSettings::progress,
+         &ProgressStyle::radial},
+        {"progressPie", "settings.progress.pie.toggle", "Pie", &AppSettings::progress,
+         &ProgressStyle::pie},
+        {"progressFill", "settings.progress.fill.toggle", "Fill", &AppSettings::progress,
+         &ProgressStyle::fillBackground},
+        {"progressBorder", "settings.progress.border.toggle", "Border", &AppSettings::progress,
+         &ProgressStyle::border},
+        {"mouseProgressRadial", "settings.mouseProgress.radial.toggle", "Mouse radial",
+         &AppSettings::mouseProgress, &ProgressStyle::radial},
+        {"mouseProgressPie", "settings.mouseProgress.pie.toggle", "Mouse pie",
+         &AppSettings::mouseProgress, &ProgressStyle::pie},
+        {"mouseProgressFill", "settings.mouseProgress.fill.toggle", "Mouse fill",
+         &AppSettings::mouseProgress, &ProgressStyle::fillBackground},
+        {"mouseProgressBorder", "settings.mouseProgress.border.toggle", "Mouse border",
+         &AppSettings::mouseProgress, &ProgressStyle::border},
+    };
+    [[nodiscard]] bool& styleFlag(const StyleToggle& t) { return (this->*t.group).*t.flag; }
+    [[nodiscard]] const bool& styleFlag(const StyleToggle& t) const
+    {
+        return (this->*t.group).*t.flag;
+    }
+    [[nodiscard]] static const StyleToggle* findStyleToggle(const QString& jsonKey);
 
     [[nodiscard]] bool loadFromFile(const QString& path, QString* error = nullptr);
     [[nodiscard]] bool saveToFile(const QString& path, QString* error = nullptr) const;

@@ -75,17 +75,26 @@ void SettingsUi::registerCommands()
         m_commands.registerBuiltin(QStringLiteral("settings.nudge.%1.inc").arg(key), nudge(key, +1));
     }
 
-    auto toggleBool = [this](bool AppSettings::*member, const QString& label) {
-        return [this, member, label](QString*) {
+    auto afterToggle = [this](const QString& label, bool on) {
+        if (m_color.active) {
+            refreshColorPicker();
+        }
+        notifyStatus(QStringLiteral("%1: %2")
+                         .arg(label, on ? QStringLiteral("ON") : QStringLiteral("OFF")));
+        return true;
+    };
+    for (const AppSettings::StyleToggle& spec : AppSettings::kStyleToggles) {
+        m_commands.registerBuiltin(QLatin1String(spec.command), [this, spec, afterToggle](QString*) {
+            m_settings.styleFlag(spec) = !m_settings.styleFlag(spec);
+            apply(true);
+            return afterToggle(QLatin1String(spec.label), m_settings.styleFlag(spec));
+        });
+    }
+    auto toggleBool = [this, afterToggle](bool AppSettings::*member, const QString& label) {
+        return [this, member, label, afterToggle](QString*) {
             m_settings.*member = !(m_settings.*member);
             apply(true);
-            if (m_color.active) {
-                refreshColorPicker();
-            }
-            notifyStatus(QStringLiteral("%1: %2")
-                             .arg(label, (m_settings.*member) ? QStringLiteral("ON")
-                                                              : QStringLiteral("OFF")));
-            return true;
+            return afterToggle(label, m_settings.*member);
         };
     };
     const struct {
@@ -93,12 +102,6 @@ void SettingsUi::registerCommands()
         bool AppSettings::* member;
         const char* label;
     } boolToggles[] = {
-        {"settings.progress.radial.toggle", &AppSettings::progressRadial, "Radial"},
-        {"settings.progress.fill.toggle", &AppSettings::progressFill, "Fill"},
-        {"settings.progress.border.toggle", &AppSettings::progressBorder, "Border"},
-        {"settings.mouseProgress.radial.toggle", &AppSettings::mouseProgressRadial, "Mouse radial"},
-        {"settings.mouseProgress.fill.toggle", &AppSettings::mouseProgressFill, "Mouse fill"},
-        {"settings.mouseProgress.border.toggle", &AppSettings::mouseProgressBorder, "Mouse border"},
         {"settings.session.autoCollapse.toggle", &AppSettings::autoCollapseMain,
          "Auto-collapse Main"},
         {"settings.session.startDocked.toggle", &AppSettings::startDocked, "Start docked"},

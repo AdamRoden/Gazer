@@ -10,11 +10,46 @@
 
 namespace gazer {
 
-inline constexpr qreal kRadialStrokePx = 6.0;
+inline constexpr qreal kRadialStrokePx = 10.0;
 inline constexpr qreal kRadialMarginPx = 6.0;
 inline constexpr qreal kRadialShortSide = 0.9;
+inline constexpr qreal kRadialStrokeFrac = 0.10;
 
 enum class ProgressShape { RoundedRect, Ellipse };
+
+struct RadialRing {
+    QRectF arc;
+    QRectF disk;
+    qreal stroke = kRadialStrokePx;
+};
+
+/// Stroke width: 10% of the short side, clamped 4–10 px.
+[[nodiscard]] inline qreal radialStrokePx(qreal shortSide)
+{
+    return qBound(4.0, shortSide * kRadialStrokeFrac, kRadialStrokePx);
+}
+
+/// `disk` is the outer visual circle (pie). `arc` is the stroke centerline.
+/// `kRadialShortSide` is that outer diameter, then clamped to a `kRadialMarginPx` inset.
+[[nodiscard]] inline RadialRing radialRingGeom(const QRectF& r, ProgressShape shape)
+{
+    RadialRing g;
+    const double shortSide = qMin(r.width(), r.height());
+    g.stroke = radialStrokePx(shortSide);
+    if (shape == ProgressShape::RoundedRect) {
+        const QPointF c = r.center();
+        const double maxOuter = shortSide - 2.0 * kRadialMarginPx;
+        const double outer = qMax(g.stroke + 8.0, qMin(shortSide * kRadialShortSide, maxOuter));
+        const double side = qMax(8.0, outer - g.stroke);
+        g.disk = QRectF(c.x() - outer / 2.0, c.y() - outer / 2.0, outer, outer);
+        g.arc = QRectF(c.x() - side / 2.0, c.y() - side / 2.0, side, side);
+    } else {
+        const double inset = g.stroke * 0.5;
+        g.disk = r;
+        g.arc = r.adjusted(inset, inset, -inset, -inset);
+    }
+    return g;
+}
 
 [[nodiscard]] inline QRectF progressFillSlice(const QRectF& r, double t, ProgressFillDir dir)
 {
@@ -65,6 +100,15 @@ inline void paintProgress(QPainter& p, const QRectF& r, double progress, const P
         }
         p.restore();
     }
+    const RadialRing ring = (v.style.pie || v.style.radial) ? radialRingGeom(r, shape) : RadialRing{};
+    if (v.style.pie) {
+        p.save();
+        p.setClipPath(shapePath);
+        p.setPen(Qt::NoPen);
+        p.setBrush(v.progressColor);
+        p.drawPie(ring.disk, 90 * 16, int(-360 * 16 * progress));
+        p.restore();
+    }
     if (v.style.border) {
         p.setBrush(Qt::NoBrush);
         const qreal w = 2.0 + 2.0 * progress;
@@ -77,24 +121,13 @@ inline void paintProgress(QPainter& p, const QRectF& r, double progress, const P
         }
     }
     if (v.style.radial) {
-        const qreal penW = kRadialStrokePx;
-        QRectF arc = r;
-        if (shape == ProgressShape::RoundedRect) {
-            const double shortSide = qMin(r.width(), r.height());
-            const double maxOuter = shortSide - 2.0 * kRadialMarginPx;
-            const double side = qMax(8.0, qMin(shortSide * kRadialShortSide, maxOuter - penW));
-            arc = QRectF(c.x() - side / 2.0, c.y() - side / 2.0, side, side);
-        } else {
-            const double inset = penW * 0.5;
-            arc = r.adjusted(inset, inset, -inset, -inset);
-        }
         p.setBrush(Qt::NoBrush);
         QColor track = v.progressColor;
         track.setAlpha(80);
-        p.setPen(QPen(track, penW, Qt::SolidLine, Qt::FlatCap, Qt::RoundJoin));
-        p.drawEllipse(arc);
-        p.setPen(QPen(v.progressColor, penW, Qt::SolidLine, Qt::FlatCap, Qt::RoundJoin));
-        p.drawArc(arc, 90 * 16, int(-360 * 16 * progress));
+        p.setPen(QPen(track, ring.stroke, Qt::SolidLine, Qt::FlatCap, Qt::RoundJoin));
+        p.drawEllipse(ring.arc);
+        p.setPen(QPen(v.progressColor, ring.stroke, Qt::SolidLine, Qt::FlatCap, Qt::RoundJoin));
+        p.drawArc(ring.arc, 90 * 16, int(-360 * 16 * progress));
     }
 }
 

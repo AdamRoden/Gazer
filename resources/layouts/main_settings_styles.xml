@@ -34,18 +34,20 @@
       <Cell id="h_prog" row="0" col="0" label="Progress" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_bp" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="bp_label" row="0" col="0" label="Button progress" caption="Progress styles for board cells." role="label" style="plain"/>
-        <SubGrid id="act_bp" row="0" col="1" rows="1" columns="3" gap="0" style="row">
+        <SubGrid id="act_bp" row="0" col="1" rows="1" columns="4" gap="0" style="row">
           <Cell id="bp_r" row="0" col="0" label="Ring" activeState="setting.progressRadial" style="join" command="settings.progress.radial.toggle"/>
-          <Cell id="bp_f" row="0" col="1" label="Fill" activeState="setting.progressFill" style="join" command="settings.progress.fill.toggle"/>
-          <Cell id="bp_b" row="0" col="2" label="Border" activeState="setting.progressBorder" style="join" command="settings.progress.border.toggle"/>
+          <Cell id="bp_pie" row="0" col="1" label="Pie" activeState="setting.progressPie" style="join" command="settings.progress.pie.toggle"/>
+          <Cell id="bp_f" row="0" col="2" label="Fill" activeState="setting.progressFill" style="join" command="settings.progress.fill.toggle"/>
+          <Cell id="bp_b" row="0" col="3" label="Border" activeState="setting.progressBorder" style="join" command="settings.progress.border.toggle"/>
         </SubGrid>
       </SubGrid>
       <SubGrid id="row_pp" row="2" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="pp_label" row="0" col="0" label="Pointer progress" caption="Progress styles for pointer dwell." role="label" style="plain"/>
-        <SubGrid id="act_pp" row="0" col="1" rows="1" columns="3" gap="0" style="row">
+        <SubGrid id="act_pp" row="0" col="1" rows="1" columns="4" gap="0" style="row">
           <Cell id="pp_r" row="0" col="0" label="Ring" activeState="setting.mouseProgressRadial" style="join" command="settings.mouseProgress.radial.toggle"/>
-          <Cell id="pp_f" row="0" col="1" label="Fill" activeState="setting.mouseProgressFill" style="join" command="settings.mouseProgress.fill.toggle"/>
-          <Cell id="pp_b" row="0" col="2" label="Border" activeState="setting.mouseProgressBorder" style="join" command="settings.mouseProgress.border.toggle"/>
+          <Cell id="pp_pie" row="0" col="1" label="Pie" activeState="setting.mouseProgressPie" style="join" command="settings.mouseProgress.pie.toggle"/>
+          <Cell id="pp_f" row="0" col="2" label="Fill" activeState="setting.mouseProgressFill" style="join" command="settings.mouseProgress.fill.toggle"/>
+          <Cell id="pp_b" row="0" col="3" label="Border" activeState="setting.mouseProgressBorder" style="join" command="settings.mouseProgress.border.toggle"/>
         </SubGrid>
       </SubGrid>
     </SubGrid>

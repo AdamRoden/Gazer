@@ -275,6 +275,16 @@ void PageLoaderTest::inheritStyleAndDwell()
     pv.setStylesFromCsv(QStringLiteral("fillleft"));
     QCOMPARE(pv.style.fillDir, ProgressFillDir::Left);
     QVERIFY(!pv.style.border);
+    pv.setStylesFromCsv(QStringLiteral("pie"));
+    QVERIFY(pv.style.pie);
+    QVERIFY(!pv.style.radial);
+    QVERIFY(!pv.style.fillBackground);
+    QVERIFY(!pv.style.border);
+    QCOMPARE(pv.stylesCsv(), QStringLiteral("pie"));
+    pv.setStylesFromCsv(QStringLiteral("radial,pie"));
+    QVERIFY(pv.style.radial);
+    QVERIFY(pv.style.pie);
+    QCOMPARE(pv.stylesCsv(), QStringLiteral("radial,pie"));
 
     const PageDwell dw = PageResolve::dwell(doc, cell.dwellId, cell.dwell);
     QCOMPARE(dw.scanGrace.value_or(-1), 50);
@@ -402,6 +412,9 @@ void PageLoaderTest::loadQwertyXml()
         }
     }
     QVERIFY(hasSend);
+    const PageCell* kq = doc.findCell(QStringLiteral("k_q"));
+    QVERIFY(kq);
+    QCOMPARE(kq->textStyle, QStringLiteral("key"));
     QCOMPARE(vert1->cells[1].actions.size(), 1);
     QCOMPARE(vert1->cells[1].actions[0].type, PageActionType::MoveAndClick);
     QCOMPARE(vert1->cells[1].actions[0].button, QStringLiteral("left"));

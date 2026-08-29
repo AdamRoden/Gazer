@@ -6,7 +6,6 @@
 #include "ui/SliderTrack.h"
 
 #include <QFont>
-#include <QFontInfo>
 #include <QFontMetricsF>
 #include <QPainter>
 #include <QPainterPath>
@@ -18,11 +17,6 @@ namespace BoardPaint {
 
 QString segoeFamily()
 {
-    const QFont variable(QStringLiteral("Segoe UI Variable Text"));
-    if (QFontInfo(variable).family().contains(QLatin1String("Segoe UI Variable"),
-                                              Qt::CaseInsensitive)) {
-        return QStringLiteral("Segoe UI Variable Text");
-    }
     return QStringLiteral("Segoe UI");
 }
 
@@ -39,6 +33,26 @@ int fontPxToFit(const QString& family, int weight, int startPx, int minPx, const
     }
     return qMax(minPx, px);
 }
+
+namespace {
+
+int fontPixelsToFill(const QString& family, int weight, const QString& text, const QRectF& box,
+                     int flags, int minPx = 10)
+{
+    int px = qMax(minPx, qRound(qMin(box.width(), box.height()) * 0.72));
+    while (px > minPx) {
+        QFont f(family, -1, weight);
+        f.setPixelSize(px);
+        const QRectF br = QFontMetricsF(f).boundingRect(box, flags, text);
+        if (br.width() <= box.width() + 0.5 && br.height() <= box.height() + 0.5) {
+            break;
+        }
+        --px;
+    }
+    return qMax(minPx, px);
+}
+
+} // namespace
 
 void fillRound(QPainter& p, const QRectF& r, double radius, const QColor& bg)
 {
@@ -209,7 +223,9 @@ void paintIconAndText(QPainter& p, const PageTarget& t, const QRectF& r, const Q
     QRectF textR = r.adjusted(pad, pad, -pad, -pad);
     int flags = int(Qt::AlignCenter | Qt::TextWordWrap);
     int startPx = 14;
-    const int weight = QFont::DemiBold;
+    const bool keyGlyph =
+        !hasIcon && t.textStyle.compare(QLatin1String("key"), Qt::CaseInsensitive) == 0;
+    const int weight = keyGlyph ? QFont::Normal : QFont::DemiBold;
 
     if (hasIcon && hasText && h >= 52.0 && w >= 40.0) {
         const qreal labelBand = qBound(18.0, h * 0.28, 30.0);
@@ -238,8 +254,14 @@ void paintIconAndText(QPainter& p, const PageTarget& t, const QRectF& r, const Q
 
     if (hasText && !(paintedIcon && textR.height() < 10.0)) {
         p.setPen(fg);
-        const int px = fontPxToFit(family, weight, startPx, 10, t.label, textR, flags);
-        p.setFont(QFont(family, px, weight));
+        if (keyGlyph) {
+            QFont f(family, -1, weight);
+            f.setPixelSize(fontPixelsToFill(family, weight, t.label, textR, flags));
+            p.setFont(f);
+        } else {
+            const int px = fontPxToFit(family, weight, startPx, 10, t.label, textR, flags);
+            p.setFont(QFont(family, px, weight));
+        }
         p.drawText(textR, flags, t.label);
     } else if (!paintedIcon && hasIcon) {
         p.setPen(fg);

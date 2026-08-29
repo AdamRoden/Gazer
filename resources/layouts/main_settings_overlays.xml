@@ -96,8 +96,8 @@
           <Cell id="co_edit" row="0" col="5" colSpan="2" label="Edit…" style="join" command="settings.edit.comboOuterRadiusPx"/>
         </SubGrid>
       </SubGrid>
-      <SubGrid id="row_ind" row="4" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="ind_l" row="0" col="0" label="ComboMouse Style" caption="Inner and outer color and opacity." role="label" style="plain"/>
+      <SubGrid id="row_combo_style" row="4" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="combo_style_l" row="0" col="0" label="ComboMouse Style" caption="Inner and outer color and opacity." role="label" style="plain"/>
         <SubGrid id="row_combo_colors" row="0" col="1" rows="1" columns="3" gap="0" style="row">
           <Cell id="combo_on" row="0" col="0" label="Toggle" icon="PieSlice5" role="toggle" activeState="comboMouse" style="join" command="toggleComboMouse"/>
           <Cell id="cic_sw" row="0" col="1" label="Inner ring" caption="Color and opacity of the drift ring." settingKey="comboInnerColor" style="join" command="settings.edit.color.comboInnerColor"/>

@@ -353,6 +353,7 @@ add_executable(GazerPageTests
     tests/PageHitTest.cpp
     tests/PageHitLiveTest.cpp
     tests/SettingsLayoutTest.cpp
+    tests/ProgressPaintTest.cpp
     tests/ComboMouseTest.cpp
     tests/AhkLauncherTest.cpp
     tests/KeyStateManagerTest.cpp

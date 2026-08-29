@@ -3,7 +3,6 @@
 #include "assist/ComboMouseHit.h"
 #include "core/GazePoint.h"
 #include "layout/DwellStateMachine.h"
-#include "ui/ProgressVisuals.h"
 #include "ui/Theme.h"
 
 #include <QColor>
@@ -43,7 +42,6 @@ public:
     void setDwellSequence(const QVector<int>& ms);
     void setAccent(const QColor& c);
     void setTheme(const ThemeColors& theme) { m_theme = theme; }
-    void setProgressVisuals(const ProgressVisuals& v) { m_progress = v; }
     void setRadii(int innerPx, int sharedPx, int outerPx);
     void setAnnulusColors(const QColor& inner, const QColor& outer);
     void setPaused(bool paused);
@@ -99,7 +97,6 @@ private:
     QColor m_outerColor = ComboMouseHit::kDefaultOuterFill;
     QColor m_accent;
     ThemeColors m_theme = ThemeColors::darkPreset();
-    ProgressVisuals m_progress;
     HoldFn m_hold;
     HeldQuery m_heldQuery;
     DwellStateMachine m_dwell;

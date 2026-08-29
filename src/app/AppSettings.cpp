@@ -135,12 +135,6 @@ constexpr BoolSpec kBoolSpecs[] = {
     {"startDocked", &AppSettings::startDocked},
     {"layoutAutoClose", &AppSettings::layoutAutoClose},
     {"speakAlsoType", &AppSettings::speakAlsoType},
-    {"progressRadial", &AppSettings::progressRadial},
-    {"progressFill", &AppSettings::progressFill},
-    {"progressBorder", &AppSettings::progressBorder},
-    {"mouseProgressRadial", &AppSettings::mouseProgressRadial},
-    {"mouseProgressFill", &AppSettings::mouseProgressFill},
-    {"mouseProgressBorder", &AppSettings::mouseProgressBorder},
     {"flashUseForeground", &AppSettings::flashUseForeground},
     {"pickWindowRound", &AppSettings::pickWindowRound},
 };
@@ -190,6 +184,16 @@ bool isSequenceKey(const QString& key)
 
 } // namespace
 
+const AppSettings::StyleToggle* AppSettings::findStyleToggle(const QString& jsonKey)
+{
+    for (const StyleToggle& t : kStyleToggles) {
+        if (jsonKey == QLatin1String(t.jsonKey)) {
+            return &t;
+        }
+    }
+    return nullptr;
+}
+
 void AppSettings::clamp()
 {
     if (dwellSequence.isEmpty()) {
@@ -213,12 +217,8 @@ void AppSettings::clamp()
     trackerPref = qBound(0, trackerPref, 1);
     layoutAutoCloseIdleMs = qBound(500, layoutAutoCloseIdleMs, 120000);
     layoutAutoCloseFadeMs = qBound(50, layoutAutoCloseFadeMs, 60000);
-    if (!progressRadial && !progressFill && !progressBorder) {
-        progressRadial = true;
-    }
-    if (!mouseProgressRadial && !mouseProgressFill && !mouseProgressBorder) {
-        mouseProgressRadial = true;
-    }
+    progress.ensureDefault();
+    mouseProgress.ensureDefault();
     ltsMaxNotchesPerSec = snapLtsSpeed(qBound(1.0, ltsMaxNotchesPerSec, 40.0));
 
     double inner = comboInnerRadiusPx;
@@ -392,6 +392,9 @@ QString AppSettings::displayValue(const QString& key) const
     }
     if (key == QLatin1String("mousePickStyle")) {
         return PickStyle::label(mousePickStyle);
+    }
+    if (const StyleToggle* t = findStyleToggle(key)) {
+        return styleFlag(*t) ? QStringLiteral("ON") : QStringLiteral("OFF");
     }
     for (const BoolSpec& s : kBoolSpecs) {
         if (keyEq(s.key, key)) {

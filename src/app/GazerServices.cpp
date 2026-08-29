@@ -302,9 +302,7 @@ void GazerServices::applySettings(bool persist)
     }
 
     ProgressVisuals boardPv;
-    boardPv.style.radial = m_settings.progressRadial;
-    boardPv.style.fillBackground = m_settings.progressFill;
-    boardPv.style.border = m_settings.progressBorder;
+    boardPv.style = m_settings.progress;
     boardPv.progressColor = m_settings.colorKey(QStringLiteral("progressColor"));
     boardPv.fillColor = m_settings.colorKey(QStringLiteral("progressFillColor"));
     boardPv.borderColor = m_settings.colorKey(QStringLiteral("progressBorderColor"));
@@ -336,9 +334,7 @@ void GazerServices::applySettings(bool persist)
     m_mouseDwellMove->setPickWindowPx(m_settings.pickWindowPx);
     m_mouseDwellMove->setPickWindowRound(m_settings.pickWindowRound);
     ProgressVisuals mousePv = boardPv;
-    mousePv.style.radial = m_settings.mouseProgressRadial;
-    mousePv.style.fillBackground = m_settings.mouseProgressFill;
-    mousePv.style.border = m_settings.mouseProgressBorder;
+    mousePv.style = m_settings.mouseProgress;
     m_mouseDwellMove->setProgressVisuals(mousePv);
     m_gazeReticle->setColor(boardPv.progressColor);
     m_magnifier->setAccent(boardPv.progressColor);
@@ -353,7 +349,6 @@ void GazerServices::applySettings(bool persist)
 
     m_comboMouse->setAccent(boardPv.progressColor);
     m_comboMouse->setTheme(m_settings.resolvedTheme());
-    m_comboMouse->setProgressVisuals(boardPv);
     m_comboMouse->setRadii(m_settings.comboInnerRadiusPx, m_settings.comboSharedRadiusPx,
                            m_settings.comboOuterRadiusPx);
     m_comboMouse->setAnnulusColors(m_settings.colorKey(QStringLiteral("comboInnerColor")),

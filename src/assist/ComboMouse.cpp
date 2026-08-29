@@ -3,6 +3,7 @@
 #include "input/MouseInjector.h"
 #include "ui/KeySymbols.h"
 #include "ui/OverlaySurface.h"
+#include "ui/ProgressVisuals.h"
 #include "ui/Theme.h"
 #include "utils/Log.h"
 #include "utils/ScreenGrab.h"
@@ -90,8 +91,8 @@ public:
 
     void setState(const ComboMouseHit::Layout& layout, ComboMouseHit::Band band,
                   ComboMouseHit::Slice slice, double dwellProg, bool dragHeld, QPointF dir,
-                  const QColor& accent, const ThemeColors& theme, const ProgressVisuals& progress,
-                  const QColor& innerColor, const QColor& outerColor)
+                  const QColor& accent, const ThemeColors& theme, const QColor& innerColor,
+                  const QColor& outerColor)
     {
         m_layout = layout;
         m_band = band;
@@ -100,7 +101,6 @@ public:
         m_dragHeld = dragHeld;
         m_dir = dir;
         m_theme = theme;
-        m_progress = progress;
         if (accent.isValid()) {
             m_accent = accent;
         }
@@ -169,10 +169,9 @@ private:
                       hover || armed ? 3.0 : 2.0, Qt::SolidLine, Qt::FlatCap, Qt::RoundJoin));
         p.drawPath(zone);
 
-        ProgressVisuals vis = m_progress;
-        vis.style.fillBackground = true;
-        vis.style.border = false;
+        ProgressVisuals vis;
         vis.style.radial = true;
+        vis.style.fillBackground = true;
         vis.fillColor = QColor(cyan.red(), cyan.green(), cyan.blue(), 90);
         vis.progressColor = cyan;
         vis.borderColor = primary;
@@ -208,10 +207,10 @@ private:
         p.setPen(Qt::NoPen);
         p.setBrush(fill);
         p.drawPath(annulus);
-        ProgressVisuals vis = m_progress;
+        ProgressVisuals vis;
+        vis.style.radial = true;
         vis.style.fillBackground = true;
         vis.style.border = true;
-        vis.style.radial = true;
         vis.borderColor = cyan;
         vis.fillColor = QColor(cyan.red(), cyan.green(), cyan.blue(), 70);
         vis.progressColor = cyan;
@@ -238,7 +237,6 @@ private:
     QColor m_innerColor = ComboMouseHit::kDefaultInnerFill;
     QColor m_outerColor = ComboMouseHit::kDefaultOuterFill;
     ThemeColors m_theme = ThemeColors::darkPreset();
-    ProgressVisuals m_progress;
     QPointF m_originLocal;
 };
 
@@ -352,7 +350,7 @@ void ComboMouse::pushOverlay(const ComboMouseHit::Layout& L, ComboMouseHit::Band
     adoptLayout(L);
     m_band = band;
     m_slice = slice;
-    m_overlay->setState(L, band, slice, dwellProg, isDragHeld(), dir, m_accent, m_theme, m_progress,
+    m_overlay->setState(L, band, slice, dwellProg, isDragHeld(), dir, m_accent, m_theme,
                         m_innerColor, m_outerColor);
     m_overlay->place(m_origin, screenRect());
 }
@@ -386,7 +384,7 @@ void ComboMouse::showAt(const QPoint& pos)
     m_band = ComboMouseHit::Band::Deadzone;
     m_slice = ComboMouseHit::Slice::Right;
     m_overlay->setState(m_layout, m_band, m_slice, 0.0, isDragHeld(), {}, m_accent, m_theme,
-                        m_progress, m_innerColor, m_outerColor);
+                        m_innerColor, m_outerColor);
     m_overlay->place(m_origin, screenRect());
     emit wheelVisibleChanged(true);
 }
@@ -441,7 +439,7 @@ void ComboMouse::moveOrigin(const QPoint& pos)
         m_band = ComboMouseHit::Band::Drift;
         m_slice = ComboMouseHit::Slice::Right;
         m_overlay->setState(m_layout, m_band, m_slice, m_dwell.progress(), isDragHeld(), m_nudgeDir,
-                            m_accent, m_theme, m_progress, m_innerColor, m_outerColor);
+                            m_accent, m_theme, m_innerColor, m_outerColor);
         m_overlay->place(m_origin, screenRect());
     }
 }
