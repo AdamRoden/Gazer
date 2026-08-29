@@ -20,10 +20,10 @@
         anchor="Bottom" offset="0,0" size="1200,150" style="drawer" gap="10" margin="10"
         chrome="drawer" drawerMotion="true" autoClose="true"
         autoCloseIdleMs="3000" shell="true" >
-    <Cell id="open_keyboard" row="0" col="0" label="Keyboard" icon="Keyboard" openPage="uw_qwerty"/>
+    <Cell id="open_keyboard" row="0" col="0" label="Keyboard" icon="Keyboard" openPage="qwerty_main"/>
     <Cell id="open_mouse" row="0" col="1" label="Mouse" icon="Mouse" openPage="example_mouse"/>
     <Cell id="open_assist" row="0" col="2" label="Assist" icon="IdeaIcon" openPage="example_assist"/>
-    <Cell id="open_right" row="0" col="3" label="Right" icon="More" openPage="uw_right"/>
+    <Cell id="open_right" row="0" col="3" label="More" icon="More" openPage="uw_qwerty"/>
     <Cell id="open_settings" row="0" col="4" label="Settings" icon="SettingsIcon" openPage="main_settings_button_timing"/>
     <Cell id="open_editor" row="0" col="5" label="Editor" icon="EditAppIcon">
       <Command value="openLayoutEditor"/>
