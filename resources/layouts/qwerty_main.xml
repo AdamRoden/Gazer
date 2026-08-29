@@ -1,7 +1,7 @@
 <Page id="qwerty_main" name="Qwerty" radius="0" scanGrace="200" activation="10,600,600,500,400,300,200,100">
   <Dwell id="vert1" scanGrace="200" activation="200,600"/>
   <Dwell id="vert2" scanGrace="100" activation="100,600"/>
-  <Grid id="board" rows="4" columns="160" anchor="Bottom" size="1.0,0.26" gap="0" margin="0">
+  <Grid id="board" desktopMode="true" rows="4" columns="160" anchor="Bottom" size="1.0,0.26" gap="0" margin="0">
     <Cell id="esc" row="0" col="0" colSpan="9" label="Esc" background="#3d4f66" foreground="#ffffff" command="escape"/>
     <Cell id="n1" row="0" col="9" colSpan="10" label="1" send="1"/>
     <Cell id="n2" row="0" col="19" colSpan="10" label="2" send="2"/>
@@ -68,7 +68,7 @@
     <Cell id="pgdn" row="3" col="140" colSpan="10" label="Pg Dn" background="#3d4f66" foreground="#ffffff" command="pageDown"/>
     <Cell id="enter" row="3" col="150" colSpan="10" icon="Enter" label="Enter" background="#3d4f66" foreground="#ffffff" command="enter"/>
   </Grid>
-  <Grid id="vert1" rows="6" columns="1" anchor="TopRight" size="1/16,0.74">
+  <Grid id="vert1" desktopMode="true" rows="6" columns="1" anchor="TopRight" size="1/16,0.74">
     <Cell id="more" row="0" col="0" icon="More" dwell="vert1" openPage="example_keyboard_sym"/>
     <Cell id="move_lclick" row="1" col="0" icon="LeftClick" dwell="vert1" activeState="leftClickAtGaze" leftClickAtGaze=""/>
     <Cell id="move_rclick" row="2" col="0" icon="RightClick" dwell="vert1" activeState="rightClickAtGaze" rightClickAtGaze=""/>
@@ -87,7 +87,7 @@
     <Cell id="sleep" row="4" col="0" icon="Sleep" dwell="vert1" activeState="dwellSuspend" command="toggleDwellSuspend"/>
     <Cell id="lts" row="5" col="0" icon="LookToScrollActive" dwell="vert1" activeState="lookToScroll" command="toggleLookToScroll"/>
   </Grid>
-  <Grid id="vert2"  rows="2" columns="1" anchor="TopRight" offset="0,0.74" size="1/16,0.26"  show="false">
+  <Grid id="vert2" desktopMode="true" rows="2" columns="1" anchor="TopRight" offset="0,0.74" size="1/16,0.26"  show="false">
     <Cell id="mid" row="0" col="0" label="Mid" dwell="vert2">
     <AHK><![CDATA[
     {
@@ -96,7 +96,7 @@
     xPos := -4
     yPos := -4
     v_nWidthN := 15/16*A_ScreenWidth+8
-    v_nHeightN := 0.74*A_ScreenHeight-32
+    v_nHeightN := 0.74*(A_ScreenHeight-32)
     WinRestore Title 
     WinMove xPos, yPos, v_nWidthN, v_nHeightN, Title
     } catch { 
