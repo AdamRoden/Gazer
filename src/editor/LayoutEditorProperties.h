@@ -10,6 +10,7 @@
 class QTabWidget;
 class QFormLayout;
 class QScrollArea;
+class QLabel;
 
 namespace gazer {
 
@@ -31,6 +32,7 @@ private:
     enum class Kind { Page, Grid, Cell, Zone, Style, Dwell };
 
     void rebuild();
+    void syncHeader();
     void syncTabs(Kind kind);
     void fillPage(QFormLayout* form);
     void fillGrid(QFormLayout* form);
@@ -63,7 +65,6 @@ private:
         bool autoClose = false;
         bool dwellTiming = false;
         int actionStep = 0;
-        int actionType = -1;
         QString role;
         bool loop = false;
         bool customDwell = false;
@@ -72,7 +73,12 @@ private:
         bool gridAutoClose = false;
         int namedStyles = 0;
         int namedDwells = 0;
-        int moveMode = -1;
+        bool hasAction = false;
+        PageActionType actionType = PageActionType::Unknown;
+        PageVerb actionVerb = PageVerb::Open;
+        PageTargetKind actionTargetKind = PageTargetKind::Page;
+        PageZoomMode zoomMode = PageZoomMode::Off;
+        PageMoveMode moveMode = PageMoveMode::Gaze;
         bool operator==(const Shape&) const = default;
     };
     struct Page {
@@ -84,6 +90,9 @@ private:
     void rebuildIfNeeded();
 
     LayoutEditorSession& m_session;
+    QLabel* m_headerKind = nullptr;
+    QLabel* m_headerTitle = nullptr;
+    QLabel* m_headerId = nullptr;
     QTabWidget* m_tabs = nullptr;
     static constexpr int kTabCount = 5;
     std::array<Page, kTabCount> m_pages{};

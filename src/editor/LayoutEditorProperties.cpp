@@ -30,6 +30,24 @@ LayoutEditorProperties::LayoutEditorProperties(LayoutEditorSession& session, QWi
     title->setObjectName(QStringLiteral("panelTitle"));
     root->addWidget(title);
 
+    auto* header = new QWidget;
+    header->setObjectName(QStringLiteral("selectionHeader"));
+    auto* headerLay = new QVBoxLayout(header);
+    headerLay->setContentsMargins(10, 8, 10, 8);
+    headerLay->setSpacing(1);
+    m_headerKind = new QLabel;
+    m_headerKind->setObjectName(QStringLiteral("selectionKind"));
+    m_headerTitle = new QLabel;
+    m_headerTitle->setObjectName(QStringLiteral("selectionTitle"));
+    m_headerTitle->setWordWrap(true);
+    m_headerId = new QLabel;
+    m_headerId->setObjectName(QStringLiteral("selectionId"));
+    m_headerId->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    headerLay->addWidget(m_headerKind);
+    headerLay->addWidget(m_headerTitle);
+    headerLay->addWidget(m_headerId);
+    root->addWidget(header);
+
     m_tabs = new QTabWidget(this);
     auto makePage = [](QFormLayout** outForm, QScrollArea** outScroll) {
         auto* page = new QWidget;
@@ -274,7 +292,67 @@ void LayoutEditorProperties::rebuild()
         }
     }
     m_shape = currentShape();
+    syncHeader();
     m_loading = false;
+}
+
+void LayoutEditorProperties::syncHeader()
+{
+    if (!m_headerKind || !m_headerTitle || !m_headerId) {
+        return;
+    }
+    const Kind kind = currentKind();
+    const EditorSelection sel = m_session.selection();
+    const PageDocument& d = m_session.document();
+    QString kindText;
+    QString title;
+    QString id;
+    switch (kind) {
+    case Kind::Page:
+        kindText = QStringLiteral("PAGE");
+        title = d.name.isEmpty() ? d.id : d.name;
+        id = d.id;
+        break;
+    case Kind::Grid:
+        kindText = QStringLiteral("GRID");
+        if (const PageGrid* g = m_session.selectedGrid()) {
+            title = g->id.isEmpty() ? (g->nested ? QStringLiteral("Subgrid")
+                                                 : QStringLiteral("Grid"))
+                                    : g->id;
+            id = g->id;
+        }
+        break;
+    case Kind::Cell:
+        kindText = QStringLiteral("CELL");
+        break;
+    case Kind::Zone:
+        kindText = QStringLiteral("ZONE");
+        break;
+    case Kind::Style:
+        kindText = QStringLiteral("STYLE");
+        title = sel.itemId;
+        id = sel.itemId;
+        break;
+    case Kind::Dwell:
+        kindText = QStringLiteral("DWELL");
+        title = sel.itemId;
+        id = sel.itemId;
+        break;
+    }
+    if (kind == Kind::Cell || kind == Kind::Zone) {
+        if (sel.itemIds.size() > 1) {
+            kindText = QStringLiteral("ITEMS");
+            title = QStringLiteral("%1 selected").arg(sel.itemIds.size());
+            id = sel.itemIds.join(QStringLiteral(", "));
+        } else if (const PageLeaf* it = m_session.selectedItem()) {
+            title = it->label.isEmpty() ? it->id : it->label;
+            id = it->id;
+        }
+    }
+    m_headerKind->setText(kindText);
+    m_headerTitle->setText(title);
+    m_headerId->setText(id);
+    m_headerId->setVisible(!id.isEmpty() && id != title);
 }
 
 LayoutEditorProperties::Shape LayoutEditorProperties::currentShape() const
@@ -301,9 +379,12 @@ LayoutEditorProperties::Shape LayoutEditorProperties::currentShape() const
         s.itemActions = it->actions.size();
         if (!it->actions.isEmpty()) {
             const PageAction& a = it->actions[qBound(0, m_actionStep, it->actions.size() - 1)];
-            s.actionType = int(a.type) + int(a.verb) * 16 + int(a.targetKind) * 64
-                           + int(a.zoomMode) * 256;
-            s.moveMode = int(a.moveMode);
+            s.hasAction = true;
+            s.actionType = a.type;
+            s.actionVerb = a.verb;
+            s.actionTargetKind = a.targetKind;
+            s.zoomMode = a.zoomMode;
+            s.moveMode = a.moveMode;
         }
     }
     return s;

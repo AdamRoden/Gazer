@@ -27,6 +27,26 @@ struct EditorSelection {
     EditorTarget target = EditorTarget::None;
     QString itemId;
     QStringList itemIds;
+
+    [[nodiscard]] bool matches(EditorTarget t, const QString& id) const
+    {
+        if (target != t) {
+            return false;
+        }
+        if (t == EditorTarget::Item) {
+            return itemIds.contains(id);
+        }
+        if (t == EditorTarget::Document) {
+            return true;
+        }
+        return itemId == id;
+    }
+};
+
+struct EditorIssue {
+    QString message;
+    QString itemId;
+    EditorTarget target = EditorTarget::Document;
 };
 
 enum class EditorItemKind {
@@ -100,6 +120,7 @@ public:
     void selectItems(const QStringList& ids);
     void selectTarget(EditorTarget target);
     void selectGrid(const QString& gridId);
+    void selectByTarget(EditorTarget target, const QString& id);
     [[nodiscard]] QString selectedGridId() const;
     [[nodiscard]] const PageGrid* selectedGrid() const;
 
@@ -136,7 +157,7 @@ public:
     void setActions(const QString& itemId, QVector<PageAction> acts);
     void snapWindowTo(const QPoint& virtualTopLeft, const QSize& virtualScreen);
     [[nodiscard]] QString uniqueItemId(const QString& stem) const;
-    [[nodiscard]] QStringList validate(const QStringList& catalogIds = {}) const;
+    [[nodiscard]] QVector<EditorIssue> validate(const QStringList& catalogIds = {}) const;
     void notify(const QString& msg);
 
 signals:

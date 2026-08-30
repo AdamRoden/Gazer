@@ -27,7 +27,11 @@ bool LayoutEditorWindow::openFile(const QString& path, QString* error)
     if (!maybeSave()) {
         return false;
     }
-    return m_session->loadFromFile(path, error);
+    const bool ok = m_session->loadFromFile(path, error);
+    if (ok) {
+        frameLoadedPage();
+    }
+    return ok;
 }
 
 bool LayoutEditorWindow::openLayoutId(const QString& layoutId, QString* error)
@@ -46,6 +50,9 @@ bool LayoutEditorWindow::openLayoutId(const QString& layoutId, QString* error)
 
 bool LayoutEditorWindow::maybeSave()
 {
+    if (!applyCodeView()) {
+        return false;
+    }
     if (!m_session->isDirty()) {
         return true;
     }
@@ -149,7 +156,9 @@ void LayoutEditorWindow::newFile()
     if (!maybeSave()) {
         return;
     }
-    (void)promptNewPage();
+    if (promptNewPage()) {
+        frameLoadedPage();
+    }
 }
 
 void LayoutEditorWindow::open()
@@ -158,6 +167,7 @@ void LayoutEditorWindow::open()
         return;
     }
     if (promptOpenCatalog()) {
+        frameLoadedPage();
         return;
     }
     const QString path =
@@ -168,11 +178,16 @@ void LayoutEditorWindow::open()
     QString err;
     if (!m_session->loadFromFile(path, &err)) {
         QMessageBox::warning(this, QStringLiteral("Open failed"), err);
+        return;
     }
+    frameLoadedPage();
 }
 
 void LayoutEditorWindow::save()
 {
+    if (!applyCodeView()) {
+        return;
+    }
     if (!confirmIssues(QStringLiteral("save"))) {
         return;
     }
@@ -199,6 +214,9 @@ void LayoutEditorWindow::save()
 
 void LayoutEditorWindow::saveAs()
 {
+    if (!applyCodeView()) {
+        return;
+    }
     if (!confirmIssues(QStringLiteral("save"))) {
         return;
     }
@@ -257,6 +275,9 @@ void LayoutEditorWindow::exportFile()
 
 void LayoutEditorWindow::testLive()
 {
+    if (!applyCodeView()) {
+        return;
+    }
     if (!confirmIssues(QStringLiteral("test on desktop"))) {
         return;
     }
@@ -325,13 +346,18 @@ QString LayoutEditorWindow::userCopyPath(const QString& path) const
 
 bool LayoutEditorWindow::confirmIssues(const QString& action)
 {
-    const QStringList issues = m_session->validate(m_catalogIds);
+    const QVector<EditorIssue> issues = m_session->validate(m_catalogIds);
     if (issues.isEmpty()) {
         return true;
     }
+    QStringList lines;
+    const int n = qMin(8, issues.size());
+    for (int i = 0; i < n; ++i) {
+        lines.push_back(issues[i].message);
+    }
     const QString body =
         QStringLiteral("This page has problems:\n\n• %1\n\n%2 anyway?")
-            .arg(issues.mid(0, 8).join(QStringLiteral("\n• ")),
+            .arg(lines.join(QStringLiteral("\n• ")),
                  action.left(1).toUpper() + action.mid(1));
     return QMessageBox::warning(this, QStringLiteral("Page issues"), body,
                                 QMessageBox::Yes | QMessageBox::No, QMessageBox::No)

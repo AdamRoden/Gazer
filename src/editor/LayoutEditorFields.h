@@ -23,6 +23,8 @@ struct PropertyBinder {
 
     void heading(QFormLayout* form, const QString& text);
     void note(QFormLayout* form, const QString& text);
+    void card(QFormLayout* form, const QString& title,
+              const std::function<void(QFormLayout*)>& fill);
     void text(QFormLayout* form, const QString& label, const QString& value,
               const std::function<void(const QString&)>& apply);
     void integer(QFormLayout* form, const QString& label, int value, int min, int max,
@@ -59,8 +61,20 @@ using ActionMutate = std::function<void(const QString& undoLabel,
                                         const std::function<void(PageAction&)>& mut)>;
 
 void addChromeFields(PropertyBinder& b, QFormLayout* form, const PageChrome& st,
-                     const ChromeMutate& apply, bool includeHeading = true,
-                     bool includeItemPaint = true);
+                     const ChromeMutate& apply, bool includeItemPaint = true);
+void addOffsetSizeFields(PropertyBinder& b, QFormLayout* form, const PageDimPair& offset,
+                         const PageDimPair& size, const std::function<void(PageDim)>& applyOffX,
+                         const std::function<void(PageDim)>& applyOffY,
+                         const std::function<void(PageDim)>& applyW,
+                         const std::function<void(PageDim)>& applyH);
+void addPlacementGeometry(PropertyBinder& b, QFormLayout* form, bool desktopMode, PageAnchor anchor,
+                          const PageDimPair& offset, const PageDimPair& size,
+                          const std::function<void(bool)>& applyDesktop,
+                          const std::function<void(const QString&)>& applyAnchor,
+                          const std::function<void(PageDim)>& applyOffX,
+                          const std::function<void(PageDim)>& applyOffY,
+                          const std::function<void(PageDim)>& applyW,
+                          const std::function<void(PageDim)>& applyH);
 void addDwellFields(PropertyBinder& b, QFormLayout* form, const PageDwell& dwell,
                     const DwellMutate& apply, bool includeHeading = true,
                     const QStringList& inheritIds = {}, const QString& inheritCurrent = {},

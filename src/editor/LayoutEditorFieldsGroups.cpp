@@ -3,6 +3,7 @@
 #include "layout/ChromeBlur.h"
 #include "layout/PageActionParse.h"
 #include "layout/PageDim.h"
+#include "layout/PageTypes.h"
 #include "ui/KeySymbols.h"
 #include "ui/Theme.h"
 
@@ -25,53 +26,56 @@
 namespace gazer {
 
 void addChromeFields(PropertyBinder& b, QFormLayout* form, const PageChrome& st,
-                     const ChromeMutate& apply, bool includeHeading, bool includeItemPaint)
+                     const ChromeMutate& apply, bool includeItemPaint)
 {
-    if (includeHeading) {
-        b.note(form, QStringLiteral("Empty inherits the named style, then the page, then "
-                                    "settings (thickness 1 / radius 0)."));
-    }
-    b.color(form, QStringLiteral("Background"), st.background, [apply](std::optional<QColor> c) {
-        apply(QStringLiteral("Background"), [&](PageChrome& s) { s.background = c; });
-    });
-    if (includeItemPaint) {
-        b.color(form, QStringLiteral("Foreground"), st.foreground, [apply](std::optional<QColor> c) {
-            apply(QStringLiteral("Foreground"), [&](PageChrome& s) { s.foreground = c; });
+    b.card(form, QStringLiteral("Look"), [&](QFormLayout* f) {
+        b.note(f, QStringLiteral("Empty inherits the named style (Inherit), then the page, then "
+                                 "settings (thickness 1 / radius 0)."));
+        b.color(f, QStringLiteral("Background"), st.background, [apply](std::optional<QColor> c) {
+            apply(QStringLiteral("Background"), [&](PageChrome& s) { s.background = c; });
         });
-    }
-    b.color(form, QStringLiteral("Border"), st.borderColor, [apply](std::optional<QColor> c) {
-        apply(QStringLiteral("Border"), [&](PageChrome& s) { s.borderColor = c; });
-    });
-    b.optionalBox(form, QStringLiteral("Thickness"), st.thickness,
-                  QStringLiteral("all  or  t,r,b,l"), [apply](std::optional<PageBox> v) {
-                      apply(QStringLiteral("Thickness"), [&](PageChrome& s) { s.thickness = v; });
-                  });
-    b.optionalBox(form, QStringLiteral("Radius"), st.radius, QStringLiteral("all  or  tl,tr,br,bl"),
-                  [apply](std::optional<PageBox> v) {
-                      apply(QStringLiteral("Radius"), [&](PageChrome& s) { s.radius = v; });
-                  });
-    b.optionalReal(form, QStringLiteral("Frosted blur"), st.blur, 0, kChromeBlurMax, 1,
-                   [apply](std::optional<double> v) {
-                       apply(QStringLiteral("Blur"), [&](PageChrome& s) { s.blur = v; });
+        if (includeItemPaint) {
+            b.color(f, QStringLiteral("Foreground"), st.foreground,
+                    [apply](std::optional<QColor> c) {
+                        apply(QStringLiteral("Foreground"), [&](PageChrome& s) { s.foreground = c; });
+                    });
+        }
+        b.color(f, QStringLiteral("Border"), st.borderColor, [apply](std::optional<QColor> c) {
+            apply(QStringLiteral("Border"), [&](PageChrome& s) { s.borderColor = c; });
+        });
+        b.optionalBox(f, QStringLiteral("Thickness"), st.thickness,
+                      QStringLiteral("all  or  t,r,b,l"), [apply](std::optional<PageBox> v) {
+                          apply(QStringLiteral("Thickness"), [&](PageChrome& s) { s.thickness = v; });
+                      });
+        b.optionalBox(f, QStringLiteral("Radius"), st.radius,
+                      QStringLiteral("all  or  tl,tr,br,bl"), [apply](std::optional<PageBox> v) {
+                          apply(QStringLiteral("Radius"), [&](PageChrome& s) { s.radius = v; });
+                      });
+        b.optionalReal(f, QStringLiteral("Frosted blur"), st.blur, 0, kChromeBlurMax, 1,
+                       [apply](std::optional<double> v) {
+                           apply(QStringLiteral("Blur"), [&](PageChrome& s) { s.blur = v; });
+                       });
+        if (!includeItemPaint) {
+            return;
+        }
+        b.text(f, QStringLiteral("Progress style"),
+               st.progressStyle ? st.progressStyle->toCsv() : QString(),
+               [apply](const QString& raw) {
+                   const QString s = raw.trimmed();
+                   apply(QStringLiteral("Progress style"), [&](PageChrome& c) {
+                       c.progressStyle =
+                           s.isEmpty() ? std::nullopt
+                                       : std::optional<ProgressStyle>(ProgressStyle::fromCsv(s));
                    });
-    if (!includeItemPaint) {
-        return;
-    }
-    b.text(form, QStringLiteral("Progress style"),
-           st.progressStyle ? st.progressStyle->toCsv() : QString(),
-           [apply](const QString& raw) {
-               const QString s = raw.trimmed();
-               apply(QStringLiteral("Progress style"), [&](PageChrome& c) {
-                   c.progressStyle =
-                       s.isEmpty() ? std::nullopt : std::optional<ProgressStyle>(ProgressStyle::fromCsv(s));
                });
-           });
-    b.color(form, QStringLiteral("Progress color"), st.progressColor,
-            [apply](std::optional<QColor> c) {
-                apply(QStringLiteral("Progress color"), [&](PageChrome& s) { s.progressColor = c; });
-            });
-    b.note(form, QStringLiteral("Empty inherits. Tokens: radial, pie, border, fill, fillup, "
-                                "filldown, fillleft, fillright."));
+        b.color(f, QStringLiteral("Progress color"), st.progressColor,
+                [apply](std::optional<QColor> c) {
+                    apply(QStringLiteral("Progress color"),
+                          [&](PageChrome& s) { s.progressColor = c; });
+                });
+        b.note(f, QStringLiteral("Empty inherits. Tokens: radial, pie, border, fill, fillup, "
+                                 "filldown, fillleft, fillright."));
+    });
 }
 
 namespace {
@@ -131,56 +135,60 @@ void addDwellFields(PropertyBinder& b, QFormLayout* form, const PageDwell& dwell
                     const QString& inheritCurrent,
                     const std::function<void(const QString&)>& inheritApply)
 {
-    if (includeHeading) {
-        b.note(form, QStringLiteral("Empty inherits the named dwell, then the page, then "
-                                    "settings."));
-    }
-    if (inheritApply) {
-        addOptionalIdCombo(b, form, QStringLiteral("Inherit"), inheritIds, inheritCurrent,
-                           inheritApply);
-    }
-    b.integer(form, QStringLiteral("Scan grace ms"), dwell.scanGrace.value_or(-1), -1, 5000,
-              [apply](int v) {
-                  apply(QStringLiteral("Scan grace"), [&](PageDwell& d) {
-                      if (v < 0) {
-                          d.scanGrace.reset();
-                      } else {
-                          d.scanGrace = v;
-                      }
+    b.card(form, QStringLiteral("Timing"), [&](QFormLayout* f) {
+        if (includeHeading) {
+            b.note(f, QStringLiteral("Empty inherits the named dwell, then the page, then "
+                                     "settings."));
+        }
+        if (inheritApply) {
+            addOptionalIdCombo(b, f, QStringLiteral("Inherit"), inheritIds, inheritCurrent,
+                               inheritApply);
+        }
+        b.integer(f, QStringLiteral("Scan grace ms"), dwell.scanGrace.value_or(-1), -1, 5000,
+                  [apply](int v) {
+                      apply(QStringLiteral("Scan grace"), [&](PageDwell& d) {
+                          if (v < 0) {
+                              d.scanGrace.reset();
+                          } else {
+                              d.scanGrace = v;
+                          }
+                      });
                   });
-              });
-    b.integer(form, QStringLiteral("Dwell grace ms"), dwell.dwellGrace.value_or(-1), -1, 5000,
-              [apply](int v) {
-                  apply(QStringLiteral("Dwell grace"), [&](PageDwell& d) {
-                      if (v < 0) {
-                          d.dwellGrace.reset();
-                      } else {
-                          d.dwellGrace = v;
-                      }
+        b.integer(f, QStringLiteral("Dwell grace ms"), dwell.dwellGrace.value_or(-1), -1, 5000,
+                  [apply](int v) {
+                      apply(QStringLiteral("Dwell grace"), [&](PageDwell& d) {
+                          if (v < 0) {
+                              d.dwellGrace.reset();
+                          } else {
+                              d.dwellGrace = v;
+                          }
+                      });
                   });
-              });
-    b.text(form, QStringLiteral("Hold times (ms)"), activationText(dwell), [apply](const QString& t) {
-        apply(QStringLiteral("Dwell ms"), [&](PageDwell& d) {
-            if (t.trimmed().isEmpty()) {
-                d.activation.reset();
-                return;
-            }
-            QVector<int> seq;
-            for (const QString& p : t.split(QLatin1Char(','), Qt::SkipEmptyParts)) {
-                bool ok = false;
-                const int n = p.trimmed().toInt(&ok);
-                if (ok) {
-                    seq.push_back(n);
-                }
-            }
-            if (seq.isEmpty()) {
-                d.activation.reset();
-            } else {
-                d.activation = seq;
-            }
-        });
+        b.text(f, QStringLiteral("Hold times (ms)"), activationText(dwell),
+               [apply](const QString& t) {
+                   apply(QStringLiteral("Dwell ms"), [&](PageDwell& d) {
+                       if (t.trimmed().isEmpty()) {
+                           d.activation.reset();
+                           return;
+                       }
+                       QVector<int> seq;
+                       for (const QString& p : t.split(QLatin1Char(','), Qt::SkipEmptyParts)) {
+                           bool ok = false;
+                           const int n = p.trimmed().toInt(&ok);
+                           if (ok) {
+                               seq.push_back(n);
+                           }
+                       }
+                       if (seq.isEmpty()) {
+                           d.activation.reset();
+                       } else {
+                           d.activation = seq;
+                       }
+                   });
+               });
+        b.note(f, QStringLiteral(
+                      "Comma-separated hold steps. Empty inherits Settings. −1 grace inherits."));
     });
-    b.note(form, QStringLiteral("Comma-separated hold steps. Empty inherits Settings. −1 grace inherits."));
 }
 
 void addActionFields(PropertyBinder& b, QFormLayout* form, const PageAction& action,
@@ -404,66 +412,67 @@ void addActionSeriesFields(PropertyBinder& b, QFormLayout* form, const QVector<P
                            const std::function<void(int)>& selectStep,
                            const std::function<void(QVector<PageAction>)>& applyAll)
 {
-    b.heading(form, QStringLiteral("Actions"));
-    const int step = acts.isEmpty() ? 0 : qBound(0, selectedStep, acts.size() - 1);
-    if (acts.size() > 1) {
-        QStringList labels;
-        for (int i = 0; i < acts.size(); ++i) {
-            labels.push_back(QStringLiteral("Step %1").arg(i + 1));
-        }
-        b.combo(form, QStringLiteral("Step"), labels, labels[step],
-                [selectStep, labels](const QString& t) {
-                    selectStep(labels.indexOf(t));
-                });
-    }
-
-    const PageAction current = acts.isEmpty() ? PageAction{} : acts[step];
-    addActionFields(b, form, current, itemLabel, catalog,
-                    [applyAll, acts, step](const QString&, const auto& mut) {
-                        QVector<PageAction> next = acts;
-                        if (next.isEmpty()) {
-                            PageAction a;
-                            mut(a);
-                            next.push_back(a);
-                        } else {
-                            mut(next[qBound(0, step, next.size() - 1)]);
-                        }
-                        applyAll(next);
+    b.card(form, QStringLiteral("Actions"), [&](QFormLayout* inner) {
+        const int step = acts.isEmpty() ? 0 : qBound(0, selectedStep, acts.size() - 1);
+        if (acts.size() > 1) {
+            QStringList labels;
+            for (int i = 0; i < acts.size(); ++i) {
+                labels.push_back(QStringLiteral("Step %1").arg(i + 1));
+            }
+            b.combo(inner, QStringLiteral("Step"), labels, labels[step],
+                    [selectStep, labels](const QString& t) {
+                        selectStep(labels.indexOf(t));
                     });
+        }
 
-    auto* row = new QWidget;
-    auto* rowLay = new QHBoxLayout(row);
-    rowLay->setContentsMargins(0, 0, 0, 0);
-    auto* add = new QPushButton(QStringLiteral("Add step"));
-    bool* const loadingFlag = b.loading;
-    QObject::connect(add, &QPushButton::clicked, b.host,
-                     [loadingFlag, applyAll, acts, selectStep]() {
-                         if (loadingFlag && *loadingFlag) {
-                             return;
-                         }
-                         QVector<PageAction> next = acts;
-                         PageAction a;
-                         a.type = PageActionType::Command;
-                         next.push_back(a);
-                         selectStep(next.size() - 1);
-                         applyAll(next);
-                     });
-    rowLay->addWidget(add);
-    if (acts.size() > 1) {
-        auto* rm = new QPushButton(QStringLiteral("Remove step"));
-        QObject::connect(rm, &QPushButton::clicked, b.host,
-                         [loadingFlag, applyAll, acts, step, selectStep]() {
+        const PageAction current = acts.isEmpty() ? PageAction{} : acts[step];
+        addActionFields(b, inner, current, itemLabel, catalog,
+                        [applyAll, acts, step](const QString&, const auto& mut) {
+                            QVector<PageAction> next = acts;
+                            if (next.isEmpty()) {
+                                PageAction a;
+                                mut(a);
+                                next.push_back(a);
+                            } else {
+                                mut(next[qBound(0, step, next.size() - 1)]);
+                            }
+                            applyAll(next);
+                        });
+
+        auto* row = new QWidget;
+        auto* rowLay = new QHBoxLayout(row);
+        rowLay->setContentsMargins(0, 0, 0, 0);
+        auto* add = new QPushButton(QStringLiteral("Add step"));
+        bool* const loadingFlag = b.loading;
+        QObject::connect(add, &QPushButton::clicked, b.host,
+                         [loadingFlag, applyAll, acts, selectStep]() {
                              if (loadingFlag && *loadingFlag) {
                                  return;
                              }
                              QVector<PageAction> next = acts;
-                             next.removeAt(step);
-                             selectStep(qMax(0, step - 1));
+                             PageAction a;
+                             a.type = PageActionType::Command;
+                             next.push_back(a);
+                             selectStep(next.size() - 1);
                              applyAll(next);
                          });
-        rowLay->addWidget(rm);
-    }
-    form->addRow(QStringLiteral("Steps"), row);
+        rowLay->addWidget(add);
+        if (acts.size() > 1) {
+            auto* rm = new QPushButton(QStringLiteral("Remove step"));
+            QObject::connect(rm, &QPushButton::clicked, b.host,
+                             [loadingFlag, applyAll, acts, step, selectStep]() {
+                                 if (loadingFlag && *loadingFlag) {
+                                     return;
+                                 }
+                                 QVector<PageAction> next = acts;
+                                 next.removeAt(step);
+                                 selectStep(qMax(0, step - 1));
+                                 applyAll(next);
+                             });
+            rowLay->addWidget(rm);
+        }
+        inner->addRow(QStringLiteral("Steps"), row);
+    });
 }
 
 QStringList sortedKeys(const QStringList& keys)
@@ -526,7 +535,34 @@ void addNamedChromeEditor(PropertyBinder& b, QFormLayout* form,
     b.text(form, QStringLiteral("Style id"), selectedId, [rename, selectedId](const QString& t) {
         rename(selectedId, t.trimmed());
     });
-    addChromeFields(b, form, styles.value(selectedId), apply, false);
+    addChromeFields(b, form, styles.value(selectedId), apply);
+}
+
+void addOffsetSizeFields(PropertyBinder& b, QFormLayout* form, const PageDimPair& offset,
+                         const PageDimPair& size, const std::function<void(PageDim)>& applyOffX,
+                         const std::function<void(PageDim)>& applyOffY,
+                         const std::function<void(PageDim)>& applyW,
+                         const std::function<void(PageDim)>& applyH)
+{
+    b.dim(form, QStringLiteral("Offset X"), offset.x, applyOffX);
+    b.dim(form, QStringLiteral("Offset Y"), offset.y, applyOffY);
+    b.dim(form, QStringLiteral("Width"), size.x, applyW);
+    b.dim(form, QStringLiteral("Height"), size.y, applyH);
+}
+
+void addPlacementGeometry(PropertyBinder& b, QFormLayout* form, bool desktopMode, PageAnchor anchor,
+                          const PageDimPair& offset, const PageDimPair& size,
+                          const std::function<void(bool)>& applyDesktop,
+                          const std::function<void(const QString&)>& applyAnchor,
+                          const std::function<void(PageDim)>& applyOffX,
+                          const std::function<void(PageDim)>& applyOffY,
+                          const std::function<void(PageDim)>& applyW,
+                          const std::function<void(PageDim)>& applyH)
+{
+    b.check(form, QStringLiteral("Desktop bounds"), desktopMode, applyDesktop);
+    b.combo(form, QStringLiteral("Anchor"), pageAnchorNames(), PageDimParse::anchorName(anchor),
+            applyAnchor);
+    addOffsetSizeFields(b, form, offset, size, applyOffX, applyOffY, applyW, applyH);
 }
 
 void addNamedDwellEditor(PropertyBinder& b, QFormLayout* form,

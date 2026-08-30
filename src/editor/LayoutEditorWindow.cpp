@@ -1,9 +1,11 @@
 #include "editor/LayoutEditorWindow.h"
 
 #include "editor/LayoutEditorCanvas.h"
+#include "editor/LayoutEditorCodeView.h"
 #include "editor/LayoutEditorFields.h"
 #include "editor/LayoutEditorProperties.h"
 #include "editor/LayoutEditorSession.h"
+#include "editor/LayoutEditorStyle.h"
 #include "editor/LayoutEditorToolbox.h"
 #include "layout/PageEdit.h"
 #include "ui/AppIcon.h"
@@ -11,158 +13,24 @@
 #include <QAction>
 #include <QCloseEvent>
 #include <QComboBox>
-#include <QDialog>
-#include <QDialogButtonBox>
-#include <QDir>
-#include <QFileDialog>
 #include <QFileInfo>
-#include <QFormLayout>
 #include <QGuiApplication>
 #include <QKeySequence>
 #include <QLabel>
-#include <QLineEdit>
 #include <QListWidget>
 #include <QMenu>
 #include <QMenuBar>
 #include <QMessageBox>
-#include <QSet>
+#include <QPushButton>
 #include <QScreen>
 #include <QSignalBlocker>
 #include <QSplitter>
+#include <QStackedWidget>
 #include <QStatusBar>
 #include <QToolBar>
 #include <QVBoxLayout>
-#include <optional>
 
 namespace gazer {
-
-namespace {
-
-QString fluentStyleSheet(const ThemeColors& t)
-{
-    const auto h = [](const QColor& c) { return ThemeColors::colorToHex(c); };
-    return QStringLiteral(R"(
-        QMainWindow, QSplitter, QDialog {
-            background-color: %1;
-            color: %2;
-            font-family: "Segoe UI";
-            font-size: 13px;
-        }
-        QLabel, QCheckBox, QTabBar, QTabWidget, QScrollArea {
-            background: transparent;
-            color: %2;
-            font-family: "Segoe UI";
-            font-size: 13px;
-        }
-        QWidget#editorToolbox, QWidget#editorProperties {
-            background-color: %1;
-            color: %2;
-        }
-        QMenuBar {
-            background: %1;
-            color: %2;
-            padding: 2px 6px;
-        }
-        QMenuBar::item:selected { background: %3; }
-        QMenu {
-            background: %4;
-            color: %2;
-            border: 1px solid %5;
-        }
-        QMenu::item:selected { background: %3; }
-        QToolBar {
-            background: %4;
-            border: none;
-            padding: 4px 8px;
-            spacing: 4px;
-        }
-        QToolBar QToolButton {
-            background: transparent;
-            color: %2;
-            padding: 6px 10px;
-            border-radius: 4px;
-        }
-        QToolBar QToolButton:hover { background: %3; }
-        QToolBar QToolButton:checked { background: %6; color: %2; }
-        QStatusBar {
-            background: %1;
-            color: %7;
-        }
-        QSplitter::handle { background: %5; width: 1px; }
-        QTabWidget::pane { border: none; background: transparent; }
-        QScrollArea { border: none; background: transparent; }
-        QTreeWidget, QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox, QPlainTextEdit {
-            background: %8;
-            color: %2;
-            border: 1px solid %5;
-            border-radius: 4px;
-            selection-background-color: %6;
-            selection-color: %2;
-        }
-        QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {
-            padding: 4px 6px;
-            min-height: 24px;
-            min-width: 0px;
-        }
-        QWidget#editorProperties QLineEdit,
-        QWidget#editorProperties QSpinBox,
-        QWidget#editorProperties QDoubleSpinBox,
-        QWidget#editorProperties QComboBox {
-            min-width: 0px;
-        }
-        QComboBox QAbstractItemView {
-            background: %8;
-            color: %2;
-            selection-background-color: %6;
-        }
-        QTabBar::tab {
-            background: transparent;
-            color: %7;
-            padding: 8px 14px;
-            border: none;
-        }
-        QTabBar::tab:selected {
-            color: %2;
-            border-bottom: 2px solid %9;
-        }
-        QCheckBox { color: %2; spacing: 8px; }
-        QHeaderView::section { background: %8; color: %7; border: none; }
-        QScrollBar:vertical, QScrollBar:horizontal {
-            background: %1;
-            width: 10px;
-            height: 10px;
-        }
-        QScrollBar::handle { background: %5; border-radius: 4px; }
-        QLabel#panelTitle {
-            font-size: 16px;
-            font-weight: 600;
-            color: %2;
-            padding: 4px 2px 8px 2px;
-        }
-        QLabel#fieldHeading {
-            font-size: 12px;
-            font-weight: 600;
-            color: %7;
-            padding-top: 8px;
-        }
-        QLabel#fieldNote { color: %7; }
-        QPushButton {
-            background: %8;
-            color: %2;
-            border: 1px solid %5;
-            border-radius: 4px;
-            padding: 4px 10px;
-        }
-        QPushButton:hover { background: %3; }
-        QTreeWidget::item { padding: 4px 2px; }
-        QTreeWidget::item:selected { background: %6; }
-        QTreeWidget::item:hover { background: %3; }
-    )")
-        .arg(h(t.bgMain), h(t.text), h(t.bgSurfaceHover), h(t.bgSurface), h(t.border),
-             h(t.cellActive), h(t.textSecondary), h(t.bgSurfaceActive), h(t.accent));
-}
-
-} // namespace
 
 LayoutEditorWindow::LayoutEditorWindow(QWidget* parent)
     : QMainWindow(parent)
@@ -182,20 +50,20 @@ LayoutEditorWindow::LayoutEditorWindow(QWidget* parent)
     m_session = new LayoutEditorSession(this);
     buildUi();
     applyFluentTheme();
-    updateTitle();
+    refreshChrome();
     updateActions();
 
     connect(m_session, &LayoutEditorSession::documentChanged, this, [this]() {
-        updateTitle();
+        refreshChrome();
         updateActions();
     });
     connect(m_session, &LayoutEditorSession::selectionChanged, this, [this]() {
-        updateTitle();
+        refreshChrome();
         updateActions();
     });
-    connect(m_session, &LayoutEditorSession::dirtyChanged, this, [this](bool) { updateTitle(); });
+    connect(m_session, &LayoutEditorSession::dirtyChanged, this, [this](bool) { refreshChrome(); });
     connect(m_session, &LayoutEditorSession::filePathChanged, this, [this](const QString&) {
-        updateTitle();
+        refreshChrome();
     });
     connect(m_session, &LayoutEditorSession::statusMessage, this, [this](const QString& m) {
         statusBar()->showMessage(m, 4000);
@@ -251,9 +119,6 @@ void LayoutEditorWindow::setTheme(const ThemeColors& theme)
 {
     m_theme = theme;
     applyFluentTheme();
-    if (m_canvas) {
-        m_canvas->setTheme(theme);
-    }
 }
 
 void LayoutEditorWindow::setTestHandler(TestHandler handler)
@@ -304,6 +169,8 @@ QAction* LayoutEditorWindow::makeAction(const QString& text, const QKeySequence&
 
 void LayoutEditorWindow::buildUi()
 {
+
+
     auto* actNew = makeAction(QStringLiteral("&New"), QKeySequence::New, [this]() { newFile(); });
     auto* actOpen = makeAction(QStringLiteral("&Open…"), QKeySequence::Open, [this]() { open(); });
     m_save = makeAction(QStringLiteral("&Save"), QKeySequence::Save, [this]() { save(); });
@@ -332,9 +199,15 @@ void LayoutEditorWindow::buildUi()
     m_grid = makeAction(QStringLiteral("Show &grid"), QKeySequence(), []() {});
     m_grid->setCheckable(true);
     m_grid->setChecked(true);
-    m_fit = makeAction(QStringLiteral("&Fit grid"), QKeySequence(QStringLiteral("Ctrl+0")), []() {});
-    m_fit->setCheckable(true);
-    m_fit->setChecked(true);
+    m_fit = makeAction(QStringLiteral("&Fit grid"), QKeySequence(QStringLiteral("Ctrl+0")),
+                       [this]() { m_canvas->fitGrid(); });
+    m_fitScreen = makeAction(QStringLiteral("Fit &screen"), QKeySequence(QStringLiteral("Ctrl+1")),
+                             [this]() { m_canvas->fitScreen(); });
+    m_zoomIn = makeAction(QStringLiteral("Zoom &in"), QKeySequence::ZoomIn,
+                          [this]() { m_canvas->zoomBy(1.15); });
+    m_zoomIn->setShortcuts({QKeySequence::ZoomIn, QKeySequence(QStringLiteral("Ctrl+="))});
+    m_zoomOut = makeAction(QStringLiteral("Zoom &out"), QKeySequence::ZoomOut,
+                           [this]() { m_canvas->zoomBy(1.0 / 1.15); });
 
     auto* actAddBtn = makeAction(QStringLiteral("Add &button"), QKeySequence(), [this]() {
         m_session->setPlaceKind(EditorItemKind::Button);
@@ -399,6 +272,10 @@ void LayoutEditorWindow::buildUi()
     auto* viewMenu = menuBar()->addMenu(QStringLiteral("&View"));
     viewMenu->addAction(m_grid);
     viewMenu->addAction(m_fit);
+    viewMenu->addAction(m_fitScreen);
+    viewMenu->addAction(m_zoomIn);
+    viewMenu->addAction(m_zoomOut);
+    viewMenu->addSeparator();
     viewMenu->addAction(m_testMode);
 
     auto* actAddGrid = makeAction(QStringLiteral("Add g&rid"), QKeySequence(),
@@ -455,9 +332,38 @@ void LayoutEditorWindow::buildUi()
     layoutMenu->addAction(actGrid);
     layoutMenu->addAction(actDwell);
 
+    bindGlyph(actNew, EditorGlyph::FileNew);
+    bindGlyph(actOpen, EditorGlyph::FileOpen);
+    bindGlyph(m_save, EditorGlyph::FileSave);
+    bindGlyph(m_undo, EditorGlyph::Undo);
+    bindGlyph(m_redo, EditorGlyph::Redo);
+    bindGlyph(m_cut, EditorGlyph::Cut);
+    bindGlyph(m_copy, EditorGlyph::Copy);
+    bindGlyph(m_paste, EditorGlyph::Paste);
+    bindGlyph(m_delete, EditorGlyph::Delete);
+    bindGlyph(actTest, EditorGlyph::TestLive);
+    bindGlyph(m_testMode, EditorGlyph::TestCanvas);
+    bindGlyph(m_fit, EditorGlyph::Fit);
+    bindGlyph(m_fitScreen, EditorGlyph::FitScreen);
+    bindGlyph(m_zoomIn, EditorGlyph::ZoomIn);
+    bindGlyph(m_zoomOut, EditorGlyph::ZoomOut);
+    bindGlyph(m_grid, EditorGlyph::Grid);
+    bindGlyph(actAddBtn, EditorGlyph::Button);
+    bindGlyph(actAddLabel, EditorGlyph::Label);
+    bindGlyph(actAddToggle, EditorGlyph::Toggle);
+    bindGlyph(actAddTab, EditorGlyph::Tab);
+    bindGlyph(actAddSlider, EditorGlyph::Slider);
+    bindGlyph(actAddEdge, EditorGlyph::Zone);
+    bindGlyph(actDup, EditorGlyph::Duplicate);
+    bindGlyph(actAddGrid, EditorGlyph::GridAdd);
+    bindGlyph(actAddSub, EditorGlyph::SubGrid);
+    bindGlyph(actAddStyle, EditorGlyph::Style);
+    bindGlyph(actAddDwell, EditorGlyph::Dwell);
+
     auto* tb = addToolBar(QStringLiteral("Main"));
     tb->setMovable(false);
-    tb->setIconSize(QSize(16, 16));
+    tb->setIconSize(QSize(18, 18));
+    tb->setToolButtonStyle(Qt::ToolButtonIconOnly);
     tb->addAction(actNew);
     tb->addAction(actOpen);
     tb->addAction(m_save);
@@ -469,9 +375,26 @@ void LayoutEditorWindow::buildUi()
     tb->addAction(m_testMode);
     tb->addSeparator();
     tb->addAction(m_fit);
+    tb->addAction(m_fitScreen);
+    tb->addAction(m_zoomOut);
+    tb->addAction(m_zoomIn);
+    m_zoomLabel = new QLabel(QStringLiteral("100%"));
+    m_zoomLabel->setObjectName(QStringLiteral("statusChip"));
+    m_zoomLabel->setMinimumWidth(48);
+    m_zoomLabel->setAlignment(Qt::AlignCenter);
+    m_zoomLabel->setToolTip(QStringLiteral("Canvas zoom"));
+    tb->addWidget(m_zoomLabel);
     tb->addAction(m_grid);
+    m_codeView = makeAction(QStringLiteral("&Code view"), QKeySequence(QStringLiteral("Ctrl+E")),
+                            []() {});
+    m_codeView->setCheckable(true);
+    bindGlyph(m_codeView, EditorGlyph::Code);
+    tb->addSeparator();
+    tb->addAction(m_codeView);
+    viewMenu->addAction(m_codeView);
     m_layerCombo = new QComboBox;
     m_layerCombo->setMinimumWidth(110);
+    m_layerCombo->setToolTip(QStringLiteral("Keyboard layer"));
     tb->addWidget(m_layerCombo);
     connect(m_layerCombo, &QComboBox::currentIndexChanged, this, [this](int i) {
         if (i >= 0) {
@@ -481,7 +404,11 @@ void LayoutEditorWindow::buildUi()
 
     auto* split = new QSplitter(Qt::Horizontal, this);
     m_toolbox = new LayoutEditorToolbox(split);
-    m_canvas = new LayoutEditorCanvas(*m_session, split);
+    m_center = new QStackedWidget(split);
+    m_canvas = new LayoutEditorCanvas(*m_session, m_center);
+    m_code = new LayoutEditorCodeView(m_center);
+    m_center->addWidget(m_canvas);
+    m_center->addWidget(m_code);
     m_props = new LayoutEditorProperties(*m_session, split);
     m_toolbox->setObjectName(QStringLiteral("editorToolbox"));
     m_props->setObjectName(QStringLiteral("editorProperties"));
@@ -494,38 +421,102 @@ void LayoutEditorWindow::buildUi()
     split->setSizes({250, 820, 330});
     setCentralWidget(split);
 
-    auto* elSec = m_toolbox->addSection(QStringLiteral("Elements"));
-    m_toolbox->addAction(elSec, actAddBtn);
-    m_toolbox->addAction(elSec, actAddLabel);
-    m_toolbox->addAction(elSec, actAddToggle);
-    m_toolbox->addAction(elSec, actAddTab);
-    m_toolbox->addAction(elSec, actAddSlider);
-    m_toolbox->addAction(elSec, actAddEdge);
-    m_toolbox->addAction(elSec, actDup);
-    auto* stSec = m_toolbox->addSection(QStringLiteral("Structure"));
-    m_toolbox->addAction(stSec, actAddGrid);
-    m_toolbox->addAction(stSec, actAddSub);
-    m_toolbox->addAction(stSec, actAddStyle);
-    m_toolbox->addAction(stSec, actAddDwell);
+    m_toolbox->addPlaceAction(QStringLiteral("Items"), actAddBtn, EditorGlyph::Button,
+                              EditorItemKind::Button, QStringLiteral("Button"));
+    m_toolbox->addPlaceAction(QStringLiteral("Items"), actAddLabel, EditorGlyph::Label,
+                              EditorItemKind::Label, QStringLiteral("Label"));
+    m_toolbox->addPlaceAction(QStringLiteral("Items"), actAddToggle, EditorGlyph::Toggle,
+                              EditorItemKind::Toggle, QStringLiteral("Toggle"));
+    m_toolbox->addPlaceAction(QStringLiteral("Items"), actAddTab, EditorGlyph::Tab,
+                              EditorItemKind::Tab, QStringLiteral("Tab"));
+    m_toolbox->addPlaceAction(QStringLiteral("Items"), actAddSlider, EditorGlyph::Slider,
+                              EditorItemKind::Slider, QStringLiteral("Slider"));
+    m_toolbox->addPlaceAction(QStringLiteral("Items"), actAddEdge, EditorGlyph::Zone,
+                              EditorItemKind::Zone, QStringLiteral("Zone"));
+    m_toolbox->addPaletteAction(QStringLiteral("Items"), actDup, EditorGlyph::Duplicate,
+                                QStringLiteral("Duplicate"));
+    m_toolbox->addPaletteAction(QStringLiteral("Structure"), actAddGrid, EditorGlyph::GridAdd,
+                                QStringLiteral("Grid"));
+    m_toolbox->addPaletteAction(QStringLiteral("Structure"), actAddSub, EditorGlyph::SubGrid,
+                                QStringLiteral("Subgrid"));
+    m_toolbox->addPaletteAction(QStringLiteral("Structure"), actAddStyle, EditorGlyph::Style,
+                                QStringLiteral("Style"));
+    m_toolbox->addPaletteAction(QStringLiteral("Structure"), actAddDwell, EditorGlyph::Dwell,
+                                QStringLiteral("Dwell"));
 
     auto* actEsc = makeAction(QStringLiteral("Cancel place"), QKeySequence(Qt::Key_Escape),
                               [this]() { m_session->setPlaceKind(std::nullopt); });
     actEsc->setShortcutContext(Qt::WindowShortcut);
 
     connect(m_grid, &QAction::toggled, m_canvas, &LayoutEditorCanvas::setShowGrid);
-    connect(m_fit, &QAction::toggled, m_canvas, &LayoutEditorCanvas::setFitBoard);
     connect(m_testMode, &QAction::toggled, m_canvas, &LayoutEditorCanvas::setTestMode);
-    connect(m_session, &LayoutEditorSession::layerChanged, this, &LayoutEditorWindow::refreshLayers);
+    connect(m_canvas, &LayoutEditorCanvas::zoomChanged, this,
+            &LayoutEditorWindow::updateZoomLabel);
+    connect(m_codeView, &QAction::toggled, this, &LayoutEditorWindow::setCodeView);
+    connect(m_session, &LayoutEditorSession::layerChanged, this, [this]() {
+        refreshLayers();
+        if (m_codeView && m_codeView->isChecked()) {
+            refreshCodeView();
+        }
+    });
+    connect(m_session, &LayoutEditorSession::documentChanged, this, [this]() {
+        if (m_codeView && m_codeView->isChecked() && m_code && !m_code->isDirty()) {
+            refreshCodeView();
+        }
+    });
     refreshLayers();
+    updateZoomLabel();
 
-    auto* ready = new QLabel(QStringLiteral("Ready"));
-    statusBar()->addWidget(ready);
+    auto makeChip = [](const QString& objectName) {
+        auto* chip = new QLabel;
+        chip->setObjectName(objectName);
+        chip->setAlignment(Qt::AlignCenter);
+        return chip;
+    };
+    m_chipGrid = makeChip(QStringLiteral("statusChip"));
+    m_chipIds = makeChip(QStringLiteral("statusChip"));
+    m_chipSel = makeChip(QStringLiteral("statusChip"));
+    m_chipIssues = new QPushButton;
+    m_chipIssues->setObjectName(QStringLiteral("statusChipDanger"));
+    m_chipIssues->setCursor(Qt::PointingHandCursor);
+    m_chipIssues->setFocusPolicy(Qt::NoFocus);
+    m_chipIssues->setFlat(true);
+    m_chipIssues->hide();
+    m_chipSel->hide();
+    connect(m_chipIssues, &QPushButton::clicked, this, &LayoutEditorWindow::showIssues);
+    statusBar()->addPermanentWidget(m_chipGrid);
+    statusBar()->addPermanentWidget(m_chipIds);
+    statusBar()->addPermanentWidget(m_chipSel);
+    statusBar()->addPermanentWidget(m_chipIssues);
     statusBar()->showMessage(QStringLiteral("Ready"));
+}
+
+void LayoutEditorWindow::bindGlyph(QAction* action, EditorGlyph glyph)
+{
+    m_glyphs.insert(action, glyph);
 }
 
 void LayoutEditorWindow::applyFluentTheme()
 {
-    setStyleSheet(fluentStyleSheet(m_theme));
+    setStyleSheet(editorStyleSheet(m_theme));
+    for (auto it = m_glyphs.cbegin(); it != m_glyphs.cend(); ++it) {
+        it.key()->setIcon(editorGlyphIcon(it.value(), m_theme, 18));
+    }
+    if (m_toolbox) {
+        m_toolbox->setTheme(m_theme);
+    }
+    if (m_canvas) {
+        m_canvas->setTheme(m_theme);
+    }
+    if (m_code) {
+        m_code->setTheme(m_theme);
+    }
+}
+
+void LayoutEditorWindow::refreshChrome()
+{
+    updateTitle();
+    updateStatus();
 }
 
 void LayoutEditorWindow::updateTitle()
@@ -548,34 +539,57 @@ void LayoutEditorWindow::updateTitle()
     }
     setWindowTitle(
         QStringLiteral("Gazer Page Editor — %1 [%2]%3%4").arg(name, pathPart, dirty, origin));
+}
 
+void LayoutEditorWindow::updateStatus()
+{
+    const QString origin = m_session->filePath().isEmpty()
+                               ? QString()
+                               : (isShippedPath(m_session->filePath()) ? QStringLiteral("shipped")
+                                                                      : QStringLiteral("user"));
     const PageGrid* g = m_session->selectedGrid();
     const EditorSelection sel = m_session->selection();
     QString selText;
     if (sel.target == EditorTarget::Item && !sel.itemIds.isEmpty()) {
         selText = sel.itemIds.size() == 1
-                      ? QStringLiteral("    %1").arg(sel.itemId)
-                      : QStringLiteral("    %1 cells/zones").arg(sel.itemIds.size());
+                      ? sel.itemId
+                      : QStringLiteral("%1 selected").arg(sel.itemIds.size());
     } else if (sel.target == EditorTarget::Grid && !sel.itemId.isEmpty()) {
-        selText = QStringLiteral("    grid %1").arg(sel.itemId);
+        selText = QStringLiteral("grid %1").arg(sel.itemId);
     } else if (sel.target == EditorTarget::Style) {
-        selText = QStringLiteral("    style %1").arg(sel.itemId);
+        selText = QStringLiteral("style %1").arg(sel.itemId);
     } else if (sel.target == EditorTarget::Dwell) {
-        selText = QStringLiteral("    dwell %1").arg(sel.itemId);
+        selText = QStringLiteral("dwell %1").arg(sel.itemId);
     }
-    const QStringList issues = m_session->validate(m_catalogIds);
-    const QString warn =
-        issues.isEmpty() ? QString()
-                         : QStringLiteral("    %1 issue%2")
-                               .arg(issues.size())
-                               .arg(issues.size() == 1 ? QString() : QStringLiteral("s"));
+    const QVector<EditorIssue> issues = m_session->validate(m_catalogIds);
     const int cols = g ? g->columns : 0;
     const int rows = g ? g->rows : 0;
-    statusBar()->showMessage(QStringLiteral("Grid %1×%2    Ids %3%4%5")
-                                 .arg(cols)
-                                 .arg(rows)
-                                 .arg(PageEdit::allIds(m_session->document()).size())
-                                 .arg(selText, warn));
+    const int ids = PageEdit::allIds(m_session->document()).size();
+    if (m_chipGrid) {
+        m_chipGrid->setText(QStringLiteral("Grid %1×%2").arg(cols).arg(rows));
+    }
+    if (m_chipIds) {
+        m_chipIds->setText(QStringLiteral("%1 id%2").arg(ids).arg(ids == 1 ? QString()
+                                                                          : QStringLiteral("s")));
+    }
+    if (m_chipSel) {
+        m_chipSel->setVisible(!selText.isEmpty());
+        m_chipSel->setText(selText);
+    }
+    if (m_chipIssues) {
+        m_chipIssues->setVisible(!issues.isEmpty());
+        if (!issues.isEmpty()) {
+            m_chipIssues->setText(QStringLiteral("%1 issue%2")
+                                      .arg(issues.size())
+                                      .arg(issues.size() == 1 ? QString() : QStringLiteral("s")));
+            QStringList tips;
+            for (const EditorIssue& issue : issues) {
+                tips.push_back(issue.message);
+            }
+            m_chipIssues->setToolTip(tips.join(QLatin1Char('\n')));
+        }
+    }
+    statusBar()->showMessage(origin.isEmpty() ? QStringLiteral("Ready") : origin);
 }
 
 void LayoutEditorWindow::updateActions()
@@ -591,6 +605,119 @@ void LayoutEditorWindow::updateActions()
     m_paste->setEnabled(m_session->hasClipboard());
     m_delete->setEnabled(deletable);
     m_save->setEnabled(m_session->isDirty() || m_session->filePath().isEmpty());
+}
+
+void LayoutEditorWindow::updateZoomLabel()
+{
+    if (!m_zoomLabel || !m_canvas) {
+        return;
+    }
+    const int pct = qMax(1, qRound(m_canvas->zoom() * 100.0));
+    m_zoomLabel->setText(QStringLiteral("%1%").arg(pct));
+}
+
+void LayoutEditorWindow::refreshCodeView()
+{
+    if (m_code && m_session) {
+        m_code->loadDocument(m_session->document());
+    }
+}
+
+void LayoutEditorWindow::setCodeView(bool on)
+{
+    if (!m_center || !m_codeView) {
+        return;
+    }
+    if (!on) {
+        if (!applyCodeView()) {
+            const QSignalBlocker block(m_codeView);
+            m_codeView->setChecked(true);
+            return;
+        }
+        m_center->setCurrentWidget(m_canvas);
+        if (m_canvas) {
+            m_canvas->setFocus(Qt::OtherFocusReason);
+        }
+        return;
+    }
+    refreshCodeView();
+    m_center->setCurrentWidget(m_code);
+    m_code->setFocus(Qt::OtherFocusReason);
+}
+
+bool LayoutEditorWindow::applyCodeView()
+{
+    if (!m_code || !m_codeView || !m_codeView->isChecked()) {
+        return true;
+    }
+    return m_code->applyTo(*m_session, this);
+}
+
+void LayoutEditorWindow::showIssues()
+{
+    const QVector<EditorIssue> issues = m_session->validate(m_catalogIds);
+    if (issues.isEmpty()) {
+        return;
+    }
+    auto* pop = new QWidget(this, Qt::Popup | Qt::FramelessWindowHint);
+    pop->setAttribute(Qt::WA_DeleteOnClose);
+    pop->setObjectName(QStringLiteral("editorCard"));
+    auto* lay = new QVBoxLayout(pop);
+    lay->setContentsMargins(8, 8, 8, 8);
+    auto* title = new QLabel(QStringLiteral("Issues"));
+    title->setObjectName(QStringLiteral("panelTitle"));
+    lay->addWidget(title);
+    auto* list = new QListWidget;
+    list->setFocusPolicy(Qt::NoFocus);
+    for (const EditorIssue& issue : issues) {
+        auto* item = new QListWidgetItem(issue.message);
+        item->setData(Qt::UserRole, issue.itemId);
+        item->setData(Qt::UserRole + 1, int(issue.target));
+        list->addItem(item);
+    }
+    lay->addWidget(list);
+    connect(list, &QListWidget::itemClicked, this, [this, pop](QListWidgetItem* item) {
+        if (!item) {
+            return;
+        }
+        EditorIssue issue;
+        issue.message = item->text();
+        issue.itemId = item->data(Qt::UserRole).toString();
+        issue.target = EditorTarget(item->data(Qt::UserRole + 1).toInt());
+        selectIssue(issue);
+        pop->close();
+    });
+    const int h = qBound(120, issues.size() * 28 + 52, 320);
+    pop->resize(420, h);
+    QPoint pos = m_chipIssues->mapToGlobal(QPoint(0, 0));
+    pos.setY(pos.y() - h - 6);
+    pos.setX(qMax(8, pos.x() + m_chipIssues->width() - 420));
+    pop->move(pos);
+    pop->show();
+}
+
+void LayoutEditorWindow::selectIssue(const EditorIssue& issue)
+{
+    if (issue.target == EditorTarget::Item && !issue.itemId.isEmpty()) {
+        m_session->selectItem(issue.itemId);
+        return;
+    }
+    if (issue.target == EditorTarget::Grid && !issue.itemId.isEmpty()) {
+        m_session->selectGrid(issue.itemId);
+        return;
+    }
+    m_session->selectTarget(EditorTarget::Document);
+}
+
+void LayoutEditorWindow::frameLoadedPage()
+{
+    if (m_canvas) {
+        m_canvas->fitGrid();
+        updateZoomLabel();
+    }
+    if (m_codeView && m_codeView->isChecked()) {
+        refreshCodeView();
+    }
 }
 
 void LayoutEditorWindow::refreshLayers()

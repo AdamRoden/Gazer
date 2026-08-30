@@ -1,8 +1,11 @@
 #pragma once
 
+#include "editor/LayoutEditorIcons.h"
+#include "editor/LayoutEditorSession.h"
 #include "layout/PageTypes.h"
 #include "ui/Theme.h"
 
+#include <QHash>
 #include <QMainWindow>
 #include <QStringList>
 #include <QVector>
@@ -12,13 +15,16 @@ class QAction;
 class QCloseEvent;
 class QComboBox;
 class QKeySequence;
+class QLabel;
+class QPushButton;
+class QStackedWidget;
 
 namespace gazer {
 
-class LayoutEditorSession;
 class LayoutEditorCanvas;
 class LayoutEditorToolbox;
 class LayoutEditorProperties;
+class LayoutEditorCodeView;
 
 /// Fluent three-pane layout designer (elements tree · canvas · properties).
 class LayoutEditorWindow final : public QMainWindow {
@@ -48,13 +54,23 @@ protected:
 private:
     void buildUi();
     void applyFluentTheme();
+    void refreshChrome();
     void updateTitle();
+    void updateStatus();
     void updateActions();
     void refreshLayers();
     void syncActionCatalog();
+    void updateZoomLabel();
+    void refreshCodeView();
+    void setCodeView(bool on);
+    [[nodiscard]] bool applyCodeView();
+    void frameLoadedPage();
+    void showIssues();
+    void selectIssue(const EditorIssue& issue);
     [[nodiscard]] bool maybeSave();
     QAction* makeAction(const QString& text, const QKeySequence& shortcut,
                         const std::function<void()>& slot);
+    void bindGlyph(QAction* action, EditorGlyph glyph);
 
     [[nodiscard]] bool promptNewPage();
     [[nodiscard]] bool promptOpenCatalog();
@@ -77,7 +93,10 @@ private:
     LayoutEditorCanvas* m_canvas = nullptr;
     LayoutEditorToolbox* m_toolbox = nullptr;
     LayoutEditorProperties* m_props = nullptr;
+    QStackedWidget* m_center = nullptr;
+    LayoutEditorCodeView* m_code = nullptr;
     QComboBox* m_layerCombo = nullptr;
+    QLabel* m_zoomLabel = nullptr;
     QString m_layoutsDir;
     QString m_userDir;
     QStringList m_catalogIds;
@@ -94,8 +113,18 @@ private:
     QAction* m_delete = nullptr;
     QAction* m_save = nullptr;
     QAction* m_fit = nullptr;
+    QAction* m_fitScreen = nullptr;
+    QAction* m_zoomIn = nullptr;
+    QAction* m_zoomOut = nullptr;
+    QAction* m_codeView = nullptr;
     QAction* m_grid = nullptr;
     QAction* m_testMode = nullptr;
+    QHash<QAction*, EditorGlyph> m_glyphs;
+
+    QLabel* m_chipGrid = nullptr;
+    QLabel* m_chipIds = nullptr;
+    QLabel* m_chipSel = nullptr;
+    QPushButton* m_chipIssues = nullptr;
 };
 
 } // namespace gazer

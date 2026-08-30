@@ -713,51 +713,63 @@ void LayoutEditorSession::resizeItem(const QString& itemId, int rowSpan, int col
     });
 }
 
-QStringList LayoutEditorSession::validate(const QStringList& catalogIds) const
+QVector<EditorIssue> LayoutEditorSession::validate(const QStringList& catalogIds) const
 {
-    QStringList issues;
+    QVector<EditorIssue> issues;
     const PageDocument& doc = document();
+    auto add = [&](const QString& message, const QString& itemId = {},
+                   EditorTarget target = EditorTarget::Document) {
+        issues.push_back({message, itemId, target});
+    };
     if (doc.id.trimmed().isEmpty()) {
-        issues.push_back(QStringLiteral("Page id is empty"));
+        add(QStringLiteral("Page id is empty"));
     }
     QSet<QString> seen;
     auto checkAction = [&](const PageAction& a, const QString& where) {
+        const EditorTarget t = EditorTarget::Item;
         if (a.type == PageActionType::Command && a.command.trimmed().isEmpty()) {
-            issues.push_back(QStringLiteral("%1: command name is empty").arg(where));
+            add(QStringLiteral("%1: command name is empty").arg(where), where, t);
         }
         if (a.type == PageActionType::Nav && a.targetScope == PageNavScope::Id
             && a.targetId.trimmed().isEmpty()) {
-            issues.push_back(QStringLiteral("%1: page target is empty").arg(where));
+            add(QStringLiteral("%1: page target is empty").arg(where), where, t);
         }
         if (a.type == PageActionType::Nav && a.targetKind == PageTargetKind::Page
             && a.targetScope == PageNavScope::Id && !a.targetId.isEmpty() && !catalogIds.isEmpty()
             && !catalogIds.contains(a.targetId) && a.targetId != doc.id) {
-            issues.push_back(QStringLiteral("%1: unknown page '%2'").arg(where, a.targetId));
+            add(QStringLiteral("%1: unknown page '%2'").arg(where, a.targetId), where, t);
         }
         if (a.type == PageActionType::Speak && a.speakText.trimmed().isEmpty()) {
-            issues.push_back(QStringLiteral("%1: speak text is empty").arg(where));
+            add(QStringLiteral("%1: speak text is empty").arg(where), where, t);
         }
         if (a.type == PageActionType::Send && a.sendKey.trimmed().isEmpty()) {
-            issues.push_back(QStringLiteral("%1: send key is empty").arg(where));
+            add(QStringLiteral("%1: send key is empty").arg(where), where, t);
         }
     };
     auto checkLeaf = [&](const PageLeaf& leaf, const QString& kind) {
         if (leaf.id.trimmed().isEmpty()) {
-            issues.push_back(QStringLiteral("%1 has an empty id").arg(kind));
+            add(QStringLiteral("%1 has an empty id").arg(kind));
             return;
         }
         if (seen.contains(leaf.id)) {
-            issues.push_back(QStringLiteral("Duplicate id '%1'").arg(leaf.id));
+            add(QStringLiteral("Duplicate id '%1'").arg(leaf.id), leaf.id, EditorTarget::Item);
         }
         seen.insert(leaf.id);
         if (leaf.isInteractive() && leaf.actions.isEmpty()) {
-            issues.push_back(QStringLiteral("%1 '%2' has no actions").arg(kind, leaf.id));
+            add(QStringLiteral("%1 '%2' has no actions").arg(kind, leaf.id), leaf.id,
+                EditorTarget::Item);
         }
         for (const PageAction& a : leaf.actions) {
             checkAction(a, leaf.id);
         }
     };
     PageEdit::forEachGrid(doc, [&](const PageGrid& g) {
+        if (!g.id.isEmpty()) {
+            if (seen.contains(g.id)) {
+                add(QStringLiteral("Duplicate id '%1'").arg(g.id), g.id, EditorTarget::Grid);
+            }
+            seen.insert(g.id);
+        }
         for (const PageCell& c : g.cells) {
             checkLeaf(c, QStringLiteral("Cell"));
         }

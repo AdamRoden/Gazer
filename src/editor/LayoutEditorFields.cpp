@@ -8,6 +8,7 @@
 
 #include <QCheckBox>
 #include <QColorDialog>
+#include <QFrame>
 #include <QHash>
 #include <QComboBox>
 #include <QDoubleSpinBox>
@@ -19,6 +20,7 @@
 #include <QSizePolicy>
 #include <QSpinBox>
 #include <QStringList>
+#include <QVBoxLayout>
 #include <QWidget>
 
 namespace gazer {
@@ -37,7 +39,34 @@ void PropertyBinder::heading(QFormLayout* form, const QString& text)
 {
     auto* lab = new QLabel(text);
     lab->setObjectName(QStringLiteral("fieldHeading"));
-    form->addRow(lab, new QWidget);
+    form->addRow(lab);
+}
+
+void PropertyBinder::card(QFormLayout* form, const QString& title,
+                          const std::function<void(QFormLayout*)>& fill)
+{
+    auto* frame = new QFrame;
+    frame->setObjectName(QStringLiteral("editorCard"));
+    frame->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+    auto* v = new QVBoxLayout(frame);
+    v->setContentsMargins(10, 8, 10, 10);
+    v->setSpacing(6);
+    if (!title.isEmpty()) {
+        auto* lab = new QLabel(title);
+        lab->setObjectName(QStringLiteral("fieldHeading"));
+        v->addWidget(lab);
+    }
+    auto* inner = new QWidget;
+    auto* innerForm = new QFormLayout(inner);
+    innerForm->setContentsMargins(0, 0, 0, 0);
+    innerForm->setSpacing(8);
+    innerForm->setLabelAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+    innerForm->setFormAlignment(Qt::AlignLeft | Qt::AlignTop);
+    innerForm->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
+    innerForm->setRowWrapPolicy(QFormLayout::DontWrapRows);
+    fill(innerForm);
+    v->addWidget(inner);
+    form->addRow(frame);
 }
 
 void PropertyBinder::note(QFormLayout* form, const QString& text)
@@ -172,10 +201,16 @@ void PropertyBinder::color(QFormLayout* form, const QString& label,
     fitWidth(e);
     fitWidth(row);
     auto* swatch = new QPushButton;
-    swatch->setFixedSize(28, 22);
+    swatch->setObjectName(QStringLiteral("colorSwatch"));
+    swatch->setFixedSize(22, 22);
+    swatch->setCursor(Qt::PointingHandCursor);
     swatch->setFlat(true);
-    const QString bg = value ? ThemeColors::colorToHex(*value) : QStringLiteral("#333333");
-    swatch->setStyleSheet(QStringLiteral("background:%1; border:1px solid #555;").arg(bg));
+    const QString bg = value ? ThemeColors::colorToHex(*value) : QStringLiteral("transparent");
+    const QString border = value ? QStringLiteral("rgba(128,128,128,90)")
+                                 : QStringLiteral("rgba(128,128,128,140)");
+    swatch->setStyleSheet(
+        QStringLiteral("QPushButton { background:%1; border:1px %2 %3; border-radius:11px; }")
+            .arg(bg, value ? QStringLiteral("solid") : QStringLiteral("dashed"), border));
     bool* const loadingFlag = loading;
     QWidget* const dlgHost = host;
     auto commit = [loadingFlag, e, apply]() {

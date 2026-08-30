@@ -117,6 +117,12 @@ set(GAZER_SOURCES
     src/editor/LayoutEditorSessionEdit.cpp
     src/editor/LayoutEditorKeyboard.cpp
     src/editor/LayoutEditorCanvas.cpp
+    src/editor/LayoutEditorCanvasPaint.cpp
+    src/editor/LayoutEditorCanvasInteract.cpp
+    src/editor/LayoutEditorIcons.cpp
+    src/editor/LayoutEditorMenu.cpp
+    src/editor/LayoutEditorStyle.cpp
+    src/editor/LayoutEditorCodeView.cpp
     src/editor/LayoutEditorToolbox.cpp
     src/editor/LayoutEditorFields.cpp
     src/editor/LayoutEditorFieldsGroups.cpp
@@ -124,6 +130,7 @@ set(GAZER_SOURCES
     src/editor/LayoutEditorPropertiesFill.cpp
     src/editor/LayoutEditorWindow.cpp
     src/editor/LayoutEditorWindowFile.cpp
+    src/editor/LayoutEditorXmlHighlight.cpp
     src/utils/WinOverlay.cpp
 )
 
@@ -216,10 +223,15 @@ set(GAZER_HEADERS
     src/editor/LayoutEditorSession.h
     src/editor/LayoutEditorKeyboard.h
     src/editor/LayoutEditorCanvas.h
+    src/editor/LayoutEditorIcons.h
+    src/editor/LayoutEditorMenu.h
+    src/editor/LayoutEditorStyle.h
+    src/editor/LayoutEditorCodeView.h
     src/editor/LayoutEditorToolbox.h
     src/editor/LayoutEditorFields.h
     src/editor/LayoutEditorProperties.h
     src/editor/LayoutEditorWindow.h
+    src/editor/LayoutEditorXmlHighlight.h
     src/utils/Log.h
     src/utils/WinOverlay.h
     src/utils/ScreenGrab.h

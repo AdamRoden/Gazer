@@ -200,6 +200,27 @@ void LayoutEditorSession::selectGrid(const QString& gridId)
     setSelection({EditorTarget::Grid, gridId, {}});
 }
 
+void LayoutEditorSession::selectByTarget(EditorTarget target, const QString& id)
+{
+    switch (target) {
+    case EditorTarget::Item:
+        selectItem(id);
+        return;
+    case EditorTarget::Grid:
+        selectGrid(id);
+        return;
+    case EditorTarget::Style:
+    case EditorTarget::Dwell:
+        setSelection({target, id, {}});
+        return;
+    case EditorTarget::Document:
+        selectTarget(EditorTarget::Document);
+        return;
+    case EditorTarget::None:
+        break;
+    }
+}
+
 QString LayoutEditorSession::selectedGridId() const
 {
     if (const PageGrid* g = selectedGrid()) {
