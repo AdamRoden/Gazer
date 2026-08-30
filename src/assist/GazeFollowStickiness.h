@@ -8,8 +8,7 @@
 
 namespace gazer {
 
-/// Shared error→EMA follow. One `GazeFollowProfile` drives the live lens,
-/// reticle, gaze→mouse, dwell-move cursor, mag-pick, and foresight.
+/// Shared error→EMA follow for the live lens, gaze indicator, and gaze→mouse.
 struct GazeFollowStickiness {
     double jitterPx = 6.0;
     double fullTrackPx = 140.0;

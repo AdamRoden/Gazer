@@ -196,12 +196,6 @@ void MouseDwellMove::setDwellMs(int ms)
     applyDwellForPhase();
 }
 
-void MouseDwellMove::setFollowProfile(GazeFollowProfile profile)
-{
-    m_dwell.setFollowProfile(profile);
-    m_foresight.setFollowProfile(profile);
-}
-
 void MouseDwellMove::setMagPickDwellMs(int ms)
 {
     m_magPickDwellMs = qMax(50, ms);
@@ -436,7 +430,7 @@ void MouseDwellMove::onGaze(const GazePoint& point)
     }
 
     if (!point.valid) {
-        if (m_invalidGrace.onInvalid() == InvalidGazeGrace::Result::Holding) {
+        if (m_invalidGrace.onInvalid(now) == InvalidGazeGrace::Result::Holding) {
             return;
         }
         if (m_phase == Phase::MagPoint) {
@@ -471,13 +465,13 @@ void MouseDwellMove::onGazeAim(const QPointF& g, double dtSec)
     emit progressChanged(m_dwell.progress());
     if (m_cursor) {
         m_cursor->setProgress(m_dwell.progress());
-        m_cursor->placeCenter(QPoint(qRound(m_dwell.smoothPos().x()), qRound(m_dwell.smoothPos().y())));
+        m_cursor->placeCenter(QPoint(qRound(m_dwell.commitPos().x()), qRound(m_dwell.commitPos().y())));
     }
     if (!done) {
         return;
     }
 
-    const QPoint target(qRound(m_dwell.smoothPos().x()), qRound(m_dwell.smoothPos().y()));
+    const QPoint target(qRound(m_dwell.commitPos().x()), qRound(m_dwell.commitPos().y()));
     if (m_phase == Phase::MagRegion) {
         if (!beginMagPick(makePreClickSpec(target), /*outsideSelectsNewRegion=*/false)) {
             GAZER_WARN << "MouseDwellMove pre-click zoom failed — placing directly";

@@ -220,12 +220,12 @@ void MouseDwellMove::onGazeInZoom(const QPointF& g, double dtSec)
         if (m_cursor) {
             m_cursor->setProgress(m_dwell.progress());
             m_cursor->placeCenter(
-                QPoint(qRound(m_dwell.smoothPos().x()), qRound(m_dwell.smoothPos().y())));
+                QPoint(qRound(m_dwell.commitPos().x()), qRound(m_dwell.commitPos().y())));
         }
         if (!done) {
             return;
         }
-        const QPoint outside(qRound(m_dwell.smoothPos().x()), qRound(m_dwell.smoothPos().y()));
+        const QPoint outside(qRound(m_dwell.commitPos().x()), qRound(m_dwell.commitPos().y()));
         if (m_magPickEnabled) {
             if (!beginMagPick(makePreClickSpec(outside), /*outsideSelectsNewRegion=*/false)) {
                 GAZER_WARN << "MouseDwellMove outside pre-click zoom failed";
@@ -237,7 +237,7 @@ void MouseDwellMove::onGazeInZoom(const QPointF& g, double dtSec)
     }
 
     const bool done = m_dwell.sample(g, dtSec);
-    const QPointF follow = m_dwell.smoothPos();
+    const QPointF follow = m_dwell.commitPos();
     const QPoint local(
         qBound(0, qRound(follow.x() - m_magDisplayRect.left()),
                qMax(0, m_magDisplayRect.width() - 1)),

@@ -134,7 +134,6 @@ public:
     void setGateGraceMs(int ms);
 
     void setDwellMs(int ms);
-    void setFollowProfile(GazeFollowProfile profile);
     void setMagPickDwellMs(int ms);
     void setMagPickStyle(int flags);
     void setMousePickStyle(int flags);

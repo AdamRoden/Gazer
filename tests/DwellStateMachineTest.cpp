@@ -12,6 +12,12 @@ class DwellStateMachineTest final : public QObject {
 private slots:
     void leadingZeroFiresAfterScanGrace();
     void positiveStepStillRequiresHold();
+    void invalidGraceDoesNotAdvanceFirstStep();
+    void emptyHitDoesNotAdvanceFirstStep();
+    void invalidGraceDoesNotShortenScanGrace();
+    void invalidGraceFreezesProgress();
+    void secondInvalidHoldDoesNotAdvance();
+    void invalidGraceExpiryRestartsDwell();
 };
 
 namespace {
@@ -63,6 +69,155 @@ void DwellStateMachineTest::positiveStepStillRequiresHold()
     sm.onGazeSample(sample(799), QStringLiteral("a"));
     QCOMPARE(fired.size(), 0);
     sm.onGazeSample(sample(800), QStringLiteral("a"));
+    QCOMPARE(fired.size(), 1);
+}
+
+void DwellStateMachineTest::invalidGraceDoesNotAdvanceFirstStep()
+{
+    DwellStateMachine sm;
+    sm.setScanGraceMs(0);
+    sm.setInvalidGraceMs(180);
+    sm.setDwellSequence({800});
+    QSignalSpy fired(&sm, &DwellStateMachine::itemActivated);
+
+    sm.onGazeSample(sample(0), QStringLiteral("a"));
+    sm.onGazeSample(sample(400), QStringLiteral("a"));
+    sm.onGazeSample(sample(400, false), QString());
+    sm.onGazeSample(sample(500, false), QString());
+    sm.onGazeSample(sample(500), QStringLiteral("a"));
+    sm.onGazeSample(sample(799), QStringLiteral("a"));
+    QCOMPARE(fired.size(), 0);
+
+    sm.onGazeSample(sample(900), QStringLiteral("a"));
+    QCOMPARE(fired.size(), 1);
+}
+
+void DwellStateMachineTest::emptyHitDoesNotAdvanceFirstStep()
+{
+    DwellStateMachine sm;
+    sm.setScanGraceMs(0);
+    sm.setInvalidGraceMs(180);
+    sm.setDwellSequence({800});
+    QSignalSpy fired(&sm, &DwellStateMachine::itemActivated);
+
+    sm.onGazeSample(sample(0), QStringLiteral("a"));
+    sm.onGazeSample(sample(400), QStringLiteral("a"));
+    QCOMPARE(sm.progress(), 0.5);
+
+    sm.onGazeSample(sample(400), QString());
+    sm.onGazeSample(sample(520), QString());
+    QCOMPARE(sm.progress(), 0.5);
+    QCOMPARE(sm.hoveredItemId(), QStringLiteral("a"));
+
+    sm.onGazeSample(sample(520), QStringLiteral("a"));
+    QCOMPARE(sm.progress(), 0.5);
+    sm.onGazeSample(sample(799), QStringLiteral("a"));
+    QCOMPARE(fired.size(), 0);
+
+    sm.onGazeSample(sample(920), QStringLiteral("a"));
+    QCOMPARE(fired.size(), 1);
+}
+
+void DwellStateMachineTest::invalidGraceDoesNotShortenScanGrace()
+{
+    DwellStateMachine sm;
+    sm.setScanGraceMs(200);
+    sm.setInvalidGraceMs(180);
+    sm.setDwellSequence({10});
+    QSignalSpy fired(&sm, &DwellStateMachine::itemActivated);
+
+    sm.onGazeSample(sample(0), QStringLiteral("a"));
+    sm.onGazeSample(sample(50), QStringLiteral("a"));
+    sm.onGazeSample(sample(50), QString());
+    sm.onGazeSample(sample(150), QString());
+    sm.onGazeSample(sample(150), QStringLiteral("a"));
+    QCOMPARE(fired.size(), 0);
+    QCOMPARE(sm.isScanGraceComplete(), false);
+
+    sm.onGazeSample(sample(299), QStringLiteral("a"));
+    QCOMPARE(fired.size(), 0);
+    QCOMPARE(sm.isScanGraceComplete(), false);
+
+    sm.onGazeSample(sample(300), QStringLiteral("a"));
+    QCOMPARE(sm.isScanGraceComplete(), true);
+    QCOMPARE(fired.size(), 0);
+
+    sm.onGazeSample(sample(310), QStringLiteral("a"));
+    QCOMPARE(fired.size(), 1);
+}
+
+void DwellStateMachineTest::invalidGraceFreezesProgress()
+{
+    DwellStateMachine sm;
+    sm.setScanGraceMs(0);
+    sm.setInvalidGraceMs(180);
+    sm.setDwellSequence({800});
+
+    sm.onGazeSample(sample(0), QStringLiteral("a"));
+    sm.onGazeSample(sample(400), QStringLiteral("a"));
+    QCOMPARE(sm.progress(), 0.5);
+
+    sm.onGazeSample(sample(400, false), QString());
+    sm.onGazeSample(sample(500, false), QString());
+    QCOMPARE(sm.progress(), 0.5);
+    QCOMPARE(sm.hoveredItemId(), QStringLiteral("a"));
+
+    sm.onGazeSample(sample(500), QStringLiteral("a"));
+    QCOMPARE(sm.progress(), 0.5);
+}
+
+void DwellStateMachineTest::secondInvalidHoldDoesNotAdvance()
+{
+    DwellStateMachine sm;
+    sm.setScanGraceMs(0);
+    sm.setInvalidGraceMs(180);
+    sm.setDwellSequence({800});
+    QSignalSpy fired(&sm, &DwellStateMachine::itemActivated);
+
+    sm.onGazeSample(sample(0), QStringLiteral("a"));
+    sm.onGazeSample(sample(300), QStringLiteral("a"));
+    sm.onGazeSample(sample(300, false), QString());
+    sm.onGazeSample(sample(400, false), QString());
+    sm.onGazeSample(sample(400), QStringLiteral("a"));
+    sm.onGazeSample(sample(500), QStringLiteral("a"));
+    sm.onGazeSample(sample(500, false), QString());
+    sm.onGazeSample(sample(600, false), QString());
+    sm.onGazeSample(sample(600), QStringLiteral("a"));
+    sm.onGazeSample(sample(999), QStringLiteral("a"));
+    QCOMPARE(fired.size(), 0);
+
+    sm.onGazeSample(sample(1000), QStringLiteral("a"));
+    QCOMPARE(fired.size(), 1);
+}
+
+void DwellStateMachineTest::invalidGraceExpiryRestartsDwell()
+{
+    DwellStateMachine sm;
+    sm.setScanGraceMs(0);
+    sm.setInvalidGraceMs(180);
+    sm.setDwellSequence({800});
+    QSignalSpy fired(&sm, &DwellStateMachine::itemActivated);
+    QSignalSpy hover(&sm, &DwellStateMachine::hoverChanged);
+
+    sm.onGazeSample(sample(0), QStringLiteral("a"));
+    sm.onGazeSample(sample(200), QStringLiteral("a"));
+    sm.onGazeSample(sample(200, false), QString());
+    sm.onGazeSample(sample(379, false), QString());
+    QCOMPARE(sm.hoveredItemId(), QStringLiteral("a"));
+    QCOMPARE(fired.size(), 0);
+
+    sm.onGazeSample(sample(380, false), QString());
+    QCOMPARE(sm.hoveredItemId(), QString());
+    QVERIFY(hover.size() >= 2);
+    QCOMPARE(hover.last().at(0).toString(), QString());
+
+    sm.onGazeSample(sample(380), QStringLiteral("a"));
+    QCOMPARE(sm.hoveredItemId(), QStringLiteral("a"));
+    QCOMPARE(sm.progress(), 0.0);
+    sm.onGazeSample(sample(1179), QStringLiteral("a"));
+    QCOMPARE(fired.size(), 0);
+
+    sm.onGazeSample(sample(1180), QStringLiteral("a"));
     QCOMPARE(fired.size(), 1);
 }
 

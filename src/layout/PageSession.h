@@ -140,7 +140,7 @@ signals:
 private:
     [[nodiscard]] PageFrame frame() const;
     void rebuild();
-    void applyDwellFor(const PageTarget* t);
+    void applyDwellFor(const PageTarget& t);
     void syncExpanded();
     [[nodiscard]] bool anyRootGridShown() const;
     [[nodiscard]] bool drawerMotionShown() const;

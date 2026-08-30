@@ -10,7 +10,7 @@
 
 namespace gazer {
 
-/// OS cursor follows gaze using the same stickiness profile as the magnifier.
+/// OS cursor follows gaze using the assist gaze-follow profile (with the live lens).
 class GazeMouseFollow final : public QObject {
     Q_OBJECT
 

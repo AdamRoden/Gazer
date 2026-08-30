@@ -1,24 +1,24 @@
 #pragma once
 
-#include <QElapsedTimer>
 #include <QtGlobal>
 
 namespace gazer {
 
 /// Hold through a brief invalid / empty hit so dwell does not rewind.
+/// Duration is measured in the same timestamp units as gaze samples.
 struct InvalidGazeGrace {
     enum class Result { Holding, Expired };
 
     int graceMs = 180;
 
-    Result onInvalid()
+    Result onInvalid(qint64 timestampMs)
     {
         if (!m_holding) {
             m_holding = true;
-            m_clock.start();
+            m_startMs = timestampMs;
             return Result::Holding;
         }
-        return m_clock.elapsed() < graceMs ? Result::Holding : Result::Expired;
+        return (timestampMs - m_startMs) < graceMs ? Result::Holding : Result::Expired;
     }
 
     void onValid() { m_holding = false; }
@@ -27,7 +27,7 @@ struct InvalidGazeGrace {
 
 private:
     bool m_holding = false;
-    QElapsedTimer m_clock;
+    qint64 m_startMs = 0;
 };
 
 } // namespace gazer

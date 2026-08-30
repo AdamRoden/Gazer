@@ -81,6 +81,8 @@ void DwellStateMachine::clearHover()
     m_invalidGrace.reset();
     m_stepIndex = 0;
     m_scanGraceComplete = false;
+    m_elapsedMs = 0;
+    m_lastTs = 0;
     if (!m_currentId.isEmpty()) {
         m_currentId.clear();
         m_progress = 0.0;
@@ -99,24 +101,30 @@ void DwellStateMachine::onGazeSample(const gazer::GazePoint& point,
         return;
     }
 
+    const qint64 now = point.timestampMs;
+
     // Empty hit (layout refresh, one-frame miss) uses the same grace as an
     // invalid sample so we do not rewind the sequence after each activation.
     if (!point.valid || itemIdUnderGaze.isEmpty()) {
         if (m_currentId.isEmpty()) {
             return;
         }
-        if (m_invalidGrace.onInvalid() == InvalidGazeGrace::Result::Holding) {
+        if (m_invalidGrace.onInvalid(now) == InvalidGazeGrace::Result::Holding) {
             return;
         }
         clearHover();
         return;
     }
 
+    if (m_invalidGrace.holding()) {
+        m_lastTs = now;
+    }
     m_invalidGrace.onValid();
 
     if (itemIdUnderGaze != m_currentId) {
         m_currentId = itemIdUnderGaze;
-        m_dwellStartMs = point.timestampMs;
+        m_elapsedMs = 0;
+        m_lastTs = now;
         m_progress = 0.0;
         m_stepIndex = 0;
         m_scanGraceComplete = (m_scanGraceMs <= 0);
@@ -125,12 +133,16 @@ void DwellStateMachine::onGazeSample(const gazer::GazePoint& point,
         return;
     }
 
-    qint64 elapsed = point.timestampMs - m_dwellStartMs;
+    const qint64 dt = now - m_lastTs;
+    if (dt > 0) {
+        m_elapsedMs += dt;
+    }
+    m_lastTs = now;
 
     // Scan grace: hold progress at 0 until the precursor time elapses, then
     // start the dwell sequence clock (and progress animation) from zero.
     if (!m_scanGraceComplete) {
-        if (elapsed < m_scanGraceMs) {
+        if (m_elapsedMs < m_scanGraceMs) {
             if (m_progress != 0.0) {
                 m_progress = 0.0;
                 emit dwellProgress(m_currentId, 0.0);
@@ -138,21 +150,17 @@ void DwellStateMachine::onGazeSample(const gazer::GazePoint& point,
             return;
         }
         m_scanGraceComplete = true;
-        m_dwellStartMs = point.timestampMs;
-        elapsed = 0;
+        m_elapsedMs = 0;
         m_progress = 0.0;
         emit dwellProgress(m_currentId, 0.0);
         // Fall through. A 0-ms step fires on this sample (PageNotes leading 0).
     }
 
-    // dwellAccumulator is elapsed on the current step. Scan grace and dwell
-    // (invalid) grace do not add to it: the step clock is paused/reset around them.
     while (true) {
         const int needMs = stepMsAt(m_stepIndex);
         if (needMs <= 0) {
             emit itemActivated(m_currentId);
-            m_dwellStartMs = point.timestampMs;
-            elapsed = 0;
+            m_elapsedMs = 0;
             m_progress = 0.0;
             emit dwellProgress(m_currentId, 0.0);
             if (m_stepIndex + 1 < m_sequence.size()) {
@@ -162,18 +170,17 @@ void DwellStateMachine::onGazeSample(const gazer::GazePoint& point,
             break;
         }
 
-        m_progress = qBound(0.0, static_cast<double>(elapsed) / static_cast<double>(needMs), 1.0);
+        m_progress = qBound(0.0, static_cast<double>(m_elapsedMs) / static_cast<double>(needMs), 1.0);
         emit dwellProgress(m_currentId, m_progress);
 
-        if (elapsed < needMs) {
+        if (m_elapsedMs < needMs) {
             break;
         }
         emit itemActivated(m_currentId);
         if (m_stepIndex + 1 < m_sequence.size()) {
             ++m_stepIndex;
         }
-        m_dwellStartMs = point.timestampMs;
-        elapsed = 0;
+        m_elapsedMs = 0;
         m_progress = 0.0;
         emit dwellProgress(m_currentId, 0.0);
         break;

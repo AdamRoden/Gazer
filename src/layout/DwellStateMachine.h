@@ -61,7 +61,8 @@ private:
     int m_scanGraceMs = kDefaultScanGraceMs;
 
     QString m_currentId;
-    qint64 m_dwellStartMs = 0;
+    qint64 m_elapsedMs = 0;
+    qint64 m_lastTs = 0;
     double m_progress = 0.0;
     int m_stepIndex = 0;
     bool m_scanGraceComplete = false;

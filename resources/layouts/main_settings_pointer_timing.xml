@@ -3,7 +3,7 @@
   <Style id="row" background="#00000000" thickness="1" radius="6"/>
   <Style id="plain" background="#00000000" thickness="0" radius="0"/>
   <Style id="join" background="#00000000" thickness="0" radius="0"/>
-  <Grid id="board" desktopMode="true" rows="12" columns="16" anchor="Top" offset="0,0" size="A_ScreenHeight/9*16, A_ScreenHeight" gap="6" margin="12" thickness="1" radius="4">
+  <Grid id="board" desktopMode="true" rows="11" columns="16" anchor="Top" offset="0,0" size="A_ScreenHeight/9*16, A_ScreenHeight" gap="6" margin="12" thickness="1" radius="4">
     <SubGrid id="tabs" row="0" col="0" colSpan="16" rows="1" columns="6" gap="6">
       <Cell id="tab_buttons" row="0" col="0" label="Button" role="tab">
         <ClosePage value="-self"/>
@@ -28,9 +28,9 @@
       </Cell>
     </SubGrid>
 
-    <Cell id="page_title" row="1" col="0" colSpan="16" label="Pointer timing" caption="Pointer aim timeout, dwell, gaze follow, foresight, and zoom dwell" role="label" textStyle="title" style="plain"/>
+    <Cell id="page_title" row="1" col="0" colSpan="16" label="Pointer timing" caption="Pointer aim timeout, dwell, foresight, and zoom dwell" role="label" textStyle="title" style="plain"/>
 
-    <SubGrid id="sec_aim" row="2" col="0" colSpan="16" rowSpan="4" rows="4" columns="1" rowWeights="1,2,2,2" gap="6" margin="6" style="group">
+    <SubGrid id="sec_aim" row="2" col="0" colSpan="16" rowSpan="3" rows="3" columns="1" rowWeights="1,2,2" gap="6" margin="6" style="group">
       <Cell id="h_aim" row="0" col="0" label="Aim" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_pg" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="pg_label" row="0" col="0" label="Pointer grace" caption="Cancel pointer aim if no target is selected within this many ms (0 = off)." role="label" style="plain"/>
@@ -50,18 +50,9 @@
           <Cell id="pd_edit" row="0" col="5" colSpan="2" label="Edit…" style="join" command="settings.edit.mouseMoveDwellMs"/>
         </SubGrid>
       </SubGrid>
-      <SubGrid id="row_follow" row="3" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="f_l" row="0" col="0" label="Gaze follow" caption="Slow / Sticky / Smooth / Snappy tracking for the cursor and magnified views." role="label" style="plain"/>
-        <SubGrid id="act_follow" row="0" col="1" rows="1" columns="4" gap="0" style="row">
-          <Cell id="f_slow" row="0" col="0" label="Slow" activeState="setting.magFollow.0" style="join" command="settings.mag.follow.slow"/>
-          <Cell id="f_sticky" row="0" col="1" label="Sticky" activeState="setting.magFollow.1" style="join" command="settings.mag.follow.sticky"/>
-          <Cell id="f_smooth" row="0" col="2" label="Smooth" activeState="setting.magFollow.2" style="join" command="settings.mag.follow.smooth"/>
-          <Cell id="f_snappy" row="0" col="3" label="Snappy" activeState="setting.magFollow.3" style="join" command="settings.mag.follow.snappy"/>
-        </SubGrid>
-      </SubGrid>
     </SubGrid>
 
-    <SubGrid id="sec_fs" row="6" col="0" colSpan="16" rowSpan="3" rows="3" columns="1" rowWeights="1,2,2" gap="6" margin="6" style="group">
+    <SubGrid id="sec_fs" row="5" col="0" colSpan="16" rowSpan="3" rows="3" columns="1" rowWeights="1,2,2" gap="6" margin="6" style="group">
       <Cell id="h_fs" row="0" col="0" label="Foresight" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_fsd" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="fsd_label" row="0" col="0" label="Foresight dwell" caption="How long to gaze at a desktop point before Foresight stores it (ms). Kept for 2 seconds." role="label" style="plain"/>
@@ -78,7 +69,7 @@
       </SubGrid>
     </SubGrid>
 
-    <SubGrid id="sec_zoom" row="9" col="0" colSpan="16" rowSpan="3" rows="3" columns="1" rowWeights="1,2,2" gap="6" margin="6" style="group">
+    <SubGrid id="sec_zoom" row="8" col="0" colSpan="16" rowSpan="3" rows="3" columns="1" rowWeights="1,2,2" gap="6" margin="6" style="group">
       <Cell id="h_zoom" row="0" col="0" label="Zoom" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_zd" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="zd_label" row="0" col="0" label="Zoom dwell" caption="Dwell time to choose the region to magnify (ms)." role="label" style="plain"/>

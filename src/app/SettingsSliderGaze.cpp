@@ -38,7 +38,6 @@ bool SettingsUi::beginSliderScrub(const QString& channel)
     m_scrubRevert = m_colorDraft;
     m_scrubDwell.reset();
     m_scrubDwell.setDwellMs(m_settings.mouseMoveDwellMs);
-    m_scrubDwell.setFollowProfile(m_settings.magFollowProfile);
     m_scrubGrace.reset();
     m_scrubGrace.graceMs = qMax(0, m_settings.dwellGraceMs);
     if (!m_scrubClock.isValid()) {
@@ -133,7 +132,7 @@ void SettingsUi::feedSliderGaze(const GazePoint& point)
     }
 
     if (!point.valid) {
-        if (m_scrubGrace.onInvalid() == InvalidGazeGrace::Result::Holding) {
+        if (m_scrubGrace.onInvalid(now) == InvalidGazeGrace::Result::Holding) {
             return;
         }
         return;

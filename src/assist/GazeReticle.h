@@ -13,7 +13,7 @@
 namespace gazer {
 
 /// Soft semi-transparent disk at the live gaze point.
-/// Position uses magnifier stickiness profile; opacity still tracks speed.
+/// Position uses the assist gaze-follow profile; opacity still tracks speed.
 class GazeReticle final : public QObject {
     Q_OBJECT
 

@@ -427,6 +427,9 @@ QString AppSettings::settingTitle(const QString& key)
     if (key == QLatin1String("ltsIndicatorStyle")) {
         return QStringLiteral("LTS indicator");
     }
+    if (key == QLatin1String("magFollowProfile")) {
+        return QStringLiteral("Gaze follow");
+    }
     return key;
 }
 
@@ -475,6 +478,11 @@ QString AppSettings::settingDescription(const QString& key)
         return QStringLiteral(
             "Look-to-scroll overlay: Fan (deadzone + wedge), Orb (glow that stretches "
             "in the scroll direction), or Pause (center pause/resume only).");
+    }
+    if (key == QLatin1String("magFollowProfile")) {
+        return QStringLiteral(
+            "Slow / Sticky / Smooth / Snappy for the gaze indicator, gaze mouse, and "
+            "live magnifier. Not mag-pick, mouse-pick, or dwell.");
     }
     return {};
 }

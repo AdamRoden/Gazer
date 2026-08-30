@@ -319,7 +319,6 @@ void GazerServices::applySettings(bool persist)
 
     m_mouseDwellMove->setDwellMs(m_settings.mouseMoveDwellMs);
     m_mouseDwellMove->setGateGraceMs(m_settings.dwellGraceMs);
-    m_mouseDwellMove->setFollowProfile(m_settings.magFollowProfile);
     m_mouseDwellMove->setMagPickDwellMs(m_settings.magPickDwellMs);
     m_mouseDwellMove->setMagPickStyle(m_settings.magPickStyle);
     m_mouseDwellMove->setMousePickStyle(m_settings.mousePickStyle);

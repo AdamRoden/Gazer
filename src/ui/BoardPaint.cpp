@@ -392,10 +392,10 @@ void paintTarget(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeC
     } else {
         paintSurface(p, r, t.chrome, theme, glass, false, hovered,
                      active && !t.activeState.isEmpty(), t.interactive);
-        paintIconAndText(p, t, r, fg, theme);
         if (hovered && progress > 0.0 && t.interactive) {
             paintProgress(p, r, progress, vis.withItemFlash(fg), ProgressShape::RoundedRect, radii);
         }
+        paintIconAndText(p, t, r, fg, theme);
     }
     if (flashing) {
         const QColor fc = vis.resolvedFlashColor(fg);

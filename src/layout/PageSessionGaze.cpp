@@ -98,21 +98,19 @@ const PageTarget* PageSession::findTarget(const QString& id) const
     return nullptr;
 }
 
-void PageSession::applyDwellFor(const PageTarget* t)
+void PageSession::applyDwellFor(const PageTarget& t)
 {
     int scan = m_globalScanGraceMs;
     int grace = m_globalGraceMs;
     QVector<int> seq = m_globalSequence;
-    if (t) {
-        if (t->dwell.scanGrace) {
-            scan = *t->dwell.scanGrace;
-        }
-        if (t->dwell.dwellGrace) {
-            grace = *t->dwell.dwellGrace;
-        }
-        if (t->dwell.activation && !t->dwell.activation->isEmpty()) {
-            seq = *t->dwell.activation;
-        }
+    if (t.dwell.scanGrace) {
+        scan = *t.dwell.scanGrace;
+    }
+    if (t.dwell.dwellGrace) {
+        grace = *t.dwell.dwellGrace;
+    }
+    if (t.dwell.activation && !t.dwell.activation->isEmpty()) {
+        seq = *t.dwell.activation;
     }
     m_dwell.setScanGraceMs(scan);
     m_dwell.setInvalidGraceMs(grace);
@@ -206,11 +204,11 @@ bool PageSession::feedGaze(const GazePoint& point, const GazeHit& classified, Ga
     if (hit && !m_dwellSuspended) {
         noteActivity();
     }
-    if (id != m_hoverId) {
+    if (hit && id != m_hoverId) {
         if (m_loopLatchClear) {
             m_loopLatchClear();
         }
-        applyDwellFor(hit);
+        applyDwellFor(*hit);
     }
     m_dwell.onGazeSample(point, id);
     return hit != nullptr;
