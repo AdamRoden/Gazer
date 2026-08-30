@@ -314,7 +314,6 @@ bool readGrid(QXmlStreamReader& xml, PageGrid& grid, bool nested, QString* error
     }
     grid.drawerMotion = parseBoolAttr(a.value(QStringLiteral("drawerMotion")), false);
     grid.autoClose = parseBoolAttr(a.value(QStringLiteral("autoClose")), false);
-    grid.autoCloseIdleMs = parseIntAttr(a.value(QStringLiteral("autoCloseIdleMs")), -1);
     if (a.hasAttribute(QStringLiteral("show"))) {
         grid.show = parseBoolAttr(a.value(QStringLiteral("show")), true);
     } else if (a.hasAttribute(QStringLiteral("open"))) {
@@ -455,7 +454,6 @@ bool readPage(QXmlStreamReader& xml, PageDocument& out, QString* error)
     }
     out.master = parseBoolAttr(a.value(QStringLiteral("master")), false);
     out.autoClose = parseBoolAttr(a.value(QStringLiteral("autoClose")), false);
-    out.autoCloseIdleMs = parseIntAttr(a.value(QStringLiteral("autoCloseIdleMs")), -1);
     applyChromeAttrs(a, out.style);
     applyDwellAttrs(a, out.dwell, error);
     if (error && !error->isEmpty()) {

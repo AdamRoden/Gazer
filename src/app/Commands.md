@@ -4,7 +4,7 @@
 
 | Registered in | What |
 |---------------|------|
-| `Application.cpp` | Shell: quit, editor, preview, theme, close others |
+| `Application.cpp` | Shell: quit, editor, preview, close others |
 | `AssistCommands.cpp` | Dwell pause, LTS, mag, reticle, dwell-move, click-at-gaze |
 | `GazerServices.cpp` | Modifier cycle, click-at-cursor, stop loops |
 | `MouseAssistState.cpp` | Mouse pad: nudge, scroll, edge, holds |
@@ -35,7 +35,6 @@ When adding a command: register it, add a row here, and list every alias in the 
 | `closeOtherViews` | Disable ComboMouse; close attached pages |
 | `openLayoutEditor` | Page designer (`Invocation.pageId` optional) |
 | `openPreview` | Head-pose preview |
-| `theme.dark` / `theme.light` / `theme.custom` | Theme mode |
 
 ## Assist (`AssistCommands.cpp`)
 
@@ -98,15 +97,24 @@ Patterns, not every generated name:
 | `settings.hex.digit.*` / `.backspace` / `.clear` / `.save` / `.cancel` | Hex keys |
 | `settings.opacity.*` / `settings.flash.foreground` / `.custom` | Flash opacity / custom flash |
 | `settings.progress.*.toggle` / `settings.mouseProgress.*.toggle` | Progress bits |
-| `settings.session.autoCollapse.toggle` / `.startDocked.toggle` | Session |
+| `settings.session.autoCollapse.toggle` / `.startDocked.toggle` / `.layoutAutoClose.toggle` | Session |
 | `settings.speech.alsoType.toggle` | Speak also types |
-| `settings.dwell.slow` / `.normal` / `.fast` | Dwell presets |
+| `settings.dwell.slow` / `.normal` / `.fast` / `.custom` | Dwell presets |
+| `settings.dwell.custom.save` / `.restore` | Save or restore Custom timings |
 | `settings.mag.follow.slow` / `.sticky` / `.smooth` / `.snappy` | Gaze follow (indicator, gaze mouse, live lens) |
 | `settings.lts.indicator.fan` / `.orb` / `.pause` | LTS HUD |
 | `settings.tracker.auto` / `.mouse` | Tracker pref (restart) |
 | `settings.magPickStyle.*.toggle` / `settings.mousePickStyle.*.toggle` | Pick visuals |
 | `settings.pickWindow.round` / `.square` | Zoom window shape |
-| `settings.theme.contrast.low` / `.medium` / `.high` | Custom contrast |
+| `settings.pickCenter.gaze` / `.screen` | Zoom window at gaze point or screen center |
+| `settings.nudge.themeSaturation.dec` / `.inc` | Saturation 20–100 in five steps (surfaces keep brightness) |
+| `settings.theme.edit` | Open Custom on the role list |
+| `theme.light` / `.lightTinted` / `.darkTinted` / `.dark` | Appearance |
+| `theme.primary.0`…`.3` | Accent (Blue, Green, Amber, Red) |
+| `theme.secondary.0`…`.3` | Progress (Blue, Green, Amber, Red) |
+| `theme.custom` | Custom palette |
+| `settings.color.roles` / `.accent` | Theme picker: full roles vs accent |
+| `settings.color.preset.0`…`.4` | Brand accent chips |
 | `settings.reset` | Defaults |
 
 Numeric keys: `dwellMs` plus `kIntSpecs` / `kDoubleSpecs` in `AppSettings.cpp`. Color keys: `SettingsUi::kColorKeys`.

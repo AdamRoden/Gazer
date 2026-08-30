@@ -10,33 +10,44 @@
 
 namespace gazer {
 
+void PageSession::setLayoutAutoClose(bool on, int idleMs)
+{
+    m_layoutAutoClose = on;
+    m_layoutAutoCloseIdleMs = qBound(500, idleMs, 120000);
+    syncAutoClose();
+}
+
 int PageSession::autoCloseIdleMs() const
 {
-    int best = -1;
-    auto consider = [&](int ms) {
-        if (ms <= 0) {
-            ms = 3000;
-        }
-        best = (best < 0) ? ms : qMin(best, ms);
-    };
-    for (const PageGrid& g : m_root.grids) {
-        if (!g.autoClose || !g.show || g.id.isEmpty()) {
-            continue;
-        }
-        consider(g.autoCloseIdleMs);
+    // Duration is the global Settings value. XML autoClose flags only opt boards in.
+    if (!m_layoutAutoClose) {
+        return -1;
     }
-    for (const AttachedPage& a : m_attached) {
-        if (a.doc.autoClose) {
-            consider(a.doc.autoCloseIdleMs);
-            continue;
+    bool any = false;
+    for (const PageGrid& g : m_root.grids) {
+        if (g.autoClose && g.show && !g.id.isEmpty()) {
+            any = true;
+            break;
         }
-        for (const PageGrid& g : a.doc.grids) {
-            if (g.autoClose) {
-                consider(g.autoCloseIdleMs);
+    }
+    if (!any) {
+        for (const AttachedPage& a : m_attached) {
+            if (a.doc.autoClose) {
+                any = true;
+                break;
+            }
+            for (const PageGrid& g : a.doc.grids) {
+                if (g.autoClose) {
+                    any = true;
+                    break;
+                }
+            }
+            if (any) {
+                break;
             }
         }
     }
-    return best;
+    return any ? m_layoutAutoCloseIdleMs : -1;
 }
 
 void PageSession::noteActivity()

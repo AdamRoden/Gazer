@@ -48,6 +48,46 @@ struct BoolSpec {
     bool AppSettings::* member;
 };
 
+const AppSettings::TimingPack kDwellSlow{{1200, 1000, 800, 600, 400}, 1200, 1200, 250, 200};
+const AppSettings::TimingPack kDwellNormal{{800, 700, 600, 500, 400, 200}, 800, 800, 200, 150};
+const AppSettings::TimingPack kDwellFast{{400, 600, 400, 200, 100, 50}, 400, 200, 150, 100};
+
+AppSettings::TimingPack liveTiming(const AppSettings& s)
+{
+    return {s.dwellSequence, s.mouseMoveDwellMs, s.magPickDwellMs, s.dwellGraceMs, s.scanGraceMs};
+}
+
+void applyTimingPack(AppSettings& s, const AppSettings::TimingPack& p)
+{
+    s.dwellSequence = p.sequence;
+    s.mouseMoveDwellMs = p.pointerDwellMs;
+    s.magPickDwellMs = p.zoomDwellMs;
+    s.dwellGraceMs = p.blinkGraceMs;
+    s.scanGraceMs = p.scanGraceMs;
+}
+
+bool matchesTimingPack(const AppSettings& s, const AppSettings::TimingPack& p)
+{
+    const AppSettings::TimingPack live = liveTiming(s);
+    return live.sequence == p.sequence && live.pointerDwellMs == p.pointerDwellMs
+           && live.zoomDwellMs == p.zoomDwellMs && live.blinkGraceMs == p.blinkGraceMs
+           && live.scanGraceMs == p.scanGraceMs;
+}
+
+void clampTimingPack(AppSettings::TimingPack& p)
+{
+    if (p.sequence.isEmpty()) {
+        p.sequence = AppSettings::defaultDwellSequence();
+    }
+    for (int& ms : p.sequence) {
+        ms = qBound(50, ms, 10000);
+    }
+    p.scanGraceMs = qBound(0, p.scanGraceMs, 2000);
+    p.blinkGraceMs = qBound(0, p.blinkGraceMs, 800);
+    p.pointerDwellMs = qBound(200, p.pointerDwellMs, 2500);
+    p.zoomDwellMs = qBound(200, p.zoomDwellMs, 2500);
+}
+
 constexpr IntSpec kIntSpecs[] = {
     {"scanGraceMs", "Scan grace",
      "Time on-target before dwell progress begins (ms).", " ms",
@@ -64,8 +104,11 @@ constexpr IntSpec kIntSpecs[] = {
     {"mouseMoveForesightDwellMs", "Foresight dwell",
      "Dwell time to store a foresight point before Move-to (ms).", " ms",
      &AppSettings::mouseMoveForesightDwellMs, 100, 2500, 50},
+    {"mouseMoveForesightHoldMs", "Foresight hold",
+     "How long a stored foresight point stays valid (ms).", " ms",
+     &AppSettings::mouseMoveForesightHoldMs, 200, 30000, 100},
     {"mouseMoveSelectTimeoutMs", "Pointer grace",
-     "Cancel pointer aim if no target is selected within this many ms (0 = off).",
+     "Extra time after zoom dwell (pre-pick) or pointer dwell (point pick) before aim cancels (0 = off).",
      " ms", &AppSettings::mouseMoveSelectTimeoutMs, 0, 120000, 500},
     {"magLensSize", "Lens size", "Live lens diameter in pixels (160–900).", " px",
      &AppSettings::magLensSize, 160, 900, 20},
@@ -93,9 +136,16 @@ constexpr IntSpec kIntSpecs[] = {
      ComboMouseHit::kMaxOuterRadiusPx, 8},
     {"flashMs", "Completion flash duration", "How long the completion flash is shown (ms).", " ms",
      &AppSettings::flashMs, 40, 1000, 20},
+    {"layoutAutoCloseIdleMs", "Auto-close idle",
+     "Close idle boards after this many ms.", " ms",
+     &AppSettings::layoutAutoCloseIdleMs, 500, 120000, 500},
     {"flashForegroundOpacity", "Flash opacity",
      "Opacity of the completion flash when using the item foreground color.", "%",
      &AppSettings::flashForegroundOpacity, 0, 100, 5},
+    {"themeSaturation", "Saturation",
+     "How colorful accent and progress are (five steps). Surfaces keep their brightness.", "",
+     &AppSettings::themeSaturation, kThemeSaturationMin, kThemeSaturationMax,
+     kThemeSaturationStep},
 };
 
 constexpr DoubleSpec kDoubleSpecs[] = {
@@ -121,8 +171,8 @@ const ColorSpec kColorSpecs[] = {
     {"comboOuterColor", "ComboMouse outer ring", &AppSettings::comboOuterColor,
      ComboMouseHit::kDefaultOuterFill},
     {"customBgColor", "Background", &AppSettings::customBgColor, QColor(10, 10, 11)},
-    {"customPrimaryColor", "Primary", &AppSettings::customPrimaryColor, QColor(138, 180, 248)},
-    {"customSecondaryColor", "Secondary", &AppSettings::customSecondaryColor,
+    {"customPrimaryColor", "Accent", &AppSettings::customPrimaryColor, QColor(96, 205, 255)},
+    {"customSecondaryColor", "Progress", &AppSettings::customSecondaryColor,
      ThemeColors::defaultProgressColor()},
     {"customTertiaryColor", "Tertiary", &AppSettings::customTertiaryColor, QColor(126, 82, 96)},
     {"customSurfaceColor", "Surface", &AppSettings::customSurfaceColor, QColor(18, 19, 20)},
@@ -202,6 +252,7 @@ void AppSettings::clamp()
     for (int& ms : dwellSequence) {
         ms = qBound(50, ms, 10000);
     }
+    clampTimingPack(customTiming);
     for (const IntSpec& s : kIntSpecs) {
         this->*s.member = qBound(s.min, this->*s.member, s.max);
     }
@@ -211,11 +262,12 @@ void AppSettings::clamp()
     }
     magFollowProfile = gazeFollowProfileFromInt(int(magFollowProfile));
     ltsIndicatorStyle = ltsIndicatorFromInt(int(ltsIndicatorStyle));
-    customContrast = snapContrastPercent(customContrast);
+    themePrimaryIndex = qBound(0, themePrimaryIndex, kThemeBrandCount - 1);
+    themeSecondaryIndex = qBound(0, themeSecondaryIndex, kThemeHarmonyCount - 1);
+    themeSaturation = snapThemeSaturation(themeSaturation);
     magPickStyle = PickStyle::sanitizeMag(magPickStyle);
     mousePickStyle = PickStyle::sanitizeMouse(mousePickStyle);
     trackerPref = qBound(0, trackerPref, 1);
-    layoutAutoCloseIdleMs = qBound(500, layoutAutoCloseIdleMs, 120000);
     layoutAutoCloseFadeMs = qBound(50, layoutAutoCloseFadeMs, 60000);
     progress.ensureDefault();
     mouseProgress.ensureDefault();
@@ -240,6 +292,10 @@ bool AppSettings::nudge(const QString& key, int dir)
         return true;
     }
     if (const IntSpec* s = findInt(key)) {
+        if (key == QLatin1String("themeSaturation")) {
+            setThemeSaturation(themeSaturation + dir * s->step);
+            return true;
+        }
         this->*s->member = qBound(s->min, this->*s->member + dir * s->step, s->max);
         clamp();
         return true;
@@ -259,40 +315,47 @@ bool AppSettings::nudge(const QString& key, int dir)
 
 void AppSettings::setDwellPreset(int preset)
 {
-    switch (qBound(0, preset, 2)) {
+    switch (qBound(0, preset, 3)) {
     case 0:
-        dwellSequence = {1000};
-        mouseMoveDwellMs = 900;
-        magPickDwellMs = 900;
-        dwellGraceMs = 220;
-        scanGraceMs = 150;
+        applyTimingPack(*this, kDwellSlow);
         break;
     case 2:
-        dwellSequence = {450};
-        mouseMoveDwellMs = 500;
-        magPickDwellMs = 500;
-        dwellGraceMs = 140;
-        scanGraceMs = 80;
+        applyTimingPack(*this, kDwellFast);
+        break;
+    case 3:
+        if (dwellPreset() != 3) {
+            applyDwellCustom();
+        }
         break;
     default:
-        dwellSequence = defaultDwellSequence();
-        mouseMoveDwellMs = 700;
-        magPickDwellMs = 700;
-        dwellGraceMs = 180;
-        scanGraceMs = 100;
+        applyTimingPack(*this, kDwellNormal);
         break;
     }
 }
 
 int AppSettings::dwellPreset() const
 {
-    if (dwellSequence.size() == 1 && dwellSequence[0] <= 520) {
-        return 2;
-    }
-    if (dwellSequence.size() == 1 && dwellSequence[0] >= 900) {
+    if (matchesTimingPack(*this, kDwellSlow)) {
         return 0;
     }
-    return 1;
+    if (matchesTimingPack(*this, kDwellNormal)) {
+        return 1;
+    }
+    if (matchesTimingPack(*this, kDwellFast)) {
+        return 2;
+    }
+    return 3;
+}
+
+void AppSettings::saveDwellCustom()
+{
+    customTiming = liveTiming(*this);
+}
+
+void AppSettings::applyDwellCustom()
+{
+    clampTimingPack(customTiming);
+    applyTimingPack(*this, customTiming);
 }
 
 void AppSettings::setMagFollowProfile(int profile)
@@ -354,7 +417,8 @@ bool AppSettings::setColorKey(const QString& key, const QColor& c, bool rebuildP
     if (!rebuildPalette || themeRoleForColorKey(key).isEmpty()) {
         return true;
     }
-    applyCustomPalette(false);
+    themeCustom = true;
+    applyTheme();
     return true;
 }
 
@@ -383,10 +447,6 @@ QString AppSettings::displayValue(const QString& key) const
     if (key == QLatin1String("ltsIndicatorStyle")) {
         return QLatin1String(ltsIndicatorName(ltsIndicatorStyle));
     }
-    if (key == QLatin1String("customContrast")) {
-        return themeContrastToString(themeContrastFromInt(customContrast));
-    }
-
     if (key == QLatin1String("magPickStyle")) {
         return PickStyle::label(magPickStyle);
     }
@@ -535,6 +595,10 @@ bool AppSettings::applyNumericBuffer(const QString& key, const QString& buffer, 
                 *error = QStringLiteral("Enter a whole number");
             }
             return false;
+        }
+        if (key == QLatin1String("themeSaturation")) {
+            setThemeSaturation(v);
+            return true;
         }
         this->*s->member = v;
         clamp();

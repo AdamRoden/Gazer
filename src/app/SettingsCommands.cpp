@@ -4,7 +4,7 @@
 #include "assist/GazeFollowProfile.h"
 #include "assist/LtsIndicator.h"
 #include "ui/PickStyle.h"
-#include "ui/Theme.h"
+#include "ui/ThemeScheme.h"
 
 #include <QString>
 #include <initializer_list>
@@ -105,6 +105,8 @@ void SettingsUi::registerCommands()
         {"settings.session.autoCollapse.toggle", &AppSettings::autoCollapseMain,
          "Auto-collapse Main"},
         {"settings.session.startDocked.toggle", &AppSettings::startDocked, "Start docked"},
+        {"settings.session.layoutAutoClose.toggle", &AppSettings::layoutAutoClose,
+         "Auto-close boards"},
         {"settings.speech.alsoType.toggle", &AppSettings::speakAlsoType, "Speak also types"},
     };
     for (const auto& t : boolToggles) {
@@ -181,6 +183,21 @@ void SettingsUi::registerCommands()
         notifyStatus(QStringLiteral("Color pick cancelled"));
         return true;
     });
+    m_commands.registerBuiltin(QStringLiteral("settings.color.roles"), [this](QString*) {
+        colorSetRolesMode(true);
+        return true;
+    });
+    m_commands.registerBuiltin(QStringLiteral("settings.color.accent"), [this](QString*) {
+        colorSetRolesMode(false);
+        return true;
+    });
+    for (int i = 0; i < 6; ++i) {
+        m_commands.registerBuiltin(QStringLiteral("settings.color.preset.%1").arg(i),
+                                   [this, i](QString*) {
+                                       colorApplyPreset(i);
+                                       return true;
+                                   });
+    }
     for (QChar d : QStringLiteral("0123456789ABCDEF")) {
         m_commands.registerBuiltin(
             QStringLiteral("settings.hex.digit.%1").arg(d), [this, d](QString*) {
@@ -266,11 +283,26 @@ void SettingsUi::registerCommands()
     };
     registerIntChoices(
         {
-            {"settings.dwell.slow", 0, "Dwell: Slow (~1000 ms)"},
-            {"settings.dwell.normal", 1, "Dwell: Normal (800,600,400,200,100,50)"},
-            {"settings.dwell.fast", 2, "Dwell: Fast (~450 ms)"},
+            {"settings.dwell.slow", 0, "Dwell: Slow"},
+            {"settings.dwell.normal", 1, "Dwell: Normal"},
+            {"settings.dwell.fast", 2, "Dwell: Fast"},
+            {"settings.dwell.custom", 3, "Dwell: Custom"},
         },
         &AppSettings::setDwellPreset);
+    m_commands.registerBuiltin(QStringLiteral("settings.dwell.custom.save"), [this](QString*) {
+        if (m_mutate) {
+            m_mutate([](AppSettings& s) { s.saveDwellCustom(); },
+                     QStringLiteral("Custom timing saved"));
+        }
+        return true;
+    });
+    m_commands.registerBuiltin(QStringLiteral("settings.dwell.custom.restore"), [this](QString*) {
+        if (m_mutate) {
+            m_mutate([](AppSettings& s) { s.applyDwellCustom(); },
+                     QStringLiteral("Custom timing restored"));
+        }
+        return true;
+    });
     registerIntChoices(
         {
             {"settings.mag.follow.slow", int(GazeFollowProfile::Slow), "Gaze follow: Slow"},
@@ -355,6 +387,18 @@ void SettingsUi::registerCommands()
         notifyStatus(QStringLiteral("Zoom shape: Square"));
         return true;
     });
+    m_commands.registerBuiltin(QStringLiteral("settings.pickCenter.gaze"), [this](QString*) {
+        m_settings.mouseMoveMagPickCenterOnDwell = true;
+        apply(true);
+        notifyStatus(QStringLiteral("Zoom position: Gaze point"));
+        return true;
+    });
+    m_commands.registerBuiltin(QStringLiteral("settings.pickCenter.screen"), [this](QString*) {
+        m_settings.mouseMoveMagPickCenterOnDwell = false;
+        apply(true);
+        notifyStatus(QStringLiteral("Zoom position: Screen center"));
+        return true;
+    });
 
     m_commands.registerBuiltin(QStringLiteral("settings.reset"), [this](QString*) {
         if (m_reset) {
@@ -363,21 +407,58 @@ void SettingsUi::registerCommands()
         return true;
     });
 
-    auto setContrast = [this](int pct) {
-        return [this, pct](QString*) {
-            m_settings.setCustomContrast(pct);
-            apply(true);
-            notifyStatus(QStringLiteral("Theme contrast: %1")
-                             .arg(themeContrastToString(themeContrastFromInt(pct))));
+    m_commands.registerBuiltin(QStringLiteral("settings.theme.edit"), [this](QString* error) {
+        if (m_mutate) {
+            m_mutate([](AppSettings& s) { s.setThemeCustom(true); }, QString());
+        }
+        m_colorPickerPage = ColorPickerPage::Roles;
+        return openColorPicker(QStringLiteral("customPrimaryColor"), error);
+    });
+
+    auto applyAppearance = [this](ThemeAppearance appearance, const char* status) {
+        return [this, appearance, status](QString*) {
+            if (m_mutate) {
+                m_mutate([appearance](AppSettings& s) { s.setThemeAppearance(appearance); },
+                         QLatin1String(status));
+            }
             return true;
         };
     };
-    m_commands.registerBuiltin(QStringLiteral("settings.theme.contrast.low"),
-                               setContrast(kThemeContrastLowPct));
-    m_commands.registerBuiltin(QStringLiteral("settings.theme.contrast.medium"),
-                               setContrast(kThemeContrastMediumPct));
-    m_commands.registerBuiltin(QStringLiteral("settings.theme.contrast.high"),
-                               setContrast(kThemeContrastHighPct));
+    m_commands.registerBuiltin(QStringLiteral("theme.light"),
+                               applyAppearance(ThemeAppearance::Light, "Theme: Light"));
+    m_commands.registerBuiltin(QStringLiteral("theme.lightTinted"),
+                               applyAppearance(ThemeAppearance::LightTinted, "Theme: Light tint"));
+    m_commands.registerBuiltin(QStringLiteral("theme.darkTinted"),
+                               applyAppearance(ThemeAppearance::DarkTinted, "Theme: Dark tint"));
+    m_commands.registerBuiltin(QStringLiteral("theme.dark"),
+                               applyAppearance(ThemeAppearance::Dark, "Theme: Dark"));
+    m_commands.registerBuiltin(QStringLiteral("theme.custom"), [this](QString*) {
+        if (m_mutate) {
+            m_mutate([](AppSettings& s) { s.setThemeCustom(true); },
+                     QStringLiteral("Theme: Custom"));
+        }
+        return true;
+    });
+    for (int i = 0; i < kThemeBrandCount; ++i) {
+        m_commands.registerBuiltin(QStringLiteral("theme.primary.%1").arg(i), [this, i](QString*) {
+            if (m_mutate) {
+                m_mutate([i](AppSettings& s) { s.setThemePrimaryIndex(i); },
+                         QStringLiteral("Accent: %1")
+                             .arg(QLatin1String(ThemeScheme::brands()[i].name)));
+            }
+            return true;
+        });
+    }
+    for (int i = 0; i < kThemeHarmonyCount; ++i) {
+        m_commands.registerBuiltin(QStringLiteral("theme.secondary.%1").arg(i), [this, i](QString*) {
+            if (m_mutate) {
+                m_mutate([i](AppSettings& s) { s.setThemeSecondaryIndex(i); },
+                         QStringLiteral("Progress: %1")
+                             .arg(QLatin1String(ThemeScheme::progressVariantName(i))));
+            }
+            return true;
+        });
+    }
 }
 
 } // namespace gazer

@@ -324,7 +324,6 @@ struct PageGrid {
     QVector<double> rowWeights;
     bool drawerMotion = false;
     bool autoClose = false;
-    int autoCloseIdleMs = -1;
     /// Omitted from the live session when false. Default shown.
     bool show = true;
     /// Root chrome: painted and hit above every non-shell Grid/Zone.
@@ -368,7 +367,6 @@ struct PageDocument {
     QString name;
     bool master = false;
     bool autoClose = false;
-    int autoCloseIdleMs = -1;
     PageChrome style;
     PageDwell dwell;
     QHash<QString, PageChrome> styles;

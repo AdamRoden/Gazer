@@ -208,7 +208,6 @@ void writeGrid(QXmlStreamWriter& xml, const PageGrid& grid)
     }
     attrBool(xml, QStringLiteral("drawerMotion"), grid.drawerMotion, false);
     attrBool(xml, QStringLiteral("autoClose"), grid.autoClose, false);
-    attrInt(xml, QStringLiteral("autoCloseIdleMs"), grid.autoCloseIdleMs, -1);
     attrBool(xml, QStringLiteral("show"), grid.show, true);
     attrBool(xml, QStringLiteral("shell"), grid.shell, false);
     attr(xml, QStringLiteral("style"), grid.styleId);
@@ -246,7 +245,6 @@ QByteArray PageWriter::toBytes(const PageDocument& doc)
     attr(xml, QStringLiteral("name"), doc.name);
     attrBool(xml, QStringLiteral("master"), doc.master, false);
     attrBool(xml, QStringLiteral("autoClose"), doc.autoClose, false);
-    attrInt(xml, QStringLiteral("autoCloseIdleMs"), doc.autoCloseIdleMs, -1);
     writeChrome(xml, doc.style);
     writeDwell(xml, doc.dwell);
     for (auto it = doc.styles.cbegin(); it != doc.styles.cend(); ++it) {

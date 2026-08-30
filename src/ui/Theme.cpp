@@ -1,93 +1,41 @@
 #include "ui/Theme.h"
 
+#include <QtGlobal>
+
+#include <cmath>
+
 namespace gazer {
 
-QString themeModeToString(ThemeMode m)
+QString themeAppearanceToString(ThemeAppearance a)
 {
-    switch (m) {
-    case ThemeMode::Light:
+    switch (a) {
+    case ThemeAppearance::Light:
         return QStringLiteral("light");
-    case ThemeMode::Custom:
-        return QStringLiteral("custom");
-    case ThemeMode::Dark:
+    case ThemeAppearance::LightTinted:
+        return QStringLiteral("lightTinted");
+    case ThemeAppearance::DarkTinted:
+        return QStringLiteral("darkTinted");
+    case ThemeAppearance::Dark:
     default:
         return QStringLiteral("dark");
     }
 }
 
-ThemeMode themeModeFromString(const QString& s)
+ThemeAppearance themeAppearanceFromString(const QString& s)
 {
     const QString t = s.toLower();
     if (t == QLatin1String("light")) {
-        return ThemeMode::Light;
+        return ThemeAppearance::Light;
     }
-    if (t == QLatin1String("custom")) {
-        return ThemeMode::Custom;
+    if (t == QLatin1String("lighttinted") || t == QLatin1String("light_tinted")
+        || t == QLatin1String("light-tinted")) {
+        return ThemeAppearance::LightTinted;
     }
-    return ThemeMode::Dark;
-}
-
-QString themeContrastToString(ThemeContrast c)
-{
-    switch (c) {
-    case ThemeContrast::Low:
-        return QStringLiteral("Low");
-    case ThemeContrast::High:
-        return QStringLiteral("High");
-    case ThemeContrast::Medium:
-    default:
-        return QStringLiteral("Medium");
+    if (t == QLatin1String("darktinted") || t == QLatin1String("dark_tinted")
+        || t == QLatin1String("dark-tinted")) {
+        return ThemeAppearance::DarkTinted;
     }
-}
-
-int snapContrastPercent(int v)
-{
-    if (v <= 4) {
-        if (v <= 1) {
-            return kThemeContrastLowPct;
-        }
-        if (v >= 3) {
-            return kThemeContrastHighPct;
-        }
-        return kThemeContrastMediumPct;
-    }
-    if (v < 78) {
-        return kThemeContrastLowPct;
-    }
-    if (v < 93) {
-        return kThemeContrastMediumPct;
-    }
-    return kThemeContrastHighPct;
-}
-
-ThemeContrast themeContrastFromInt(int v)
-{
-    const int pct = snapContrastPercent(v);
-    if (pct <= kThemeContrastLowPct) {
-        return ThemeContrast::Low;
-    }
-    if (pct >= kThemeContrastHighPct) {
-        return ThemeContrast::High;
-    }
-    return ThemeContrast::Medium;
-}
-
-int themeContrastToPercent(ThemeContrast c)
-{
-    switch (c) {
-    case ThemeContrast::Low:
-        return kThemeContrastLowPct;
-    case ThemeContrast::High:
-        return kThemeContrastHighPct;
-    case ThemeContrast::Medium:
-    default:
-        return kThemeContrastMediumPct;
-    }
-}
-
-int themeContrastToInt(ThemeContrast c)
-{
-    return themeContrastToPercent(c);
+    return ThemeAppearance::Dark;
 }
 
 QVector<QString> voiceColorPalette()
@@ -159,6 +107,35 @@ QColor ThemeColors::contrastOn(const QColor& fill)
         return darkPreset().text;
     }
     return fill.lightness() > 140 ? lightPreset().text : darkPreset().text;
+}
+
+double ThemeColors::contrastRatio(const QColor& a, const QColor& b)
+{
+    auto lin = [](int ch) {
+        const double s = ch / 255.0;
+        return s <= 0.04045 ? s / 12.92 : std::pow((s + 0.055) / 1.055, 2.4);
+    };
+    auto lum = [&](const QColor& c) {
+        const QColor x = c.isValid() ? c : QColor(0, 0, 0);
+        return 0.2126 * lin(x.red()) + 0.7152 * lin(x.green()) + 0.0722 * lin(x.blue());
+    };
+    const double l1 = lum(a);
+    const double l2 = lum(b);
+    const double hi = l1 > l2 ? l1 : l2;
+    const double lo = l1 > l2 ? l2 : l1;
+    return (hi + 0.05) / (lo + 0.05);
+}
+
+QColor ThemeColors::mix(const QColor& a, const QColor& b, double t)
+{
+    t = qBound(0.0, t, 1.0);
+    auto ch = [t](int x, int y) {
+        return qBound(0, qRound(x + (y - x) * t), 255);
+    };
+    const QColor a2 = a.isValid() ? a : QColor(28, 28, 28);
+    const QColor b2 = b.isValid() ? b : a2;
+    return QColor(ch(a2.red(), b2.red()), ch(a2.green(), b2.green()), ch(a2.blue(), b2.blue()),
+                  ch(a2.alpha(), b2.alpha()));
 }
 
 QString ThemeColors::colorToHex(const QColor& c)

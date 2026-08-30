@@ -20,11 +20,20 @@ struct AppSettings {
     /// Progressive dwell steps (ms). Last step repeats while gaze holds.
     QVector<int> dwellSequence = defaultDwellSequence();
     /// Time on-target before dwell progress animation / sequence begins (ms).
-    int scanGraceMs = 100;
-    int dwellGraceMs = 180;
-    int mouseMoveDwellMs = 700;
+    int scanGraceMs = 150;
+    int dwellGraceMs = 200;
+    int mouseMoveDwellMs = 800;
     /// Dwell for the first mag-pick step (choose region to magnify).
-    int magPickDwellMs = 700;
+    int magPickDwellMs = 800;
+    /// Last saved Custom timing package (Speed presets).
+    struct TimingPack {
+        QVector<int> sequence;
+        int pointerDwellMs = 800;
+        int zoomDwellMs = 800;
+        int blinkGraceMs = 200;
+        int scanGraceMs = 150;
+    };
+    TimingPack customTiming = defaultTimingPack();
     /// Cancel armed mouse-move / click-loop if no target is selected within this many ms.
     /// 0 = disabled.
     int mouseMoveSelectTimeoutMs = 5000;
@@ -38,8 +47,10 @@ struct AppSettings {
     bool pickWindowRound = false;
     /// Remember a desktop dwell and immediately magnify that point when Move-to arms.
     bool mouseMoveForesight = false;
-    /// Hold gaze this long (ms) to store a foresight point (kept for 2s).
+    /// Hold gaze this long (ms) to store a foresight point.
     int mouseMoveForesightDwellMs = 400;
+    /// How long a stored foresight point stays valid (ms).
+    int mouseMoveForesightHoldMs = 2000;
     /// When foresight and pre-click zoom both apply: a second zoom inside the
     /// foresight region. Off = place the cursor if the pick is inside foresight.
     bool mouseMoveForesightSecondZoom = false;
@@ -104,51 +115,47 @@ struct AppSettings {
     // --- Speech ---
     bool speakAlsoType = true;
 
-    // --- Theme (Voice-aligned) ---
-    ThemeMode themeMode = ThemeMode::Dark;
-    ThemeColors lightColors = ThemeColors::lightPreset();
-    ThemeColors darkColors = ThemeColors::darkPreset();
-    ThemeColors customColors = ThemeColors::darkPreset();
-    /// Custom theme seeds (Material 3-style). Contrast remaps tones of all four.
-    QString customBgColor = QStringLiteral("#0A0A0B");
-    QString customPrimaryColor = QStringLiteral("#8AB4F8");
-    QString customSecondaryColor = QStringLiteral("#00DCFF");
-    QString customTertiaryColor = QStringLiteral("#7E5260");
-    QString customSurfaceColor = QStringLiteral("#121314");
-    QString customTextColor = QStringLiteral("#E6E1E5");
-    QString customDangerColor = QStringLiteral("#FFB4AB");
-    /// Contrast intensity: 70 (Low), 85 (Medium), or 100 (High).
-    int customContrast = kThemeContrastMediumPct;
+    // --- Theme (appearance × brand accent × progress variant × saturation) ---
+    ThemeAppearance themeAppearance = ThemeAppearance::Dark;
+    bool themeCustom = false;
+    int themePrimaryIndex = 0;
+    int themeSecondaryIndex = 0;
+    int themeSaturation = kThemeSaturationDefault;
+    /// Custom seeds. Branded schemes ignore these until Custom is selected.
+    QString customBgColor = QStringLiteral("#1C1C1C");
+    QString customPrimaryColor = QStringLiteral("#60CDFF");
+    QString customSecondaryColor = QStringLiteral("#60CDFF");
+    QString customTertiaryColor = QStringLiteral("#005FB8");
+    QString customSurfaceColor = QStringLiteral("#262626");
+    QString customTextColor = QStringLiteral("#FFFFFF");
+    QString customDangerColor = QStringLiteral("#FF99A4");
     /// Unused; kept so older settings files still load.
     int themeBrightness = 4;
 
-    void setCustomContrast(int contrastPercent);
-    /// Rebuild customColors + progress. When fitContrast is false, stored role colors stay put.
-    void applyCustomPalette(bool fitContrast = false);
-    /// Infer Low/Medium/High from the current background and primary (migration / diagnostics).
-    void syncThemeSlidersFromSeeds();
+    void setThemeAppearance(ThemeAppearance appearance);
+    void setThemeCustom(bool on);
+    void setThemePrimaryIndex(int index);
+    void setThemeSecondaryIndex(int index);
+    void setThemeSaturation(int saturation);
+    /// Rebuild derived progress colors from the live spec.
+    void applyTheme();
+    /// Rebuild progress (and optionally seeds) from Fluent. Does not set themeCustom.
+    void applyCustomPalette(bool overlayRoles = true);
     [[nodiscard]] QColor suggestedThemeColor(const QString& key) const;
     [[nodiscard]] ThemeSeeds themeSeeds() const;
+    [[nodiscard]] ThemePalette resolvedPalette() const;
+    [[nodiscard]] ThemeColors resolvedTheme() const;
     [[nodiscard]] static QString themeRoleForColorKey(const QString& key);
     [[nodiscard]] static ThemeColorRole themeColorRoleForKey(const QString& key);
     [[nodiscard]] static bool isThemeSeedKey(const QString& key);
 
-    [[nodiscard]] ThemeColors resolvedTheme() const
-    {
-        switch (themeMode) {
-        case ThemeMode::Light:
-            return lightColors;
-        case ThemeMode::Custom:
-            return customColors;
-        case ThemeMode::Dark:
-        default:
-            return darkColors;
-        }
-    }
-
     [[nodiscard]] static QVector<int> defaultDwellSequence()
     {
-        return {800, 600, 400, 200, 100, 50};
+        return {800, 700, 600, 500, 400, 200};
+    }
+    [[nodiscard]] static TimingPack defaultTimingPack()
+    {
+        return {defaultDwellSequence(), 800, 800, 200, 150};
     }
     [[nodiscard]] static AppSettings defaults();
     [[nodiscard]] static QString defaultFilePath();
@@ -190,7 +197,10 @@ struct AppSettings {
     [[nodiscard]] bool saveToFile(const QString& path, QString* error = nullptr) const;
 
     void setDwellPreset(int preset);
+    /// 0 Slow, 1 Normal, 2 Fast, 3 Custom (current timings match none of the packages).
     [[nodiscard]] int dwellPreset() const;
+    void saveDwellCustom();
+    void applyDwellCustom();
     void setMagFollowProfile(int profile);
     void setLtsIndicatorStyle(int style);
     void clamp();

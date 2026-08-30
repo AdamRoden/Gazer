@@ -6,27 +6,18 @@
 
 namespace gazer {
 
-/// User-chosen custom-theme seeds. HCT-like tones are applied at build time.
+/// Custom-theme accent + progress. Surfaces overlay from AppSettings seed strings.
 struct ThemeSeeds {
-    QColor background;
     QColor primary;
     QColor secondary;
-    QColor tertiary;
-    int contrastPercent = kThemeContrastMediumPct;
 };
 
-/// Resolved chrome + progress colors from seeds.
+/// Resolved chrome + progress colors.
 struct ThemePalette {
     ThemeColors colors;
     QColor progress;
     QColor progressFill;
     QColor progressBorder;
-};
-
-/// Contrast percent (70 / 85 / 100) inferred from background + primary.
-struct ThemeSliders {
-    int contrast = 2;
-    int brightness = 4;
 };
 
 /// Named custom-theme roles shown in the color picker.
@@ -40,28 +31,35 @@ enum class ThemeColorRole {
     Danger
 };
 
+/// Brand accent for the accent card row.
+struct ThemeBrandInfo {
+    const char* key = "blue";
+    const char* name = "Blue";
+    QColor color;
+};
+
 namespace ThemeScheme {
 
-/// Suggest primary / secondary / tertiary from a background (Material 3 hue split).
-[[nodiscard]] ThemeSeeds suggestFromBackground(const QColor& background, int contrastPercent);
+[[nodiscard]] const ThemeBrandInfo* brands();
+[[nodiscard]] int brandCount();
+[[nodiscard]] QColor brandCanonical(int index);
+[[nodiscard]] QColor brandAccent(int index, ThemeAppearance appearance);
+[[nodiscard]] const ThemeBrandInfo* progressSwatches();
+[[nodiscard]] QColor progressCanonical(int index);
+[[nodiscard]] QColor scaleSaturation(const QColor& c, int saturationPercent);
+/// Map an old JSON `themeScheme` key to a brand index. "custom" returns -1.
+[[nodiscard]] int brandIndexFromLegacySchemeKey(const QString& key);
+[[nodiscard]] const char* progressVariantName(int index);
 
-/// Suggest secondary / tertiary / background from an accent, keeping the current light/dark.
-[[nodiscard]] ThemeSeeds suggestFromAccent(const QColor& accent, int contrastPercent,
-                                           const QColor& currentBackground);
+/// Light/Dark are neutral gray at that brightness. Light tint / Dark tint wash
+/// brand hue onto the same brightness. Surfaces keep HSV value.
+[[nodiscard]] ThemePalette fluent(ThemeAppearance appearance, int saturation, const QColor& primary,
+                                  const QColor& secondary = {});
 
-/// One-role suggestion. Primary uses background+secondary, secondary uses background+primary,
-/// background uses primary, tertiary uses background+primary+secondary,
-/// surface/foreground/danger use background.
-[[nodiscard]] QColor suggestColor(const ThemeSeeds& seeds, ThemeColorRole role);
-
-/// Contrast from the background/primary tone gap, snapped to 70 / 85 / 100.
-[[nodiscard]] ThemeSliders inferSliders(const QColor& background, const QColor& primary);
-
-/// Keep hues and chroma; remap tones (and chroma scale) to the contrast level.
-[[nodiscard]] ThemeSeeds fitContrast(const ThemeSeeds& seeds);
-
-/// Build the full palette. When @p fitTones is false, seed role colors are used as-is.
-[[nodiscard]] ThemePalette build(const ThemeSeeds& seeds, bool fitTones = true);
+/// Brand accent × progress swatch × appearance. Custom uses @p customSeeds primary/progress.
+[[nodiscard]] ThemePalette resolve(ThemeAppearance appearance, int saturation, int primaryIndex,
+                                   int secondaryIndex, bool custom,
+                                   const ThemeSeeds& customSeeds = {});
 
 } // namespace ThemeScheme
 

@@ -13,12 +13,15 @@
 #include <QJsonObject>
 #include <QRegularExpression>
 #include <QStandardPaths>
+#include <QtGlobal>
 
 namespace gazer {
 
 AppSettings AppSettings::defaults()
 {
-    return {};
+    AppSettings s;
+    s.applyTheme();
+    return s;
 }
 
 QString AppSettings::defaultFilePath()
@@ -127,6 +130,23 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
     dwellGraceMs = o.value(QStringLiteral("dwellGraceMs")).toInt(dwellGraceMs);
     mouseMoveDwellMs = o.value(QStringLiteral("mouseMoveDwellMs")).toInt(mouseMoveDwellMs);
     magPickDwellMs = o.value(QStringLiteral("magPickDwellMs")).toInt(magPickDwellMs);
+    if (o.contains(QStringLiteral("customDwellSequence"))) {
+        customTiming.sequence.clear();
+        for (const QJsonValue& v : o.value(QStringLiteral("customDwellSequence")).toArray()) {
+            const int n = v.toInt(0);
+            if (n > 0) {
+                customTiming.sequence.push_back(n);
+            }
+        }
+    }
+    customTiming.scanGraceMs =
+        o.value(QStringLiteral("customScanGraceMs")).toInt(customTiming.scanGraceMs);
+    customTiming.blinkGraceMs =
+        o.value(QStringLiteral("customDwellGraceMs")).toInt(customTiming.blinkGraceMs);
+    customTiming.pointerDwellMs =
+        o.value(QStringLiteral("customMouseMoveDwellMs")).toInt(customTiming.pointerDwellMs);
+    customTiming.zoomDwellMs =
+        o.value(QStringLiteral("customMagPickDwellMs")).toInt(customTiming.zoomDwellMs);
     mouseMoveSelectTimeoutMs =
         o.value(QStringLiteral("mouseMoveSelectTimeoutMs")).toInt(mouseMoveSelectTimeoutMs);
     mouseMoveMagPick = o.value(QStringLiteral("mouseMoveMagPick")).toBool(mouseMoveMagPick);
@@ -137,6 +157,8 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
     mouseMoveForesight = o.value(QStringLiteral("mouseMoveForesight")).toBool(mouseMoveForesight);
     mouseMoveForesightDwellMs =
         o.value(QStringLiteral("mouseMoveForesightDwellMs")).toInt(mouseMoveForesightDwellMs);
+    mouseMoveForesightHoldMs =
+        o.value(QStringLiteral("mouseMoveForesightHoldMs")).toInt(mouseMoveForesightHoldMs);
     mouseMoveForesightSecondZoom =
         o.value(QStringLiteral("mouseMoveForesightSecondZoom")).toBool(mouseMoveForesightSecondZoom);
     magPickStyle = o.value(QStringLiteral("magPickStyle")).toInt(magPickStyle);
@@ -170,15 +192,38 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
         o.value(QStringLiteral("layoutAutoCloseFadeMs")).toInt(layoutAutoCloseFadeMs);
     trackerPref = o.value(QStringLiteral("trackerPref")).toInt(trackerPref);
     speakAlsoType = o.value(QStringLiteral("speakAlsoType")).toBool(speakAlsoType);
-    themeMode = themeModeFromString(o.value(QStringLiteral("themeMode")).toString(QStringLiteral("dark")));
-    if (o.contains(QStringLiteral("lightColors"))) {
-        lightColors.fromJson(o.value(QStringLiteral("lightColors")).toObject());
+    const QString legacyMode =
+        o.value(QStringLiteral("themeMode")).toString(QStringLiteral("dark")).toLower();
+    if (o.contains(QStringLiteral("themeAppearance"))) {
+        themeAppearance = themeAppearanceFromString(
+            o.value(QStringLiteral("themeAppearance")).toString());
+    } else {
+        themeAppearance = legacyMode == QLatin1String("light") ? ThemeAppearance::Light
+                                                               : ThemeAppearance::Dark;
     }
-    if (o.contains(QStringLiteral("darkColors"))) {
-        darkColors.fromJson(o.value(QStringLiteral("darkColors")).toObject());
+    const QString schemeKey = o.value(QStringLiteral("themeScheme")).toString();
+    if (o.contains(QStringLiteral("themeScheme"))) {
+        const int brand = ThemeScheme::brandIndexFromLegacySchemeKey(schemeKey);
+        themeCustom = brand < 0;
+        if (!o.contains(QStringLiteral("themePrimaryIndex")) && brand >= 0) {
+            themePrimaryIndex = brand;
+        }
+    } else {
+        themeCustom = legacyMode == QLatin1String("custom");
     }
-    if (o.contains(QStringLiteral("customColors"))) {
-        customColors.fromJson(o.value(QStringLiteral("customColors")).toObject());
+    if (o.contains(QStringLiteral("themePrimaryIndex"))) {
+        themePrimaryIndex = o.value(QStringLiteral("themePrimaryIndex")).toInt(0);
+    }
+    themeSecondaryIndex = o.value(QStringLiteral("themeSecondaryIndex")).toInt(0);
+    if (o.contains(QStringLiteral("themeSaturation"))) {
+        themeSaturation = o.value(QStringLiteral("themeSaturation")).toInt(kThemeSaturationDefault);
+    } else if (o.contains(QStringLiteral("themeVibrance"))) {
+        themeSaturation = o.value(QStringLiteral("themeVibrance")).toInt(kThemeSaturationDefault);
+    }
+    ThemeColors legacyCustomColors;
+    const bool hasLegacyCustomColors = o.contains(QStringLiteral("customColors"));
+    if (hasLegacyCustomColors) {
+        legacyCustomColors.fromJson(o.value(QStringLiteral("customColors")).toObject());
     }
     customBgColor = o.value(QStringLiteral("customBgColor")).toString(customBgColor);
     customPrimaryColor = o.value(QStringLiteral("customPrimaryColor")).toString(customPrimaryColor);
@@ -190,19 +235,29 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
     customTextColor = o.value(QStringLiteral("customTextColor")).toString(customTextColor);
     customDangerColor = o.value(QStringLiteral("customDangerColor")).toString(customDangerColor);
     themeBrightness = o.value(QStringLiteral("themeBrightness")).toInt(themeBrightness);
+    int legacyContrastPct = 85;
     if (o.contains(QStringLiteral("customContrast"))) {
         const QJsonValue cv = o.value(QStringLiteral("customContrast"));
         if (cv.isString()) {
             const QString cs = cv.toString().toLower();
             if (cs == QLatin1String("lowest") || cs == QLatin1String("low")) {
-                customContrast = kThemeContrastLowPct;
+                legacyContrastPct = 70;
             } else if (cs == QLatin1String("high") || cs == QLatin1String("highest")) {
-                customContrast = kThemeContrastHighPct;
+                legacyContrastPct = 100;
             } else {
-                customContrast = kThemeContrastMediumPct;
+                legacyContrastPct = 85;
             }
         } else {
-            customContrast = snapContrastPercent(cv.toInt(customContrast));
+            const int v = cv.toInt(85);
+            if (v <= 4) {
+                legacyContrastPct = v <= 1 ? 70 : (v >= 3 ? 100 : 85);
+            } else if (v < 78) {
+                legacyContrastPct = 70;
+            } else if (v < 93) {
+                legacyContrastPct = 85;
+            } else {
+                legacyContrastPct = 100;
+            }
         }
     }
     for (const StyleToggle& t : kStyleToggles) {
@@ -224,18 +279,33 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
     }
     flashMs = o.value(QStringLiteral("flashMs")).toInt(flashMs);
 
-    if (!o.contains(QStringLiteral("customBgColor")) && o.contains(QStringLiteral("customColors"))) {
-        customBgColor = colorToHex(customColors.bgMain);
-        customPrimaryColor = colorToHex(customColors.accent);
+    if (!o.contains(QStringLiteral("customBgColor")) && hasLegacyCustomColors) {
+        customBgColor = colorToHex(legacyCustomColors.bgMain);
+        customPrimaryColor = colorToHex(legacyCustomColors.accent);
         customSecondaryColor = progressColor;
-        customTertiaryColor = colorToHex(customColors.cellActive);
-        customSurfaceColor = colorToHex(customColors.bgSurface);
-        customTextColor = colorToHex(customColors.text);
-        customDangerColor = colorToHex(customColors.danger);
+        customTertiaryColor = colorToHex(legacyCustomColors.cellActive);
+        customSurfaceColor = colorToHex(legacyCustomColors.bgSurface);
+        customTextColor = colorToHex(legacyCustomColors.text);
+        customDangerColor = colorToHex(legacyCustomColors.danger);
     }
-    if (themeMode == ThemeMode::Custom) {
-        applyCustomPalette(false);
+    if (!o.contains(QStringLiteral("themeSaturation"))
+        && !o.contains(QStringLiteral("themeVibrance"))) {
+        const bool moreContrast = o.value(QStringLiteral("themeMoreContrast")).toBool(false)
+                                  || legacyContrastPct >= 100;
+        if (moreContrast) {
+            themeSaturation = kThemeSaturationMax;
+        } else if (legacyContrastPct <= 70) {
+            themeSaturation = kThemeSaturationMin;
+        } else {
+            themeSaturation = kThemeSaturationDefault;
+        }
     }
+    if (themeCustom && legacyMode == QLatin1String("custom")
+        && !o.contains(QStringLiteral("themeAppearance"))) {
+        const QColor bg = parseColor(customBgColor, QColor(10, 10, 11));
+        themeAppearance = bg.lightness() > 140 ? ThemeAppearance::Light : ThemeAppearance::Dark;
+    }
+    applyTheme();
 
     clamp();
     GAZER_INFO << "Loaded settings from" << path;
@@ -246,6 +316,7 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
 {
     AppSettings copy = *this;
     copy.clamp();
+    copy.applyTheme();
 
     QJsonObject o;
     o.insert(QStringLiteral("schemaVersion"), 2);
@@ -258,12 +329,22 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     o.insert(QStringLiteral("dwellGraceMs"), copy.dwellGraceMs);
     o.insert(QStringLiteral("mouseMoveDwellMs"), copy.mouseMoveDwellMs);
     o.insert(QStringLiteral("magPickDwellMs"), copy.magPickDwellMs);
+    QJsonArray customSeq;
+    for (int ms : copy.customTiming.sequence) {
+        customSeq.append(ms);
+    }
+    o.insert(QStringLiteral("customDwellSequence"), customSeq);
+    o.insert(QStringLiteral("customScanGraceMs"), copy.customTiming.scanGraceMs);
+    o.insert(QStringLiteral("customDwellGraceMs"), copy.customTiming.blinkGraceMs);
+    o.insert(QStringLiteral("customMouseMoveDwellMs"), copy.customTiming.pointerDwellMs);
+    o.insert(QStringLiteral("customMagPickDwellMs"), copy.customTiming.zoomDwellMs);
     o.insert(QStringLiteral("mouseMoveSelectTimeoutMs"), copy.mouseMoveSelectTimeoutMs);
     o.insert(QStringLiteral("mouseMoveMagPick"), copy.mouseMoveMagPick);
     o.insert(QStringLiteral("mouseMoveMagPickCenterOnDwell"), copy.mouseMoveMagPickCenterOnDwell);
     o.insert(QStringLiteral("mouseMoveMagPickFullScreen"), copy.mouseMoveMagPickFullScreen);
     o.insert(QStringLiteral("mouseMoveForesight"), copy.mouseMoveForesight);
     o.insert(QStringLiteral("mouseMoveForesightDwellMs"), copy.mouseMoveForesightDwellMs);
+    o.insert(QStringLiteral("mouseMoveForesightHoldMs"), copy.mouseMoveForesightHoldMs);
     o.insert(QStringLiteral("mouseMoveForesightSecondZoom"), copy.mouseMoveForesightSecondZoom);
     o.insert(QStringLiteral("magPickStyle"), copy.magPickStyle);
     o.insert(QStringLiteral("mousePickStyle"), copy.mousePickStyle);
@@ -291,10 +372,29 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     o.insert(QStringLiteral("layoutAutoCloseFadeMs"), copy.layoutAutoCloseFadeMs);
     o.insert(QStringLiteral("trackerPref"), copy.trackerPref);
     o.insert(QStringLiteral("speakAlsoType"), copy.speakAlsoType);
-    o.insert(QStringLiteral("themeMode"), themeModeToString(copy.themeMode));
-    o.insert(QStringLiteral("lightColors"), copy.lightColors.toJson());
-    o.insert(QStringLiteral("darkColors"), copy.darkColors.toJson());
-    o.insert(QStringLiteral("customColors"), copy.customColors.toJson());
+    const bool darkAppearance = themeAppearanceIsDark(copy.themeAppearance);
+    o.insert(QStringLiteral("themeMode"),
+             copy.themeCustom ? QStringLiteral("custom")
+                              : (darkAppearance ? QStringLiteral("dark") : QStringLiteral("light")));
+    o.insert(QStringLiteral("themeAppearance"), themeAppearanceToString(copy.themeAppearance));
+    o.insert(QStringLiteral("themeScheme"),
+             copy.themeCustom
+                 ? QStringLiteral("custom")
+                 : QLatin1String(ThemeScheme::brands()[qBound(0, copy.themePrimaryIndex,
+                                                              kThemeBrandCount - 1)]
+                                     .key));
+    o.insert(QStringLiteral("themePrimaryIndex"), copy.themePrimaryIndex);
+    o.insert(QStringLiteral("themeSecondaryIndex"), copy.themeSecondaryIndex);
+    o.insert(QStringLiteral("themeSaturation"), copy.themeSaturation);
+    const ThemePalette lightPal = ThemeScheme::resolve(
+        ThemeAppearance::Light, copy.themeSaturation, copy.themePrimaryIndex,
+        copy.themeSecondaryIndex, false);
+    const ThemePalette darkPal = ThemeScheme::resolve(
+        ThemeAppearance::Dark, copy.themeSaturation, copy.themePrimaryIndex,
+        copy.themeSecondaryIndex, false);
+    o.insert(QStringLiteral("lightColors"), lightPal.colors.toJson());
+    o.insert(QStringLiteral("darkColors"), darkPal.colors.toJson());
+    o.insert(QStringLiteral("customColors"), copy.resolvedPalette().colors.toJson());
     o.insert(QStringLiteral("customBgColor"), copy.customBgColor);
     o.insert(QStringLiteral("customPrimaryColor"), copy.customPrimaryColor);
     o.insert(QStringLiteral("customSecondaryColor"), copy.customSecondaryColor);
@@ -303,7 +403,13 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     o.insert(QStringLiteral("customTextColor"), copy.customTextColor);
     o.insert(QStringLiteral("customDangerColor"), copy.customDangerColor);
     o.insert(QStringLiteral("themeBrightness"), copy.themeBrightness);
-    o.insert(QStringLiteral("customContrast"), copy.customContrast);
+    int derivedContrast = 85;
+    if (copy.themeSaturation >= 75) {
+        derivedContrast = 100;
+    } else if (copy.themeSaturation <= 40) {
+        derivedContrast = 70;
+    }
+    o.insert(QStringLiteral("customContrast"), derivedContrast);
     for (const StyleToggle& t : kStyleToggles) {
         o.insert(QLatin1String(t.jsonKey), copy.styleFlag(t));
     }

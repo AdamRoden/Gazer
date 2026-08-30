@@ -1,87 +1,91 @@
-<Page id="main_settings_assist" name="Assist tools" thickness="1" radius="4">
-  <Style id="group" background="#00000000" thickness="1" radius="8"/>
-  <Style id="row" background="#00000000" thickness="1" radius="6"/>
+<Page id="main_settings_assist" name="Assist" radius="16">
+  <Style id="group" thickness="0" radius="16"/>
+  <Style id="row" background="#00000000" thickness="0" radius="0"/>
   <Style id="plain" background="#00000000" thickness="0" radius="0"/>
   <Style id="join" background="#00000000" thickness="0" radius="0"/>
-  <Grid id="board" desktopMode="true" rows="11" columns="16" anchor="Top" offset="0,0" size="A_ScreenHeight/9*16, A_ScreenHeight" gap="6" margin="12" thickness="1" radius="4">
-    <SubGrid id="tabs" row="0" col="0" colSpan="16" rows="1" columns="6" gap="6">
-      <Cell id="tab_buttons" row="0" col="0" label="Button" role="tab">
+  <Style id="joinLeft" background="#00000000" thickness="0" radius="10,0,0,10"/>
+  <Style id="joinRight" background="#00000000" thickness="0" radius="0,10,10,0"/>
+  <Style id="tabbar" thickness="0" radius="12"/>
+  <Grid id="board" desktopMode="true" rows="10" columns="16" anchor="Top" offset="0,0" size="A_ScreenHeight/9*16, A_ScreenHeight" gap="6" margin="12" radius="16">
+    <SubGrid id="tabs" row="0" col="0" colSpan="16" rows="1" columns="7" gap="6" margin="4" style="tabbar">
+      <Cell id="tab_buttons" row="0" col="0" label="Speed" icon="RepeatMouseActionIcon" role="tab">
         <ClosePage value="-self"/>
         <OpenPage value="main_settings_button_timing"/>
       </Cell>
-      <Cell id="tab_pointers" row="0" col="1" label="Pointer" role="tab">
+      <Cell id="tab_pointers" row="0" col="1" label="Magnify" icon="ZoomToLocation" role="tab">
         <ClosePage value="-self"/>
         <OpenPage value="main_settings_pointer_timing"/>
       </Cell>
-      <Cell id="tab_styles" row="0" col="2" label="Styles" role="tab">
+      <Cell id="tab_styles" row="0" col="2" label="Indicators" icon="CirclesLeftRight" role="tab">
         <ClosePage value="-self"/>
         <OpenPage value="main_settings_styles"/>
       </Cell>
-      <Cell id="tab_assist" row="0" col="3" label="Assist" role="tab"/>
-      <Cell id="tab_overlay" row="0" col="4" label="Overlay" role="tab">
+      <Cell id="tab_assist" row="0" col="3" label="Assist" icon="IdeaIcon" role="tab"/>
+      <Cell id="tab_overlay" row="0" col="4" label="Tools" icon="LookToScrollActive" role="tab">
         <ClosePage value="-self"/>
         <OpenPage value="main_settings_overlays"/>
       </Cell>
-      <Cell id="tab_theme" row="0" col="5" label="Theme" role="tab">
+      <Cell id="tab_theme" row="0" col="5" label="Theme" icon="SettingsIcon" role="tab">
         <ClosePage value="-self"/>
         <OpenPage value="main_settings_theme"/>
       </Cell>
+      <Cell id="tab_done" row="0" col="6" label="Done" icon="CollapseIcon">
+        <ClosePage value="-self"/>
+        <ClosePage value="main_settings"/>
+      </Cell>
     </SubGrid>
 
-    <Cell id="page_title" row="1" col="0" colSpan="16" label="Assist tools" caption="Tracker, live lens, and gaze helpers" role="label" textStyle="title" style="plain"/>
+    <Cell id="page_title" row="1" col="0" colSpan="16" label="Assist" caption="Tracker, helpers, and the live lens" role="label" textStyle="title" style="plain"/>
 
     <SubGrid id="sec_tr" row="2" col="0" colSpan="16" rowSpan="2" rows="2" columns="1" rowWeights="1,2" gap="6" margin="6" style="group">
       <Cell id="h_tr" row="0" col="0" label="Tracker" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_tr" row="1" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="tr_l" row="0" col="0" label="Tracker" caption="Applies on next app start." role="label" style="plain"/>
+        <Cell id="tr_l" row="0" col="0" label="Tracker" caption="Applies on next start." role="label" style="plain"/>
         <SubGrid id="act_tr" row="0" col="1" rows="1" columns="3" gap="0" style="row">
-          <Cell id="tr_a" row="0" col="0" label="Auto Tobii" activeState="setting.tracker.0" style="join" command="settings.tracker.auto"/>
-          <Cell id="tr_m" row="0" col="1" label="Mouse" activeState="setting.tracker.1" style="join" command="settings.tracker.mouse"/>
-          <Cell id="preview" row="0" col="2" label="Head preview" icon="AvatarIcon" style="join" command="openPreview"/>
+          <Cell id="tr_a" row="0" col="0" label="Auto Tobii" role="choice" activeState="setting.tracker.0" style="joinLeft" command="settings.tracker.auto"/>
+          <Cell id="tr_m" row="0" col="1" label="Mouse" role="choice" activeState="setting.tracker.1" style="join" command="settings.tracker.mouse"/>
+          <Cell id="preview" row="0" col="2" label="Head preview" icon="AvatarIcon" style="joinRight" command="openPreview"/>
         </SubGrid>
       </SubGrid>
     </SubGrid>
 
-    <SubGrid id="sec_lens" row="4" col="0" colSpan="16" rowSpan="3" rows="3" columns="1" rowWeights="1,2,2" gap="6" margin="6" style="group">
+    <SubGrid id="sec_help" row="4" col="0" colSpan="16" rowSpan="3" rows="3" columns="1" rowWeights="1,2,2" gap="6" margin="6" style="group">
+      <Cell id="h_help" row="0" col="0" label="Helpers" role="label" textStyle="section" style="plain"/>
+      <SubGrid id="row_follow" row="1" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="f_l" row="0" col="0" label="Gaze follow" caption="Reticle, gaze mouse, and live lens." role="label" style="plain"/>
+        <SubGrid id="act_follow" row="0" col="1" rows="1" columns="4" gap="0" style="row">
+          <Cell id="f_slow" row="0" col="0" label="Slow" role="choice" activeState="setting.magFollow.0" style="joinLeft" command="settings.mag.follow.slow"/>
+          <Cell id="f_sticky" row="0" col="1" label="Sticky" role="choice" activeState="setting.magFollow.1" style="join" command="settings.mag.follow.sticky"/>
+          <Cell id="f_smooth" row="0" col="2" label="Smooth" role="choice" activeState="setting.magFollow.2" style="join" command="settings.mag.follow.smooth"/>
+          <Cell id="f_snappy" row="0" col="3" label="Snappy" role="choice" activeState="setting.magFollow.3" style="joinRight" command="settings.mag.follow.snappy"/>
+        </SubGrid>
+      </SubGrid>
+      <SubGrid id="row_help1" row="2" col="0" rows="1" columns="3" gap="0" style="row">
+        <Cell id="reticle" row="0" col="0" label="Gaze Indicator" icon="ApplicationIcon" role="toggle" activeState="gazeReticle" style="joinLeft" command="toggleGazeReticle"/>
+        <Cell id="follow" row="0" col="1" label="Gaze → mouse" icon="MouseMagneticCursorIcon" role="toggle" activeState="gazeMouseFollow" style="join" command="toggleGazeMouseFollow"/>
+        <Cell id="magnifier" row="0" col="2" label="Magnifier" icon="MouseMagnifierIcon" role="toggle" activeState="magnifier" style="joinRight" command="toggleMagnifier"/>
+      </SubGrid>
+    </SubGrid>
+
+    <SubGrid id="sec_lens" row="7" col="0" colSpan="16" rowSpan="3" rows="3" columns="1" rowWeights="1,2,2" gap="6" margin="6" style="group">
       <Cell id="h_lens" row="0" col="0" label="Live lens" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_z" row="1" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="z_l" row="0" col="0" label="Magnifier lens zoom" caption="Live lens magnification. Not used by pre-click or foresight." role="label" style="plain"/>
-        <SubGrid id="act_z" row="0" col="1" rows="1" columns="7" gap="0" style="row">
-          <Cell id="z_dec" row="0" col="0" label="−" style="join" command="settings.nudge.magZoom.dec"/>
-          <Cell id="z_val" row="0" col="1" colSpan="3" label="—" role="value" settingKey="magZoom" style="join"/>
-          <Cell id="z_inc" row="0" col="4" label="+" style="join" command="settings.nudge.magZoom.inc"/>
-          <Cell id="z_edit" row="0" col="5" colSpan="2" label="Edit…" style="join" command="settings.edit.magZoom"/>
+        <Cell id="z_l" row="0" col="0" label="Lens zoom" caption="Live lens magnification." role="label" style="plain"/>
+        <SubGrid id="act_z" row="0" col="1" rows="1" columns="9" gap="0" style="row">
+          <Cell id="z_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.magZoom.dec"/>
+          <Cell id="z_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="magZoom" style="join"/>
+          <Cell id="z_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.magZoom.inc"/>
+          <Cell id="z_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.magZoom"/>
         </SubGrid>
       </SubGrid>
       <SubGrid id="row_l" row="2" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="l_l" row="0" col="0" label="Magnifier lens size" caption="Live lens diameter in pixels." role="label" style="plain"/>
-        <SubGrid id="act_l" row="0" col="1" rows="1" columns="7" gap="0" style="row">
-          <Cell id="l_dec" row="0" col="0" label="−" style="join" command="settings.nudge.magLensSize.dec"/>
-          <Cell id="l_val" row="0" col="1" colSpan="3" label="—" role="value" settingKey="magLensSize" style="join"/>
-          <Cell id="l_inc" row="0" col="4" label="+" style="join" command="settings.nudge.magLensSize.inc"/>
-          <Cell id="l_edit" row="0" col="5" colSpan="2" label="Edit…" style="join" command="settings.edit.magLensSize"/>
+        <Cell id="l_l" row="0" col="0" label="Lens size" caption="Live lens diameter." role="label" style="plain"/>
+        <SubGrid id="act_l" row="0" col="1" rows="1" columns="9" gap="0" style="row">
+          <Cell id="l_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.magLensSize.dec"/>
+          <Cell id="l_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="magLensSize" style="join"/>
+          <Cell id="l_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.magLensSize.inc"/>
+          <Cell id="l_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.magLensSize"/>
         </SubGrid>
-      </SubGrid>
-    </SubGrid>
-
-    <SubGrid id="sec_help" row="7" col="0" colSpan="16" rowSpan="4" rows="4" columns="1" rowWeights="1,2,2,2" gap="6" margin="6" style="group">
-      <Cell id="h_help" row="0" col="0" label="Helpers" role="label" textStyle="section" style="plain"/>
-      <SubGrid id="row_follow" row="1" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="f_l" row="0" col="0" label="Gaze follow" caption="Slow / Sticky / Smooth / Snappy for the gaze indicator, gaze mouse, and live magnifier. Not mag-pick, mouse-pick, or dwell." role="label" style="plain"/>
-        <SubGrid id="act_follow" row="0" col="1" rows="1" columns="4" gap="0" style="row">
-          <Cell id="f_slow" row="0" col="0" label="Slow" activeState="setting.magFollow.0" style="join" command="settings.mag.follow.slow"/>
-          <Cell id="f_sticky" row="0" col="1" label="Sticky" activeState="setting.magFollow.1" style="join" command="settings.mag.follow.sticky"/>
-          <Cell id="f_smooth" row="0" col="2" label="Smooth" activeState="setting.magFollow.2" style="join" command="settings.mag.follow.smooth"/>
-          <Cell id="f_snappy" row="0" col="3" label="Snappy" activeState="setting.magFollow.3" style="join" command="settings.mag.follow.snappy"/>
-        </SubGrid>
-      </SubGrid>
-      <SubGrid id="row_help1" row="2" col="0" rows="1" columns="2" gap="0" style="row">
-        <Cell id="reticle" row="0" col="0" label="Gaze Indicator" icon="ApplicationIcon" role="toggle" activeState="gazeReticle" style="join" command="toggleGazeReticle"/>
-        <Cell id="follow" row="0" col="1" label="Gaze → mouse" icon="MouseMagneticCursorIcon" role="toggle" activeState="gazeMouseFollow" style="join" command="toggleGazeMouseFollow"/>
-      </SubGrid>
-      <SubGrid id="row_help2" row="3" col="0" rows="1" columns="2" gap="0" style="row">
-        <Cell id="magnifier" row="0" col="0" label="Magnifier" icon="MouseMagnifierIcon" role="toggle" activeState="magnifier" style="join" command="toggleMagnifier"/>
-        <Cell id="click_loop" row="0" col="1" label="Gaze click loop" icon="RepeatMouseActionIcon" role="toggle" activeState="loop.gazeClick" style="join" command="mouseDwellClickLoop"/>
       </SubGrid>
     </SubGrid>
   </Grid>

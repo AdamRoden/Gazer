@@ -22,6 +22,7 @@
 #include "layout/PageLoader.h"
 #include "layout/PageSession.h"
 #include "ui/DwellSuspendOverlay.h"
+#include "ui/Theme.h"
 #include "ui/MagnifierOverlay.h"
 #include "ui/PreviewWindow.h"
 #include "ui/TrayIcon.h"
@@ -37,6 +38,7 @@
 #include <QTimer>
 
 #include <cstdlib>
+#include <initializer_list>
 
 namespace gazer {
 
@@ -124,31 +126,6 @@ bool Application::initialize()
         }
         return true;
     });
-    m_svc->commands().registerBuiltin(QStringLiteral("theme.dark"), [this](QString*) {
-        m_svc->settings().themeMode = ThemeMode::Dark;
-        m_svc->applySettings(true);
-        if (m_preview) {
-            m_preview->setTheme(m_svc->settings().resolvedTheme());
-        }
-        return true;
-    });
-    m_svc->commands().registerBuiltin(QStringLiteral("theme.light"), [this](QString*) {
-        m_svc->settings().themeMode = ThemeMode::Light;
-        m_svc->applySettings(true);
-        if (m_preview) {
-            m_preview->setTheme(m_svc->settings().resolvedTheme());
-        }
-        return true;
-    });
-    m_svc->commands().registerBuiltin(QStringLiteral("theme.custom"), [this](QString*) {
-        m_svc->settings().applyCustomPalette(false);
-        m_svc->applySettings(true);
-        if (m_preview) {
-            m_preview->setTheme(m_svc->settings().resolvedTheme());
-        }
-        return true;
-    });
-
     connect(&m_svc->pages(), &PageSession::dwellSuspendChanged, this,
             [this](bool) { syncDwellSuspendOverlay(); });
     connect(&m_svc->pages(), &PageSession::sessionChanged, this, &Application::updateTrayStatus);
@@ -158,7 +135,15 @@ bool Application::initialize()
             m_tray->setStatus(msg);
         }
     };
-    connect(m_svc.get(), &GazerServices::settingsChanged, this, [this]() { updateTrayStatus(); });
+    connect(m_svc.get(), &GazerServices::settingsChanged, this, [this]() {
+        updateTrayStatus();
+        if (m_preview) {
+            m_preview->setTheme(m_svc->settings().resolvedTheme());
+        }
+        if (m_editor) {
+            m_editor->setTheme(m_svc->settings().resolvedTheme());
+        }
+    });
     connect(m_actions.get(), &ActionDispatcher::statusMessage, this, statusToTray);
     connect(&m_svc->commands(), &CommandRegistry::statusMessage, this, statusToTray);
     connect(&m_svc->scripts(), &ScriptHost::statusMessage, this, statusToTray);

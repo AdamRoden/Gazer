@@ -9,6 +9,7 @@
 
 #include <QElapsedTimer>
 #include <QObject>
+#include <QtGlobal>
 #include <QPixmap>
 #include <QPoint>
 #include <QPointF>
@@ -137,6 +138,14 @@ public:
     void setMagPickDwellMs(int ms);
     void setMagPickStyle(int flags);
     void setMousePickStyle(int flags);
+    /// Timeout plus the current phase's dwell. 0 when timeout is off.
+    [[nodiscard]] static int selectDeadlineBudgetMs(int timeoutMs, int phaseDwellMs)
+    {
+        if (timeoutMs <= 0) {
+            return 0;
+        }
+        return timeoutMs + qMax(0, phaseDwellMs);
+    }
     void setSelectTimeoutMs(int ms);
     void setStableRadiusPx(int px);
     void setFreezeRadiusPx(int px);
@@ -157,6 +166,7 @@ public:
     void setForesightEnabled(bool enabled);
     [[nodiscard]] bool isForesightEnabled() const { return m_foresight.isEnabled(); }
     void setForesightDwellMs(int ms);
+    void setForesightHoldMs(int ms);
     void setForesightSecondZoom(bool on);
     [[nodiscard]] bool isForesightSecondZoom() const { return m_ForesightSecondZoom; }
 

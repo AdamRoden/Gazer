@@ -125,9 +125,9 @@ void paintLabel(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeCo
         p.setPen(Qt::NoPen);
         p.setBrush(theme.accent);
         p.drawRoundedRect(QRectF(pad.left(), pad.center().y() - 7.0, 4.0, 14.0), 2.0, 2.0);
-        p.setPen(theme.textSecondary);
-        p.setFont(QFont(family, 12, QFont::DemiBold));
-        p.drawText(pad.adjusted(16, 0, 0, 0), Qt::AlignLeft | Qt::AlignVCenter, t.label.toUpper());
+        p.setPen(theme.text.isValid() ? theme.text : theme.textSecondary);
+        p.setFont(QFont(family, 13, QFont::DemiBold));
+        p.drawText(pad.adjusted(16, 0, 0, 0), Qt::AlignLeft | Qt::AlignVCenter, t.label);
         return;
     }
 
@@ -185,20 +185,32 @@ void paintLabel(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeCo
 void paintTab(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeColors& theme,
               bool hovered, bool selected, double progress)
 {
-    const double radius = t.chrome.resolvedRadius().first();
-    if (hovered && !selected) {
+    const double radius = qMax(8.0, t.chrome.resolvedRadius().first());
+    const QRectF pill = r.adjusted(4, 4, -4, 6);
+    if (selected) {
+        QColor fill = theme.cellActive.isValid() ? theme.cellActive : theme.bgSurfaceActive;
+        if (!fill.isValid()) {
+            fill = theme.cellHover;
+        }
+        fillRound(p, pill, radius, fill);
+    } else if (hovered) {
         QColor fill = theme.bgSurfaceHover.isValid() ? theme.bgSurfaceHover : theme.cellHover;
         fill.setAlpha(qBound(24, fill.alpha(), 80));
-        fillRound(p, r.adjusted(4, 6, -4, 8), radius, fill);
+        fillRound(p, pill, radius, fill);
     }
-    const QString family = segoeFamily();
-    const QRectF textR = r.adjusted(8, 4, -8, -12);
-    const int flags = int(Qt::AlignCenter | Qt::TextWordWrap);
-    const int px = fontPxToFit(family, selected ? QFont::DemiBold : QFont::Normal, 14, 11, t.label,
-                               textR, flags);
-    p.setPen(selected ? theme.text : theme.textSecondary);
-    p.setFont(QFont(family, px, selected ? QFont::DemiBold : QFont::Normal));
-    p.drawText(textR, flags, t.label);
+    const QColor fg = selected ? theme.text : theme.textSecondary;
+    const QRectF content = r.adjusted(8, 4, -8, -12);
+    if (!t.icon.isEmpty()) {
+        paintIconAndText(p, t, content, fg, theme);
+    } else {
+        const QString family = segoeFamily();
+        const int flags = int(Qt::AlignCenter | Qt::TextWordWrap);
+        const int px = fontPxToFit(family, selected ? QFont::DemiBold : QFont::Normal, 14, 11,
+                                   t.label, content, flags);
+        p.setPen(fg);
+        p.setFont(QFont(family, px, selected ? QFont::DemiBold : QFont::Normal));
+        p.drawText(content, flags, t.label);
+    }
     const double tBar = selected ? 1.0 : (hovered ? progress : 0.0);
     if (tBar > 0.01) {
         const double maxW = qMax(24.0, r.width() - 36.0);
@@ -333,6 +345,8 @@ void paintSurface(QPainter& p, const QRectF& r, const PageChrome& chrome, const 
     strokeRound(p, r, radii, border, thickness);
 }
 
+namespace {
+
 void paintLockRadio(QPainter& p, const QRectF& r, const QColor& color)
 {
     const double d = qBound(8.0, qMin(r.width(), r.height()) * 0.22, 16.0);
@@ -349,6 +363,128 @@ void paintLockRadio(QPainter& p, const QRectF& r, const QColor& color)
     p.setBrush(ring);
     p.drawEllipse(outer.adjusted(inset, inset, -inset, -inset));
 }
+
+double controlMarkWidth(const QRectF& r)
+{
+    return qBound(28.0, qMin(r.width() * 0.22, r.height() * 0.85), 56.0);
+}
+
+void paintChoiceRadio(QPainter& p, const QRectF& r, const ThemeColors& theme, bool on)
+{
+    const double d = qBound(12.0, qMin(r.width(), r.height()) * 0.28, 22.0);
+    if (d < 8.0 || r.width() < d + 16.0 || r.height() < d + 8.0) {
+        return;
+    }
+    const QRectF outer(r.right() - d - 10.0, r.center().y() - d * 0.5, d, d);
+    const QColor ring = on ? (theme.accent.isValid() ? theme.accent : theme.text)
+                           : (theme.textSecondary.isValid() ? theme.textSecondary : theme.text);
+    p.setBrush(Qt::NoBrush);
+    p.setPen(QPen(ring, qMax(1.6, d * 0.12), Qt::SolidLine, Qt::RoundCap));
+    p.drawEllipse(outer);
+    if (on) {
+        const double inset = d * 0.28;
+        p.setPen(Qt::NoPen);
+        p.setBrush(ring);
+        p.drawEllipse(outer.adjusted(inset, inset, -inset, -inset));
+    }
+}
+
+void paintThemeCard(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeColors& theme,
+                    GlassBackdrop* glass, bool hovered, double progress, bool active)
+{
+    PageChrome chrome = t.chrome;
+    const QColor window = chrome.background.value_or(theme.bgMain);
+    const QColor surface = chrome.borderColor.value_or(ThemeColors::mix(window, theme.text, 0.08));
+    const QColor accent = chrome.foreground.value_or(
+        theme.accent.isValid() ? theme.accent : theme.text);
+    const QColor progressCol = chrome.progressColor.value_or(accent);
+    if (active) {
+        chrome.borderColor = accent;
+        chrome.thickness = PageBox::all(qMax(2.4, chrome.resolvedThickness().first()));
+    } else if (hovered) {
+        if (!chrome.thickness || chrome.resolvedThickness().first() <= 0.0) {
+            chrome.thickness = PageBox::all(1.2);
+        }
+    }
+    paintSurface(p, r, chrome, theme, glass, false, false, false, false);
+
+    const double pad = qBound(6.0, qMin(r.width(), r.height()) * 0.06, 12.0);
+    const double labelH = t.label.isEmpty() ? 0.0 : qBound(18.0, r.height() * 0.22, 28.0);
+    const QRectF mock(r.left() + pad, r.top() + pad, r.width() - 2.0 * pad,
+                      qMax(16.0, r.height() - 2.0 * pad - labelH - (labelH > 0.0 ? 4.0 : 0.0)));
+    if (mock.height() >= 24.0 && mock.width() >= 40.0) {
+        const double rad = qBound(6.0, mock.height() * 0.10, 10.0);
+        fillRound(p, mock, rad, window);
+        const QRectF panel = mock.adjusted(mock.width() * 0.08, mock.height() * 0.12,
+                                           -mock.width() * 0.08, -mock.height() * 0.10);
+        fillRound(p, panel, qMax(4.0, rad - 2.0), surface);
+        const double gap = qBound(4.0, panel.width() * 0.06, 8.0);
+        const double inset = qBound(4.0, panel.width() * 0.06, 6.0);
+        const double cellH = qBound(18.0, panel.height() * 0.72, panel.height() - 8.0);
+        const double cellW = qMax(12.0, (panel.width() - inset * 2.0 - gap) * 0.5);
+        const double cellY = panel.center().y() - cellH * 0.5;
+        const QRectF kb(panel.left() + inset, cellY, cellW, cellH);
+        const QRectF mouse(kb.right() + gap, cellY, cellW, cellH);
+        const double cellRad = qBound(4.0, cellH * 0.16, 8.0);
+        const double borderW = qBound(1.6, cellH * 0.08, 2.8);
+        const double iconSide = qMax(10.0, qMin(cellW, cellH) * 0.56);
+        auto iconAt = [&](const QRectF& cell) {
+            return QRectF(cell.center().x() - iconSide * 0.5, cell.center().y() - iconSide * 0.5,
+                          iconSide, iconSide);
+        };
+
+        const QColor tintedBg = ThemeColors::mix(surface, accent, 0.38);
+        fillRound(p, kb, cellRad, tintedBg);
+        strokeRound(p, kb, cellRad, accent, borderW);
+        KeySymbols::paint(p, QStringLiteral("Keyboard"), iconAt(kb),
+                          ThemeColors::contrastOn(tintedBg));
+
+        fillRound(p, mouse, cellRad, surface);
+        strokeRound(p, mouse, cellRad, progressCol, borderW);
+        KeySymbols::paint(p, QStringLiteral("Mouse"), iconAt(mouse), accent);
+    }
+
+    if (labelH > 0.0) {
+        const QRectF labelR(r.left() + 8.0, r.bottom() - pad - labelH, r.width() - 16.0, labelH);
+        const QString family = segoeFamily();
+        const int flags = int(Qt::AlignHCenter | Qt::AlignVCenter | Qt::TextWordWrap);
+        const int px = fontPxToFit(family, active ? QFont::DemiBold : QFont::Normal, 14, 10,
+                                   t.label, labelR, flags);
+        p.setPen(ThemeColors::contrastOn(window));
+        p.setFont(QFont(family, px, active ? QFont::DemiBold : QFont::Normal));
+        p.drawText(labelR, flags, t.label);
+    }
+
+    if (hovered && progress > 0.0 && t.interactive) {
+        const PageBox radii = t.chrome.resolvedRadius();
+        ProgressVisuals vis;
+        vis.progressColor = accent;
+        vis.borderColor = accent;
+        paintProgress(p, r, progress, vis, ProgressShape::RoundedRect, radii);
+    }
+}
+
+void paintToggleSwitch(QPainter& p, const QRectF& r, const ThemeColors& theme, bool on)
+{
+    const double h = qBound(16.0, qMin(r.height() * 0.42, 26.0), r.width() * 0.22);
+    const double w = h * 1.72;
+    if (w + 16.0 > r.width() || h + 8.0 > r.height()) {
+        return;
+    }
+    const QRectF track(r.right() - w - 10.0, r.center().y() - h * 0.5, w, h);
+    QColor fill = on ? theme.accent : (theme.bgSurfaceActive.isValid() ? theme.bgSurfaceActive
+                                                                       : theme.cellHover);
+    if (!fill.isValid()) {
+        fill = QColor(80, 80, 84);
+    }
+    fillRound(p, track, h * 0.5, fill);
+    const double d = qMax(10.0, h - 6.0);
+    const double x = on ? track.right() - d - 3.0 : track.left() + 3.0;
+    QColor thumb = theme.text.isValid() ? theme.text : QColor(255, 255, 255);
+    fillRound(p, QRectF(x, track.center().y() - d * 0.5, d, d), d * 0.5, thumb);
+}
+
+} // namespace
 
 void paintTarget(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeColors& theme,
                  GlassBackdrop* glass, bool hovered, double progress, bool flashing, bool active,
@@ -369,10 +505,16 @@ void paintTarget(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeC
         vis.progressColor = *t.chrome.progressColor;
         vis.borderColor = *t.chrome.progressColor;
     }
-    const QColor fg = (active && !t.activeState.isEmpty())
-                          ? t.chrome.foreground.value_or(theme.accent)
-                          : t.chrome.foreground.value_or(theme.text);
-    if (t.role == QLatin1String("slider")) {
+    QColor fg = t.chrome.foreground.value_or(theme.text);
+    if (active && !t.activeState.isEmpty()) {
+        const QColor fill = theme.cellActive.isValid() ? theme.cellActive : theme.bgSurface;
+        const QColor accent = theme.accent.isValid() ? theme.accent : fg;
+        fg = ThemeColors::contrastRatio(accent, fill) >= ThemeColors::kReadableContrast
+                 ? accent
+                 : ThemeColors::contrastOn(fill);
+    }
+    const QString role = t.role.toLower();
+    if (role == QLatin1String("slider")) {
         paintSurface(p, r, t.chrome, theme, glass, false, false, false, false);
         const QString channel = t.caption.isEmpty() ? t.id : t.caption;
         const bool scrubbing =
@@ -381,21 +523,38 @@ void paintTarget(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeC
                 || t.id.endsWith(QLatin1Char('/') + sliderScrubId));
         SliderTrack::paint(p, r, theme, vis, previewColor, channel, t.label, hovered, progress,
                            scrubbing, sliderScrubT, sliderScrubValue, sliderScrubProgress);
-    } else if (t.role == QLatin1String("preview")) {
+    } else if (role == QLatin1String("preview")) {
         SliderTrack::paintPreview(p, r, radius, previewColor);
         paintLabel(p, t, r, theme);
-    } else if (t.role == QLatin1String("tab")) {
+    } else if (role == QLatin1String("tab")) {
         paintTab(p, t, r, theme, hovered, active || t.actions.isEmpty(), progress);
-    } else if (t.role == QLatin1String("label") || t.role == QLatin1String("value")) {
+    } else if (role == QLatin1String("label") || role == QLatin1String("value")) {
         paintSurface(p, r, t.chrome, theme, glass, false, false, false, false);
         paintLabel(p, t, r, theme);
     } else {
-        paintSurface(p, r, t.chrome, theme, glass, false, hovered,
-                     active && !t.activeState.isEmpty(), t.interactive);
-        if (hovered && progress > 0.0 && t.interactive) {
-            paintProgress(p, r, progress, vis.withItemFlash(fg), ProgressShape::RoundedRect, radii);
+        const bool on = active && !t.activeState.isEmpty();
+        const bool choice = role == QLatin1String("choice");
+        const bool toggle = role == QLatin1String("toggle");
+        const bool schemeChoice = choice && t.chrome.progressColor && t.chrome.background;
+        if (schemeChoice) {
+            paintThemeCard(p, t, r, theme, glass, hovered, progress, on);
+        } else {
+            paintSurface(p, r, t.chrome, theme, glass, false, hovered, on, t.interactive);
+            if (hovered && progress > 0.0 && t.interactive) {
+                paintProgress(p, r, progress, vis.withItemFlash(fg), ProgressShape::RoundedRect,
+                              radii);
+            }
+            QRectF content = r;
+            if (choice || toggle) {
+                content.adjust(0.0, 0.0, -controlMarkWidth(r), 0.0);
+            }
+            paintIconAndText(p, t, content, fg, theme);
+            if (choice) {
+                paintChoiceRadio(p, r, theme, on);
+            } else if (toggle) {
+                paintToggleSwitch(p, r, theme, on);
+            }
         }
-        paintIconAndText(p, t, r, fg, theme);
     }
     if (flashing) {
         const QColor fc = vis.resolvedFlashColor(fg);

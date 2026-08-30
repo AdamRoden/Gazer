@@ -7,8 +7,8 @@
 
 namespace gazer {
 
-/// Voice-aligned chrome palette (light / dark / custom bags).
-/// JSON ownership lives here (toJson/fromJson); AppSettings only stores bags + mode.
+/// Chrome palette. JSON ownership lives here (toJson/fromJson).
+/// AppSettings derives a live palette from appearance × accent × progress × saturation.
 struct ThemeColors {
     QColor bgMain;
     QColor bgSurface;
@@ -39,32 +39,50 @@ struct ThemeColors {
 
     /// Readable text color for a fill (theme light/dark text).
     [[nodiscard]] static QColor contrastOn(const QColor& fill);
+    /// WCAG contrast ratio of two opaque colors (1–21).
+    [[nodiscard]] static double contrastRatio(const QColor& a, const QColor& b);
+    /// Channel-wise mix. Invalid colors fall back to dark gray / the other side.
+    [[nodiscard]] static QColor mix(const QColor& a, const QColor& b, double t);
+    static constexpr double kReadableContrast = 4.5;
 };
 
-enum class ThemeMode {
-    Dark,
+enum class ThemeAppearance {
     Light,
-    Custom
+    LightTinted,
+    DarkTinted,
+    Dark
 };
 
-enum class ThemeContrast {
-    Low,
-    Medium,
-    High
-};
+[[nodiscard]] inline bool themeAppearanceIsDark(ThemeAppearance a)
+{
+    return a == ThemeAppearance::Dark || a == ThemeAppearance::DarkTinted;
+}
 
-constexpr int kThemeContrastLowPct = 70;
-constexpr int kThemeContrastMediumPct = 85;
-constexpr int kThemeContrastHighPct = 100;
+[[nodiscard]] inline bool themeAppearanceIsTinted(ThemeAppearance a)
+{
+    return a == ThemeAppearance::LightTinted || a == ThemeAppearance::DarkTinted;
+}
 
-[[nodiscard]] QString themeModeToString(ThemeMode m);
-[[nodiscard]] ThemeMode themeModeFromString(const QString& s);
+constexpr int kThemeBrandCount = 4;
+constexpr int kThemeHarmonyCount = 4;
+constexpr int kThemeSaturationLevels = 5;
+constexpr int kThemeSaturationMin = 20;
+constexpr int kThemeSaturationMax = 100;
+constexpr int kThemeSaturationDefault = 60;
+constexpr int kThemeSaturationStep = 20;
 
-[[nodiscard]] QString themeContrastToString(ThemeContrast c);
-[[nodiscard]] ThemeContrast themeContrastFromInt(int v);
-[[nodiscard]] int themeContrastToInt(ThemeContrast c);
-[[nodiscard]] int themeContrastToPercent(ThemeContrast c);
-[[nodiscard]] int snapContrastPercent(int v);
+/// Snap to 20, 40, 60, 80, 100.
+[[nodiscard]] inline int snapThemeSaturation(int v)
+{
+    const int clamped = qBound(kThemeSaturationMin, v, kThemeSaturationMax);
+    const int idx = (clamped - kThemeSaturationMin + kThemeSaturationStep / 2)
+                    / kThemeSaturationStep;
+    return kThemeSaturationMin
+           + qBound(0, idx, kThemeSaturationLevels - 1) * kThemeSaturationStep;
+}
+
+[[nodiscard]] QString themeAppearanceToString(ThemeAppearance a);
+[[nodiscard]] ThemeAppearance themeAppearanceFromString(const QString& s);
 
 /// Voice sample palette (from Voice/js/app.js COLOR_PALETTE).
 [[nodiscard]] QVector<QString> voiceColorPalette();

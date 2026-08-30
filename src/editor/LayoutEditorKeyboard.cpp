@@ -167,7 +167,7 @@ QVector<EditorLayer> makeTemplateLayers(EditorTemplate tmpl, const QString& id, 
                                     QStringLiteral("Assist"), QStringLiteral("Settings")};
         const QStringList pages = {QStringLiteral("uw_qwerty"), QStringLiteral("example_mouse"),
                                    QStringLiteral("example_assist"),
-                                   QStringLiteral("main_settings_button_timing")};
+                                   QStringLiteral("main_settings")};
         const QStringList icons = {QStringLiteral("Keyboard"), QStringLiteral("Mouse"),
                                    QStringLiteral("Conversation"), QStringLiteral("SizeAndPosition")};
         for (int i = 0; i < labels.size(); ++i) {

@@ -1,0 +1,121 @@
+<Page id="main_settings_speed_advanced" name="Advanced speed" radius="16">
+  <Style id="group" thickness="0" radius="16"/>
+  <Style id="row" background="#00000000" thickness="0" radius="0"/>
+  <Style id="plain" background="#00000000" thickness="0" radius="0"/>
+  <Style id="join" background="#00000000" thickness="0" radius="0"/>
+  <Style id="joinLeft" background="#00000000" thickness="0" radius="10,0,0,10"/>
+  <Style id="joinRight" background="#00000000" thickness="0" radius="0,10,10,0"/>
+  <Style id="tabbar" thickness="0" radius="12"/>
+  <Grid id="board" desktopMode="true" rows="13" columns="16" anchor="Top" offset="0,0" size="A_ScreenHeight/9*16, A_ScreenHeight" gap="6" margin="12" radius="16">
+    <SubGrid id="tabs" row="0" col="0" colSpan="16" rows="1" columns="7" gap="6" margin="4" style="tabbar">
+      <Cell id="tab_buttons" row="0" col="0" label="Speed" icon="RepeatMouseActionIcon" role="tab">
+        <ClosePage value="-self"/>
+        <OpenPage value="main_settings_button_timing"/>
+      </Cell>
+      <Cell id="tab_pointers" row="0" col="1" label="Magnify" icon="ZoomToLocation" role="tab">
+        <ClosePage value="-self"/>
+        <OpenPage value="main_settings_pointer_timing"/>
+      </Cell>
+      <Cell id="tab_styles" row="0" col="2" label="Indicators" icon="CirclesLeftRight" role="tab">
+        <ClosePage value="-self"/>
+        <OpenPage value="main_settings_styles"/>
+      </Cell>
+      <Cell id="tab_assist" row="0" col="3" label="Assist" icon="IdeaIcon" role="tab">
+        <ClosePage value="-self"/>
+        <OpenPage value="main_settings_assist"/>
+      </Cell>
+      <Cell id="tab_overlay" row="0" col="4" label="Tools" icon="LookToScrollActive" role="tab">
+        <ClosePage value="-self"/>
+        <OpenPage value="main_settings_overlays"/>
+      </Cell>
+      <Cell id="tab_theme" row="0" col="5" label="Theme" icon="SettingsIcon" role="tab">
+        <ClosePage value="-self"/>
+        <OpenPage value="main_settings_theme"/>
+      </Cell>
+      <Cell id="tab_done" row="0" col="6" label="Done" icon="CollapseIcon">
+        <ClosePage value="-self"/>
+        <ClosePage value="main_settings"/>
+      </Cell>
+    </SubGrid>
+
+    <Cell id="page_title" row="1" col="0" colSpan="16" label="Advanced speed" caption="Blink, pointer grace, foresight hold, and auto-close" role="label" textStyle="title" style="plain"/>
+
+    <SubGrid id="sec_grace" row="2" col="0" colSpan="16" rowSpan="3" rows="3" columns="1" rowWeights="1,2,2" gap="6" margin="6" style="group">
+      <Cell id="h_grace" row="0" col="0" label="Grace" role="label" textStyle="section" style="plain"/>
+      <SubGrid id="row_grace" row="1" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="grace_label" row="0" col="0" label="Blink grace" caption="Blink without canceling dwell." role="label" style="plain"/>
+        <SubGrid id="act_grace" row="0" col="1" rows="1" columns="9" gap="0" style="row">
+          <Cell id="grace_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.dwellGraceMs.dec"/>
+          <Cell id="grace_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="dwellGraceMs" style="join"/>
+          <Cell id="grace_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.dwellGraceMs.inc"/>
+          <Cell id="grace_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.dwellGraceMs"/>
+        </SubGrid>
+      </SubGrid>
+      <SubGrid id="row_pg" row="2" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="pg_label" row="0" col="0" label="Pointer grace" caption="Added to zoom dwell on pre-pick, or pointer dwell on point pick. 0 = off." role="label" style="plain"/>
+        <SubGrid id="act_pg" row="0" col="1" rows="1" columns="9" gap="0" style="row">
+          <Cell id="pg_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.mouseMoveSelectTimeoutMs.dec"/>
+          <Cell id="pg_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="mouseMoveSelectTimeoutMs" style="join"/>
+          <Cell id="pg_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.mouseMoveSelectTimeoutMs.inc"/>
+          <Cell id="pg_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.mouseMoveSelectTimeoutMs"/>
+        </SubGrid>
+      </SubGrid>
+    </SubGrid>
+
+    <SubGrid id="sec_fs" row="5" col="0" colSpan="16" rowSpan="3" rows="3" columns="1" rowWeights="1,2,2" gap="6" margin="6" style="group">
+      <Cell id="h_fs" row="0" col="0" label="Foresight" role="label" textStyle="section" style="plain"/>
+      <SubGrid id="row_fsd" row="1" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="fsd_label" row="0" col="0" label="Foresight dwell" caption="Gaze this long to store a point." role="label" style="plain"/>
+        <SubGrid id="act_fsd" row="0" col="1" rows="1" columns="9" gap="0" style="row">
+          <Cell id="fsd_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.mouseMoveForesightDwellMs.dec"/>
+          <Cell id="fsd_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="mouseMoveForesightDwellMs" style="join"/>
+          <Cell id="fsd_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.mouseMoveForesightDwellMs.inc"/>
+          <Cell id="fsd_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.mouseMoveForesightDwellMs"/>
+        </SubGrid>
+      </SubGrid>
+      <SubGrid id="row_fsh" row="2" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="fsh_label" row="0" col="0" label="Foresight hold" caption="How long a stored point lasts." role="label" style="plain"/>
+        <SubGrid id="act_fsh" row="0" col="1" rows="1" columns="9" gap="0" style="row">
+          <Cell id="fsh_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.mouseMoveForesightHoldMs.dec"/>
+          <Cell id="fsh_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="mouseMoveForesightHoldMs" style="join"/>
+          <Cell id="fsh_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.mouseMoveForesightHoldMs.inc"/>
+          <Cell id="fsh_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.mouseMoveForesightHoldMs"/>
+        </SubGrid>
+      </SubGrid>
+    </SubGrid>
+
+    <SubGrid id="sec_session" row="8" col="0" colSpan="16" rowSpan="5" rows="5" columns="1" rowWeights="1,2,2,2,2" gap="6" margin="6" style="group">
+      <Cell id="h_session" row="0" col="0" label="Session" role="label" textStyle="section" style="plain"/>
+      <SubGrid id="row_ac" row="1" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="ac_label" row="0" col="0" label="Auto-close boards" caption="Close idle boards that opted in." role="label" style="plain"/>
+        <Cell id="ac_on" row="0" col="1" label="Auto-close" role="toggle" activeState="setting.layoutAutoClose" style="join" command="settings.session.layoutAutoClose.toggle"/>
+      </SubGrid>
+      <SubGrid id="row_aci" row="2" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="aci_label" row="0" col="0" label="Auto-close idle" caption="Idle time before those boards close." role="label" style="plain"/>
+        <SubGrid id="act_aci" row="0" col="1" rows="1" columns="9" gap="0" style="row">
+          <Cell id="aci_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.layoutAutoCloseIdleMs.dec"/>
+          <Cell id="aci_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="layoutAutoCloseIdleMs" style="join"/>
+          <Cell id="aci_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.layoutAutoCloseIdleMs.inc"/>
+          <Cell id="aci_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.layoutAutoCloseIdleMs"/>
+        </SubGrid>
+      </SubGrid>
+      <SubGrid id="row_fd" row="3" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="fd_label" row="0" col="0" label="Completion flash" caption="How long the flash shows." role="label" style="plain"/>
+        <SubGrid id="act_fd" row="0" col="1" rows="1" columns="9" gap="0" style="row">
+          <Cell id="fd_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.flashMs.dec"/>
+          <Cell id="fd_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="flashMs" style="join"/>
+          <Cell id="fd_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.flashMs.inc"/>
+          <Cell id="fd_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.flashMs"/>
+        </SubGrid>
+      </SubGrid>
+      <SubGrid id="row_flash" row="4" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="fl_name" row="0" col="0" label="Completion flash color" caption="Flash after activation." role="label" style="plain"/>
+        <SubGrid id="act_flash" row="0" col="1" rows="1" columns="3" gap="0" style="row">
+          <Cell id="fl_fg" row="0" col="0" label="Use Foreground" role="choice" activeState="setting.flashUseForeground" style="joinLeft" command="settings.flash.foreground"/>
+          <Cell id="fl_custom" row="0" col="1" label="Custom" role="choice" activeState="setting.flashUseCustom" style="join" command="settings.flash.custom"/>
+          <Cell id="fl_sw" row="0" col="2" label="Flash color" settingKey="flashColor" style="joinRight" command="settings.edit.color.flashColor"/>
+        </SubGrid>
+      </SubGrid>
+    </SubGrid>
+  </Grid>
+</Page>

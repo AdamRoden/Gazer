@@ -94,7 +94,7 @@ When pages overlap, the topmost page’s grid is opaque: gaze and paint do not f
 | Id | Kind |
 |----|------|
 | `main` | Root dock + drawer + quit |
-| `main_settings_*` | Settings hub: button timing, pointer timing, styles, assist, LTS, theme |
+| `main_settings` / `main_settings_*` | Settings hub, then Speed / Magnify / Indicators / Assist / Tools / Theme |
 | `example_keyboard` (+ shift / sym variants) | On-screen keyboard |
 | `example_mouse` | Mouse pad |
 | `example_assist` | Assist tools |
@@ -153,5 +153,7 @@ Builtins first; unknown names fall through to the mapping profile. Full catalog 
 | `stopAllActionLoops` | Stop sticky series and assist loops |
 | `openPreview` | Head-pose preview |
 | `openLayoutEditor` | XML page designer |
-| `theme.light` / `theme.dark` / `theme.custom` | Theme mode |
+| `theme.light` / `.lightTinted` / `.darkTinted` / `.dark` | Appearance |
+| `theme.primary.0`…`.3` | Accent (Blue, Green, Amber, Red) |
+| `theme.secondary.0`…`.3` | Progress (Blue, Green, Amber, Red) |
 | `settings.*` | Settings hub editors, nudges, presets |

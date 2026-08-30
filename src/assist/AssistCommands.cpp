@@ -504,8 +504,8 @@ void registerAssistCommands(AssistCommandContext& ctx)
             mouseDwell->setForesightSecondZoom(settings->mouseMoveForesightSecondZoom);
             applySettings(true);
             notify(settings->mouseMoveForesightSecondZoom
-                       ? QStringLiteral("Foresight double-zoom ON")
-                       : QStringLiteral("Foresight double-zoom OFF"));
+                       ? QStringLiteral("Foresight second ON")
+                       : QStringLiteral("Foresight second OFF"));
             return true;
         });
 

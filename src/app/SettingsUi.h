@@ -98,10 +98,13 @@ private:
     void closeOpacityEditor();
     void opacityNudge(int dir);
     [[nodiscard]] bool opacitySave(QString* error = nullptr);
+    enum class ColorPickerPage { Generic, Accent, Roles };
     [[nodiscard]] bool openColorPicker(const QString& colorKey, QString* error = nullptr);
     [[nodiscard]] bool selectColorTarget(const QString& colorKey, QString* error = nullptr);
     void refreshColorPicker();
     [[nodiscard]] PageDocument buildColorDocument() const;
+    [[nodiscard]] PageDocument buildAccentColorDocument() const;
+    [[nodiscard]] PageDocument buildRolesColorDocument() const;
     void closeColorPicker();
     void colorNudge(const QString& channel, int dir);
     void colorSetChannel(const QString& channel, int value);
@@ -120,6 +123,8 @@ private:
     [[nodiscard]] AppSettings draftThemeSettings() const;
     [[nodiscard]] QColor suggestedDraftColor(const QString& colorKey) const;
     void applySuggestedColor(const QString& colorKey);
+    void colorApplyPreset(int index);
+    void colorSetRolesMode(bool roles);
     void refreshHexEditor();
     [[nodiscard]] bool colorSave(QString* error = nullptr);
     [[nodiscard]] bool colorEditChannel(const QString& channel, QString* error = nullptr);
@@ -183,6 +188,7 @@ private:
 
     LiveBoard m_color;
     bool m_flashCustomSetMode = false;
+    ColorPickerPage m_colorPickerPage = ColorPickerPage::Generic;
     QString m_colorPickerKey;
     QHash<QString, QColor> m_colorPending;
     QColor m_colorDraft;

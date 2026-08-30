@@ -27,12 +27,6 @@ void LayoutEditorProperties::fillPage(QFormLayout* form)
         b.check(f, QStringLiteral("Auto-close when idle"), d.autoClose, [this](bool on) {
             applyDoc([&](PageDocument& doc) { doc.autoClose = on; }, QStringLiteral("Auto close"));
         });
-        if (d.autoClose) {
-            b.integer(f, QStringLiteral("Idle ms"), d.autoCloseIdleMs, -1, 120000, [this](int v) {
-                applyDoc([&](PageDocument& doc) { doc.autoCloseIdleMs = v; },
-                         QStringLiteral("Idle ms"));
-            });
-        }
     });
 }
 
@@ -68,12 +62,6 @@ void LayoutEditorProperties::fillGrid(QFormLayout* form)
             applyGrid([&](PageGrid& grid) { grid.autoClose = on; },
                       QStringLiteral("Grid auto close"));
         });
-        if (g->autoClose) {
-            b.integer(f, QStringLiteral("Idle ms"), g->autoCloseIdleMs, -1, 120000, [this](int v) {
-                applyGrid([&](PageGrid& grid) { grid.autoCloseIdleMs = v; },
-                          QStringLiteral("Grid idle ms"));
-            });
-        }
     });
     QString weights;
     for (double w : g->rowWeights) {
@@ -136,7 +124,8 @@ void LayoutEditorProperties::fillLeafIdentity(QFormLayout* form, const PageLeaf&
         });
         b.combo(f, QStringLiteral("Role"),
                 {QString(), QStringLiteral("label"), QStringLiteral("value"), QStringLiteral("tab"),
-                 QStringLiteral("toggle"), QStringLiteral("slider"), QStringLiteral("preview")},
+                 QStringLiteral("toggle"), QStringLiteral("choice"), QStringLiteral("slider"),
+                 QStringLiteral("preview")},
                 item.role, [this](const QString& t) {
                     applyItem([&](PageLeaf& it) { it.role = t; }, QStringLiteral("Role"));
                 });

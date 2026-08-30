@@ -365,6 +365,14 @@ add_executable(GazerPageTests
     tests/PageHitTest.cpp
     tests/PageHitLiveTest.cpp
     tests/SettingsLayoutTest.cpp
+    tests/AppSettingsTest.cpp
+    tests/MouseDwellMoveTest.cpp
+    src/app/AppSettings.cpp
+    src/app/AppSettingsIo.cpp
+    src/app/AppSettingsTheme.cpp
+    src/ui/Theme.cpp
+    src/ui/ThemeScheme.cpp
+    src/ui/PickStyle.cpp
     tests/ProgressPaintTest.cpp
     tests/ComboMouseTest.cpp
     tests/AhkLauncherTest.cpp

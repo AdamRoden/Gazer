@@ -147,6 +147,9 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
     if (key == QLatin1String("setting.dwell.fast")) {
         return s.dwellPreset() == 2;
     }
+    if (key == QLatin1String("setting.dwell.custom")) {
+        return s.dwellPreset() == 3;
+    }
     if (key.startsWith(QLatin1String("setting."))) {
         if (const AppSettings::StyleToggle* t = AppSettings::findStyleToggle(key.mid(8))) {
             return s.styleFlag(*t);
@@ -185,6 +188,15 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
     if (key == QLatin1String("setting.mousePick.crosshair")) {
         return PickStyle::has(s.mousePickStyle, PickStyle::Crosshair);
     }
+    if (key == QLatin1String("setting.pickCenter.gaze")) {
+        return s.mouseMoveMagPickCenterOnDwell;
+    }
+    if (key == QLatin1String("setting.pickCenter.screen")) {
+        return !s.mouseMoveMagPickCenterOnDwell;
+    }
+    if (key == QLatin1String("setting.layoutAutoClose")) {
+        return s.layoutAutoClose;
+    }
     if (key == QLatin1String("setting.autoCollapseMain")) {
         return s.autoCollapseMain;
     }
@@ -201,22 +213,28 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
         return true;
     }
     if (key == QLatin1String("setting.theme.dark")) {
-        return s.themeMode == ThemeMode::Dark;
+        return s.themeAppearance == ThemeAppearance::Dark;
+    }
+    if (key == QLatin1String("setting.theme.darkTinted")) {
+        return s.themeAppearance == ThemeAppearance::DarkTinted;
+    }
+    if (key == QLatin1String("setting.theme.lightTinted")) {
+        return s.themeAppearance == ThemeAppearance::LightTinted;
     }
     if (key == QLatin1String("setting.theme.light")) {
-        return s.themeMode == ThemeMode::Light;
+        return s.themeAppearance == ThemeAppearance::Light;
     }
     if (key == QLatin1String("setting.theme.custom")) {
-        return s.themeMode == ThemeMode::Custom;
+        return s.themeCustom;
     }
-    if (key == QLatin1String("setting.theme.contrast.low")) {
-        return snapContrastPercent(s.customContrast) == kThemeContrastLowPct;
+    if (key.startsWith(QLatin1String("setting.theme.primary."))) {
+        return !s.themeCustom
+               && indexKeyEquals(key, QLatin1String("setting.theme.primary."), s.themePrimaryIndex);
     }
-    if (key == QLatin1String("setting.theme.contrast.medium")) {
-        return snapContrastPercent(s.customContrast) == kThemeContrastMediumPct;
-    }
-    if (key == QLatin1String("setting.theme.contrast.high")) {
-        return snapContrastPercent(s.customContrast) == kThemeContrastHighPct;
+    if (key.startsWith(QLatin1String("setting.theme.secondary."))) {
+        return !s.themeCustom
+               && indexKeyEquals(key, QLatin1String("setting.theme.secondary."),
+                                 s.themeSecondaryIndex);
     }
     if (key.startsWith(QLatin1String("setting.color.editing."))) {
         const QString ck = key.mid(QStringLiteral("setting.color.editing.").size());

@@ -10,7 +10,7 @@ Pages live in `resources/layouts/*.xml`. Catalog id should match the filename st
 | Style / dwell | Page inherits from settings, then overrides per field. Grids, cells, and zones inherit from the **page** (never from a grid). Named `style` / `dwell` plus inline attrs override individual members. Grid resolve then drops `foreground` / `progressStyle` / `progressColor`. |
 | Overlap | Topmost attached page’s grid is opaque. Shell grids/zones paint and hit above the rest. |
 | Drawer / quit | Ordinary `show` flags. Master XML uses `ShowGrid` / `HideGrid` (Main chip shows the drawer; Dismiss hides it; Quit swaps drawer ↔ quit). Consecutive Show/Hide in one cell are applied together, then the drawer animates: appear when a `drawerMotion` grid is shown, dismiss when it is the last master grid hidden, snap when another master grid remains (or is shown in that same list). Hidden shell grids do not reserve host space. |
-| Auto-close | Idle on an `autoClose` grid collapses the drawer (root never destroys itself). `suspendDwell` stops the idle timer; `resumeDwell` restarts it from zero. |
+| Auto-close | Idle on an `autoClose` grid or page closes those boards (root never destroys itself). Duration and the master on/off switch are Settings (`layoutAutoClose`, `layoutAutoCloseIdleMs`). `suspendDwell` stops the idle timer; `resumeDwell` restarts it from zero. |
 | Zones | Chrome is hidden until dwell progress or activation flash. Engaged dwell includes the on-screen progress strip. |
 
 ## `<Page>`
@@ -20,7 +20,7 @@ Pages live in `resources/layouts/*.xml`. Catalog id should match the filename st
 | `id` | **Required** catalog id |
 | `name` | Title |
 | `master` | Process-lifetime root. Only one. |
-| `autoClose`, `autoCloseIdleMs` | Page-level idle close |
+| `autoClose` | Opts the page into idle close. Duration is Settings `layoutAutoCloseIdleMs`. |
 | chrome / dwell attrs | Override settings per field (`background`, `scanGrace`, `activation`, …). Grids, cells, and zones inherit these. |
 
 Child elements: `<Style>`, `<Dwell>`, `<Zone>`, `<Grid>`.
@@ -59,7 +59,7 @@ A Grid is a placed rectangle of rows and columns. `desktopMode="true"` uses the 
 | `show` | `true` (default) or `false` — omit from the live session when false. Legacy `chrome="drawer"` / `"quit"` with no `show` loads as hidden and is not written back. |
 | `style`, `dwell` | Named style/dwell ids, plus inline chrome/dwell attrs. Grid inherit drops `foreground` / `progressStyle` / `progressColor`. |
 
-Cells use `row`, `col`, `rowSpan`, `colSpan`, `label`, `icon`, `caption`, `role` (`label`, `value`, `tab`, `slider`, `preview`, …), `textStyle` (`caption`, `body`, `title`, `section`, `key` — fill the cell with the glyph), `show` (default true), `visibleWhen`, `suspendExempt`. Nested `<SubGrid>` occupies a cell span. Zones take the same `show` attribute. `role` decides whether the item is a dwell target: `label`, `value`, `slider`, and `preview` are not; a `tab` with no actions is the current tab (selected, not a target). Cells do not take `shell` — they follow their grid.
+Cells use `row`, `col`, `rowSpan`, `colSpan`, `label`, `icon`, `caption`, `role` (`label`, `value`, `tab`, `toggle`, `choice`, `slider`, `preview`, …), `textStyle` (`caption`, `body`, `title`, `section`, `key` — fill the cell with the glyph), `show` (default true), `visibleWhen`, `suspendExempt`. Nested `<SubGrid>` occupies a cell span. Zones take the same `show` attribute. `role` decides whether the item is a dwell target: `label`, `value`, `slider`, and `preview` are not; a `tab` with no actions is the current tab (selected, not a target). `toggle` is independent on/off (switch chrome); `choice` is one-of-a-set (radio chrome). A `choice` with stamped `background` + `progressColor` paints as a scheme preview and is the dwell target. Cells do not take `shell` — they follow their grid.
 
 ## `<Zone>`
 

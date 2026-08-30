@@ -1,72 +1,83 @@
-<Page id="main_settings_theme" name="Theme" thickness="1" radius="4">
-  <Style id="group" background="#00000000" thickness="1" radius="8"/>
-  <Style id="row" background="#00000000" thickness="1" radius="6"/>
+<Page id="main_settings_theme" name="Theme" radius="16">
+  <Style id="group" thickness="0" radius="16"/>
+  <Style id="row" background="#00000000" thickness="0" radius="0"/>
   <Style id="plain" background="#00000000" thickness="0" radius="0"/>
   <Style id="join" background="#00000000" thickness="0" radius="0"/>
-  <Grid id="board" desktopMode="true" rows="9" columns="16" anchor="Top" offset="0,0" size="A_ScreenHeight/9*16, A_ScreenHeight" gap="6" margin="12" thickness="1" radius="4">
-    <SubGrid id="tabs" row="0" col="0" colSpan="16" rows="1" columns="6" gap="6">
-      <Cell id="tab_buttons" row="0" col="0" label="Button" role="tab">
+  <Style id="joinLeft" background="#00000000" thickness="0" radius="10,0,0,10"/>
+  <Style id="joinRight" background="#00000000" thickness="0" radius="0,10,10,0"/>
+  <Style id="tabbar" thickness="0" radius="12"/>
+  <Grid id="board" desktopMode="true" rows="12" columns="16" anchor="Top" offset="0,0" size="A_ScreenHeight/9*16, A_ScreenHeight" gap="6" margin="12" radius="16">
+    <SubGrid id="tabs" row="0" col="0" colSpan="16" rows="1" columns="7" gap="6" margin="4" style="tabbar">
+      <Cell id="tab_buttons" row="0" col="0" label="Speed" icon="RepeatMouseActionIcon" role="tab">
         <ClosePage value="-self"/>
         <OpenPage value="main_settings_button_timing"/>
       </Cell>
-      <Cell id="tab_pointers" row="0" col="1" label="Pointer" role="tab">
+      <Cell id="tab_pointers" row="0" col="1" label="Magnify" icon="ZoomToLocation" role="tab">
         <ClosePage value="-self"/>
         <OpenPage value="main_settings_pointer_timing"/>
       </Cell>
-      <Cell id="tab_styles" row="0" col="2" label="Styles" role="tab">
+      <Cell id="tab_styles" row="0" col="2" label="Indicators" icon="CirclesLeftRight" role="tab">
         <ClosePage value="-self"/>
         <OpenPage value="main_settings_styles"/>
       </Cell>
-      <Cell id="tab_assist" row="0" col="3" label="Assist" role="tab">
+      <Cell id="tab_assist" row="0" col="3" label="Assist" icon="IdeaIcon" role="tab">
         <ClosePage value="-self"/>
         <OpenPage value="main_settings_assist"/>
       </Cell>
-      <Cell id="tab_overlay" row="0" col="4" label="Overlay" role="tab">
+      <Cell id="tab_overlay" row="0" col="4" label="Tools" icon="LookToScrollActive" role="tab">
         <ClosePage value="-self"/>
         <OpenPage value="main_settings_overlays"/>
       </Cell>
-      <Cell id="tab_theme" row="0" col="5" label="Theme" role="tab"/>
+      <Cell id="tab_theme" row="0" col="5" label="Theme" icon="SettingsIcon" role="tab"/>
+      <Cell id="tab_done" row="0" col="6" label="Done" icon="CollapseIcon">
+        <ClosePage value="-self"/>
+        <ClosePage value="main_settings"/>
+      </Cell>
     </SubGrid>
 
-    <Cell id="page_title" row="1" col="0" colSpan="16" label="Theme" caption="Custom palette: pick colors, then set contrast to Low, Medium, or High." role="label" textStyle="title" style="plain"/>
+    <Cell id="page_title" row="1" col="0" colSpan="16" label="Theme" caption="Appearance, accent, and progress variant" role="label" textStyle="title" style="plain"/>
 
-    <SubGrid id="sec_palette" row="2" col="0" colSpan="16" rowSpan="7" rows="7" columns="1" rowWeights="1,2,2,2,2,2,2" gap="6" margin="6" style="group">
-      <Cell id="h_palette" row="0" col="0" label="Palette" role="label" textStyle="section" style="plain"/>
-      <SubGrid id="row_bg" row="1" col="0" rows="1" columns="1" gap="0" style="row">
-        <Cell id="bg_name" row="0" col="0" label="Background" caption="Source color. Variant, foreground, and accent suggestions are generated from this." settingKey="customBgColor" style="join" command="settings.edit.color.customBgColor"/>
+    <SubGrid id="sec_appearance" row="2" col="0" colSpan="16" rowSpan="2" rows="2" columns="1" rowWeights="1,2" gap="6" margin="6" style="group">
+      <Cell id="h_appearance" row="0" col="0" label="Appearance" role="label" textStyle="section" style="plain"/>
+      <SubGrid id="row_appearance" row="1" col="0" rows="1" columns="4" gap="0" style="row">
+        <Cell id="light" row="0" col="0" label="Light" role="choice" activeState="setting.theme.light" style="joinLeft" command="theme.light"/>
+        <Cell id="light_tint" row="0" col="1" label="Light tint" role="choice" activeState="setting.theme.lightTinted" style="join" command="theme.lightTinted"/>
+        <Cell id="dark_tint" row="0" col="2" label="Dark tint" role="choice" activeState="setting.theme.darkTinted" style="join" command="theme.darkTinted"/>
+        <Cell id="dark" row="0" col="3" label="Dark" role="choice" activeState="setting.theme.dark" style="joinRight" command="theme.dark"/>
       </SubGrid>
-      <SubGrid id="row_swatch" row="2" col="0" rows="1" columns="2" gap="0" style="row">
-        <Cell id="var_sw" row="0" col="0" label="Variant" caption="Surface" settingKey="customSurfaceColor" style="join" command="settings.edit.color.customSurfaceColor"/>
-        <Cell id="fg_sw" row="0" col="1" label="Foreground" caption="On background" settingKey="customTextColor" style="join" command="settings.edit.color.customTextColor"/>
+    </SubGrid>
+
+    <SubGrid id="sec_schemes" row="4" col="0" colSpan="16" rowSpan="3" rows="2" columns="1" rowWeights="1,3" gap="6" margin="6" style="group">
+      <Cell id="h_schemes" row="0" col="0" label="Accent" role="label" textStyle="section" style="plain"/>
+      <SubGrid id="row_schemes" row="1" col="0" rows="1" columns="4" gap="8" style="row">
+        <Cell id="pri_0" row="0" col="0" label="Blue" role="choice" activeState="setting.theme.primary.0" command="theme.primary.0"/>
+        <Cell id="pri_1" row="0" col="1" label="Green" role="choice" activeState="setting.theme.primary.1" command="theme.primary.1"/>
+        <Cell id="pri_2" row="0" col="2" label="Amber" role="choice" activeState="setting.theme.primary.2" command="theme.primary.2"/>
+        <Cell id="pri_3" row="0" col="3" label="Red" role="choice" activeState="setting.theme.primary.3" command="theme.primary.3"/>
       </SubGrid>
-      <SubGrid id="row_accent" row="3" col="0" rows="1" columns="3" gap="0" style="row">
-        <Cell id="pri_name" row="0" col="0" label="Primary" caption="Highlighted foreground." settingKey="customPrimaryColor" style="join" command="settings.edit.color.customPrimaryColor"/>
-        <Cell id="sec_name" row="0" col="1" label="Secondary" caption="Progress colors." settingKey="customSecondaryColor" style="join" command="settings.edit.color.customSecondaryColor"/>
-        <Cell id="ter_name" row="0" col="2" label="Tertiary" caption="Highlighted background." settingKey="customTertiaryColor" style="join" command="settings.edit.color.customTertiaryColor"/>
+    </SubGrid>
+
+    <SubGrid id="sec_progress" row="7" col="0" colSpan="16" rowSpan="3" rows="2" columns="1" rowWeights="1,3" gap="6" margin="6" style="group">
+      <Cell id="h_progress" row="0" col="0" label="Progress" role="label" textStyle="section" style="plain"/>
+      <SubGrid id="row_progress" row="1" col="0" rows="1" columns="4" gap="8" style="row">
+        <Cell id="sec_0" row="0" col="0" label="Blue" role="choice" activeState="setting.theme.secondary.0" command="theme.secondary.0"/>
+        <Cell id="sec_1" row="0" col="1" label="Green" role="choice" activeState="setting.theme.secondary.1" command="theme.secondary.1"/>
+        <Cell id="sec_2" row="0" col="2" label="Amber" role="choice" activeState="setting.theme.secondary.2" command="theme.secondary.2"/>
+        <Cell id="sec_3" row="0" col="3" label="Red" role="choice" activeState="setting.theme.secondary.3" command="theme.secondary.3"/>
       </SubGrid>
-      <SubGrid id="row_contrast" row="4" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="c_name" row="0" col="0" label="Contrast" caption="How far tones are pushed apart." role="label" style="plain"/>
-        <SubGrid id="act_contrast" row="0" col="1" rows="1" columns="3" gap="0" style="row">
-          <Cell id="c_low" row="0" col="0" label="Low" activeState="setting.theme.contrast.low" style="join" command="settings.theme.contrast.low"/>
-          <Cell id="c_med" row="0" col="1" label="Medium" activeState="setting.theme.contrast.medium" style="join" command="settings.theme.contrast.medium"/>
-          <Cell id="c_high" row="0" col="2" label="High" activeState="setting.theme.contrast.high" style="join" command="settings.theme.contrast.high"/>
+    </SubGrid>
+
+    <SubGrid id="sec_options" row="10" col="0" colSpan="16" rowSpan="2" rows="2" columns="1" rowWeights="1,1" gap="6" margin="6" style="group">
+      <SubGrid id="row_saturation" row="0" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="sat_name" row="0" col="0" label="Saturation" caption="Five steps from quiet to vivid. Surface brightness stays put." role="label" style="plain"/>
+        <SubGrid id="act_saturation" row="0" col="1" rows="1" columns="2" gap="0" style="row">
+          <Cell id="sat_dec" row="0" col="0" label="−" style="joinLeft" command="settings.nudge.themeSaturation.dec"/>
+          <Cell id="sat_inc" row="0" col="1" label="+" style="joinRight" command="settings.nudge.themeSaturation.inc"/>
         </SubGrid>
       </SubGrid>
-      <SubGrid id="row_theme" row="5" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="mode_name" row="0" col="0" label="Use theme" caption="Custom applies this palette. Light / Dark use the built-in presets." role="label" style="plain"/>
-        <SubGrid id="act_theme" row="0" col="1" rows="1" columns="3" gap="0" style="row">
-          <Cell id="light" row="0" col="0" label="Light" activeState="setting.theme.light" style="join" command="theme.light"/>
-          <Cell id="dark" row="0" col="1" label="Dark" activeState="setting.theme.dark" style="join" command="theme.dark"/>
-          <Cell id="custom" row="0" col="2" label="Custom" activeState="setting.theme.custom" style="join" command="theme.custom"/>
-        </SubGrid>
-      </SubGrid>
-      <SubGrid id="row_flash" row="6" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="fl_name" row="0" col="0" label="Completion flash" caption="Flash after activation. Foreground uses the item text color; Custom picks a color." role="label" style="plain"/>
-        <SubGrid id="act_flash" row="0" col="1" rows="1" columns="3" gap="0" style="row">
-          <Cell id="fl_fg" row="0" col="0" label="Use Foreground" activeState="setting.flashUseForeground" style="join" command="settings.flash.foreground"/>
-          <Cell id="fl_custom" row="0" col="1" label="Custom" activeState="setting.flashUseCustom" style="join" command="settings.flash.custom"/>
-          <Cell id="fl_sw" row="0" col="2" label="Flash color" settingKey="flashColor" style="join" command="settings.edit.color.flashColor"/>
-        </SubGrid>
+      <SubGrid id="row_edit" row="1" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="edit_name" row="0" col="0" label="Edit colors" caption="Opens Custom on the role list." role="label" style="plain"/>
+        <Cell id="edit_colors" row="0" col="1" label="Edit colors" icon="SettingsIcon" command="settings.theme.edit"/>
       </SubGrid>
     </SubGrid>
   </Grid>

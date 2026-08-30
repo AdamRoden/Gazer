@@ -15,6 +15,9 @@ class ForesightMemory {
 public:
     static constexpr int kHoldMs = 2000;
 
+    void setHoldMs(int ms) { m_holdMs = qBound(200, ms, 30000); }
+    [[nodiscard]] int holdMs() const { return m_holdMs; }
+
     void setEnabled(bool on)
     {
         m_enabled = on;
@@ -54,7 +57,7 @@ public:
             return;
         }
 
-        if (m_havePoint && m_storedMs >= 0 && nowMs - m_storedMs > kHoldMs) {
+        if (m_havePoint && m_storedMs >= 0 && nowMs - m_storedMs > m_holdMs) {
             clear();
         }
 
@@ -80,7 +83,7 @@ public:
         if (!m_enabled || !m_havePoint) {
             return std::nullopt;
         }
-        if (m_storedMs < 0 || nowMs - m_storedMs > kHoldMs) {
+        if (m_storedMs < 0 || nowMs - m_storedMs > m_holdMs) {
             return std::nullopt;
         }
         return m_point;
@@ -92,6 +95,7 @@ private:
     bool m_havePoint = false;
     bool m_holding = false;
     int m_dwellMs = 400;
+    int m_holdMs = kHoldMs;
     qint64 m_lastSampleMs = -1;
     qint64 m_storedMs = -1;
     QPoint m_point;

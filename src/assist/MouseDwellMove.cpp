@@ -255,7 +255,9 @@ void MouseDwellMove::markSelectDeadline()
         m_selectDeadlineMs = -1;
         return;
     }
-    m_selectDeadlineMs = m_clock.elapsed() + m_selectTimeoutMs;
+    const int phaseDwell = (m_phase == Phase::MagRegion) ? m_magPickDwellMs : m_moveDwellMs;
+    const int budget = selectDeadlineBudgetMs(m_selectTimeoutMs, phaseDwell);
+    m_selectDeadlineMs = budget > 0 ? m_clock.elapsed() + budget : -1;
 }
 
 bool MouseDwellMove::selectTimedOut(qint64 nowMs) const
@@ -342,6 +344,11 @@ void MouseDwellMove::setForesightEnabled(bool enabled)
 void MouseDwellMove::setForesightDwellMs(int ms)
 {
     m_foresight.setDwellMs(ms);
+}
+
+void MouseDwellMove::setForesightHoldMs(int ms)
+{
+    m_foresight.setHoldMs(ms);
 }
 
 void MouseDwellMove::setForesightSecondZoom(bool on)
