@@ -6,78 +6,105 @@
 
 namespace gazer {
 
-PageSession::RootChrome PageSession::chromeForSlot(PageRootSlot slot) const
+void PageSession::syncExpanded()
 {
-    switch (slot) {
-    case PageRootSlot::Drawer:
-        return RootChrome::Drawer;
-    case PageRootSlot::Quit:
-        return RootChrome::Quit;
-    case PageRootSlot::None:
-        break;
-    }
-    return RootChrome::Docked;
+    m_props.insert(QStringLiteral("expanded"),
+                   m_drawerPhase == DrawerPhase::Dismiss || anyRootGridShown());
 }
 
-QSet<QString> PageSession::hiddenRootGrids() const
+bool PageSession::anyRootGridShown() const
 {
-    QSet<QString> hidden;
     for (const PageGrid& g : m_root.grids) {
-        if (g.id.isEmpty() || g.rootSlot == PageRootSlot::None) {
-            continue;
-        }
-        if (chromeForSlot(g.rootSlot) != m_chrome) {
-            hidden.insert(g.id);
+        if (g.show) {
+            return true;
         }
     }
-    return hidden;
+    return false;
 }
 
-void PageSession::setRootChrome(RootChrome next, bool animate)
+bool PageSession::drawerMotionShown() const
 {
-    if (next == m_chrome) {
-        if (next == RootChrome::Drawer && m_drawerPhase == DrawerPhase::Dismiss) {
-            m_drawerTimer.stop();
-            m_drawerPhase = DrawerPhase::Idle;
-            m_drawerScale = 1.0;
-            rebuild();
-            emit sessionChanged();
+    for (const PageGrid& g : m_root.grids) {
+        if (g.drawerMotion && g.show) {
+            return true;
         }
-        raise();
-        return;
     }
+    return false;
+}
 
-    const RootChrome prev = m_chrome;
-    if (animate && next == RootChrome::Docked && prev == RootChrome::Drawer
-        && m_drawerPhase != DrawerPhase::Dismiss) {
-        playDrawerDismiss();
-        return;
+bool PageSession::nonDrawerRootShown() const
+{
+    for (const PageGrid& g : m_root.grids) {
+        if (g.show && !g.drawerMotion) {
+            return true;
+        }
     }
+    return false;
+}
 
-    m_chrome = next;
-    m_props.insert(QStringLiteral("expanded"), next != RootChrome::Docked);
-
-    if (next == RootChrome::Drawer) {
-        playDrawerAppear();
-        return;
-    }
-
+void PageSession::resetDrawerAnim()
+{
     m_drawerTimer.stop();
     m_drawerPhase = DrawerPhase::Idle;
     m_drawerScale = 1.0;
-    rebuild();
-    raise();
-    emit sessionChanged();
 }
+
+void PageSession::snapHideDrawerMotion()
+{
+    resetDrawerAnim();
+    for (PageGrid& g : m_root.grids) {
+        if (g.drawerMotion) {
+            g.show = false;
+        }
+    }
+}
+
+void PageSession::hideRootAutoClose(bool animate)
+{
+    const bool wasDrawer = drawerMotionShown();
+    bool any = false;
+    for (PageGrid& g : m_root.grids) {
+        if (g.autoClose && g.show) {
+            g.show = false;
+            any = true;
+        }
+    }
+    if (!any) {
+        return;
+    }
+    if (!animate) {
+        snapHideDrawerMotion();
+        emitShowChanged();
+        return;
+    }
+    syncDrawerAnim(wasDrawer);
+    emitShowChanged();
+}
+
+void PageSession::syncDrawerAnim(bool wasDrawer)
+{
+    switch (PageNav::reconcileDrawer(wasDrawer, drawerMotionShown(), nonDrawerRootShown(),
+                                     m_drawerPhase == DrawerPhase::Dismiss)) {
+    case PageNav::DrawerAnim::Appear:
+        playDrawerAppear();
+        break;
+    case PageNav::DrawerAnim::Dismiss:
+        playDrawerDismiss();
+        break;
+    case PageNav::DrawerAnim::Snap:
+        resetDrawerAnim();
+        break;
+    case PageNav::DrawerAnim::Keep:
+        break;
+    }
+}
+
 void PageSession::playDrawerAppear()
 {
     m_drawerPhase = DrawerPhase::Appear;
     m_drawerScale = kDrawerMinScale;
     m_drawerClock.restart();
-    rebuild();
-    raise();
     m_drawerTimer.start();
-    emit sessionChanged();
 }
 
 void PageSession::playDrawerDismiss()
@@ -87,7 +114,6 @@ void PageSession::playDrawerDismiss()
     if (!m_drawerTimer.isActive()) {
         m_drawerTimer.start();
     }
-    syncDrawerScale();
 }
 
 void PageSession::syncDrawerScale()
@@ -120,8 +146,6 @@ void PageSession::tickDrawer()
     if (m_drawerPhase == DrawerPhase::Dismiss) {
         m_drawerPhase = DrawerPhase::Idle;
         m_drawerScale = 1.0;
-        m_chrome = RootChrome::Docked;
-        m_props.insert(QStringLiteral("expanded"), false);
         rebuild();
         emit sessionChanged();
         return;

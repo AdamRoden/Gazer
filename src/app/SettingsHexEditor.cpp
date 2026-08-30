@@ -50,7 +50,7 @@ PageDocument SettingsUi::buildHexDocument() const
     const EditorSwatch pal = editorSwatch();
     const QString shown =
         m_hexBuffer.isEmpty() ? QStringLiteral("#") : QStringLiteral("#%1").arg(m_hexBuffer);
-    PageCell display = cell(QStringLiteral("display"), shown, 0, 0, {}, pal.value, 4, false,
+    PageCell display = cell(QStringLiteral("display"), shown, 0, 0, {}, pal.value, 4,
                             QStringLiteral("value"));
     grid.cells.push_back(display);
 

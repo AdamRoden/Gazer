@@ -121,10 +121,7 @@ bool PageSession::openRoot(const QString& xmlPath, QString* error)
     }
     m_attached.clear();
     m_crumbs.clear();
-    m_chrome = RootChrome::Docked;
-    m_drawerPhase = DrawerPhase::Idle;
-    m_drawerScale = 1.0;
-    m_drawerTimer.stop();
+    resetDrawerAnim();
     m_props.insert(QStringLiteral("expanded"), false);
 
     ensureHost();
@@ -361,8 +358,8 @@ bool PageSession::openPage(const QString& id, QString* error)
     AttachedPage att;
     att.doc = std::move(doc);
     m_attached.push_back(std::move(att));
-    if (m_autoCollapseMain && m_chrome == RootChrome::Drawer) {
-        setRootChrome(RootChrome::Docked, false);
+    if (m_autoCollapseMain) {
+        hideRootAutoClose(false);
     }
     rebuild();
     raise();
@@ -408,12 +405,12 @@ int PageSession::closeAttached()
     return n;
 }
 
-void PageSession::ingest(const PageDocument& doc, const QSet<QString>& hiddenGrids, bool isMaster,
-                         QVector<PageTarget>& targets, QVector<PageGridPaint>& gridPaints)
+void PageSession::ingest(const PageDocument& doc, bool isMaster, QVector<PageTarget>& targets,
+                         QVector<PageGridPaint>& gridPaints, bool includeDrawerMotion)
 {
     QVector<PageGridPaint> g;
-    QVector<PageTarget> piece =
-        PageHit::collect(doc, frame(), hiddenGrids, m_props, m_dwellSuspended, &g);
+    QVector<PageTarget> piece = PageHit::collect(doc, frame(), m_props, m_dwellSuspended, &g, false,
+                                                 includeDrawerMotion);
     for (PageGridPaint& gp : g) {
         gp.pageId = doc.id;
         gp.master = isMaster;
@@ -428,16 +425,18 @@ void PageSession::ingest(const PageDocument& doc, const QSet<QString>& hiddenGri
 
 void PageSession::rebuild()
 {
+    syncExpanded();
     m_targets.clear();
     m_gridPaints.clear();
+    const bool keepDrawer = m_drawerPhase == DrawerPhase::Dismiss;
     for (const AttachedPage& a : m_attached) {
-        ingest(a.doc, {}, false, m_targets, m_gridPaints);
+        ingest(a.doc, false, m_targets, m_gridPaints);
     }
-    ingest(m_root, hiddenRootGrids(), true, m_targets, m_gridPaints);
+    ingest(m_root, true, m_targets, m_gridPaints, keepDrawer);
 
     if (m_host) {
         const PageFrame fr = frame();
-        QRectF reserved = PageHit::reservedBounds(m_root, fr, hiddenRootGrids());
+        QRectF reserved = PageHit::reservedBounds(m_root, fr);
         for (const AttachedPage& a : m_attached) {
             const QRectF piece = PageHit::reservedBounds(a.doc, fr);
             if (piece.isEmpty()) {

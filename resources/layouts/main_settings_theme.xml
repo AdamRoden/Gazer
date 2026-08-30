@@ -25,7 +25,7 @@
         <ClosePage value="-self"/>
         <OpenPage value="main_settings_overlays"/>
       </Cell>
-      <Cell id="tab_theme" row="0" col="5" label="Theme" role="tab" interactive="false"/>
+      <Cell id="tab_theme" row="0" col="5" label="Theme" role="tab"/>
     </SubGrid>
 
     <Cell id="page_title" row="1" col="0" colSpan="16" label="Theme" caption="Custom palette: pick colors, then set contrast to Low, Medium, or High." role="label" textStyle="title" style="plain"/>

@@ -25,20 +25,20 @@
 namespace gazer {
 
 void addChromeFields(PropertyBinder& b, QFormLayout* form, const PageChrome& st,
-                     const ChromeMutate& apply, bool includeHeading)
+                     const ChromeMutate& apply, bool includeHeading, bool includeItemPaint)
 {
     if (includeHeading) {
-        b.heading(form, QStringLiteral("Style"));
         b.note(form, QStringLiteral("Empty inherits the named style, then the page, then "
-                                    "settings (thickness 1 / radius 0). Grids do not pass "
-                                    "style to cells or zones."));
+                                    "settings (thickness 1 / radius 0)."));
     }
     b.color(form, QStringLiteral("Background"), st.background, [apply](std::optional<QColor> c) {
         apply(QStringLiteral("Background"), [&](PageChrome& s) { s.background = c; });
     });
-    b.color(form, QStringLiteral("Foreground"), st.foreground, [apply](std::optional<QColor> c) {
-        apply(QStringLiteral("Foreground"), [&](PageChrome& s) { s.foreground = c; });
-    });
+    if (includeItemPaint) {
+        b.color(form, QStringLiteral("Foreground"), st.foreground, [apply](std::optional<QColor> c) {
+            apply(QStringLiteral("Foreground"), [&](PageChrome& s) { s.foreground = c; });
+        });
+    }
     b.color(form, QStringLiteral("Border"), st.borderColor, [apply](std::optional<QColor> c) {
         apply(QStringLiteral("Border"), [&](PageChrome& s) { s.borderColor = c; });
     });
@@ -54,6 +54,9 @@ void addChromeFields(PropertyBinder& b, QFormLayout* form, const PageChrome& st,
                    [apply](std::optional<double> v) {
                        apply(QStringLiteral("Blur"), [&](PageChrome& s) { s.blur = v; });
                    });
+    if (!includeItemPaint) {
+        return;
+    }
     b.text(form, QStringLiteral("Progress style"),
            st.progressStyle ? st.progressStyle->toCsv() : QString(),
            [apply](const QString& raw) {
@@ -129,9 +132,8 @@ void addDwellFields(PropertyBinder& b, QFormLayout* form, const PageDwell& dwell
                     const std::function<void(const QString&)>& inheritApply)
 {
     if (includeHeading) {
-        b.heading(form, QStringLiteral("Dwell"));
         b.note(form, QStringLiteral("Empty inherits the named dwell, then the page, then "
-                                    "settings. Grids do not pass dwell to cells or zones."));
+                                    "settings."));
     }
     if (inheritApply) {
         addOptionalIdCombo(b, form, QStringLiteral("Inherit"), inheritIds, inheritCurrent,

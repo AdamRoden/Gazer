@@ -20,8 +20,8 @@ inline PageAction command(const QString& name)
 
 inline PageCell cell(const QString& id, const QString& label, int row, int col,
                      const QString& commandName, const QColor& bg, int colSpan = 1,
-                     bool interactive = true, const QString& role = {},
-                     const QString& caption = {}, const QString& icon = {})
+                     const QString& role = {}, const QString& caption = {},
+                     const QString& icon = {})
 {
     PageCell c;
     c.id = id;
@@ -32,12 +32,11 @@ inline PageCell cell(const QString& id, const QString& label, int row, int col,
     c.row = row;
     c.col = col;
     c.colSpan = colSpan;
-    c.interactive = interactive;
     if (bg.isValid()) {
         c.style.background = bg;
         c.style.foreground = ThemeColors::contrastOn(bg);
     }
-    if (interactive && !commandName.isEmpty()) {
+    if (c.isInteractive() && !commandName.isEmpty()) {
         c.actions.push_back(command(commandName));
     }
     return c;

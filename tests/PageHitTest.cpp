@@ -4,7 +4,6 @@
 #include "layout/PageLoader.h"
 #include "layout/RoundBox.h"
 
-#include <QSet>
 #include <QVariantMap>
 #include <QtTest>
 
@@ -44,6 +43,7 @@ private slots:
     void drawerScaleMustNotMoveOtherChrome();
     void frostedBoundsUsesRestPose();
     void reservedBoundsKeepsHiddenGrids();
+    void dismissingDrawerStillCollects();
     void desktopModeUsesDesktop();
     void masterZonesBeatOpenGrids();
     void masterGridCoversOpenTargets();
@@ -157,7 +157,7 @@ void PageHitTest::collectEmitsGridChrome()
     frame.screen = QRectF(0, 0, 1920, 1080);
     frame.desktop = frame.screen;
     QVector<PageGridPaint> grids;
-    const QVector<PageTarget> t = PageHit::collect(doc, frame, {}, {}, false, &grids);
+    const QVector<PageTarget> t = PageHit::collect(doc, frame, {}, false, &grids);
     QCOMPARE(grids.size(), 1);
     QVERIFY(!grids[0].visual.isEmpty());
     QVERIFY(!grids[0].chrome.background.has_value());
@@ -183,7 +183,7 @@ void PageHitTest::screenExpressionSizes16by9()
     frame.screen = QRectF(0, 0, 2560, 1080);
     frame.desktop = QRectF(0, 0, 3840, 1080);
     QVector<PageGridPaint> grids;
-    const QVector<PageTarget> t = PageHit::collect(doc, frame, {}, {}, false, &grids);
+    const QVector<PageTarget> t = PageHit::collect(doc, frame, {}, false, &grids);
     QCOMPARE(grids.size(), 1);
     QCOMPARE(grids[0].visual.width(), 1920.0);
     QCOMPARE(grids[0].visual.height(), 1080.0);
@@ -207,7 +207,7 @@ void PageHitTest::cellsInheritPageNotGrid()
     frame.screen = QRectF(0, 0, 1920, 1080);
     frame.desktop = frame.screen;
     QVector<PageGridPaint> grids;
-    const QVector<PageTarget> t = PageHit::collect(doc, frame, {}, {}, false, &grids);
+    const QVector<PageTarget> t = PageHit::collect(doc, frame, {}, false, &grids);
     QCOMPARE(grids.size(), 1);
     QCOMPARE(grids[0].chrome.background->rgb(), QColor(QStringLiteral("#00FF00")).rgb());
     QCOMPARE(grids[0].chrome.radius ? grids[0].chrome.radius->first() : -1.0, 20.0);
@@ -354,13 +354,23 @@ void PageHitTest::reservedBoundsKeepsHiddenGrids()
     board.size.x = PageDim::pixels(1600);
     board.size.y = PageDim::pixels(280);
     board.show = false;
+    PageGrid overlay;
+    overlay.id = QStringLiteral("drawer");
+    overlay.shell = true;
+    overlay.show = false;
+    overlay.anchor = PageAnchor::TopLeft;
+    overlay.offset.x = PageDim::pixels(0);
+    overlay.offset.y = PageDim::pixels(0);
+    overlay.size.x = PageDim::pixels(400);
+    overlay.size.y = PageDim::pixels(150);
     doc.grids.push_back(strip);
     doc.grids.push_back(board);
+    doc.grids.push_back(overlay);
     PageFrame frame;
     frame.screen = QRectF(0, 0, 2560, 1080);
     frame.desktop = frame.screen;
     QVector<PageGridPaint> visible;
-    (void)PageHit::collect(doc, frame, {}, {}, false, &visible);
+    (void)PageHit::collect(doc, frame, {}, false, &visible);
     const QRectF shown = PageHit::hostBounds({}, visible);
     QCOMPARE(shown.left(), 2000.0);
     QCOMPARE(shown.right(), 2100.0);
@@ -368,6 +378,32 @@ void PageHitTest::reservedBoundsKeepsHiddenGrids()
     QCOMPARE(reserved.left(), 500.0);
     QCOMPARE(reserved.right(), 2100.0);
     QVERIFY(reserved.contains(shown));
+    QVERIFY(reserved.left() > overlay.offset.x.resolve(1.0));
+}
+
+void PageHitTest::dismissingDrawerStillCollects()
+{
+    PageDocument doc;
+    doc.id = QStringLiteral("p");
+    PageGrid drawer;
+    drawer.id = QStringLiteral("drawer");
+    drawer.show = false;
+    drawer.drawerMotion = true;
+    drawer.shell = true;
+    drawer.anchor = PageAnchor::Bottom;
+    drawer.size.x = PageDim::pixels(400);
+    drawer.size.y = PageDim::pixels(100);
+    PageCell cell;
+    cell.id = QStringLiteral("open_keyboard");
+    drawer.cells.push_back(cell);
+    doc.grids.push_back(drawer);
+    PageFrame frame;
+    frame.screen = QRectF(0, 0, 1920, 1080);
+    frame.desktop = frame.screen;
+    QVERIFY(targetById(PageHit::collect(doc, frame), QStringLiteral("open_keyboard")) == nullptr);
+    const QVector<PageTarget> during =
+        PageHit::collect(doc, frame, {}, false, nullptr, false, true);
+    QVERIFY(targetById(during, QStringLiteral("open_keyboard")));
 }
 
 void PageHitTest::desktopModeUsesDesktop()

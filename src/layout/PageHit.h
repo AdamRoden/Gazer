@@ -8,7 +8,6 @@
 #include <QPointF>
 #include <QPolygonF>
 #include <QRectF>
-#include <QSet>
 #include <QString>
 #include <QTransform>
 #include <QVariantMap>
@@ -80,11 +79,11 @@ namespace PageHit {
 /// page as one layer (attached oldest→newest, then master). Front-to-back:
 /// master (zones, then grids/cells), then each open page the same way.
 [[nodiscard]] QVector<PageTarget> collect(const PageDocument& page, const PageFrame& frame,
-                                          const QSet<QString>& hiddenGrids = {},
                                           const QVariantMap& props = {},
                                           bool dwellSuspended = false,
                                           QVector<PageGridPaint>* grids = nullptr,
-                                          bool includeHidden = false);
+                                          bool includeHidden = false,
+                                          bool includeDrawerMotion = false);
 
 /// Topmost painted grid whose visual contains pos (master included). Null if none.
 [[nodiscard]] const PageGridPaint* coveringGrid(const QVector<PageGridPaint>& grids,
@@ -154,11 +153,10 @@ namespace PageHit {
 {
     return paintBounds(targets, grids, 1.0);
 }
-/// Authored grid/zone boxes, including show=false. Chrome-slot ids in @p hiddenGrids
-/// are omitted (drawer/quit follow root chrome). Host geometry must keep this space
-/// so ShowGrid/ShowZone do not move already-visible boards.
-[[nodiscard]] QRectF reservedBounds(const PageDocument& page, const PageFrame& frame,
-                                    const QSet<QString>& hiddenGrids = {});
+/// Authored grid/zone boxes, including show=false (except hidden shell grids, which
+/// must not reserve host space). Host geometry keeps this space so ShowGrid/ShowZone
+/// do not move already-visible boards.
+[[nodiscard]] QRectF reservedBounds(const PageDocument& page, const PageFrame& frame);
 /// Screen area frosted chrome occupies after any motion (drawer scale, etc.)
 /// completes. Capture must use this rest pose, not the in-flight bounds.
 [[nodiscard]] QRectF frostedBounds(const QVector<PageTarget>& targets,

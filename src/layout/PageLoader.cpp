@@ -131,8 +131,7 @@ bool skipUnknownOrFail(QXmlStreamReader& xml, const QString& parent, QString* er
 
 void applyCommonContent(const QXmlStreamAttributes& a, QString& label, QString& icon,
                         QString& caption, QString& settingKey, QString& activeState,
-                        QString& visibleWhen, bool& interactive, bool& suspendExempt,
-                        bool& actionLoop, bool& show)
+                        QString& visibleWhen, bool& suspendExempt, bool& actionLoop, bool& show)
 {
     if (a.hasAttribute(QStringLiteral("label"))) {
         label = a.value(QStringLiteral("label")).toString();
@@ -151,9 +150,6 @@ void applyCommonContent(const QXmlStreamAttributes& a, QString& label, QString& 
     }
     if (a.hasAttribute(QStringLiteral("visibleWhen"))) {
         visibleWhen = a.value(QStringLiteral("visibleWhen")).toString();
-    }
-    if (a.hasAttribute(QStringLiteral("interactive"))) {
-        interactive = parseBoolAttr(a.value(QStringLiteral("interactive")), true);
     }
     if (a.hasAttribute(QStringLiteral("suspendExempt"))) {
         suspendExempt = parseBoolAttr(a.value(QStringLiteral("suspendExempt")), false);
@@ -241,16 +237,7 @@ bool readCell(QXmlStreamReader& xml, PageCell& cell, QString* error)
         return false;
     }
     applyCommonContent(a, cell.label, cell.icon, cell.caption, cell.settingKey, cell.activeState,
-                       cell.visibleWhen, cell.interactive, cell.suspendExempt, cell.actionLoop,
-                       cell.show);
-    cell.shell = parseBoolAttr(a.value(QStringLiteral("shell")), false);
-    if (!a.hasAttribute(QStringLiteral("interactive"))) {
-        const QString r = cell.role.toLower();
-        if (r == QLatin1String("label") || r == QLatin1String("value")
-            || r == QLatin1String("display")) {
-            cell.interactive = false;
-        }
-    }
+                       cell.visibleWhen, cell.suspendExempt, cell.actionLoop, cell.show);
     QString attrErr;
     if (!takePageActionAttributes(a, cell.actions, &attrErr)) {
         if (error) {
@@ -326,20 +313,15 @@ bool readGrid(QXmlStreamReader& xml, PageGrid& grid, bool nested, QString* error
         grid.rowWeights = parseRowWeights(a.value(QStringLiteral("rowWeights")));
     }
     grid.drawerMotion = parseBoolAttr(a.value(QStringLiteral("drawerMotion")), false);
-    const QString slot = a.value(QStringLiteral("chrome")).toString().trimmed().toLower();
-    if (slot == QLatin1String("drawer")) {
-        grid.rootSlot = PageRootSlot::Drawer;
-    } else if (slot == QLatin1String("quit")) {
-        grid.rootSlot = PageRootSlot::Quit;
-    } else if (grid.drawerMotion) {
-        grid.rootSlot = PageRootSlot::Drawer;
-    }
     grid.autoClose = parseBoolAttr(a.value(QStringLiteral("autoClose")), false);
     grid.autoCloseIdleMs = parseIntAttr(a.value(QStringLiteral("autoCloseIdleMs")), -1);
     if (a.hasAttribute(QStringLiteral("show"))) {
         grid.show = parseBoolAttr(a.value(QStringLiteral("show")), true);
-    } else {
+    } else if (a.hasAttribute(QStringLiteral("open"))) {
         grid.show = parseBoolAttr(a.value(QStringLiteral("open")), true);
+    } else {
+        const QString slot = a.value(QStringLiteral("chrome")).toString().trimmed().toLower();
+        grid.show = slot != QLatin1String("drawer") && slot != QLatin1String("quit");
     }
     grid.shell = parseBoolAttr(a.value(QStringLiteral("shell")), false);
     grid.styleId = a.value(QStringLiteral("style")).toString();
@@ -432,8 +414,7 @@ bool readZone(QXmlStreamReader& xml, PageZone& zone, QString* error)
         }
     }
     applyCommonContent(a, zone.label, zone.icon, zone.caption, zone.settingKey, zone.activeState,
-                       zone.visibleWhen, zone.interactive, zone.suspendExempt, zone.actionLoop,
-                       zone.show);
+                       zone.visibleWhen, zone.suspendExempt, zone.actionLoop, zone.show);
     zone.shell = parseBoolAttr(a.value(QStringLiteral("shell")), false);
     if (!zone.size.isSet()) {
         zone.size.x = PageDim::pixels(200);

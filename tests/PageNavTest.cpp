@@ -12,11 +12,13 @@ class PageNavTest final : public QObject {
 private slots:
     void locatePrefersPageThenRootThenAttached();
     void hideById();
-    void hideGridAllSkipsChromeSlots();
+    void hideGridAllIncludesDrawerAndQuit();
+    void legacyChromeAttrLoadsHidden();
     void hideZoneAndCellAll();
     void hideOthersSkipsSelf();
     void toggleAndShow();
     void breadcrumbCopyRestoresShow();
+    void reconcileDrawerAppearDismissSnap();
 };
 
 namespace {
@@ -120,14 +122,14 @@ void PageNavTest::hideById()
     QVERIFY(z->show);
 }
 
-void PageNavTest::hideGridAllSkipsChromeSlots()
+void PageNavTest::hideGridAllIncludesDrawerAndQuit()
 {
     PageDocument root;
     QVERIFY(loadXml(R"xml(
 <Page id="main" master="true">
   <Grid id="dock" size="100,40"><Cell id="d" label="d"/></Grid>
-  <Grid id="drawer" chrome="drawer" size="200,80"><Cell id="x" label="x"/></Grid>
-  <Grid id="quit" chrome="quit" size="80,40"><Cell id="q" label="q"/></Grid>
+  <Grid id="drawer" show="false" size="200,80"><Cell id="x" label="x"/></Grid>
+  <Grid id="quit" show="false" size="80,40"><Cell id="q" label="q"/></Grid>
   <Grid id="board" size="300,100">
     <SubGrid id="nested" row="0" col="0"><Cell id="n" label="n"/></SubGrid>
   </Grid>
@@ -137,15 +139,40 @@ void PageNavTest::hideGridAllSkipsChromeSlots()
     QVector<PageDocument> attached;
     const PageNav::Docs docs = docsOf(root, attached);
 
-    QCOMPARE(root.findGrid(QStringLiteral("drawer"))->rootSlot, PageRootSlot::Drawer);
-    QCOMPARE(root.findGrid(QStringLiteral("quit"))->rootSlot, PageRootSlot::Quit);
+    QCOMPARE(root.findGrid(QStringLiteral("drawer"))->show, false);
+    QCOMPARE(root.findGrid(QStringLiteral("quit"))->show, false);
+
+    PageNav::applyScope(docs, PageTargetKind::Grid, PageVerb::Open, {}, {});
+    QVERIFY(root.findGrid(QStringLiteral("dock"))->show);
+    QVERIFY(root.findGrid(QStringLiteral("board"))->show);
+    QVERIFY(root.findGrid(QStringLiteral("nested"))->show);
+    QVERIFY(root.findGrid(QStringLiteral("drawer"))->show);
+    QVERIFY(root.findGrid(QStringLiteral("quit"))->show);
 
     PageNav::applyScope(docs, PageTargetKind::Grid, PageVerb::Close, {}, {});
     QVERIFY(!root.findGrid(QStringLiteral("dock"))->show);
     QVERIFY(!root.findGrid(QStringLiteral("board"))->show);
     QVERIFY(!root.findGrid(QStringLiteral("nested"))->show);
-    QVERIFY(root.findGrid(QStringLiteral("drawer"))->show);
-    QVERIFY(root.findGrid(QStringLiteral("quit"))->show);
+    QVERIFY(!root.findGrid(QStringLiteral("drawer"))->show);
+    QVERIFY(!root.findGrid(QStringLiteral("quit"))->show);
+}
+
+void PageNavTest::legacyChromeAttrLoadsHidden()
+{
+    PageDocument root;
+    QVERIFY(loadXml(R"xml(
+<Page id="main" master="true">
+  <Grid id="drawer" chrome="drawer" size="200,80"><Cell id="x" label="x"/></Grid>
+  <Grid id="quit" chrome="quit" size="80,40"><Cell id="q" label="q"/></Grid>
+  <Grid id="shown" chrome="drawer" show="true" size="10,10"/>
+</Page>
+)xml",
+                    root));
+    QCOMPARE(root.findGrid(QStringLiteral("drawer"))->show, false);
+    QCOMPARE(root.findGrid(QStringLiteral("quit"))->show, false);
+    QCOMPARE(root.findGrid(QStringLiteral("shown"))->show, true);
+    const QString text = QString::fromUtf8(PageWriter::toBytes(root));
+    QVERIFY(!text.contains(QStringLiteral("chrome=")));
 }
 
 void PageNavTest::hideZoneAndCellAll()
@@ -254,6 +281,57 @@ void PageNavTest::breadcrumbCopyRestoresShow()
     QString err;
     QVERIFY2(PageLoader::loadFromXml(PageWriter::toBytes(snap), written, &err), qPrintable(err));
     QVERIFY(written.findGrid(QStringLiteral("g"))->show);
+}
+
+void PageNavTest::reconcileDrawerAppearDismissSnap()
+{
+    using A = PageNav::DrawerAnim;
+    QCOMPARE(PageNav::reconcileDrawer(false, true, false, false), A::Appear);
+    QCOMPARE(PageNav::reconcileDrawer(true, true, false, false), A::Keep);
+    QCOMPARE(PageNav::reconcileDrawer(true, false, false, false), A::Dismiss);
+    QCOMPARE(PageNav::reconcileDrawer(true, false, true, false), A::Snap);
+    QCOMPARE(PageNav::reconcileDrawer(false, false, true, true), A::Snap);
+    QCOMPARE(PageNav::reconcileDrawer(false, true, false, true), A::Appear);
+    QCOMPARE(PageNav::reconcileDrawer(false, false, false, true), A::Keep);
+    QCOMPARE(PageNav::reconcileDrawer(false, false, false, false), A::Keep);
+
+    PageDocument root;
+    QVERIFY(loadXml(R"xml(
+<Page id="main" master="true">
+  <Grid id="drawer" show="true" drawerMotion="true" size="200,80"/>
+  <Grid id="quit" show="false" size="80,40"/>
+</Page>
+)xml",
+                    root));
+    const bool wasDrawer = root.findGrid(QStringLiteral("drawer"))->show
+                           && root.findGrid(QStringLiteral("drawer"))->drawerMotion;
+    QVector<PageDocument> attached;
+    const PageNav::Docs docs = docsOf(root, attached);
+    PageAction hide;
+    hide.type = PageActionType::Nav;
+    hide.verb = PageVerb::Close;
+    hide.targetKind = PageTargetKind::Grid;
+    hide.targetId = QStringLiteral("drawer");
+    PageAction showQuit;
+    showQuit.type = PageActionType::Nav;
+    showQuit.verb = PageVerb::Open;
+    showQuit.targetKind = PageTargetKind::Grid;
+    showQuit.targetId = QStringLiteral("quit");
+    PageGrid* drawer = PageNav::locate(docs, {}, hide.targetId, &PageDocument::findGrid);
+    PageGrid* quit = PageNav::locate(docs, {}, showQuit.targetId, &PageDocument::findGrid);
+    QVERIFY(drawer);
+    QVERIFY(quit);
+    drawer->show = PageNav::shownAfter(hide.verb, drawer->show);
+    quit->show = PageNav::shownAfter(showQuit.verb, quit->show);
+    const bool nowDrawer = drawer->show && drawer->drawerMotion;
+    const bool otherRoot = quit->show && !quit->drawerMotion;
+    QCOMPARE(PageNav::reconcileDrawer(wasDrawer, nowDrawer, otherRoot, false), A::Snap);
+    QVERIFY(!drawer->show);
+    QVERIFY(quit->show);
+
+    drawer->show = false;
+    quit->show = false;
+    QCOMPARE(PageNav::reconcileDrawer(true, false, false, false), A::Dismiss);
 }
 
 QObject* createPageNavTest()

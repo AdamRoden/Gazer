@@ -133,6 +133,16 @@ struct PageChrome {
                || progressStyle.has_value() || progressColor.has_value();
     }
 
+    /// Grids paint a surface only. Labels, dwell rings, and progress never use these.
+    [[nodiscard]] PageChrome withoutItemPaint() const
+    {
+        PageChrome out = *this;
+        out.foreground.reset();
+        out.progressStyle.reset();
+        out.progressColor.reset();
+        return out;
+    }
+
     [[nodiscard]] PageChrome withOverrides(const PageChrome& ovr) const
     {
         PageChrome out = *this;
@@ -210,8 +220,6 @@ enum class PageNavScope { Id, All, Self, Others };
 enum class PageZoomMode { Off, Settings, Level, Foresight, ForesightBonus };
 enum class PageMoveMode { Gaze, Absolute, Relative, Direction };
 enum class PageClickKind { Default, Double, Down, Up, Toggle };
-/// Exclusive root-shell slot. None = ordinary grid (not Docked/Drawer/Quit).
-enum class PageRootSlot { None, Drawer, Quit };
 
 struct PageAction {
     PageActionType type = PageActionType::Unknown;
@@ -245,6 +253,15 @@ struct PageAction {
     QString speakText;
 };
 
+/// label / value / display / slider / preview are not dwell targets.
+[[nodiscard]] inline bool pageRoleIsPassive(QStringView role)
+{
+    const QString r = role.toString().trimmed().toLower();
+    return r == QLatin1String("label") || r == QLatin1String("value")
+           || r == QLatin1String("display") || r == QLatin1String("slider")
+           || r == QLatin1String("preview");
+}
+
 struct PageLeaf {
     QString id;
     QString styleId;
@@ -259,13 +276,26 @@ struct PageLeaf {
     QString role;
     QString textStyle;
     QString visibleWhen;
-    bool interactive = true;
     bool suspendExempt = false;
     bool actionLoop = false;
     /// Omitted from the live session when false. Default shown.
     bool show = true;
+    /// Zones only. Cells take shell from their grid.
     bool shell = false;
     QVector<PageAction> actions;
+
+    /// Dwell/click target. Passive roles are not. A tab with no actions is the
+    /// current tab (selected, not a navigation target).
+    [[nodiscard]] bool isInteractive() const
+    {
+        if (pageRoleIsPassive(role)) {
+            return false;
+        }
+        if (role.compare(QLatin1String("tab"), Qt::CaseInsensitive) == 0 && actions.isEmpty()) {
+            return false;
+        }
+        return true;
+    }
 };
 
 struct PageCell : PageLeaf {
@@ -295,9 +325,7 @@ struct PageGrid {
     bool drawerMotion = false;
     bool autoClose = false;
     int autoCloseIdleMs = -1;
-    PageRootSlot rootSlot = PageRootSlot::None;
-    /// Ordinary grids with show=false are omitted from the live session.
-    /// Chrome-slot grids ignore this and follow root chrome.
+    /// Omitted from the live session when false. Default shown.
     bool show = true;
     /// Root chrome: painted and hit above every non-shell Grid/Zone.
     bool shell = false;

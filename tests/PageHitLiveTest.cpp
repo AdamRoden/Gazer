@@ -3,7 +3,6 @@
 #include "layout/PageHit.h"
 #include "layout/PageLoader.h"
 
-#include <QSet>
 #include <QVariantMap>
 #include <QtTest>
 
@@ -55,8 +54,7 @@ void PageHitLiveTest::mainChipProgressOverlapsTaskbar()
     PageFrame frame;
     frame.screen = QRectF(0, 0, 1920, 1080);
     frame.desktop = QRectF(0, 0, 1920, 1040);
-    const QSet<QString> hiddenGrids{QStringLiteral("drawer"), QStringLiteral("quit")};
-    const QVector<PageTarget> t = PageHit::collect(doc, frame, hiddenGrids, {});
+    const QVector<PageTarget> t = PageHit::collect(doc, frame);
     const PageTarget* vis = targetById(t, QStringLiteral("mainChip"));
     const PageTarget* sleepT = targetById(t, QStringLiteral("sleep"));
     QVERIFY(vis);
@@ -78,8 +76,7 @@ void PageHitLiveTest::hitMainChipOffScreen()
     PageFrame frame;
     frame.screen = QRectF(0, 0, 1920, 1080);
     frame.desktop = frame.screen;
-    const QSet<QString> hiddenGrids{QStringLiteral("drawer"), QStringLiteral("quit")};
-    const QVector<PageTarget> t = PageHit::collect(doc, frame, hiddenGrids, {});
+    const QVector<PageTarget> t = PageHit::collect(doc, frame);
     const PageTarget* chip = targetById(t, QStringLiteral("mainChip"));
     QVERIFY(chip);
     const PageTarget* hit = PageHit::at(t, chip->geom.dwellZone.center());
@@ -100,8 +97,7 @@ void PageHitLiveTest::engagedZoneIncludesProgress()
     PageFrame frame;
     frame.screen = QRectF(0, 0, 1920, 1080);
     frame.desktop = frame.screen;
-    const QSet<QString> hiddenGrids{QStringLiteral("drawer"), QStringLiteral("quit")};
-    const QVector<PageTarget> t = PageHit::collect(doc, frame, hiddenGrids, {});
+    const QVector<PageTarget> t = PageHit::collect(doc, frame);
     const PageTarget* chip = targetById(t, QStringLiteral("mainChip"));
     QVERIFY(chip);
     QVERIFY(PageHit::at(t, chip->geom.dwellZone.center()) == chip);
@@ -128,10 +124,11 @@ void PageHitLiveTest::hitDrawerCell()
     PageFrame frame;
     frame.screen = QRectF(0, 0, 1920, 1080);
     frame.desktop = frame.screen;
-    const QSet<QString> hiddenGrids{QStringLiteral("quit")};
-    const QVector<PageTarget> t = PageHit::collect(doc, frame, hiddenGrids, {});
-    const PageGrid* drawer = doc.findGrid(QStringLiteral("drawer"));
-    QVERIFY(drawer);
+    PageGrid* drawerGrid = doc.findGrid(QStringLiteral("drawer"));
+    QVERIFY(drawerGrid);
+    drawerGrid->show = true;
+    const QVector<PageTarget> t = PageHit::collect(doc, frame);
+    const PageGrid* drawer = drawerGrid;
     const QRectF bounds = PageHit::gridBounds(*drawer, frame);
     const QRectF cell0 = PageHit::cellRect(*drawer, bounds, 0, 0, 1, 1);
     QVERIFY(!cell0.isEmpty());
@@ -156,8 +153,7 @@ void PageHitLiveTest::visibleWhenHidesMainChip()
     frame.desktop = frame.screen;
     QVariantMap expanded;
     expanded.insert(QStringLiteral("expanded"), true);
-    const QSet<QString> hiddenGrids{QStringLiteral("drawer"), QStringLiteral("quit")};
-    const QVector<PageTarget> t = PageHit::collect(doc, frame, hiddenGrids, expanded, false);
+    const QVector<PageTarget> t = PageHit::collect(doc, frame, expanded);
     QVERIFY(targetById(t, QStringLiteral("mainChip")) == nullptr);
     const PageTarget* sleep = targetById(t, QStringLiteral("sleep"));
     QVERIFY(sleep);
@@ -174,8 +170,7 @@ void PageHitLiveTest::sleepKeepsContentWhenSuspended()
     PageFrame frame;
     frame.screen = QRectF(0, 0, 1920, 1080);
     frame.desktop = frame.screen;
-    const QSet<QString> hiddenGrids{QStringLiteral("drawer"), QStringLiteral("quit")};
-    const QVector<PageTarget> t = PageHit::collect(doc, frame, hiddenGrids, {}, true);
+    const QVector<PageTarget> t = PageHit::collect(doc, frame, {}, true);
     const PageTarget* sleep = nullptr;
     const PageTarget* main = nullptr;
     for (const PageTarget& x : t) {
@@ -204,8 +199,7 @@ void PageHitLiveTest::edgeChipHidesUntilProgress()
     PageFrame frame;
     frame.screen = QRectF(0, 0, 1920, 1080);
     frame.desktop = frame.screen;
-    const QVector<PageTarget> t =
-        PageHit::collect(doc, frame, {QStringLiteral("drawer"), QStringLiteral("quit")});
+    const QVector<PageTarget> t = PageHit::collect(doc, frame);
     const PageTarget* sleep = nullptr;
     for (const PageTarget& x : t) {
         if (x.id == QLatin1String("sleep")) {
@@ -245,7 +239,7 @@ void PageHitLiveTest::qwertyClosedGridHidden()
     QVERIFY(targetById(keys, QStringLiteral("k_q")));
     QVERIFY(targetById(keys, QStringLiteral("sleep")));
     QVERIFY(!targetById(keys, QStringLiteral("max")));
-    const QVector<PageTarget> all = PageHit::collect(kb, frame, {}, {}, false, nullptr, true);
+    const QVector<PageTarget> all = PageHit::collect(kb, frame, {}, false, nullptr, true);
     QVERIFY(targetById(all, QStringLiteral("max")));
 }
 
@@ -271,7 +265,7 @@ void PageHitLiveTest::showHidesGridCellAndZone()
     frame.screen = QRectF(0, 0, 1920, 1080);
     frame.desktop = frame.screen;
     QVector<PageGridPaint> grids;
-    const QVector<PageTarget> t = PageHit::collect(doc, frame, {}, {}, false, &grids);
+    const QVector<PageTarget> t = PageHit::collect(doc, frame, {}, false, &grids);
     QVERIFY(targetById(t, QStringLiteral("a")));
     QVERIFY(!targetById(t, QStringLiteral("b")));
     QVERIFY(!targetById(t, QStringLiteral("c")));
@@ -289,7 +283,7 @@ void PageHitLiveTest::showHidesGridCellAndZone()
     }
     QVERIFY(sawShown);
     QVERIFY(!sawHidden);
-    const QVector<PageTarget> all = PageHit::collect(doc, frame, {}, {}, false, nullptr, true);
+    const QVector<PageTarget> all = PageHit::collect(doc, frame, {}, false, nullptr, true);
     QVERIFY(targetById(all, QStringLiteral("b")));
     QVERIFY(targetById(all, QStringLiteral("c")));
     QVERIFY(targetById(all, QStringLiteral("zhide")));
@@ -305,8 +299,7 @@ void PageHitLiveTest::edgeChipGazeHitsOnScreenChrome()
     PageFrame frame;
     frame.screen = QRectF(0, 0, 1920, 1080);
     frame.desktop = frame.screen;
-    const QSet<QString> hiddenGrids{QStringLiteral("drawer"), QStringLiteral("quit")};
-    const QVector<PageTarget> t = PageHit::collect(doc, frame, hiddenGrids, {});
+    const QVector<PageTarget> t = PageHit::collect(doc, frame);
     const PageTarget* chip = targetById(t, QStringLiteral("mainChip"));
     QVERIFY(chip);
     QVERIFY(chip->suspendExempt);
@@ -338,7 +331,7 @@ void PageHitLiveTest::liveEditorGridHasOpaqueChrome()
     frame.screen = QRectF(0, 0, 1920, 1080);
     frame.desktop = frame.screen;
     QVector<PageGridPaint> grids;
-    (void)PageHit::collect(doc, frame, {}, {}, false, &grids);
+    (void)PageHit::collect(doc, frame, {}, false, &grids);
     QCOMPARE(grids.size(), 1);
     QVERIFY(grids[0].chrome.background.has_value());
     QCOMPARE(grids[0].chrome.background->alpha(), 255);
@@ -385,7 +378,7 @@ void PageHitLiveTest::overlappingBoardOccludesLowerPage()
     QVector<PageGridPaint> grids;
     QVector<PageTarget> targets;
     QVector<PageGridPaint> g1;
-    QVector<PageTarget> t1 = PageHit::collect(settings, frame, {}, {}, false, &g1);
+    QVector<PageTarget> t1 = PageHit::collect(settings, frame, {}, false, &g1);
     for (PageGridPaint& gp : g1) {
         gp.pageId = settings.id;
         grids.push_back(gp);
@@ -396,7 +389,7 @@ void PageHitLiveTest::overlappingBoardOccludesLowerPage()
         targets.push_back(t);
     }
     QVector<PageGridPaint> g2;
-    QVector<PageTarget> t2 = PageHit::collect(editor, frame, {}, {}, false, &g2);
+    QVector<PageTarget> t2 = PageHit::collect(editor, frame, {}, false, &g2);
     for (PageGridPaint& gp : g2) {
         gp.pageId = editor.id;
         grids.push_back(gp);

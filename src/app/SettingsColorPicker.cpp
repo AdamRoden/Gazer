@@ -305,14 +305,14 @@ PageDocument SettingsUi::buildColorDocument() const
         grid.cells.push_back(cell(QStringLiteral("edit_%1").arg(QLatin1String(axis.id)),
                                   QStringLiteral("Edit"), i, 0,
                                   QStringLiteral("settings.color.scrub.%1").arg(QLatin1String(axis.id)),
-                                  pal.edit, 1, true, {}, {}, QStringLiteral("PhysicalKeys")));
+                                  pal.edit, 1, {}, {}, QStringLiteral("PhysicalKeys")));
         grid.cells.push_back(cell(QStringLiteral("dec_%1").arg(QLatin1String(axis.id)),
                                   QStringLiteral("−"), i, 1,
                                   QStringLiteral("settings.color.nudge.%1.dec").arg(QLatin1String(axis.id)),
                                   pal.nudge));
         grid.cells.push_back(cell(QStringLiteral("track_%1").arg(QLatin1String(axis.id)),
                                   QLatin1String(axis.title), i, 2, {}, QColor(),
-                                  themePicker ? 5 : 9, false, QStringLiteral("slider"),
+                                  themePicker ? 5 : 9, QStringLiteral("slider"),
                                   QLatin1String(axis.id)));
         grid.cells.push_back(cell(QStringLiteral("inc_%1").arg(QLatin1String(axis.id)),
                                   QStringLiteral("+"), i, themePicker ? 7 : 11,
@@ -347,7 +347,7 @@ PageDocument SettingsUi::buildColorDocument() const
         }
         PageCell sw = cell(QLatin1String(role.id), QLatin1String(role.label), role.row, 8,
                            QStringLiteral("settings.color.select.%1").arg(QLatin1String(role.colorKey)),
-                           role.color, 3, true, {}, QLatin1String(role.caption));
+                           role.color, 3, {}, QLatin1String(role.caption));
         sw.settingKey = QLatin1String(role.colorKey);
         sw.activeState = QStringLiteral("setting.color.editing.%1").arg(QLatin1String(role.colorKey));
         grid.cells.push_back(sw);

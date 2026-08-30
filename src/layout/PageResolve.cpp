@@ -36,6 +36,11 @@ PageChrome style(const PageDocument& page, const QString& styleId, const PageChr
     return page.style.withOverrides(namedOr(page, styleId, inlineStyle));
 }
 
+PageChrome gridStyle(const PageDocument& page, const QString& styleId, const PageChrome& inlineStyle)
+{
+    return style(page, styleId, inlineStyle).withoutItemPaint();
+}
+
 PageDwell dwell(const PageDocument& page, const QString& dwellId, const PageDwell& inlineDwell)
 {
     return page.dwell.withOverrides(namedOr(page, dwellId, inlineDwell));

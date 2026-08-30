@@ -20,7 +20,6 @@ PageSession::PageBreadcrumb PageSession::captureBreadcrumb() const
 {
     PageBreadcrumb b;
     b.root = m_root;
-    b.chrome = m_chrome;
     b.attached.reserve(m_attached.size());
     for (const AttachedPage& a : m_attached) {
         b.attached.push_back(a.doc);
@@ -54,11 +53,7 @@ void PageSession::restoreBreadcrumb(PageBreadcrumb snap)
         ap.doc = std::move(doc);
         m_attached.push_back(std::move(ap));
     }
-    m_chrome = snap.chrome;
-    m_props.insert(QStringLiteral("expanded"), m_chrome != RootChrome::Docked);
-    m_drawerTimer.stop();
-    m_drawerPhase = DrawerPhase::Idle;
-    m_drawerScale = 1.0;
+    resetDrawerAnim();
     rebuild();
     raise();
     emit sessionChanged();
@@ -113,6 +108,36 @@ bool PageSession::applyNav(const PageAction& action, const QString& sourcePageId
         }
         return false;
     }
+    if (action.targetKind == PageTargetKind::Page) {
+        if (!hasRoot()) {
+            if (error) {
+                *error = QStringLiteral("No root page");
+            }
+            return false;
+        }
+        PageBreadcrumb snap;
+        if (action.breadcrumb) {
+            snap = captureBreadcrumb();
+        }
+        if (!applyNavMutation(action, sourcePageId, sourceTargetId, error)) {
+            return false;
+        }
+        if (action.breadcrumb) {
+            m_crumbs.push_back(std::move(snap));
+        }
+        return true;
+    }
+    QVector<PageAction> one;
+    one.push_back(action);
+    return applyNavs(one, sourcePageId, sourceTargetId, error);
+}
+
+bool PageSession::applyNavs(const QVector<PageAction>& actions, const QString& sourcePageId,
+                            const QString& sourceTargetId, QString* error)
+{
+    if (actions.isEmpty()) {
+        return true;
+    }
     if (!hasRoot()) {
         if (error) {
             *error = QStringLiteral("No root page");
@@ -120,17 +145,35 @@ bool PageSession::applyNav(const PageAction& action, const QString& sourcePageId
         return false;
     }
 
+    bool wantCrumb = false;
+    for (const PageAction& a : actions) {
+        if (a.type != PageActionType::Nav || a.targetKind == PageTargetKind::Page) {
+            if (error) {
+                *error = QStringLiteral("applyNavs is ShowGrid/HideGrid (and zone/cell) only");
+            }
+            return false;
+        }
+        wantCrumb = wantCrumb || a.breadcrumb;
+    }
+
     PageBreadcrumb snap;
-    if (action.breadcrumb) {
+    if (wantCrumb) {
         snap = captureBreadcrumb();
     }
-    if (!applyNavMutation(action, sourcePageId, sourceTargetId, error)) {
-        return false;
+    const bool wasDrawer = drawerMotionShown();
+    bool ok = true;
+    for (const PageAction& a : actions) {
+        if (!applyNavMutation(a, sourcePageId, sourceTargetId, error)) {
+            ok = false;
+            break;
+        }
     }
-    if (action.breadcrumb) {
+    if (wantCrumb && ok) {
         m_crumbs.push_back(std::move(snap));
     }
-    return true;
+    syncDrawerAnim(wasDrawer);
+    emitShowChanged();
+    return ok;
 }
 
 bool PageSession::applyNavMutation(const PageAction& action, const QString& sourcePageId,
@@ -191,7 +234,7 @@ bool PageSession::applyNavPage(PageVerb verb, PageNavScope scope, const QString&
             }
             return false;
         }
-        setRootChrome(RootChrome::Drawer);
+        raise();
         return true;
     }
     const bool attached = hasPage(tid);
@@ -347,7 +390,6 @@ bool PageSession::applyShowNav(PageVerb verb, PageTargetKind kind, PageNavScope 
             return false;
         }
         PageNav::applyScope(navDocs(), kind, verb, skipId, skipPage);
-        emitShowChanged();
         return true;
     }
 
@@ -373,14 +415,7 @@ bool PageSession::applyShowNav(PageVerb verb, PageTargetKind kind, PageNavScope 
             }
             return false;
         }
-        if (g->rootSlot != PageRootSlot::None) {
-            const RootChrome slot = chromeForSlot(g->rootSlot);
-            const bool showing = (m_chrome == slot);
-            setRootChrome(PageNav::shownAfter(verb, showing) ? slot : RootChrome::Docked);
-            return true;
-        }
         g->show = PageNav::shownAfter(verb, g->show);
-        emitShowChanged();
         return true;
     }
     if (kind == PageTargetKind::Zone) {
@@ -392,7 +427,6 @@ bool PageSession::applyShowNav(PageVerb verb, PageTargetKind kind, PageNavScope 
             return false;
         }
         z->show = PageNav::shownAfter(verb, z->show);
-        emitShowChanged();
         return true;
     }
     PageCell* c = PageNav::locate(docs, preferPage, itemId, &PageDocument::findCell);
@@ -403,7 +437,6 @@ bool PageSession::applyShowNav(PageVerb verb, PageTargetKind kind, PageNavScope 
         return false;
     }
     c->show = PageNav::shownAfter(verb, c->show);
-    emitShowChanged();
     return true;
 }
 

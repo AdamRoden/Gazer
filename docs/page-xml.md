@@ -7,8 +7,9 @@ Pages live in `resources/layouts/*.xml`. Catalog id should match the filename st
 | Rule | Behavior |
 |------|----------|
 | Dims | Integer token = pixels (`150`). Token with `.` or `/` = proportion of the bounds (`0.5`, `1/2`). Arithmetic with `A_ScreenWidth` / `A_ScreenHeight` is pixels (`A_ScreenHeight/9*16`), evaluated against the placement surface passed at resolve time (work area when `desktopMode`). |
-| Style / dwell | Page inherits from settings, then overrides per field. Grids, cells, and zones inherit from the **page** (never from a grid). Named `style` / `dwell` plus inline attrs override individual members. |
+| Style / dwell | Page inherits from settings, then overrides per field. Grids, cells, and zones inherit from the **page** (never from a grid). Named `style` / `dwell` plus inline attrs override individual members. Grid resolve then drops `foreground` / `progressStyle` / `progressColor`. |
 | Overlap | Topmost attached page’s grid is opaque. Shell grids/zones paint and hit above the rest. |
+| Drawer / quit | Ordinary `show` flags. Master XML uses `ShowGrid` / `HideGrid` (Main chip shows the drawer; Dismiss hides it; Quit swaps drawer ↔ quit). Consecutive Show/Hide in one cell are applied together, then the drawer animates: appear when a `drawerMotion` grid is shown, dismiss when it is the last master grid hidden, snap when another master grid remains (or is shown in that same list). Hidden shell grids do not reserve host space. |
 | Auto-close | Idle on an `autoClose` grid collapses the drawer (root never destroys itself). `suspendDwell` stops the idle timer; `resumeDwell` restarts it from zero. |
 | Zones | Chrome is hidden until dwell progress or activation flash. Engaged dwell includes the on-screen progress strip. |
 
@@ -31,18 +32,18 @@ Named or anonymous chrome. An unnamed `<Style>` (no `id`) sets the page default.
 | Attribute | Description |
 |-----------|-------------|
 | `id` | Omit to set the page default style |
-| `background`, `foreground`, `border` | Colors (`#RRGGBB` or `#AARRGGBB`) |
+| `background`, `foreground`, `border` | Colors (`#RRGGBB` or `#AARRGGBB`). Grids ignore `foreground`. |
 | `thickness` | Border widths: one value, or `t,r,b,l` |
 | `radius` | Corner radii: one value, or `tl,tr,br,bl` |
-| `progressStyle` | How dwell progress is drawn. Comma-separated: `radial`, `pie`, `border`, `fill` (center), `fillup`, `filldown`, `fillleft`, `fillright` |
-| `progressColor` | Dwell-progress accent (`#RRGGBB` or `#AARRGGBB`). Empty inherits settings. |
+| `progressStyle` | How dwell progress is drawn. Comma-separated: `radial`, `pie`, `border`, `fill` (center), `fillup`, `filldown`, `fillleft`, `fillright`. Grids ignore this. |
+| `progressColor` | Dwell-progress accent (`#RRGGBB` or `#AARRGGBB`). Empty inherits settings. Grids ignore this. |
 | `blur` | Frosted-glass blur radius |
 
 ## `<Dwell>`
 
 Named or anonymous timing. An unnamed `<Dwell>` (no `id`) sets the page default (`scanGrace`, `dwellGrace`, `activation`). Grids, cells, and zones inherit from the page, never from a parent grid. They may reference a named dwell with `dwell="id"` and override individual members inline.
 
-`visibleWhen` on cells and zones is a tiny predicate, **not** JavaScript: omitted = show; `ident` = show when that property is true; `!ident` = show when false. Known properties: `expanded`, `dwellSuspend`.
+`visibleWhen` on cells and zones is a tiny predicate, **not** JavaScript: omitted = show; `ident` = show when that property is true; `!ident` = show when false. Known properties: `expanded` (any master-page grid is shown), `dwellSuspend`.
 
 ## `<Grid>` / `<SubGrid>` / `<Cell>`
 
@@ -54,16 +55,15 @@ A Grid is a placed rectangle of rows and columns. `desktopMode="true"` uses the 
 | `offset`, `size` | `x,y` dim pairs: pixels, axis proportion (`0.25`), height proportion (`0.25h`), or screen expressions (`A_ScreenHeight/9*16, A_ScreenHeight`) |
 | `rows`, `columns`, `gap`, `margin` | Cell mesh |
 | `rowWeights` | Relative row heights (`1,2,2` = header half as tall as each content row). Missing tracks are 1 |
-| `drawerMotion`, `shell` | Drawer scale / always-on-top layer |
-| `chrome` | `drawer` or `quit` — exclusive root-shell slot |
-| `show` | `true` (default) or `false` — omit from the live session when false. Chrome-slot grids follow root chrome instead. |
-| `style`, `dwell` | Named style/dwell ids, plus inline chrome/dwell attrs |
+| `drawerMotion`, `shell` | Drawer scale animation / always-on-top layer |
+| `show` | `true` (default) or `false` — omit from the live session when false. Legacy `chrome="drawer"` / `"quit"` with no `show` loads as hidden and is not written back. |
+| `style`, `dwell` | Named style/dwell ids, plus inline chrome/dwell attrs. Grid inherit drops `foreground` / `progressStyle` / `progressColor`. |
 
-Cells use `row`, `col`, `rowSpan`, `colSpan`, `label`, `icon`, `caption`, `role` (`label`, `tab`, `slider`, `preview`, …), `textStyle` (`caption`, `body`, `title`, `section`, `key` — fill the cell with the glyph), `show` (default true), `visibleWhen`, `interactive`, `suspendExempt`. Nested `<SubGrid>` occupies a cell span. Zones take the same `show` attribute.
+Cells use `row`, `col`, `rowSpan`, `colSpan`, `label`, `icon`, `caption`, `role` (`label`, `value`, `tab`, `slider`, `preview`, …), `textStyle` (`caption`, `body`, `title`, `section`, `key` — fill the cell with the glyph), `show` (default true), `visibleWhen`, `suspendExempt`. Nested `<SubGrid>` occupies a cell span. Zones take the same `show` attribute. `role` decides whether the item is a dwell target: `label`, `value`, `slider`, and `preview` are not; a `tab` with no actions is the current tab (selected, not a target). Cells do not take `shell` — they follow their grid.
 
 ## `<Zone>`
 
-Screen-anchored chip (dock Main/Sleep, keyboard edge keys). Same leaf fields as a cell, plus `anchor` / `offset` / `size`, optional `desktopMode`, and optional `dwellOffset` / `dwellSize` for off-screen dwell.
+Screen-anchored chip (dock Main/Sleep, keyboard edge keys). Same leaf fields as a cell, plus `anchor` / `offset` / `size`, optional `desktopMode`, optional `dwellOffset` / `dwellSize` for off-screen dwell, and optional `shell` (always-on-top layer; cells inherit this from their grid).
 
 ## Actions
 
@@ -114,7 +114,7 @@ A cell or zone may have **one** action attribute. Multiple actions use child ele
 | `OpenPage` | targetId[, true] — `true` saves a breadcrumb of the current page state |
 | `ShowGrid` / `ShowZone` / `ShowCell` | targetId[, true] — show a grid, zone, or cell (`openGrid` / `openZone` still load) |
 | `ClosePage` | targetId[, true] — `-all`, `-self`, `-!self` (all except current) |
-| `HideGrid` / `HideZone` / `HideCell` | targetId[, true] — hide a grid, zone, or cell (`closeGrid` / `closeZone` still load). `-all` hides ordinary targets of that kind (drawer/quit stay on their chrome slot). |
+| `HideGrid` / `HideZone` / `HideCell` | targetId[, true] — hide a grid, zone, or cell (`closeGrid` / `closeZone` still load). `-all` hides every target of that kind. |
 | `GoBack` | (none) — restore the last breadcrumb |
 | `Speak` | TTS text |
 | `AHK` | element body / CDATA — written to a temp `.ahk` and started with a local AutoHotkey install (v2 preferred; `#Requires AutoHotkey v1` selects v1). AutoHotkey is not bundled; set `GAZER_AHK` to an exe to override discovery. |

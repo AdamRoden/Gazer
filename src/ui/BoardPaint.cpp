@@ -385,7 +385,7 @@ void paintTarget(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeC
         SliderTrack::paintPreview(p, r, radius, previewColor);
         paintLabel(p, t, r, theme);
     } else if (t.role == QLatin1String("tab")) {
-        paintTab(p, t, r, theme, hovered, active || !t.interactive, progress);
+        paintTab(p, t, r, theme, hovered, active || t.actions.isEmpty(), progress);
     } else if (t.role == QLatin1String("label") || t.role == QLatin1String("value")) {
         paintSurface(p, r, t.chrome, theme, glass, false, false, false, false);
         paintLabel(p, t, r, theme);

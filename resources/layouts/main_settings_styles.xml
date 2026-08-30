@@ -13,7 +13,7 @@
         <ClosePage value="-self"/>
         <OpenPage value="main_settings_pointer_timing"/>
       </Cell>
-      <Cell id="tab_styles" row="0" col="2" label="Styles" role="tab" interactive="false"/>
+      <Cell id="tab_styles" row="0" col="2" label="Styles" role="tab"/>
       <Cell id="tab_assist" row="0" col="3" label="Assist" role="tab">
         <ClosePage value="-self"/>
         <OpenPage value="main_settings_assist"/>

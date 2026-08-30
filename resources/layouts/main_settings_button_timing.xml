@@ -5,7 +5,7 @@
   <Style id="join" background="#00000000" thickness="0" radius="0"/>
   <Grid id="board" desktopMode="true" rows="10" columns="16" anchor="Top" offset="0,0" size="A_ScreenHeight/9*16, A_ScreenHeight" gap="6" margin="12" thickness="1" radius="4">
     <SubGrid id="tabs" row="0" col="0" colSpan="16" rows="1" columns="6" gap="6">
-      <Cell id="tab_buttons" row="0" col="0" label="Button" role="tab" interactive="false"/>
+      <Cell id="tab_buttons" row="0" col="0" label="Button" role="tab"/>
       <Cell id="tab_pointers" row="0" col="1" label="Pointer" role="tab">
         <ClosePage value="-self"/>
         <OpenPage value="main_settings_pointer_timing"/>

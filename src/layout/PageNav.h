@@ -16,6 +16,26 @@ namespace PageNav {
     return true;
 }
 
+/// After grid `show` flags change. `wasDrawer` / `nowDrawer` are top-level
+/// `drawerMotion && show` on the master page. `otherRoot` is any other shown
+/// top-level master grid. `dismissing` is the drawer animator already in Dismiss.
+enum class DrawerAnim { Keep, Appear, Dismiss, Snap };
+
+[[nodiscard]] inline DrawerAnim reconcileDrawer(bool wasDrawer, bool nowDrawer, bool otherRoot,
+                                                bool dismissing)
+{
+    if (nowDrawer) {
+        return (!wasDrawer || dismissing) ? DrawerAnim::Appear : DrawerAnim::Keep;
+    }
+    if (otherRoot) {
+        return DrawerAnim::Snap;
+    }
+    if (wasDrawer && !dismissing) {
+        return DrawerAnim::Dismiss;
+    }
+    return DrawerAnim::Keep;
+}
+
 [[nodiscard]] inline QString kindLabel(PageTargetKind kind)
 {
     switch (kind) {
@@ -81,9 +101,6 @@ template<typename Fn>
 void forEachGridFlag(QVector<PageGrid>& nodes, Fn&& fn)
 {
     for (PageGrid& g : nodes) {
-        if (g.rootSlot != PageRootSlot::None) {
-            continue;
-        }
         if (!g.id.isEmpty()) {
             fn(g.show, g.id);
         }

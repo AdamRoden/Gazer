@@ -32,7 +32,6 @@ void PageLoaderActionTest::actionExtrasRoundTrip()
     g.id = QStringLiteral("g");
     PageCell c;
     c.id = QStringLiteral("c");
-    c.shell = true;
     c.styleId = QStringLiteral("chip");
     PageAction send;
     send.type = PageActionType::Send;
@@ -64,7 +63,6 @@ void PageLoaderActionTest::actionExtrasRoundTrip()
     const PageGrid* grid = out.findGrid(QStringLiteral("g"));
     QVERIFY(grid);
     QCOMPARE(grid->cells.size(), 1);
-    QCOMPARE(grid->cells[0].shell, true);
     QCOMPARE(grid->cells[0].styleId, QStringLiteral("chip"));
     QCOMPARE(grid->cells[0].actions.size(), 4);
     QCOMPARE(grid->cells[0].actions[0].sendDurationMs, 40);

@@ -53,10 +53,12 @@ void attrInt(QXmlStreamWriter& xml, const QString& name, int value, int defaultV
     }
 }
 
-void writeChrome(QXmlStreamWriter& xml, const PageChrome& st)
+void writeChrome(QXmlStreamWriter& xml, const PageChrome& st, bool includeItemPaint = true)
 {
     attr(xml, QStringLiteral("background"), colorTok(st.background));
-    attr(xml, QStringLiteral("foreground"), colorTok(st.foreground));
+    if (includeItemPaint) {
+        attr(xml, QStringLiteral("foreground"), colorTok(st.foreground));
+    }
     attr(xml, QStringLiteral("border"), colorTok(st.borderColor));
     if (st.thickness && st.thickness->isSet()) {
         xml.writeAttribute(QStringLiteral("thickness"), st.thickness->toToken());
@@ -66,6 +68,9 @@ void writeChrome(QXmlStreamWriter& xml, const PageChrome& st)
     }
     if (st.blur) {
         xml.writeAttribute(QStringLiteral("blur"), QString::number(*st.blur, 'g', 8));
+    }
+    if (!includeItemPaint) {
+        return;
     }
     if (st.progressStyle) {
         const QString csv = st.progressStyle->toCsv();
@@ -102,7 +107,7 @@ void writePlacement(QXmlStreamWriter& xml, bool desktopMode, PageAnchor anchor,
     attr(xml, QStringLiteral("size"), pairTok(size));
 }
 
-void writeLeafAttrs(QXmlStreamWriter& xml, const PageLeaf& leaf)
+void writeLeafAttrs(QXmlStreamWriter& xml, const PageLeaf& leaf, bool writeShell)
 {
     attr(xml, QStringLiteral("id"), leaf.id);
     attr(xml, QStringLiteral("style"), leaf.styleId);
@@ -115,11 +120,12 @@ void writeLeafAttrs(QXmlStreamWriter& xml, const PageLeaf& leaf)
     attr(xml, QStringLiteral("role"), leaf.role);
     attr(xml, QStringLiteral("textStyle"), leaf.textStyle);
     attr(xml, QStringLiteral("visibleWhen"), leaf.visibleWhen);
-    attrBool(xml, QStringLiteral("interactive"), leaf.interactive, true);
     attrBool(xml, QStringLiteral("suspendExempt"), leaf.suspendExempt, false);
     attrBool(xml, QStringLiteral("actionLoop"), leaf.actionLoop, false);
     attrBool(xml, QStringLiteral("show"), leaf.show, true);
-    attrBool(xml, QStringLiteral("shell"), leaf.shell, false);
+    if (writeShell) {
+        attrBool(xml, QStringLiteral("shell"), leaf.shell, false);
+    }
     writeChrome(xml, leaf.style);
     writeDwell(xml, leaf.dwell);
 }
@@ -201,22 +207,17 @@ void writeGrid(QXmlStreamWriter& xml, const PageGrid& grid)
         }
     }
     attrBool(xml, QStringLiteral("drawerMotion"), grid.drawerMotion, false);
-    if (grid.rootSlot == PageRootSlot::Drawer) {
-        xml.writeAttribute(QStringLiteral("chrome"), QStringLiteral("drawer"));
-    } else if (grid.rootSlot == PageRootSlot::Quit) {
-        xml.writeAttribute(QStringLiteral("chrome"), QStringLiteral("quit"));
-    }
     attrBool(xml, QStringLiteral("autoClose"), grid.autoClose, false);
     attrInt(xml, QStringLiteral("autoCloseIdleMs"), grid.autoCloseIdleMs, -1);
     attrBool(xml, QStringLiteral("show"), grid.show, true);
     attrBool(xml, QStringLiteral("shell"), grid.shell, false);
     attr(xml, QStringLiteral("style"), grid.styleId);
     attr(xml, QStringLiteral("dwell"), grid.dwellId);
-    writeChrome(xml, grid.style);
+    writeChrome(xml, grid.style, false);
     writeDwell(xml, grid.dwell);
     for (const PageCell& cell : grid.cells) {
         xml.writeStartElement(QStringLiteral("Cell"));
-        writeLeafAttrs(xml, cell);
+        writeLeafAttrs(xml, cell, false);
         attrInt(xml, QStringLiteral("row"), cell.row, 0);
         attrInt(xml, QStringLiteral("col"), cell.col, 0);
         attrInt(xml, QStringLiteral("rowSpan"), cell.rowSpan, 1);
@@ -262,7 +263,7 @@ QByteArray PageWriter::toBytes(const PageDocument& doc)
     }
     for (const PageZone& z : doc.zones) {
         xml.writeStartElement(QStringLiteral("Zone"));
-        writeLeafAttrs(xml, z);
+        writeLeafAttrs(xml, z, true);
         writePlacement(xml, z.desktopMode, z.anchor, z.offset, z.size);
         attr(xml, QStringLiteral("dwellOffset"), pairTok(z.dwellOffset));
         attr(xml, QStringLiteral("dwellSize"), pairTok(z.dwellSize));

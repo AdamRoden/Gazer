@@ -14,7 +14,6 @@
 #include <QPointF>
 #include <QRect>
 #include <QScreen>
-#include <QSet>
 #include <QString>
 #include <QTimer>
 #include <QVariantMap>
@@ -40,8 +39,6 @@ public:
     using LoopToggleFn = std::function<bool(const PageTarget& t, const QString& pageId)>;
     using LoopLatchFn = std::function<void()>;
     using LoopStopPageFn = std::function<void(const QString& pageId)>;
-
-    enum class RootChrome { Docked, Drawer, Quit };
 
     explicit PageSession(QObject* parent = nullptr);
     ~PageSession() override;
@@ -87,8 +84,6 @@ public:
     void setProgressVisuals(const ProgressVisuals& visuals);
     void setGlobalDwell(const QVector<int>& sequence, int graceMs, int scanGraceMs);
 
-    [[nodiscard]] RootChrome rootChrome() const { return m_chrome; }
-    [[nodiscard]] bool isExpanded() const { return m_chrome != RootChrome::Docked; }
     void setAutoCollapseMain(bool on) { m_autoCollapseMain = on; }
     void setDwellSuspended(bool on);
     void toggleDwellSuspended() { setDwellSuspended(!m_dwellSuspended); }
@@ -100,6 +95,9 @@ public:
                          QString* error = nullptr);
     bool applyNav(const PageAction& action, const QString& sourcePageId,
                   const QString& sourceTargetId, QString* error = nullptr);
+    /// Consecutive ShowGrid/HideGrid (and zone/cell) mutations, then one drawer reconcile.
+    bool applyNavs(const QVector<PageAction>& actions, const QString& sourcePageId,
+                   const QString& sourceTargetId, QString* error = nullptr);
     [[nodiscard]] bool goBack(QString* error = nullptr);
 
     /// All boards, or only the master page plus the cell that armed mouse-dwell-move.
@@ -143,15 +141,20 @@ private:
     [[nodiscard]] PageFrame frame() const;
     void rebuild();
     void applyDwellFor(const PageTarget* t);
-    void setRootChrome(RootChrome next, bool animate = true);
-    [[nodiscard]] RootChrome chromeForSlot(PageRootSlot slot) const;
-    [[nodiscard]] QSet<QString> hiddenRootGrids() const;
+    void syncExpanded();
+    [[nodiscard]] bool anyRootGridShown() const;
+    [[nodiscard]] bool drawerMotionShown() const;
+    [[nodiscard]] bool nonDrawerRootShown() const;
+    void resetDrawerAnim();
+    void snapHideDrawerMotion();
+    void hideRootAutoClose(bool animate);
+    void syncDrawerAnim(bool wasDrawer);
     [[nodiscard]] const PageTarget* findTarget(const QString& id) const;
     [[nodiscard]] const PageTarget* findLiveTarget(const QString& pageId,
                                                    const QString& targetId) const;
     [[nodiscard]] QString xmlPathFor(const QString& id) const;
-    void ingest(const PageDocument& doc, const QSet<QString>& hiddenGrids, bool isMaster,
-                QVector<PageTarget>& targets, QVector<PageGridPaint>& gridPaints);
+    void ingest(const PageDocument& doc, bool isMaster, QVector<PageTarget>& targets,
+                QVector<PageGridPaint>& gridPaints, bool includeDrawerMotion = false);
     void ensureHost();
     [[nodiscard]] QTransform hitXf() const;
     void armLeaveGate(const QString& pageId);
@@ -170,7 +173,6 @@ private:
     struct PageBreadcrumb {
         PageDocument root;
         QVector<PageDocument> attached;
-        RootChrome chrome = RootChrome::Docked;
     };
 
     [[nodiscard]] PageBreadcrumb captureBreadcrumb() const;
@@ -227,7 +229,6 @@ private:
     QString m_leaveGateKey;
     QString m_aimActivator;
 
-    RootChrome m_chrome = RootChrome::Docked;
     QTimer m_drawerTimer;
     QElapsedTimer m_drawerClock;
     enum class DrawerPhase { Idle, Appear, Dismiss };

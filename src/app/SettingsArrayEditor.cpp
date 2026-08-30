@@ -47,7 +47,7 @@ PageDocument SettingsUi::buildArrayDocument() const
         grid.cells.push_back(cell(QStringLiteral("dec_%1").arg(i), QStringLiteral("−"), i, 0,
                                   QStringLiteral("settings.array.nudge.%1.dec").arg(i), decBg));
         PageCell val = cell(QStringLiteral("val_%1").arg(i), QStringLiteral("%1 ms").arg(ms), i, 1,
-                            {}, valBg, 1, false, QStringLiteral("value"));
+                            {}, valBg, 1, QStringLiteral("value"));
         grid.cells.push_back(val);
         grid.cells.push_back(cell(QStringLiteral("inc_%1").arg(i), QStringLiteral("+"), i, 2,
                                   QStringLiteral("settings.array.nudge.%1.inc").arg(i), incBg));

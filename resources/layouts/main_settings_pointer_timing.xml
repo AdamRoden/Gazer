@@ -9,7 +9,7 @@
         <ClosePage value="-self"/>
         <OpenPage value="main_settings_button_timing"/>
       </Cell>
-      <Cell id="tab_pointers" row="0" col="1" label="Pointer" role="tab" interactive="false"/>
+      <Cell id="tab_pointers" row="0" col="1" label="Pointer" role="tab"/>
       <Cell id="tab_styles" row="0" col="2" label="Styles" role="tab">
         <ClosePage value="-self"/>
         <OpenPage value="main_settings_styles"/>

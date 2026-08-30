@@ -18,9 +18,9 @@ Version **0.5.1**. License: [GPL-3.0](LICENSE). Cell and zone icons are OptiKey 
 | Drawer grid | `drawer` | Keyboard, Mouse, Assist, Right, Settings, Editor, Close, Close All, Pause dwell, Quit |
 | Quit grid | `quit` | Yes exits; No returns to the drawer |
 
-Exclusive chrome: **Docked**, **Drawer**, or **Quit**. Only one of those is up at a time. Opening Keyboard / Mouse / Assist / Settings / Right attaches that page on the same host, then the drawer dismisses.
+Drawer and quit grids start hidden (`show="false"`). The Main chip `ShowGrid`s the drawer; Dismiss `HideGrid`s it; Quit swaps with `HideGrid` / `ShowGrid`. Opening Keyboard / Mouse / Assist / Settings / Right attaches that page on the same host, then the drawer auto-collapses.
 
-- **Main** is shown only while docked (`visibleWhen="!expanded"`). Dwell it to grow the drawer from the bottom.
+- **Main** is shown only while no master grid is up (`visibleWhen="!expanded"`). Dwell it to grow the drawer from the bottom.
 - **Sleep** stays available while the drawer is open. Shell zones and grids paint and hit above other boards.
 - Gaze on the drawer or the dock chips counts as using the shell, so the drawer idle timer does not fire while you look at Sleep.
 - The host window stays above the Windows taskbar.

@@ -54,14 +54,14 @@ PageDocument SettingsUi::buildNumpadDocument() const
     const QString titleCaption =
         m_numpadHint.isEmpty() ? savedLine
                                : QStringLiteral("%1\n%2").arg(savedLine, m_numpadHint);
-    PageCell title = cell(QStringLiteral("title"), m_numpadTitle, 0, 0, {}, QColor(), 4, false,
+    PageCell title = cell(QStringLiteral("title"), m_numpadTitle, 0, 0, {}, QColor(), 4,
                           QStringLiteral("label"), titleCaption);
     title.textStyle = QStringLiteral("title");
     grid.cells.push_back(title);
     PageCell display =
         cell(QStringLiteral("display"),
              m_numpadBuffer.isEmpty() ? QStringLiteral("0") : m_numpadBuffer, 1, 0, {}, sw.value, 4,
-             false, QStringLiteral("value"));
+             QStringLiteral("value"));
     grid.cells.push_back(display);
     auto key = [&](const QString& id, const QString& label, int row, int col, const QString& cmd,
                    const QColor& bg = QColor()) {

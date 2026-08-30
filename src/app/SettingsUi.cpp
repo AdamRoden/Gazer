@@ -210,7 +210,7 @@ QString colorKeyFromPageCell(const PageCell& cell)
 
 void stampPageCell(PageCell& cell, const AppSettings& settings, const ThemeColors& theme)
 {
-    stampSettingVisuals(cell.label, cell.interactive, cell.settingKey, cell.id,
+    stampSettingVisuals(cell.label, cell.isInteractive(), cell.settingKey, cell.id,
                         colorKeyFromPageCell(cell), cell.style.background, cell.style.foreground,
                         settings, theme);
 }

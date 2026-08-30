@@ -59,17 +59,16 @@ PageDocument SettingsUi::buildOpacityDocument() const
     PageGrid& grid = doc.grids[0];
     const EditorSwatch pal = editorSwatch();
     grid.cells.push_back(cell(QStringLiteral("edit_opacity"), QStringLiteral("Edit"), 0, 0,
-                              QStringLiteral("settings.opacity.scrub"), pal.edit, 1, true, {}, {},
+                              QStringLiteral("settings.opacity.scrub"), pal.edit, 1, {}, {},
                               QStringLiteral("PhysicalKeys")));
     grid.cells.push_back(cell(QStringLiteral("dec_opacity"), QStringLiteral("−"), 0, 1,
                               QStringLiteral("settings.opacity.nudge.dec"), pal.nudge));
     grid.cells.push_back(cell(QStringLiteral("track_opacity"), QStringLiteral("Opacity"), 0, 2, {},
-                              QColor(), 9, false, QStringLiteral("slider"),
-                              QStringLiteral("opacity")));
+                              QColor(), 9, QStringLiteral("slider"), QStringLiteral("opacity")));
     grid.cells.push_back(cell(QStringLiteral("inc_opacity"), QStringLiteral("+"), 0, 11,
                               QStringLiteral("settings.opacity.nudge.inc"), pal.nudge));
     grid.cells.push_back(cell(QStringLiteral("preview"), QStringLiteral("Preview"), 1, 0, {},
-                              QColor(), 12, false, QStringLiteral("preview"),
+                              QColor(), 12, QStringLiteral("preview"),
                               QStringLiteral("%1%").arg(m_opacityDraft)));
     grid.cells.push_back(cell(QStringLiteral("save"), QStringLiteral("Save"), 2, 0,
                               QStringLiteral("settings.opacity.save"), pal.save, 6));

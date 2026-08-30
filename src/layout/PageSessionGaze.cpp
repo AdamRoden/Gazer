@@ -19,13 +19,11 @@ int PageSession::autoCloseIdleMs() const
         }
         best = (best < 0) ? ms : qMin(best, ms);
     };
-    if (m_chrome == RootChrome::Drawer) {
-        for (const PageGrid& g : m_root.grids) {
-            if (!g.autoClose || g.id.isEmpty() || hiddenRootGrids().contains(g.id)) {
-                continue;
-            }
-            consider(g.autoCloseIdleMs);
+    for (const PageGrid& g : m_root.grids) {
+        if (!g.autoClose || !g.show || g.id.isEmpty()) {
+            continue;
         }
+        consider(g.autoCloseIdleMs);
     }
     for (const AttachedPage& a : m_attached) {
         if (a.doc.autoClose) {
@@ -87,18 +85,7 @@ void PageSession::tickAutoClose()
     for (const QString& id : drop) {
         closePage(id);
     }
-    if (m_chrome == RootChrome::Drawer) {
-        bool rootAc = false;
-        for (const PageGrid& g : m_root.grids) {
-            if (g.autoClose && g.rootSlot == PageRootSlot::Drawer) {
-                rootAc = true;
-                break;
-            }
-        }
-        if (rootAc) {
-            setRootChrome(RootChrome::Docked);
-        }
-    }
+    hideRootAutoClose(true);
 }
 
 const PageTarget* PageSession::findTarget(const QString& id) const

@@ -9,7 +9,7 @@
         dwellOffset="0,300" dwellSize="300,200"
         style="chip" label="Main" icon="Menu" suspendExempt="true" visibleWhen="!expanded" shell="true">
     <Command value="resumeDwell"/>
-    <OpenPage value="main"/>
+    <ShowGrid value="drawer"/>
   </Zone>
   <Zone id="sleep" anchor="Bottom" offset="400,0" size="200,100"
         dwellOffset="0,300" dwellSize="300,200"
@@ -18,7 +18,7 @@
 
   <Grid id="drawer" desktopMode="false" rows="1" columns="10"
         anchor="Bottom" offset="0,0" size="1200,150" style="drawer" gap="10" margin="10"
-        chrome="drawer" drawerMotion="true" autoClose="true"
+        show="false" drawerMotion="true" autoClose="true"
         autoCloseIdleMs="3000" shell="true" >
     <Cell id="open_keyboard" row="0" col="0" label="Keyboard" icon="Keyboard" openPage="qwerty_main"/>
     <Cell id="open_mouse" row="0" col="1" label="Mouse" icon="Mouse" openPage="example_mouse"/>
@@ -43,7 +43,7 @@
 
   <Grid id="quit" desktopMode="true" rows="2" columns="2"
         anchor="Center" offset="0,0" size="480,220" style="quitPrompt"
-        gap="12" margin="16" chrome="quit" shell="true">
+        gap="12" margin="16" show="false" shell="true">
     <Cell id="prompt" row="0" col="0" colSpan="2" label="Quit Gazer?" role="label" background="#ee222222"/>
     <Cell id="yes_quit" row="1" col="0" label="Yes" icon="Yes" style="quitYes" command="quitApp"/>
     <Cell id="no_stay" row="1" col="1" label="No" icon="No" style="quitNo">

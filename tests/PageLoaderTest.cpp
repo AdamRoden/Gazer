@@ -34,6 +34,7 @@ private slots:
     void loadMainPage();
     void loadQwertyXml();
     void showAttribute();
+    void cellDropsShellAndInteractive();
     void loadConvertedBoards();
     void loadLtsMenu();
     void keyboardMainOpensDrawer();
@@ -214,9 +215,12 @@ void PageLoaderTest::inheritStyleAndDwell()
     QVERIFY(!st.thickness.has_value());
     QCOMPARE(st.resolvedThickness().first(), PageChrome::kDefaultThickness);
     QVERIFY(!st.progressStyle.has_value());
-    const PageChrome gridSt = PageResolve::style(doc, g.styleId, g.style);
+    const PageChrome gridSt = PageResolve::gridStyle(doc, g.styleId, g.style);
     QCOMPARE(gridSt.background->rgb(), QColor(QStringLiteral("#111111")).rgb());
     QCOMPARE(gridSt.radius ? gridSt.radius->first() : 0.0, 2.0);
+    QVERIFY(!gridSt.foreground.has_value());
+    QVERIFY(!gridSt.progressStyle.has_value());
+    QVERIFY(!gridSt.progressColor.has_value());
 
     PageChrome sides;
     sides.thickness = PageBox::fromToken(QStringLiteral("1,2,3,4"));
@@ -255,6 +259,32 @@ void PageLoaderTest::inheritStyleAndDwell()
     QVERIFY(zst.progressColor.has_value());
     QCOMPARE(zst.progressColor->name(QColor::HexRgb).toUpper(), QStringLiteral("#00DCFF"));
     QCOMPARE(zst.radius ? zst.radius->at(2) : -1.0, 12.0);
+
+    PageDocument gridInherit;
+    QVERIFY2(PageLoader::loadFromXml(R"xml(
+<Page id="p">
+  <Style id="chip" foreground="#ffffff" progressStyle="fillup,border" progressColor="#00DCFF"
+         background="#111111"/>
+  <Grid id="g" style="chip" size="100,100" foreground="#ff0000" progressStyle="pie"/>
+</Page>
+)xml",
+                                    gridInherit, &err),
+            qPrintable(err));
+    QVERIFY(gridInherit.grids[0].style.foreground.has_value());
+    QVERIFY(gridInherit.grids[0].style.progressStyle.has_value());
+    const PageChrome resolvedGrid =
+        PageResolve::gridStyle(gridInherit, gridInherit.grids[0].styleId, gridInherit.grids[0].style);
+    QVERIFY(resolvedGrid.background.has_value());
+    QVERIFY(!resolvedGrid.foreground.has_value());
+    QVERIFY(!resolvedGrid.progressStyle.has_value());
+    QVERIFY(!resolvedGrid.progressColor.has_value());
+    const QString gridXml = QString::fromUtf8(PageWriter::toBytes(gridInherit));
+    for (const QString& line : gridXml.split(QLatin1Char('\n'))) {
+        if (line.contains(QLatin1String("<Grid"))) {
+            QVERIFY(!line.contains(QLatin1String("foreground")));
+            QVERIFY(!line.contains(QLatin1String("progressStyle")));
+        }
+    }
 
     PageDocument written;
     QVERIFY2(PageLoader::loadFromXml(PageWriter::toBytes(styled), written, &err), qPrintable(err));
@@ -375,7 +405,7 @@ void PageLoaderTest::loadConvertedBoards()
             for (const PageCell& c : tabs->cells) {
                 if (c.id == QLatin1String("tab_buttons")) {
                     hasTabs = true;
-                    QCOMPARE(c.interactive, id != QLatin1String("main_settings_button_timing"));
+                    QCOMPARE(c.isInteractive(), id != QLatin1String("main_settings_button_timing"));
                 }
             }
             QVERIFY(hasTabs);
@@ -470,6 +500,39 @@ void PageLoaderTest::showAttribute()
     QCOMPARE(round.findZone(QStringLiteral("zhide"))->show, false);
 }
 
+void PageLoaderTest::cellDropsShellAndInteractive()
+{
+    const QByteArray xml = R"xml(
+<Page id="p">
+  <Grid id="g" size="100,100" shell="true">
+    <Cell id="btn" shell="true" interactive="false"/>
+    <Cell id="lab" role="label"/>
+    <Cell id="cur" role="tab"/>
+    <Cell id="nav" role="tab" openPage="other"/>
+  </Grid>
+  <Zone id="chip" size="40,20" shell="true"/>
+</Page>
+)xml";
+    PageDocument doc;
+    QString err;
+    QVERIFY2(PageLoader::loadFromXml(xml, doc, &err), qPrintable(err));
+    QCOMPARE(doc.findGrid(QStringLiteral("g"))->shell, true);
+    QCOMPARE(doc.findCell(QStringLiteral("btn"))->shell, false);
+    QVERIFY(doc.findCell(QStringLiteral("btn"))->isInteractive());
+    QVERIFY(!doc.findCell(QStringLiteral("lab"))->isInteractive());
+    QVERIFY(!doc.findCell(QStringLiteral("cur"))->isInteractive());
+    QVERIFY(doc.findCell(QStringLiteral("nav"))->isInteractive());
+    QCOMPARE(doc.findZone(QStringLiteral("chip"))->shell, true);
+    const QString text = QString::fromUtf8(PageWriter::toBytes(doc));
+    QVERIFY(!text.contains(QStringLiteral("interactive")));
+    QVERIFY(text.contains(QStringLiteral("shell=\"true\"")));
+    for (const QString& line : text.split(QLatin1Char('\n'))) {
+        if (line.contains(QLatin1String("<Cell"))) {
+            QVERIFY(!line.contains(QLatin1String("shell=")));
+        }
+    }
+}
+
 void PageLoaderTest::loadLtsMenu()
 {
     PageDocument doc;
@@ -545,11 +608,13 @@ void PageLoaderTest::loadMainPage()
     QCOMPARE(doc.grids.size(), 2);
     QVERIFY(doc.findGrid(QStringLiteral("drawer")));
     QVERIFY(doc.findGrid(QStringLiteral("quit")));
-    QCOMPARE(doc.findGrid(QStringLiteral("drawer"))->rootSlot, PageRootSlot::Drawer);
-    QCOMPARE(doc.findGrid(QStringLiteral("quit"))->rootSlot, PageRootSlot::Quit);
+    QCOMPARE(doc.findGrid(QStringLiteral("drawer"))->show, false);
+    QCOMPARE(doc.findGrid(QStringLiteral("quit"))->show, false);
     QCOMPARE(doc.findGrid(QStringLiteral("drawer"))->cells.size(), 10);
-    QCOMPARE(doc.zones[0].actions[1].targetKind, PageTargetKind::Page);
-    QCOMPARE(doc.zones[0].actions[1].targetId, QStringLiteral("main"));
+    QCOMPARE(doc.zones[0].actions[1].type, PageActionType::Nav);
+    QCOMPARE(doc.zones[0].actions[1].verb, PageVerb::Open);
+    QCOMPARE(doc.zones[0].actions[1].targetKind, PageTargetKind::Grid);
+    QCOMPARE(doc.zones[0].actions[1].targetId, QStringLiteral("drawer"));
     QVERIFY(doc.zones[0].suspendExempt);
     QVERIFY(doc.zones[1].suspendExempt);
     const PageCell* editor = nullptr;
@@ -568,7 +633,7 @@ void PageLoaderTest::loadMainPage()
     QVERIFY(pause);
     QVERIFY(pause->suspendExempt);
     QCOMPARE(pause->actions[0].command, QStringLiteral("toggleDwellSuspend"));
-    QCOMPARE(doc.findGrid(QStringLiteral("quit"))->cells[0].interactive, false);
+    QCOMPARE(doc.findGrid(QStringLiteral("quit"))->cells[0].isInteractive(), false);
     QVERIFY(doc.findGrid(QStringLiteral("drawer"))->shell);
     QVERIFY(doc.findGrid(QStringLiteral("quit"))->shell);
     QVERIFY(doc.zones[0].shell);
@@ -590,6 +655,10 @@ void PageLoaderTest::pageWriterRoundTripMain()
     QCOMPARE(dst.zones.size(), src.zones.size());
     QCOMPARE(dst.findZone(QStringLiteral("mainChip")) != nullptr, true);
     QCOMPARE(dst.findGrid(QStringLiteral("drawer")) != nullptr, true);
+    QCOMPARE(dst.findGrid(QStringLiteral("drawer"))->show, false);
+    QCOMPARE(dst.findGrid(QStringLiteral("quit"))->show, false);
+    const QString roundText = QString::fromUtf8(xml);
+    QVERIFY(!roundText.contains(QStringLiteral("chrome=")));
 }
 
 void PageLoaderTest::rowWeightsRoundTrip()

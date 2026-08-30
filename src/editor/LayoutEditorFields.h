@@ -59,7 +59,8 @@ using ActionMutate = std::function<void(const QString& undoLabel,
                                         const std::function<void(PageAction&)>& mut)>;
 
 void addChromeFields(PropertyBinder& b, QFormLayout* form, const PageChrome& st,
-                     const ChromeMutate& apply, bool includeHeading = true);
+                     const ChromeMutate& apply, bool includeHeading = true,
+                     bool includeItemPaint = true);
 void addDwellFields(PropertyBinder& b, QFormLayout* form, const PageDwell& dwell,
                     const DwellMutate& apply, bool includeHeading = true,
                     const QStringList& inheritIds = {}, const QString& inheritCurrent = {},

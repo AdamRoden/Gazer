@@ -91,7 +91,23 @@ void ActionDispatcher::dispatchPage(const QVector<PageAction>& actions, const QS
                                     const QString& targetId)
 {
     auto notify = [this](const QString& msg) { emit statusMessage(msg); };
+    QVector<PageAction> showNav;
+    auto flushShowNav = [&]() {
+        if (showNav.isEmpty()) {
+            return;
+        }
+        QString err;
+        if (!m_svc.pages().applyNavs(showNav, sourcePageId, targetId, &err)) {
+            notify(err.isEmpty() ? QStringLiteral("Page action failed") : err);
+        }
+        showNav.clear();
+    };
     for (const PageAction& a : actions) {
+        if (a.type == PageActionType::Nav && a.targetKind != PageTargetKind::Page) {
+            showNav.push_back(a);
+            continue;
+        }
+        flushShowNav();
         switch (a.type) {
         case PageActionType::Command: {
             QString err;
@@ -190,6 +206,7 @@ void ActionDispatcher::dispatchPage(const QVector<PageAction>& actions, const QS
             break;
         }
     }
+    flushShowNav();
 }
 
 } // namespace gazer

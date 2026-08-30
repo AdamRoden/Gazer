@@ -115,10 +115,9 @@ QRectF gridBounds(const PageGrid& grid, const PageFrame& frame)
 
 namespace {
 
-void accumulateGrid(const PageGrid& grid, const QRectF& bounds, const QSet<QString>& hiddenGrids,
-                    QRectF& u)
+void accumulateGrid(const PageGrid& grid, const QRectF& bounds, QRectF& u)
 {
-    if (!grid.id.isEmpty() && hiddenGrids.contains(grid.id)) {
+    if (!grid.show && grid.shell) {
         return;
     }
     if (!bounds.isEmpty()) {
@@ -127,18 +126,17 @@ void accumulateGrid(const PageGrid& grid, const QRectF& bounds, const QSet<QStri
     for (const PageGrid& sub : grid.subGrids) {
         const QRectF slot =
             cellRect(grid, bounds, sub.row, sub.col, sub.rowSpan, sub.colSpan);
-        accumulateGrid(sub, slot, hiddenGrids, u);
+        accumulateGrid(sub, slot, u);
     }
 }
 
 } // namespace
 
-QRectF reservedBounds(const PageDocument& page, const PageFrame& frame,
-                      const QSet<QString>& hiddenGrids)
+QRectF reservedBounds(const PageDocument& page, const PageFrame& frame)
 {
     QRectF u;
     for (const PageGrid& g : page.grids) {
-        accumulateGrid(g, gridBounds(g, frame), hiddenGrids, u);
+        accumulateGrid(g, gridBounds(g, frame), u);
     }
     const QRectF screen = frame.screen.isEmpty() ? frame.desktop : frame.screen;
     for (const PageZone& z : page.zones) {
@@ -177,14 +175,11 @@ QPoint cellIndexAt(const PageGrid& grid, const QRectF& gridRect, const QPointF& 
 namespace {
 
 void walkGrid(const PageDocument& page, const PageGrid& grid, const QRectF& bounds,
-              const QRectF& screen, const QSet<QString>& hiddenGrids, const QVariantMap& props,
-              bool dwellSuspended, bool shell, bool drawerMotion, bool includeHidden,
+              const QRectF& screen, const QVariantMap& props, bool dwellSuspended, bool shell,
+              bool drawerMotion, bool includeHidden, bool includeDrawerMotion,
               QVector<PageTarget>& out, QVector<PageGridPaint>* grids)
 {
-    if (!includeHidden && !grid.show && grid.rootSlot == PageRootSlot::None) {
-        return;
-    }
-    if (!grid.id.isEmpty() && hiddenGrids.contains(grid.id)) {
+    if (!includeHidden && !grid.show && !(includeDrawerMotion && grid.drawerMotion)) {
         return;
     }
 
@@ -194,7 +189,7 @@ void walkGrid(const PageDocument& page, const PageGrid& grid, const QRectF& boun
     if (grids && (!grid.nested || grid.style.hasAny() || !grid.styleId.isEmpty())) {
         PageGridPaint gp;
         gp.visual = bounds;
-        gp.chrome = PageResolve::style(page, grid.styleId, grid.style);
+        gp.chrome = PageResolve::gridStyle(page, grid.styleId, grid.style);
         gp.gridId = grid.id;
         gp.drawerMotion = drawer;
         gp.shell = layer;
@@ -221,8 +216,8 @@ void walkGrid(const PageDocument& page, const PageGrid& grid, const QRectF& boun
         t.role = cell.role;
         t.settingKey = cell.settingKey;
         t.suspendExempt = cell.suspendExempt;
-        t.interactive = cell.interactive && !(dwellSuspended && !cell.suspendExempt);
-        t.shell = layer || cell.shell;
+        t.interactive = cell.isInteractive() && !(dwellSuspended && !cell.suspendExempt);
+        t.shell = layer;
         t.drawerMotion = drawer;
         t.activeState = cell.activeState;
         t.chrome = PageResolve::style(page, cell.styleId, cell.style);
@@ -234,24 +229,21 @@ void walkGrid(const PageDocument& page, const PageGrid& grid, const QRectF& boun
     }
 
     for (const PageGrid& sub : grid.subGrids) {
-        if (!includeHidden && !sub.show && sub.rootSlot == PageRootSlot::None) {
-            continue;
-        }
-        if (!sub.id.isEmpty() && hiddenGrids.contains(sub.id)) {
+        if (!includeHidden && !sub.show && !(includeDrawerMotion && sub.drawerMotion)) {
             continue;
         }
         const QRectF slot =
             cellRect(grid, bounds, sub.row, sub.col, sub.rowSpan, sub.colSpan);
-        walkGrid(page, sub, slot, screen, hiddenGrids, props, dwellSuspended, layer, drawer,
-                 includeHidden, out, grids);
+        walkGrid(page, sub, slot, screen, props, dwellSuspended, layer, drawer, includeHidden,
+                 includeDrawerMotion, out, grids);
     }
 }
 
 } // namespace
 
 QVector<PageTarget> collect(const PageDocument& page, const PageFrame& frame,
-                            const QSet<QString>& hiddenGrids, const QVariantMap& props,
-                            bool dwellSuspended, QVector<PageGridPaint>* grids, bool includeHidden)
+                            const QVariantMap& props, bool dwellSuspended, QVector<PageGridPaint>* grids,
+                            bool includeHidden, bool includeDrawerMotion)
 {
     QVector<PageTarget> rest;
     QVector<PageTarget> shell;
@@ -259,8 +251,8 @@ QVector<PageTarget> collect(const PageDocument& page, const PageFrame& frame,
 
     for (const PageGrid& g : page.grids) {
         QVector<PageTarget> piece;
-        walkGrid(page, g, gridBounds(g, frame), screen, hiddenGrids, props, dwellSuspended, g.shell,
-                 g.drawerMotion, includeHidden, piece, grids);
+        walkGrid(page, g, gridBounds(g, frame), screen, props, dwellSuspended, g.shell,
+                 g.drawerMotion, includeHidden, includeDrawerMotion, piece, grids);
         for (PageTarget& t : piece) {
             (t.shell ? shell : rest).push_back(std::move(t));
         }
@@ -282,7 +274,7 @@ QVector<PageTarget> collect(const PageDocument& page, const PageFrame& frame,
         t.caption = z.caption;
         t.settingKey = z.settingKey;
         t.suspendExempt = z.suspendExempt;
-        t.interactive = z.interactive && !(dwellSuspended && !z.suspendExempt);
+        t.interactive = z.isInteractive() && !(dwellSuspended && !z.suspendExempt);
         t.shell = z.shell;
         t.activeState = z.activeState;
         t.chrome = PageResolve::zoneStyle(page, z);

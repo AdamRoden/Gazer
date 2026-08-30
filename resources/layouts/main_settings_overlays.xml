@@ -21,7 +21,7 @@
         <ClosePage value="-self"/>
         <OpenPage value="main_settings_assist"/>
       </Cell>
-      <Cell id="tab_overlay" row="0" col="4" label="Overlay" role="tab" interactive="false"/>
+      <Cell id="tab_overlay" row="0" col="4" label="Overlay" role="tab"/>
       <Cell id="tab_theme" row="0" col="5" label="Theme" role="tab">
         <ClosePage value="-self"/>
         <OpenPage value="main_settings_theme"/>

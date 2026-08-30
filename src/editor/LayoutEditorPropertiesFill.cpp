@@ -54,36 +54,12 @@ void LayoutEditorProperties::fillGrid(QFormLayout* form)
         applyGrid([&](PageGrid& grid) { grid.id = next; }, QStringLiteral("Grid id"));
         m_session.selectGrid(next);
     });
-    QString chrome = QStringLiteral("none");
-    if (g->rootSlot == PageRootSlot::Drawer) {
-        chrome = QStringLiteral("drawer");
-    } else if (g->rootSlot == PageRootSlot::Quit) {
-        chrome = QStringLiteral("quit");
-    }
-    b.comboValues(form, QStringLiteral("Chrome slot"),
-                  {QStringLiteral("none"), QStringLiteral("drawer"), QStringLiteral("quit")},
-                  {QStringLiteral("none"), QStringLiteral("drawer"), QStringLiteral("quit")}, chrome,
-                  [this](const QString& t) {
-                      applyGrid(
-                          [&](PageGrid& grid) {
-                              if (t == QLatin1String("drawer")) {
-                                  grid.rootSlot = PageRootSlot::Drawer;
-                              } else if (t == QLatin1String("quit")) {
-                                  grid.rootSlot = PageRootSlot::Quit;
-                              } else {
-                                  grid.rootSlot = PageRootSlot::None;
-                              }
-                          },
-                          QStringLiteral("Chrome slot"));
-                  });
     b.check(form, QStringLiteral("Shell (always on top)"), g->shell, [this](bool on) {
         applyGrid([&](PageGrid& grid) { grid.shell = on; }, QStringLiteral("Shell"));
     });
-    if (g->rootSlot == PageRootSlot::None) {
-        b.check(form, QStringLiteral("Show"), g->show, [this](bool on) {
-            applyGrid([&](PageGrid& grid) { grid.show = on; }, QStringLiteral("Grid show"));
-        });
-    }
+    b.check(form, QStringLiteral("Show"), g->show, [this](bool on) {
+        applyGrid([&](PageGrid& grid) { grid.show = on; }, QStringLiteral("Grid show"));
+    });
     b.check(form, QStringLiteral("Auto-close when idle"), g->autoClose, [this](bool on) {
         applyGrid([&](PageGrid& grid) { grid.autoClose = on; }, QStringLiteral("Grid auto close"));
     });
@@ -169,9 +145,6 @@ void LayoutEditorProperties::fillLeafIdentity(QFormLayout* form, const PageLeaf&
         applyItem([&](PageLeaf& it) { it.show = on; }, QStringLiteral("Show"));
     });
     fillVisibleWhen(form, item);
-    b.check(form, QStringLiteral("Shell (always on top)"), item.shell, [this](bool on) {
-        applyItem([&](PageLeaf& it) { it.shell = on; }, QStringLiteral("Shell"));
-    });
 }
 
 void LayoutEditorProperties::fillVisibleWhen(QFormLayout* form, const PageLeaf& item)
@@ -209,6 +182,10 @@ void LayoutEditorProperties::fillZone(QFormLayout* form)
         return;
     }
     fillLeafIdentity(form, *item);
+    PropertyBinder b{this, &m_loading};
+    b.check(form, QStringLiteral("Shell (always on top)"), item->shell, [this](bool on) {
+        applyItem([&](PageLeaf& it) { it.shell = on; }, QStringLiteral("Shell"));
+    });
 }
 
 void LayoutEditorProperties::fillPlacement(QFormLayout* form)
@@ -377,7 +354,7 @@ void LayoutEditorProperties::fillStyle(QFormLayout* form)
                            });
         addChromeFields(b, form, g->style, [this](const QString& undo, const auto& mut) {
             applyGrid([&](PageGrid& grid) { mut(grid.style); }, undo);
-        }, false);
+        }, false, false);
         return;
     }
     const PageLeaf* item = m_session.selectedItem();
@@ -454,9 +431,6 @@ void LayoutEditorProperties::fillAction(QFormLayout* form)
     if (!item) {
         return;
     }
-    b.check(form, QStringLiteral("Interactive"), item->interactive, [this](bool on) {
-        applyItem([&](PageLeaf& it) { it.interactive = on; }, QStringLiteral("Interactive"));
-    });
     b.check(form, QStringLiteral("Still works while Sleep is on"), item->suspendExempt,
             [this](bool on) {
                 applyItem([&](PageLeaf& it) { it.suspendExempt = on; },

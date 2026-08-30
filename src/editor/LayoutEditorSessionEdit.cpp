@@ -105,16 +105,13 @@ void LayoutEditorSession::addItemAt(EditorItemKind kind, int row, int col, const
     cell.role = roleForKind(kind);
     cell.row = qMax(0, row);
     cell.col = qMax(0, col);
-    if (kind == EditorItemKind::Label || kind == EditorItemKind::Slider) {
-        cell.interactive = false;
-        if (kind == EditorItemKind::Label) {
-            cell.label = QStringLiteral("Label");
-        }
+    if (kind == EditorItemKind::Label) {
+        cell.label = QStringLiteral("Label");
     }
     if (kind == EditorItemKind::Toggle) {
         cell.actions.push_back(commandAction(QStringLiteral("toggleDwellSuspend")));
         cell.suspendExempt = true;
-    } else if (cell.interactive) {
+    } else if (cell.isInteractive()) {
         cell.actions.push_back(sendLetter(cell.label));
     }
     const QString newId = cell.id;
@@ -753,7 +750,7 @@ QStringList LayoutEditorSession::validate(const QStringList& catalogIds) const
             issues.push_back(QStringLiteral("Duplicate id '%1'").arg(leaf.id));
         }
         seen.insert(leaf.id);
-        if (leaf.interactive && leaf.actions.isEmpty()) {
+        if (leaf.isInteractive() && leaf.actions.isEmpty()) {
             issues.push_back(QStringLiteral("%1 '%2' has no actions").arg(kind, leaf.id));
         }
         for (const PageAction& a : leaf.actions) {
