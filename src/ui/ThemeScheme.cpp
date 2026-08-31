@@ -8,22 +8,22 @@ namespace gazer {
 namespace ThemeScheme {
 namespace {
 
+// Apple iOS 13 system colors (the 9 chromatic UIColors). Light / dark pairs
+// from UIColor.systemRed … systemPink.
 const ThemeBrandInfo kBrands[] = {
-    {"blue", "Blue", QColor(0x25, 0x63, 0xEB)},
-    {"green", "Green", QColor(0x10, 0xB9, 0x81)},
-    {"amber", "Amber", QColor(0xF5, 0x9E, 0x0B)},
-    {"red", "Red", QColor(0xEF, 0x44, 0x44)},
-};
-
-const ThemeBrandInfo kProgress[] = {
-    {"blue", "Blue", QColor(0x1D, 0x4E, 0xD8)},
-    {"green", "Green", QColor(0x05, 0x96, 0x69)},
-    {"amber", "Amber", QColor(0xD9, 0x77, 0x06)},
-    {"red", "Red", QColor(0xDC, 0x26, 0x26)},
+    {"red", "Red", QColor(0xFF, 0x3B, 0x30), QColor(0xFF, 0x45, 0x3A)},
+    {"orange", "Orange", QColor(0xFF, 0x95, 0x00), QColor(0xFF, 0x9F, 0x0A)},
+    {"yellow", "Yellow", QColor(0xFF, 0xCC, 0x00), QColor(0xFF, 0xD6, 0x0A)},
+    {"green", "Green", QColor(0x34, 0xC7, 0x59), QColor(0x30, 0xD1, 0x58)},
+    {"teal", "Teal", QColor(0x5A, 0xC8, 0xFA), QColor(0x64, 0xD2, 0xFF)},
+    {"blue", "Blue", QColor(0x00, 0x7A, 0xFF), QColor(0x0A, 0x84, 0xFF)},
+    {"indigo", "Indigo", QColor(0x58, 0x56, 0xD6), QColor(0x5E, 0x5C, 0xE6)},
+    {"purple", "Purple", QColor(0xAF, 0x52, 0xDE), QColor(0xBF, 0x5A, 0xF2)},
+    {"pink", "Pink", QColor(0xFF, 0x2D, 0x55), QColor(0xFF, 0x37, 0x5F)},
 };
 
 static_assert(sizeof(kBrands) / sizeof(kBrands[0]) == kThemeBrandCount);
-static_assert(sizeof(kProgress) / sizeof(kProgress[0]) == kThemeHarmonyCount);
+static_assert(kThemeDefaultBrandIndex >= 0 && kThemeDefaultBrandIndex < kThemeBrandCount);
 
 QColor hsv(int h, int s, int v, int a = 255)
 {
@@ -84,24 +84,13 @@ int brandCount()
 QColor brandCanonical(int index)
 {
     const int i = qBound(0, index, kThemeBrandCount - 1);
-    return kBrands[i].color;
+    return kBrands[i].light;
 }
 
 QColor brandAccent(int index, ThemeAppearance appearance)
 {
-    Q_UNUSED(appearance);
-    return brandCanonical(index);
-}
-
-const ThemeBrandInfo* progressSwatches()
-{
-    return kProgress;
-}
-
-QColor progressCanonical(int index)
-{
-    const int i = qBound(0, index, kThemeHarmonyCount - 1);
-    return kProgress[i].color;
+    const int i = qBound(0, index, kThemeBrandCount - 1);
+    return kBrands[i].colorFor(appearance);
 }
 
 int brandIndexFromLegacySchemeKey(const QString& key)
@@ -115,19 +104,18 @@ int brandIndexFromLegacySchemeKey(const QString& key)
             return i;
         }
     }
-    if (t == QLatin1String("teal") || t == QLatin1String("meadow")
-        || t == QLatin1String("forest")) {
-        return 1;
+    if (t == QLatin1String("meadow") || t == QLatin1String("forest")) {
+        return 3; // green
     }
     if (t == QLatin1String("orchid") || t == QLatin1String("dusk")
         || t == QLatin1String("bloom")) {
-        return 2;
+        return 7; // purple
     }
-    if (t == QLatin1String("sunset") || t == QLatin1String("copper")
-        || t == QLatin1String("orange") || t == QLatin1String("sand")) {
-        return 2;
+    if (t == QLatin1String("amber") || t == QLatin1String("sunset")
+        || t == QLatin1String("copper") || t == QLatin1String("sand")) {
+        return 1; // orange
     }
-    return 0;
+    return kThemeDefaultBrandIndex;
 }
 
 QColor scaleSaturation(const QColor& c, int saturationPercent)
@@ -153,18 +141,12 @@ QColor scaleSaturation(const QColor& c, int saturationPercent)
     return hsv(h, ns, v, a);
 }
 
-const char* progressVariantName(int index)
-{
-    const int i = qBound(0, index, kThemeHarmonyCount - 1);
-    return kProgress[i].name;
-}
-
 ThemePalette fluent(ThemeAppearance appearance, int saturation, const QColor& primaryIn,
                     const QColor& secondaryIn)
 {
     const bool dark = themeAppearanceIsDark(appearance);
     const bool tinted = themeAppearanceIsTinted(appearance);
-    const QColor fallbackPrimary = brandAccent(0, appearance);
+    const QColor fallbackPrimary = brandAccent(kThemeDefaultBrandIndex, appearance);
     const QColor primary =
         scaleSaturation(primaryIn.isValid() ? primaryIn : fallbackPrimary, saturation);
     const double t = qBound(0, saturation, 100) / 100.0;
@@ -175,9 +157,9 @@ ThemePalette fluent(ThemeAppearance appearance, int saturation, const QColor& pr
     double surfaceTint = 0.0;
     double accentW = 0.05 + 0.03 * t;
     if (tinted) {
-        bgTint = (dark ? 0.14 : 0.16) + 0.10 * t;
-        surfaceTint = (dark ? 0.22 : 0.24) + 0.12 * t;
-        accentW = 0.08 + 0.04 * t;
+        bgTint = ((dark ? 0.14 : 0.16) + 0.10 * t) * 0.5;
+        surfaceTint = ((dark ? 0.22 : 0.24) + 0.12 * t) * 0.5;
+        accentW = 0.065 + 0.035 * t;
     }
 
     const QColor nBg = dark ? QColor(0x1C, 0x1C, 0x1C) : QColor(0xF3, 0xF3, 0xF3);
@@ -222,13 +204,14 @@ ThemePalette resolve(ThemeAppearance appearance, int saturation, int primaryInde
 {
     if (custom) {
         const QColor accent =
-            customSeeds.primary.isValid() ? customSeeds.primary : brandAccent(0, appearance);
+            customSeeds.primary.isValid() ? customSeeds.primary
+                                          : brandAccent(kThemeDefaultBrandIndex, appearance);
         const QColor progress =
             customSeeds.secondary.isValid() ? customSeeds.secondary : accent;
         return fluent(appearance, saturation, accent, progress);
     }
-    return fluent(appearance, saturation, brandCanonical(primaryIndex),
-                  progressCanonical(secondaryIndex));
+    return fluent(appearance, saturation, brandAccent(primaryIndex, appearance),
+                  brandAccent(secondaryIndex, appearance));
 }
 
 } // namespace ThemeScheme

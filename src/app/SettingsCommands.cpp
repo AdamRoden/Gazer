@@ -191,7 +191,7 @@ void SettingsUi::registerCommands()
         colorSetRolesMode(false);
         return true;
     });
-    for (int i = 0; i < 6; ++i) {
+    for (int i = 0; i < kThemeBrandCount; ++i) {
         m_commands.registerBuiltin(QStringLiteral("settings.color.preset.%1").arg(i),
                                    [this, i](QString*) {
                                        colorApplyPreset(i);
@@ -449,12 +449,12 @@ void SettingsUi::registerCommands()
             return true;
         });
     }
-    for (int i = 0; i < kThemeHarmonyCount; ++i) {
+    for (int i = 0; i < kThemeBrandCount; ++i) {
         m_commands.registerBuiltin(QStringLiteral("theme.secondary.%1").arg(i), [this, i](QString*) {
             if (m_mutate) {
                 m_mutate([i](AppSettings& s) { s.setThemeSecondaryIndex(i); },
                          QStringLiteral("Progress: %1")
-                             .arg(QLatin1String(ThemeScheme::progressVariantName(i))));
+                             .arg(QLatin1String(ThemeScheme::brands()[i].name)));
             }
             return true;
         });

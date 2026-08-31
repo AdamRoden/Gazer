@@ -309,23 +309,27 @@ void SettingsLayoutTest::choiceAndToggleRoles()
     QVERIFY(schemesSec->row < progressSec->row);
     QVERIFY(progressSec->row < optionsSec->row);
     QCOMPARE(doc.findCell(QStringLiteral("h_schemes"))->label, QStringLiteral("Accent"));
-    for (int i = 0; i < 4; ++i) {
+    QCOMPARE(doc.findGrid(QStringLiteral("row_schemes"))->columns, 9);
+    QCOMPARE(doc.findGrid(QStringLiteral("row_progress"))->columns, 9);
+    QCOMPARE(doc.findCell(QStringLiteral("pri_0"))->label, QStringLiteral("Red"));
+    QCOMPARE(doc.findCell(QStringLiteral("pri_5"))->label, QStringLiteral("Blue"));
+    QCOMPARE(doc.findCell(QStringLiteral("sec_8"))->label, QStringLiteral("Pink"));
+    for (int i = 0; i < 9; ++i) {
         const PageCell* pri = doc.findCell(QStringLiteral("pri_%1").arg(i));
         QVERIFY2(pri, qPrintable(QStringLiteral("pri_%1").arg(i)));
         QCOMPARE(pri->role, QStringLiteral("choice"));
         QVERIFY(pri->isInteractive());
         QVERIFY(!doc.findCell(QStringLiteral("pri_sel_%1").arg(i)));
     }
-    QVERIFY(!doc.findCell(QStringLiteral("pri_4")));
-    for (int i = 0; i < 4; ++i) {
+    QVERIFY(!doc.findCell(QStringLiteral("pri_9")));
+    for (int i = 0; i < 9; ++i) {
         const PageCell* sec = doc.findCell(QStringLiteral("sec_%1").arg(i));
         QVERIFY2(sec, qPrintable(QStringLiteral("sec_%1").arg(i)));
-        QCOMPARE(sec->role, QStringLiteral("choice"));
+        QCOMPARE(sec->role, QStringLiteral("swatch"));
         QVERIFY(sec->isInteractive());
         QVERIFY(!doc.findCell(QStringLiteral("sec_sel_%1").arg(i)));
     }
-    QVERIFY(!doc.findCell(QStringLiteral("sec_4")));
-    QVERIFY(!doc.findCell(QStringLiteral("sec_5")));
+    QVERIFY(!doc.findCell(QStringLiteral("sec_9")));
     QVERIFY(doc.findCell(QStringLiteral("sat_dec")));
     QVERIFY(doc.findCell(QStringLiteral("sat_inc")));
     QVERIFY(!doc.findCell(QStringLiteral("sat_val")));

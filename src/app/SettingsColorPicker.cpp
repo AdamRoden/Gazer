@@ -232,7 +232,7 @@ void SettingsUi::colorApplyPreset(int index)
     if (index < 0 || index >= ThemeScheme::brandCount() || !m_color.active) {
         return;
     }
-    QColor c = ThemeScheme::brandCanonical(index);
+    QColor c = ThemeScheme::brandAccent(index, m_settings.themeAppearance);
     c.setAlpha(m_colorA);
     loadColorDraft(c);
     if (!m_colorPickerKey.isEmpty()) {
@@ -365,7 +365,7 @@ PageDocument SettingsUi::buildAccentColorDocument() const
     for (int i = 0; i < nBrands; ++i) {
         grid.cells.push_back(cell(QStringLiteral("preset_%1").arg(i), QLatin1String(brands[i].name),
                                   0, i * span, QStringLiteral("settings.color.preset.%1").arg(i),
-                                  brands[i].color, span));
+                                  brands[i].colorFor(m_settings.themeAppearance), span));
     }
     int axisRow = 1;
     for (const ColorAxis& axis : kColorAxes) {

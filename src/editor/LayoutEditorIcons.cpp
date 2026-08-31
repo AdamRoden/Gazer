@@ -328,7 +328,8 @@ EditorGlyph glyphForLeaf(const PageLeaf& leaf, bool zone)
         || role == QLatin1String("display") || role == QLatin1String("preview")) {
         return EditorGlyph::Label;
     }
-    if (role == QLatin1String("toggle") || role == QLatin1String("choice")) {
+    if (role == QLatin1String("toggle") || role == QLatin1String("choice")
+        || role == QLatin1String("swatch")) {
         return EditorGlyph::Toggle;
     }
     if (role == QLatin1String("tab")) {

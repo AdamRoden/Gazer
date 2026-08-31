@@ -84,7 +84,7 @@ ThemeColors AppSettings::resolvedTheme() const
 void AppSettings::applyTheme()
 {
     themePrimaryIndex = qBound(0, themePrimaryIndex, kThemeBrandCount - 1);
-    themeSecondaryIndex = qBound(0, themeSecondaryIndex, kThemeHarmonyCount - 1);
+    themeSecondaryIndex = qBound(0, themeSecondaryIndex, kThemeBrandCount - 1);
     themeSaturation = snapThemeSaturation(themeSaturation);
     writeProgress(*this, resolvedPalette());
 }
@@ -116,7 +116,7 @@ void AppSettings::setThemePrimaryIndex(int index)
 
 void AppSettings::setThemeSecondaryIndex(int index)
 {
-    themeSecondaryIndex = qBound(0, index, kThemeHarmonyCount - 1);
+    themeSecondaryIndex = qBound(0, index, kThemeBrandCount - 1);
     themeCustom = false;
     applyTheme();
 }

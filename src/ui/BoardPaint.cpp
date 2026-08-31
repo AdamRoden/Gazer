@@ -464,6 +464,30 @@ void paintThemeCard(QPainter& p, const PageTarget& t, const QRectF& r, const The
     }
 }
 
+void paintColorSwatch(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeColors& theme,
+                      bool hovered, double progress, bool active)
+{
+    const QColor fill = t.chrome.background.value_or(theme.accent);
+    if (!fill.isValid() || r.isEmpty()) {
+        return;
+    }
+    const double pad = qBound(4.0, qMin(r.width(), r.height()) * 0.14, 16.0);
+    const double d = qMax(8.0, qMin(r.width(), r.height()) - 2.0 * pad);
+    const QRectF c(r.center().x() - d * 0.5, r.center().y() - d * 0.5, d, d);
+    fillRound(p, c, d * 0.5, fill);
+    const QColor ink = theme.text.isValid() ? theme.text : ThemeColors::contrastOn(fill);
+    const double ringW = active ? qBound(2.4, d * 0.08, 4.0) : (hovered ? 1.6 : 1.0);
+    const QColor ring = active ? ink : ThemeColors::mix(fill, ink, 0.22);
+    strokeRound(p, c, d * 0.5, ring, ringW);
+    if (hovered && progress > 0.0 && t.interactive) {
+        ProgressVisuals vis;
+        vis.progressColor = theme.accent.isValid() ? theme.accent : ink;
+        vis.borderColor = vis.progressColor;
+        paintProgress(p, c.adjusted(-3.0, -3.0, 3.0, 3.0), progress, vis, ProgressShape::Ellipse,
+                      PageBox::all(d * 0.5));
+    }
+}
+
 void paintToggleSwitch(QPainter& p, const QRectF& r, const ThemeColors& theme, bool on)
 {
     const double h = qBound(16.0, qMin(r.height() * 0.42, 26.0), r.width() * 0.22);
@@ -531,6 +555,9 @@ void paintTarget(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeC
     } else if (role == QLatin1String("label") || role == QLatin1String("value")) {
         paintSurface(p, r, t.chrome, theme, glass, false, false, false, false);
         paintLabel(p, t, r, theme);
+    } else if (role == QLatin1String("swatch")) {
+        const bool on = active && !t.activeState.isEmpty();
+        paintColorSwatch(p, t, r, theme, hovered, progress, on);
     } else {
         const bool on = active && !t.activeState.isEmpty();
         const bool choice = role == QLatin1String("choice");

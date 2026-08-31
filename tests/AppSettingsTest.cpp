@@ -20,6 +20,10 @@ private slots:
     void loadLegacyCustom();
     void saveRoundTripCustomFlag();
     void progressAccentMatchesBrand();
+    void appleSystemColorsFollowAppearance();
+    void loadLegacyFourBrandRemapsToApple();
+    void loadNamedSecondarySchemeWins();
+    void loadNewSchemeWithoutSecondaryKeyKeepsIndex();
     void saturationScalesCustomAccent();
     void lightAppearanceIsLight();
     void tintedWashesNeutrals();
@@ -54,6 +58,8 @@ void AppSettingsTest::brandedThemeUsesFluent()
 {
     AppSettings s = AppSettings::defaults();
     QCOMPARE(s.themeCustom, false);
+    QCOMPARE(s.themePrimaryIndex, kThemeDefaultBrandIndex);
+    QCOMPARE(s.themeSecondaryIndex, kThemeDefaultBrandIndex);
     const ThemePalette pal = ThemeScheme::resolve(
         s.themeAppearance, s.themeSaturation, s.themePrimaryIndex, s.themeSecondaryIndex, false);
     QCOMPARE(s.resolvedTheme().accent, pal.colors.accent);
@@ -83,7 +89,7 @@ void AppSettingsTest::loadLegacyNamedSchemeMapsToBrand()
     AppSettings s;
     QVERIFY(s.loadFromFile(path));
     QCOMPARE(s.themeCustom, false);
-    QCOMPARE(s.themePrimaryIndex, 1);
+    QCOMPARE(s.themePrimaryIndex, 3);
 }
 
 void AppSettingsTest::loadLegacyCustom()
@@ -121,11 +127,75 @@ void AppSettingsTest::saveRoundTripCustomFlag()
 void AppSettingsTest::progressAccentMatchesBrand()
 {
     AppSettings s = AppSettings::defaults();
-    s.setThemePrimaryIndex(0);
-    s.setThemeSecondaryIndex(0);
+    s.setThemePrimaryIndex(kThemeDefaultBrandIndex);
+    s.setThemeSecondaryIndex(kThemeDefaultBrandIndex);
     s.setThemeSaturation(kThemeSaturationDefault);
-    QCOMPARE(s.resolvedTheme().accent, QColor(0x25, 0x63, 0xEB));
-    QCOMPARE(s.resolvedPalette().progress, QColor(0x1D, 0x4E, 0xD8));
+    QCOMPARE(s.themePrimaryIndex, 5);
+    QCOMPARE(s.resolvedTheme().accent, QColor(0x0A, 0x84, 0xFF));
+    QCOMPARE(s.resolvedPalette().progress, QColor(0x0A, 0x84, 0xFF));
+    s.setThemeAppearance(ThemeAppearance::Light);
+    QCOMPARE(s.resolvedTheme().accent, QColor(0x00, 0x7A, 0xFF));
+    QCOMPARE(s.resolvedPalette().progress, QColor(0x00, 0x7A, 0xFF));
+}
+
+void AppSettingsTest::appleSystemColorsFollowAppearance()
+{
+    QCOMPARE(ThemeScheme::brandCount(), 9);
+    QCOMPARE(ThemeScheme::brandAccent(0, ThemeAppearance::Light), QColor(0xFF, 0x3B, 0x30));
+    QCOMPARE(ThemeScheme::brandAccent(0, ThemeAppearance::Dark), QColor(0xFF, 0x45, 0x3A));
+    QCOMPARE(ThemeScheme::brandAccent(5, ThemeAppearance::Light), QColor(0x00, 0x7A, 0xFF));
+    QCOMPARE(ThemeScheme::brandAccent(8, ThemeAppearance::Dark), QColor(0xFF, 0x37, 0x5F));
+    QCOMPARE(QString::fromLatin1(ThemeScheme::brands()[0].name), QStringLiteral("Red"));
+    QCOMPARE(QString::fromLatin1(ThemeScheme::brands()[5].key), QStringLiteral("blue"));
+}
+
+void AppSettingsTest::loadLegacyFourBrandRemapsToApple()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("settings.json"));
+    QFile f(path);
+    QVERIFY(f.open(QIODevice::WriteOnly | QIODevice::Truncate));
+    f.write(R"({"themeAppearance":"dark","themeScheme":"blue","themePrimaryIndex":0,"themeSecondaryIndex":0})");
+    f.close();
+
+    AppSettings s;
+    QVERIFY(s.loadFromFile(path));
+    QCOMPARE(s.themeCustom, false);
+    QCOMPARE(s.themePrimaryIndex, kThemeDefaultBrandIndex);
+    QCOMPARE(s.themeSecondaryIndex, kThemeDefaultBrandIndex);
+}
+
+void AppSettingsTest::loadNamedSecondarySchemeWins()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("settings.json"));
+    QFile f(path);
+    QVERIFY(f.open(QIODevice::WriteOnly | QIODevice::Truncate));
+    f.write(R"({"themeScheme":"blue","themeSecondaryScheme":"red","themePrimaryIndex":0,"themeSecondaryIndex":0})");
+    f.close();
+
+    AppSettings s;
+    QVERIFY(s.loadFromFile(path));
+    QCOMPARE(s.themePrimaryIndex, kThemeDefaultBrandIndex);
+    QCOMPARE(s.themeSecondaryIndex, 0);
+}
+
+void AppSettingsTest::loadNewSchemeWithoutSecondaryKeyKeepsIndex()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("settings.json"));
+    QFile f(path);
+    QVERIFY(f.open(QIODevice::WriteOnly | QIODevice::Truncate));
+    f.write(R"({"themeScheme":"yellow","themePrimaryIndex":2,"themeSecondaryIndex":2})");
+    f.close();
+
+    AppSettings s;
+    QVERIFY(s.loadFromFile(path));
+    QCOMPARE(s.themePrimaryIndex, 2);
+    QCOMPARE(s.themeSecondaryIndex, 2);
 }
 
 void AppSettingsTest::saturationScalesCustomAccent()

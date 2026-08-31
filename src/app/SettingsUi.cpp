@@ -212,7 +212,8 @@ QString colorKeyFromPageCell(const PageCell& cell)
 
 void stampThemeChoice(PageCell& cell, const AppSettings& settings)
 {
-    if (cell.role.compare(QLatin1String("choice"), Qt::CaseInsensitive) != 0) {
+    const bool swatch = cell.role.compare(QLatin1String("swatch"), Qt::CaseInsensitive) == 0;
+    if (!swatch && cell.role.compare(QLatin1String("choice"), Qt::CaseInsensitive) != 0) {
         return;
     }
     int primary = settings.themePrimaryIndex;
@@ -247,6 +248,14 @@ void stampThemeChoice(PageCell& cell, const AppSettings& settings)
     const ThemePalette pal =
         ThemeScheme::resolve(settings.themeAppearance, settings.themeSaturation, primary, secondary,
                              false);
+    if (swatch) {
+        cell.style.background = pal.progress;
+        cell.style.foreground.reset();
+        cell.style.borderColor.reset();
+        cell.style.progressColor.reset();
+        cell.style.thickness = PageBox::all(selected ? 3.0 : 1.0);
+        return;
+    }
     cell.style.background = pal.colors.bgMain;
     cell.style.foreground = pal.colors.accent;
     cell.style.borderColor = pal.colors.bgSurface;

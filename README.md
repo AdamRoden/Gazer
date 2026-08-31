@@ -154,6 +154,6 @@ Builtins first; unknown names fall through to the mapping profile. Full catalog 
 | `openPreview` | Head-pose preview |
 | `openLayoutEditor` | XML page designer |
 | `theme.light` / `.lightTinted` / `.darkTinted` / `.dark` | Appearance |
-| `theme.primary.0`…`.3` | Accent (Blue, Green, Amber, Red) |
-| `theme.secondary.0`…`.3` | Progress (Blue, Green, Amber, Red) |
+| `theme.primary.0`…`.8` | Accent (Apple system: Red … Pink) |
+| `theme.secondary.0`…`.8` | Progress (same 9) |
 | `settings.*` | Settings hub editors, nudges, presets |

@@ -63,8 +63,9 @@ enum class ThemeAppearance {
     return a == ThemeAppearance::LightTinted || a == ThemeAppearance::DarkTinted;
 }
 
-constexpr int kThemeBrandCount = 4;
-constexpr int kThemeHarmonyCount = 4;
+constexpr int kThemeBrandCount = 9;
+/// Apple system Blue in the Red-to-Pink row.
+constexpr int kThemeDefaultBrandIndex = 5;
 constexpr int kThemeSaturationLevels = 5;
 constexpr int kThemeSaturationMin = 20;
 constexpr int kThemeSaturationMax = 100;

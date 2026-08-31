@@ -263,7 +263,7 @@ void AppSettings::clamp()
     magFollowProfile = gazeFollowProfileFromInt(int(magFollowProfile));
     ltsIndicatorStyle = ltsIndicatorFromInt(int(ltsIndicatorStyle));
     themePrimaryIndex = qBound(0, themePrimaryIndex, kThemeBrandCount - 1);
-    themeSecondaryIndex = qBound(0, themeSecondaryIndex, kThemeHarmonyCount - 1);
+    themeSecondaryIndex = qBound(0, themeSecondaryIndex, kThemeBrandCount - 1);
     themeSaturation = snapThemeSaturation(themeSaturation);
     magPickStyle = PickStyle::sanitizeMag(magPickStyle);
     mousePickStyle = PickStyle::sanitizeMouse(mousePickStyle);

@@ -110,11 +110,11 @@ Patterns, not every generated name:
 | `settings.nudge.themeSaturation.dec` / `.inc` | Saturation 20–100 in five steps (surfaces keep brightness) |
 | `settings.theme.edit` | Open Custom on the role list |
 | `theme.light` / `.lightTinted` / `.darkTinted` / `.dark` | Appearance |
-| `theme.primary.0`…`.3` | Accent (Blue, Green, Amber, Red) |
-| `theme.secondary.0`…`.3` | Progress (Blue, Green, Amber, Red) |
+| `theme.primary.0`…`.8` | Accent (Apple system: Red, Orange, Yellow, Green, Teal, Blue, Indigo, Purple, Pink) |
+| `theme.secondary.0`…`.8` | Progress (same 9, light or dark from appearance) |
 | `theme.custom` | Custom palette |
 | `settings.color.roles` / `.accent` | Theme picker: full roles vs accent |
-| `settings.color.preset.0`…`.4` | Brand accent chips |
+| `settings.color.preset.0`…`.8` | Apple system accent chips |
 | `settings.reset` | Defaults |
 
 Numeric keys: `dwellMs` plus `kIntSpecs` / `kDoubleSpecs` in `AppSettings.cpp`. Color keys: `SettingsUi::kColorKeys`.

@@ -77,6 +77,22 @@ QVector<int> AppSettings::parseDwellSequence(const QString& text, QString* error
     }
     return out;
 }
+
+namespace {
+
+bool preApple9SchemeKey(const QString& key)
+{
+    const QString t = key.toLower();
+    return t == QLatin1String("blue") || t == QLatin1String("green") || t == QLatin1String("amber")
+           || t == QLatin1String("red") || t == QLatin1String("meadow")
+           || t == QLatin1String("forest") || t == QLatin1String("orchid")
+           || t == QLatin1String("dusk") || t == QLatin1String("bloom")
+           || t == QLatin1String("sunset") || t == QLatin1String("copper")
+           || t == QLatin1String("sand");
+}
+
+} // namespace
+
 bool AppSettings::loadFromFile(const QString& path, QString* error)
 {
     QFile f(path);
@@ -202,19 +218,34 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
                                                                : ThemeAppearance::Dark;
     }
     const QString schemeKey = o.value(QStringLiteral("themeScheme")).toString();
+    bool schemeMapsToBrand = false;
     if (o.contains(QStringLiteral("themeScheme"))) {
         const int brand = ThemeScheme::brandIndexFromLegacySchemeKey(schemeKey);
         themeCustom = brand < 0;
-        if (!o.contains(QStringLiteral("themePrimaryIndex")) && brand >= 0) {
+        if (brand >= 0) {
             themePrimaryIndex = brand;
+            schemeMapsToBrand = true;
         }
     } else {
         themeCustom = legacyMode == QLatin1String("custom");
     }
-    if (o.contains(QStringLiteral("themePrimaryIndex"))) {
-        themePrimaryIndex = o.value(QStringLiteral("themePrimaryIndex")).toInt(0);
+    if (o.contains(QStringLiteral("themePrimaryIndex")) && !schemeMapsToBrand) {
+        themePrimaryIndex = o.value(QStringLiteral("themePrimaryIndex")).toInt(kThemeDefaultBrandIndex);
     }
-    themeSecondaryIndex = o.value(QStringLiteral("themeSecondaryIndex")).toInt(0);
+    const QString secondaryKey = o.value(QStringLiteral("themeSecondaryScheme")).toString();
+    const int secondaryBrand = ThemeScheme::brandIndexFromLegacySchemeKey(secondaryKey);
+    if (!secondaryKey.isEmpty() && secondaryBrand >= 0) {
+        themeSecondaryIndex = secondaryBrand;
+    } else if (o.contains(QStringLiteral("themeSecondaryIndex"))) {
+        const int old = o.value(QStringLiteral("themeSecondaryIndex")).toInt(kThemeDefaultBrandIndex);
+        static const int kLegacyFourSwatch[] = {5, 3, 1, 0};
+        if (!o.contains(QStringLiteral("themeSecondaryScheme")) && preApple9SchemeKey(schemeKey)
+            && old >= 0 && old < 4) {
+            themeSecondaryIndex = kLegacyFourSwatch[old];
+        } else {
+            themeSecondaryIndex = old;
+        }
+    }
     if (o.contains(QStringLiteral("themeSaturation"))) {
         themeSaturation = o.value(QStringLiteral("themeSaturation")).toInt(kThemeSaturationDefault);
     } else if (o.contains(QStringLiteral("themeVibrance"))) {
@@ -385,6 +416,10 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
                                      .key));
     o.insert(QStringLiteral("themePrimaryIndex"), copy.themePrimaryIndex);
     o.insert(QStringLiteral("themeSecondaryIndex"), copy.themeSecondaryIndex);
+    o.insert(QStringLiteral("themeSecondaryScheme"),
+             QLatin1String(ThemeScheme::brands()[qBound(0, copy.themeSecondaryIndex,
+                                                        kThemeBrandCount - 1)]
+                               .key));
     o.insert(QStringLiteral("themeSaturation"), copy.themeSaturation);
     const ThemePalette lightPal = ThemeScheme::resolve(
         ThemeAppearance::Light, copy.themeSaturation, copy.themePrimaryIndex,

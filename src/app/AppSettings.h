@@ -115,11 +115,11 @@ struct AppSettings {
     // --- Speech ---
     bool speakAlsoType = true;
 
-    // --- Theme (appearance × brand accent × progress variant × saturation) ---
+    // --- Theme (appearance × Apple system accent × progress × saturation) ---
     ThemeAppearance themeAppearance = ThemeAppearance::Dark;
     bool themeCustom = false;
-    int themePrimaryIndex = 0;
-    int themeSecondaryIndex = 0;
+    int themePrimaryIndex = kThemeDefaultBrandIndex;
+    int themeSecondaryIndex = kThemeDefaultBrandIndex;
     int themeSaturation = kThemeSaturationDefault;
     /// Custom seeds. Branded schemes ignore these until Custom is selected.
     QString customBgColor = QStringLiteral("#1C1C1C");
