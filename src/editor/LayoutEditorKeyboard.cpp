@@ -71,12 +71,7 @@ PageDocument makeBlankDocument()
     return d;
 }
 
-QVector<EditorLayer> makeBlankLayers()
-{
-    return {{QStringLiteral("Base"), {}, makeBlankDocument()}};
-}
-
-QVector<PageDocument> makeKeyboardFamily(const QString& id, const QString& name)
+PageDocument makeKeyboardPage(const QString& id, const QString& name)
 {
     PageDocument d;
     d.id = id;
@@ -123,16 +118,15 @@ QVector<PageDocument> makeKeyboardFamily(const QString& id, const QString& name)
     bk.actions.push_back(sendKey(QStringLiteral("Backspace")));
     g.cells.push_back(bk);
     d.grids.push_back(std::move(g));
-    return {std::move(d)};
+    return d;
 }
 
-QVector<EditorLayer> makeTemplateLayers(EditorTemplate tmpl, const QString& id, const QString& name)
+PageDocument makeTemplateDocument(EditorTemplate tmpl, const QString& id, const QString& name)
 {
     if (tmpl == EditorTemplate::Keyboard) {
         const QString boardId = id.trimmed().isEmpty() ? QStringLiteral("untitled") : id.trimmed();
         const QString boardName = name.trimmed().isEmpty() ? boardId : name.trimmed();
-        const auto family = makeKeyboardFamily(boardId, boardName);
-        return {{QStringLiteral("Base"), {}, family[0]}};
+        return makeKeyboardPage(boardId, boardName);
     }
 
     PageDocument d = makeBlankDocument();
@@ -208,7 +202,7 @@ QVector<EditorLayer> makeTemplateLayers(EditorTemplate tmpl, const QString& id, 
         break;
     }
 
-    return {{QStringLiteral("Base"), {}, std::move(d)}};
+    return d;
 }
 
 } // namespace gazer

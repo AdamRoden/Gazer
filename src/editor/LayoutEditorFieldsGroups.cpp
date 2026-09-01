@@ -5,7 +5,6 @@
 #include "layout/PageDim.h"
 #include "layout/PageTypes.h"
 #include "ui/KeySymbols.h"
-#include "ui/Theme.h"
 
 #include <QCheckBox>
 #include <QColorDialog>
@@ -31,17 +30,17 @@ void addChromeFields(PropertyBinder& b, QFormLayout* form, const PageChrome& st,
     b.card(form, QStringLiteral("Look"), [&](QFormLayout* f) {
         b.note(f, QStringLiteral("Empty inherits the named style (Inherit), then the page, then "
                                  "settings (thickness 1 / radius 0)."));
-        b.color(f, QStringLiteral("Background"), st.background, [apply](std::optional<QColor> c) {
-            apply(QStringLiteral("Background"), [&](PageChrome& s) { s.background = c; });
+        b.color(f, QStringLiteral("Background"), st.background, [apply](PageColor c) {
+            apply(QStringLiteral("Background"), [&](PageChrome& s) { s.background = std::move(c); });
         });
         if (includeItemPaint) {
-            b.color(f, QStringLiteral("Foreground"), st.foreground,
-                    [apply](std::optional<QColor> c) {
-                        apply(QStringLiteral("Foreground"), [&](PageChrome& s) { s.foreground = c; });
-                    });
+            b.color(f, QStringLiteral("Foreground"), st.foreground, [apply](PageColor c) {
+                apply(QStringLiteral("Foreground"),
+                      [&](PageChrome& s) { s.foreground = std::move(c); });
+            });
         }
-        b.color(f, QStringLiteral("Border"), st.borderColor, [apply](std::optional<QColor> c) {
-            apply(QStringLiteral("Border"), [&](PageChrome& s) { s.borderColor = c; });
+        b.color(f, QStringLiteral("Border"), st.borderColor, [apply](PageColor c) {
+            apply(QStringLiteral("Border"), [&](PageChrome& s) { s.borderColor = std::move(c); });
         });
         b.optionalBox(f, QStringLiteral("Thickness"), st.thickness,
                       QStringLiteral("all  or  t,r,b,l"), [apply](std::optional<PageBox> v) {
@@ -68,11 +67,10 @@ void addChromeFields(PropertyBinder& b, QFormLayout* form, const PageChrome& st,
                                        : std::optional<ProgressStyle>(ProgressStyle::fromCsv(s));
                    });
                });
-        b.color(f, QStringLiteral("Progress color"), st.progressColor,
-                [apply](std::optional<QColor> c) {
-                    apply(QStringLiteral("Progress color"),
-                          [&](PageChrome& s) { s.progressColor = c; });
-                });
+        b.color(f, QStringLiteral("Progress color"), st.progressColor, [apply](PageColor c) {
+            apply(QStringLiteral("Progress color"),
+                  [&](PageChrome& s) { s.progressColor = std::move(c); });
+        });
         b.note(f, QStringLiteral("Empty inherits. Tokens: radial, pie, border, fill, fillup, "
                                  "filldown, fillleft, fillright."));
     });

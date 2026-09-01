@@ -32,11 +32,11 @@ Named or anonymous chrome. An unnamed `<Style>` (no `id`) sets the page default.
 | Attribute | Description |
 |-----------|-------------|
 | `id` | Omit to set the page default style |
-| `background`, `foreground`, `border` | Colors (`#RRGGBB` or `#AARRGGBB`). Grids ignore `foreground`. |
+| `background`, `foreground`, `border` | Colors (`#RRGGBB` or `#AARRGGBB`), a Settings theme role (`background`, `surface`, `accent`, `progress`, `tertiary`, `foreground`, `danger`), or an accent brand (`red`, `orange`, `yellow`, `green`, `teal`, `blue`, `indigo`, `purple`, `pink`). Names resolve from the live theme. Grids ignore `foreground`. |
 | `thickness` | Border widths: one value, or `t,r,b,l` |
 | `radius` | Corner radii: one value, or `tl,tr,br,bl` |
 | `progressStyle` | How dwell progress is drawn. Comma-separated: `radial`, `pie`, `border`, `fill` (center), `fillup`, `filldown`, `fillleft`, `fillright`. Grids ignore this. |
-| `progressColor` | Dwell-progress accent (`#RRGGBB` or `#AARRGGBB`). Empty inherits settings. Grids ignore this. |
+| `progressColor` | Dwell-progress accent. Same tokens as `background` / `foreground` / `border`. Empty inherits settings. Grids ignore this. |
 | `blur` | Frosted-glass blur radius |
 
 ## `<Dwell>`

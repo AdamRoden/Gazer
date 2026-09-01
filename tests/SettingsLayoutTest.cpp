@@ -71,7 +71,7 @@ void SettingsLayoutTest::pagesAnchorTop()
         QCOMPARE(doc.grids[0].desktopMode, true);
         QCOMPARE(PageDimParse::token(doc.grids[0].size.x), QStringLiteral("A_ScreenHeight/9*16"));
         QCOMPARE(PageDimParse::token(doc.grids[0].size.y), QStringLiteral("A_ScreenHeight"));
-        QVERIFY(!doc.grids[0].style.background.has_value());
+        QVERIFY(!doc.grids[0].style.background.isSet());
         QVERIFY(doc.styles.contains(QStringLiteral("plain")));
         QVERIFY(doc.styles.contains(QStringLiteral("join")));
         QVERIFY(doc.styles.contains(QStringLiteral("group")));

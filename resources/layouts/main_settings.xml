@@ -2,10 +2,9 @@
   <Style id="group" thickness="0" radius="16"/>
   <Style id="plain" background="#00000000" thickness="0" radius="0"/>
   <Grid id="board" desktopMode="true" rows="4" columns="3" anchor="Top" offset="0,0"
-        size="A_ScreenHeight/9*16, A_ScreenHeight" gap="12" margin="16" radius="16"
+        size="A_ScreenHeight/9*16, A_ScreenHeight" gap="72" margin="90" radius="16"
         rowWeights="1,2,2,1">
-    <Cell id="page_title" row="0" col="0" colSpan="3" label="Settings"
-          caption="Pick a group. Done closes settings." role="label" textStyle="title" style="plain"/>
+    <Cell id="page_title" row="0" col="0" colSpan="3" label="Settings" role="label" textStyle="title" style="plain"/>
     <Cell id="open_dwell" row="1" col="0" label="Speed" caption="Presets, dwell, and pointer time"
           icon="RepeatMouseActionIcon" openPage="main_settings_button_timing"/>
     <Cell id="open_pointer" row="1" col="1" label="Magnify" caption="Pre pick, foresight, and zoom window"
@@ -18,6 +17,6 @@
           icon="LookToScrollActive" openPage="main_settings_overlays"/>
     <Cell id="open_theme" row="2" col="2" label="Theme" caption="Appearance, accent, and progress"
           icon="PaletteIcon" openPage="main_settings_theme"/>
-    <Cell id="done" row="3" col="0" colSpan="3" label="Done" icon="CollapseIcon" closePage="-self"/>
+    <Cell id="done" row="3" col="1" colSpan="1" label="Done" icon="CollapseIcon" closePage="-self"/>
   </Grid>
 </Page>

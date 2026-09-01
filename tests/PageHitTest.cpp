@@ -160,9 +160,15 @@ void PageHitTest::collectEmitsGridChrome()
     const QVector<PageTarget> t = PageHit::collect(doc, frame, {}, false, &grids);
     QCOMPARE(grids.size(), 1);
     QVERIFY(!grids[0].visual.isEmpty());
-    QVERIFY(!grids[0].chrome.background.has_value());
+    QVERIFY(!grids[0].chrome.background.isSet());
     QVERIFY(!t.isEmpty());
-    const PageTarget* cell = PageHit::at(t, grids[0].visual.center());
+    const PageTarget* cell = nullptr;
+    for (const PageTarget& x : t) {
+        if (x.kind == PageTarget::Kind::Cell) {
+            cell = PageHit::at(t, x.geom.contentOnScreen().center());
+            break;
+        }
+    }
     QVERIFY(cell);
     QCOMPARE(cell->kind, PageTarget::Kind::Cell);
 }
@@ -209,10 +215,10 @@ void PageHitTest::cellsInheritPageNotGrid()
     QVector<PageGridPaint> grids;
     const QVector<PageTarget> t = PageHit::collect(doc, frame, {}, false, &grids);
     QCOMPARE(grids.size(), 1);
-    QCOMPARE(grids[0].chrome.background->rgb(), QColor(QStringLiteral("#00FF00")).rgb());
+    QCOMPARE(grids[0].chrome.background.parsed().rgb(), QColor(QStringLiteral("#00FF00")).rgb());
     QCOMPARE(grids[0].chrome.radius ? grids[0].chrome.radius->first() : -1.0, 20.0);
     QVERIFY(!t.isEmpty());
-    QCOMPARE(t[0].chrome.background->rgb(), QColor(QStringLiteral("#FF0000")).rgb());
+    QCOMPARE(t[0].chrome.background.parsed().rgb(), QColor(QStringLiteral("#FF0000")).rgb());
     QCOMPARE(t[0].chrome.radius ? t[0].chrome.radius->first() : -1.0, 4.0);
 }
 

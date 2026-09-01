@@ -9,31 +9,29 @@
 
 namespace gazer {
 
-class LayoutEditorSession::LayerEditCommand final : public QUndoCommand {
+class LayoutEditorSession::EditCommand final : public QUndoCommand {
 public:
-    LayerEditCommand(LayoutEditorSession* session, int layerIndex, PageDocument before,
-                     PageDocument after, const QString& text)
+    EditCommand(LayoutEditorSession* session, PageDocument before, PageDocument after,
+                const QString& text)
         : QUndoCommand(text)
         , m_session(session)
-        , m_layerIndex(layerIndex)
         , m_before(std::move(before))
         , m_after(std::move(after))
     {
     }
 
-    void undo() override { m_session->restoreLayer(m_layerIndex, m_before); }
+    void undo() override { m_session->restoreDocument(m_before); }
     void redo() override
     {
         if (m_virgin) {
             m_virgin = false;
             return;
         }
-        m_session->restoreLayer(m_layerIndex, m_after);
+        m_session->restoreDocument(m_after);
     }
 
 private:
     LayoutEditorSession* m_session = nullptr;
-    int m_layerIndex = 0;
     PageDocument m_before;
     PageDocument m_after;
     bool m_virgin = true;
@@ -48,12 +46,12 @@ LayoutEditorSession::LayoutEditorSession(QObject* parent)
 
 const PageDocument& LayoutEditorSession::document() const
 {
-    return m_layers[m_layerIndex].doc;
+    return m_doc;
 }
 
 PageDocument& LayoutEditorSession::currentDoc()
 {
-    return m_layers[m_layerIndex].doc;
+    return m_doc;
 }
 
 PageLeaf* LayoutEditorSession::selectedItem()
@@ -89,12 +87,12 @@ bool LayoutEditorSession::selectedIsZone() const
 
 void LayoutEditorSession::newDocument()
 {
-    replaceProject(makeBlankLayers(), 0, {}, false);
+    replaceDocument(makeBlankDocument(), {}, false);
 }
 
 void LayoutEditorSession::newFromTemplate(EditorTemplate tmpl, const QString& id, const QString& name)
 {
-    replaceProject(makeTemplateLayers(tmpl, id, name), 0, {}, true);
+    replaceDocument(makeTemplateDocument(tmpl, id, name), {}, true);
 }
 
 void LayoutEditorSession::closeDocument()
@@ -253,21 +251,8 @@ void LayoutEditorSession::setPlaceKind(std::optional<EditorItemKind> kind)
     }
 }
 
-void LayoutEditorSession::setLayer(int index)
-{
-    if (index < 0 || index >= m_layers.size() || index == m_layerIndex) {
-        return;
-    }
-    m_layerIndex = index;
-    m_sel = {EditorTarget::Document, {}, {}};
-    emit selectionChanged();
-    emit documentChanged();
-    emit layerChanged();
-}
-
 void LayoutEditorSession::edit(const QString& label, const std::function<void(PageDocument&)>& fn)
 {
-    const int layer = m_layerIndex;
     PageDocument before = currentDoc();
     fn(currentDoc());
     PageEdit::ensureGridFits(currentDoc());
@@ -275,18 +260,13 @@ void LayoutEditorSession::edit(const QString& label, const std::function<void(Pa
         currentDoc() = std::move(before);
         return;
     }
-    m_undo.push(new LayerEditCommand(this, layer, std::move(before), currentDoc(), label));
+    m_undo.push(new EditCommand(this, std::move(before), currentDoc(), label));
     emit documentChanged();
 }
 
-void LayoutEditorSession::restoreLayer(int layerIndex, PageDocument doc)
+void LayoutEditorSession::restoreDocument(PageDocument doc)
 {
-    if (layerIndex < 0 || layerIndex >= m_layers.size()) {
-        return;
-    }
-    const bool switchedLayer = m_layerIndex != layerIndex;
-    m_layerIndex = layerIndex;
-    m_layers[layerIndex].doc = std::move(doc);
+    m_doc = std::move(doc);
     if (m_sel.target == EditorTarget::Item) {
         QStringList ids;
         for (const QString& id : m_sel.itemIds) {
@@ -318,9 +298,6 @@ void LayoutEditorSession::restoreLayer(int layerIndex, PageDocument doc)
         emit selectionChanged();
     }
     emit documentChanged();
-    if (switchedLayer) {
-        emit layerChanged();
-    }
 }
 
 void LayoutEditorSession::notify(const QString& msg)
@@ -351,52 +328,9 @@ QString LayoutEditorSession::uniqueItemId(const QString& stem) const
     return base + QStringLiteral("_x");
 }
 
-void LayoutEditorSession::restoreProject(QVector<EditorLayer> layers, int layerIndex)
+void LayoutEditorSession::replaceDocument(PageDocument doc, const QString& path, bool dirty)
 {
-    m_layers = std::move(layers);
-    m_layerIndex = qBound(0, layerIndex, m_layers.size() - 1);
-    const EditorTarget keepTarget = m_sel.target;
-    const QStringList keepIds = m_sel.itemIds;
-    if (keepTarget == EditorTarget::Item) {
-        QStringList ids;
-        for (const QString& id : keepIds) {
-            if (itemById(id)) {
-                ids.push_back(id);
-            }
-        }
-        m_sel = ids.isEmpty() ? EditorSelection{EditorTarget::Document, {}, {}}
-                              : EditorSelection{EditorTarget::Item, ids.first(), ids};
-    } else if (keepTarget == EditorTarget::Grid) {
-        const QString gid = PageEdit::findGrid(document(), m_sel.itemId) ? m_sel.itemId : QString();
-        m_sel = {keepTarget, gid, {}};
-        if (keepTarget == EditorTarget::Grid && m_sel.itemId.isEmpty()
-            && !PageEdit::findGrid(document(), gid)) {
-            const PageGrid* g = PageEdit::primaryGrid(document());
-            m_sel.itemId = g ? g->id : QString();
-            if (m_sel.itemId.isEmpty()) {
-                m_sel = {EditorTarget::Document, {}, {}};
-            }
-        }
-    } else if (keepTarget == EditorTarget::Style && document().styles.contains(m_sel.itemId)) {
-        m_sel = {keepTarget, m_sel.itemId, {}};
-    } else if (keepTarget == EditorTarget::Dwell && document().dwells.contains(m_sel.itemId)) {
-        m_sel = {keepTarget, m_sel.itemId, {}};
-    } else {
-        m_sel = {keepTarget, {}, {}};
-    }
-    emit selectionChanged();
-    emit documentChanged();
-    emit layerChanged();
-}
-
-void LayoutEditorSession::replaceProject(QVector<EditorLayer> layers, int layerIndex,
-                                         const QString& path, bool dirty)
-{
-    if (layers.isEmpty()) {
-        layers = makeBlankLayers();
-    }
-    m_layers = std::move(layers);
-    m_layerIndex = qBound(0, layerIndex, m_layers.size() - 1);
+    m_doc = std::move(doc);
     m_filePath = path;
     m_sel = {EditorTarget::Document, {}, {}};
     m_placeKind.reset();
@@ -405,7 +339,6 @@ void LayoutEditorSession::replaceProject(QVector<EditorLayer> layers, int layerI
     emit filePathChanged(m_filePath);
     emit selectionChanged();
     emit documentChanged();
-    emit layerChanged();
     emit placeKindChanged();
 }
 

@@ -169,9 +169,9 @@ SettingsUi::EditorSwatch SettingsUi::editorSwatch() const
 namespace {
 
 void stampSettingVisuals(QString& label, bool interactive, const QString& settingKey,
-                         const QString& id, const QString& colorKey,
-                         std::optional<QColor>& background, std::optional<QColor>& foreground,
-                         const AppSettings& settings, const ThemeColors& theme)
+                         const QString& id, const QString& colorKey, PageColor& background,
+                         PageColor& foreground, const AppSettings& settings,
+                         const ThemeColors& theme)
 {
     if (!settingKey.isEmpty() && !interactive) {
         label = settings.displayValue(settingKey);
@@ -274,8 +274,7 @@ void stampPageCell(PageCell& cell, const AppSettings& settings, const ThemeColor
     if (cell.role.compare(QLatin1String("value"), Qt::CaseInsensitive) != 0) {
         return;
     }
-    if (cell.style.background && cell.style.background->isValid()
-        && cell.style.background->alpha() > 0) {
+    if (cell.style.background.isSet()) {
         return;
     }
     QColor chip = liveTheme.bgMain.isValid() ? liveTheme.bgMain : QColor(10, 10, 11);

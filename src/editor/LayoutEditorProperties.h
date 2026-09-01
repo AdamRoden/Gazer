@@ -2,6 +2,7 @@
 
 #include "editor/LayoutEditorFields.h"
 #include "editor/LayoutEditorSession.h"
+#include "ui/Theme.h"
 
 #include <QWidget>
 #include <array>
@@ -26,6 +27,7 @@ public:
     void showDwellTab();
     void showStyleTab();
     void showPlacementTab();
+    void setTheme(const ThemeColors& theme);
     void setActionCatalog(ActionCatalog catalog) { m_catalog = std::move(catalog); }
 
 private:
@@ -90,6 +92,7 @@ private:
     void rebuildIfNeeded();
 
     LayoutEditorSession& m_session;
+    ThemeColors m_theme = ThemeColors::darkPreset();
     QLabel* m_headerKind = nullptr;
     QLabel* m_headerTitle = nullptr;
     QLabel* m_headerId = nullptr;

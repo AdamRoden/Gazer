@@ -94,15 +94,50 @@ enum class PageAnchor {
     BottomRight
 };
 
+/// One authored chrome color: empty, `#RRGGBB` / `#AARRGGBB`, a theme role, or a brand key.
+/// Resolved at paint from the live theme.
+struct PageColor {
+    QString token;
+
+    PageColor() = default;
+    PageColor(const QColor& c) { *this = c; }
+
+    [[nodiscard]] bool isSet() const { return !token.isEmpty(); }
+    [[nodiscard]] explicit operator bool() const { return isSet(); }
+
+    void reset() { token.clear(); }
+
+    void overlay(const PageColor& ovr)
+    {
+        if (ovr.isSet()) {
+            *this = ovr;
+        }
+    }
+
+    PageColor& operator=(const QColor& c)
+    {
+        if (!c.isValid()) {
+            token.clear();
+        } else if (c.alpha() < 255) {
+            token = c.name(QColor::HexArgb);
+        } else {
+            token = c.name(QColor::HexRgb);
+        }
+        return *this;
+    }
+
+    [[nodiscard]] QColor parsed() const { return token.isEmpty() ? QColor() : QColor(token); }
+};
+
 struct PageChrome {
-    std::optional<QColor> background;
-    std::optional<QColor> foreground;
-    std::optional<QColor> borderColor;
+    PageColor background;
+    PageColor foreground;
+    PageColor borderColor;
     std::optional<PageBox> thickness;
     std::optional<PageBox> radius;
     std::optional<double> blur;
     std::optional<ProgressStyle> progressStyle;
-    std::optional<QColor> progressColor;
+    PageColor progressColor;
 
     [[nodiscard]] bool hasBlur() const { return blur.has_value() && *blur > 0.0; }
 
@@ -128,9 +163,9 @@ struct PageChrome {
 
     [[nodiscard]] bool hasAny() const
     {
-        return background.has_value() || foreground.has_value() || borderColor.has_value()
+        return background.isSet() || foreground.isSet() || borderColor.isSet()
                || thickness.has_value() || radius.has_value() || blur.has_value()
-               || progressStyle.has_value() || progressColor.has_value();
+               || progressStyle.has_value() || progressColor.isSet();
     }
 
     /// Grids paint a surface only. Labels, dwell rings, and progress never use these.
@@ -146,15 +181,10 @@ struct PageChrome {
     [[nodiscard]] PageChrome withOverrides(const PageChrome& ovr) const
     {
         PageChrome out = *this;
-        if (ovr.background) {
-            out.background = ovr.background;
-        }
-        if (ovr.foreground) {
-            out.foreground = ovr.foreground;
-        }
-        if (ovr.borderColor) {
-            out.borderColor = ovr.borderColor;
-        }
+        out.background.overlay(ovr.background);
+        out.foreground.overlay(ovr.foreground);
+        out.borderColor.overlay(ovr.borderColor);
+        out.progressColor.overlay(ovr.progressColor);
         if (ovr.thickness) {
             out.thickness = ovr.thickness;
         }
@@ -166,9 +196,6 @@ struct PageChrome {
         }
         if (ovr.progressStyle) {
             out.progressStyle = ovr.progressStyle;
-        }
-        if (ovr.progressColor) {
-            out.progressColor = ovr.progressColor;
         }
         return out;
     }

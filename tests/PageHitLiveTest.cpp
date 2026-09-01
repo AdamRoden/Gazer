@@ -333,8 +333,8 @@ void PageHitLiveTest::liveEditorGridHasOpaqueChrome()
     QVector<PageGridPaint> grids;
     (void)PageHit::collect(doc, frame, {}, false, &grids);
     QCOMPARE(grids.size(), 1);
-    QVERIFY(grids[0].chrome.background.has_value());
-    QCOMPARE(grids[0].chrome.background->alpha(), 255);
+    QVERIFY(grids[0].chrome.background.isSet());
+    QCOMPARE(grids[0].chrome.background.parsed().alpha(), 255);
     QCOMPARE(grids[0].visual.width(), 1400.0);
     QCOMPARE(grids[0].visual.height(), 980.0);
 }

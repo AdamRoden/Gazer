@@ -316,9 +316,7 @@ void Application::openPageEditor(const QString& pageId)
         m_editor->setLayoutsDirectory(m_svc->catalog().directory());
         m_editor->setUserLayoutsDirectory(m_svc->catalog().userDirectory());
         m_editor->setTestHandler(
-            [this](const QVector<PageDocument>& family, int current, QString* error) {
-                return testEditedLayout(family, current, error);
-            });
+            [this](const PageDocument& doc, QString* error) { return testEditedLayout(doc, error); });
     }
     (void)m_svc->catalog().scan();
     QStringList ids;
@@ -344,8 +342,7 @@ void Application::openPageEditor(const QString& pageId)
     m_editor->showAndRaise();
 }
 
-bool Application::testEditedLayout(const QVector<PageDocument>& family, int currentIndex,
-                                   QString* error)
+bool Application::testEditedLayout(const PageDocument& source, QString* error)
 {
     if (!m_svc) {
         if (error) {
@@ -353,42 +350,29 @@ bool Application::testEditedLayout(const QVector<PageDocument>& family, int curr
         }
         return false;
     }
-    if (currentIndex < 0 || currentIndex >= family.size()) {
-        if (error) {
-            *error = QStringLiteral("No page to preview");
-        }
-        return false;
-    }
-    if (family[currentIndex].master) {
+    if (source.master) {
         if (error) {
             *error = QStringLiteral("Master root pages cannot be live-tested");
         }
         return false;
     }
+    PageDocument doc = source;
+    const QString previewId = PageSession::previewId(doc.id);
     QHash<QString, QString> idMap;
-    for (const PageDocument& src : family) {
-        if (!src.id.isEmpty()) {
-            idMap.insert(src.id, PageSession::previewId(src.id));
-        }
+    if (!doc.id.isEmpty()) {
+        idMap.insert(doc.id, previewId);
     }
+    doc.id = previewId;
+    if (!doc.name.contains(QLatin1String("(preview)"))) {
+        doc.name = doc.name.isEmpty() ? QStringLiteral("Preview")
+                                      : doc.name + QStringLiteral(" (preview)");
+    }
+    PageEdit::remapPageActionTargets(doc, idMap);
     m_svc->pages().closePreviewPages();
-    for (int i = 0; i < family.size(); ++i) {
-        PageDocument doc = family[i];
-        const QString orig = doc.id;
-        doc.id = idMap.value(orig, PageSession::previewId(orig));
-        if (!doc.name.contains(QLatin1String("(preview)"))) {
-            doc.name = doc.name.isEmpty() ? QStringLiteral("Preview")
-                                          : doc.name + QStringLiteral(" (preview)");
-        }
-        PageEdit::remapPageActionTargets(doc, idMap);
-        m_svc->pages().registerMemoryPage(doc);
-        if (i != currentIndex) {
-            continue;
-        }
-        if (!m_svc->pages().attachDocument(std::move(doc), error, true)) {
-            m_svc->pages().closePreviewPages();
-            return false;
-        }
+    m_svc->pages().registerMemoryPage(doc);
+    if (!m_svc->pages().attachDocument(std::move(doc), error, true)) {
+        m_svc->pages().closePreviewPages();
+        return false;
     }
     return true;
 }

@@ -1,10 +1,78 @@
 #include "ui/Theme.h"
+#include "ui/ThemeScheme.h"
 
 #include <QtGlobal>
 
 #include <cmath>
 
 namespace gazer {
+
+bool ThemeColors::isNamedColor(const QString& name)
+{
+    const QString t = name.trimmed().toLower();
+    if (t == QLatin1String("background") || t == QLatin1String("surface")
+        || t == QLatin1String("accent") || t == QLatin1String("progress")
+        || t == QLatin1String("tertiary") || t == QLatin1String("foreground")
+        || t == QLatin1String("danger")) {
+        return true;
+    }
+    for (int i = 0; i < ThemeScheme::brandCount(); ++i) {
+        if (t == QLatin1String(ThemeScheme::brands()[i].key)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+std::optional<QColor> ThemeColors::namedColor(const QString& name) const
+{
+    const QString t = name.trimmed().toLower();
+    if (t == QLatin1String("background")) {
+        return bgMain;
+    }
+    if (t == QLatin1String("surface")) {
+        return cellBg.isValid() ? cellBg : bgSurface;
+    }
+    if (t == QLatin1String("accent")) {
+        return accent;
+    }
+    if (t == QLatin1String("progress")) {
+        return progress.isValid() ? progress : defaultProgressColor();
+    }
+    if (t == QLatin1String("tertiary")) {
+        return cellActive.isValid() ? cellActive : bgSurfaceActive;
+    }
+    if (t == QLatin1String("foreground")) {
+        return text;
+    }
+    if (t == QLatin1String("danger")) {
+        return danger;
+    }
+    for (int i = 0; i < ThemeScheme::brandCount(); ++i) {
+        if (t == QLatin1String(ThemeScheme::brands()[i].key)) {
+            QColor c = ThemeScheme::brandAccent(i, appearance);
+            c.setAlpha(kNamedBrandFillAlpha);
+            return c;
+        }
+    }
+    return std::nullopt;
+}
+
+std::optional<QColor> ThemeColors::resolveToken(const QString& token) const
+{
+    const QString t = token.trimmed();
+    if (t.isEmpty()) {
+        return std::nullopt;
+    }
+    if (const std::optional<QColor> named = namedColor(t)) {
+        return named;
+    }
+    const QColor c(t);
+    if (c.isValid()) {
+        return c;
+    }
+    return std::nullopt;
+}
 
 QString themeAppearanceToString(ThemeAppearance a)
 {
@@ -73,6 +141,8 @@ ThemeColors ThemeColors::darkPreset()
     c.cellHover = QColor(QStringLiteral("#222426"));
     c.cellActive = QColor(QStringLiteral("#2c2e30"));
     c.danger = QColor(QStringLiteral("#f2b8b5"));
+    c.progress = defaultProgressColor();
+    c.appearance = ThemeAppearance::Dark;
     return c;
 }
 
@@ -92,6 +162,8 @@ ThemeColors ThemeColors::lightPreset()
     c.cellHover = QColor(QStringLiteral("#dde3ea"));
     c.cellActive = QColor(QStringLiteral("#c4c7c5"));
     c.danger = QColor(QStringLiteral("#b3261e"));
+    c.progress = defaultProgressColor();
+    c.appearance = ThemeAppearance::Light;
     return c;
 }
 

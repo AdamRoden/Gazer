@@ -148,8 +148,9 @@ void paintLabel(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeCo
         titlePx = 24;
     }
 
-    QColor titleFg = t.chrome.foreground.value_or(theme.text);
-    if (ts == QLatin1String("caption") && !t.chrome.foreground) {
+    const std::optional<QColor> authoredFg = theme.resolveToken(t.chrome.foreground.token);
+    QColor titleFg = authoredFg.value_or(theme.text);
+    if (ts == QLatin1String("caption") && !authoredFg) {
         titleFg = theme.textSecondary;
     }
     if (t.caption.isEmpty()) {
@@ -302,13 +303,15 @@ void paintSurface(QPainter& p, const QRectF& r, const PageChrome& chrome, const 
     const PageBox radii = chrome.resolvedRadius();
     const QColor themeBase = opaqueFill(grid ? theme.bgMain : theme.cellBg,
                                         grid ? QColor(10, 10, 11) : QColor(26, 27, 28));
+    const std::optional<QColor> fillColor = theme.resolveToken(chrome.background.token);
+    const std::optional<QColor> borderColor = theme.resolveToken(chrome.borderColor.token);
     // Authored colors keep their alpha. Unset chrome still uses an opaque theme fill
     // so a board without a background stays a solid overlay.
     const bool authoredFill =
-        chrome.background && chrome.background->isValid() && chrome.background->alpha() > 0;
+        fillColor && fillColor->isValid() && fillColor->alpha() > 0;
     const bool authoredThickness = chrome.thickness.has_value();
-    QColor bg = chrome.background.value_or(themeBase);
-    QColor border = chrome.borderColor.value_or(theme.border);
+    QColor bg = fillColor.value_or(themeBase);
+    QColor border = borderColor.value_or(theme.border);
     PageBox thickness = chrome.resolvedThickness();
 
     if (active) {
@@ -325,12 +328,12 @@ void paintSurface(QPainter& p, const QRectF& r, const PageChrome& chrome, const 
         }
         if (thickness.first() <= 0.0) {
             thickness = PageBox::all(1.0);
-            if (!chrome.borderColor) {
+            if (!borderColor) {
                 border = theme.border;
                 border.setAlpha(qBound(40, border.alpha(), 120));
             }
         }
-    } else if (!grid && !chrome.background && !authoredThickness && thickness.first() <= 0.0) {
+    } else if (!grid && !fillColor && !authoredThickness && thickness.first() <= 0.0) {
         thickness = PageBox::all(1.0);
         border = theme.border;
         border.setAlpha(qBound(28, border.alpha(), 70));
@@ -393,11 +396,12 @@ void paintThemeCard(QPainter& p, const PageTarget& t, const QRectF& r, const The
                     GlassBackdrop* glass, bool hovered, double progress, bool active)
 {
     PageChrome chrome = t.chrome;
-    const QColor window = chrome.background.value_or(theme.bgMain);
-    const QColor surface = chrome.borderColor.value_or(ThemeColors::mix(window, theme.text, 0.08));
-    const QColor accent = chrome.foreground.value_or(
-        theme.accent.isValid() ? theme.accent : theme.text);
-    const QColor progressCol = chrome.progressColor.value_or(accent);
+    const QColor window = theme.resolveToken(chrome.background.token).value_or(theme.bgMain);
+    const QColor surface = theme.resolveToken(chrome.borderColor.token)
+                               .value_or(ThemeColors::mix(window, theme.text, 0.08));
+    const QColor accent = theme.resolveToken(chrome.foreground.token)
+                              .value_or(theme.accent.isValid() ? theme.accent : theme.text);
+    const QColor progressCol = theme.resolveToken(chrome.progressColor.token).value_or(accent);
     if (active) {
         chrome.borderColor = accent;
         chrome.thickness = PageBox::all(qMax(2.4, chrome.resolvedThickness().first()));
@@ -467,7 +471,7 @@ void paintThemeCard(QPainter& p, const PageTarget& t, const QRectF& r, const The
 void paintColorSwatch(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeColors& theme,
                       bool hovered, double progress, bool active)
 {
-    const QColor fill = t.chrome.background.value_or(theme.accent);
+    const QColor fill = theme.resolveToken(t.chrome.background.token).value_or(theme.accent);
     if (!fill.isValid() || r.isEmpty()) {
         return;
     }
@@ -525,11 +529,13 @@ void paintTarget(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeC
     if (t.chrome.progressStyle) {
         vis.applyStyle(*t.chrome.progressStyle);
     }
-    if (t.chrome.progressColor && t.chrome.progressColor->isValid()) {
-        vis.progressColor = *t.chrome.progressColor;
-        vis.borderColor = *t.chrome.progressColor;
+    if (const std::optional<QColor> pc = theme.resolveToken(t.chrome.progressColor.token)) {
+        if (pc->isValid()) {
+            vis.progressColor = *pc;
+            vis.borderColor = *pc;
+        }
     }
-    QColor fg = t.chrome.foreground.value_or(theme.text);
+    QColor fg = theme.resolveToken(t.chrome.foreground.token).value_or(theme.text);
     if (active && !t.activeState.isEmpty()) {
         const QColor fill = theme.cellActive.isValid() ? theme.cellActive : theme.bgSurface;
         const QColor accent = theme.accent.isValid() ? theme.accent : fg;
@@ -562,7 +568,8 @@ void paintTarget(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeC
         const bool on = active && !t.activeState.isEmpty();
         const bool choice = role == QLatin1String("choice");
         const bool toggle = role == QLatin1String("toggle");
-        const bool schemeChoice = choice && t.chrome.progressColor && t.chrome.background;
+        const bool schemeChoice = choice && theme.resolveToken(t.chrome.progressColor.token)
+                                  && theme.resolveToken(t.chrome.background.token);
         if (schemeChoice) {
             paintThemeCard(p, t, r, theme, glass, hovered, progress, on);
         } else {

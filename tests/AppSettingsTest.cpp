@@ -6,6 +6,8 @@
 #include <QTemporaryDir>
 #include <QtTest>
 
+#include <optional>
+
 using namespace gazer;
 
 class AppSettingsTest final : public QObject {
@@ -15,6 +17,7 @@ private slots:
     void dwellCustomDoesNotClobberUnmatched();
     void dwellCustomRestoresWhenLeavingPack();
     void brandedThemeUsesFluent();
+    void namedColorsResolveFromPalette();
     void customThemeUsesFluent();
     void loadLegacyNamedSchemeMapsToBrand();
     void loadLegacyCustom();
@@ -64,6 +67,25 @@ void AppSettingsTest::brandedThemeUsesFluent()
         s.themeAppearance, s.themeSaturation, s.themePrimaryIndex, s.themeSecondaryIndex, false);
     QCOMPARE(s.resolvedTheme().accent, pal.colors.accent);
     QCOMPARE(s.progressColor, AppSettings::colorToHex(pal.progress));
+}
+
+void AppSettingsTest::namedColorsResolveFromPalette()
+{
+    AppSettings s = AppSettings::defaults();
+    s.applyTheme();
+    const ThemePalette pal = s.resolvedPalette();
+    const ThemeColors t = s.resolvedTheme();
+    QCOMPARE(t.progress, pal.progress);
+    QCOMPARE(t.resolveToken(QStringLiteral("progress")).value_or(QColor()), pal.progress);
+    QCOMPARE(t.resolveToken(QStringLiteral("accent")).value_or(QColor()), t.accent);
+    QCOMPARE(t.resolveToken(QStringLiteral("foreground")).value_or(QColor()), t.text);
+    QVERIFY(ThemeColors::isNamedColor(QStringLiteral("red")));
+    QVERIFY(ThemeColors::isNamedColor(QStringLiteral("accent")));
+    QVERIFY(!ThemeColors::isNamedColor(QStringLiteral("window")));
+    QVERIFY(!ThemeColors::isNamedColor(QStringLiteral("primary")));
+    const std::optional<QColor> red = t.namedColor(QStringLiteral("red"));
+    QVERIFY(red.has_value());
+    QCOMPARE(red->alpha(), kNamedBrandFillAlpha);
 }
 
 void AppSettingsTest::customThemeUsesFluent()

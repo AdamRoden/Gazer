@@ -16,7 +16,7 @@
         style="chip" label="Sleep" icon="Sleep"
         activeState="dwellSuspend" shell="true" command="toggleDwellSuspend"/>
 
-  <Grid id="drawer" desktopMode="false" rows="1" columns="10"
+  <Grid id="drawer" desktopMode="false" rows="1" columns="9"
         anchor="Bottom" offset="0,0" size="1200,150" style="drawer" gap="10" margin="10"
         show="false" drawerMotion="true" autoClose="true" shell="true" >
     <Cell id="open_keyboard" row="0" col="0" label="Keyboard" icon="Keyboard" openPage="qwerty_main"/>
@@ -24,17 +24,13 @@
     <Cell id="open_assist" row="0" col="2" label="Assist" icon="IdeaIcon" openPage="example_assist"/>
     <Cell id="open_right" row="0" col="3" label="More" icon="More" openPage="uw_qwerty"/>
     <Cell id="open_settings" row="0" col="4" label="Settings" icon="SettingsIcon" openPage="main_settings"/>
-    <Cell id="open_editor" row="0" col="5" label="Editor" icon="EditAppIcon">
-      <Command value="openLayoutEditor"/>
-      <HideGrid value="drawer"/>
-    </Cell>
-    <Cell id="close" row="0" col="6" label="Dismiss" icon="ArrowPointingToBottomBoundaryIcon" hideGrid="drawer"/>
-    <Cell id="close_all" row="0" col="7" label="Close All" icon="CollapseIcon">
+    <Cell id="close" row="0" col="5" label="Dismiss" icon="ArrowPointingToBottomBoundaryIcon" hideGrid="drawer"/>
+    <Cell id="close_all" row="0" col="6" label="Close All" icon="CollapseIcon">
       <Command value="closeOtherViews"/>
       <HideGrid value="drawer"/>
     </Cell>
-    <Cell id="dwell_suspend" row="0" col="8" label="Pause dwell" icon="Sleep" activeState="dwellSuspend" command="toggleDwellSuspend"/>
-    <Cell id="quit" row="0" col="9" label="Quit" icon="Quit">
+    <Cell id="dwell_suspend" row="0" col="7" label="Pause dwell" icon="Sleep" activeState="dwellSuspend" command="toggleDwellSuspend"/>
+    <Cell id="quit" row="0" col="8" label="Quit" icon="Quit">
       <HideGrid value="drawer"/>
       <ShowGrid value="quit"/>
     </Cell>

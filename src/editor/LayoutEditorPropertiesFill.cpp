@@ -326,7 +326,7 @@ void LayoutEditorProperties::fillPlacement(QFormLayout* form)
 
 void LayoutEditorProperties::fillStyle(QFormLayout* form)
 {
-    PropertyBinder b{this, &m_loading};
+    PropertyBinder b{this, &m_loading, m_theme};
     const Kind kind = currentKind();
     if (kind == Kind::Style) {
         const QString styleId = m_session.selection().itemId;

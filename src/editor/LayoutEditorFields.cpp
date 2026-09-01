@@ -188,16 +188,15 @@ void PropertyBinder::comboValues(QFormLayout* form, const QString& label, const 
     form->addRow(label, c);
 }
 
-void PropertyBinder::color(QFormLayout* form, const QString& label,
-                           const std::optional<QColor>& value,
-                           const std::function<void(std::optional<QColor>)>& apply)
+void PropertyBinder::color(QFormLayout* form, const QString& label, const PageColor& value,
+                           const std::function<void(PageColor)>& apply)
 {
     auto* row = new QWidget;
     auto* h = new QHBoxLayout(row);
     h->setContentsMargins(0, 0, 0, 0);
     h->setSpacing(6);
-    auto* e = new QLineEdit(value ? ThemeColors::colorToHex(*value) : QString());
-    e->setPlaceholderText(QStringLiteral("unset"));
+    auto* e = new QLineEdit(value.token);
+    e->setPlaceholderText(QStringLiteral("hex, accent, red…"));
     fitWidth(e);
     fitWidth(row);
     auto* swatch = new QPushButton;
@@ -205,40 +204,57 @@ void PropertyBinder::color(QFormLayout* form, const QString& label,
     swatch->setFixedSize(22, 22);
     swatch->setCursor(Qt::PointingHandCursor);
     swatch->setFlat(true);
-    const QString bg = value ? ThemeColors::colorToHex(*value) : QStringLiteral("transparent");
-    const QString border = value ? QStringLiteral("rgba(128,128,128,90)")
-                                 : QStringLiteral("rgba(128,128,128,140)");
+    const std::optional<QColor> preview = theme.resolveToken(value.token);
+    const QString bg =
+        preview ? ThemeColors::colorToHex(*preview) : QStringLiteral("transparent");
+    const QString border = preview ? QStringLiteral("rgba(128,128,128,90)")
+                                   : QStringLiteral("rgba(128,128,128,140)");
     swatch->setStyleSheet(
         QStringLiteral("QPushButton { background:%1; border:1px %2 %3; border-radius:11px; }")
-            .arg(bg, value ? QStringLiteral("solid") : QStringLiteral("dashed"), border));
+            .arg(bg, preview ? QStringLiteral("solid") : QStringLiteral("dashed"), border));
     bool* const loadingFlag = loading;
     QWidget* const dlgHost = host;
+    const ThemeColors live = theme;
     auto commit = [loadingFlag, e, apply]() {
         if (loadingFlag && *loadingFlag) {
             return;
         }
         const QString t = e->text().trimmed();
+        PageColor next;
         if (t.isEmpty()) {
-            apply(std::nullopt);
+            apply(next);
+            return;
+        }
+        if (ThemeColors::isNamedColor(t)) {
+            next.token = t.toLower();
+            apply(next);
             return;
         }
         const QColor c = ThemeColors::parseColor(t, QColor());
-        apply(c.isValid() ? std::optional<QColor>(c) : std::nullopt);
-    };
-    QObject::connect(e, &QLineEdit::editingFinished, host, commit);
-    QObject::connect(swatch, &QPushButton::clicked, host, [loadingFlag, e, apply, dlgHost]() {
-        if (loadingFlag && *loadingFlag) {
-            return;
-        }
-        const QColor start = ThemeColors::parseColor(e->text(), QColor(200, 200, 200));
-        const QColor c = QColorDialog::getColor(start, dlgHost, QStringLiteral("Color"),
-                                                QColorDialog::ShowAlphaChannel);
         if (!c.isValid()) {
             return;
         }
-        e->setText(ThemeColors::colorToHex(c));
-        apply(c);
-    });
+        next = c;
+        apply(next);
+    };
+    QObject::connect(e, &QLineEdit::editingFinished, host, commit);
+    QObject::connect(swatch, &QPushButton::clicked, host,
+                     [loadingFlag, e, apply, dlgHost, live]() {
+                         if (loadingFlag && *loadingFlag) {
+                             return;
+                         }
+                         const QColor start =
+                             live.resolveToken(e->text().trimmed()).value_or(QColor(200, 200, 200));
+                         const QColor c = QColorDialog::getColor(
+                             start, dlgHost, QStringLiteral("Color"), QColorDialog::ShowAlphaChannel);
+                         if (!c.isValid()) {
+                             return;
+                         }
+                         PageColor next;
+                         next = c;
+                         e->setText(next.token);
+                         apply(next);
+                     });
     h->addWidget(e, 1);
     h->addWidget(swatch);
     form->addRow(label, row);

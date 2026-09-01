@@ -1,7 +1,58 @@
 <Page id="qwerty_main" name="Qwerty" radius="0" scanGrace="200" activation="10,600,600,500,400,300,200,100">
   <Dwell id="vert1" scanGrace="200" activation="200,600"/>
   <Dwell id="vert2" scanGrace="100" activation="100,600"/>
-  <Grid id="board" desktopMode="true" rows="4" columns="160" anchor="Bottom" size="1.0,0.26" gap="0" margin="0">
+  <Grid id="vert1" desktopMode="true" rows="6" columns="1" anchor="TopRight" size="1/16,0.73">
+    <Cell id="more" row="0" col="0" icon="More" dwell="vert1" openPage="example_keyboard_sym"/>
+    <Cell id="move_lclick" row="1" col="0" icon="LeftClick" dwell="vert1" activeState="leftClickAtGaze" leftClickAtGaze=""/>
+    <Cell id="move_rclick" row="2" col="0" icon="RightClick" dwell="vert1" activeState="rightClickAtGaze" rightClickAtGaze=""/>
+    <Cell id="edge" row="3" col="0" icon="ArrowPointingToRightBoundary" dwell="vert1">
+      <ToggleGrid value="board"/>
+      <ToggleGrid value="keyboard"/>
+    </Cell>
+    <SubGrid id="keyboard" row="3" col="0" show="false">
+      <Cell id="keyboard" row="0" col="0" icon="Keyboard" dwell="vert1">
+      <ToggleGrid value="board"/>
+      <ToggleGrid value="keyboard"/>
+      </Cell>
+    </SubGrid>
+    <Cell id="sleep" row="4" col="0" icon="Sleep" dwell="vert1" activeState="dwellSuspend" command="toggleDwellSuspend"/>
+    <Cell id="lts" row="5" col="0" icon="LookToScrollActive" dwell="vert1" activeState="lookToScroll" command="toggleLookToScroll"/>
+  </Grid>
+  <Grid id="vert2" desktopMode="true" rows="2" columns="1" anchor="TopRight" offset="0,0.73" size="1/16,0.27">
+    <Cell id="mid" row="0" col="0" label="MID" dwell="vert2">
+      <AHK><![CDATA[
+      {
+      try { 
+      Title := WinGetTitle("A")
+      xPos := -4
+      yPos := -4
+      v_nWidthN := 15/16*A_ScreenWidth+8
+      v_nHeightN := 0.73*(A_ScreenHeight-32)
+      WinRestore Title 
+      WinMove xPos, yPos, v_nWidthN, v_nHeightN, Title
+      } catch { 
+      }
+      }
+      ]]></AHK>
+    </Cell>
+    <Cell id="max" row="1" col="0" label="MAX" dwell="vert2">
+      <AHK><![CDATA[
+      {
+      try { 
+      Title := WinGetTitle("A")
+      xPos := -4
+      yPos := -4
+      v_nWidthN := 15/16*A_ScreenWidth+8
+      v_nHeightN := A_ScreenHeight-32
+      WinRestore Title 
+      WinMove xPos, yPos, v_nWidthN, v_nHeightN, Title
+      } catch { 
+      }
+      }
+      ]]></AHK>
+    </Cell>
+  </Grid>
+  <Grid id="board" desktopMode="true" rows="4" columns="160" anchor="Bottom" size="1.0,0.27" gap="0" margin="0">
     <Cell id="esc" row="0" col="0" colSpan="9" label="Esc" background="#3d4f66" foreground="#ffffff" command="escape"/>
     <Cell id="n1" row="0" col="9" colSpan="10" label="1" textStyle="key" send="1"/>
     <Cell id="n2" row="0" col="19" colSpan="10" label="2" textStyle="key" send="2"/>
@@ -67,58 +118,5 @@
     <Cell id="alt" row="3" col="131" colSpan="9" label="Alt" background="#3d4f66" foreground="#ffffff" activeState="mod.alt" command="leftAlt"/>
     <Cell id="pgdn" row="3" col="140" colSpan="10" label="Pg Dn" background="#3d4f66" foreground="#ffffff" command="pageDown"/>
     <Cell id="enter" row="3" col="150" colSpan="10" icon="Enter" background="#3d4f66" foreground="#ffffff" command="enter"/>
-  </Grid>
-  <Grid id="vert1" desktopMode="true" rows="6" columns="1" anchor="TopRight" size="1/16,0.74">
-    <Cell id="more" row="0" col="0" icon="More" dwell="vert1" openPage="example_keyboard_sym"/>
-    <Cell id="move_lclick" row="1" col="0" icon="LeftClick" dwell="vert1" activeState="leftClickAtGaze" leftClickAtGaze=""/>
-    <Cell id="move_rclick" row="2" col="0" icon="RightClick" dwell="vert1" activeState="rightClickAtGaze" rightClickAtGaze=""/>
-    <Cell id="edge" row="3" col="0" icon="ArrowPointingToRightBoundary" dwell="vert1">
-    <ToggleGrid value="board"/>
-    <ToggleGrid value="vert2"/>
-    <ToggleCell value="edge"/>
-    <ToggleCell value="keyboard"/>
-    </Cell>
-    <Cell id="keyboard" row="3" col="0" icon="Keyboard" show="false" dwell="vert1">
-    <ToggleGrid value="board"/>
-    <ToggleGrid value="vert2"/>
-    <ToggleCell value="edge"/>
-    <ToggleCell value="keyboard"/>
-    </Cell>
-    <Cell id="sleep" row="4" col="0" icon="Sleep" dwell="vert1" activeState="dwellSuspend" command="toggleDwellSuspend"/>
-    <Cell id="lts" row="5" col="0" icon="LookToScrollActive" dwell="vert1" activeState="lookToScroll" command="toggleLookToScroll"/>
-  </Grid>
-  <Grid id="vert2" desktopMode="true" rows="2" columns="1" anchor="TopRight" offset="0,0.74" size="1/16,0.26"  show="false">
-    <Cell id="mid" row="0" col="0" label="Mid" dwell="vert2">
-    <AHK><![CDATA[
-    {
-    try { 
-    Title := WinGetTitle("A")
-    xPos := -4
-    yPos := -4
-    v_nWidthN := 15/16*A_ScreenWidth+8
-    v_nHeightN := 0.74*(A_ScreenHeight-32)
-    WinRestore Title 
-    WinMove xPos, yPos, v_nWidthN, v_nHeightN, Title
-    } catch { 
-    }
-    }
-    ]]></AHK>
-    </Cell>
-    <Cell id="max" row="1" col="0" label="Max" dwell="vert2">
-    <AHK><![CDATA[
-    {
-    try { 
-    Title := WinGetTitle("A")
-    xPos := -4
-    yPos := -4
-    v_nWidthN := 15/16*A_ScreenWidth+8
-    v_nHeightN := A_ScreenHeight-32
-    WinRestore Title 
-    WinMove xPos, yPos, v_nWidthN, v_nHeightN, Title
-    } catch { 
-    }
-    }
-    ]]></AHK>
-    </Cell>
   </Grid>
 </Page>

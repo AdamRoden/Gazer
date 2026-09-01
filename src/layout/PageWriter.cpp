@@ -11,17 +11,6 @@ namespace gazer {
 
 namespace {
 
-QString colorTok(const std::optional<QColor>& c)
-{
-    if (!c || !c->isValid()) {
-        return {};
-    }
-    if (c->alpha() < 255) {
-        return c->name(QColor::HexArgb);
-    }
-    return c->name(QColor::HexRgb);
-}
-
 QString pairTok(const PageDimPair& p)
 {
     if (!p.isSet()) {
@@ -55,11 +44,11 @@ void attrInt(QXmlStreamWriter& xml, const QString& name, int value, int defaultV
 
 void writeChrome(QXmlStreamWriter& xml, const PageChrome& st, bool includeItemPaint = true)
 {
-    attr(xml, QStringLiteral("background"), colorTok(st.background));
+    attr(xml, QStringLiteral("background"), st.background.token);
     if (includeItemPaint) {
-        attr(xml, QStringLiteral("foreground"), colorTok(st.foreground));
+        attr(xml, QStringLiteral("foreground"), st.foreground.token);
     }
-    attr(xml, QStringLiteral("border"), colorTok(st.borderColor));
+    attr(xml, QStringLiteral("border"), st.borderColor.token);
     if (st.thickness && st.thickness->isSet()) {
         xml.writeAttribute(QStringLiteral("thickness"), st.thickness->toToken());
     }
@@ -78,7 +67,7 @@ void writeChrome(QXmlStreamWriter& xml, const PageChrome& st, bool includeItemPa
             xml.writeAttribute(QStringLiteral("progressStyle"), csv);
         }
     }
-    attr(xml, QStringLiteral("progressColor"), colorTok(st.progressColor));
+    attr(xml, QStringLiteral("progressColor"), st.progressColor.token);
 }
 
 void writeDwell(QXmlStreamWriter& xml, const PageDwell& d)

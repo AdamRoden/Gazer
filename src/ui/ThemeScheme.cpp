@@ -196,6 +196,8 @@ ThemePalette fluent(ThemeAppearance appearance, int saturation, const QColor& pr
     QColor fill = progress;
     fill.setAlpha(qBound(30, int(std::lround(255.0 * accentW * 6.0)), 90));
     out.progressFill = fill;
+    c.progress = progress;
+    c.appearance = appearance;
     return out;
 }
 

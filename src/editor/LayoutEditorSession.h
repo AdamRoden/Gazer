@@ -66,12 +66,6 @@ enum class EditorTemplate {
     EdgeChip
 };
 
-struct EditorLayer {
-    QString name;
-    QString suffix;
-    PageDocument doc;
-};
-
 struct EditorClip {
     enum class Kind { Cell, Zone };
     Kind kind = Kind::Cell;
@@ -80,7 +74,7 @@ struct EditorClip {
     QString gridId;
 };
 
-/// In-memory XML page family, undo stack, clipboard, and selection.
+/// In-memory XML page, undo stack, clipboard, and selection.
 class LayoutEditorSession final : public QObject {
     Q_OBJECT
 
@@ -103,9 +97,6 @@ public:
 
     void newDocument();
     void newFromTemplate(EditorTemplate tmpl, const QString& id, const QString& name);
-    [[nodiscard]] const QVector<EditorLayer>& layers() const { return m_layers; }
-    [[nodiscard]] int layerIndex() const { return m_layerIndex; }
-    void setLayer(int index);
     void setPlaceKind(std::optional<EditorItemKind> kind);
     [[nodiscard]] std::optional<EditorItemKind> placeKind() const { return m_placeKind; }
     [[nodiscard]] bool loadFromFile(const QString& path, QString* error = nullptr);
@@ -166,24 +157,20 @@ signals:
     void dirtyChanged(bool dirty);
     void filePathChanged(const QString& path);
     void statusMessage(const QString& msg);
-    void layerChanged();
     void placeKindChanged();
 
 private:
-    class LayerEditCommand;
-    friend class LayerEditCommand;
+    class EditCommand;
+    friend class EditCommand;
 
     [[nodiscard]] PageDocument& currentDoc();
-    void restoreLayer(int layerIndex, PageDocument doc);
-    void restoreProject(QVector<EditorLayer> layers, int layerIndex);
-    void replaceProject(QVector<EditorLayer> layers, int layerIndex, const QString& path,
-                        bool dirty);
+    void restoreDocument(PageDocument doc);
+    void replaceDocument(PageDocument doc, const QString& path, bool dirty);
     void setDirty(bool dirty);
     void resetUndo();
     [[nodiscard]] QStringList actionItemIds(const QString& itemId) const;
 
-    QVector<EditorLayer> m_layers;
-    int m_layerIndex = 0;
+    PageDocument m_doc;
     QString m_filePath;
     bool m_dirty = false;
     EditorSelection m_sel;

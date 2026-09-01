@@ -12,7 +12,6 @@
 
 #include <QAction>
 #include <QCloseEvent>
-#include <QComboBox>
 #include <QFileInfo>
 #include <QGuiApplication>
 #include <QKeySequence>
@@ -392,15 +391,6 @@ void LayoutEditorWindow::buildUi()
     tb->addSeparator();
     tb->addAction(m_codeView);
     viewMenu->addAction(m_codeView);
-    m_layerCombo = new QComboBox;
-    m_layerCombo->setMinimumWidth(110);
-    m_layerCombo->setToolTip(QStringLiteral("Keyboard layer"));
-    tb->addWidget(m_layerCombo);
-    connect(m_layerCombo, &QComboBox::currentIndexChanged, this, [this](int i) {
-        if (i >= 0) {
-            m_session->setLayer(i);
-        }
-    });
 
     auto* split = new QSplitter(Qt::Horizontal, this);
     m_toolbox = new LayoutEditorToolbox(split);
@@ -453,18 +443,11 @@ void LayoutEditorWindow::buildUi()
     connect(m_canvas, &LayoutEditorCanvas::zoomChanged, this,
             &LayoutEditorWindow::updateZoomLabel);
     connect(m_codeView, &QAction::toggled, this, &LayoutEditorWindow::setCodeView);
-    connect(m_session, &LayoutEditorSession::layerChanged, this, [this]() {
-        refreshLayers();
-        if (m_codeView && m_codeView->isChecked()) {
-            refreshCodeView();
-        }
-    });
     connect(m_session, &LayoutEditorSession::documentChanged, this, [this]() {
         if (m_codeView && m_codeView->isChecked() && m_code && !m_code->isDirty()) {
             refreshCodeView();
         }
     });
-    refreshLayers();
     updateZoomLabel();
 
     auto makeChip = [](const QString& objectName) {
@@ -510,6 +493,9 @@ void LayoutEditorWindow::applyFluentTheme()
     }
     if (m_code) {
         m_code->setTheme(m_theme);
+    }
+    if (m_props) {
+        m_props->setTheme(m_theme);
     }
 }
 
@@ -718,21 +704,6 @@ void LayoutEditorWindow::frameLoadedPage()
     if (m_codeView && m_codeView->isChecked()) {
         refreshCodeView();
     }
-}
-
-void LayoutEditorWindow::refreshLayers()
-{
-    if (!m_layerCombo) {
-        return;
-    }
-    const QSignalBlocker block(m_layerCombo);
-    m_layerCombo->clear();
-    const QVector<EditorLayer>& layers = m_session->layers();
-    for (const EditorLayer& layer : layers) {
-        m_layerCombo->addItem(layer.name);
-    }
-    m_layerCombo->setCurrentIndex(m_session->layerIndex());
-    m_layerCombo->setVisible(layers.size() > 1);
 }
 
 } // namespace gazer

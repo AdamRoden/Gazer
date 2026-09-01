@@ -8,12 +8,10 @@
 #include <QHash>
 #include <QMainWindow>
 #include <QStringList>
-#include <QVector>
 #include <functional>
 
 class QAction;
 class QCloseEvent;
-class QComboBox;
 class QKeySequence;
 class QLabel;
 class QPushButton;
@@ -31,8 +29,7 @@ class LayoutEditorWindow final : public QMainWindow {
     Q_OBJECT
 
 public:
-    using TestHandler =
-        std::function<bool(const QVector<PageDocument>& family, int currentIndex, QString* error)>;
+    using TestHandler = std::function<bool(const PageDocument& doc, QString* error)>;
 
     explicit LayoutEditorWindow(QWidget* parent = nullptr);
     ~LayoutEditorWindow() override;
@@ -58,7 +55,6 @@ private:
     void updateTitle();
     void updateStatus();
     void updateActions();
-    void refreshLayers();
     void syncActionCatalog();
     void updateZoomLabel();
     void refreshCodeView();
@@ -95,7 +91,6 @@ private:
     LayoutEditorProperties* m_props = nullptr;
     QStackedWidget* m_center = nullptr;
     LayoutEditorCodeView* m_code = nullptr;
-    QComboBox* m_layerCombo = nullptr;
     QLabel* m_zoomLabel = nullptr;
     QString m_layoutsDir;
     QString m_userDir;

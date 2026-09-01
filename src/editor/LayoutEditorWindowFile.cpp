@@ -287,12 +287,7 @@ void LayoutEditorWindow::testLive()
         return;
     }
     QString err;
-    QVector<PageDocument> family;
-    family.reserve(m_session->layers().size());
-    for (const EditorLayer& layer : m_session->layers()) {
-        family.push_back(layer.doc);
-    }
-    if (!m_test(family, m_session->layerIndex(), &err)) {
+    if (!m_test(m_session->document(), &err)) {
         QMessageBox::warning(this, QStringLiteral("Test failed"),
                              err.isEmpty() ? QStringLiteral("Could not open page") : err);
         return;

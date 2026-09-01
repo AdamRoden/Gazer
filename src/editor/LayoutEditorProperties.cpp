@@ -18,6 +18,12 @@
 
 namespace gazer {
 
+void LayoutEditorProperties::setTheme(const ThemeColors& theme)
+{
+    m_theme = theme;
+    rebuild();
+}
+
 LayoutEditorProperties::LayoutEditorProperties(LayoutEditorSession& session, QWidget* parent)
     : QWidget(parent)
     , m_session(session)

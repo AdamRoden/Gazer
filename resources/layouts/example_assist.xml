@@ -12,7 +12,7 @@ Zoom" activeState="mouseMoveMagPick" command="toggleMouseMoveMagPick"/>
     <Cell id="foresight" row="0" col="6" icon="AutoModeIcon" label="Foresight" activeState="mouseMoveForesight" command="toggleMouseMoveForesight"/>
     <Cell id="lts" row="0" col="7" icon="LookToScrollActive" label="Look↕Scroll" activeState="lookToScroll" command="toggleLookToScroll"/>
     <Cell id="combo" row="0" col="8" icon="PieSlice5" label="ComboMouse" activeState="comboMouse" command="toggleComboMouse"/>
-    <Cell id="edit_layout" row="0" col="9" icon="PhysicalKeys" label="Edit layout" command="openLayoutEditor"/>
+    <Cell id="edit_layout" row="0" col="9" icon="EditAppIcon" label="Edit layout" command="openLayoutEditor"/>
     <Cell id="main" row="0" col="10" icon="Menu" label="Main">
     <ClosePage value="-self"/>
     <ShowGrid value="drawer"/>

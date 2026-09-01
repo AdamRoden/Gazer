@@ -14,6 +14,6 @@ Qt Widgets designer for Page XML (same files the runtime loads).
 | `LayoutEditorIcons` | Themed painter glyphs for toolbar / palette / tree |
 | `LayoutEditorProperties` | Inspector tabs; `PropertiesFill.cpp` builds forms |
 | `LayoutEditorFields` | Form widgets; `FieldsGroups.cpp` chrome/dwell/action |
-| `LayoutEditorKeyboard` | Layer combo / shift labels |
+| `LayoutEditorKeyboard` | Blank / keyboard / row / chip templates |
 
 Shipped save writes `%AppData%\Gazer\layouts` and leaves `resources/` unchanged.

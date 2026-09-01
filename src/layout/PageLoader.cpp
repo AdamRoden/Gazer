@@ -32,29 +32,24 @@ int parseIntAttr(const QStringView v, int defaultValue)
     return ok ? n : defaultValue;
 }
 
-std::optional<QColor> parseColorAttr(const QStringView v)
+void parseChromeColor(const QStringView v, PageColor& dest)
 {
     const QString s = v.toString().trimmed();
-    if (s.isEmpty()) {
-        return std::nullopt;
+    if (!s.isEmpty()) {
+        dest.token = s;
     }
-    const QColor c(s);
-    if (!c.isValid()) {
-        return std::nullopt;
-    }
-    return c;
 }
 
 void applyChromeAttrs(const QXmlStreamAttributes& a, PageChrome& st)
 {
     if (a.hasAttribute(QStringLiteral("background"))) {
-        st.background = parseColorAttr(a.value(QStringLiteral("background")));
+        parseChromeColor(a.value(QStringLiteral("background")), st.background);
     }
     if (a.hasAttribute(QStringLiteral("foreground"))) {
-        st.foreground = parseColorAttr(a.value(QStringLiteral("foreground")));
+        parseChromeColor(a.value(QStringLiteral("foreground")), st.foreground);
     }
     if (a.hasAttribute(QStringLiteral("border"))) {
-        st.borderColor = parseColorAttr(a.value(QStringLiteral("border")));
+        parseChromeColor(a.value(QStringLiteral("border")), st.borderColor);
     }
     if (a.hasAttribute(QStringLiteral("thickness"))) {
         const PageBox box =
@@ -86,7 +81,7 @@ void applyChromeAttrs(const QXmlStreamAttributes& a, PageChrome& st)
         }
     }
     if (a.hasAttribute(QStringLiteral("progressColor"))) {
-        st.progressColor = parseColorAttr(a.value(QStringLiteral("progressColor")));
+        parseChromeColor(a.value(QStringLiteral("progressColor")), st.progressColor);
     }
 }
 

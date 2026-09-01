@@ -1,6 +1,7 @@
 #pragma once
 
 #include "layout/PageTypes.h"
+#include "ui/Theme.h"
 
 #include <QColor>
 #include <QString>
@@ -18,6 +19,7 @@ namespace gazer {
 struct PropertyBinder {
     QWidget* host = nullptr;
     bool* loading = nullptr;
+    ThemeColors theme = ThemeColors::darkPreset();
 
     [[nodiscard]] bool isLoading() const { return loading && *loading; }
 
@@ -38,8 +40,8 @@ struct PropertyBinder {
     void comboValues(QFormLayout* form, const QString& label, const QStringList& labels,
                      const QStringList& values, const QString& currentValue,
                      const std::function<void(const QString&)>& apply);
-    void color(QFormLayout* form, const QString& label, const std::optional<QColor>& value,
-               const std::function<void(std::optional<QColor>)>& apply);
+    void color(QFormLayout* form, const QString& label, const PageColor& value,
+               const std::function<void(PageColor)>& apply);
     void dim(QFormLayout* form, const QString& label, const PageDim& value,
              const std::function<void(PageDim)>& apply);
     void optionalReal(QFormLayout* form, const QString& label, const std::optional<double>& value,

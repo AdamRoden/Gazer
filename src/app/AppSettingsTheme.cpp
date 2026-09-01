@@ -26,6 +26,7 @@ void overlayCustomRoles(const AppSettings& s, ThemePalette& pal)
     const QColor sec = ThemeScheme::scaleSaturation(
         AppSettings::parseColor(s.customSecondaryColor, pal.progress), s.themeSaturation);
     pal.progress = sec;
+    pal.colors.progress = sec;
     pal.progressBorder = sec;
     QColor fill = sec;
     fill.setAlpha(70);

@@ -36,8 +36,7 @@ private:
 
     void onQuitRequested();
     void openPageEditor(const QString& pageId = {});
-    [[nodiscard]] bool testEditedLayout(const QVector<PageDocument>& family, int currentIndex,
-                                        QString* error);
+    [[nodiscard]] bool testEditedLayout(const PageDocument& doc, QString* error);
     void onGaze(const gazer::GazePoint& point);
     void onTobiiStreamFailed(const QString& reason);
     void fallbackToMouse();

@@ -25,6 +25,7 @@ private slots:
     void loadFixture();
     void ahkCdataRoundTrip();
     void inheritStyleAndDwell();
+    void namedColorTokensRoundTrip();
     void pageChromeDefaults();
     void zoneDwellDefaultsAndOffset();
     void rejectMissingPageId();
@@ -208,19 +209,19 @@ void PageLoaderTest::inheritStyleAndDwell()
     QVERIFY(!g.cells.isEmpty());
     const PageCell& cell = g.cells[0];
     const PageChrome st = PageResolve::style(doc, cell.styleId, cell.style);
-    QVERIFY(st.background.has_value());
-    QCOMPARE(st.background->rgb(), QColor(QStringLiteral("#FF000000")).rgb());
-    QVERIFY(st.foreground.has_value());
+    QVERIFY(st.background.isSet());
+    QCOMPARE(st.background.parsed().rgb(), QColor(QStringLiteral("#FF000000")).rgb());
+    QVERIFY(st.foreground.isSet());
     QCOMPARE(st.radius ? st.radius->first() : 0.0, 12.0);
     QVERIFY(!st.thickness.has_value());
     QCOMPARE(st.resolvedThickness().first(), PageChrome::kDefaultThickness);
     QVERIFY(!st.progressStyle.has_value());
     const PageChrome gridSt = PageResolve::gridStyle(doc, g.styleId, g.style);
-    QCOMPARE(gridSt.background->rgb(), QColor(QStringLiteral("#111111")).rgb());
+    QCOMPARE(gridSt.background.parsed().rgb(), QColor(QStringLiteral("#111111")).rgb());
     QCOMPARE(gridSt.radius ? gridSt.radius->first() : 0.0, 2.0);
-    QVERIFY(!gridSt.foreground.has_value());
+    QVERIFY(!gridSt.foreground.isSet());
     QVERIFY(!gridSt.progressStyle.has_value());
-    QVERIFY(!gridSt.progressColor.has_value());
+    QVERIFY(!gridSt.progressColor.isSet());
 
     PageChrome sides;
     sides.thickness = PageBox::fromToken(QStringLiteral("1,2,3,4"));
@@ -246,8 +247,8 @@ void PageLoaderTest::inheritStyleAndDwell()
     const PageChrome named = styled.styles.value(QStringLiteral("chip"));
     QVERIFY(named.progressStyle.has_value());
     QCOMPARE(named.progressStyle->toCsv(), QStringLiteral("fillup,border"));
-    QVERIFY(named.progressColor.has_value());
-    QCOMPARE(named.progressColor->name(QColor::HexRgb).toUpper(), QStringLiteral("#00DCFF"));
+    QVERIFY(named.progressColor.isSet());
+    QCOMPARE(named.progressColor.parsed().name(QColor::HexRgb).toUpper(), QStringLiteral("#00DCFF"));
     QCOMPARE(named.radius ? named.radius->at(0) : -1.0, 0.0);
     QCOMPARE(named.radius ? named.radius->at(1) : -1.0, 0.0);
     QCOMPARE(named.radius ? named.radius->at(2) : -1.0, 12.0);
@@ -256,8 +257,8 @@ void PageLoaderTest::inheritStyleAndDwell()
     const PageChrome zst = PageResolve::zoneStyle(styled, styled.zones[0]);
     QVERIFY(zst.progressStyle.has_value());
     QCOMPARE(zst.progressStyle->toCsv(), QStringLiteral("fillup,border"));
-    QVERIFY(zst.progressColor.has_value());
-    QCOMPARE(zst.progressColor->name(QColor::HexRgb).toUpper(), QStringLiteral("#00DCFF"));
+    QVERIFY(zst.progressColor.isSet());
+    QCOMPARE(zst.progressColor.parsed().name(QColor::HexRgb).toUpper(), QStringLiteral("#00DCFF"));
     QCOMPARE(zst.radius ? zst.radius->at(2) : -1.0, 12.0);
 
     PageDocument gridInherit;
@@ -270,14 +271,14 @@ void PageLoaderTest::inheritStyleAndDwell()
 )xml",
                                     gridInherit, &err),
             qPrintable(err));
-    QVERIFY(gridInherit.grids[0].style.foreground.has_value());
+    QVERIFY(gridInherit.grids[0].style.foreground.isSet());
     QVERIFY(gridInherit.grids[0].style.progressStyle.has_value());
     const PageChrome resolvedGrid =
         PageResolve::gridStyle(gridInherit, gridInherit.grids[0].styleId, gridInherit.grids[0].style);
-    QVERIFY(resolvedGrid.background.has_value());
-    QVERIFY(!resolvedGrid.foreground.has_value());
+    QVERIFY(resolvedGrid.background.isSet());
+    QVERIFY(!resolvedGrid.foreground.isSet());
     QVERIFY(!resolvedGrid.progressStyle.has_value());
-    QVERIFY(!resolvedGrid.progressColor.has_value());
+    QVERIFY(!resolvedGrid.progressColor.isSet());
     const QString gridXml = QString::fromUtf8(PageWriter::toBytes(gridInherit));
     for (const QString& line : gridXml.split(QLatin1Char('\n'))) {
         if (line.contains(QLatin1String("<Grid"))) {
@@ -290,7 +291,7 @@ void PageLoaderTest::inheritStyleAndDwell()
     QVERIFY2(PageLoader::loadFromXml(PageWriter::toBytes(styled), written, &err), qPrintable(err));
     QCOMPARE(written.styles.value(QStringLiteral("chip")).progressStyle->toCsv(),
              QStringLiteral("fillup,border"));
-    QCOMPARE(written.styles.value(QStringLiteral("chip")).progressColor->name(QColor::HexRgb).toUpper(),
+    QCOMPARE(written.styles.value(QStringLiteral("chip")).progressColor.parsed().name(QColor::HexRgb).toUpper(),
              QStringLiteral("#00DCFF"));
     QCOMPARE(written.styles.value(QStringLiteral("chip")).radius->toToken(),
              QStringLiteral("0,0,12,12"));
@@ -324,6 +325,34 @@ void PageLoaderTest::inheritStyleAndDwell()
     const PageDwell gridDw = PageResolve::dwell(doc, g.dwellId, g.dwell);
     QCOMPARE(gridDw.scanGrace.value_or(-1), 999);
     QCOMPARE(gridDw.activation->at(0), 50);
+}
+
+void PageLoaderTest::namedColorTokensRoundTrip()
+{
+    PageDocument doc;
+    QString err;
+    QVERIFY2(PageLoader::loadFromXml(R"xml(
+<Page id="p" background="accent" foreground="foreground" border="surface"
+      progressColor="progress">
+  <Style id="brand" background="red" foreground="foreground"/>
+  <Grid id="g" size="100,100" background="green">
+    <Cell id="c" label="X"/>
+  </Grid>
+</Page>
+)xml",
+                                    doc, &err),
+            qPrintable(err));
+    QCOMPARE(doc.style.background.token, QStringLiteral("accent"));
+    QCOMPARE(doc.style.foreground.token, QStringLiteral("foreground"));
+    QCOMPARE(doc.style.borderColor.token, QStringLiteral("surface"));
+    QCOMPARE(doc.style.progressColor.token, QStringLiteral("progress"));
+    QCOMPARE(doc.styles.value(QStringLiteral("brand")).background.token, QStringLiteral("red"));
+    QCOMPARE(doc.grids[0].style.background.token, QStringLiteral("green"));
+    PageDocument written;
+    QVERIFY2(PageLoader::loadFromXml(PageWriter::toBytes(doc), written, &err), qPrintable(err));
+    QCOMPARE(written.style.background.token, QStringLiteral("accent"));
+    QCOMPARE(written.style.progressColor.token, QStringLiteral("progress"));
+    QCOMPARE(written.styles.value(QStringLiteral("brand")).background.token, QStringLiteral("red"));
 }
 
 void PageLoaderTest::zoneDwellDefaultsAndOffset()
@@ -385,7 +414,7 @@ void PageLoaderTest::rejectRemovedActionAliases()
 void PageLoaderTest::loadConvertedBoards()
 {
     const QStringList ids = {QStringLiteral("example_mouse"), QStringLiteral("example_assist"),
-                             QStringLiteral("uw_right"),
+                             QStringLiteral("uw_qwerty"),
                              QStringLiteral("main_settings_button_timing")};
     for (const QString& id : ids) {
         PageDocument doc;
@@ -398,7 +427,7 @@ void PageLoaderTest::loadConvertedBoards()
         QVERIFY(!doc.grids[0].cells.isEmpty());
         if (id.startsWith(QLatin1String("main_settings"))) {
             QCOMPARE(doc.grids[0].anchor, PageAnchor::Top);
-            QVERIFY(!doc.grids[0].style.background.has_value());
+            QVERIFY(!doc.grids[0].style.background.isSet());
             const PageGrid* tabs = doc.findGrid(QStringLiteral("tabs"));
             QVERIFY(tabs);
             bool hasTabs = false;
@@ -549,8 +578,8 @@ void PageLoaderTest::loadLtsMenu()
     QCOMPARE(doc.grids[0].size.y.unit, PageDim::Unit::HeightProportion);
     QCOMPARE(doc.grids[0].size.x.value, 0.25);
     QCOMPARE(doc.grids[0].cells.size(), 5);
-    QVERIFY(doc.grids[0].style.background.has_value());
-    QCOMPARE(doc.grids[0].style.background->alpha(), 0);
+    QVERIFY(doc.grids[0].style.background.isSet());
+    QCOMPARE(doc.grids[0].style.background.parsed().alpha(), 0);
     QVERIFY(doc.grids[0].style.thickness.has_value());
     QCOMPARE(doc.grids[0].style.thickness->first(), 0.0);
     QVERIFY(doc.styles.contains(QStringLiteral("hub")));
@@ -610,26 +639,19 @@ void PageLoaderTest::loadMainPage()
     QVERIFY(doc.findGrid(QStringLiteral("quit")));
     QCOMPARE(doc.findGrid(QStringLiteral("drawer"))->show, false);
     QCOMPARE(doc.findGrid(QStringLiteral("quit"))->show, false);
-    QCOMPARE(doc.findGrid(QStringLiteral("drawer"))->cells.size(), 10);
+    QCOMPARE(doc.findGrid(QStringLiteral("drawer"))->cells.size(), 9);
     QCOMPARE(doc.zones[0].actions[1].type, PageActionType::Nav);
     QCOMPARE(doc.zones[0].actions[1].verb, PageVerb::Open);
     QCOMPARE(doc.zones[0].actions[1].targetKind, PageTargetKind::Grid);
     QCOMPARE(doc.zones[0].actions[1].targetId, QStringLiteral("drawer"));
     QVERIFY(doc.zones[0].suspendExempt);
     QVERIFY(doc.zones[1].suspendExempt);
-    const PageCell* editor = nullptr;
     const PageCell* pause = nullptr;
     for (const PageCell& c : doc.findGrid(QStringLiteral("drawer"))->cells) {
-        if (c.id == QLatin1String("open_editor")) {
-            editor = &c;
-        }
         if (c.id == QLatin1String("dwell_suspend")) {
             pause = &c;
         }
     }
-    QVERIFY(editor);
-    QCOMPARE(editor->actions[0].type, PageActionType::Command);
-    QCOMPARE(editor->actions[0].command, QStringLiteral("openLayoutEditor"));
     QVERIFY(pause);
     QVERIFY(pause->suspendExempt);
     QCOMPARE(pause->actions[0].command, QStringLiteral("toggleDwellSuspend"));
