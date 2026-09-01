@@ -20,6 +20,7 @@ private slots:
     void parseSpecificActionElements();
     void parseMoveVariants();
     void parseOpenPageBreadcrumb();
+    void rejectInvalidShowLayers();
     void parseCloseSpecialsAndGoBack();
     void genericActionAttribute();
 };
@@ -335,25 +336,16 @@ void PageLoaderActionTest::parseOpenPageBreadcrumb()
              qPrintable(err));
     QCOMPARE(a.type, PageActionType::Nav);
     QCOMPARE(a.verb, PageVerb::Open);
-    QCOMPARE(a.targetKind, PageTargetKind::Page);
     QCOMPARE(a.targetScope, PageNavScope::Id);
     QCOMPARE(a.targetId, QStringLiteral("uw_qwerty"));
     QCOMPARE(a.breadcrumb, true);
-    QVERIFY2(loadOneAction(QByteArray("<ShowGrid value=\"board\"/>"), a, &err), qPrintable(err));
-    QCOMPARE(a.type, PageActionType::Nav);
-    QCOMPARE(a.verb, PageVerb::Open);
-    QCOMPARE(a.targetKind, PageTargetKind::Grid);
-    QCOMPARE(a.breadcrumb, false);
-    QCOMPARE(a.targetId, QStringLiteral("board"));
-    QVERIFY2(loadOneAction(QByteArray("<OpenGrid value=\"board\"/>"), a, &err), qPrintable(err));
-    QCOMPARE(a.targetKind, PageTargetKind::Grid);
-    QCOMPARE(a.targetId, QStringLiteral("board"));
-    QVERIFY2(loadOneAction(QByteArray("<ShowCell value=\"k_q\"/>"), a, &err), qPrintable(err));
-    QCOMPARE(a.verb, PageVerb::Open);
-    QCOMPARE(a.targetKind, PageTargetKind::Cell);
-    QCOMPARE(a.targetId, QStringLiteral("k_q"));
+    QVERIFY2(loadOneAction(QByteArray("<ShowLayers value=\"1,2\"/>"), a, &err), qPrintable(err));
+    QCOMPARE(a.type, PageActionType::ShowLayers);
+    QCOMPARE(a.layers, (QVector<int>{1, 2}));
+    QVERIFY2(loadOneAction(QByteArray("<ShowLayers/>"), a, &err), qPrintable(err));
+    QCOMPARE(a.layers, QVector<int>({1}));
     PageAction show;
-    QVERIFY2(loadOneAction(QByteArray("<ShowGrid value=\"board\"/>"), show, &err), qPrintable(err));
+    QVERIFY2(loadOneAction(QByteArray("<ShowLayers value=\"2\"/>"), show, &err), qPrintable(err));
     PageDocument written;
     written.id = QStringLiteral("t");
     PageGrid g;
@@ -364,35 +356,29 @@ void PageLoaderActionTest::parseOpenPageBreadcrumb()
     g.cells.push_back(c);
     written.grids.push_back(g);
     const QString xml = QString::fromUtf8(PageWriter::toBytes(written));
-    QVERIFY(xml.contains(QStringLiteral("showGrid=\"board\"")));
-    QVERIFY(!xml.contains(QStringLiteral("openGrid")));
+    QVERIFY(xml.contains(QStringLiteral("showLayers=\"2\"")));
+}
+
+void PageLoaderActionTest::rejectInvalidShowLayers()
+{
+    PageAction a;
+    QString err;
+    const bool ok = loadOneAction(QByteArray("<ShowLayers value=\"nope\"/>"), a, &err);
+    QVERIFY2(!ok, qPrintable(ok ? QStringLiteral("accepted nope") : err));
 }
 
 void PageLoaderActionTest::parseCloseSpecialsAndGoBack()
 {
     PageAction a;
     QString err;
-    QVERIFY2(loadOneAction(QByteArray("<ClosePage value=\"-self\"/>"), a, &err), qPrintable(err));
+    QVERIFY2(loadOneAction(QByteArray("<ClosePage/>"), a, &err), qPrintable(err));
     QCOMPARE(a.type, PageActionType::Nav);
     QCOMPARE(a.verb, PageVerb::Close);
-    QCOMPARE(a.targetKind, PageTargetKind::Page);
     QCOMPARE(a.targetScope, PageNavScope::Self);
-    QVERIFY2(loadOneAction(QByteArray("<HideGrid value=\"-all, true\"/>"), a, &err),
-             qPrintable(err));
-    QCOMPARE(a.targetKind, PageTargetKind::Grid);
+    QVERIFY2(loadOneAction(QByteArray("<CloseAllPages/>"), a, &err), qPrintable(err));
     QCOMPARE(a.targetScope, PageNavScope::All);
-    QCOMPARE(a.breadcrumb, true);
-    QVERIFY2(loadOneAction(QByteArray("<CloseGrid value=\"-all, true\"/>"), a, &err),
-             qPrintable(err));
-    QCOMPARE(a.targetKind, PageTargetKind::Grid);
-    QCOMPARE(a.targetScope, PageNavScope::All);
-    QVERIFY2(loadOneAction(QByteArray("<HideZone value=\"-!self\"/>"), a, &err), qPrintable(err));
-    QCOMPARE(a.targetKind, PageTargetKind::Zone);
+    QVERIFY2(loadOneAction(QByteArray("<CloseOtherPages/>"), a, &err), qPrintable(err));
     QCOMPARE(a.targetScope, PageNavScope::Others);
-    QVERIFY2(loadOneAction(QByteArray("<HideCell value=\"k_q\"/>"), a, &err), qPrintable(err));
-    QCOMPARE(a.verb, PageVerb::Close);
-    QCOMPARE(a.targetKind, PageTargetKind::Cell);
-    QCOMPARE(a.targetId, QStringLiteral("k_q"));
     QVERIFY2(loadOneAction(QByteArray("<GoBack/>"), a, &err), qPrintable(err));
     QCOMPARE(a.type, PageActionType::GoBack);
 }
@@ -407,7 +393,6 @@ void PageLoaderActionTest::genericActionAttribute()
     QVERIFY2(loadOneAction(QByteArray("<Action openPage=\"uw_qwerty, true\"/>"), a, &err),
              qPrintable(err));
     QCOMPARE(a.type, PageActionType::Nav);
-    QCOMPARE(a.targetKind, PageTargetKind::Page);
     QCOMPARE(a.targetId, QStringLiteral("uw_qwerty"));
     QCOMPARE(a.breadcrumb, true);
     QVERIFY2(loadOneAction(QByteArray("<Action goBack=\"true\"/>"), a, &err), qPrintable(err));

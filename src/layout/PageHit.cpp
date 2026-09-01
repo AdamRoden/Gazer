@@ -115,9 +115,10 @@ QRectF gridBounds(const PageGrid& grid, const PageFrame& frame)
 
 namespace {
 
-void accumulateGrid(const PageGrid& grid, const QRectF& bounds, QRectF& u)
+void accumulateGrid(const PageGrid& grid, const QRectF& bounds, const QVector<int>& shown,
+                    QRectF& u)
 {
-    if (!grid.show && grid.shell) {
+    if (!layersVisible(grid.layers, shown) && grid.shell) {
         return;
     }
     if (!bounds.isEmpty()) {
@@ -126,7 +127,7 @@ void accumulateGrid(const PageGrid& grid, const QRectF& bounds, QRectF& u)
     for (const PageGrid& sub : grid.subGrids) {
         const QRectF slot =
             cellRect(grid, bounds, sub.row, sub.col, sub.rowSpan, sub.colSpan);
-        accumulateGrid(sub, slot, u);
+        accumulateGrid(sub, slot, shown, u);
     }
 }
 
@@ -136,7 +137,7 @@ QRectF reservedBounds(const PageDocument& page, const PageFrame& frame)
 {
     QRectF u;
     for (const PageGrid& g : page.grids) {
-        accumulateGrid(g, gridBounds(g, frame), u);
+        accumulateGrid(g, gridBounds(g, frame), page.showLayers, u);
     }
     const QRectF screen = frame.screen.isEmpty() ? frame.desktop : frame.screen;
     for (const PageZone& z : page.zones) {
@@ -176,10 +177,11 @@ namespace {
 
 void walkGrid(const PageDocument& page, const PageGrid& grid, const QRectF& bounds,
               const QRectF& screen, const QVariantMap& props, bool dwellSuspended, bool shell,
-              bool drawerMotion, bool includeHidden, bool includeDrawerMotion,
+              bool drawerMotion, bool includeDrawerMotion, const QVector<int>& shownLayers,
               QVector<PageTarget>& out, QVector<PageGridPaint>* grids)
 {
-    if (!includeHidden && !grid.show && !(includeDrawerMotion && grid.drawerMotion)) {
+    if (!layersVisible(grid.layers, shownLayers)
+        && !(includeDrawerMotion && grid.drawerMotion)) {
         return;
     }
 
@@ -197,9 +199,6 @@ void walkGrid(const PageDocument& page, const PageGrid& grid, const QRectF& boun
     }
 
     for (const PageCell& cell : grid.cells) {
-        if (!includeHidden && !cell.show) {
-            continue;
-        }
         if (!evalVisibleWhen(cell.visibleWhen, props)) {
             continue;
         }
@@ -229,13 +228,14 @@ void walkGrid(const PageDocument& page, const PageGrid& grid, const QRectF& boun
     }
 
     for (const PageGrid& sub : grid.subGrids) {
-        if (!includeHidden && !sub.show && !(includeDrawerMotion && sub.drawerMotion)) {
+        if (!layersVisible(sub.layers, shownLayers)
+            && !(includeDrawerMotion && sub.drawerMotion)) {
             continue;
         }
         const QRectF slot =
             cellRect(grid, bounds, sub.row, sub.col, sub.rowSpan, sub.colSpan);
-        walkGrid(page, sub, slot, screen, props, dwellSuspended, layer, drawer, includeHidden,
-                 includeDrawerMotion, out, grids);
+        walkGrid(page, sub, slot, screen, props, dwellSuspended, layer, drawer,
+                 includeDrawerMotion, shownLayers, out, grids);
     }
 }
 
@@ -243,23 +243,24 @@ void walkGrid(const PageDocument& page, const PageGrid& grid, const QRectF& boun
 
 QVector<PageTarget> collect(const PageDocument& page, const PageFrame& frame,
                             const QVariantMap& props, bool dwellSuspended, QVector<PageGridPaint>* grids,
-                            bool includeHidden, bool includeDrawerMotion)
+                            bool includeDrawerMotion, const std::optional<QVector<int>>& shownLayers)
 {
     QVector<PageTarget> rest;
     QVector<PageTarget> shell;
     const QRectF screen = frame.screen.isEmpty() ? frame.desktop : frame.screen;
+    const QVector<int>& shown = shownLayers ? *shownLayers : page.showLayers;
 
     for (const PageGrid& g : page.grids) {
         QVector<PageTarget> piece;
         walkGrid(page, g, gridBounds(g, frame), screen, props, dwellSuspended, g.shell,
-                 g.drawerMotion, includeHidden, includeDrawerMotion, piece, grids);
+                 g.drawerMotion, includeDrawerMotion, shown, piece, grids);
         for (PageTarget& t : piece) {
             (t.shell ? shell : rest).push_back(std::move(t));
         }
     }
 
     for (const PageZone& z : page.zones) {
-        if (!includeHidden && !z.show) {
+        if (!layersVisible(z.layers, shown)) {
             continue;
         }
         if (!evalVisibleWhen(z.visibleWhen, props)) {

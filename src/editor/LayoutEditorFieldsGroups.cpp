@@ -249,31 +249,39 @@ void addActionFields(PropertyBinder& b, QFormLayout* form, const PageAction& act
             apply(QStringLiteral("Command args"), [&](PageAction& a) { a.args = t; });
         });
     }
+    if (action.type == PageActionType::ShowLayers) {
+        b.text(form, QStringLiteral("Layers"), layerListCsv(normalizedLayers(action.layers)),
+               [apply](const QString& t) {
+                   apply(QStringLiteral("Show layers"), [&](PageAction& a) {
+                       QVector<int> layers;
+                       if (!parseLayerListStrict(t, layers) || layers.isEmpty()) {
+                           layers = defaultLayers();
+                       }
+                       a.layers = std::move(layers);
+                   });
+               });
+    }
     if (action.type == PageActionType::Nav) {
-        QStringList ids = catalog.layoutIds;
-        QStringList labels = catalog.layoutLabels;
-        if (labels.size() != ids.size()) {
-            labels = ids;
+        if (action.verb != PageVerb::Close) {
+            QStringList ids = catalog.layoutIds;
+            QStringList labels = catalog.layoutLabels;
+            if (labels.size() != ids.size()) {
+                labels = ids;
+            }
+            const QString current = navTargetChoice(action);
+            if (!current.isEmpty() && !ids.contains(current)) {
+                ids.prepend(current);
+                labels.prepend(current);
+            }
+            b.comboValues(form, QStringLiteral("Target id"), labels, ids, current,
+                          [apply](const QString& t) {
+                              apply(QStringLiteral("Page target"),
+                                    [&](PageAction& a) { applyNavTargetChoice(a, t); });
+                          });
+            b.check(form, QStringLiteral("Save breadcrumb"), action.breadcrumb, [apply](bool on) {
+                apply(QStringLiteral("Breadcrumb"), [&](PageAction& a) { a.breadcrumb = on; });
+            });
         }
-        const QStringList special = {QStringLiteral("-self"), QStringLiteral("-all"),
-                                     QStringLiteral("-!self")};
-        for (int i = special.size() - 1; i >= 0; --i) {
-            ids.prepend(special[i]);
-            labels.prepend(special[i]);
-        }
-        const QString current = navTargetChoice(action);
-        if (!current.isEmpty() && !ids.contains(current)) {
-            ids.prepend(current);
-            labels.prepend(current);
-        }
-        b.comboValues(form, QStringLiteral("Target id"), labels, ids, current,
-                      [apply](const QString& t) {
-                          apply(QStringLiteral("Page target"),
-                                [&](PageAction& a) { applyNavTargetChoice(a, t); });
-                      });
-        b.check(form, QStringLiteral("Save breadcrumb"), action.breadcrumb, [apply](bool on) {
-            apply(QStringLiteral("Breadcrumb"), [&](PageAction& a) { a.breadcrumb = on; });
-        });
     }
     if (action.type == PageActionType::Speak) {
         b.text(form, QStringLiteral("Text"), action.speakText, [apply](const QString& t) {

@@ -8,7 +8,7 @@ Qt Widgets designer for Page XML (same files the runtime loads).
 | `LayoutEditorStyle` | Themed QSS for the designer chrome |
 | `LayoutEditorCodeView` | XML source pane; highlighter in `LayoutEditorXmlHighlight` |
 | `LayoutEditorSession*` | Document + undo; `Io` load/save; `Edit` mutations |
-| `LayoutEditorCanvas` | Virtual-display canvas; `Paint` / `Interact` split the widget |
+| `LayoutEditorCanvas` | Virtual-display canvas; `Paint` / `Interact` split the widget. Toolbar layer combo: Shown (`showLayers`) or one layer. |
 | `LayoutEditorMenu` | Shared item context menu (canvas + tree) |
 | `LayoutEditorToolbox` | Add palette, element tree, context menu |
 | `LayoutEditorIcons` | Themed painter glyphs for toolbar / palette / tree |

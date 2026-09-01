@@ -734,9 +734,9 @@ QVector<EditorIssue> LayoutEditorSession::validate(const QStringList& catalogIds
             && a.targetId.trimmed().isEmpty()) {
             add(QStringLiteral("%1: page target is empty").arg(where), where, t);
         }
-        if (a.type == PageActionType::Nav && a.targetKind == PageTargetKind::Page
-            && a.targetScope == PageNavScope::Id && !a.targetId.isEmpty() && !catalogIds.isEmpty()
-            && !catalogIds.contains(a.targetId) && a.targetId != doc.id) {
+        if (a.type == PageActionType::Nav && a.targetScope == PageNavScope::Id
+            && !a.targetId.isEmpty() && !catalogIds.isEmpty() && !catalogIds.contains(a.targetId)
+            && a.targetId != doc.id) {
             add(QStringLiteral("%1: unknown page '%2'").arg(where, a.targetId), where, t);
         }
         if (a.type == PageActionType::Speak && a.speakText.trimmed().isEmpty()) {

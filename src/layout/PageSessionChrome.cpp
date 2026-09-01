@@ -1,5 +1,6 @@
 #include "layout/PageSession.h"
 
+#include "layout/PageNav.h"
 #include "ui/PageHostWindow.h"
 
 #include <QtGlobal>
@@ -15,7 +16,7 @@ void PageSession::syncExpanded()
 bool PageSession::anyRootGridShown() const
 {
     for (const PageGrid& g : m_root.grids) {
-        if (g.show) {
+        if (layersVisible(g.layers, m_root.showLayers)) {
             return true;
         }
     }
@@ -25,7 +26,7 @@ bool PageSession::anyRootGridShown() const
 bool PageSession::drawerMotionShown() const
 {
     for (const PageGrid& g : m_root.grids) {
-        if (g.drawerMotion && g.show) {
+        if (g.drawerMotion && layersVisible(g.layers, m_root.showLayers)) {
             return true;
         }
     }
@@ -35,7 +36,7 @@ bool PageSession::drawerMotionShown() const
 bool PageSession::nonDrawerRootShown() const
 {
     for (const PageGrid& g : m_root.grids) {
-        if (g.show && !g.drawerMotion) {
+        if (!g.drawerMotion && layersVisible(g.layers, m_root.showLayers)) {
             return true;
         }
     }
@@ -52,26 +53,38 @@ void PageSession::resetDrawerAnim()
 void PageSession::snapHideDrawerMotion()
 {
     resetDrawerAnim();
-    for (PageGrid& g : m_root.grids) {
+    QVector<int> drop;
+    for (const PageGrid& g : m_root.grids) {
         if (g.drawerMotion) {
-            g.show = false;
+            for (int n : g.layers) {
+                if (!drop.contains(n)) {
+                    drop.push_back(n);
+                }
+            }
         }
+    }
+    if (!drop.isEmpty()) {
+        PageNav::dropLayers(m_root.showLayers, drop);
     }
 }
 
 void PageSession::hideRootAutoClose(bool animate)
 {
     const bool wasDrawer = drawerMotionShown();
-    bool any = false;
-    for (PageGrid& g : m_root.grids) {
-        if (g.autoClose && g.show) {
-            g.show = false;
-            any = true;
+    QVector<int> drop;
+    for (const PageGrid& g : m_root.grids) {
+        if (g.autoClose && layersVisible(g.layers, m_root.showLayers)) {
+            for (int n : g.layers) {
+                if (!drop.contains(n)) {
+                    drop.push_back(n);
+                }
+            }
         }
     }
-    if (!any) {
+    if (drop.isEmpty()) {
         return;
     }
+    PageNav::dropLayers(m_root.showLayers, drop);
     if (!animate) {
         snapHideDrawerMotion();
         emitShowChanged();

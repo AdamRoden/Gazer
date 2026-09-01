@@ -126,7 +126,7 @@ bool skipUnknownOrFail(QXmlStreamReader& xml, const QString& parent, QString* er
 
 void applyCommonContent(const QXmlStreamAttributes& a, QString& label, QString& icon,
                         QString& caption, QString& settingKey, QString& activeState,
-                        QString& visibleWhen, bool& suspendExempt, bool& actionLoop, bool& show)
+                        QString& visibleWhen, bool& suspendExempt, bool& actionLoop)
 {
     if (a.hasAttribute(QStringLiteral("label"))) {
         label = a.value(QStringLiteral("label")).toString();
@@ -154,11 +154,27 @@ void applyCommonContent(const QXmlStreamAttributes& a, QString& label, QString& 
     if (a.hasAttribute(QStringLiteral("actionLoop"))) {
         actionLoop = parseBoolAttr(a.value(QStringLiteral("actionLoop")), false);
     }
-    if (a.hasAttribute(QStringLiteral("show"))) {
-        show = parseBoolAttr(a.value(QStringLiteral("show")), true);
-    } else if (a.hasAttribute(QStringLiteral("visible"))) {
-        show = parseBoolAttr(a.value(QStringLiteral("visible")), true);
+}
+
+bool parseLayersAttr(const QXmlStreamAttributes& a, QVector<int>& dest, QString* error,
+                     const QString& attrName = QStringLiteral("layers"))
+{
+    if (!a.hasAttribute(attrName)) {
+        dest = defaultLayers();
+        return true;
     }
+    const QString raw = a.value(attrName).toString().trimmed();
+    if (raw.isEmpty()) {
+        dest = defaultLayers();
+        return true;
+    }
+    if (!parseLayerListStrict(raw, dest) || dest.isEmpty()) {
+        if (error) {
+            *error = QStringLiteral("Invalid %1 '%2'").arg(attrName, raw);
+        }
+        return false;
+    }
+    return true;
 }
 
 bool readActions(QXmlStreamReader& xml, const QString& parent, QVector<PageAction>& actions,
@@ -232,7 +248,7 @@ bool readCell(QXmlStreamReader& xml, PageCell& cell, QString* error)
         return false;
     }
     applyCommonContent(a, cell.label, cell.icon, cell.caption, cell.settingKey, cell.activeState,
-                       cell.visibleWhen, cell.suspendExempt, cell.actionLoop, cell.show);
+                       cell.visibleWhen, cell.suspendExempt, cell.actionLoop);
     QString attrErr;
     if (!takePageActionAttributes(a, cell.actions, &attrErr)) {
         if (error) {
@@ -309,13 +325,8 @@ bool readGrid(QXmlStreamReader& xml, PageGrid& grid, bool nested, QString* error
     }
     grid.drawerMotion = parseBoolAttr(a.value(QStringLiteral("drawerMotion")), false);
     grid.autoClose = parseBoolAttr(a.value(QStringLiteral("autoClose")), false);
-    if (a.hasAttribute(QStringLiteral("show"))) {
-        grid.show = parseBoolAttr(a.value(QStringLiteral("show")), true);
-    } else if (a.hasAttribute(QStringLiteral("open"))) {
-        grid.show = parseBoolAttr(a.value(QStringLiteral("open")), true);
-    } else {
-        const QString slot = a.value(QStringLiteral("chrome")).toString().trimmed().toLower();
-        grid.show = slot != QLatin1String("drawer") && slot != QLatin1String("quit");
+    if (!parseLayersAttr(a, grid.layers, error)) {
+        return false;
     }
     grid.shell = parseBoolAttr(a.value(QStringLiteral("shell")), false);
     grid.styleId = a.value(QStringLiteral("style")).toString();
@@ -408,7 +419,10 @@ bool readZone(QXmlStreamReader& xml, PageZone& zone, QString* error)
         }
     }
     applyCommonContent(a, zone.label, zone.icon, zone.caption, zone.settingKey, zone.activeState,
-                       zone.visibleWhen, zone.suspendExempt, zone.actionLoop, zone.show);
+                       zone.visibleWhen, zone.suspendExempt, zone.actionLoop);
+    if (!parseLayersAttr(a, zone.layers, error)) {
+        return false;
+    }
     zone.shell = parseBoolAttr(a.value(QStringLiteral("shell")), false);
     if (!zone.size.isSet()) {
         zone.size.x = PageDim::pixels(200);
@@ -449,6 +463,11 @@ bool readPage(QXmlStreamReader& xml, PageDocument& out, QString* error)
     }
     out.master = parseBoolAttr(a.value(QStringLiteral("master")), false);
     out.autoClose = parseBoolAttr(a.value(QStringLiteral("autoClose")), false);
+    if (a.hasAttribute(QStringLiteral("showLayers"))) {
+        if (!parseLayersAttr(a, out.showLayers, error, QStringLiteral("showLayers"))) {
+            return false;
+        }
+    }
     applyChromeAttrs(a, out.style);
     applyDwellAttrs(a, out.dwell, error);
     if (error && !error->isEmpty()) {

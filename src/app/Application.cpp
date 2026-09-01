@@ -21,6 +21,7 @@
 #include "layout/PageEdit.h"
 #include "layout/PageLoader.h"
 #include "layout/PageSession.h"
+#include "layout/PageTypes.h"
 #include "ui/DwellSuspendOverlay.h"
 #include "ui/Theme.h"
 #include "ui/MagnifierOverlay.h"
@@ -169,9 +170,10 @@ bool Application::initialize()
     m_svc->applySettings(false);
     if (!m_svc->settings().startDocked) {
         QString expandErr;
-        if (!m_svc->pages().applyPageAction(PageVerb::Open, PageTargetKind::Grid,
-                                            QStringLiteral("drawer"), &expandErr)) {
-            GAZER_WARN << "Initial expand drawer failed:" << expandErr;
+        if (const PageAction* show = PageEdit::firstShowLayers(m_svc->pages().root())) {
+            if (!m_svc->pages().showLayers({*show}, QStringLiteral("main"), {}, &expandErr)) {
+                GAZER_WARN << "Initial expand drawer failed:" << expandErr;
+            }
         }
     }
 

@@ -45,8 +45,8 @@ loop" style="pink" activeState="loop.gazeClick" command="mouseDwellClickLoop"/>
     <Cell id="magnifier" row="2" col="7" icon="MouseMagnifier" label="Lens" style="purple" activeState="magnifier" command="toggleMagnifier"/>
     <Cell id="gaze_follow" row="2" col="8" icon="MouseMagneticCursor" label="Gaze mouse" style="purple" activeState="gazeMouseFollow" command="toggleGazeMouseFollow"/>
     <Cell id="main" row="2" col="9" icon="Menu" label="Main" style="indigo">
-      <ClosePage value="-self"/>
-      <ShowGrid value="drawer"/>
+      <ClosePage/>
+      <ShowLayers value="1,2"/>
     </Cell>
   </Grid>
 </Page>

@@ -24,6 +24,8 @@ public:
 
     void setTheme(const ThemeColors& theme);
     void setShowGrid(bool on);
+    /// 0 = page showLayers. Otherwise only that layer.
+    void setLayerFilter(int layer);
     void setTestMode(bool on);
     void fitGrid();
     void fitScreen();
@@ -123,6 +125,7 @@ private:
     LayoutEditorSession& m_session;
     ThemeColors m_theme = ThemeColors::darkPreset();
     bool m_showGrid = true;
+    int m_layerFilter = 0;
     bool m_testMode = false;
     double m_scale = 0.0;
     QPointF m_lookAt;

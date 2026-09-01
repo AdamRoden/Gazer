@@ -235,6 +235,7 @@ enum class PageActionType {
     MoveAndClick,
     Command,
     Nav,
+    ShowLayers,
     GoBack,
     Speak,
     Ahk,
@@ -242,7 +243,6 @@ enum class PageActionType {
 };
 
 enum class PageVerb { Open, Close, Toggle };
-enum class PageTargetKind { Page, Grid, Zone, Cell };
 enum class PageNavScope { Id, All, Self, Others };
 enum class PageZoomMode { Off, Settings, Level, Foresight, ForesightBonus };
 enum class PageMoveMode { Gaze, Absolute, Relative, Direction };
@@ -259,7 +259,6 @@ struct PageAction {
     int sendDurationMs = 0;
 
     PageVerb verb = PageVerb::Open;
-    PageTargetKind targetKind = PageTargetKind::Page;
     PageNavScope targetScope = PageNavScope::Id;
     QString targetId;
     bool breadcrumb = false;
@@ -278,6 +277,8 @@ struct PageAction {
 
     QString command;
     QString speakText;
+    /// ShowLayers: replace the page's visible set with these numbers.
+    QVector<int> layers;
 };
 
 /// label / value / display / slider / preview are not dwell targets.
@@ -305,8 +306,6 @@ struct PageLeaf {
     QString visibleWhen;
     bool suspendExempt = false;
     bool actionLoop = false;
-    /// Omitted from the live session when false. Default shown.
-    bool show = true;
     /// Zones only. Cells take shell from their grid.
     bool shell = false;
     QVector<PageAction> actions;
@@ -351,8 +350,8 @@ struct PageGrid {
     QVector<double> rowWeights;
     bool drawerMotion = false;
     bool autoClose = false;
-    /// Omitted from the live session when false. Default shown.
-    bool show = true;
+    /// Membership in page layers (`layers="1,2"`). Default `{1}`.
+    QVector<int> layers{1};
     /// Root chrome: painted and hit above every non-shell Grid/Zone.
     bool shell = false;
     QString styleId;
@@ -380,6 +379,73 @@ struct PageGrid {
     return out;
 }
 
+/// False if any token is not an integer >= 1. Empty input yields an empty list (true).
+[[nodiscard]] inline bool parseLayerListStrict(QStringView csv, QVector<int>& out)
+{
+    out.clear();
+    for (QString part : csv.toString().split(QLatin1Char(','))) {
+        part = part.trimmed();
+        if (part.isEmpty()) {
+            continue;
+        }
+        bool ok = false;
+        const int n = part.toInt(&ok);
+        if (!ok || n < 1) {
+            out.clear();
+            return false;
+        }
+        if (!out.contains(n)) {
+            out.push_back(n);
+        }
+    }
+    return true;
+}
+
+[[nodiscard]] inline QVector<int> parseLayerList(QStringView csv)
+{
+    QVector<int> out;
+    (void)parseLayerListStrict(csv, out);
+    return out;
+}
+
+[[nodiscard]] inline QString layerListCsv(const QVector<int>& layers)
+{
+    QStringList parts;
+    parts.reserve(layers.size());
+    for (int n : layers) {
+        parts.push_back(QString::number(n));
+    }
+    return parts.join(QLatin1Char(','));
+}
+
+[[nodiscard]] inline QVector<int> defaultLayers()
+{
+    return {1};
+}
+
+[[nodiscard]] inline bool isDefaultLayerList(const QVector<int>& layers)
+{
+    return layers.isEmpty() || (layers.size() == 1 && layers[0] == 1);
+}
+
+/// Empty means layer 1. A page always has a visible set.
+[[nodiscard]] inline QVector<int> normalizedLayers(const QVector<int>& layers)
+{
+    return layers.isEmpty() ? defaultLayers() : layers;
+}
+
+[[nodiscard]] inline bool layersVisible(const QVector<int>& itemLayers, const QVector<int>& shown)
+{
+    const QVector<int> item = normalizedLayers(itemLayers);
+    const QVector<int> vis = normalizedLayers(shown);
+    for (int n : item) {
+        if (vis.contains(n)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 struct PageZone : PageLeaf {
     bool desktopMode = false;
     PageAnchor anchor = PageAnchor::TopLeft;
@@ -387,6 +453,8 @@ struct PageZone : PageLeaf {
     PageDimPair size;
     PageDimPair dwellOffset;
     PageDimPair dwellSize;
+    /// Membership in page layers (`layers="1,2"`). Default `{1}`.
+    QVector<int> layers{1};
 };
 
 struct PageDocument {
@@ -394,6 +462,8 @@ struct PageDocument {
     QString name;
     bool master = false;
     bool autoClose = false;
+    /// Layers visible when the page opens. Default `{1}`. Live session mutates this.
+    QVector<int> showLayers{1};
     PageChrome style;
     PageDwell dwell;
     QHash<QString, PageChrome> styles;

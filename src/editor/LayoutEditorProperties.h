@@ -78,7 +78,6 @@ private:
         bool hasAction = false;
         PageActionType actionType = PageActionType::Unknown;
         PageVerb actionVerb = PageVerb::Open;
-        PageTargetKind actionTargetKind = PageTargetKind::Page;
         PageZoomMode zoomMode = PageZoomMode::Off;
         PageMoveMode moveMode = PageMoveMode::Gaze;
         bool operator==(const Shape&) const = default;

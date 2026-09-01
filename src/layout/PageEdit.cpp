@@ -180,6 +180,58 @@ QStringList allIds(const PageDocument& doc)
     return ids;
 }
 
+QVector<int> usedLayers(const PageDocument& doc)
+{
+    QVector<int> out;
+    auto add = [&](const QVector<int>& layers) {
+        for (int n : normalizedLayers(layers)) {
+            if (!out.contains(n)) {
+                out.push_back(n);
+            }
+        }
+    };
+    walkGrids(doc.grids, [&](const PageGrid& g) { add(g.layers); });
+    for (const PageZone& z : doc.zones) {
+        add(z.layers);
+    }
+    add(doc.showLayers);
+    std::sort(out.begin(), out.end());
+    if (out.isEmpty()) {
+        out = defaultLayers();
+    }
+    return out;
+}
+
+const PageAction* firstShowLayers(const PageDocument& doc)
+{
+    auto inActs = [](const QVector<PageAction>& acts) -> const PageAction* {
+        for (const PageAction& a : acts) {
+            if (a.type == PageActionType::ShowLayers) {
+                return &a;
+            }
+        }
+        return nullptr;
+    };
+    for (const PageZone& z : doc.zones) {
+        if (const PageAction* a = inActs(z.actions)) {
+            return a;
+        }
+    }
+    const PageAction* found = nullptr;
+    walkGrids(doc.grids, [&](const PageGrid& g) {
+        if (found) {
+            return;
+        }
+        for (const PageCell& c : g.cells) {
+            if (const PageAction* a = inActs(c.actions)) {
+                found = a;
+                return;
+            }
+        }
+    });
+    return found;
+}
+
 void forEachGrid(PageDocument& doc, const std::function<void(PageGrid&)>& fn)
 {
     walkGrids(doc.grids, fn);
@@ -352,8 +404,7 @@ void remapPageActionTargets(PageDocument& doc, const QHash<QString, QString>& id
 {
     auto remapActs = [&](QVector<PageAction>& acts) {
         for (PageAction& a : acts) {
-            if (a.type != PageActionType::Nav || a.targetKind != PageTargetKind::Page
-                || a.targetScope != PageNavScope::Id) {
+            if (a.type != PageActionType::Nav || a.targetScope != PageNavScope::Id) {
                 continue;
             }
             const auto it = idMap.constFind(a.targetId);

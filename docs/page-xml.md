@@ -9,7 +9,7 @@ Pages live in `resources/layouts/*.xml`. Catalog id should match the filename st
 | Dims | Integer token = pixels (`150`). Token with `.` or `/` = proportion of the bounds (`0.5`, `1/2`). Arithmetic with `A_ScreenWidth` / `A_ScreenHeight` is pixels (`A_ScreenHeight/9*16`), evaluated against the placement surface passed at resolve time (work area when `desktopMode`). |
 | Style / dwell | Page inherits from settings, then overrides per field. Grids, cells, and zones inherit from the **page** (never from a grid). Named `style` / `dwell` plus inline attrs override individual members. Grid resolve then drops `foreground` / `progressStyle` / `progressColor`. |
 | Overlap | Topmost attached page’s grid is opaque. Shell grids/zones paint and hit above the rest. |
-| Drawer / quit | Ordinary `show` flags. Master XML uses `ShowGrid` / `HideGrid` (Main chip shows the drawer; Dismiss hides it; Quit swaps drawer ↔ quit). Consecutive Show/Hide in one cell are applied together, then the drawer animates: appear when a `drawerMotion` grid is shown, dismiss when it is the last master grid hidden, snap when another master grid remains (or is shown in that same list). Hidden shell grids do not reserve host space. |
+| Drawer / quit | Layer membership. Master XML puts dock chips on layer 1, the drawer on 2, quit on 3. `ShowLayers` sets the visible set (Main chip `1,2`; Dismiss `1`; Quit `1,3`). Consecutive ShowLayers in one cell are applied together, then the drawer animates: appear when a `drawerMotion` grid is shown, dismiss when it is the last master grid hidden, snap when another master grid remains. Hidden shell grids do not reserve host space. |
 | Auto-close | Idle on an `autoClose` grid or page closes those boards (root never destroys itself). Duration and the master on/off switch are Settings (`layoutAutoClose`, `layoutAutoCloseIdleMs`). `suspendDwell` stops the idle timer; `resumeDwell` restarts it from zero. |
 | Zones | Chrome is hidden until dwell progress or activation flash. Engaged dwell includes the on-screen progress strip. |
 
@@ -21,6 +21,7 @@ Pages live in `resources/layouts/*.xml`. Catalog id should match the filename st
 | `name` | Title |
 | `master` | Process-lifetime root. Only one. |
 | `autoClose` | Opts the page into idle close. Duration is Settings `layoutAutoCloseIdleMs`. |
+| `showLayers` | Comma-separated layer numbers visible when the page opens. Default `1`. Live `ShowLayers` actions replace this set. |
 | chrome / dwell attrs | Override settings per field (`background`, `scanGrace`, `activation`, …). Grids, cells, and zones inherit these. |
 
 Child elements: `<Style>`, `<Dwell>`, `<Zone>`, `<Grid>`.
@@ -56,10 +57,10 @@ A Grid is a placed rectangle of rows and columns. `desktopMode="true"` uses the 
 | `rows`, `columns`, `gap`, `margin` | Cell mesh |
 | `rowWeights` | Relative row heights (`1,2,2` = header half as tall as each content row). Missing tracks are 1 |
 | `drawerMotion`, `shell` | Drawer scale animation / always-on-top layer |
-| `show` | `true` (default) or `false` — omit from the live session when false. Legacy `chrome="drawer"` / `"quit"` with no `show` loads as hidden and is not written back. |
+| `layers` | Comma-separated layer membership (`1,2`). Default `1`. Visible when any listed layer is in the page's current `showLayers`. Nested subgrids are skipped when the parent is off-layer, so a parent that hosts children on several layers should list all of them (`layers="1,2"`). |
 | `style`, `dwell` | Named style/dwell ids, plus inline chrome/dwell attrs. Grid inherit drops `foreground` / `progressStyle` / `progressColor`. |
 
-Cells use `row`, `col`, `rowSpan`, `colSpan`, `label`, `icon`, `caption`, `role` (`label`, `value`, `tab`, `toggle`, `choice`, `swatch`, `slider`, `preview`, …), `textStyle` (`caption`, `body`, `title`, `section`, `key` — fill the cell with the glyph), `show` (default true), `visibleWhen`, `suspendExempt`. Nested `<SubGrid>` occupies a cell span. Zones take the same `show` attribute. `role` decides whether the item is a dwell target: `label`, `value`, `slider`, and `preview` are not; a `tab` with no actions is the current tab (selected, not a target). `toggle` is independent on/off (switch chrome); `choice` is one-of-a-set (radio chrome). A `choice` with stamped `background` + `progressColor` paints as a scheme preview and is the dwell target. `swatch` is a dwellable round color well. Cells do not take `shell` — they follow their grid.
+Cells use `row`, `col`, `rowSpan`, `colSpan`, `label`, `icon`, `caption`, `role` (`label`, `value`, `tab`, `toggle`, `choice`, `swatch`, `slider`, `preview`, …), `textStyle` (`caption`, `body`, `title`, `section`, `key` — fill the cell with the glyph), `visibleWhen`, `suspendExempt`. Nested `<SubGrid>` occupies a cell span. Zones take the same `layers` attribute as grids. `role` decides whether the item is a dwell target: `label`, `value`, `slider`, and `preview` are not; a `tab` with no actions is the current tab (selected, not a target). `toggle` is independent on/off (switch chrome); `choice` is one-of-a-set (radio chrome). A `choice` with stamped `background` + `progressColor` paints as a scheme preview and is the dwell target. `swatch` is a dwellable round color well. Cells do not take `shell` or `layers` — they follow their grid.
 
 ## `<Zone>`
 
@@ -89,13 +90,10 @@ Action is generic: the specific thing to do is named as an attribute (on `<Actio
 <MouseMoveToPoint value="100,200"/>
 <Command value="toggleLookToScroll"/>
 <OpenPage value="uw_qwerty, true"/>
-<ShowGrid value="board, true"/>
-<ShowZone value="more, true"/>
-<ShowCell value="k_q"/>
-<ClosePage value="-self"/>
-<HideGrid value="-all"/>
-<HideZone value="-!self"/>
-<HideCell value="k_q"/>
+<ShowLayers value="1,2"/>
+<ClosePage/>
+<CloseAllPages/>
+<CloseOtherPages/>
 <GoBack/>
 <Speak value="Hello"/>
 ```
@@ -112,9 +110,10 @@ A cell or zone may have **one** action attribute. Multiple actions use child ele
 | `MouseMoveToPoint` | `x,y` screen coords |
 | `Command` | builtin or mapping-profile name |
 | `OpenPage` | targetId[, true] — `true` saves a breadcrumb of the current page state |
-| `ShowGrid` / `ShowZone` / `ShowCell` | targetId[, true] — show a grid, zone, or cell (`openGrid` / `openZone` still load) |
-| `ClosePage` | targetId[, true] — `-all`, `-self`, `-!self` (all except current) |
-| `HideGrid` / `HideZone` / `HideCell` | targetId[, true] — hide a grid, zone, or cell (`closeGrid` / `closeZone` still load). `-all` hides every target of that kind. |
+| `ShowLayers` | layer[, layer…] — replace the source page's visible set (or the root if that page just closed). Not a Page nav action. |
+| `ClosePage` | (none) — close the page that owns the cell |
+| `CloseAllPages` | (none) — close every attached page; the master root stays |
+| `CloseOtherPages` | (none) — close every attached page except the source page |
 | `GoBack` | (none) — restore the last breadcrumb |
 | `Speak` | TTS text |
 | `AHK` | element body / CDATA — written to a temp `.ahk` and started with a local AutoHotkey install (v2 preferred; `#Requires AutoHotkey v1` selects v1). AutoHotkey is not bundled; set `GAZER_AHK` to an exe to override discovery. |
@@ -128,7 +127,7 @@ A cell or zone may have **one** action attribute. Multiple actions use child ele
   <Grid id="board" desktopMode="true" rows="1" columns="2"
         anchor="Top" offset="0,0" size="800,400" gap="12" margin="16">
     <Cell id="hello" row="0" col="0" label="Speak" speak="Hello"/>
-    <Cell id="close" row="0" col="1" label="Close" closePage="-self"/>
+    <Cell id="close" row="0" col="1" label="Close" closePage="true"/>
   </Grid>
 </Page>
 ```

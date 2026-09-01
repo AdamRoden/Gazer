@@ -84,21 +84,10 @@ bool PageSession::goBack(QString* error)
     return true;
 }
 
-bool PageSession::applyPageAction(PageVerb verb, PageTargetKind kind, const QString& id,
-                                  QString* error)
-{
-    PageAction a;
-    a.type = PageActionType::Nav;
-    a.verb = verb;
-    a.targetKind = kind;
-    a.targetScope = PageNavScope::Id;
-    a.targetId = id;
-    return applyNav(a, {}, {}, error);
-}
-
 bool PageSession::applyNav(const PageAction& action, const QString& sourcePageId,
                            const QString& sourceTargetId, QString* error)
 {
+    Q_UNUSED(sourceTargetId);
     if (action.type == PageActionType::GoBack) {
         return goBack(error);
     }
@@ -108,33 +97,29 @@ bool PageSession::applyNav(const PageAction& action, const QString& sourcePageId
         }
         return false;
     }
-    if (action.targetKind == PageTargetKind::Page) {
-        if (!hasRoot()) {
-            if (error) {
-                *error = QStringLiteral("No root page");
-            }
-            return false;
+    if (!hasRoot()) {
+        if (error) {
+            *error = QStringLiteral("No root page");
         }
-        PageBreadcrumb snap;
-        if (action.breadcrumb) {
-            snap = captureBreadcrumb();
-        }
-        if (!applyNavMutation(action, sourcePageId, sourceTargetId, error)) {
-            return false;
-        }
-        if (action.breadcrumb) {
-            m_crumbs.push_back(std::move(snap));
-        }
-        return true;
+        return false;
     }
-    QVector<PageAction> one;
-    one.push_back(action);
-    return applyNavs(one, sourcePageId, sourceTargetId, error);
+    PageBreadcrumb snap;
+    if (action.breadcrumb) {
+        snap = captureBreadcrumb();
+    }
+    if (!applyNavPage(action.verb, action.targetScope, action.targetId, sourcePageId, error)) {
+        return false;
+    }
+    if (action.breadcrumb) {
+        m_crumbs.push_back(std::move(snap));
+    }
+    return true;
 }
 
-bool PageSession::applyNavs(const QVector<PageAction>& actions, const QString& sourcePageId,
-                            const QString& sourceTargetId, QString* error)
+bool PageSession::showLayers(const QVector<PageAction>& actions, const QString& sourcePageId,
+                             const QString& sourceTargetId, QString* error)
 {
+    Q_UNUSED(sourceTargetId);
     if (actions.isEmpty()) {
         return true;
     }
@@ -147,9 +132,9 @@ bool PageSession::applyNavs(const QVector<PageAction>& actions, const QString& s
 
     bool wantCrumb = false;
     for (const PageAction& a : actions) {
-        if (a.type != PageActionType::Nav || a.targetKind == PageTargetKind::Page) {
+        if (a.type != PageActionType::ShowLayers) {
             if (error) {
-                *error = QStringLiteral("applyNavs is ShowGrid/HideGrid (and zone/cell) only");
+                *error = QStringLiteral("showLayers is ShowLayers only");
             }
             return false;
         }
@@ -163,7 +148,7 @@ bool PageSession::applyNavs(const QVector<PageAction>& actions, const QString& s
     const bool wasDrawer = drawerMotionShown();
     bool ok = true;
     for (const PageAction& a : actions) {
-        if (!applyNavMutation(a, sourcePageId, sourceTargetId, error)) {
+        if (!applyShowLayers(a.layers, sourcePageId, error)) {
             ok = false;
             break;
         }
@@ -174,24 +159,6 @@ bool PageSession::applyNavs(const QVector<PageAction>& actions, const QString& s
     syncDrawerAnim(wasDrawer);
     emitShowChanged();
     return ok;
-}
-
-bool PageSession::applyNavMutation(const PageAction& action, const QString& sourcePageId,
-                                   const QString& sourceTargetId, QString* error)
-{
-    switch (action.targetKind) {
-    case PageTargetKind::Page:
-        return applyNavPage(action.verb, action.targetScope, action.targetId, sourcePageId, error);
-    case PageTargetKind::Grid:
-    case PageTargetKind::Zone:
-    case PageTargetKind::Cell:
-        return applyShowNav(action.verb, action.targetKind, action.targetScope, action.targetId,
-                            sourcePageId, sourceTargetId, error);
-    }
-    if (error) {
-        *error = QStringLiteral("Unknown navigation target kind");
-    }
-    return false;
 }
 
 bool PageSession::applyNavPage(PageVerb verb, PageNavScope scope, const QString& id,
@@ -257,30 +224,6 @@ bool PageSession::applyNavPage(PageVerb verb, PageNavScope scope, const QString&
     return false;
 }
 
-const PageTarget* PageSession::sourceCell(const QString& sourcePageId,
-                                          const QString& sourceTargetId) const
-{
-    if (sourceTargetId.isEmpty()) {
-        return nullptr;
-    }
-    if (!sourcePageId.isEmpty()) {
-        if (const PageTarget* t =
-                findTarget(sourcePageId + QLatin1Char('/') + sourceTargetId)) {
-            return t;
-        }
-    }
-    if (const PageTarget* t = findTarget(sourceTargetId)) {
-        return t;
-    }
-    for (const PageTarget& t : m_targets) {
-        if (t.id == sourceTargetId
-            && (sourcePageId.isEmpty() || t.pageId == sourcePageId)) {
-            return &t;
-        }
-    }
-    return nullptr;
-}
-
 PageNav::Docs PageSession::navDocs()
 {
     PageNav::Docs d;
@@ -292,151 +235,26 @@ PageNav::Docs PageSession::navDocs()
     return d;
 }
 
-bool PageSession::resolveShowSelf(PageTargetKind kind, const QString& sourcePageId,
-                                  const QString& sourceTargetId, QString* itemId, QString* preferPage,
-                                  QString* error)
+PageDocument* PageSession::navPage(const QString& sourcePageId)
 {
-    if (kind == PageTargetKind::Zone) {
-        const PageNav::Docs docs = navDocs();
-        if (!PageNav::locate(docs, sourcePageId, sourceTargetId, &PageDocument::findZone)
-            && !PageNav::locate(docs, {}, sourceTargetId, &PageDocument::findZone)) {
-            if (error) {
-                *error = QStringLiteral("Zone -self requires a zone source");
-            }
-            return false;
-        }
-        *itemId = sourceTargetId;
-        return true;
+    if (PageDocument* d = PageNav::page(navDocs(), sourcePageId)) {
+        return d;
     }
-    const PageTarget* src = sourceCell(sourcePageId, sourceTargetId);
-    if (kind == PageTargetKind::Grid) {
-        if (!src || src->gridId.isEmpty()) {
-            if (error) {
-                *error = QStringLiteral("Grid -self requires a grid source");
-            }
-            return false;
-        }
-        *itemId = src->gridId;
-        *preferPage = src->pageId.isEmpty() ? m_root.id : src->pageId;
-        return true;
-    }
-    if (!src || src->kind != PageTarget::Kind::Cell) {
-        if (error) {
-            *error = QStringLiteral("Cell -self requires a cell source");
-        }
-        return false;
-    }
-    *itemId = src->id;
-    *preferPage = src->pageId.isEmpty() ? m_root.id : src->pageId;
-    return true;
+    // Source page already closed in this activation (ClosePage then ShowLayers).
+    return hasRoot() ? &m_root : nullptr;
 }
 
-bool PageSession::resolveShowSkip(PageTargetKind kind, const QString& sourcePageId,
-                                  const QString& sourceTargetId, QString* skipId, QString* skipPage,
-                                  QString* error)
+bool PageSession::applyShowLayers(const QVector<int>& layers, const QString& sourcePageId,
+                                 QString* error)
 {
-    if (kind == PageTargetKind::Zone) {
-        const PageNav::Docs docs = navDocs();
-        if (!PageNav::locate(docs, sourcePageId, sourceTargetId, &PageDocument::findZone)
-            && !PageNav::locate(docs, {}, sourceTargetId, &PageDocument::findZone)) {
-            if (error) {
-                *error = QStringLiteral("Zone -!self requires a zone source");
-            }
-            return false;
-        }
-        *skipId = sourceTargetId;
-        *skipPage = sourcePageId;
-        return true;
-    }
-    const PageTarget* src = sourceCell(sourcePageId, sourceTargetId);
-    if (kind == PageTargetKind::Grid) {
-        if (!src || src->gridId.isEmpty()) {
-            if (error) {
-                *error = QStringLiteral("Grid -!self requires a grid source");
-            }
-            return false;
-        }
-        *skipId = src->gridId;
-        *skipPage = src->pageId;
-        return true;
-    }
-    if (!src || src->kind != PageTarget::Kind::Cell) {
+    PageDocument* doc = navPage(sourcePageId);
+    if (!doc) {
         if (error) {
-            *error = QStringLiteral("Cell -!self requires a cell source");
+            *error = QStringLiteral("No page for ShowLayers");
         }
         return false;
     }
-    *skipId = sourceTargetId;
-    *skipPage = sourcePageId;
-    return true;
-}
-
-bool PageSession::applyShowNav(PageVerb verb, PageTargetKind kind, PageNavScope scope,
-                               const QString& id, const QString& sourcePageId,
-                               const QString& sourceTargetId, QString* error)
-{
-    const QString label = PageNav::kindLabel(kind);
-    if (scope == PageNavScope::All || scope == PageNavScope::Others) {
-        if (verb == PageVerb::Open && scope == PageNavScope::All) {
-            if (error) {
-                *error = QStringLiteral("Show %1 -all is not valid").arg(label);
-            }
-            return false;
-        }
-        QString skipId;
-        QString skipPage;
-        if (scope == PageNavScope::Others
-            && !resolveShowSkip(kind, sourcePageId, sourceTargetId, &skipId, &skipPage, error)) {
-            return false;
-        }
-        PageNav::applyScope(navDocs(), kind, verb, skipId, skipPage);
-        return true;
-    }
-
-    QString itemId = id;
-    QString preferPage = sourcePageId;
-    if (scope == PageNavScope::Self
-        && !resolveShowSelf(kind, sourcePageId, sourceTargetId, &itemId, &preferPage, error)) {
-        return false;
-    }
-    if (itemId.isEmpty()) {
-        if (error) {
-            *error = QStringLiteral("%1 target is empty").arg(label);
-        }
-        return false;
-    }
-
-    const PageNav::Docs docs = navDocs();
-    if (kind == PageTargetKind::Grid) {
-        PageGrid* g = PageNav::locate(docs, preferPage, itemId, &PageDocument::findGrid);
-        if (!g) {
-            if (error) {
-                *error = QStringLiteral("Unknown grid: %1").arg(itemId);
-            }
-            return false;
-        }
-        g->show = PageNav::shownAfter(verb, g->show);
-        return true;
-    }
-    if (kind == PageTargetKind::Zone) {
-        PageZone* z = PageNav::locate(docs, preferPage, itemId, &PageDocument::findZone);
-        if (!z) {
-            if (error) {
-                *error = QStringLiteral("Unknown zone: %1").arg(itemId);
-            }
-            return false;
-        }
-        z->show = PageNav::shownAfter(verb, z->show);
-        return true;
-    }
-    PageCell* c = PageNav::locate(docs, preferPage, itemId, &PageDocument::findCell);
-    if (!c) {
-        if (error) {
-            *error = QStringLiteral("Unknown cell: %1").arg(itemId);
-        }
-        return false;
-    }
-    c->show = PageNav::shownAfter(verb, c->show);
+    doc->showLayers = layers.isEmpty() ? defaultLayers() : layers;
     return true;
 }
 

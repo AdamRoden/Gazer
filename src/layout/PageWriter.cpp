@@ -42,6 +42,13 @@ void attrInt(QXmlStreamWriter& xml, const QString& name, int value, int defaultV
     }
 }
 
+void attrLayers(QXmlStreamWriter& xml, const QString& name, const QVector<int>& layers)
+{
+    if (!isDefaultLayerList(layers)) {
+        xml.writeAttribute(name, layerListCsv(layers));
+    }
+}
+
 void writeChrome(QXmlStreamWriter& xml, const PageChrome& st, bool includeItemPaint = true)
 {
     attr(xml, QStringLiteral("background"), st.background.token);
@@ -111,7 +118,6 @@ void writeLeafAttrs(QXmlStreamWriter& xml, const PageLeaf& leaf, bool writeShell
     attr(xml, QStringLiteral("visibleWhen"), leaf.visibleWhen);
     attrBool(xml, QStringLiteral("suspendExempt"), leaf.suspendExempt, false);
     attrBool(xml, QStringLiteral("actionLoop"), leaf.actionLoop, false);
-    attrBool(xml, QStringLiteral("show"), leaf.show, true);
     if (writeShell) {
         attrBool(xml, QStringLiteral("shell"), leaf.shell, false);
     }
@@ -148,7 +154,10 @@ bool writeInlineAction(QXmlStreamWriter& xml, const QVector<PageAction>& acts)
     const PageAction& a = acts[0];
     const QString name = pageActionAttributeName(a);
     QString value = pageActionValueText(a);
-    if (a.type == PageActionType::GoBack && value.isEmpty()) {
+    if ((a.type == PageActionType::GoBack
+         || (a.type == PageActionType::Nav && a.verb == PageVerb::Close
+             && a.targetScope != PageNavScope::Id))
+        && value.isEmpty()) {
         value = QStringLiteral("true");
     }
     xml.writeAttribute(name, value);
@@ -197,7 +206,7 @@ void writeGrid(QXmlStreamWriter& xml, const PageGrid& grid)
     }
     attrBool(xml, QStringLiteral("drawerMotion"), grid.drawerMotion, false);
     attrBool(xml, QStringLiteral("autoClose"), grid.autoClose, false);
-    attrBool(xml, QStringLiteral("show"), grid.show, true);
+    attrLayers(xml, QStringLiteral("layers"), grid.layers);
     attrBool(xml, QStringLiteral("shell"), grid.shell, false);
     attr(xml, QStringLiteral("style"), grid.styleId);
     attr(xml, QStringLiteral("dwell"), grid.dwellId);
@@ -234,6 +243,7 @@ QByteArray PageWriter::toBytes(const PageDocument& doc)
     attr(xml, QStringLiteral("name"), doc.name);
     attrBool(xml, QStringLiteral("master"), doc.master, false);
     attrBool(xml, QStringLiteral("autoClose"), doc.autoClose, false);
+    attrLayers(xml, QStringLiteral("showLayers"), doc.showLayers);
     writeChrome(xml, doc.style);
     writeDwell(xml, doc.dwell);
     for (auto it = doc.styles.cbegin(); it != doc.styles.cend(); ++it) {
@@ -251,6 +261,7 @@ QByteArray PageWriter::toBytes(const PageDocument& doc)
     for (const PageZone& z : doc.zones) {
         xml.writeStartElement(QStringLiteral("Zone"));
         writeLeafAttrs(xml, z, true);
+        attrLayers(xml, QStringLiteral("layers"), z.layers);
         writePlacement(xml, z.desktopMode, z.anchor, z.offset, z.size);
         attr(xml, QStringLiteral("dwellOffset"), pairTok(z.dwellOffset));
         attr(xml, QStringLiteral("dwellSize"), pairTok(z.dwellSize));

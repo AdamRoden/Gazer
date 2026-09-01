@@ -25,7 +25,7 @@ int PageSession::autoCloseIdleMs() const
     }
     bool any = false;
     for (const PageGrid& g : m_root.grids) {
-        if (g.autoClose && g.show && !g.id.isEmpty()) {
+        if (g.autoClose && layersVisible(g.layers, m_root.showLayers) && !g.id.isEmpty()) {
             any = true;
             break;
         }

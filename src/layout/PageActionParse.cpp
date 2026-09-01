@@ -29,6 +29,7 @@ using pageaction::parseLegacyPageParts;
 using pageaction::parseMoveDir;
 using pageaction::parseMovePoint;
 using pageaction::parseNavValue;
+using pageaction::parseLayersValue;
 using pageaction::parseSendValue;
 using pageaction::parseSpeakValue;
 using pageaction::parseZoomSpec;
@@ -46,11 +47,11 @@ struct ActionName {
     const char* element;
     PageActionType type;
     PageVerb verb = PageVerb::Open;
-    PageTargetKind kind = PageTargetKind::Page;
     const char* button = nullptr;
     bool listed = true;
     ParseFn parse = nullptr;
     MatchFn match = nullptr;
+    PageNavScope scope = PageNavScope::Id;
 };
 
 
@@ -76,6 +77,11 @@ bool matchPoint(const PageAction& a, const ActionName&)
     return a.moveMode == PageMoveMode::Absolute || a.moveMode == PageMoveMode::Relative;
 }
 
+bool matchNavScope(const PageAction& a, const ActionName& n)
+{
+    return a.targetScope == n.scope;
+}
+
 void applyBasics(PageAction& out, const ActionName& n)
 {
     out.type = n.type;
@@ -84,101 +90,76 @@ void applyBasics(PageAction& out, const ActionName& n)
     }
     if (n.type == PageActionType::Nav) {
         out.verb = n.verb;
-        out.targetKind = n.kind;
+        out.targetScope = n.scope;
     }
 }
 
 const ActionName kNames[] = {
-    {"send", "Send", PageActionType::Send, PageVerb::Open, PageTargetKind::Page, nullptr, true,
-     parseSendValue},
-    {"leftClick", "LeftClick", PageActionType::Click, PageVerb::Open, PageTargetKind::Page, "left",
-     true, parseClickKindValue, matchButton},
-    {"middleClick", "MiddleClick", PageActionType::Click, PageVerb::Open, PageTargetKind::Page,
-     "middle", true, parseClickKindValue, matchButton},
-    {"rightClick", "RightClick", PageActionType::Click, PageVerb::Open, PageTargetKind::Page,
-     "right", true, parseClickKindValue, matchButton},
-    {"leftClickAtGaze", "LeftClickAtGaze", PageActionType::MoveAndClick, PageVerb::Open,
-     PageTargetKind::Page, "left", true, parseGazeClick, matchButton},
+    {"send", "Send", PageActionType::Send, PageVerb::Open, nullptr, true, parseSendValue},
+    {"leftClick", "LeftClick", PageActionType::Click, PageVerb::Open, "left", true,
+     parseClickKindValue, matchButton},
+    {"middleClick", "MiddleClick", PageActionType::Click, PageVerb::Open, "middle", true,
+     parseClickKindValue, matchButton},
+    {"rightClick", "RightClick", PageActionType::Click, PageVerb::Open, "right", true,
+     parseClickKindValue, matchButton},
+    {"leftClickAtGaze", "LeftClickAtGaze", PageActionType::MoveAndClick, PageVerb::Open, "left",
+     true, parseGazeClick, matchButton},
     {"middleClickAtGaze", "MiddleClickAtGaze", PageActionType::MoveAndClick, PageVerb::Open,
-     PageTargetKind::Page, "middle", true, parseGazeClick, matchButton},
-    {"rightClickAtGaze", "RightClickAtGaze", PageActionType::MoveAndClick, PageVerb::Open,
-     PageTargetKind::Page, "right", true, parseGazeClick, matchButton},
-    {"mouseMoveByDirection", "MouseMoveByDirection", PageActionType::Move, PageVerb::Open,
-     PageTargetKind::Page, nullptr, true, parseMoveDir, matchDir},
-    {"mouseMoveToGaze", "MouseMoveToGaze", PageActionType::Move, PageVerb::Open,
-     PageTargetKind::Page, nullptr, true, parseGazeMove, matchGaze},
-    {"mouseMoveToPoint", "MouseMoveToPoint", PageActionType::Move, PageVerb::Open,
-     PageTargetKind::Page, nullptr, true, parseMovePoint, matchPoint},
-    {"click", "Click", PageActionType::Click, PageVerb::Open, PageTargetKind::Page, nullptr, false,
-     parseLegacyClick},
-    {"move", "Move", PageActionType::Move, PageVerb::Open, PageTargetKind::Page, nullptr, false,
-     parseLegacyMove},
-    {"moveAndClick", "MoveAndClick", PageActionType::MoveAndClick, PageVerb::Open,
-     PageTargetKind::Page, nullptr, false, parseLegacyMoveAndClick},
-    {"command", "Command", PageActionType::Command, PageVerb::Open, PageTargetKind::Page, nullptr,
-     true, parseCommandValue},
-    {"openPage", "OpenPage", PageActionType::Nav, PageVerb::Open, PageTargetKind::Page, nullptr,
-     true, parseNavValue},
-    {"showGrid", "ShowGrid", PageActionType::Nav, PageVerb::Open, PageTargetKind::Grid, nullptr, true,
+     "middle", true, parseGazeClick, matchButton},
+    {"rightClickAtGaze", "RightClickAtGaze", PageActionType::MoveAndClick, PageVerb::Open, "right",
+     true, parseGazeClick, matchButton},
+    {"mouseMoveByDirection", "MouseMoveByDirection", PageActionType::Move, PageVerb::Open, nullptr,
+     true, parseMoveDir, matchDir},
+    {"mouseMoveToGaze", "MouseMoveToGaze", PageActionType::Move, PageVerb::Open, nullptr, true,
+     parseGazeMove, matchGaze},
+    {"mouseMoveToPoint", "MouseMoveToPoint", PageActionType::Move, PageVerb::Open, nullptr, true,
+     parseMovePoint, matchPoint},
+    {"click", "Click", PageActionType::Click, PageVerb::Open, nullptr, false, parseLegacyClick},
+    {"move", "Move", PageActionType::Move, PageVerb::Open, nullptr, false, parseLegacyMove},
+    {"moveAndClick", "MoveAndClick", PageActionType::MoveAndClick, PageVerb::Open, nullptr, false,
+     parseLegacyMoveAndClick},
+    {"command", "Command", PageActionType::Command, PageVerb::Open, nullptr, true,
+     parseCommandValue},
+    {"openPage", "OpenPage", PageActionType::Nav, PageVerb::Open, nullptr, true, parseNavValue},
+    {"closePage", "ClosePage", PageActionType::Nav, PageVerb::Close, nullptr, true, nullptr,
+     matchNavScope, PageNavScope::Self},
+    {"closeAllPages", "CloseAllPages", PageActionType::Nav, PageVerb::Close, nullptr, true, nullptr,
+     matchNavScope, PageNavScope::All},
+    {"closeOtherPages", "CloseOtherPages", PageActionType::Nav, PageVerb::Close, nullptr, true,
+     nullptr, matchNavScope, PageNavScope::Others},
+    {"togglePage", "TogglePage", PageActionType::Nav, PageVerb::Toggle, nullptr, true,
      parseNavValue},
-    {"showZone", "ShowZone", PageActionType::Nav, PageVerb::Open, PageTargetKind::Zone, nullptr, true,
-     parseNavValue},
-    {"showCell", "ShowCell", PageActionType::Nav, PageVerb::Open, PageTargetKind::Cell, nullptr, true,
-     parseNavValue},
-    {"closePage", "ClosePage", PageActionType::Nav, PageVerb::Close, PageTargetKind::Page, nullptr,
-     true, parseNavValue},
-    {"hideGrid", "HideGrid", PageActionType::Nav, PageVerb::Close, PageTargetKind::Grid, nullptr,
-     true, parseNavValue},
-    {"hideZone", "HideZone", PageActionType::Nav, PageVerb::Close, PageTargetKind::Zone, nullptr,
-     true, parseNavValue},
-    {"hideCell", "HideCell", PageActionType::Nav, PageVerb::Close, PageTargetKind::Cell, nullptr,
-     true, parseNavValue},
-    {"togglePage", "TogglePage", PageActionType::Nav, PageVerb::Toggle, PageTargetKind::Page, nullptr,
-     true, parseNavValue},
-    {"toggleGrid", "ToggleGrid", PageActionType::Nav, PageVerb::Toggle, PageTargetKind::Grid, nullptr,
-     true, parseNavValue},
-    {"toggleZone", "ToggleZone", PageActionType::Nav, PageVerb::Toggle, PageTargetKind::Zone, nullptr,
-     true, parseNavValue},
-    {"toggleCell", "ToggleCell", PageActionType::Nav, PageVerb::Toggle, PageTargetKind::Cell, nullptr,
-     true, parseNavValue},
+    {"showLayers", "ShowLayers", PageActionType::ShowLayers, PageVerb::Open, nullptr, true,
+     parseLayersValue},
     {"goBack", "GoBack", PageActionType::GoBack},
-    {"speak", "Speak", PageActionType::Speak, PageVerb::Open, PageTargetKind::Page, nullptr, true,
-     parseSpeakValue},
+    {"speak", "Speak", PageActionType::Speak, PageVerb::Open, nullptr, true, parseSpeakValue},
 };
 
 const ActionName kAliases[] = {
-    {"openGrid", "OpenGrid", PageActionType::Nav, PageVerb::Open, PageTargetKind::Grid, nullptr,
-     false, parseNavValue},
-    {"openZone", "OpenZone", PageActionType::Nav, PageVerb::Open, PageTargetKind::Zone, nullptr,
-     false, parseNavValue},
-    {"closeGrid", "CloseGrid", PageActionType::Nav, PageVerb::Close, PageTargetKind::Grid, nullptr,
-     false, parseNavValue},
-    {"closeZone", "CloseZone", PageActionType::Nav, PageVerb::Close, PageTargetKind::Zone, nullptr,
-     false, parseNavValue},
-    {"mouseClickLeft", "MouseClickLeft", PageActionType::Click, PageVerb::Open, PageTargetKind::Page,
-     "left", false, parseClickKindValue, matchButton},
-    {"mouseLeftClick", "MouseLeftClick", PageActionType::Click, PageVerb::Open, PageTargetKind::Page,
-     "left", false, parseClickKindValue, matchButton},
-    {"mouseClickMiddle", "MouseClickMiddle", PageActionType::Click, PageVerb::Open,
-     PageTargetKind::Page, "middle", false, parseClickKindValue, matchButton},
-    {"mouseMiddleClick", "MouseMiddleClick", PageActionType::Click, PageVerb::Open,
-     PageTargetKind::Page, "middle", false, parseClickKindValue, matchButton},
-    {"mouseClickRight", "MouseClickRight", PageActionType::Click, PageVerb::Open,
-     PageTargetKind::Page, "right", false, parseClickKindValue, matchButton},
-    {"mouseRightClick", "MouseRightClick", PageActionType::Click, PageVerb::Open,
-     PageTargetKind::Page, "right", false, parseClickKindValue, matchButton},
+    {"mouseClickLeft", "MouseClickLeft", PageActionType::Click, PageVerb::Open, "left", false,
+     parseClickKindValue, matchButton},
+    {"mouseLeftClick", "MouseLeftClick", PageActionType::Click, PageVerb::Open, "left", false,
+     parseClickKindValue, matchButton},
+    {"mouseClickMiddle", "MouseClickMiddle", PageActionType::Click, PageVerb::Open, "middle", false,
+     parseClickKindValue, matchButton},
+    {"mouseMiddleClick", "MouseMiddleClick", PageActionType::Click, PageVerb::Open, "middle", false,
+     parseClickKindValue, matchButton},
+    {"mouseClickRight", "MouseClickRight", PageActionType::Click, PageVerb::Open, "right", false,
+     parseClickKindValue, matchButton},
+    {"mouseRightClick", "MouseRightClick", PageActionType::Click, PageVerb::Open, "right", false,
+     parseClickKindValue, matchButton},
     {"mouseClickAtGazeLeft", "MouseClickAtGazeLeft", PageActionType::MoveAndClick, PageVerb::Open,
-     PageTargetKind::Page, "left", false, parseGazeClick, matchButton},
+     "left", false, parseGazeClick, matchButton},
     {"mouseMoveAndLeftClick", "MouseMoveAndLeftClick", PageActionType::MoveAndClick, PageVerb::Open,
-     PageTargetKind::Page, "left", false, parseGazeClick, matchButton},
-    {"mouseClickAtGazeMiddle", "MouseClickAtGazeMiddle", PageActionType::MoveAndClick, PageVerb::Open,
-     PageTargetKind::Page, "middle", false, parseGazeClick, matchButton},
+     "left", false, parseGazeClick, matchButton},
+    {"mouseClickAtGazeMiddle", "MouseClickAtGazeMiddle", PageActionType::MoveAndClick,
+     PageVerb::Open, "middle", false, parseGazeClick, matchButton},
     {"mouseMoveAndMiddleClick", "MouseMoveAndMiddleClick", PageActionType::MoveAndClick,
-     PageVerb::Open, PageTargetKind::Page, "middle", false, parseGazeClick, matchButton},
+     PageVerb::Open, "middle", false, parseGazeClick, matchButton},
     {"mouseClickAtGazeRight", "MouseClickAtGazeRight", PageActionType::MoveAndClick, PageVerb::Open,
-     PageTargetKind::Page, "right", false, parseGazeClick, matchButton},
-    {"mouseMoveAndRightClick", "MouseMoveAndRightClick", PageActionType::MoveAndClick, PageVerb::Open,
-     PageTargetKind::Page, "right", false, parseGazeClick, matchButton},
+     "right", false, parseGazeClick, matchButton},
+    {"mouseMoveAndRightClick", "MouseMoveAndRightClick", PageActionType::MoveAndClick,
+     PageVerb::Open, "right", false, parseGazeClick, matchButton},
 };
 
 const ActionName* findName(QStringView raw)
@@ -210,7 +191,7 @@ const ActionName* findName(const PageAction& a)
         if (n.type != a.type) {
             continue;
         }
-        if (a.type == PageActionType::Nav && (n.verb != a.verb || n.kind != a.targetKind)) {
+        if (a.type == PageActionType::Nav && n.verb != a.verb) {
             continue;
         }
         if (!n.listed) {
@@ -416,12 +397,17 @@ QString pageActionValueText(const PageAction& a)
     case PageActionType::Command:
         return a.command;
     case PageActionType::Nav: {
+        if (a.verb == PageVerb::Close && a.targetScope != PageNavScope::Id) {
+            return {};
+        }
         const QString id = navTargetText(a);
         if (a.breadcrumb) {
             return csvJoin({id, QStringLiteral("true")});
         }
         return id;
     }
+    case PageActionType::ShowLayers:
+        return layerListCsv(normalizedLayers(a.layers));
     case PageActionType::GoBack:
         return {};
     case PageActionType::Speak:

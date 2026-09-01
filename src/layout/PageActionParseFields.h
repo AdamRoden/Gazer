@@ -24,6 +24,7 @@ bool parseSendValue(const QString& value, PageAction& out, QString* error);
 bool parseCommandValue(const QString& value, PageAction& out, QString* error);
 bool parseSpeakValue(const QString& value, PageAction& out, QString* error);
 bool parseNavValue(const QString& value, PageAction& out, QString* error);
+bool parseLayersValue(const QString& value, PageAction& out, QString* error);
 bool parseClickKindValue(const QString& value, PageAction& out, QString* error);
 bool parseGazeMove(const QString& value, PageAction& out, QString* error);
 bool parseGazeClick(const QString& value, PageAction& out, QString* error);

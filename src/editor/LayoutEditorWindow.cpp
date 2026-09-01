@@ -12,6 +12,7 @@
 
 #include <QAction>
 #include <QCloseEvent>
+#include <QComboBox>
 #include <QFileInfo>
 #include <QGuiApplication>
 #include <QKeySequence>
@@ -384,6 +385,11 @@ void LayoutEditorWindow::buildUi()
     m_zoomLabel->setToolTip(QStringLiteral("Canvas zoom"));
     tb->addWidget(m_zoomLabel);
     tb->addAction(m_grid);
+    m_layerFilter = new QComboBox;
+    m_layerFilter->setObjectName(QStringLiteral("statusChip"));
+    m_layerFilter->setMinimumWidth(110);
+    m_layerFilter->setToolTip(QStringLiteral("Shown layers, or one layer"));
+    tb->addWidget(m_layerFilter);
     m_codeView = makeAction(QStringLiteral("&Code view"), QKeySequence(QStringLiteral("Ctrl+E")),
                             []() {});
     m_codeView->setCheckable(true);
@@ -439,6 +445,12 @@ void LayoutEditorWindow::buildUi()
     actEsc->setShortcutContext(Qt::WindowShortcut);
 
     connect(m_grid, &QAction::toggled, m_canvas, &LayoutEditorCanvas::setShowGrid);
+    connect(m_layerFilter, &QComboBox::currentIndexChanged, this, [this](int) {
+        if (!m_canvas || !m_layerFilter) {
+            return;
+        }
+        m_canvas->setLayerFilter(m_layerFilter->currentData().toInt());
+    });
     connect(m_testMode, &QAction::toggled, m_canvas, &LayoutEditorCanvas::setTestMode);
     connect(m_canvas, &LayoutEditorCanvas::zoomChanged, this,
             &LayoutEditorWindow::updateZoomLabel);
@@ -503,6 +515,7 @@ void LayoutEditorWindow::refreshChrome()
 {
     updateTitle();
     updateStatus();
+    refreshLayerFilter();
 }
 
 void LayoutEditorWindow::updateTitle()
@@ -600,6 +613,29 @@ void LayoutEditorWindow::updateZoomLabel()
     }
     const int pct = qMax(1, qRound(m_canvas->zoom() * 100.0));
     m_zoomLabel->setText(QStringLiteral("%1%").arg(pct));
+}
+
+void LayoutEditorWindow::refreshLayerFilter()
+{
+    if (!m_layerFilter || !m_session) {
+        return;
+    }
+    const int current = m_layerFilter->currentData().toInt();
+    const QVector<int> layers = PageEdit::usedLayers(m_session->document());
+    QSignalBlocker block(m_layerFilter);
+    m_layerFilter->clear();
+    m_layerFilter->addItem(QStringLiteral("Shown"), 0);
+    for (int n : layers) {
+        m_layerFilter->addItem(QStringLiteral("Layer %1").arg(n), n);
+    }
+    int idx = m_layerFilter->findData(current);
+    if (idx < 0) {
+        idx = 0;
+    }
+    m_layerFilter->setCurrentIndex(idx);
+    if (m_canvas) {
+        m_canvas->setLayerFilter(m_layerFilter->currentData().toInt());
+    }
 }
 
 void LayoutEditorWindow::refreshCodeView()

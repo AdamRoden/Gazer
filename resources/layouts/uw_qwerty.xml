@@ -68,26 +68,20 @@
     <Cell id="pgdn" row="3" col="140" colSpan="10" label="Pg Dn" background="#3d4f66" foreground="#ffffff" command="pageDown"/>
     <Cell id="enter" row="3" col="150" colSpan="10" icon="Enter" background="#3d4f66" foreground="#ffffff" command="enter"/>
   </Grid>
-  <Grid id="vert1" rows="6" columns="1" anchor="TopLeft" offset="2000,0" size="100,754">
-    <Cell id="more" row="0" col="0" icon="More" dwell="vert1" openPage="example_keyboard_sym"/>
+  <Grid id="vert1" rows="6" columns="1" anchor="TopLeft" offset="2000,0" size="100,754" layers="1,2">
+    <Cell id="more" row="0" col="0" icon="More" dwell="vert1" openPage="example_keyboard"/>
     <Cell id="move_lclick" row="1" col="0" icon="LeftClick" dwell="vert1" activeState="leftClickAtGaze" leftClickAtGaze=""/>
     <Cell id="move_rclick" row="2" col="0" icon="RightClick" dwell="vert1" activeState="rightClickAtGaze" rightClickAtGaze=""/>
-    <Cell id="edge" row="3" col="0" icon="ArrowPointingToRightBoundary" dwell="vert1">
-    <ToggleGrid value="board"/>
-    <ToggleGrid value="vert2"/>
-    <ToggleCell value="edge"/>
-    <ToggleCell value="keyboard"/>
-    </Cell>
-    <Cell id="keyboard" row="3" col="0" icon="Keyboard" show="false" dwell="vert1">
-    <ToggleGrid value="board"/>
-    <ToggleGrid value="vert2"/>
-    <ToggleCell value="edge"/>
-    <ToggleCell value="keyboard"/>
-    </Cell>
+    <SubGrid id="edge" row="3" col="0" layers="1">
+      <Cell id="edge" row="0" col="0" icon="ArrowPointingToRightBoundary" dwell="vert1" showLayers="2"/>
+    </SubGrid>
+    <SubGrid id="keyboard" row="3" col="0" layers="2">
+      <Cell id="keyboard" row="0" col="0" icon="Keyboard" dwell="vert1" showLayers="1"/>
+    </SubGrid>
     <Cell id="sleep" row="4" col="0" icon="Sleep" dwell="vert1" activeState="dwellSuspend" command="toggleDwellSuspend"/>
     <Cell id="lts" row="5" col="0" icon="LookToScrollActive" dwell="vert1" activeState="lookToScroll" command="toggleLookToScroll"/>
   </Grid>
-  <Grid id="vert2"  rows="2" columns="1" anchor="TopLeft" offset="2000,754" size="100,280"  show="false">
+  <Grid id="vert2"  rows="2" columns="1" anchor="TopLeft" offset="2000,754" size="100,280"  layers="2">
     <Cell id="mid" row="0" col="0" label="Mid" dwell="vert2" command="windowMid"/>
     <Cell id="max" row="1" col="0" label="Max" dwell="vert2">
     <AHK><![CDATA[

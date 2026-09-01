@@ -56,6 +56,16 @@ void LayoutEditorCanvas::setShowGrid(bool on)
     update();
 }
 
+void LayoutEditorCanvas::setLayerFilter(int layer)
+{
+    const int next = qMax(0, layer);
+    if (m_layerFilter == next) {
+        return;
+    }
+    m_layerFilter = next;
+    update();
+}
+
 void LayoutEditorCanvas::setTestMode(bool on)
 {
     m_testMode = on;
@@ -213,7 +223,12 @@ LayoutEditorCanvas::ScreenMap LayoutEditorCanvas::map() const
     m.taskbars = reservedStrips(QRect(QPoint(0, 0), m.virtualScreen), m.virtualDesktop);
 
     const PageFrame frame = m.pageFrame();
-    m.targets = PageHit::collect(m_session.document(), frame, {}, false, &m.grids, true);
+    if (m_layerFilter <= 0) {
+        m.targets = PageHit::collect(m_session.document(), frame, {}, false, &m.grids);
+    } else {
+        m.targets = PageHit::collect(m_session.document(), frame, {}, false, &m.grids, false,
+                                     QVector<int>{m_layerFilter});
+    }
 
     double s = m_scale;
     QPointF lookAt = m_lookAt;

@@ -359,11 +359,11 @@ void PageHitTest::reservedBoundsKeepsHiddenGrids()
     board.offset.y = PageDim::pixels(754);
     board.size.x = PageDim::pixels(1600);
     board.size.y = PageDim::pixels(280);
-    board.show = false;
+    board.layers = {2};
     PageGrid overlay;
     overlay.id = QStringLiteral("drawer");
     overlay.shell = true;
-    overlay.show = false;
+    overlay.layers = {2};
     overlay.anchor = PageAnchor::TopLeft;
     overlay.offset.x = PageDim::pixels(0);
     overlay.offset.y = PageDim::pixels(0);
@@ -393,7 +393,7 @@ void PageHitTest::dismissingDrawerStillCollects()
     doc.id = QStringLiteral("p");
     PageGrid drawer;
     drawer.id = QStringLiteral("drawer");
-    drawer.show = false;
+    drawer.layers = {2};
     drawer.drawerMotion = true;
     drawer.shell = true;
     drawer.anchor = PageAnchor::Bottom;
@@ -408,7 +408,7 @@ void PageHitTest::dismissingDrawerStillCollects()
     frame.desktop = frame.screen;
     QVERIFY(targetById(PageHit::collect(doc, frame), QStringLiteral("open_keyboard")) == nullptr);
     const QVector<PageTarget> during =
-        PageHit::collect(doc, frame, {}, false, nullptr, false, true);
+        PageHit::collect(doc, frame, {}, false, nullptr, true);
     QVERIFY(targetById(during, QStringLiteral("open_keyboard")));
 }
 

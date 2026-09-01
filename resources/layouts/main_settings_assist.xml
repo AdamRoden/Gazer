@@ -8,30 +8,29 @@
   <Style id="tabbar" thickness="0" radius="12"/>
   <Grid id="board" desktopMode="true" rows="10" columns="16" anchor="Top" offset="0,0" size="A_ScreenHeight/9*16, A_ScreenHeight" gap="6" margin="12" radius="16">
     <SubGrid id="tabs" row="0" col="0" colSpan="16" rows="1" columns="7" gap="6" margin="4" style="tabbar">
-      <Cell id="tab_buttons" row="0" col="0" label="Speed" icon="RepeatMouseActionIcon" role="tab">
-        <ClosePage value="-self"/>
-        <OpenPage value="main_settings_button_timing"/>
+      <Cell id="tab_speed" row="0" col="0" label="Speed" icon="RepeatMouseActionIcon" role="tab">
+        <ClosePage/>
+        <OpenPage value="main_settings_speed"/>
       </Cell>
-      <Cell id="tab_pointers" row="0" col="1" label="Magnify" icon="ZoomToLocation" role="tab">
-        <ClosePage value="-self"/>
-        <OpenPage value="main_settings_pointer_timing"/>
+      <Cell id="tab_magnify" row="0" col="1" label="Magnify" icon="ZoomToLocation" role="tab">
+        <ClosePage/>
+        <OpenPage value="main_settings_magnify"/>
       </Cell>
-      <Cell id="tab_styles" row="0" col="2" label="Indicators" icon="CirclesLeftRight" role="tab">
-        <ClosePage value="-self"/>
-        <OpenPage value="main_settings_styles"/>
+      <Cell id="tab_indicators" row="0" col="2" label="Indicators" icon="CirclesLeftRight" role="tab">
+        <ClosePage/>
+        <OpenPage value="main_settings_indicators"/>
       </Cell>
       <Cell id="tab_assist" row="0" col="3" label="Assist" icon="IdeaIcon" role="tab"/>
-      <Cell id="tab_overlay" row="0" col="4" label="Tools" icon="LookToScrollActive" role="tab">
-        <ClosePage value="-self"/>
-        <OpenPage value="main_settings_overlays"/>
+      <Cell id="tab_tools" row="0" col="4" label="Tools" icon="LookToScrollActive" role="tab">
+        <ClosePage/>
+        <OpenPage value="main_settings_tools"/>
       </Cell>
       <Cell id="tab_theme" row="0" col="5" label="Theme" icon="SettingsIcon" role="tab">
-        <ClosePage value="-self"/>
+        <ClosePage/>
         <OpenPage value="main_settings_theme"/>
       </Cell>
       <Cell id="tab_done" row="0" col="6" label="Done" icon="CollapseIcon">
-        <ClosePage value="-self"/>
-        <ClosePage value="main_settings"/>
+        <CloseAllPages/>
       </Cell>
     </SubGrid>
 

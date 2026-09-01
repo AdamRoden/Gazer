@@ -22,6 +22,9 @@ namespace PageEdit {
 [[nodiscard]] const PageLeaf* findLeaf(const PageDocument& doc, const QString& id);
 [[nodiscard]] bool isZone(const PageDocument& doc, const QString& id);
 [[nodiscard]] QStringList allIds(const PageDocument& doc);
+[[nodiscard]] QVector<int> usedLayers(const PageDocument& doc);
+/// First ShowLayers action: zones, then cells. Null if none.
+[[nodiscard]] const PageAction* firstShowLayers(const PageDocument& doc);
 
 void forEachGrid(PageDocument& doc, const std::function<void(PageGrid&)>& fn);
 void forEachGrid(const PageDocument& doc, const std::function<void(const PageGrid&)>& fn);

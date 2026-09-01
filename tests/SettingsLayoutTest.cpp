@@ -56,11 +56,11 @@ private slots:
 
 void SettingsLayoutTest::pagesAnchorTop()
 {
-    const QStringList ids = {QStringLiteral("main_settings_button_timing"),
-                             QStringLiteral("main_settings_pointer_timing"),
-                             QStringLiteral("main_settings_styles"),
+    const QStringList ids = {QStringLiteral("main_settings_speed"),
+                             QStringLiteral("main_settings_magnify"),
+                             QStringLiteral("main_settings_indicators"),
                              QStringLiteral("main_settings_assist"),
-                             QStringLiteral("main_settings_overlays"),
+                             QStringLiteral("main_settings_tools"),
                              QStringLiteral("main_settings_theme"),
                              QStringLiteral("main_settings_speed_advanced")};
     for (const QString& id : ids) {
@@ -85,7 +85,7 @@ void SettingsLayoutTest::tabsEqualWidth()
 {
     PageDocument doc;
     QString err;
-    QVERIFY2(loadLayout(QStringLiteral("main_settings_button_timing"), doc, &err), qPrintable(err));
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_speed"), doc, &err), qPrintable(err));
     const PageGrid* tabs = doc.findGrid(QStringLiteral("tabs"));
     QVERIFY(tabs);
     QCOMPARE(tabs->columns, 7);
@@ -109,7 +109,7 @@ void SettingsLayoutTest::timingSectionUsesRowWeights()
 {
     PageDocument doc;
     QString err;
-    QVERIFY2(loadLayout(QStringLiteral("main_settings_button_timing"), doc, &err), qPrintable(err));
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_speed"), doc, &err), qPrintable(err));
     const PageGrid* sec = doc.findGrid(QStringLiteral("sec_timing"));
     QVERIFY(sec);
     QCOMPARE(sec->styleId, QStringLiteral("group"));
@@ -136,7 +136,7 @@ void SettingsLayoutTest::stepperWidths()
 {
     PageDocument doc;
     QString err;
-    QVERIFY2(loadLayout(QStringLiteral("main_settings_button_timing"), doc, &err), qPrintable(err));
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_speed"), doc, &err), qPrintable(err));
     const PageGrid* act = doc.findGrid(QStringLiteral("act_scan"));
     QVERIFY(act);
     QCOMPARE(act->gapPx, 0);
@@ -161,7 +161,7 @@ void SettingsLayoutTest::valueLabelKeepsKey()
 {
     PageDocument doc;
     QString err;
-    QVERIFY2(loadLayout(QStringLiteral("main_settings_button_timing"), doc, &err), qPrintable(err));
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_speed"), doc, &err), qPrintable(err));
     PageFrame frame;
     frame.screen = QRectF(0, 0, 1920, 1080);
     frame.desktop = frame.screen;
@@ -174,7 +174,7 @@ void SettingsLayoutTest::valueLabelKeepsKey()
 
 void SettingsLayoutTest::ltsHasNoMaxSpeedOrPlaceCursor()
 {
-    QFile f(layoutPath(QStringLiteral("main_settings_overlays")));
+    QFile f(layoutPath(QStringLiteral("main_settings_tools")));
     QVERIFY(f.open(QIODevice::ReadOnly | QIODevice::Text));
     const QByteArray xml = f.readAll();
     QVERIFY(!xml.contains("ltsMaxNotchesPerSec"));
@@ -187,7 +187,7 @@ void SettingsLayoutTest::overlayIdsAreUnique()
 {
     PageDocument doc;
     QString err;
-    QVERIFY2(loadLayout(QStringLiteral("main_settings_overlays"), doc, &err), qPrintable(err));
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_tools"), doc, &err), qPrintable(err));
     const QStringList ids = PageEdit::allIds(doc);
     QSet<QString> seen;
     for (const QString& id : ids) {
@@ -208,11 +208,11 @@ void SettingsLayoutTest::hubOpensSixBoards()
     QVERIFY2(loadLayout(QStringLiteral("main_settings"), doc, &err), qPrintable(err));
     QCOMPARE(doc.id, QStringLiteral("main_settings"));
     QCOMPARE(doc.grids[0].anchor, PageAnchor::Top);
-    const QStringList pages = {QStringLiteral("main_settings_button_timing"),
-                               QStringLiteral("main_settings_pointer_timing"),
-                               QStringLiteral("main_settings_styles"),
+    const QStringList pages = {QStringLiteral("main_settings_speed"),
+                               QStringLiteral("main_settings_magnify"),
+                               QStringLiteral("main_settings_indicators"),
                                QStringLiteral("main_settings_assist"),
-                               QStringLiteral("main_settings_overlays"),
+                               QStringLiteral("main_settings_tools"),
                                QStringLiteral("main_settings_theme")};
     QSet<QString> opened;
     const PageCell* done = doc.findCell(QStringLiteral("done"));
@@ -221,8 +221,7 @@ void SettingsLayoutTest::hubOpensSixBoards()
     for (const PageGrid& g : doc.grids) {
         for (const PageCell& c : g.cells) {
             for (const PageAction& a : c.actions) {
-                if (a.type == PageActionType::Nav && a.verb == PageVerb::Open
-                    && a.targetKind == PageTargetKind::Page) {
+                if (a.type == PageActionType::Nav && a.verb == PageVerb::Open) {
                     opened.insert(a.targetId);
                 }
             }
@@ -238,7 +237,7 @@ void SettingsLayoutTest::presetsComeFirst()
 {
     PageDocument doc;
     QString err;
-    QVERIFY2(loadLayout(QStringLiteral("main_settings_button_timing"), doc, &err), qPrintable(err));
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_speed"), doc, &err), qPrintable(err));
     const PageGrid* presets = doc.findGrid(QStringLiteral("sec_presets"));
     const PageGrid* timing = doc.findGrid(QStringLiteral("sec_timing"));
     QVERIFY(presets);
@@ -257,11 +256,11 @@ void SettingsLayoutTest::zoomLivesOnPointerNotLook()
     PageDocument pointer;
     PageDocument look;
     QString err;
-    QVERIFY2(loadLayout(QStringLiteral("main_settings_pointer_timing"), pointer, &err),
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_magnify"), pointer, &err),
              qPrintable(err));
-    QVERIFY2(loadLayout(QStringLiteral("main_settings_styles"), look, &err), qPrintable(err));
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_indicators"), look, &err), qPrintable(err));
     PageDocument speed;
-    QVERIFY2(loadLayout(QStringLiteral("main_settings_button_timing"), speed, &err),
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_speed"), speed, &err),
              qPrintable(err));
     QVERIFY(pointer.findCell(QStringLiteral("zl_val")));
     QCOMPARE(pointer.findCell(QStringLiteral("zl_val"))->settingKey, QStringLiteral("pickZoom"));
@@ -282,7 +281,7 @@ void SettingsLayoutTest::choiceAndToggleRoles()
 {
     PageDocument doc;
     QString err;
-    QVERIFY2(loadLayout(QStringLiteral("main_settings_styles"), doc, &err), qPrintable(err));
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_indicators"), doc, &err), qPrintable(err));
     const PageCell* ring = doc.findCell(QStringLiteral("bp_r"));
     QVERIFY(ring);
     QCOMPARE(ring->role, QStringLiteral("toggle"));
@@ -341,7 +340,7 @@ void SettingsLayoutTest::moreOpensAdvanced()
 {
     PageDocument doc;
     QString err;
-    QVERIFY2(loadLayout(QStringLiteral("main_settings_button_timing"), doc, &err), qPrintable(err));
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_speed"), doc, &err), qPrintable(err));
     const PageCell* more = doc.findCell(QStringLiteral("open_advanced"));
     QVERIFY(more);
     QVERIFY(more->isInteractive());

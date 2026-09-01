@@ -27,6 +27,15 @@ void LayoutEditorProperties::fillPage(QFormLayout* form)
         b.check(f, QStringLiteral("Auto-close when idle"), d.autoClose, [this](bool on) {
             applyDoc([&](PageDocument& doc) { doc.autoClose = on; }, QStringLiteral("Auto close"));
         });
+        b.text(f, QStringLiteral("Show layers"), layerListCsv(normalizedLayers(d.showLayers)),
+               [this](const QString& t) {
+                   applyDoc(
+                       [&](PageDocument& doc) {
+                           QVector<int> layers = parseLayerList(t);
+                           doc.showLayers = layers.isEmpty() ? defaultLayers() : layers;
+                       },
+                       QStringLiteral("Show layers"));
+               });
     });
 }
 
@@ -55,9 +64,15 @@ void LayoutEditorProperties::fillGrid(QFormLayout* form)
         b.check(f, QStringLiteral("Shell (always on top)"), g->shell, [this](bool on) {
             applyGrid([&](PageGrid& grid) { grid.shell = on; }, QStringLiteral("Shell"));
         });
-        b.check(f, QStringLiteral("Show"), g->show, [this](bool on) {
-            applyGrid([&](PageGrid& grid) { grid.show = on; }, QStringLiteral("Grid show"));
-        });
+        b.text(f, QStringLiteral("Layers"), layerListCsv(normalizedLayers(g->layers)),
+               [this](const QString& t) {
+                   applyGrid(
+                       [&](PageGrid& grid) {
+                           QVector<int> layers = parseLayerList(t);
+                           grid.layers = layers.isEmpty() ? defaultLayers() : layers;
+                       },
+                       QStringLiteral("Grid layers"));
+               });
         b.check(f, QStringLiteral("Auto-close when idle"), g->autoClose, [this](bool on) {
             applyGrid([&](PageGrid& grid) { grid.autoClose = on; },
                       QStringLiteral("Grid auto close"));
@@ -138,9 +153,6 @@ void LayoutEditorProperties::fillLeafIdentity(QFormLayout* form, const PageLeaf&
         b.text(f, QStringLiteral("Setting key"), item.settingKey, [this](const QString& t) {
             applyItem([&](PageLeaf& it) { it.settingKey = t; }, QStringLiteral("Setting key"));
         });
-        b.check(f, QStringLiteral("Show"), item.show, [this](bool on) {
-            applyItem([&](PageLeaf& it) { it.show = on; }, QStringLiteral("Show"));
-        });
         fillVisibleWhen(f, item);
     });
 }
@@ -181,6 +193,18 @@ void LayoutEditorProperties::fillZone(QFormLayout* form)
     }
     fillLeafIdentity(form, *item);
     PropertyBinder b{this, &m_loading};
+    const PageZone* zone = PageEdit::findZone(m_session.document(), item->id);
+    if (zone) {
+        b.text(form, QStringLiteral("Layers"), layerListCsv(normalizedLayers(zone->layers)),
+               [this](const QString& t) {
+                   applyZone(
+                       [&](PageZone& z) {
+                           QVector<int> layers = parseLayerList(t);
+                           z.layers = layers.isEmpty() ? defaultLayers() : layers;
+                       },
+                       QStringLiteral("Zone layers"));
+               });
+    }
     b.check(form, QStringLiteral("Shell (always on top)"), item->shell, [this](bool on) {
         applyItem([&](PageLeaf& it) { it.shell = on; }, QStringLiteral("Shell"));
     });

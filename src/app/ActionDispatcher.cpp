@@ -97,13 +97,13 @@ void ActionDispatcher::dispatchPage(const QVector<PageAction>& actions, const QS
             return;
         }
         QString err;
-        if (!m_svc.pages().applyNavs(showNav, sourcePageId, targetId, &err)) {
+        if (!m_svc.pages().showLayers(showNav, sourcePageId, targetId, &err)) {
             notify(err.isEmpty() ? QStringLiteral("Page action failed") : err);
         }
         showNav.clear();
     };
     for (const PageAction& a : actions) {
-        if (a.type == PageActionType::Nav && a.targetKind != PageTargetKind::Page) {
+        if (a.type == PageActionType::ShowLayers) {
             showNav.push_back(a);
             continue;
         }
@@ -201,6 +201,8 @@ void ActionDispatcher::dispatchPage(const QVector<PageAction>& actions, const QS
             }
             break;
         }
+        case PageActionType::ShowLayers:
+            break;
         case PageActionType::Unknown:
             GAZER_WARN << "Unknown Page action on" << targetId;
             break;

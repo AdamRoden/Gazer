@@ -1,5 +1,6 @@
 #include "layout/PageDetector.h"
 #include "layout/PageDim.h"
+#include "layout/PageEdit.h"
 #include "layout/PageHit.h"
 #include "layout/PageLoader.h"
 
@@ -126,7 +127,7 @@ void PageHitLiveTest::hitDrawerCell()
     frame.desktop = frame.screen;
     PageGrid* drawerGrid = doc.findGrid(QStringLiteral("drawer"));
     QVERIFY(drawerGrid);
-    drawerGrid->show = true;
+    doc.showLayers = {1, 2};
     const QVector<PageTarget> t = PageHit::collect(doc, frame);
     const PageGrid* drawer = drawerGrid;
     const QRectF bounds = PageHit::gridBounds(*drawer, frame);
@@ -234,12 +235,13 @@ void PageHitLiveTest::qwertyClosedGridHidden()
     PageFrame frame;
     frame.screen = QRectF(0, 0, 1920, 1080);
     frame.desktop = frame.screen;
-    QVERIFY(!kb.findGrid(QStringLiteral("vert2"))->show);
+    QCOMPARE(kb.findGrid(QStringLiteral("vert2"))->layers, QVector<int>({2}));
     const QVector<PageTarget> keys = PageHit::collect(kb, frame);
     QVERIFY(targetById(keys, QStringLiteral("k_q")));
     QVERIFY(targetById(keys, QStringLiteral("sleep")));
     QVERIFY(!targetById(keys, QStringLiteral("max")));
-    const QVector<PageTarget> all = PageHit::collect(kb, frame, {}, false, nullptr, true);
+    const QVector<PageTarget> all =
+        PageHit::collect(kb, frame, {}, false, nullptr, false, PageEdit::usedLayers(kb));
     QVERIFY(targetById(all, QStringLiteral("max")));
 }
 
@@ -249,13 +251,12 @@ void PageHitLiveTest::showHidesGridCellAndZone()
 <Page id="p">
   <Grid id="shown" size="200,200">
     <Cell id="a" label="A"/>
-    <Cell id="b" label="B" show="false"/>
   </Grid>
-  <Grid id="hidden" size="200,200" show="false">
+  <Grid id="hidden" size="200,200" layers="2">
     <Cell id="c" label="C"/>
   </Grid>
   <Zone id="zshow" size="80,40"/>
-  <Zone id="zhide" size="80,40" show="false"/>
+  <Zone id="zhide" size="80,40" layers="2"/>
 </Page>
 )xml";
     PageDocument doc;
@@ -267,7 +268,6 @@ void PageHitLiveTest::showHidesGridCellAndZone()
     QVector<PageGridPaint> grids;
     const QVector<PageTarget> t = PageHit::collect(doc, frame, {}, false, &grids);
     QVERIFY(targetById(t, QStringLiteral("a")));
-    QVERIFY(!targetById(t, QStringLiteral("b")));
     QVERIFY(!targetById(t, QStringLiteral("c")));
     QVERIFY(targetById(t, QStringLiteral("zshow")));
     QVERIFY(!targetById(t, QStringLiteral("zhide")));
@@ -283,8 +283,8 @@ void PageHitLiveTest::showHidesGridCellAndZone()
     }
     QVERIFY(sawShown);
     QVERIFY(!sawHidden);
-    const QVector<PageTarget> all = PageHit::collect(doc, frame, {}, false, nullptr, true);
-    QVERIFY(targetById(all, QStringLiteral("b")));
+    const QVector<PageTarget> all =
+        PageHit::collect(doc, frame, {}, false, nullptr, false, PageEdit::usedLayers(doc));
     QVERIFY(targetById(all, QStringLiteral("c")));
     QVERIFY(targetById(all, QStringLiteral("zhide")));
 }

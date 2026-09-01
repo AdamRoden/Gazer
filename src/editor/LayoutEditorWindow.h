@@ -12,6 +12,7 @@
 
 class QAction;
 class QCloseEvent;
+class QComboBox;
 class QKeySequence;
 class QLabel;
 class QPushButton;
@@ -57,6 +58,7 @@ private:
     void updateActions();
     void syncActionCatalog();
     void updateZoomLabel();
+    void refreshLayerFilter();
     void refreshCodeView();
     void setCodeView(bool on);
     [[nodiscard]] bool applyCodeView();
@@ -112,6 +114,7 @@ private:
     QAction* m_zoomIn = nullptr;
     QAction* m_zoomOut = nullptr;
     QAction* m_codeView = nullptr;
+    QComboBox* m_layerFilter = nullptr;
     QAction* m_grid = nullptr;
     QAction* m_testMode = nullptr;
     QHash<QAction*, EditorGlyph> m_glyphs;

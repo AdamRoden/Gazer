@@ -5,18 +5,18 @@
         size="A_ScreenHeight/9*16, A_ScreenHeight" gap="72" margin="90" radius="16"
         rowWeights="1,2,2,1">
     <Cell id="page_title" row="0" col="0" colSpan="3" label="Settings" role="label" textStyle="title" style="plain"/>
-    <Cell id="open_dwell" row="1" col="0" label="Speed" caption="Presets, dwell, and pointer time"
-          icon="RepeatMouseActionIcon" openPage="main_settings_button_timing"/>
-    <Cell id="open_pointer" row="1" col="1" label="Magnify" caption="Pre pick, foresight, and zoom window"
-          icon="ZoomToLocation" openPage="main_settings_pointer_timing"/>
-    <Cell id="open_look" row="1" col="2" label="Indicators" caption="Progress and pick markers"
-          icon="CirclesLeftRight" openPage="main_settings_styles"/>
+    <Cell id="open_speed" row="1" col="0" label="Speed" caption="Presets, dwell, and pointer time"
+          icon="RepeatMouseActionIcon" openPage="main_settings_speed"/>
+    <Cell id="open_magnify" row="1" col="1" label="Magnify" caption="Pre pick, foresight, and zoom window"
+          icon="ZoomToLocation" openPage="main_settings_magnify"/>
+    <Cell id="open_indicators" row="1" col="2" label="Indicators" caption="Progress and pick markers"
+          icon="CirclesLeftRight" openPage="main_settings_indicators"/>
     <Cell id="open_assist" row="2" col="0" label="Assist" caption="Tracker, lens, and helpers"
           icon="IdeaIcon" openPage="main_settings_assist"/>
     <Cell id="open_tools" row="2" col="1" label="Tools" caption="Look to scroll and ComboMouse"
-          icon="LookToScrollActive" openPage="main_settings_overlays"/>
+          icon="LookToScrollActive" openPage="main_settings_tools"/>
     <Cell id="open_theme" row="2" col="2" label="Theme" caption="Appearance, accent, and progress"
           icon="PaletteIcon" openPage="main_settings_theme"/>
-    <Cell id="done" row="3" col="1" colSpan="1" label="Done" icon="CollapseIcon" closePage="-self"/>
+    <Cell id="done" row="3" col="1" colSpan="1" label="Done" icon="CollapseIcon" closePage="true"/>
   </Grid>
 </Page>

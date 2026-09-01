@@ -12,6 +12,7 @@
 #include <QTransform>
 #include <QVariantMap>
 #include <QVector>
+#include <optional>
 
 namespace gazer {
 
@@ -78,12 +79,14 @@ namespace PageHit {
 /// Per-page collect order: grid cells, then zones. Live session appends each
 /// page as one layer (attached oldest→newest, then master). Front-to-back:
 /// master (zones, then grids/cells), then each open page the same way.
+/// `shownLayers` unset uses `page.showLayers`. Pass a set to preview another
+/// visible set (editor layer filter) without mutating the document.
 [[nodiscard]] QVector<PageTarget> collect(const PageDocument& page, const PageFrame& frame,
                                           const QVariantMap& props = {},
                                           bool dwellSuspended = false,
                                           QVector<PageGridPaint>* grids = nullptr,
-                                          bool includeHidden = false,
-                                          bool includeDrawerMotion = false);
+                                          bool includeDrawerMotion = false,
+                                          const std::optional<QVector<int>>& shownLayers = std::nullopt);
 
 /// Topmost painted grid whose visual contains pos (master included). Null if none.
 [[nodiscard]] const PageGridPaint* coveringGrid(const QVector<PageGridPaint>& grids,
@@ -153,9 +156,9 @@ namespace PageHit {
 {
     return paintBounds(targets, grids, 1.0);
 }
-/// Authored grid/zone boxes, including show=false (except hidden shell grids, which
-/// must not reserve host space). Host geometry keeps this space so ShowGrid/ShowZone
-/// do not move already-visible boards.
+/// Authored grid/zone boxes, including off-layer items (except hidden shell grids, which
+/// must not reserve host space). Host geometry keeps this space so ShowLayers
+/// does not move already-visible boards.
 [[nodiscard]] QRectF reservedBounds(const PageDocument& page, const PageFrame& frame);
 /// Screen area frosted chrome occupies after any motion (drawer scale, etc.)
 /// completes. Capture must use this rest pose, not the in-flight bounds.

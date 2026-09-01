@@ -333,6 +333,22 @@ bool parseNavValue(const QString& value, PageAction& out, QString* error)
     return noExtra(parts, 2, error);
 }
 
+bool parseLayersValue(const QString& value, PageAction& out, QString* error)
+{
+    const QString t = value.trimmed();
+    if (t.isEmpty()) {
+        out.layers = defaultLayers();
+        return true;
+    }
+    if (!parseLayerListStrict(t, out.layers) || out.layers.isEmpty()) {
+        if (error) {
+            *error = QStringLiteral("Invalid ShowLayers value '%1'").arg(value);
+        }
+        return false;
+    }
+    return true;
+}
+
 bool parseLegacyClick(const QString& value, PageAction& out, QString* error)
 {
     out.type = PageActionType::Click;
@@ -441,25 +457,34 @@ bool parseLegacyPageParts(const QStringList& parts, PageAction& out, QString* er
         }
         return false;
     }
-    PageTargetKind k = PageTargetKind::Page;
     const QString kind = parts[1].toLower();
-    if (kind == QLatin1String("page")) {
-        k = PageTargetKind::Page;
-    } else if (kind == QLatin1String("grid")) {
-        k = PageTargetKind::Grid;
-    } else if (kind == QLatin1String("zone")) {
-        k = PageTargetKind::Zone;
-    } else if (kind == QLatin1String("cell")) {
-        k = PageTargetKind::Cell;
-    } else {
+    if (kind == QLatin1String("layers") || kind == QLatin1String("layer")) {
+        QStringList rest;
+        for (int i = 2; i < parts.size(); ++i) {
+            rest.push_back(parts[i]);
+        }
+        out.type = PageActionType::ShowLayers;
+        const QString csv = rest.join(QLatin1Char(','));
+        if (csv.trimmed().isEmpty()) {
+            out.layers = defaultLayers();
+            return true;
+        }
+        if (!parseLayerListStrict(csv, out.layers) || out.layers.isEmpty()) {
+            if (error) {
+                *error = QStringLiteral("Invalid ShowLayers value '%1'").arg(csv);
+            }
+            return false;
+        }
+        return true;
+    }
+    if (kind != QLatin1String("page")) {
         if (error) {
-            *error = QStringLiteral("Unknown Page target '%1'").arg(parts[1]);
+            *error = QStringLiteral("Unknown Page target '%1' (page/layers)").arg(parts[1]);
         }
         return false;
     }
     out.type = PageActionType::Nav;
     out.verb = v;
-    out.targetKind = k;
     if (parts.size() >= 3) {
         parseNavTarget(parts[2], out);
     }

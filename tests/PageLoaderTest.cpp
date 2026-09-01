@@ -34,7 +34,8 @@ private slots:
     void rejectRemovedActionAliases();
     void loadMainPage();
     void loadQwertyXml();
-    void showAttribute();
+    void layersAttribute();
+    void rejectInvalidLayers();
     void cellDropsShellAndInteractive();
     void loadConvertedBoards();
     void loadLtsMenu();
@@ -115,7 +116,6 @@ void PageLoaderTest::loadFixture()
     QCOMPARE(g->cells[0].actions.size(), 2);
     QCOMPARE(g->cells[0].actions[0].type, PageActionType::Nav);
     QCOMPARE(g->cells[0].actions[0].verb, PageVerb::Open);
-    QCOMPARE(g->cells[0].actions[0].targetKind, PageTargetKind::Page);
     QCOMPARE(g->cells[0].actions[0].targetScope, PageNavScope::Id);
     QCOMPARE(g->cells[0].actions[0].targetId, QStringLiteral("uw_qwerty"));
     QCOMPARE(g->cells[0].actions[1].type, PageActionType::Send);
@@ -128,8 +128,8 @@ void PageLoaderTest::loadFixture()
     QCOMPARE(z->suspendExempt, true);
     QCOMPARE(z->dwellOffset.y.value, 240.0);
     QCOMPARE(z->dwellSize.x.value, 300.0);
-    QCOMPARE(z->actions[0].targetKind, PageTargetKind::Grid);
-    QCOMPARE(z->actions[0].targetId, QStringLiteral("Quick Settings"));
+    QCOMPARE(z->actions[0].type, PageActionType::ShowLayers);
+    QCOMPARE(z->actions[0].layers, (QVector<int>{1, 2}));
 
     QVERIFY(doc.styles.contains(QStringLiteral("stl")));
     QVERIFY(doc.dwells.contains(QStringLiteral("dwl")));
@@ -398,7 +398,8 @@ void PageLoaderTest::rejectNonPageRoot()
 void PageLoaderTest::rejectRemovedActionAliases()
 {
     const QStringList ids = {QStringLiteral("MouseClick"), QStringLiteral("MouseMove"),
-                             QStringLiteral("MouseMoveAndClick")};
+                             QStringLiteral("MouseMoveAndClick"), QStringLiteral("ShowGrid"),
+                             QStringLiteral("HideGrid"), QStringLiteral("ToggleGrid")};
     for (const QString& id : ids) {
         const QByteArray xml =
             QByteArray("<Page id=\"p\"><Grid id=\"g\"><Cell id=\"c\">"
@@ -415,7 +416,7 @@ void PageLoaderTest::loadConvertedBoards()
 {
     const QStringList ids = {QStringLiteral("example_mouse"), QStringLiteral("example_assist"),
                              QStringLiteral("uw_qwerty"),
-                             QStringLiteral("main_settings_button_timing")};
+                             QStringLiteral("main_settings_speed")};
     for (const QString& id : ids) {
         PageDocument doc;
         QString err;
@@ -432,9 +433,9 @@ void PageLoaderTest::loadConvertedBoards()
             QVERIFY(tabs);
             bool hasTabs = false;
             for (const PageCell& c : tabs->cells) {
-                if (c.id == QLatin1String("tab_buttons")) {
+                if (c.id == QLatin1String("tab_speed")) {
                     hasTabs = true;
-                    QCOMPARE(c.isInteractive(), id != QLatin1String("main_settings_button_timing"));
+                    QCOMPARE(c.isInteractive(), id != QLatin1String("main_settings_speed"));
                 }
             }
             QVERIFY(hasTabs);
@@ -458,9 +459,9 @@ void PageLoaderTest::loadQwertyXml()
     QVERIFY(vert1);
     QVERIFY(vert2);
     QVERIFY(board->cells.size() > 40);
-    QCOMPARE(board->show, true);
-    QCOMPARE(vert1->show, true);
-    QCOMPARE(vert2->show, false);
+    QCOMPARE(board->layers, QVector<int>({1}));
+    QCOMPARE(vert1->layers, (QVector<int>{1, 2}));
+    QCOMPARE(vert2->layers, QVector<int>({2}));
     QVERIFY(doc.zones.isEmpty());
     bool hasSend = false;
     for (const PageCell& c : board->cells) {
@@ -480,53 +481,59 @@ void PageLoaderTest::loadQwertyXml()
     QCOMPARE(vert1->cells[1].actions[0].zoomMode, PageZoomMode::Settings);
 }
 
-void PageLoaderTest::showAttribute()
+void PageLoaderTest::layersAttribute()
 {
     PageDocument doc;
     QString err;
     const QByteArray xml = R"xml(
-<Page id="p">
+<Page id="p" showLayers="2">
   <Grid id="shown" size="100,100">
     <Cell id="cshow"/>
-    <Cell id="chide" show="false"/>
-    <Cell id="cvis" visible="false"/>
     <Cell id="cexem" dwellExempt="true"/>
     <Cell id="csus" suspendExempt="true"/>
   </Grid>
-  <Grid id="hidden" size="100,100" show="false"/>
-  <Grid id="legacy" size="100,100" open="false"/>
+  <Grid id="hidden" size="100,100" layers="2"/>
   <Zone id="zshow" size="80,40"/>
-  <Zone id="zhide" size="80,40" show="false"/>
-  <Zone id="zvis" size="80,40" visible="false"/>
+  <Zone id="zhide" size="80,40" layers="2"/>
 </Page>
 )xml";
     QVERIFY2(PageLoader::loadFromXml(xml, doc, &err), qPrintable(err));
-    QCOMPARE(doc.findGrid(QStringLiteral("shown"))->show, true);
-    QCOMPARE(doc.findGrid(QStringLiteral("hidden"))->show, false);
-    QCOMPARE(doc.findGrid(QStringLiteral("legacy"))->show, false);
-    QCOMPARE(doc.findCell(QStringLiteral("cshow"))->show, true);
-    QCOMPARE(doc.findCell(QStringLiteral("chide"))->show, false);
-    QCOMPARE(doc.findCell(QStringLiteral("cvis"))->show, false);
+    QCOMPARE(doc.showLayers, QVector<int>({2}));
+    QCOMPARE(doc.findGrid(QStringLiteral("shown"))->layers, QVector<int>({1}));
+    QCOMPARE(doc.findGrid(QStringLiteral("hidden"))->layers, QVector<int>({2}));
     QCOMPARE(doc.findCell(QStringLiteral("cexem"))->suspendExempt, true);
     QCOMPARE(doc.findCell(QStringLiteral("csus"))->suspendExempt, true);
-    QCOMPARE(doc.findZone(QStringLiteral("zshow"))->show, true);
-    QCOMPARE(doc.findZone(QStringLiteral("zhide"))->show, false);
-    QCOMPARE(doc.findZone(QStringLiteral("zvis"))->show, false);
+    QCOMPARE(doc.findZone(QStringLiteral("zshow"))->layers, QVector<int>({1}));
+    QCOMPARE(doc.findZone(QStringLiteral("zhide"))->layers, QVector<int>({2}));
     const QByteArray written = PageWriter::toBytes(doc);
     const QString text = QString::fromUtf8(written);
-    QVERIFY(text.contains(QStringLiteral("show=\"false\"")));
-    QVERIFY(!text.contains(QStringLiteral("show=\"true\"")));
-    QVERIFY(!text.contains(QStringLiteral("open=\"")));
-    QVERIFY(!text.contains(QStringLiteral("visible=\"")));
+    QVERIFY(text.contains(QStringLiteral("showLayers=\"2\"")));
+    QVERIFY(text.contains(QStringLiteral("layers=\"2\"")));
+    QVERIFY(!text.contains(QStringLiteral("show=")));
     QVERIFY(text.contains(QStringLiteral("suspendExempt=\"true\"")));
     QVERIFY(!text.contains(QStringLiteral("dwellExempt")));
     PageDocument round;
     QVERIFY2(PageLoader::loadFromXml(written, round, &err), qPrintable(err));
-    QCOMPARE(round.findGrid(QStringLiteral("hidden"))->show, false);
-    QCOMPARE(round.findGrid(QStringLiteral("shown"))->show, true);
-    QCOMPARE(round.findGrid(QStringLiteral("legacy"))->show, false);
-    QCOMPARE(round.findCell(QStringLiteral("chide"))->show, false);
-    QCOMPARE(round.findZone(QStringLiteral("zhide"))->show, false);
+    QCOMPARE(round.showLayers, QVector<int>({2}));
+    QCOMPARE(round.findGrid(QStringLiteral("hidden"))->layers, QVector<int>({2}));
+    QCOMPARE(round.findGrid(QStringLiteral("shown"))->layers, QVector<int>({1}));
+}
+
+void PageLoaderTest::rejectInvalidLayers()
+{
+    PageDocument doc;
+    QString err;
+    QVERIFY(!PageLoader::loadFromXml(R"xml(
+<Page id="p"><Grid id="g" size="10,10" layers="nope"><Cell id="c"/></Grid></Page>
+)xml",
+                                    doc, &err));
+    QVERIFY(err.contains(QStringLiteral("layers")));
+    err.clear();
+    QVERIFY(!PageLoader::loadFromXml(R"xml(
+<Page id="p" showLayers="1,foo"><Grid id="g" size="10,10"><Cell id="c"/></Grid></Page>
+)xml",
+                                    doc, &err));
+    QVERIFY(err.contains(QStringLiteral("showLayers")));
 }
 
 void PageLoaderTest::cellDropsShellAndInteractive()
@@ -615,13 +622,24 @@ void PageLoaderTest::keyboardMainOpensDrawer()
     const QString path = QStringLiteral(GAZER_SOURCE_DIR)
                          + QStringLiteral("/resources/layouts/example_keyboard.xml");
     QVERIFY2(PageLoader::loadFromFile(path, doc, &err), qPrintable(err));
+    QCOMPARE(doc.grids.size(), 4);
+    QCOMPARE(doc.findGrid(QStringLiteral("board"))->layers, QVector<int>({1}));
+    QCOMPARE(doc.findGrid(QStringLiteral("board_shift"))->layers, QVector<int>({2}));
+    QCOMPARE(doc.findGrid(QStringLiteral("board_sym"))->layers, QVector<int>({3}));
+    QCOMPARE(doc.findGrid(QStringLiteral("board_sym_shift"))->layers, QVector<int>({4}));
+    const PageCell* shift = doc.findCell(QStringLiteral("shift"));
+    const PageCell* sym = doc.findCell(QStringLiteral("sym"));
+    QVERIFY(shift);
+    QVERIFY(sym);
+    QCOMPARE(shift->actions[0].type, PageActionType::ShowLayers);
+    QCOMPARE(shift->actions[0].layers, QVector<int>({2}));
+    QCOMPARE(sym->actions[0].layers, QVector<int>({3}));
     const PageZone* z = doc.findZone(QStringLiteral("edge_main"));
     QVERIFY(z);
+    QCOMPARE(z->layers, (QVector<int>{1, 2, 3, 4}));
     QVERIFY(z->actions.size() >= 2);
-    QCOMPARE(z->actions.last().type, PageActionType::Nav);
-    QCOMPARE(z->actions.last().verb, PageVerb::Open);
-    QCOMPARE(z->actions.last().targetKind, PageTargetKind::Grid);
-    QCOMPARE(z->actions.last().targetId, QStringLiteral("drawer"));
+    QCOMPARE(z->actions.last().type, PageActionType::ShowLayers);
+    QCOMPARE(z->actions.last().layers, (QVector<int>{1, 2}));
 }
 
 void PageLoaderTest::loadMainPage()
@@ -637,13 +655,12 @@ void PageLoaderTest::loadMainPage()
     QCOMPARE(doc.grids.size(), 2);
     QVERIFY(doc.findGrid(QStringLiteral("drawer")));
     QVERIFY(doc.findGrid(QStringLiteral("quit")));
-    QCOMPARE(doc.findGrid(QStringLiteral("drawer"))->show, false);
-    QCOMPARE(doc.findGrid(QStringLiteral("quit"))->show, false);
+    QCOMPARE(doc.findGrid(QStringLiteral("drawer"))->layers, QVector<int>({2}));
+    QCOMPARE(doc.findGrid(QStringLiteral("quit"))->layers, QVector<int>({3}));
+    QCOMPARE(doc.showLayers, QVector<int>({1}));
     QCOMPARE(doc.findGrid(QStringLiteral("drawer"))->cells.size(), 9);
-    QCOMPARE(doc.zones[0].actions[1].type, PageActionType::Nav);
-    QCOMPARE(doc.zones[0].actions[1].verb, PageVerb::Open);
-    QCOMPARE(doc.zones[0].actions[1].targetKind, PageTargetKind::Grid);
-    QCOMPARE(doc.zones[0].actions[1].targetId, QStringLiteral("drawer"));
+    QCOMPARE(doc.zones[0].actions[1].type, PageActionType::ShowLayers);
+    QCOMPARE(doc.zones[0].actions[1].layers, (QVector<int>{1, 2}));
     QVERIFY(doc.zones[0].suspendExempt);
     QVERIFY(doc.zones[1].suspendExempt);
     const PageCell* pause = nullptr;
@@ -677,8 +694,8 @@ void PageLoaderTest::pageWriterRoundTripMain()
     QCOMPARE(dst.zones.size(), src.zones.size());
     QCOMPARE(dst.findZone(QStringLiteral("mainChip")) != nullptr, true);
     QCOMPARE(dst.findGrid(QStringLiteral("drawer")) != nullptr, true);
-    QCOMPARE(dst.findGrid(QStringLiteral("drawer"))->show, false);
-    QCOMPARE(dst.findGrid(QStringLiteral("quit"))->show, false);
+    QCOMPARE(dst.findGrid(QStringLiteral("drawer"))->layers, QVector<int>({2}));
+    QCOMPARE(dst.findGrid(QStringLiteral("quit"))->layers, QVector<int>({3}));
     const QString roundText = QString::fromUtf8(xml);
     QVERIFY(!roundText.contains(QStringLiteral("chrome=")));
 }

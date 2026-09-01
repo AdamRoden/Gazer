@@ -92,13 +92,11 @@ public:
     [[nodiscard]] int openCount() const { return hasRoot() ? 1 + m_attached.size() : 0; }
     [[nodiscard]] QString topPageId() const;
 
-    bool applyPageAction(PageVerb verb, PageTargetKind kind, const QString& id,
-                         QString* error = nullptr);
     bool applyNav(const PageAction& action, const QString& sourcePageId,
                   const QString& sourceTargetId, QString* error = nullptr);
-    /// Consecutive ShowGrid/HideGrid (and zone/cell) mutations, then one drawer reconcile.
-    bool applyNavs(const QVector<PageAction>& actions, const QString& sourcePageId,
-                   const QString& sourceTargetId, QString* error = nullptr);
+    /// Consecutive ShowLayers mutations, then one drawer reconcile.
+    bool showLayers(const QVector<PageAction>& actions, const QString& sourcePageId,
+                    const QString& sourceTargetId, QString* error = nullptr);
     [[nodiscard]] bool goBack(QString* error = nullptr);
 
     /// All boards, or only the master page plus the cell that armed mouse-dwell-move.
@@ -178,22 +176,12 @@ private:
 
     [[nodiscard]] PageBreadcrumb captureBreadcrumb() const;
     void restoreBreadcrumb(PageBreadcrumb snap);
-    [[nodiscard]] bool applyNavMutation(const PageAction& action, const QString& sourcePageId,
-                                        const QString& sourceTargetId, QString* error);
     [[nodiscard]] bool applyNavPage(PageVerb verb, PageNavScope scope, const QString& id,
                                     const QString& sourcePageId, QString* error);
-    [[nodiscard]] bool applyShowNav(PageVerb verb, PageTargetKind kind, PageNavScope scope,
-                                    const QString& id, const QString& sourcePageId,
-                                    const QString& sourceTargetId, QString* error);
+    [[nodiscard]] bool applyShowLayers(const QVector<int>& layers, const QString& sourcePageId,
+                                       QString* error);
     [[nodiscard]] PageNav::Docs navDocs();
-    [[nodiscard]] bool resolveShowSelf(PageTargetKind kind, const QString& sourcePageId,
-                                       const QString& sourceTargetId, QString* itemId,
-                                       QString* preferPage, QString* error);
-    [[nodiscard]] bool resolveShowSkip(PageTargetKind kind, const QString& sourcePageId,
-                                       const QString& sourceTargetId, QString* skipId,
-                                       QString* skipPage, QString* error);
-    [[nodiscard]] const PageTarget* sourceCell(const QString& sourcePageId,
-                                               const QString& sourceTargetId) const;
+    [[nodiscard]] PageDocument* navPage(const QString& sourcePageId);
     void closePagesExcept(const QString& keepId);
     void emitShowChanged();
 

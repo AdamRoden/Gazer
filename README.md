@@ -18,7 +18,7 @@ Version **0.5.1**. License: [GPL-3.0](LICENSE). Cell and zone icons are OptiKey 
 | Drawer grid | `drawer` | Keyboard, Mouse, Assist, Right, Settings, Editor, Close, Close All, Pause dwell, Quit |
 | Quit grid | `quit` | Yes exits; No returns to the drawer |
 
-Drawer and quit grids start hidden (`show="false"`). The Main chip `ShowGrid`s the drawer; Dismiss `HideGrid`s it; Quit swaps with `HideGrid` / `ShowGrid`. Opening Keyboard / Mouse / Assist / Settings / Right attaches that page on the same host, then the drawer auto-collapses.
+Drawer (layer 2) and quit (layer 3) start hidden; the page opens on layer 1. The Main chip `ShowLayers`s `1,2`; Dismiss returns to `1`; Quit switches to `1,3`. Opening Keyboard / Mouse / Assist / Settings / Right attaches that page on the same host, then the drawer auto-collapses.
 
 - **Main** is shown only while no master grid is up (`visibleWhen="!expanded"`). Dwell it to grow the drawer from the bottom.
 - **Sleep** stays available while the drawer is open. Shell zones and grids paint and hit above other boards.
@@ -36,10 +36,10 @@ The designer edits **Page XML** (the same files the runtime loads). Three panes:
 | Pane | Contents |
 |------|----------|
 | Left | **Add** (button, label, toggle, tab, slider, zone, grid, subgrid, named style, named dwell) and the element tree (page → styles / dwells / zones / grids → cells / subgrids). Right-click to duplicate, delete, convert cell ↔ zone, add a subgrid, or change paint order. |
-| Center | **Fit grid** (default): the selected grid fills the canvas. Uncheck it to see true placement on a 1920×1080 virtual display. Click / Shift-click to select; drag to move; accent handles resize; arrows nudge (Shift = 16 px); Delete removes. **Esc** cancels click-to-place. Zones show the progress chip and the dwell region. |
+| Center | **Fit grid** (default): the selected grid fills the canvas. Uncheck it to see true placement on a 1920×1080 virtual display. Click / Shift-click to select; drag to move; accent handles resize; arrows nudge (Shift = 16 px); Delete removes. **Esc** cancels click-to-place. Zones show the progress chip and the dwell region. The toolbar **layer** combo (next to Code view) filters which grid/zone layers paint on the canvas. |
 | Right | Tabs follow the selection: **Page**; **Grid / Style / Placement**; **Cell** or **Zone / Style / Placement / Action**; named **Style** or **Dwell** alone. Placement holds anchor, offset, row/col/span, and zone progress/dwell regions. Cell and zone dwell inherit/overrides sit at the bottom of Action. |
 
-File → New asks for id, name, and a template (blank, full keyboard, keyboard row, settings row, zone chip). File → Open lists shipped and user `*.xml` pages. **Save** of a shipped file writes a user copy to `%AppData%\Gazer\layouts` and leaves `resources/` unchanged. The toolbar layer combo appears for keyboard families that still ship a symbols layer (`id`, `id_sym`). Shift is a modifier on the same board (labels switch to the shifted glyph). **Test on canvas** (F6) plays a dwell ring. **Test on desktop** (F5) attaches the current page (and sibling layers) on the live host. Master roots cannot be live-tested. Empty actions warn before Save and F5.
+File → New asks for id, name, and a template (blank, full keyboard, keyboard row, settings row, zone chip). File → Open lists shipped and user `*.xml` pages. **Save** of a shipped file writes a user copy to `%AppData%\Gazer\layouts` and leaves `resources/` unchanged. The toolbar **layer** combo filters which grid/zone layers paint. Shift is a modifier on QWERTY boards (labels switch to the shifted glyph). **Test on canvas** (F6) plays a dwell ring. **Test on desktop** (F5) attaches the current page on the live host. Master roots cannot be live-tested. Empty actions warn before Save and F5.
 
 ## Requirements
 
@@ -95,13 +95,13 @@ When pages overlap, the topmost page’s grid is opaque: gaze and paint do not f
 |----|------|
 | `main` | Root dock + drawer + quit |
 | `main_settings` / `main_settings_*` | Settings hub, then Speed / Magnify / Indicators / Assist / Tools / Theme |
-| `example_keyboard` (+ shift / sym variants) | On-screen keyboard |
+| `example_keyboard` | Compact keyboard (layers: letters, shift, symbols, symbols+shift) |
 | `example_mouse` | Mouse pad |
 | `example_assist` | Assist tools |
 | `uw_qwerty` (+ shift) | QWERTY keyboard |
 | `uw_right` | Right-hand board |
 
-`Page` actions open/close/toggle a **Page**. Grids, zones, and cells are shown or hidden (`ShowGrid` / `HideGrid`, `ShowZone` / `HideZone`, `ShowCell` / `HideCell`). Closing a page removes all of its elements with it.
+`Page` actions open, close, or toggle a **Page** (`OpenPage`, `ClosePage`, `CloseAllPages`, `CloseOtherPages`). `ShowLayers` sets which grid/zone layers are visible. Closing a page removes all of its elements with it.
 
 ## Architecture
 

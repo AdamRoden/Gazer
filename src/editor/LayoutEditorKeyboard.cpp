@@ -19,7 +19,6 @@ PageAction openPage(const QString& id)
     PageAction a;
     a.type = PageActionType::Nav;
     a.verb = PageVerb::Open;
-    a.targetKind = PageTargetKind::Page;
     a.targetScope = PageNavScope::Id;
     a.targetId = id;
     return a;
@@ -187,13 +186,16 @@ PageDocument makeTemplateDocument(EditorTemplate tmpl, const QString& id, const 
         z.dwellOffset.y = PageDim::pixels(240);
         z.dwellSize.x = PageDim::pixels(300);
         z.dwellSize.y = PageDim::pixels(200);
-        PageAction a;
-        a.type = PageActionType::Nav;
-        a.verb = PageVerb::Open;
-        a.targetKind = PageTargetKind::Grid;
-        a.targetScope = PageNavScope::Id;
-        a.targetId = QStringLiteral("drawer");
-        z.actions.push_back(a);
+        PageAction closeSelf;
+        closeSelf.type = PageActionType::Nav;
+        closeSelf.verb = PageVerb::Close;
+        closeSelf.targetScope = PageNavScope::Self;
+        z.actions.push_back(closeSelf);
+        PageAction showDrawer;
+        showDrawer.type = PageActionType::ShowLayers;
+        // Master dock + drawer (`docs/page-xml.md`). ClosePage then this hits root.
+        showDrawer.layers = {1, 2};
+        z.actions.push_back(showDrawer);
         d.zones.push_back(z);
         break;
     }

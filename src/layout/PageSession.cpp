@@ -409,8 +409,8 @@ void PageSession::ingest(const PageDocument& doc, bool isMaster, QVector<PageTar
                          QVector<PageGridPaint>& gridPaints, bool includeDrawerMotion)
 {
     QVector<PageGridPaint> g;
-    QVector<PageTarget> piece = PageHit::collect(doc, frame(), m_props, m_dwellSuspended, &g, false,
-                                                 includeDrawerMotion);
+    QVector<PageTarget> piece =
+        PageHit::collect(doc, frame(), m_props, m_dwellSuspended, &g, includeDrawerMotion);
     for (PageGridPaint& gp : g) {
         gp.pageId = doc.id;
         gp.master = isMaster;

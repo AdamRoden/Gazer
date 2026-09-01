@@ -388,7 +388,6 @@ LayoutEditorProperties::Shape LayoutEditorProperties::currentShape() const
             s.hasAction = true;
             s.actionType = a.type;
             s.actionVerb = a.verb;
-            s.actionTargetKind = a.targetKind;
             s.zoomMode = a.zoomMode;
             s.moveMode = a.moveMode;
         }

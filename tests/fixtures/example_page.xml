@@ -15,5 +15,5 @@
       <Send value="Enter, Down, 50"/>
     </Cell>
   </Grid>
-  <Zone id="edge" anchor="Bottom" offset="0,0" size="300,150" dwellOffset="0,240" dwellSize="300,200" label="Main" icon="Menu" suspendExempt="true" showGrid="Quick Settings"/>
+  <Zone id="edge" anchor="Bottom" offset="0,0" size="300,150" dwellOffset="0,240" dwellSize="300,200" label="Main" icon="Menu" suspendExempt="true" showLayers="1,2"/>
 </Page>
