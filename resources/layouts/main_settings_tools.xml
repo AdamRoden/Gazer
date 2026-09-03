@@ -48,7 +48,7 @@
           <Cell id="dz_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.ltsDeadzonePx.dec"/>
           <Cell id="dz_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="ltsDeadzonePx" style="join"/>
           <Cell id="dz_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.ltsDeadzonePx.inc"/>
-          <Cell id="dz_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.ltsDeadzonePx"/ icon="editSquare">
+          <Cell id="dz_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.ltsDeadzonePx"/>
         </SubGrid>
       </SubGrid>
       <SubGrid id="row_fo" row="3" col="0" rows="1" columns="2" gap="6" style="row">
@@ -57,7 +57,7 @@
           <Cell id="fo_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.ltsFalloffPx.dec"/>
           <Cell id="fo_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="ltsFalloffPx" style="join"/>
           <Cell id="fo_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.ltsFalloffPx.inc"/>
-          <Cell id="fo_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.ltsFalloffPx"/ icon="editSquare">
+          <Cell id="fo_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.ltsFalloffPx"/>
         </SubGrid>
       </SubGrid>
       <SubGrid id="row_accel" row="4" col="0" rows="1" columns="2" gap="6" style="row">
@@ -66,15 +66,15 @@
           <Cell id="accel_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.ltsAccelPerSec.dec"/>
           <Cell id="accel_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="ltsAccelPerSec" style="join"/>
           <Cell id="accel_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.ltsAccelPerSec.inc"/>
-          <Cell id="accel_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.ltsAccelPerSec"/ icon="editSquare">
+          <Cell id="accel_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.ltsAccelPerSec"/>
         </SubGrid>
       </SubGrid>
       <SubGrid id="row_ind" row="5" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="ind_l" row="0" col="0" label="Scroll style" caption="Fan, stretching orb, or hub only." role="label" style="plain"/>
         <SubGrid id="act_ind" row="0" col="1" rows="1" columns="3" gap="0" style="row">
-          <Cell id="ind_fan" row="0" col="0" label="Fan" role="choice" activeState="setting.ltsIndicator.0" style="joinLeft" command="settings.lts.indicator.fan"/>
-          <Cell id="ind_orb" row="0" col="1" label="Orb" role="choice" activeState="setting.ltsIndicator.1" style="join" command="settings.lts.indicator.orb"/>
-          <Cell id="ind_pause" row="0" col="2" label="Pause" role="choice" activeState="setting.ltsIndicator.2" style="joinRight" command="settings.lts.indicator.pause"/>
+          <Cell id="ind_fan" row="0" col="0" label="Fan" role="choice" activeState="settings.lts.indicator.fan" style="joinLeft" command="settings.lts.indicator.fan"/>
+          <Cell id="ind_orb" row="0" col="1" label="Orb" role="choice" activeState="settings.lts.indicator.orb" style="join" command="settings.lts.indicator.orb"/>
+          <Cell id="ind_pause" row="0" col="2" label="Pause" role="choice" activeState="settings.lts.indicator.pause" style="joinRight" command="settings.lts.indicator.pause"/>
         </SubGrid>
       </SubGrid>
     </SubGrid>
@@ -91,7 +91,7 @@
           <Cell id="ci_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.comboInnerRadiusPx.dec"/>
           <Cell id="ci_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="comboInnerRadiusPx" style="join"/>
           <Cell id="ci_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.comboInnerRadiusPx.inc"/>
-          <Cell id="ci_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.comboInnerRadiusPx"/ icon="editSquare">
+          <Cell id="ci_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.comboInnerRadiusPx"/>
         </SubGrid>
       </SubGrid>
       <SubGrid id="row_combo_shared" row="3" col="0" rows="1" columns="2" gap="6" style="row">
@@ -100,7 +100,7 @@
           <Cell id="cs_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.comboSharedRadiusPx.dec"/>
           <Cell id="cs_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="comboSharedRadiusPx" style="join"/>
           <Cell id="cs_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.comboSharedRadiusPx.inc"/>
-          <Cell id="cs_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.comboSharedRadiusPx"/ icon="editSquare">
+          <Cell id="cs_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.comboSharedRadiusPx"/>
         </SubGrid>
       </SubGrid>
       <SubGrid id="row_combo_outer" row="4" col="0" rows="1" columns="2" gap="6" style="row">
@@ -109,7 +109,7 @@
           <Cell id="co_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.comboOuterRadiusPx.dec"/>
           <Cell id="co_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="comboOuterRadiusPx" style="join"/>
           <Cell id="co_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.comboOuterRadiusPx.inc"/>
-          <Cell id="co_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.comboOuterRadiusPx"/ icon="editSquare">
+          <Cell id="co_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.comboOuterRadiusPx"/>
         </SubGrid>
       </SubGrid>
       <SubGrid id="row_combo_style" row="5" col="0" rows="1" columns="2" gap="6" style="row">

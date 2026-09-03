@@ -26,7 +26,7 @@
     <Cell id="open_settings" row="0" col="4" label="Settings" icon="settings" openPage="main_settings"/>
     <Cell id="close" row="0" col="5" label="Dismiss" icon="AlignBottom" showLayers="1"/>
     <Cell id="close_all" row="0" col="6" label="Close All" icon="CloseAll">
-      <Command value="closeOtherViews"/>
+      <CloseAllPages/>
       <ShowLayers value="1,2"/>
     </Cell>
     <Cell id="dwell_suspend" row="0" col="7" label="Pause dwell" icon="Sleep" activeState="dwellSuspend" command="toggleDwellSuspend"/>

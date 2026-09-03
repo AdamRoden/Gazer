@@ -60,7 +60,7 @@ A Grid is a placed rectangle of rows and columns. `desktopMode="true"` uses the 
 | `layers` | Comma-separated layer membership (`1,2`). Default `1`. Visible when any listed layer is in the page's current `showLayers`. Nested subgrids are skipped when the parent is off-layer, so a parent that hosts children on several layers should list all of them (`layers="1,2"`). |
 | `style`, `dwell` | Named style/dwell ids, plus inline chrome/dwell attrs. Grid inherit drops `foreground` / `progressStyle` / `progressColor`. |
 
-Cells use `row`, `col`, `rowSpan`, `colSpan`, `label`, `icon`, `caption`, `role` (`label`, `value`, `tab`, `toggle`, `choice`, `swatch`, `slider`, `preview`, …), `textStyle` (`caption`, `body`, `title`, `section`, `key` — fill the cell with the glyph), `visibleWhen`, `suspendExempt`. Nested `<SubGrid>` occupies a cell span. Zones take the same `layers` attribute as grids. `role` decides whether the item is a dwell target: `label`, `value`, `slider`, and `preview` are not; a `tab` with no actions is the current tab (selected, not a target). `toggle` is independent on/off (switch chrome); `choice` is one-of-a-set (radio chrome). A `choice` with stamped `background` + `progressColor` paints as a scheme preview and is the dwell target. `swatch` is a dwellable round color well. Cells do not take `shell` or `layers` — they follow their grid.
+Cells use `row`, `col`, `rowSpan`, `colSpan`, `label`, `icon` (stem of a file in `resources/icons/svg/`, e.g. `menu`, `mouseLeftClick`, `keyTab`), `caption`, `role` (`label`, `value`, `tab`, `toggle`, `choice`, `swatch`, `slider`, `preview`, …), `textStyle` (`caption`, `body`, `title`, `section`, `key` — fill the cell with the glyph), `visibleWhen`, `suspendExempt`. Nested `<SubGrid>` occupies a cell span. Zones take the same `layers` attribute as grids. `role` decides whether the item is a dwell target: `label`, `value`, `slider`, and `preview` are not; a `tab` with no actions is the current tab (selected, not a target). `toggle` is independent on/off (switch chrome); `choice` is one-of-a-set (radio chrome). A `choice` with stamped `background` + `progressColor` paints as a scheme preview and is the dwell target. `swatch` is a dwellable round color well. Cells do not take `shell` or `layers` — they follow their grid.
 
 ## `<Zone>`
 
@@ -76,13 +76,13 @@ Action is generic: the specific thing to do is named as an attribute (on `<Actio
 <Cell openPage="uw_qwerty, true"/>
 
 <Send value="a"/>
-<LeftClick/>
-<LeftClick value="double"/>
-<LeftClick value="toggle"/>
-<LeftClickAtGaze/>
-<LeftClickAtGaze value="0"/>
-<LeftClickAtGaze value="4"/>
-<LeftClickAtGaze value="-1"/>
+<MouseLeftClick/>
+<MouseLeftClick value="double"/>
+<MouseLeftClick value="toggle"/>
+<MouseLeftClickAtGaze/>
+<MouseLeftClickAtGaze value="0"/>
+<MouseLeftClickAtGaze value="4"/>
+<MouseLeftClickAtGaze value="-1"/>
 <MouseMoveToGaze/>
 <MouseMoveToGaze value="0"/>
 <MouseMoveByDirection value="n"/>
@@ -103,8 +103,8 @@ A cell or zone may have **one** action attribute. Multiple actions use child ele
 | Name | `value` |
 |------|---------|
 | `Send` | key[, Down\|Up[, durationMs]] |
-| `LeftClick` / `MiddleClick` / `RightClick` | type: `default` / `double` / `down` / `up` / `toggle` (omit for a default click) |
-| `LeftClickAtGaze` / `MiddleClickAtGaze` / `RightClickAtGaze` | zoom: omit/`default` = Settings mag-pick; `0` = dwell-move, no magnify; `N` = N× zoom; `-1` = foresight; `-2` = foresight with bonus zoom |
+| `MouseLeftClick` / `MouseMiddleClick` / `MouseRightClick` | type: `default` / `double` / `down` / `up` / `toggle` (omit for a default click) |
+| `MouseLeftClickAtGaze` / `MouseMiddleClickAtGaze` / `MouseRightClickAtGaze` | zoom: omit/`default` = Settings mag-pick; `0` = dwell-move, no magnify; `N` = N× zoom; `-1` = foresight; `-2` = foresight with bonus zoom |
 | `MouseMoveToGaze` | same zoom tokens as click-at-gaze |
 | `MouseMoveByDirection` | `n`/`s`/`e`/`w`/`ne`/`nw`/`se`/`sw`[, amount px] — amount omitted uses the mouse-assist step |
 | `MouseMoveToPoint` | `x,y` screen coords |
@@ -112,8 +112,8 @@ A cell or zone may have **one** action attribute. Multiple actions use child ele
 | `OpenPage` | targetId[, true] — `true` saves a breadcrumb of the current page state |
 | `ShowLayers` | layer[, layer…] — replace the source page's visible set (or the root if that page just closed). Not a Page nav action. |
 | `ClosePage` | (none) — close the page that owns the cell |
-| `CloseAllPages` | (none) — close every attached page; the master root stays |
-| `CloseOtherPages` | (none) — close every attached page except the source page |
+| `CloseAllPages` | (none) — close every attached page; the master root stays. Also disables ComboMouse. |
+| `CloseOtherPages` | (none) — close every attached page except the source page. Also disables ComboMouse. |
 | `GoBack` | (none) — restore the last breadcrumb |
 | `Speak` | TTS text |
 | `AHK` | element body / CDATA — written to a temp `.ahk` and started with a local AutoHotkey install (v2 preferred; `#Requires AutoHotkey v1` selects v1). AutoHotkey is not bundled; set `GAZER_AHK` to an exe to override discovery. |

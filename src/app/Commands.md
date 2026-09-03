@@ -4,36 +4,24 @@
 
 | Registered in | What |
 |---------------|------|
-| `Application.cpp` | Shell: quit, editor, preview, close others |
+| `Application.cpp` | Shell: quit, editor, preview |
 | `AssistCommands.cpp` | Dwell pause, LTS, mag, reticle, dwell-move, click-at-gaze |
 | `GazerServices.cpp` | Modifier cycle, click-at-cursor, stop loops |
 | `MouseAssistState.cpp` | Mouse pad: nudge, scroll, edge, holds |
 | `SettingsCommands.cpp` | `settings.*` live boards |
 
-When adding a command: register it, add a row here, and list every alias in the same `registerBuiltin({...})` call.
+When adding a command: register it and add a row here.
 
-## Aliases (same handler)
+`toggleDwellSuspend` / `suspendDwell` / `resumeDwell` are different handlers, not aliases.
 
-| Canonical | Also |
-|-----------|------|
-| `leftClickAtGaze` | `mouseMoveAndLeftClick` |
-| `rightClickAtGaze` | `mouseMoveAndRightClick` |
-| `middleClickAtGaze` | `mouseMoveAndMiddleClick` |
-| `leftClick` | `mouseLeftClick` |
-| `rightClick` | `mouseRightClick` |
-| `middleClick` | `mouseMiddleClick` |
-| `mouseDwellMove` | `mouseMoveToGaze` |
-| `openPage` / `loadPage` | script aliases `openLayout` / `loadLayout` (`ScriptHost`, not CommandRegistry) |
-
-`toggleDwellSuspend` / `suspendDwell` / `resumeDwell` are **not** aliases (different handlers).
+Script: `gazer.openPage` / `loadPage` / `focusedPageId` (`ScriptHost`, not CommandRegistry). `loadPage` closes the current attached page first.
 
 ## Shell (`Application.cpp`)
 
 | Command | Role |
 |---------|------|
 | `quitApp` | Exit |
-| `closeOtherViews` | Disable ComboMouse; close attached pages |
-| `openLayoutEditor` | Page designer (`Invocation.pageId` optional) |
+| `openPageEditor` | Page designer (`Invocation.pageId` optional) |
 | `openPreview` | Head-pose preview |
 
 ## Assist (`AssistCommands.cpp`)
@@ -49,9 +37,9 @@ When adding a command: register it, add a row here, and list every alias in the 
 | `toggleGazeReticle` | Gaze marker (exclusive with magnifier) |
 | `toggleGazeMouseFollow` | Cursor follows gaze |
 | `toggleComboMouse` | Arm ComboMouse place, or disable |
-| `mouseDwellMove` (alias above) | Toggle dwell-to-warp cursor |
-| `mouseDwellClickLoop` | Sticky dwell-move then click |
-| `leftClickAtGaze` (alias above) | Dwell-move then one click |
+| `mouseMoveToGaze` | Toggle dwell-to-warp cursor |
+| `mouseMoveToGazeClickLoop` | Sticky dwell-move then click |
+| `mouseLeftClickAtGaze` / `mouseMiddleClickAtGaze` / `mouseRightClickAtGaze` | Dwell-move then one click |
 | `toggleMouseMoveMagPick` | Settings: magnify pick |
 | `toggleMouseMoveMagPickCenter` | Mag-pick center on dwell vs screen |
 | `toggleMouseMoveMagPickFullScreen` | Mag-pick full-screen zoom |
@@ -60,13 +48,11 @@ When adding a command: register it, add a row here, and list every alias in the 
 
 ## Input / loops (`GazerServices.cpp`)
 
-Builtins **shadow** mapping keys of the same name (`leftCtrl` in `default.json` is unused while the builtin is registered).
-
 | Command | Role |
 |---------|------|
 | `leftCtrl` / `rightCtrl` / `leftAlt` / `rightAlt` / `leftWin` / `rightWin` / `leftShift` / `rightShift` | Modifier cycle (Up → Down → LockedDown) |
 | `releaseModifiers` | Release all modifiers |
-| `leftClick` (alias above) | Click at cursor |
+| `mouseLeftClick` / `mouseRightClick` / `mouseMiddleClick` | Click at cursor |
 | `stopAllActionLoops` | Stop sticky series, click-loop, holds, modifiers |
 
 ## Mouse pad (`MouseAssistState.cpp`)
@@ -119,6 +105,8 @@ Patterns, not every generated name:
 
 Numeric keys: `dwellMs` plus `kIntSpecs` / `kDoubleSpecs` in `AppSettings.cpp`. Color keys: `SettingsUi::kColorKeys`.
 
+`activeState` is the command name (`settings.progress.radial.toggle`, `theme.light`). Live assist uses the feature stem (`lookToScroll`, `dwellSuspend`). `CloseAllPages` / `CloseOtherPages` also disable ComboMouse.
+
 ## Mapping-only (`default.json`)
 
-Not builtins. Examples: `backspace`, `tab`, `enter`, `space`, `escape`, `arrow*`, `clearPhrase`, `speakPhrase`, `windowMid` / `windowMax`, `mouseLeftDoubleClick`, `gamepadA` / `B`, `lookLeft` / `lookRight`.
+Not builtins. Examples: `backspace`, `tab`, `enter`, `space`, `escape`, `arrow*`, `clearPhrase`, `speakPhrase`, `windowMid` / `windowMax`.

@@ -96,18 +96,18 @@ void applyBasics(PageAction& out, const ActionName& n)
 
 const ActionName kNames[] = {
     {"send", "Send", PageActionType::Send, PageVerb::Open, nullptr, true, parseSendValue},
-    {"leftClick", "LeftClick", PageActionType::Click, PageVerb::Open, "left", true,
+    {"mouseLeftClick", "MouseLeftClick", PageActionType::Click, PageVerb::Open, "left", true,
      parseClickKindValue, matchButton},
-    {"middleClick", "MiddleClick", PageActionType::Click, PageVerb::Open, "middle", true,
+    {"mouseMiddleClick", "MouseMiddleClick", PageActionType::Click, PageVerb::Open, "middle", true,
      parseClickKindValue, matchButton},
-    {"rightClick", "RightClick", PageActionType::Click, PageVerb::Open, "right", true,
+    {"mouseRightClick", "MouseRightClick", PageActionType::Click, PageVerb::Open, "right", true,
      parseClickKindValue, matchButton},
-    {"leftClickAtGaze", "LeftClickAtGaze", PageActionType::MoveAndClick, PageVerb::Open, "left",
-     true, parseGazeClick, matchButton},
-    {"middleClickAtGaze", "MiddleClickAtGaze", PageActionType::MoveAndClick, PageVerb::Open,
-     "middle", true, parseGazeClick, matchButton},
-    {"rightClickAtGaze", "RightClickAtGaze", PageActionType::MoveAndClick, PageVerb::Open, "right",
-     true, parseGazeClick, matchButton},
+    {"mouseLeftClickAtGaze", "MouseLeftClickAtGaze", PageActionType::MoveAndClick, PageVerb::Open,
+     "left", true, parseGazeClick, matchButton},
+    {"mouseMiddleClickAtGaze", "MouseMiddleClickAtGaze", PageActionType::MoveAndClick,
+     PageVerb::Open, "middle", true, parseGazeClick, matchButton},
+    {"mouseRightClickAtGaze", "MouseRightClickAtGaze", PageActionType::MoveAndClick, PageVerb::Open,
+     "right", true, parseGazeClick, matchButton},
     {"mouseMoveByDirection", "MouseMoveByDirection", PageActionType::Move, PageVerb::Open, nullptr,
      true, parseMoveDir, matchDir},
     {"mouseMoveToGaze", "MouseMoveToGaze", PageActionType::Move, PageVerb::Open, nullptr, true,
@@ -135,33 +135,6 @@ const ActionName kNames[] = {
     {"speak", "Speak", PageActionType::Speak, PageVerb::Open, nullptr, true, parseSpeakValue},
 };
 
-const ActionName kAliases[] = {
-    {"mouseClickLeft", "MouseClickLeft", PageActionType::Click, PageVerb::Open, "left", false,
-     parseClickKindValue, matchButton},
-    {"mouseLeftClick", "MouseLeftClick", PageActionType::Click, PageVerb::Open, "left", false,
-     parseClickKindValue, matchButton},
-    {"mouseClickMiddle", "MouseClickMiddle", PageActionType::Click, PageVerb::Open, "middle", false,
-     parseClickKindValue, matchButton},
-    {"mouseMiddleClick", "MouseMiddleClick", PageActionType::Click, PageVerb::Open, "middle", false,
-     parseClickKindValue, matchButton},
-    {"mouseClickRight", "MouseClickRight", PageActionType::Click, PageVerb::Open, "right", false,
-     parseClickKindValue, matchButton},
-    {"mouseRightClick", "MouseRightClick", PageActionType::Click, PageVerb::Open, "right", false,
-     parseClickKindValue, matchButton},
-    {"mouseClickAtGazeLeft", "MouseClickAtGazeLeft", PageActionType::MoveAndClick, PageVerb::Open,
-     "left", false, parseGazeClick, matchButton},
-    {"mouseMoveAndLeftClick", "MouseMoveAndLeftClick", PageActionType::MoveAndClick, PageVerb::Open,
-     "left", false, parseGazeClick, matchButton},
-    {"mouseClickAtGazeMiddle", "MouseClickAtGazeMiddle", PageActionType::MoveAndClick,
-     PageVerb::Open, "middle", false, parseGazeClick, matchButton},
-    {"mouseMoveAndMiddleClick", "MouseMoveAndMiddleClick", PageActionType::MoveAndClick,
-     PageVerb::Open, "middle", false, parseGazeClick, matchButton},
-    {"mouseClickAtGazeRight", "MouseClickAtGazeRight", PageActionType::MoveAndClick, PageVerb::Open,
-     "right", false, parseGazeClick, matchButton},
-    {"mouseMoveAndRightClick", "MouseMoveAndRightClick", PageActionType::MoveAndClick,
-     PageVerb::Open, "right", false, parseGazeClick, matchButton},
-};
-
 const ActionName* findName(QStringView raw)
 {
     const QString n = raw.toString().trimmed().toLower();
@@ -172,11 +145,6 @@ const ActionName* findName(QStringView raw)
         return n == QLatin1String(a.attr) || n == QString::fromLatin1(a.element).toLower();
     };
     for (const ActionName& a : kNames) {
-        if (match(a)) {
-            return &a;
-        }
-    }
-    for (const ActionName& a : kAliases) {
         if (match(a)) {
             return &a;
         }

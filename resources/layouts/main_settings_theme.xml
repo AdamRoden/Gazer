@@ -39,40 +39,40 @@
     <SubGrid id="sec_appearance" row="2" col="0" colSpan="16" rowSpan="2" rows="2" columns="1" rowWeights="1,2" gap="6" margin="6" style="group">
       <Cell id="h_appearance" row="0" col="0" label="Appearance" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_appearance" row="1" col="0" rows="1" columns="4" gap="0" style="row">
-        <Cell id="light" row="0" col="0" label="Light" role="choice" activeState="setting.theme.light" style="joinLeft" command="theme.light"/>
-        <Cell id="light_tint" row="0" col="1" label="Light tint" role="choice" activeState="setting.theme.lightTinted" style="join" command="theme.lightTinted"/>
-        <Cell id="dark_tint" row="0" col="2" label="Dark tint" role="choice" activeState="setting.theme.darkTinted" style="join" command="theme.darkTinted"/>
-        <Cell id="dark" row="0" col="3" label="Dark" role="choice" activeState="setting.theme.dark" style="joinRight" command="theme.dark"/>
+        <Cell id="light" row="0" col="0" label="Light" role="choice" activeState="theme.light" style="joinLeft" command="theme.light"/>
+        <Cell id="light_tint" row="0" col="1" label="Light tint" role="choice" activeState="theme.lightTinted" style="join" command="theme.lightTinted"/>
+        <Cell id="dark_tint" row="0" col="2" label="Dark tint" role="choice" activeState="theme.darkTinted" style="join" command="theme.darkTinted"/>
+        <Cell id="dark" row="0" col="3" label="Dark" role="choice" activeState="theme.dark" style="joinRight" command="theme.dark"/>
       </SubGrid>
     </SubGrid>
 
     <SubGrid id="sec_schemes" row="4" col="0" colSpan="16" rowSpan="3" rows="2" columns="1" rowWeights="1,3" gap="6" margin="6" style="group">
       <Cell id="h_schemes" row="0" col="0" label="Accent" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_schemes" row="1" col="0" rows="1" columns="9" gap="8" style="row">
-        <Cell id="pri_0" row="0" col="0" label="Red" role="choice" activeState="setting.theme.primary.0" command="theme.primary.0"/>
-        <Cell id="pri_1" row="0" col="1" label="Orange" role="choice" activeState="setting.theme.primary.1" command="theme.primary.1"/>
-        <Cell id="pri_2" row="0" col="2" label="Yellow" role="choice" activeState="setting.theme.primary.2" command="theme.primary.2"/>
-        <Cell id="pri_3" row="0" col="3" label="Green" role="choice" activeState="setting.theme.primary.3" command="theme.primary.3"/>
-        <Cell id="pri_4" row="0" col="4" label="Teal" role="choice" activeState="setting.theme.primary.4" command="theme.primary.4"/>
-        <Cell id="pri_5" row="0" col="5" label="Blue" role="choice" activeState="setting.theme.primary.5" command="theme.primary.5"/>
-        <Cell id="pri_6" row="0" col="6" label="Indigo" role="choice" activeState="setting.theme.primary.6" command="theme.primary.6"/>
-        <Cell id="pri_7" row="0" col="7" label="Purple" role="choice" activeState="setting.theme.primary.7" command="theme.primary.7"/>
-        <Cell id="pri_8" row="0" col="8" label="Pink" role="choice" activeState="setting.theme.primary.8" command="theme.primary.8"/>
+        <Cell id="pri_0" row="0" col="0" label="Red" role="choice" activeState="theme.primary.0" command="theme.primary.0"/>
+        <Cell id="pri_1" row="0" col="1" label="Orange" role="choice" activeState="theme.primary.1" command="theme.primary.1"/>
+        <Cell id="pri_2" row="0" col="2" label="Yellow" role="choice" activeState="theme.primary.2" command="theme.primary.2"/>
+        <Cell id="pri_3" row="0" col="3" label="Green" role="choice" activeState="theme.primary.3" command="theme.primary.3"/>
+        <Cell id="pri_4" row="0" col="4" label="Teal" role="choice" activeState="theme.primary.4" command="theme.primary.4"/>
+        <Cell id="pri_5" row="0" col="5" label="Blue" role="choice" activeState="theme.primary.5" command="theme.primary.5"/>
+        <Cell id="pri_6" row="0" col="6" label="Indigo" role="choice" activeState="theme.primary.6" command="theme.primary.6"/>
+        <Cell id="pri_7" row="0" col="7" label="Purple" role="choice" activeState="theme.primary.7" command="theme.primary.7"/>
+        <Cell id="pri_8" row="0" col="8" label="Pink" role="choice" activeState="theme.primary.8" command="theme.primary.8"/>
       </SubGrid>
     </SubGrid>
 
     <SubGrid id="sec_progress" row="7" col="0" colSpan="16" rowSpan="3" rows="2" columns="1" rowWeights="1,3" gap="6" margin="6" style="group">
       <Cell id="h_progress" row="0" col="0" label="Progress" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_progress" row="1" col="0" rows="1" columns="9" gap="8" style="row">
-        <Cell id="sec_0" row="0" col="0" label="Red" role="swatch" activeState="setting.theme.secondary.0" command="theme.secondary.0"/>
-        <Cell id="sec_1" row="0" col="1" label="Orange" role="swatch" activeState="setting.theme.secondary.1" command="theme.secondary.1"/>
-        <Cell id="sec_2" row="0" col="2" label="Yellow" role="swatch" activeState="setting.theme.secondary.2" command="theme.secondary.2"/>
-        <Cell id="sec_3" row="0" col="3" label="Green" role="swatch" activeState="setting.theme.secondary.3" command="theme.secondary.3"/>
-        <Cell id="sec_4" row="0" col="4" label="Teal" role="swatch" activeState="setting.theme.secondary.4" command="theme.secondary.4"/>
-        <Cell id="sec_5" row="0" col="5" label="Blue" role="swatch" activeState="setting.theme.secondary.5" command="theme.secondary.5"/>
-        <Cell id="sec_6" row="0" col="6" label="Indigo" role="swatch" activeState="setting.theme.secondary.6" command="theme.secondary.6"/>
-        <Cell id="sec_7" row="0" col="7" label="Purple" role="swatch" activeState="setting.theme.secondary.7" command="theme.secondary.7"/>
-        <Cell id="sec_8" row="0" col="8" label="Pink" role="swatch" activeState="setting.theme.secondary.8" command="theme.secondary.8"/>
+        <Cell id="sec_0" row="0" col="0" label="Red" role="swatch" activeState="theme.secondary.0" command="theme.secondary.0"/>
+        <Cell id="sec_1" row="0" col="1" label="Orange" role="swatch" activeState="theme.secondary.1" command="theme.secondary.1"/>
+        <Cell id="sec_2" row="0" col="2" label="Yellow" role="swatch" activeState="theme.secondary.2" command="theme.secondary.2"/>
+        <Cell id="sec_3" row="0" col="3" label="Green" role="swatch" activeState="theme.secondary.3" command="theme.secondary.3"/>
+        <Cell id="sec_4" row="0" col="4" label="Teal" role="swatch" activeState="theme.secondary.4" command="theme.secondary.4"/>
+        <Cell id="sec_5" row="0" col="5" label="Blue" role="swatch" activeState="theme.secondary.5" command="theme.secondary.5"/>
+        <Cell id="sec_6" row="0" col="6" label="Indigo" role="swatch" activeState="theme.secondary.6" command="theme.secondary.6"/>
+        <Cell id="sec_7" row="0" col="7" label="Purple" role="swatch" activeState="theme.secondary.7" command="theme.secondary.7"/>
+        <Cell id="sec_8" row="0" col="8" label="Pink" role="swatch" activeState="theme.secondary.8" command="theme.secondary.8"/>
       </SubGrid>
     </SubGrid>
 
@@ -86,7 +86,7 @@
       </SubGrid>
       <SubGrid id="row_edit" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="edit_name" row="0" col="0" label="Edit colors" caption="Opens Custom on the role list." role="label" style="plain"/>
-        <Cell id="edit_colors" row="0" col="1" label="Edit colors" icon="editSquare" command="settings.theme.edit"/>
+        <Cell id="edit_colors" row="0" col="1" icon="editSquare" label="Edit colors" command="settings.theme.edit"/>
       </SubGrid>
     </SubGrid>
   </Grid>

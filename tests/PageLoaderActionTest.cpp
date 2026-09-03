@@ -245,21 +245,21 @@ void PageLoaderActionTest::parseSpecificActionElements()
     QVERIFY2(loadOneAction(QByteArray("<MoveAndClick value=\"left, 0\"/>"), a, &err),
              qPrintable(err));
     QCOMPARE(a.zoomMode, PageZoomMode::Off);
-    QVERIFY2(loadOneAction(QByteArray("<LeftClick value=\"toggle\"/>"), a, &err),
+    QVERIFY2(loadOneAction(QByteArray("<MouseLeftClick value=\"toggle\"/>"), a, &err),
              qPrintable(err));
     QCOMPARE(a.type, PageActionType::Click);
     QCOMPARE(a.button.toLower(), QStringLiteral("left"));
     QCOMPARE(a.clickKind, PageClickKind::Toggle);
-    QVERIFY2(loadOneAction(QByteArray("<RightClick value=\"double\"/>"), a, &err),
+    QVERIFY2(loadOneAction(QByteArray("<MouseRightClick value=\"double\"/>"), a, &err),
              qPrintable(err));
     QCOMPARE(a.button.toLower(), QStringLiteral("right"));
     QCOMPARE(a.clickKind, PageClickKind::Double);
-    QVERIFY2(loadOneAction(QByteArray("<LeftClickAtGaze value=\"-1\"/>"), a, &err),
+    QVERIFY2(loadOneAction(QByteArray("<MouseLeftClickAtGaze value=\"-1\"/>"), a, &err),
              qPrintable(err));
     QCOMPARE(a.type, PageActionType::MoveAndClick);
     QCOMPARE(a.button.toLower(), QStringLiteral("left"));
     QCOMPARE(a.zoomMode, PageZoomMode::Foresight);
-    QVERIFY2(loadOneAction(QByteArray("<MiddleClickAtGaze value=\"-2\"/>"), a, &err),
+    QVERIFY2(loadOneAction(QByteArray("<MouseMiddleClickAtGaze value=\"-2\"/>"), a, &err),
              qPrintable(err));
     QCOMPARE(a.button.toLower(), QStringLiteral("middle"));
     QCOMPARE(a.zoomMode, PageZoomMode::ForesightBonus);

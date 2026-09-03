@@ -32,7 +32,7 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
     if (key.startsWith(QLatin1Char('!'))) {
         return !resolveActiveState(ctx, key.mid(1).trimmed());
     }
-    if (key == QLatin1String("dwellSuspend") || key == QLatin1String("dwell.suspended")) {
+    if (key == QLatin1String("dwellSuspend")) {
         return ctx.dwellSuspended;
     }
     if (key == QLatin1String("lookToScroll")) {
@@ -53,14 +53,10 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
             const char* id;
             ArmPurpose purpose;
         } kArm[] = {
-            {"mouseDwellMove", ArmPurpose::CursorMove},
             {"mouseMoveToGaze", ArmPurpose::CursorMove},
-            {"leftClickAtGaze", ArmPurpose::CursorMoveLeftClick},
-            {"mouseMoveAndLeftClick", ArmPurpose::CursorMoveLeftClick},
-            {"rightClickAtGaze", ArmPurpose::CursorMoveRightClick},
-            {"mouseMoveAndRightClick", ArmPurpose::CursorMoveRightClick},
-            {"middleClickAtGaze", ArmPurpose::CursorMoveMiddleClick},
-            {"mouseMoveAndMiddleClick", ArmPurpose::CursorMoveMiddleClick},
+            {"mouseLeftClickAtGaze", ArmPurpose::CursorMoveLeftClick},
+            {"mouseRightClickAtGaze", ArmPurpose::CursorMoveRightClick},
+            {"mouseMiddleClickAtGaze", ArmPurpose::CursorMoveMiddleClick},
         };
         for (const auto& e : kArm) {
             if (key == QLatin1String(e.id)) {
@@ -69,11 +65,7 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
             }
         }
     }
-    // Gaze click loop: assist sticky registered on ActionLoopService + live arm state.
-    if (key == QLatin1String("loop.gazeClick") || key == QLatin1String("mouseDwellClickLoop")) {
-        if (ctx.actionLoops && ctx.actionLoops->isActiveState(QStringLiteral("loop.gazeClick"))) {
-            return true;
-        }
+    if (key == QLatin1String("mouseMoveToGazeClickLoop")) {
         return ctx.mouseDwellMove && ctx.mouseDwellMove->isClickLoop();
     }
     if (key == QLatin1String("mouseMoveMagPick")) {
@@ -135,109 +127,90 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
         return false;
     }
     const AppSettings& s = *ctx.settings;
-    if (indexKeyEquals(key, QLatin1String("setting.ltsIndicator."), int(s.ltsIndicatorStyle))) {
-        return true;
-    }
-    if (key == QLatin1String("setting.dwell.slow")) {
-        return s.dwellPreset() == 0;
-    }
-    if (key == QLatin1String("setting.dwell.normal")) {
-        return s.dwellPreset() == 1;
-    }
-    if (key == QLatin1String("setting.dwell.fast")) {
-        return s.dwellPreset() == 2;
-    }
-    if (key == QLatin1String("setting.dwell.custom")) {
-        return s.dwellPreset() == 3;
-    }
-    if (key.startsWith(QLatin1String("setting."))) {
-        if (const AppSettings::StyleToggle* t = AppSettings::findStyleToggle(key.mid(8))) {
-            return s.styleFlag(*t);
+    for (const AppSettings::StyleToggle& t : AppSettings::kStyleToggles) {
+        if (key == QLatin1String(t.command)) {
+            return s.styleFlag(t);
         }
     }
-    if (key == QLatin1String("setting.flashUseForeground")) {
-        return s.flashUseForeground;
+    static const struct {
+        const char* id;
+        bool (*test)(const AppSettings&);
+    } kSettings[] = {
+        {"settings.dwell.slow", [](const AppSettings& s) { return s.dwellPreset() == 0; }},
+        {"settings.dwell.normal", [](const AppSettings& s) { return s.dwellPreset() == 1; }},
+        {"settings.dwell.fast", [](const AppSettings& s) { return s.dwellPreset() == 2; }},
+        {"settings.dwell.custom", [](const AppSettings& s) { return s.dwellPreset() == 3; }},
+        {"settings.flash.foreground", [](const AppSettings& s) { return s.flashUseForeground; }},
+        {"settings.flash.custom", [](const AppSettings& s) { return !s.flashUseForeground; }},
+        {"settings.magPickStyle.cursor.toggle",
+         [](const AppSettings& s) { return PickStyle::has(s.magPickStyle, PickStyle::Cursor); }},
+        {"settings.magPickStyle.dot.toggle",
+         [](const AppSettings& s) { return PickStyle::has(s.magPickStyle, PickStyle::Dot); }},
+        {"settings.magPickStyle.crosshair.toggle",
+         [](const AppSettings& s) { return PickStyle::has(s.magPickStyle, PickStyle::Crosshair); }},
+        {"settings.magPickStyle.gaze.toggle",
+         [](const AppSettings& s) {
+             return PickStyle::has(s.magPickStyle, PickStyle::GazeIndicator);
+         }},
+        {"settings.mousePickStyle.cursor.toggle",
+         [](const AppSettings& s) { return PickStyle::has(s.mousePickStyle, PickStyle::Cursor); }},
+        {"settings.mousePickStyle.dot.toggle",
+         [](const AppSettings& s) { return PickStyle::has(s.mousePickStyle, PickStyle::Dot); }},
+        {"settings.mousePickStyle.crosshair.toggle",
+         [](const AppSettings& s) { return PickStyle::has(s.mousePickStyle, PickStyle::Crosshair); }},
+        {"settings.pickWindow.round", [](const AppSettings& s) { return s.pickWindowRound; }},
+        {"settings.pickWindow.square", [](const AppSettings& s) { return !s.pickWindowRound; }},
+        {"settings.pickCenter.gaze",
+         [](const AppSettings& s) { return s.mouseMoveMagPickCenterOnDwell; }},
+        {"settings.pickCenter.screen",
+         [](const AppSettings& s) { return !s.mouseMoveMagPickCenterOnDwell; }},
+        {"settings.session.layoutAutoClose.toggle",
+         [](const AppSettings& s) { return s.layoutAutoClose; }},
+        {"settings.session.autoCollapse.toggle",
+         [](const AppSettings& s) { return s.autoCollapseMain; }},
+        {"settings.session.startDocked.toggle",
+         [](const AppSettings& s) { return s.startDocked; }},
+        {"settings.speech.alsoType.toggle", [](const AppSettings& s) { return s.speakAlsoType; }},
+        {"settings.lts.indicator.fan",
+         [](const AppSettings& s) { return int(s.ltsIndicatorStyle) == 0; }},
+        {"settings.lts.indicator.orb",
+         [](const AppSettings& s) { return int(s.ltsIndicatorStyle) == 1; }},
+        {"settings.lts.indicator.pause",
+         [](const AppSettings& s) { return int(s.ltsIndicatorStyle) == 2; }},
+        {"settings.mag.follow.slow",
+         [](const AppSettings& s) { return int(s.magFollowProfile) == 0; }},
+        {"settings.mag.follow.sticky",
+         [](const AppSettings& s) { return int(s.magFollowProfile) == 1; }},
+        {"settings.mag.follow.smooth",
+         [](const AppSettings& s) { return int(s.magFollowProfile) == 2; }},
+        {"settings.mag.follow.snappy",
+         [](const AppSettings& s) { return int(s.magFollowProfile) == 3; }},
+        {"settings.tracker.auto", [](const AppSettings& s) { return s.trackerPref == 0; }},
+        {"settings.tracker.mouse", [](const AppSettings& s) { return s.trackerPref == 1; }},
+        {"theme.dark", [](const AppSettings& s) { return s.themeAppearance == ThemeAppearance::Dark; }},
+        {"theme.darkTinted",
+         [](const AppSettings& s) { return s.themeAppearance == ThemeAppearance::DarkTinted; }},
+        {"theme.lightTinted",
+         [](const AppSettings& s) { return s.themeAppearance == ThemeAppearance::LightTinted; }},
+        {"theme.light",
+         [](const AppSettings& s) { return s.themeAppearance == ThemeAppearance::Light; }},
+        {"theme.custom", [](const AppSettings& s) { return s.themeCustom; }},
+    };
+    for (const auto& e : kSettings) {
+        if (key == QLatin1String(e.id)) {
+            return e.test(s);
+        }
     }
-    if (key == QLatin1String("setting.flashUseCustom")) {
-        return !s.flashUseForeground;
-    }
-    if (key == QLatin1String("setting.magPick.cursor")) {
-        return PickStyle::has(s.magPickStyle, PickStyle::Cursor);
-    }
-    if (key == QLatin1String("setting.magPick.dot")) {
-        return PickStyle::has(s.magPickStyle, PickStyle::Dot);
-    }
-    if (key == QLatin1String("setting.magPick.crosshair")) {
-        return PickStyle::has(s.magPickStyle, PickStyle::Crosshair);
-    }
-    if (key == QLatin1String("setting.magPick.gaze")) {
-        return PickStyle::has(s.magPickStyle, PickStyle::GazeIndicator);
-    }
-    if (key == QLatin1String("setting.mousePick.cursor")) {
-        return PickStyle::has(s.mousePickStyle, PickStyle::Cursor);
-    }
-    if (key == QLatin1String("setting.mousePick.dot")) {
-        return PickStyle::has(s.mousePickStyle, PickStyle::Dot);
-    }
-    if (key == QLatin1String("setting.pickWindow.round")) {
-        return s.pickWindowRound;
-    }
-    if (key == QLatin1String("setting.pickWindow.square")) {
-        return !s.pickWindowRound;
-    }
-    if (key == QLatin1String("setting.mousePick.crosshair")) {
-        return PickStyle::has(s.mousePickStyle, PickStyle::Crosshair);
-    }
-    if (key == QLatin1String("setting.pickCenter.gaze")) {
-        return s.mouseMoveMagPickCenterOnDwell;
-    }
-    if (key == QLatin1String("setting.pickCenter.screen")) {
-        return !s.mouseMoveMagPickCenterOnDwell;
-    }
-    if (key == QLatin1String("setting.layoutAutoClose")) {
-        return s.layoutAutoClose;
-    }
-    if (key == QLatin1String("setting.autoCollapseMain")) {
-        return s.autoCollapseMain;
-    }
-    if (key == QLatin1String("setting.startDocked")) {
-        return s.startDocked;
-    }
-    if (key == QLatin1String("setting.speakAlsoType")) {
-        return s.speakAlsoType;
-    }
-    if (indexKeyEquals(key, QLatin1String("setting.magFollow."), int(s.magFollowProfile))) {
-        return true;
-    }
-    if (indexKeyEquals(key, QLatin1String("setting.tracker."), s.trackerPref)) {
-        return true;
-    }
-    if (key == QLatin1String("setting.theme.dark")) {
-        return s.themeAppearance == ThemeAppearance::Dark;
-    }
-    if (key == QLatin1String("setting.theme.darkTinted")) {
-        return s.themeAppearance == ThemeAppearance::DarkTinted;
-    }
-    if (key == QLatin1String("setting.theme.lightTinted")) {
-        return s.themeAppearance == ThemeAppearance::LightTinted;
-    }
-    if (key == QLatin1String("setting.theme.light")) {
-        return s.themeAppearance == ThemeAppearance::Light;
-    }
-    if (key == QLatin1String("setting.theme.custom")) {
-        return s.themeCustom;
-    }
-    if (key.startsWith(QLatin1String("setting.theme.primary."))) {
+    if (key.startsWith(QLatin1String("theme.primary."))) {
         return !s.themeCustom
-               && indexKeyEquals(key, QLatin1String("setting.theme.primary."), s.themePrimaryIndex);
+               && indexKeyEquals(key, QLatin1String("theme.primary."), s.themePrimaryIndex);
     }
-    if (key.startsWith(QLatin1String("setting.theme.secondary."))) {
+    if (key.startsWith(QLatin1String("theme.secondary."))) {
         return !s.themeCustom
-               && indexKeyEquals(key, QLatin1String("setting.theme.secondary."),
-                                 s.themeSecondaryIndex);
+               && indexKeyEquals(key, QLatin1String("theme.secondary."), s.themeSecondaryIndex);
     }
-    if (key.startsWith(QLatin1String("setting.color.editing."))) {
-        const QString ck = key.mid(QStringLiteral("setting.color.editing.").size());
+    if (key.startsWith(QLatin1String("settings.color.editing."))) {
+        const QString ck = key.mid(QStringLiteral("settings.color.editing.").size());
         return ctx.settingsUi && ctx.settingsUi->colorPickerKey() == ck;
     }
     return false;

@@ -48,15 +48,6 @@
     "arrowRight": [
       { "type": "keyTap", "key": "Right" }
     ],
-    "leftCtrl": [
-      { "type": "keyTap", "key": "Control" }
-    ],
-    "leftAlt": [
-      { "type": "keyTap", "key": "Alt" }
-    ],
-    "leftWin": [
-      { "type": "keyTap", "key": "LWin" }
-    ],
     "clearPhrase": [
       { "type": "keyCombo", "keys": ["Control", "A"] },
       { "type": "keyTap", "key": "Backspace" }
@@ -69,36 +60,6 @@
     ],
     "windowMax": [
       { "type": "keyCombo", "keys": ["Control", "Alt", "W"] }
-    ],
-    "rightClick": [
-      { "type": "mouseClick", "button": "right" }
-    ],
-    "middleClick": [
-      { "type": "mouseClick", "button": "middle" }
-    ],
-    "mouseRightClick": [
-      { "type": "mouseClick", "button": "right" }
-    ],
-    "mouseMiddleClick": [
-      { "type": "mouseClick", "button": "middle" }
-    ],
-    "mouseLeftDoubleClick": [
-      { "type": "mouseDoubleClick", "button": "left" }
-    ],
-    "mouseRightDoubleClick": [
-      { "type": "mouseDoubleClick", "button": "right" }
-    ],
-    "gamepadA": [
-      { "type": "gamepadButton", "button": "A" }
-    ],
-    "gamepadB": [
-      { "type": "gamepadButton", "button": "B" }
-    ],
-    "lookLeft": [
-      { "type": "gamepadAxis", "axis": "lx", "axisValue": -1.0 }
-    ],
-    "lookRight": [
-      { "type": "gamepadAxis", "axis": "lx", "axisValue": 1.0 }
     ]
   }
 }

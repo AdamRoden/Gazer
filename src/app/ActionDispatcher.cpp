@@ -3,6 +3,7 @@
 #include "app/CommandRegistry.h"
 #include "app/GazerServices.h"
 #include "assist/AhkLauncher.h"
+#include "assist/ComboMouse.h"
 #include "assist/MouseAssistState.h"
 #include "assist/MouseDwellMove.h"
 #include "assist/PhraseService.h"
@@ -118,6 +119,11 @@ void ActionDispatcher::dispatchPage(const QVector<PageAction>& actions, const QS
         }
         case PageActionType::Nav:
         case PageActionType::GoBack: {
+            if (a.type == PageActionType::Nav && a.verb == PageVerb::Close
+                && (a.targetScope == PageNavScope::All
+                    || a.targetScope == PageNavScope::Others)) {
+                m_svc.comboMouse().setEnabled(false);
+            }
             QString err;
             if (!m_svc.pages().applyNav(a, sourcePageId, targetId, &err)) {
                 notify(err.isEmpty() ? QStringLiteral("Page action failed") : err);

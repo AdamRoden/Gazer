@@ -39,9 +39,9 @@
     <SubGrid id="sec_mode" row="2" col="0" colSpan="16" rowSpan="2" rows="2" columns="1" rowWeights="1,2" gap="6" margin="6" style="group">
       <Cell id="h_mode" row="0" col="0" label="Zoom" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_mode" row="1" col="0" rows="1" columns="3" gap="0" style="row">
-        <Cell id="zm_pre" row="0" col="0" icon="ZoomConfirm" label="Pre pick" role="toggle" activeState="mouseMoveMagPick" style="joinLeft" command="toggleMouseMoveMagPick"/>
+        <Cell id="zm_pre" row="0" col="0" icon="ZoomConfirm" label="Magnify pick" role="toggle" activeState="mouseMoveMagPick" style="joinLeft" command="toggleMouseMoveMagPick"/>
         <Cell id="zm_fs" row="0" col="1" icon="ZoomReset" label="Foresight" role="toggle" activeState="mouseMoveForesight" style="join" command="toggleMouseMoveForesight"/>
-        <Cell id="zm_fs2" row="0" col="2" icon="ZoomRepeat" label="Foresight second" role="toggle" activeState="mouseMoveForesightSecondZoom" style="joinRight" command="toggleMouseMoveForesightSecondZoom"/>
+        <Cell id="zm_fs2" row="0" col="2" icon="ZoomRepeat" label="Repeat Zoom" role="toggle" activeState="mouseMoveForesightSecondZoom" style="joinRight" command="toggleMouseMoveForesightSecondZoom"/>
       </SubGrid>
     </SubGrid>
 
@@ -53,7 +53,7 @@
           <Cell id="zl_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.pickZoom.dec"/>
           <Cell id="zl_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="pickZoom" style="join"/>
           <Cell id="zl_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.pickZoom.inc"/>
-          <Cell id="zl_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.pickZoom"/ icon="editSquare">
+          <Cell id="zl_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.pickZoom"/>
         </SubGrid>
       </SubGrid>
       <SubGrid id="row_zs" row="2" col="0" rows="1" columns="2" gap="6" style="row">
@@ -62,21 +62,21 @@
           <Cell id="zs_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.pickWindowPx.dec"/>
           <Cell id="zs_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="pickWindowPx" style="join"/>
           <Cell id="zs_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.pickWindowPx.inc"/>
-          <Cell id="zs_full" row="0" col="7" colSpan="2" icon="FillScreen" label="Full screen" role="toggle" activeState="mouseMoveMagPickFullScreen" style="joinRight" command="toggleMouseMoveMagPickFullScreen"/>
+          <Cell id="zs_full" row="0" col="7" colSpan="2" icon="FillScreen" label="Fill screen" role="toggle" activeState="mouseMoveMagPickFullScreen" style="joinRight" command="toggleMouseMoveMagPickFullScreen"/>
         </SubGrid>
       </SubGrid>
       <SubGrid id="row_shape" row="3" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="zs_shape_l" row="0" col="0" label="Shape" caption="Circle or square zoom window." role="label" style="plain"/>
         <SubGrid id="act_shape" row="0" col="1" rows="1" columns="2" gap="0" style="row">
-          <Cell id="zs_round" row="0" col="0" label="Round" role="choice" activeState="setting.pickWindow.round" style="joinLeft" command="settings.pickWindow.round"/>
-          <Cell id="zs_sq" row="0" col="1" label="Square" role="choice" activeState="setting.pickWindow.square" style="joinRight" command="settings.pickWindow.square"/>
+          <Cell id="zs_round" row="0" col="0" label="Round" role="choice" activeState="settings.pickWindow.round" style="joinLeft" command="settings.pickWindow.round"/>
+          <Cell id="zs_sq" row="0" col="1" label="Square" role="choice" activeState="settings.pickWindow.square" style="joinRight" command="settings.pickWindow.square"/>
         </SubGrid>
       </SubGrid>
       <SubGrid id="row_pos" row="4" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="zs_pos_l" row="0" col="0" label="Position" caption="Center on the gaze point or the screen." role="label" style="plain"/>
         <SubGrid id="act_pos" row="0" col="1" rows="1" columns="2" gap="0" style="row">
-          <Cell id="z_gaze" row="0" col="0" label="Gaze point" role="choice" activeState="setting.pickCenter.gaze" style="joinLeft" command="settings.pickCenter.gaze"/ icon="MagnifyAtPoint">
-          <Cell id="z_center" row="0" col="1" label="Screen center" role="choice" activeState="setting.pickCenter.screen" style="joinRight" command="settings.pickCenter.screen"/ icon="MagnifyAtCenter">
+          <Cell id="z_gaze" row="0" col="0" icon="MagnifyAtPoint" label="Gaze point" role="choice" activeState="settings.pickCenter.gaze" style="joinLeft" command="settings.pickCenter.gaze"/>
+          <Cell id="z_center" row="0" col="1" icon="MagnifyAtCenter" label="Screen center" role="choice" activeState="settings.pickCenter.screen" style="joinRight" command="settings.pickCenter.screen"/>
         </SubGrid>
       </SubGrid>
     </SubGrid>
@@ -85,7 +85,7 @@
       <Cell id="h_preview" row="0" col="0" label="Preview" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_test" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="test_label" row="0" col="0" label="Test" caption="Dwell Move to… to try zoom." role="label" style="plain"/>
-        <Cell id="test_move" row="0" col="1" icon="dragPan" label="Move to…" activeState="mouseDwellMove" command="mouseDwellMove"/>
+        <Cell id="test_move" row="0" col="1" icon="dragPan" label="Move to…" activeState="mouseMoveToGaze" command="mouseMoveToGaze"/>
       </SubGrid>
     </SubGrid>
   </Grid>

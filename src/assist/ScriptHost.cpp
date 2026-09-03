@@ -75,21 +75,6 @@ QString ScriptApi::focusedPageId() const
     return m_pages.topPageId();
 }
 
-bool ScriptApi::openLayout(const QString& layoutId)
-{
-    return openPage(layoutId);
-}
-
-bool ScriptApi::loadLayout(const QString& layoutId)
-{
-    return loadPage(layoutId);
-}
-
-QString ScriptApi::focusedLayoutId() const
-{
-    return focusedPageId();
-}
-
 ScriptHost::ScriptHost(PhraseService& phrases, CommandRegistry& commands, InputService& input,
                        PageSession& pages, QObject* parent)
     : QObject(parent)

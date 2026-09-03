@@ -438,7 +438,7 @@ PageDocument SettingsUi::buildRolesColorDocument() const
                      role.color, 3, {}, QLatin1String(role.caption));
             sw.settingKey = QLatin1String(role.colorKey);
             sw.activeState =
-                QStringLiteral("setting.color.editing.%1").arg(QLatin1String(role.colorKey));
+                QStringLiteral("settings.color.editing.%1").arg(QLatin1String(role.colorKey));
             grid.cells.push_back(sw);
             const QColor suggested = draft.suggestedThemeColor(QLatin1String(role.colorKey));
             grid.cells.push_back(cell(

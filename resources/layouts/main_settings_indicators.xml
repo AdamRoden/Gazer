@@ -41,19 +41,19 @@
       <SubGrid id="row_bp" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="bp_label" row="0" col="0" label="Button progress" caption="Dwell styles on board cells." role="label" style="plain"/>
         <SubGrid id="act_bp" row="0" col="1" rows="1" columns="4" gap="0" style="row">
-          <Cell id="bp_r" row="0" col="0" label="Ring" role="toggle" activeState="setting.progressRadial" style="joinLeft" command="settings.progress.radial.toggle"/>
-          <Cell id="bp_pie" row="0" col="1" label="Pie" role="toggle" activeState="setting.progressPie" style="join" command="settings.progress.pie.toggle"/>
-          <Cell id="bp_f" row="0" col="2" label="Fill" role="toggle" activeState="setting.progressFill" style="join" command="settings.progress.fill.toggle"/>
-          <Cell id="bp_b" row="0" col="3" label="Border" role="toggle" activeState="setting.progressBorder" style="joinRight" command="settings.progress.border.toggle"/>
+          <Cell id="bp_r" row="0" col="0" label="Ring" role="toggle" activeState="settings.progress.radial.toggle" style="joinLeft" command="settings.progress.radial.toggle"/>
+          <Cell id="bp_pie" row="0" col="1" label="Pie" role="toggle" activeState="settings.progress.pie.toggle" style="join" command="settings.progress.pie.toggle"/>
+          <Cell id="bp_f" row="0" col="2" label="Fill" role="toggle" activeState="settings.progress.fill.toggle" style="join" command="settings.progress.fill.toggle"/>
+          <Cell id="bp_b" row="0" col="3" label="Border" role="toggle" activeState="settings.progress.border.toggle" style="joinRight" command="settings.progress.border.toggle"/>
         </SubGrid>
       </SubGrid>
       <SubGrid id="row_pp" row="2" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="pp_label" row="0" col="0" label="Pointer progress" caption="Dwell styles for pointer aim." role="label" style="plain"/>
         <SubGrid id="act_pp" row="0" col="1" rows="1" columns="4" gap="0" style="row">
-          <Cell id="pp_r" row="0" col="0" label="Ring" role="toggle" activeState="setting.mouseProgressRadial" style="joinLeft" command="settings.mouseProgress.radial.toggle"/>
-          <Cell id="pp_pie" row="0" col="1" label="Pie" role="toggle" activeState="setting.mouseProgressPie" style="join" command="settings.mouseProgress.pie.toggle"/>
-          <Cell id="pp_f" row="0" col="2" label="Fill" role="toggle" activeState="setting.mouseProgressFill" style="join" command="settings.mouseProgress.fill.toggle"/>
-          <Cell id="pp_b" row="0" col="3" label="Border" role="toggle" activeState="setting.mouseProgressBorder" style="joinRight" command="settings.mouseProgress.border.toggle"/>
+          <Cell id="pp_r" row="0" col="0" label="Ring" role="toggle" activeState="settings.mouseProgress.radial.toggle" style="joinLeft" command="settings.mouseProgress.radial.toggle"/>
+          <Cell id="pp_pie" row="0" col="1" label="Pie" role="toggle" activeState="settings.mouseProgress.pie.toggle" style="join" command="settings.mouseProgress.pie.toggle"/>
+          <Cell id="pp_f" row="0" col="2" label="Fill" role="toggle" activeState="settings.mouseProgress.fill.toggle" style="join" command="settings.mouseProgress.fill.toggle"/>
+          <Cell id="pp_b" row="0" col="3" label="Border" role="toggle" activeState="settings.mouseProgress.border.toggle" style="joinRight" command="settings.mouseProgress.border.toggle"/>
         </SubGrid>
       </SubGrid>
     </SubGrid>
@@ -61,20 +61,20 @@
     <SubGrid id="sec_icons" row="5" col="0" colSpan="16" rowSpan="3" rows="3" columns="1" rowWeights="1,2,2" gap="6" margin="6" style="group">
       <Cell id="h_icons" row="0" col="0" label="Indicators" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_zi" row="1" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="zi_label" row="0" col="0" label="Pre pick" caption="Markers for the zoom region." role="label" style="plain"/>
+        <Cell id="zi_label" row="0" col="0" label="Magnify pick" caption="Markers for the zoom region." role="label" style="plain"/>
         <SubGrid id="act_zi" row="0" col="1" rows="1" columns="4" gap="0" style="row">
-          <Cell id="zi_cur" row="0" col="0" label="Cursor" role="toggle" activeState="setting.magPick.cursor" style="joinLeft" command="settings.magPickStyle.cursor.toggle"/>
-          <Cell id="zi_dot" row="0" col="1" label="Dot" role="toggle" activeState="setting.magPick.dot" style="join" command="settings.magPickStyle.dot.toggle"/>
-          <Cell id="zi_xh" row="0" col="2" label="Crosshair" role="toggle" activeState="setting.magPick.crosshair" style="join" command="settings.magPickStyle.crosshair.toggle"/>
-          <Cell id="zi_gz" row="0" col="3" label="Gaze" role="toggle" activeState="setting.magPick.gaze" style="joinRight" command="settings.magPickStyle.gaze.toggle"/>
+          <Cell id="zi_cur" row="0" col="0" label="Cursor" role="toggle" activeState="settings.magPickStyle.cursor.toggle" style="joinLeft" command="settings.magPickStyle.cursor.toggle"/>
+          <Cell id="zi_dot" row="0" col="1" label="Dot" role="toggle" activeState="settings.magPickStyle.dot.toggle" style="join" command="settings.magPickStyle.dot.toggle"/>
+          <Cell id="zi_xh" row="0" col="2" label="Crosshair" role="toggle" activeState="settings.magPickStyle.crosshair.toggle" style="join" command="settings.magPickStyle.crosshair.toggle"/>
+          <Cell id="zi_gz" row="0" col="3" label="Gaze" role="toggle" activeState="settings.magPickStyle.gaze.toggle" style="joinRight" command="settings.magPickStyle.gaze.toggle"/>
         </SubGrid>
       </SubGrid>
       <SubGrid id="row_pi" row="2" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="pi_label" row="0" col="0" label="Final pick" caption="Markers at the click point." role="label" style="plain"/>
         <SubGrid id="act_pi" row="0" col="1" rows="1" columns="3" gap="0" style="row">
-          <Cell id="pi_cur" row="0" col="0" label="Cursor" role="toggle" activeState="setting.mousePick.cursor" style="joinLeft" command="settings.mousePickStyle.cursor.toggle"/>
-          <Cell id="pi_dot" row="0" col="1" label="Dot" role="toggle" activeState="setting.mousePick.dot" style="join" command="settings.mousePickStyle.dot.toggle"/>
-          <Cell id="pi_xh" row="0" col="2" label="Crosshair" role="toggle" activeState="setting.mousePick.crosshair" style="joinRight" command="settings.mousePickStyle.crosshair.toggle"/>
+          <Cell id="pi_cur" row="0" col="0" label="Cursor" role="toggle" activeState="settings.mousePickStyle.cursor.toggle" style="joinLeft" command="settings.mousePickStyle.cursor.toggle"/>
+          <Cell id="pi_dot" row="0" col="1" label="Dot" role="toggle" activeState="settings.mousePickStyle.dot.toggle" style="join" command="settings.mousePickStyle.dot.toggle"/>
+          <Cell id="pi_xh" row="0" col="2" label="Crosshair" role="toggle" activeState="settings.mousePickStyle.crosshair.toggle" style="joinRight" command="settings.mousePickStyle.crosshair.toggle"/>
         </SubGrid>
       </SubGrid>
     </SubGrid>
@@ -83,7 +83,7 @@
       <Cell id="h_preview" row="0" col="0" label="Preview" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_test" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="test_label" row="0" col="0" label="Test" caption="Dwell Move to… to try pick markers." role="label" style="plain"/>
-        <Cell id="test_move" row="0" col="1" icon="dragPan" label="Move to…" activeState="mouseDwellMove" command="mouseDwellMove"/>
+        <Cell id="test_move" row="0" col="1" icon="dragPan" label="Move to…" activeState="mouseMoveToGaze" command="mouseMoveToGaze"/>
       </SubGrid>
     </SubGrid>
   </Grid>

@@ -2,7 +2,6 @@
 
 #include "app/AppSettings.h"
 #include "app/CommandRegistry.h"
-#include "assist/ActionLoopService.h"
 #include "assist/AssistSession.h"
 #include "assist/GazeMouseFollow.h"
 #include "assist/GazeReticle.h"
@@ -20,10 +19,6 @@
 #include <utility>
 
 namespace gazer {
-
-namespace {
-const QString kGazeClickLoopKey = QStringLiteral("loop.gazeClick");
-} // namespace
 
 PageDispatchFn wrapPageAimGate(PageSession* pages, MouseDwellMove* mouseDwell,
                                PageDispatchFn inner)
@@ -67,7 +62,6 @@ void registerAssistCommands(AssistCommandContext& ctx)
     auto* reticle = ctx.gazeReticle;
     auto* mag = ctx.magnifier;
     auto* settings = ctx.settings;
-    auto* actionLoops = ctx.actionLoops;
     auto* commands = ctx.commands;
     auto* mouseAssist = ctx.mouseAssist;
     auto applySettings = ctx.applySettings;
@@ -387,23 +381,12 @@ void registerAssistCommands(AssistCommandContext& ctx)
                                   return true;
                               });
 
-    commands->registerBuiltin({"mouseDwellMove", "mouseMoveToGaze"}, [mouseDwell](QString*) {
+    commands->registerBuiltin(QStringLiteral("mouseMoveToGaze"), [mouseDwell](QString*) {
         mouseDwell->toggleArmed(ArmPurpose::CursorMove);
         return true;
     });
-    // Keep assist sticky registry in sync whenever click-loop arms/disarms
-    // (toggle, session leave, stopAllActionLoops, etc.).
-    if (actionLoops && mouseDwell) {
-        QObject::connect(mouseDwell, &MouseDwellMove::armedChanged, mouseDwell,
-                         [mouseDwell, actionLoops](bool) {
-                             actionLoops->setAssistSticky(kGazeClickLoopKey,
-                                                          mouseDwell->isClickLoop());
-                         });
-    }
-
-    // Assist sticky: dwell move+click re-arm (not timed actionLoop series steps).
     commands->registerBuiltin(
-        QStringLiteral("mouseDwellClickLoop"),
+        QStringLiteral("mouseMoveToGazeClickLoop"),
         [mouseDwell, refresh, notify](QString*) {
             mouseDwell->toggleArmed(ArmPurpose::CursorMoveClickLoop);
             notify(mouseDwell->isArmed()
@@ -434,9 +417,9 @@ void registerAssistCommands(AssistCommandContext& ctx)
         ArmPurpose::CursorMoveMiddleClick,
         QStringLiteral("Middle click at gaze — dwell to place, then click"),
         QStringLiteral("Middle click at gaze OFF"));
-    commands->registerBuiltin({"leftClickAtGaze", "mouseMoveAndLeftClick"}, leftAtGaze);
-    commands->registerBuiltin({"rightClickAtGaze", "mouseMoveAndRightClick"}, rightAtGaze);
-    commands->registerBuiltin({"middleClickAtGaze", "mouseMoveAndMiddleClick"}, middleAtGaze);
+    commands->registerBuiltin(QStringLiteral("mouseLeftClickAtGaze"), leftAtGaze);
+    commands->registerBuiltin(QStringLiteral("mouseRightClickAtGaze"), rightAtGaze);
+    commands->registerBuiltin(QStringLiteral("mouseMiddleClickAtGaze"), middleAtGaze);
     commands->registerBuiltin(QStringLiteral("toggleGazeReticle"),
                               [reticle, mag, refresh, notify](QString*) {
                                   const bool turningOn = !reticle->isEnabled();

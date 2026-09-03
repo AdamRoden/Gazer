@@ -441,11 +441,11 @@ void GazerServices::registerDomainCommands()
             return m_input->execute(o, error);
         };
     };
-    m_commands->registerBuiltin({"leftClick", "mouseLeftClick"},
+    m_commands->registerBuiltin(QStringLiteral("mouseLeftClick"),
                                 clickAtCursor(QStringLiteral("left")));
-    m_commands->registerBuiltin({"rightClick", "mouseRightClick"},
+    m_commands->registerBuiltin(QStringLiteral("mouseRightClick"),
                                 clickAtCursor(QStringLiteral("right")));
-    m_commands->registerBuiltin({"middleClick", "mouseMiddleClick"},
+    m_commands->registerBuiltin(QStringLiteral("mouseMiddleClick"),
                                 clickAtCursor(QStringLiteral("middle")));
     // Shared sticky policy: stop layout actionLoops + assist sticky (gaze click loop).
     m_commands->registerBuiltin(QStringLiteral("stopAllActionLoops"), [this](QString*) {

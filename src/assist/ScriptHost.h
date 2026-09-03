@@ -27,10 +27,6 @@ public slots:
     bool openPage(const QString& pageId);
     bool loadPage(const QString& pageId);
     QString focusedPageId() const;
-    /// Script aliases for openPage / loadPage / focusedPageId.
-    bool openLayout(const QString& layoutId);
-    bool loadLayout(const QString& layoutId);
-    QString focusedLayoutId() const;
 
 signals:
     void statusMessage(const QString& message);

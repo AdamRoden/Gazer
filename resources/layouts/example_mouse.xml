@@ -14,35 +14,35 @@
 
     <Cell id="movestep" row="0" col="0" icon="LookToScrollSpeedMedium" label="Step 40 px" style="teal" command="cycleMouseMoveAmount"/>
     <Cell id="nudge_up" row="0" col="1" icon="ArrowPointingToTop" label="Up" style="teal" mouseMoveByDirection="n"/>
-    <Cell id="dwell_move" row="0" col="2" icon="SizeAndPosition" label="Move to…" style="yellow" activeState="mouseDwellMove" mouseMoveToGaze=""/>
-    <Cell id="ldbl" row="0" col="3" icon="mouseLeftClick" label="L×2" style="green" leftClick="double"/>
-    <Cell id="lclick" row="0" col="4" icon="mouseLeftClick" label="Left" style="green" leftClick=""/>
-    <Cell id="mclick" row="0" col="5" icon="mouseMiddleClick" label="Middle" style="green" middleClick=""/>
-    <Cell id="rclick" row="0" col="6" icon="mouseRightClick" label="Right" style="green" rightClick=""/>
+    <Cell id="dwell_move" row="0" col="2" icon="SizeAndPosition" label="Move to…" style="teal" activeState="mouseMoveToGaze" mouseMoveToGaze=""/>
+    <Cell id="ldbl" row="0" col="3" icon="mouseLeftClick" label="L×2" style="green" mouseLeftClick="double"/>
+    <Cell id="lclick" row="0" col="4" icon="mouseLeftClick" label="Left" style="green" mouseLeftClick=""/>
+    <Cell id="mclick" row="0" col="5" icon="mouseMiddleClick" label="Middle" style="green" mouseMiddleClick=""/>
+    <Cell id="rclick" row="0" col="6" icon="mouseRightClick" label="Right" style="green" mouseRightClick=""/>
     <Cell id="scrstep" row="0" col="7" icon="LookToScrollSpeedMedium" label="Scroll ×3" style="blue" command="cycleMouseScrollAmount"/>
     <Cell id="sc_up" row="0" col="8" icon="ScrollUp" label="Scroll ↑" style="blue" command="mouseScrollUp"/>
-    <Cell id="lts" row="0" col="9" icon="lookToScroll" label="Look↕Scroll" style="indigo" activeState="lookToScroll" command="toggleLookToScroll"/>
+    <Cell id="lts" row="0" col="9" icon="lookToScroll" label="Look↕Scroll" style="blue" activeState="lookToScroll" command="toggleLookToScroll"/>
 
     <Cell id="nudge_left" row="1" col="0" icon="ArrowPointingToLeft" label="Left" style="teal" mouseMoveByDirection="w"/>
     <Cell id="nudge_down" row="1" col="1" icon="ArrowPointingToBottom" label="Down" style="teal" mouseMoveByDirection="s"/>
     <Cell id="nudge_right" row="1" col="2" icon="ArrowPointingToRight" label="Right" style="teal" mouseMoveByDirection="e"/>
     <Cell id="click_loop" row="1" col="3" icon="LoopingAction" label="Gaze click
-loop" style="pink" activeState="loop.gazeClick" command="mouseDwellClickLoop"/>
-    <Cell id="ldownup" row="1" col="4" icon="mouseLeftDrag" label="L Hold" style="red" activeState="mouse.leftHold" leftClick="toggle"/>
-    <Cell id="mdownup" row="1" col="5" icon="mouseMiddleDrag" label="M Hold" style="red" activeState="mouse.middleHold" middleClick="toggle"/>
-    <Cell id="rdownup" row="1" col="6" icon="mouseRightDrag" label="R Hold" style="red" activeState="mouse.rightHold" rightClick="toggle"/>
+loop" style="pink" activeState="mouseMoveToGazeClickLoop" command="mouseMoveToGazeClickLoop"/>
+    <Cell id="ldownup" row="1" col="4" icon="mouseLeftDrag" label="L Hold" style="red" activeState="mouse.leftHold" mouseLeftClick="toggle"/>
+    <Cell id="mdownup" row="1" col="5" icon="mouseMiddleDrag" label="M Hold" style="red" activeState="mouse.middleHold" mouseMiddleClick="toggle"/>
+    <Cell id="rdownup" row="1" col="6" icon="mouseRightDrag" label="R Hold" style="red" activeState="mouse.rightHold" mouseRightClick="toggle"/>
     <Cell id="sc_left" row="1" col="7" icon="ScrollLeft" label="Scroll ←" style="blue" command="mouseScrollLeft"/>
     <Cell id="sc_down" row="1" col="8" icon="ScrollDown" label="Scroll ↓" style="blue" command="mouseScrollDown"/>
     <Cell id="sc_right" row="1" col="9" icon="ScrollRight" label="Scroll →" style="blue" command="mouseScrollRight"/>
 
-    <Cell id="mag_pick" row="2" col="0" icon="ZoomConfirm" label="Mag pick" style="orange" activeState="mouseMoveMagPick" command="toggleMouseMoveMagPick"/>
+    <Cell id="mag_pick" row="2" col="0" icon="ZoomConfirm" label="Magnify pick" style="orange" activeState="mouseMoveMagPick" command="toggleMouseMoveMagPick"/>
     <Cell id="foresight" row="2" col="1" icon="ZoomReset" label="Foresight" style="orange" activeState="mouseMoveForesight" command="toggleMouseMoveForesight"/>
     <Cell id="combo" row="2" col="2" icon="comboMouse" label="ComboMouse" style="orange" activeState="comboMouse" command="toggleComboMouse"/>
-    <Cell id="move_lclick" row="2" col="3" icon="mouseLeftClickAtGaze" label="Move+L" style="yellow" activeState="leftClickAtGaze" leftClickAtGaze=""/>
-    <Cell id="move_mclick" row="2" col="4" icon="mouseMiddleClickAtGaze" label="Move+M" style="yellow" activeState="middleClickAtGaze" middleClickAtGaze=""/>
-    <Cell id="move_rclick" row="2" col="5" icon="mouseRightClickAtGaze" label="Move+R" style="yellow" activeState="rightClickAtGaze" rightClickAtGaze=""/>
-    <Cell id="gaze_reticle" row="2" col="6" icon="Eye" label="Gaze reticle" style="purple" activeState="gazeReticle" command="toggleGazeReticle"/>
-    <Cell id="magnifier" row="2" col="7" icon="MagnifyTool" label="Lens" style="purple" activeState="magnifier" command="toggleMagnifier"/>
+    <Cell id="move_lclick" row="2" col="3" icon="mouseLeftClickAtGaze" label="Move+L" style="yellow" activeState="mouseLeftClickAtGaze" mouseLeftClickAtGaze=""/>
+    <Cell id="move_mclick" row="2" col="4" icon="mouseMiddleClickAtGaze" label="Move+M" style="yellow" activeState="mouseMiddleClickAtGaze" mouseMiddleClickAtGaze=""/>
+    <Cell id="move_rclick" row="2" col="5" icon="mouseRightClickAtGaze" label="Move+R" style="yellow" activeState="mouseRightClickAtGaze" mouseRightClickAtGaze=""/>
+    <Cell id="gaze_reticle" row="2" col="6" icon="Eye" label="Show gaze" style="purple" activeState="gazeReticle" command="toggleGazeReticle"/>
+    <Cell id="magnifier" row="2" col="7" icon="MagnifyTool" label="Gaze Magnifier" style="purple" activeState="magnifier" command="toggleMagnifier"/>
     <Cell id="gaze_follow" row="2" col="8" icon="MouseMagneticCursor" label="Gaze mouse" style="purple" activeState="gazeMouseFollow" command="toggleGazeMouseFollow"/>
     <Cell id="main" row="2" col="9" icon="menu" label="Main" style="indigo">
       <ClosePage/>

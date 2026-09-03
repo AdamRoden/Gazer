@@ -3,8 +3,8 @@
   <Dwell id="vert2" scanGrace="100" activation="100,600"/>
   <Grid id="vert1" desktopMode="true" rows="6" columns="1" anchor="TopRight" size="1/16,0.73" layers="1,2">
     <Cell id="more" row="0" col="0" icon="moreHoriz" dwell="vert1" openPage="example_keyboard"/>
-    <Cell id="move_lclick" row="1" col="0" icon="mouseLeftClickAtGaze" dwell="vert1" activeState="leftClickAtGaze" leftClickAtGaze=""/>
-    <Cell id="move_rclick" row="2" col="0" icon="mouseRightClickAtGaze" dwell="vert1" activeState="rightClickAtGaze" rightClickAtGaze=""/>
+    <Cell id="move_lclick" row="1" col="0" icon="mouseLeftClickAtGaze" dwell="vert1" activeState="mouseLeftClickAtGaze" mouseLeftClickAtGaze=""/>
+    <Cell id="move_rclick" row="2" col="0" icon="mouseRightClickAtGaze" dwell="vert1" activeState="mouseRightClickAtGaze" mouseRightClickAtGaze=""/>
     <SubGrid id="edge" row="3" col="0" layers="1">
       <Cell id="edge" row="0" col="0" icon="ArrowPointingToRight" dwell="vert1" showLayers="2"/>
     </SubGrid>
@@ -15,7 +15,7 @@
     <Cell id="lts" row="5" col="0" icon="lookToScroll" dwell="vert1" activeState="lookToScroll" command="toggleLookToScroll"/>
   </Grid>
   <Grid id="vert2" desktopMode="true" rows="2" columns="1" anchor="TopRight" offset="0,0.73" size="1/16,0.27" layers="2">
-    <Cell id="mid" row="0" col="0" label="MID" dwell="vert2" icon="WindowMid">
+    <Cell id="mid" row="0" col="0" icon="WindowMid" label="MID" dwell="vert2">
       <AHK><![CDATA[
       {
       try { 
@@ -31,7 +31,7 @@
       }
       ]]></AHK>
     </Cell>
-    <Cell id="max" row="1" col="0" label="MAX" dwell="vert2" icon="WindowMax">
+    <Cell id="max" row="1" col="0" icon="WindowMax" label="MAX" dwell="vert2">
       <AHK><![CDATA[
       {
       try { 

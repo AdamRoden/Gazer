@@ -102,7 +102,7 @@ bool Application::initialize()
     connect(m_tray.get(), &TrayIcon::quitRequested, this, &Application::onQuitRequested);
 
     m_svc->commands().registerBuiltin(
-        QStringLiteral("openLayoutEditor"),
+        QStringLiteral("openPageEditor"),
         [this](const CommandRegistry::Invocation& inv, QString*) {
             openPageEditor(inv.pageId);
             return true;
@@ -110,15 +110,6 @@ bool Application::initialize()
 
     m_svc->commands().registerBuiltin(QStringLiteral("quitApp"), [this](QString*) {
         QTimer::singleShot(0, this, &Application::onQuitRequested);
-        return true;
-    });
-    m_svc->commands().registerBuiltin(QStringLiteral("closeOtherViews"), [this](QString*) {
-        m_svc->comboMouse().setEnabled(false);
-        const int pages = m_svc->pages().closeAttached();
-        updateTrayStatus();
-        if (m_tray) {
-            m_tray->setStatus(QStringLiteral("Closed %1 other board(s)").arg(pages));
-        }
         return true;
     });
     m_svc->commands().registerBuiltin(QStringLiteral("openPreview"), [this](QString*) {

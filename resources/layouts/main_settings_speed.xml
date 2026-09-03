@@ -41,10 +41,10 @@
       <SubGrid id="row_preset" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="p_label" row="0" col="0" label="Quick packages" caption="Slow, Normal, Fast, or Custom." role="label" style="plain"/>
         <SubGrid id="act_preset" row="0" col="1" rows="1" columns="4" gap="0" style="row">
-          <Cell id="p_slow" row="0" col="0" label="Slow" role="choice" activeState="setting.dwell.slow" style="joinLeft" command="settings.dwell.slow"/ icon="speed2">
-          <Cell id="p_norm" row="0" col="1" label="Normal" role="choice" activeState="setting.dwell.normal" style="join" command="settings.dwell.normal"/ icon="speed3">
-          <Cell id="p_fast" row="0" col="2" label="Fast" role="choice" activeState="setting.dwell.fast" style="join" command="settings.dwell.fast"/ icon="speed4">
-          <Cell id="p_custom" row="0" col="3" label="Custom" role="choice" activeState="setting.dwell.custom" style="joinRight" command="settings.dwell.custom"/ icon="toolsHandyman">
+          <Cell id="p_slow" row="0" col="0" icon="speed2" label="Slow" role="choice" activeState="settings.dwell.slow" style="joinLeft" command="settings.dwell.slow"/>
+          <Cell id="p_norm" row="0" col="1" icon="speed3" label="Normal" role="choice" activeState="settings.dwell.normal" style="join" command="settings.dwell.normal"/>
+          <Cell id="p_fast" row="0" col="2" icon="speed4" label="Fast" role="choice" activeState="settings.dwell.fast" style="join" command="settings.dwell.fast"/>
+          <Cell id="p_custom" row="0" col="3" icon="toolsHandyman" label="Custom" role="choice" activeState="settings.dwell.custom" style="joinRight" command="settings.dwell.custom"/>
         </SubGrid>
       </SubGrid>
       <SubGrid id="row_custom" row="2" col="0" rows="1" columns="2" gap="6" style="row">
@@ -62,7 +62,7 @@
         <Cell id="dwell_label" row="0" col="0" label="Dwell sequence" caption="Hold steps. Last step repeats." role="label" style="plain"/>
         <SubGrid id="act_dwell" row="0" col="1" rows="1" columns="5" gap="0" style="row">
           <Cell id="dwell_value" row="0" col="0" colSpan="3" label="—" role="value" settingKey="dwellMs" style="joinLeft"/>
-          <Cell id="dwell_edit" row="0" col="3" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.dwellMs"/ icon="editSquare">
+          <Cell id="dwell_edit" row="0" col="3" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.dwellMs"/>
         </SubGrid>
       </SubGrid>
       <SubGrid id="row_scan" row="2" col="0" rows="1" columns="2" gap="6" style="row">
@@ -71,7 +71,7 @@
           <Cell id="scan_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.scanGraceMs.dec"/>
           <Cell id="scan_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="scanGraceMs" style="join"/>
           <Cell id="scan_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.scanGraceMs.inc"/>
-          <Cell id="scan_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.scanGraceMs"/ icon="editSquare">
+          <Cell id="scan_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.scanGraceMs"/>
         </SubGrid>
       </SubGrid>
       <SubGrid id="row_zd" row="3" col="0" rows="1" columns="2" gap="6" style="row">
@@ -80,7 +80,7 @@
           <Cell id="zd_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.magPickDwellMs.dec"/>
           <Cell id="zd_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="magPickDwellMs" style="join"/>
           <Cell id="zd_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.magPickDwellMs.inc"/>
-          <Cell id="zd_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.magPickDwellMs"/ icon="editSquare">
+          <Cell id="zd_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.magPickDwellMs"/>
         </SubGrid>
       </SubGrid>
       <SubGrid id="row_pd" row="4" col="0" rows="1" columns="2" gap="6" style="row">
@@ -89,7 +89,7 @@
           <Cell id="pd_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.mouseMoveDwellMs.dec"/>
           <Cell id="pd_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="mouseMoveDwellMs" style="join"/>
           <Cell id="pd_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.mouseMoveDwellMs.inc"/>
-          <Cell id="pd_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.mouseMoveDwellMs"/ icon="editSquare">
+          <Cell id="pd_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.mouseMoveDwellMs"/>
         </SubGrid>
       </SubGrid>
     </SubGrid>

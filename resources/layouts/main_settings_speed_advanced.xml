@@ -47,7 +47,7 @@
           <Cell id="grace_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.dwellGraceMs.dec"/>
           <Cell id="grace_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="dwellGraceMs" style="join"/>
           <Cell id="grace_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.dwellGraceMs.inc"/>
-          <Cell id="grace_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.dwellGraceMs"/ icon="editSquare">
+          <Cell id="grace_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.dwellGraceMs"/>
         </SubGrid>
       </SubGrid>
       <SubGrid id="row_pg" row="2" col="0" rows="1" columns="2" gap="6" style="row">
@@ -56,7 +56,7 @@
           <Cell id="pg_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.mouseMoveSelectTimeoutMs.dec"/>
           <Cell id="pg_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="mouseMoveSelectTimeoutMs" style="join"/>
           <Cell id="pg_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.mouseMoveSelectTimeoutMs.inc"/>
-          <Cell id="pg_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.mouseMoveSelectTimeoutMs"/ icon="editSquare">
+          <Cell id="pg_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.mouseMoveSelectTimeoutMs"/>
         </SubGrid>
       </SubGrid>
     </SubGrid>
@@ -69,7 +69,7 @@
           <Cell id="fsd_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.mouseMoveForesightDwellMs.dec"/>
           <Cell id="fsd_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="mouseMoveForesightDwellMs" style="join"/>
           <Cell id="fsd_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.mouseMoveForesightDwellMs.inc"/>
-          <Cell id="fsd_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.mouseMoveForesightDwellMs"/ icon="editSquare">
+          <Cell id="fsd_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.mouseMoveForesightDwellMs"/>
         </SubGrid>
       </SubGrid>
       <SubGrid id="row_fsh" row="2" col="0" rows="1" columns="2" gap="6" style="row">
@@ -78,7 +78,7 @@
           <Cell id="fsh_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.mouseMoveForesightHoldMs.dec"/>
           <Cell id="fsh_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="mouseMoveForesightHoldMs" style="join"/>
           <Cell id="fsh_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.mouseMoveForesightHoldMs.inc"/>
-          <Cell id="fsh_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.mouseMoveForesightHoldMs"/ icon="editSquare">
+          <Cell id="fsh_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.mouseMoveForesightHoldMs"/>
         </SubGrid>
       </SubGrid>
     </SubGrid>
@@ -87,7 +87,7 @@
       <Cell id="h_session" row="0" col="0" label="Session" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_ac" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="ac_label" row="0" col="0" label="Auto-close boards" caption="Close idle boards that opted in." role="label" style="plain"/>
-        <Cell id="ac_on" row="0" col="1" label="Auto-close" role="toggle" activeState="setting.layoutAutoClose" style="join" command="settings.session.layoutAutoClose.toggle"/>
+        <Cell id="ac_on" row="0" col="1" label="Auto-close" role="toggle" activeState="settings.session.layoutAutoClose.toggle" style="join" command="settings.session.layoutAutoClose.toggle"/>
       </SubGrid>
       <SubGrid id="row_aci" row="2" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="aci_label" row="0" col="0" label="Auto-close idle" caption="Idle time before those boards close." role="label" style="plain"/>
@@ -95,7 +95,7 @@
           <Cell id="aci_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.layoutAutoCloseIdleMs.dec"/>
           <Cell id="aci_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="layoutAutoCloseIdleMs" style="join"/>
           <Cell id="aci_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.layoutAutoCloseIdleMs.inc"/>
-          <Cell id="aci_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.layoutAutoCloseIdleMs"/ icon="editSquare">
+          <Cell id="aci_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.layoutAutoCloseIdleMs"/>
         </SubGrid>
       </SubGrid>
       <SubGrid id="row_fd" row="3" col="0" rows="1" columns="2" gap="6" style="row">
@@ -104,14 +104,14 @@
           <Cell id="fd_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.flashMs.dec"/>
           <Cell id="fd_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="flashMs" style="join"/>
           <Cell id="fd_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.flashMs.inc"/>
-          <Cell id="fd_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.flashMs"/ icon="editSquare">
+          <Cell id="fd_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.flashMs"/>
         </SubGrid>
       </SubGrid>
       <SubGrid id="row_flash" row="4" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="fl_name" row="0" col="0" label="Completion flash color" caption="Flash after activation." role="label" style="plain"/>
         <SubGrid id="act_flash" row="0" col="1" rows="1" columns="3" gap="0" style="row">
-          <Cell id="fl_fg" row="0" col="0" label="Use Foreground" role="choice" activeState="setting.flashUseForeground" style="joinLeft" command="settings.flash.foreground"/>
-          <Cell id="fl_custom" row="0" col="1" label="Custom" role="choice" activeState="setting.flashUseCustom" style="join" command="settings.flash.custom"/>
+          <Cell id="fl_fg" row="0" col="0" label="Use Foreground" role="choice" activeState="settings.flash.foreground" style="joinLeft" command="settings.flash.foreground"/>
+          <Cell id="fl_custom" row="0" col="1" label="Custom" role="choice" activeState="settings.flash.custom" style="join" command="settings.flash.custom"/>
           <Cell id="fl_sw" row="0" col="2" label="Flash color" settingKey="flashColor" style="joinRight" command="settings.edit.color.flashColor"/>
         </SubGrid>
       </SubGrid>

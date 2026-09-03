@@ -70,8 +70,8 @@
   </Grid>
   <Grid id="vert1" rows="6" columns="1" anchor="TopLeft" offset="2000,0" size="100,754" layers="1,2">
     <Cell id="more" row="0" col="0" icon="moreHoriz" dwell="vert1" openPage="example_keyboard"/>
-    <Cell id="move_lclick" row="1" col="0" icon="mouseLeftClickAtGaze" dwell="vert1" activeState="leftClickAtGaze" leftClickAtGaze=""/>
-    <Cell id="move_rclick" row="2" col="0" icon="mouseRightClickAtGaze" dwell="vert1" activeState="rightClickAtGaze" rightClickAtGaze=""/>
+    <Cell id="move_lclick" row="1" col="0" icon="mouseLeftClickAtGaze" dwell="vert1" activeState="mouseLeftClickAtGaze" mouseLeftClickAtGaze=""/>
+    <Cell id="move_rclick" row="2" col="0" icon="mouseRightClickAtGaze" dwell="vert1" activeState="mouseRightClickAtGaze" mouseRightClickAtGaze=""/>
     <SubGrid id="edge" row="3" col="0" layers="1">
       <Cell id="edge" row="0" col="0" icon="ArrowPointingToRight" dwell="vert1" showLayers="2"/>
     </SubGrid>
@@ -82,8 +82,8 @@
     <Cell id="lts" row="5" col="0" icon="lookToScroll" dwell="vert1" activeState="lookToScroll" command="toggleLookToScroll"/>
   </Grid>
   <Grid id="vert2"  rows="2" columns="1" anchor="TopLeft" offset="2000,754" size="100,280"  layers="2">
-    <Cell id="mid" row="0" col="0" label="Mid" dwell="vert2" command="windowMid"/ icon="WindowMid">
-    <Cell id="max" row="1" col="0" label="Max" dwell="vert2" icon="WindowMax">
+    <Cell id="mid" row="0" col="0" icon="WindowMid" label="Mid" dwell="vert2" command="windowMid"/>
+    <Cell id="max" row="1" col="0" icon="WindowMax" label="Max" dwell="vert2">
     <AHK><![CDATA[
     {
     try { 

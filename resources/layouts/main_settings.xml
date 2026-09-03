@@ -7,7 +7,7 @@
     <Cell id="page_title" row="0" col="0" colSpan="3" label="Settings" role="label" textStyle="title" style="plain"/>
     <Cell id="open_speed" row="1" col="0" label="Speed" caption="Presets, dwell, and pointer time"
           icon="timer" openPage="main_settings_speed"/>
-    <Cell id="open_magnify" row="1" col="1" label="Magnify" caption="Pre pick, foresight, and zoom window"
+    <Cell id="open_magnify" row="1" col="1" label="Magnify" caption="Magnify pick, foresight, and zoom window"
           icon="ZoomSettings" openPage="main_settings_magnify"/>
     <Cell id="open_indicators" row="1" col="2" label="Indicators" caption="Progress and pick markers"
           icon="cycle" openPage="main_settings_indicators"/>

@@ -29,7 +29,7 @@ The tray owns process lifetime. Closing a page does not quit the app.
 
 ## Page editor
 
-Tray → **Page editor**, command `openLayoutEditor`, or launch with `--editor`.
+Tray → **Page editor**, command `openPageEditor`, or launch with `--editor`.
 
 The designer edits **Page XML** (the same files the runtime loads). Three panes:
 
@@ -127,7 +127,7 @@ Tobii / Mouse ──► ITracker ──► GazePoint (+ HeadPose)
 - Root chrome is Docked / Drawer / Quit (`PageSession`).
 - Mapping profiles (`resources/mappings/default.json`) turn leftover command names into key / mouse / gamepad output.
 
-Boards are XML only (`resources/layouts/*.xml`). `gazer.openPage` / `loadPage` (aliases `openLayout` / `loadLayout`) open those pages on the live host. Editor F5 previews attach XML copies under `__editor_preview_*` ids so they do not replace the live page.
+Boards are XML only (`resources/layouts/*.xml`). `gazer.openPage` / `loadPage` open those pages on the live host. Editor F5 previews attach XML copies under `__editor_preview_*` ids so they do not replace the live page.
 
 ## Page XML
 
@@ -135,24 +135,23 @@ Boards are XML in `resources/layouts/*.xml` (catalog id = filename stem). Schema
 
 ## Commands
 
-Builtins first; unknown names fall through to the mapping profile. Full catalog (aliases, settings patterns, mapping-only names): [src/app/Commands.md](src/app/Commands.md).
+Builtins first; unknown names fall through to the mapping profile. Full catalog (settings patterns, mapping-only names): [src/app/Commands.md](src/app/Commands.md).
 
 | Command | Role |
 |---------|------|
-| `closeOtherViews` | Close every attached (non-root) page |
 | `quitApp` | Exit |
 | `toggleDwellSuspend` / `suspendDwell` / `resumeDwell` | Global dwell pause |
 | `toggleMagnifier` | Lens (exclusive with gaze reticle) |
 | `toggleLookToScroll` | Gaze-driven scroll |
 | `toggleGazeReticle` | Gaze marker (exclusive with magnifier) |
 | `toggleGazeMouseFollow` | Cursor follows gaze |
-| `mouseDwellMove` | Dwell to place the cursor |
-| `mouseDwellClickLoop` | Sticky dwell-move then click |
-| `leftClick` / `rightClick` / `middleClick` | Click at cursor |
-| `leftClickAtGaze` / `rightClickAtGaze` / `middleClickAtGaze` | Dwell-move then click |
+| `mouseMoveToGaze` | Dwell to place the cursor |
+| `mouseMoveToGazeClickLoop` | Sticky dwell-move then click |
+| `mouseLeftClick` / `mouseRightClick` / `mouseMiddleClick` | Click at cursor |
+| `mouseLeftClickAtGaze` / `mouseRightClickAtGaze` / `mouseMiddleClickAtGaze` | Dwell-move then click |
 | `stopAllActionLoops` | Stop sticky series and assist loops |
 | `openPreview` | Head-pose preview |
-| `openLayoutEditor` | XML page designer |
+| `openPageEditor` | XML page designer |
 | `theme.light` / `.lightTinted` / `.darkTinted` / `.dark` | Appearance |
 | `theme.primary.0`…`.8` | Accent (Apple system: Red … Pink) |
 | `theme.secondary.0`…`.8` | Progress (same 9) |
