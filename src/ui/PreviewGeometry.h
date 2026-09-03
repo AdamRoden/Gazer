@@ -24,7 +24,7 @@ struct Vec3 {
     Vec3(double X, double Y, double Z) : x(X), y(Y), z(Z) {}
     explicit Vec3(const QVector3D& v) : x(v.x()), y(v.y()), z(v.z()) {}
     Vec3 operator+(const Vec3& o) const { return {x + o.x, y + o.y, z + o.z}; }
-    Vec3 operator-(const Vec3& o) const { return {x - o.x, y - o.y, z + o.z}; }
+    Vec3 operator-(const Vec3& o) const { return {x - o.x, y - o.y, z - o.z}; }
     Vec3 operator*(double s) const { return {x * s, y * s, z * s}; }
     [[nodiscard]] double dot(const Vec3& o) const { return x * o.x + y * o.y + z * o.z; }
     [[nodiscard]] Vec3 cross(const Vec3& o) const
