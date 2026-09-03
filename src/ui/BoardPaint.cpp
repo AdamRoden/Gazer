@@ -440,12 +440,12 @@ void paintThemeCard(QPainter& p, const PageTarget& t, const QRectF& r, const The
         const QColor tintedBg = ThemeColors::mix(surface, accent, 0.38);
         fillRound(p, kb, cellRad, tintedBg);
         strokeRound(p, kb, cellRad, accent, borderW);
-        KeySymbols::paint(p, QStringLiteral("Keyboard"), iconAt(kb),
+        KeySymbols::paint(p, QStringLiteral("keyboardKeys"), iconAt(kb),
                           ThemeColors::contrastOn(tintedBg));
 
         fillRound(p, mouse, cellRad, surface);
         strokeRound(p, mouse, cellRad, progressCol, borderW);
-        KeySymbols::paint(p, QStringLiteral("Mouse"), iconAt(mouse), accent);
+        KeySymbols::paint(p, QStringLiteral("mouseLeftClick"), iconAt(mouse), accent);
     }
 
     if (labelH > 0.0) {

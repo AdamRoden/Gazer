@@ -1,9 +1,0 @@
-resources/icons/key_symbols.json is derived from OptiKey:
-
-  https://github.com/OptiKey/OptiKey
-
-and is licensed under the GNU General Public License, version 3.
-The full license text is at:
-
-  https://www.gnu.org/licenses/gpl-3.0.txt
-  https://github.com/OptiKey/OptiKey/blob/main/LICENSE.txt

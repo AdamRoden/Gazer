@@ -206,7 +206,7 @@ private:
             const double side = hubR * 1.2;
             const QRectF icon(c.x() - side * 0.5, c.y() - side * 0.5, side, side);
             const QColor fg(255, 255, 255, 230);
-            KeySymbols::paint(p, QStringLiteral("PauseButtonIcon"), icon, fg);
+            KeySymbols::paint(p, QStringLiteral("Sleep"), icon, fg);
         } else {
             paintRoundProgress(p, c, qMax(4.0, hubR - 1.5), m_centerProg, accent);
         }

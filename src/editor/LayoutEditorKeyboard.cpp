@@ -101,7 +101,7 @@ PageDocument makeKeyboardPage(const QString& id, const QString& name)
     PageCell shift;
     shift.id = QStringLiteral("shift");
     shift.label = QStringLiteral("Shift");
-    shift.icon = QStringLiteral("Shift");
+    shift.icon = QStringLiteral("KeyShift");
     shift.row = 3;
     shift.col = 0;
     shift.colSpan = 2;
@@ -161,8 +161,8 @@ PageDocument makeTemplateDocument(EditorTemplate tmpl, const QString& id, const 
         const QStringList pages = {QStringLiteral("uw_qwerty"), QStringLiteral("example_mouse"),
                                    QStringLiteral("example_assist"),
                                    QStringLiteral("main_settings")};
-        const QStringList icons = {QStringLiteral("Keyboard"), QStringLiteral("Mouse"),
-                                   QStringLiteral("Conversation"), QStringLiteral("SizeAndPosition")};
+        const QStringList icons = {QStringLiteral("keyboardKeys"), QStringLiteral("mouseLeftClick"),
+                                   QStringLiteral("ideas"), QStringLiteral("settings")};
         for (int i = 0; i < labels.size(); ++i) {
             PageCell c;
             c.id = QStringLiteral("open_%1").arg(i);

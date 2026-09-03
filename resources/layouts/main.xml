@@ -7,7 +7,7 @@
 
   <Zone id="mainChip" anchor="Bottom" offset="0,0" size="200,100"
         dwellOffset="0,300" dwellSize="300,200"
-        style="chip" label="Main" icon="Menu" suspendExempt="true" visibleWhen="!expanded" shell="true">
+        style="chip" label="Main" icon="menu" suspendExempt="true" visibleWhen="!expanded" shell="true">
     <Command value="resumeDwell"/>
     <ShowLayers value="1,2"/>
   </Zone>
@@ -19,18 +19,18 @@
   <Grid id="drawer" desktopMode="false" rows="1" columns="9"
         anchor="Bottom" offset="0,0" size="1200,150" style="drawer" gap="10" margin="10"
         layers="2" drawerMotion="true" autoClose="true" shell="true" >
-    <Cell id="open_keyboard" row="0" col="0" label="Keyboard" icon="Keyboard" openPage="qwerty_main"/>
-    <Cell id="open_mouse" row="0" col="1" label="Mouse" icon="Mouse" openPage="example_mouse"/>
-    <Cell id="open_assist" row="0" col="2" label="Assist" icon="IdeaIcon" openPage="example_assist"/>
-    <Cell id="open_right" row="0" col="3" label="More" icon="More" openPage="uw_qwerty"/>
-    <Cell id="open_settings" row="0" col="4" label="Settings" icon="SettingsIcon" openPage="main_settings"/>
-    <Cell id="close" row="0" col="5" label="Dismiss" icon="ArrowPointingToBottomBoundaryIcon" showLayers="1"/>
-    <Cell id="close_all" row="0" col="6" label="Close All" icon="CollapseIcon">
+    <Cell id="open_keyboard" row="0" col="0" label="Keyboard" icon="keyboardKeys" openPage="qwerty_main"/>
+    <Cell id="open_mouse" row="0" col="1" label="Mouse" icon="mouseLeftClick" openPage="example_mouse"/>
+    <Cell id="open_assist" row="0" col="2" label="Assist" icon="ideas" openPage="example_assist"/>
+    <Cell id="open_right" row="0" col="3" label="More" icon="moreHoriz" openPage="uw_qwerty"/>
+    <Cell id="open_settings" row="0" col="4" label="Settings" icon="settings" openPage="main_settings"/>
+    <Cell id="close" row="0" col="5" label="Dismiss" icon="AlignBottom" showLayers="1"/>
+    <Cell id="close_all" row="0" col="6" label="Close All" icon="CloseAll">
       <Command value="closeOtherViews"/>
       <ShowLayers value="1,2"/>
     </Cell>
     <Cell id="dwell_suspend" row="0" col="7" label="Pause dwell" icon="Sleep" activeState="dwellSuspend" command="toggleDwellSuspend"/>
-    <Cell id="quit" row="0" col="8" label="Quit" icon="Quit">
+    <Cell id="quit" row="0" col="8" label="Quit" icon="powerOnOff">
       <ShowLayers value="1,3"/>
     </Cell>
   </Grid>
@@ -39,8 +39,8 @@
         anchor="Center" offset="0,0" size="480,220" style="quitPrompt"
         gap="12" margin="16" layers="3" shell="true">
     <Cell id="prompt" row="0" col="0" colSpan="2" label="Quit Gazer?" role="label" background="#ee222222"/>
-    <Cell id="yes_quit" row="1" col="0" label="Yes" icon="Yes" style="quitYes" command="quitApp"/>
-    <Cell id="no_stay" row="1" col="1" label="No" icon="No" style="quitNo">
+    <Cell id="yes_quit" row="1" col="0" label="Yes" icon="YesNoCheck" style="quitYes" command="quitApp"/>
+    <Cell id="no_stay" row="1" col="1" label="No" icon="YesNoX" style="quitNo">
       <ShowLayers value="1,2"/>
     </Cell>
   </Grid>

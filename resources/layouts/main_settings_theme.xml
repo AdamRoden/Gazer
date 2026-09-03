@@ -8,28 +8,28 @@
   <Style id="tabbar" thickness="0" radius="12"/>
   <Grid id="board" desktopMode="true" rows="12" columns="16" anchor="Top" offset="0,0" size="A_ScreenHeight/9*16, A_ScreenHeight" gap="6" margin="12" radius="16">
     <SubGrid id="tabs" row="0" col="0" colSpan="16" rows="1" columns="7" gap="6" margin="4" style="tabbar">
-      <Cell id="tab_speed" row="0" col="0" label="Speed" icon="RepeatMouseActionIcon" role="tab">
+      <Cell id="tab_speed" row="0" col="0" label="Speed" icon="timer" role="tab">
         <ClosePage/>
         <OpenPage value="main_settings_speed"/>
       </Cell>
-      <Cell id="tab_magnify" row="0" col="1" label="Magnify" icon="ZoomToLocation" role="tab">
+      <Cell id="tab_magnify" row="0" col="1" label="Magnify" icon="ZoomSettings" role="tab">
         <ClosePage/>
         <OpenPage value="main_settings_magnify"/>
       </Cell>
-      <Cell id="tab_indicators" row="0" col="2" label="Indicators" icon="CirclesLeftRight" role="tab">
+      <Cell id="tab_indicators" row="0" col="2" label="Indicators" icon="cycle" role="tab">
         <ClosePage/>
         <OpenPage value="main_settings_indicators"/>
       </Cell>
-      <Cell id="tab_assist" row="0" col="3" label="Assist" icon="IdeaIcon" role="tab">
+      <Cell id="tab_assist" row="0" col="3" label="Assist" icon="ideas" role="tab">
         <ClosePage/>
         <OpenPage value="main_settings_assist"/>
       </Cell>
-      <Cell id="tab_tools" row="0" col="4" label="Tools" icon="LookToScrollActive" role="tab">
+      <Cell id="tab_tools" row="0" col="4" label="Tools" icon="lookToScroll" role="tab">
         <ClosePage/>
         <OpenPage value="main_settings_tools"/>
       </Cell>
-      <Cell id="tab_theme" row="0" col="5" label="Theme" icon="SettingsIcon" role="tab"/>
-      <Cell id="tab_done" row="0" col="6" label="Done" icon="CollapseIcon">
+      <Cell id="tab_theme" row="0" col="5" label="Theme" icon="palette" role="tab"/>
+      <Cell id="tab_done" row="0" col="6" label="Done" icon="keyboardHide">
         <CloseAllPages/>
       </Cell>
     </SubGrid>
@@ -86,7 +86,7 @@
       </SubGrid>
       <SubGrid id="row_edit" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="edit_name" row="0" col="0" label="Edit colors" caption="Opens Custom on the role list." role="label" style="plain"/>
-        <Cell id="edit_colors" row="0" col="1" label="Edit colors" icon="SettingsIcon" command="settings.theme.edit"/>
+        <Cell id="edit_colors" row="0" col="1" label="Edit colors" icon="editSquare" command="settings.theme.edit"/>
       </SubGrid>
     </SubGrid>
   </Grid>

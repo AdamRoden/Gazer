@@ -2,20 +2,20 @@
   <Dwell id="vert1" scanGrace="200" activation="200,600"/>
   <Dwell id="vert2" scanGrace="100" activation="100,600"/>
   <Grid id="vert1" desktopMode="true" rows="6" columns="1" anchor="TopRight" size="1/16,0.73" layers="1,2">
-    <Cell id="more" row="0" col="0" icon="More" dwell="vert1" openPage="example_keyboard"/>
-    <Cell id="move_lclick" row="1" col="0" icon="LeftClick" dwell="vert1" activeState="leftClickAtGaze" leftClickAtGaze=""/>
-    <Cell id="move_rclick" row="2" col="0" icon="RightClick" dwell="vert1" activeState="rightClickAtGaze" rightClickAtGaze=""/>
+    <Cell id="more" row="0" col="0" icon="moreHoriz" dwell="vert1" openPage="example_keyboard"/>
+    <Cell id="move_lclick" row="1" col="0" icon="mouseLeftClickAtGaze" dwell="vert1" activeState="leftClickAtGaze" leftClickAtGaze=""/>
+    <Cell id="move_rclick" row="2" col="0" icon="mouseRightClickAtGaze" dwell="vert1" activeState="rightClickAtGaze" rightClickAtGaze=""/>
     <SubGrid id="edge" row="3" col="0" layers="1">
-      <Cell id="edge" row="0" col="0" icon="ArrowPointingToRightBoundary" dwell="vert1" showLayers="2"/>
+      <Cell id="edge" row="0" col="0" icon="ArrowPointingToRight" dwell="vert1" showLayers="2"/>
     </SubGrid>
     <SubGrid id="keyboard" row="3" col="0" layers="2">
-      <Cell id="keyboard" row="0" col="0" icon="Keyboard" dwell="vert1" showLayers="1"/>
+      <Cell id="keyboard" row="0" col="0" icon="keyboardKeys" dwell="vert1" showLayers="1"/>
     </SubGrid>
     <Cell id="sleep" row="4" col="0" icon="Sleep" dwell="vert1" activeState="dwellSuspend" command="toggleDwellSuspend"/>
-    <Cell id="lts" row="5" col="0" icon="LookToScrollActive" dwell="vert1" activeState="lookToScroll" command="toggleLookToScroll"/>
+    <Cell id="lts" row="5" col="0" icon="lookToScroll" dwell="vert1" activeState="lookToScroll" command="toggleLookToScroll"/>
   </Grid>
   <Grid id="vert2" desktopMode="true" rows="2" columns="1" anchor="TopRight" offset="0,0.73" size="1/16,0.27" layers="2">
-    <Cell id="mid" row="0" col="0" label="MID" dwell="vert2">
+    <Cell id="mid" row="0" col="0" label="MID" dwell="vert2" icon="WindowMid">
       <AHK><![CDATA[
       {
       try { 
@@ -31,7 +31,7 @@
       }
       ]]></AHK>
     </Cell>
-    <Cell id="max" row="1" col="0" label="MAX" dwell="vert2">
+    <Cell id="max" row="1" col="0" label="MAX" dwell="vert2" icon="WindowMax">
       <AHK><![CDATA[
       {
       try { 
@@ -64,8 +64,8 @@
     <Cell id="equals" row="0" col="119" colSpan="11" label="=" textStyle="key" send="="/>
     <Cell id="del" row="0" col="130" colSpan="10" label="Del" background="#3d4f66" foreground="#ffffff" command="delete"/>
     <Cell id="pgup" row="0" col="140" colSpan="10" label="Pg Up" background="#3d4f66" foreground="#ffffff" command="pageUp"/>
-    <Cell id="bksp" row="0" col="150" colSpan="10" icon="BackOne" background="#3d4f66" foreground="#ffffff" command="backspace"/>
-    <Cell id="tab" row="1" col="0" colSpan="11" icon="Tab" background="#3d4f66" foreground="#ffffff" command="tab"/>
+    <Cell id="bksp" row="0" col="150" colSpan="10" icon="keyBackspace" background="#3d4f66" foreground="#ffffff" command="backspace"/>
+    <Cell id="tab" row="1" col="0" colSpan="11" icon="keyTab" background="#3d4f66" foreground="#ffffff" command="tab"/>
     <Cell id="k_q" row="1" col="11" colSpan="10" label="q" textStyle="key" send="q"/>
     <Cell id="k_w" row="1" col="21" colSpan="10" label="w" textStyle="key" send="w"/>
     <Cell id="k_e" row="1" col="31" colSpan="10" label="e" textStyle="key" send="e"/>
@@ -79,9 +79,9 @@
     <Cell id="lbrack" row="1" col="111" colSpan="10" label="[" textStyle="key" scanGrace="300" send="["/>
     <Cell id="rbrack" row="1" col="121" colSpan="9" label="]" textStyle="key" scanGrace="300" send="]"/>
     <Cell id="home" row="1" col="130" colSpan="10" label="Home" background="#3d4f66" foreground="#ffffff" command="home"/>
-    <Cell id="up" row="1" col="140" colSpan="10" icon="UpArrowKey" background="#3d4f66" foreground="#ffffff" command="arrowUp"/>
+    <Cell id="up" row="1" col="140" colSpan="10" icon="KeyUp" background="#3d4f66" foreground="#ffffff" command="arrowUp"/>
     <Cell id="end" row="1" col="150" colSpan="10" label="End" background="#3d4f66" foreground="#ffffff" command="end"/>
-    <Cell id="shift_l" row="2" col="0" colSpan="13" icon="Shift" background="#3d4f66" foreground="#ffffff" activeState="mod.shift" command="leftShift"/>
+    <Cell id="shift_l" row="2" col="0" colSpan="13" icon="KeyShift" background="#3d4f66" foreground="#ffffff" activeState="mod.shift" command="leftShift"/>
     <Cell id="k_a" row="2" col="13" colSpan="10" label="a" textStyle="key" send="a"/>
     <Cell id="k_s" row="2" col="23" colSpan="10" label="s" textStyle="key" send="s"/>
     <Cell id="k_d" row="2" col="33" colSpan="10" label="d" textStyle="key" send="d"/>
@@ -93,17 +93,17 @@
     <Cell id="k_l" row="2" col="93" colSpan="10" label="l" textStyle="key" send="l"/>
     <Cell id="semi" row="2" col="103" colSpan="8" label=";" textStyle="key" send=";"/>
     <Cell id="quote" row="2" col="111" colSpan="8" label="&apos;" textStyle="key" send="&apos;"/>
-    <Cell id="shift_r" row="2" col="119" colSpan="11" icon="Shift" background="#3d4f66" foreground="#ffffff" activeState="mod.shift" command="leftShift"/>
-    <Cell id="left" row="2" col="130" colSpan="10" icon="LeftArrowKey" background="#3d4f66" foreground="#ffffff" command="arrowLeft"/>
-    <Cell id="down" row="2" col="140" colSpan="10" icon="DownArrowKey" background="#3d4f66" foreground="#ffffff" command="arrowDown"/>
-    <Cell id="right" row="2" col="150" colSpan="10" icon="RightArrowKey" background="#3d4f66" foreground="#ffffff" command="arrowRight"/>
+    <Cell id="shift_r" row="2" col="119" colSpan="11" icon="KeyShift" background="#3d4f66" foreground="#ffffff" activeState="mod.shift" command="leftShift"/>
+    <Cell id="left" row="2" col="130" colSpan="10" icon="KeyLeft" background="#3d4f66" foreground="#ffffff" command="arrowLeft"/>
+    <Cell id="down" row="2" col="140" colSpan="10" icon="KeyDown" background="#3d4f66" foreground="#ffffff" command="arrowDown"/>
+    <Cell id="right" row="2" col="150" colSpan="10" icon="KeyRight" background="#3d4f66" foreground="#ffffff" command="arrowRight"/>
     <Cell id="ctrl_l" row="3" col="0" colSpan="9" label="Ctrl" background="#3d4f66" foreground="#ffffff" activeState="mod.ctrl" command="leftCtrl"/>
-    <Cell id="win" row="3" col="9" colSpan="9" icon="Win" background="#3d4f66" foreground="#ffffff" activeState="mod.win" command="leftWin"/>
+    <Cell id="win" row="3" col="9" colSpan="9" icon="KeyWin" background="#3d4f66" foreground="#ffffff" activeState="mod.win" command="leftWin"/>
     <Cell id="k_z" row="3" col="18" colSpan="9" label="z" textStyle="key" send="z"/>
     <Cell id="k_x" row="3" col="27" colSpan="9" label="x" textStyle="key" send="x"/>
     <Cell id="k_c" row="3" col="36" colSpan="10" label="c" textStyle="key" send="c"/>
     <Cell id="k_v" row="3" col="46" colSpan="10" label="v" textStyle="key" send="v"/>
-    <Cell id="space" row="3" col="56" colSpan="14" icon="Space" command="space"/>
+    <Cell id="space" row="3" col="56" colSpan="14" icon="keySpace" command="space"/>
     <Cell id="k_b" row="3" col="70" colSpan="10" label="b" textStyle="key" send="b"/>
     <Cell id="k_n" row="3" col="80" colSpan="9" label="n" textStyle="key" send="n"/>
     <Cell id="k_m" row="3" col="89" colSpan="9" label="m" textStyle="key" send="m"/>
@@ -113,6 +113,6 @@
     <Cell id="ctrl_r" row="3" col="122" colSpan="9" label="Ctrl" background="#3d4f66" foreground="#ffffff" activeState="mod.ctrl" command="leftCtrl"/>
     <Cell id="alt" row="3" col="131" colSpan="9" label="Alt" background="#3d4f66" foreground="#ffffff" activeState="mod.alt" command="leftAlt"/>
     <Cell id="pgdn" row="3" col="140" colSpan="10" label="Pg Dn" background="#3d4f66" foreground="#ffffff" command="pageDown"/>
-    <Cell id="enter" row="3" col="150" colSpan="10" icon="Enter" background="#3d4f66" foreground="#ffffff" command="enter"/>
+    <Cell id="enter" row="3" col="150" colSpan="10" icon="keyReturn" background="#3d4f66" foreground="#ffffff" command="enter"/>
   </Grid>
 </Page>

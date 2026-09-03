@@ -8,7 +8,7 @@
 
 namespace gazer {
 
-/// OptiKey-style hold for modifiers: one-shot Down auto-releases after a standard key.
+/// Sticky hold for modifiers: one-shot Down auto-releases after a standard key.
 enum class KeyHoldState {
     Up,
     Down,

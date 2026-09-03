@@ -72,7 +72,7 @@ Do not `raise()` / `HWND_TOP` an overlay on every gaze sample. `showOverlay()` i
 
 These dump context and almost never help a code change:
 
-- `resources/icons/key_symbols.json` (~319 KB path data; `ui/KeySymbols.cpp` loads it at runtime)
+- `resources/icons/svg/*.svg` (icon catalog; `ui/KeySymbols.cpp` loads stems at runtime)
 - `resources/icons/*.png`, `resources/models/head.obj`
 - `third_party/tobii/**` (vendor headers)
 - `dist/`, `build/`, `gazer.log`

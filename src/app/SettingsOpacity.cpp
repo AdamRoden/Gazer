@@ -60,7 +60,7 @@ PageDocument SettingsUi::buildOpacityDocument() const
     const EditorSwatch pal = editorSwatch();
     grid.cells.push_back(cell(QStringLiteral("edit_opacity"), QStringLiteral("Edit"), 0, 0,
                               QStringLiteral("settings.opacity.scrub"), pal.edit, 1, {}, {},
-                              QStringLiteral("PhysicalKeys")));
+                              QStringLiteral("edit")));
     grid.cells.push_back(cell(QStringLiteral("dec_opacity"), QStringLiteral("−"), 0, 1,
                               QStringLiteral("settings.opacity.nudge.dec"), pal.nudge));
     grid.cells.push_back(cell(QStringLiteral("track_opacity"), QStringLiteral("Opacity"), 0, 2, {},

@@ -8,28 +8,28 @@
   <Style id="tabbar" thickness="0" radius="12"/>
   <Grid id="board" desktopMode="true" rows="14" columns="16" anchor="Top" offset="0,0" size="A_ScreenHeight/9*16, A_ScreenHeight" gap="6" margin="12" radius="16">
     <SubGrid id="tabs" row="0" col="0" colSpan="16" rows="1" columns="7" gap="6" margin="4" style="tabbar">
-      <Cell id="tab_speed" row="0" col="0" label="Speed" icon="RepeatMouseActionIcon" role="tab">
+      <Cell id="tab_speed" row="0" col="0" label="Speed" icon="timer" role="tab">
         <ClosePage/>
         <OpenPage value="main_settings_speed"/>
       </Cell>
-      <Cell id="tab_magnify" row="0" col="1" label="Magnify" icon="ZoomToLocation" role="tab">
+      <Cell id="tab_magnify" row="0" col="1" label="Magnify" icon="ZoomSettings" role="tab">
         <ClosePage/>
         <OpenPage value="main_settings_magnify"/>
       </Cell>
-      <Cell id="tab_indicators" row="0" col="2" label="Indicators" icon="CirclesLeftRight" role="tab">
+      <Cell id="tab_indicators" row="0" col="2" label="Indicators" icon="cycle" role="tab">
         <ClosePage/>
         <OpenPage value="main_settings_indicators"/>
       </Cell>
-      <Cell id="tab_assist" row="0" col="3" label="Assist" icon="IdeaIcon" role="tab">
+      <Cell id="tab_assist" row="0" col="3" label="Assist" icon="ideas" role="tab">
         <ClosePage/>
         <OpenPage value="main_settings_assist"/>
       </Cell>
-      <Cell id="tab_tools" row="0" col="4" label="Tools" icon="LookToScrollActive" role="tab"/>
-      <Cell id="tab_theme" row="0" col="5" label="Theme" icon="SettingsIcon" role="tab">
+      <Cell id="tab_tools" row="0" col="4" label="Tools" icon="lookToScroll" role="tab"/>
+      <Cell id="tab_theme" row="0" col="5" label="Theme" icon="palette" role="tab">
         <ClosePage/>
         <OpenPage value="main_settings_theme"/>
       </Cell>
-      <Cell id="tab_done" row="0" col="6" label="Done" icon="CollapseIcon">
+      <Cell id="tab_done" row="0" col="6" label="Done" icon="keyboardHide">
         <CloseAllPages/>
       </Cell>
     </SubGrid>
@@ -40,7 +40,7 @@
       <Cell id="h_dist" row="0" col="0" label="Look to scroll" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_lts_on" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="lts_on_l" row="0" col="0" label="Enable" caption="Scroll by looking away from the cursor." role="label" style="plain"/>
-        <Cell id="lts_on" row="0" col="1" label="Look to scroll" icon="LookToScrollActive" role="toggle" activeState="lookToScroll" style="join" command="toggleLookToScroll"/>
+        <Cell id="lts_on" row="0" col="1" label="Look to scroll" icon="lookToScroll" role="toggle" activeState="lookToScroll" style="join" command="toggleLookToScroll"/>
       </SubGrid>
       <SubGrid id="row_dz" row="2" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="dz_l" row="0" col="0" label="Deadzone" caption="No-scroll radius around the cursor." role="label" style="plain"/>
@@ -48,7 +48,7 @@
           <Cell id="dz_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.ltsDeadzonePx.dec"/>
           <Cell id="dz_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="ltsDeadzonePx" style="join"/>
           <Cell id="dz_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.ltsDeadzonePx.inc"/>
-          <Cell id="dz_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.ltsDeadzonePx"/>
+          <Cell id="dz_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.ltsDeadzonePx"/ icon="editSquare">
         </SubGrid>
       </SubGrid>
       <SubGrid id="row_fo" row="3" col="0" rows="1" columns="2" gap="6" style="row">
@@ -57,7 +57,7 @@
           <Cell id="fo_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.ltsFalloffPx.dec"/>
           <Cell id="fo_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="ltsFalloffPx" style="join"/>
           <Cell id="fo_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.ltsFalloffPx.inc"/>
-          <Cell id="fo_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.ltsFalloffPx"/>
+          <Cell id="fo_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.ltsFalloffPx"/ icon="editSquare">
         </SubGrid>
       </SubGrid>
       <SubGrid id="row_accel" row="4" col="0" rows="1" columns="2" gap="6" style="row">
@@ -66,7 +66,7 @@
           <Cell id="accel_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.ltsAccelPerSec.dec"/>
           <Cell id="accel_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="ltsAccelPerSec" style="join"/>
           <Cell id="accel_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.ltsAccelPerSec.inc"/>
-          <Cell id="accel_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.ltsAccelPerSec"/>
+          <Cell id="accel_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.ltsAccelPerSec"/ icon="editSquare">
         </SubGrid>
       </SubGrid>
       <SubGrid id="row_ind" row="5" col="0" rows="1" columns="2" gap="6" style="row">
@@ -83,7 +83,7 @@
       <Cell id="h_combo" row="0" col="0" label="ComboMouse" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_combo_on" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="combo_on_l" row="0" col="0" label="Enable" caption="Dwell to place, then drift and click from the pie." role="label" style="plain"/>
-        <Cell id="combo_on" row="0" col="1" label="ComboMouse" icon="PieSlice5" role="toggle" activeState="comboMouse" style="join" command="toggleComboMouse"/>
+        <Cell id="combo_on" row="0" col="1" label="ComboMouse" icon="comboMouse" role="toggle" activeState="comboMouse" style="join" command="toggleComboMouse"/>
       </SubGrid>
       <SubGrid id="row_combo_inner" row="2" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="ci_l" row="0" col="0" label="Inner radius" caption="Inner edge of the drift ring." role="label" style="plain"/>
@@ -91,7 +91,7 @@
           <Cell id="ci_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.comboInnerRadiusPx.dec"/>
           <Cell id="ci_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="comboInnerRadiusPx" style="join"/>
           <Cell id="ci_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.comboInnerRadiusPx.inc"/>
-          <Cell id="ci_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.comboInnerRadiusPx"/>
+          <Cell id="ci_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.comboInnerRadiusPx"/ icon="editSquare">
         </SubGrid>
       </SubGrid>
       <SubGrid id="row_combo_shared" row="3" col="0" rows="1" columns="2" gap="6" style="row">
@@ -100,7 +100,7 @@
           <Cell id="cs_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.comboSharedRadiusPx.dec"/>
           <Cell id="cs_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="comboSharedRadiusPx" style="join"/>
           <Cell id="cs_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.comboSharedRadiusPx.inc"/>
-          <Cell id="cs_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.comboSharedRadiusPx"/>
+          <Cell id="cs_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.comboSharedRadiusPx"/ icon="editSquare">
         </SubGrid>
       </SubGrid>
       <SubGrid id="row_combo_outer" row="4" col="0" rows="1" columns="2" gap="6" style="row">
@@ -109,7 +109,7 @@
           <Cell id="co_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.comboOuterRadiusPx.dec"/>
           <Cell id="co_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="comboOuterRadiusPx" style="join"/>
           <Cell id="co_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.comboOuterRadiusPx.inc"/>
-          <Cell id="co_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.comboOuterRadiusPx"/>
+          <Cell id="co_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.comboOuterRadiusPx"/ icon="editSquare">
         </SubGrid>
       </SubGrid>
       <SubGrid id="row_combo_style" row="5" col="0" rows="1" columns="2" gap="6" style="row">

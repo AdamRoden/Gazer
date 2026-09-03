@@ -6,10 +6,10 @@
   <Style id="reset" background="#59388CFF" foreground="#FFFFFFFF" border="#B3388CFF" thickness="2" radius="900,900,0,0" blur="15" progressStyle="radial"/>
 
   <Grid id="plus" desktopMode="true" rows="3" columns="3" anchor="Center" offset="0,0" size="0.25h,0.25h" gap="0" margin="0" shell="true" background="#00000000" thickness="0">
-    <Cell id="north" row="0" col="1" style="reset" icon="RestartIcon" command="lts.reset"/>
-    <Cell id="west" row="1" col="0" style="slow" icon="LookToScrollSpeedSlowIcon" command="lts.speed.slower"/>
-    <Cell id="east" row="1" col="2" style="fast" icon="LookToScrollSpeedFastIcon" command="lts.speed.faster"/>
-    <Cell id="south" row="2" col="1" style="quit" icon="QuitIcon" command="lts.quit"/>
-    <Cell id="hub" row="1" col="1" style="hub" label="5" icon="PlayButtonIcon" command="lts.resume"/>
+    <Cell id="north" row="0" col="1" style="reset" icon="refresh" command="lts.reset"/>
+    <Cell id="west" row="1" col="0" style="slow" icon="LookToScrollSpeedSlow" command="lts.speed.slower"/>
+    <Cell id="east" row="1" col="2" style="fast" icon="LookToScrollSpeedFast" command="lts.speed.faster"/>
+    <Cell id="south" row="2" col="1" style="quit" icon="powerOnOff" command="lts.quit"/>
+    <Cell id="hub" row="1" col="1" style="hub" label="5" icon="arrowCircleRight" command="lts.resume"/>
   </Grid>
 </Page>

@@ -9,14 +9,15 @@
 namespace gazer {
 namespace KeySymbols {
 
-/// Paint an OptiKey symbol in @p r, filled with @p color.
-/// @p name is the OptiKey key with or without an `Icon` suffix (`BackOne` / `BackOneIcon`).
+/// Paint a cell/zone icon in @p r, tinted with @p color.
+/// @p name is a stem from `resources/icons/svg/` (`menu`, `mouseLeftClick`, `Tab`).
+/// Matching is case-insensitive; a trailing `Icon` suffix is ignored.
 /// Returns false if unknown — callers should fall back to text.
 bool paint(QPainter& p, const QString& name, const QRectF& r, const QColor& color);
 
 [[nodiscard]] bool contains(const QString& name);
 
-/// Canonical names without the `Icon` suffix, sorted.
+/// SVG stems as on disk, sorted.
 [[nodiscard]] QStringList names();
 
 } // namespace KeySymbols

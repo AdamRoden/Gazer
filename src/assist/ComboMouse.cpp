@@ -27,11 +27,11 @@ struct SliceSpec {
 };
 
 constexpr SliceSpec kSlices[] = {
-    {ComboMouseHit::Slice::Right, "RightClick"},
+    {ComboMouseHit::Slice::Right, "mouseRightClick"},
     {ComboMouseHit::Slice::Move, "SizeAndPosition"},
-    {ComboMouseHit::Slice::Cancel, "Quit"},
-    {ComboMouseHit::Slice::Drag, "LeftDownUp"},
-    {ComboMouseHit::Slice::Left, "LeftClick"},
+    {ComboMouseHit::Slice::Cancel, "YesNoX"},
+    {ComboMouseHit::Slice::Drag, "mouseLeftDrag"},
+    {ComboMouseHit::Slice::Left, "mouseLeftClick"},
 };
 
 [[nodiscard]] QPainterPath wedgePath(const QPointF& c, const ComboMouseHit::Wedge& w)

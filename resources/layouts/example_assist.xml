@@ -1,19 +1,19 @@
 <Page id="example_assist" name="Assist" autoClose="true">
   <Grid id="board" desktopMode="false" rows="1" columns="11" anchor="Bottom" offset="0,0" size="1320,150" gap="10" margin="0" autoClose="true">
-    <Cell id="mag" row="0" col="0" icon="MouseMagnifier" label="Magnifier" activeState="magnifier" command="toggleMagnifier"/>
-    <Cell id="gaze_reticle" row="0" col="1" icon="Calibrate" label="Gaze reticle" activeState="gazeReticle" command="toggleGazeReticle"/>
+    <Cell id="mag" row="0" col="0" icon="MagnifyTool" label="Magnifier" activeState="magnifier" command="toggleMagnifier"/>
+    <Cell id="gaze_reticle" row="0" col="1" icon="Eye" label="Gaze reticle" activeState="gazeReticle" command="toggleGazeReticle"/>
     <Cell id="gaze_follow" row="0" col="2" icon="MouseMagneticCursor" label="Gaze mouse" activeState="gazeMouseFollow" command="toggleGazeMouseFollow"/>
-    <Cell id="mouse_move" row="0" col="3" icon="MouseMoveTo" label="Move mouse
+    <Cell id="mouse_move" row="0" col="3" icon="dragPan" label="Move mouse
 (dwell)" activeState="mouseDwellMove" command="mouseDwellMove"/>
-    <Cell id="click_loop" row="0" col="4" icon="RepeatMouseAction" label="Gaze click
+    <Cell id="click_loop" row="0" col="4" icon="LoopingAction" label="Gaze click
 loop" activeState="loop.gazeClick" command="mouseDwellClickLoop"/>
-    <Cell id="mag_pick" row="0" col="5" icon="ZoomToLocation" label="Move-to
+    <Cell id="mag_pick" row="0" col="5" icon="ZoomConfirm" label="Move-to
 Zoom" activeState="mouseMoveMagPick" command="toggleMouseMoveMagPick"/>
-    <Cell id="foresight" row="0" col="6" icon="AutoModeIcon" label="Foresight" activeState="mouseMoveForesight" command="toggleMouseMoveForesight"/>
-    <Cell id="lts" row="0" col="7" icon="LookToScrollActive" label="Look↕Scroll" activeState="lookToScroll" command="toggleLookToScroll"/>
-    <Cell id="combo" row="0" col="8" icon="PieSlice5" label="ComboMouse" activeState="comboMouse" command="toggleComboMouse"/>
-    <Cell id="edit_layout" row="0" col="9" icon="EditAppIcon" label="Edit layout" command="openLayoutEditor"/>
-    <Cell id="main" row="0" col="10" icon="Menu" label="Main">
+    <Cell id="foresight" row="0" col="6" icon="ZoomReset" label="Foresight" activeState="mouseMoveForesight" command="toggleMouseMoveForesight"/>
+    <Cell id="lts" row="0" col="7" icon="lookToScroll" label="Look↕Scroll" activeState="lookToScroll" command="toggleLookToScroll"/>
+    <Cell id="combo" row="0" col="8" icon="comboMouse" label="ComboMouse" activeState="comboMouse" command="toggleComboMouse"/>
+    <Cell id="edit_layout" row="0" col="9" icon="editSquare" label="Edit layout" command="openLayoutEditor"/>
+    <Cell id="main" row="0" col="10" icon="menu" label="Main">
     <ClosePage/>
     <ShowLayers value="1,2"/>
     </Cell>

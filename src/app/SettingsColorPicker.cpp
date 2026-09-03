@@ -31,7 +31,7 @@ void addColorAxis(PageGrid& grid, const ColorAxis& axis, int row, int trackSpan,
     grid.cells.push_back(cell(QStringLiteral("edit_%1").arg(QLatin1String(axis.id)),
                               QStringLiteral("Edit"), row, 0,
                               QStringLiteral("settings.color.scrub.%1").arg(QLatin1String(axis.id)),
-                              pal.edit, 1, {}, {}, QStringLiteral("PhysicalKeys")));
+                              pal.edit, 1, {}, {}, QStringLiteral("edit")));
     grid.cells.push_back(cell(QStringLiteral("dec_%1").arg(QLatin1String(axis.id)),
                               QStringLiteral("−"), row, 1,
                               QStringLiteral("settings.color.nudge.%1.dec").arg(QLatin1String(axis.id)),
@@ -382,7 +382,8 @@ PageDocument SettingsUi::buildAccentColorDocument() const
     grid.cells.push_back(cell(QStringLiteral("hex"), hex, 4, 6,
                               QStringLiteral("settings.color.editHex"), pal.value, 6));
     grid.cells.push_back(cell(QStringLiteral("roles"), QStringLiteral("Edit roles"), 6, 0,
-                              QStringLiteral("settings.color.roles"), pal.edit, 4));
+                              QStringLiteral("settings.color.roles"), pal.edit, 4, {}, {},
+                              QStringLiteral("edit")));
     grid.cells.push_back(cell(QStringLiteral("save"), QStringLiteral("Save"), 6, 4,
                               QStringLiteral("settings.color.save"), pal.save, 4));
     grid.cells.push_back(cell(QStringLiteral("cancel"), QStringLiteral("Cancel"), 6, 8,

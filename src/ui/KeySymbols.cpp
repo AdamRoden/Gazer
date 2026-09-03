@@ -5,11 +5,9 @@
 
 #include <QCache>
 #include <QDir>
-#include <QFile>
+#include <QFileInfo>
 #include <QHash>
 #include <QImage>
-#include <QJsonDocument>
-#include <QJsonObject>
 #include <QPainter>
 #include <QPixmap>
 #include <QSharedPointer>
@@ -32,7 +30,44 @@ QString normalize(QString name)
 struct Glyph {
     QSharedPointer<QSvgRenderer> svg;
     QRectF viewBox;
+    QRectF content;
 };
+
+/// Opaque ink of @p svg in viewBox coordinates, so paint can fill the cell the
+/// way the old path-bounds catalog did. Material canvases and SVGs with no
+/// viewBox otherwise sit in a sea of padding and look tiny on keys.
+QRectF inkRect(QSvgRenderer& svg, const QRectF& vb)
+{
+    constexpr int kN = 192;
+    QImage img(kN, kN, QImage::Format_ARGB32_Premultiplied);
+    img.fill(Qt::transparent);
+    {
+        QPainter p(&img);
+        p.setRenderHint(QPainter::Antialiasing, true);
+        svg.render(&p, QRectF(0, 0, kN, kN));
+    }
+    int x0 = kN, y0 = kN, x1 = -1, y1 = -1;
+    for (int y = 0; y < kN; ++y) {
+        const auto* line = reinterpret_cast<const QRgb*>(img.constScanLine(y));
+        for (int x = 0; x < kN; ++x) {
+            if (qAlpha(line[x]) > 12) {
+                x0 = qMin(x0, x);
+                y0 = qMin(y0, y);
+                x1 = qMax(x1, x);
+                y1 = qMax(y1, y);
+            }
+        }
+    }
+    if (x1 < x0) {
+        return vb;
+    }
+    const qreal sx = vb.width() / qreal(kN);
+    const qreal sy = vb.height() / qreal(kN);
+    QRectF ink(vb.x() + x0 * sx, vb.y() + y0 * sy, (x1 - x0 + 1) * sx, (y1 - y0 + 1) * sy);
+    const qreal slack = qMax(ink.width(), ink.height()) * 0.04;
+    ink.adjust(-slack, -slack, slack, slack);
+    return ink.intersected(vb);
+}
 
 struct Catalog {
     QHash<QString, Glyph> glyphs;
@@ -49,72 +84,17 @@ Catalog& catalog()
     return c;
 }
 
-QByteArray whiteSvg(const QString& d, const QRectF& vb)
+QString resolve(const QString& name)
 {
-    QByteArray out;
-    out.reserve(180 + d.size());
-    out += "<svg xmlns='http://www.w3.org/2000/svg' viewBox='";
-    out += QByteArray::number(vb.x(), 'f', 3);
-    out += ' ';
-    out += QByteArray::number(vb.y(), 'f', 3);
-    out += ' ';
-    out += QByteArray::number(vb.width(), 'f', 3);
-    out += ' ';
-    out += QByteArray::number(vb.height(), 'f', 3);
-    out += "'><path id='g' fill='#ffffff' fill-rule='evenodd' d='";
-    out += d.toUtf8();
-    out += "'/></svg>";
-    return out;
-}
-
-void loadFile(const QString& path, Catalog& cat)
-{
-    QFile f(path);
-    if (!f.open(QIODevice::ReadOnly)) {
-        GAZER_WARN << "KeySymbols: could not read" << path;
-        return;
+    const QString n = normalize(name);
+    if (n.isEmpty()) {
+        return n;
     }
-    const QJsonDocument doc = QJsonDocument::fromJson(f.readAll());
-    if (!doc.isObject()) {
-        GAZER_WARN << "KeySymbols: invalid JSON" << path;
-        return;
+    const Catalog& cat = catalog();
+    if (cat.glyphs.contains(n)) {
+        return n;
     }
-    const QJsonObject obj = doc.object();
-    for (auto it = obj.begin(); it != obj.end(); ++it) {
-        const QString d = it.value().toString();
-        if (d.isEmpty()) {
-            continue;
-        }
-        QByteArray probe;
-        probe += "<svg xmlns='http://www.w3.org/2000/svg'><path id='g' d='";
-        probe += d.toUtf8();
-        probe += "'/></svg>";
-        QSvgRenderer measure(probe);
-        if (!measure.isValid()) {
-            GAZER_WARN << "KeySymbols: invalid path" << it.key();
-            continue;
-        }
-        QRectF vb = measure.boundsOnElement(QStringLiteral("g"));
-        if (vb.isEmpty()) {
-            vb = measure.viewBoxF();
-        }
-        if (vb.isEmpty()) {
-            continue;
-        }
-        auto svg = QSharedPointer<QSvgRenderer>::create();
-        if (!svg->load(whiteSvg(d, vb))) {
-            continue;
-        }
-        Glyph g;
-        g.svg = std::move(svg);
-        g.viewBox = vb;
-        cat.glyphs.insert(normalize(it.key()), std::move(g));
-        QString display = it.key();
-        if (display.endsWith(QLatin1String("Icon"))) {
-            display.chop(4);
-        }
-        cat.displayNames.push_back(display);
-    }
+    return {};
 }
 
 void loadOnce()
@@ -123,25 +103,53 @@ void loadOnce()
     if (cat.loaded) {
         return;
     }
-    QString path;
+    cat.loaded = true;
+
+    QString dir;
     for (const QString& root : resourceIconRoots()) {
-        const QString cand = QDir(root).filePath(QStringLiteral("key_symbols.json"));
-        if (QFile::exists(cand)) {
-            path = cand;
+        const QString cand = QDir(root).filePath(QStringLiteral("svg"));
+        if (QDir(cand).exists()) {
+            dir = cand;
             break;
         }
     }
-    if (path.isEmpty()) {
-        GAZER_WARN << "KeySymbols: key_symbols.json not found";
+    if (dir.isEmpty()) {
+        GAZER_WARN << "KeySymbols: svg folder not found";
         return;
     }
-    loadFile(path, cat);
-    if (cat.glyphs.isEmpty()) {
-        return;
+
+    const QFileInfoList files =
+        QDir(dir).entryInfoList({QStringLiteral("*.svg")}, QDir::Files, QDir::Name);
+    for (const QFileInfo& fi : files) {
+        auto svg = QSharedPointer<QSvgRenderer>::create(fi.absoluteFilePath());
+        if (!svg || !svg->isValid()) {
+            GAZER_WARN << "KeySymbols: invalid svg" << fi.fileName();
+            continue;
+        }
+        QRectF vb = svg->viewBoxF();
+        if (vb.isEmpty()) {
+            const QSize sz = svg->defaultSize();
+            if (sz.isValid() && !sz.isEmpty()) {
+                vb = QRectF(0, 0, sz.width(), sz.height());
+                svg->setViewBox(vb);
+            }
+        }
+        if (vb.isEmpty()) {
+            continue;
+        }
+        Glyph g;
+        g.content = inkRect(*svg, vb);
+        g.svg = std::move(svg);
+        g.viewBox = vb;
+        if (g.content.isEmpty()) {
+            g.content = vb;
+        }
+        const QString stem = fi.completeBaseName();
+        cat.glyphs.insert(normalize(stem), std::move(g));
+        cat.displayNames.push_back(stem);
     }
     cat.displayNames.sort(Qt::CaseInsensitive);
-    cat.loaded = true;
-    GAZER_INFO << "KeySymbols: loaded" << cat.glyphs.size() << "geometries";
+    GAZER_INFO << "KeySymbols: loaded" << cat.glyphs.size() << "svgs from" << dir;
 }
 
 } // namespace
@@ -152,7 +160,7 @@ bool contains(const QString& name)
         return false;
     }
     loadOnce();
-    return catalog().glyphs.contains(normalize(name));
+    return catalog().glyphs.contains(resolve(name));
 }
 
 QStringList names()
@@ -168,23 +176,26 @@ bool paint(QPainter& p, const QString& name, const QRectF& r, const QColor& colo
     }
     loadOnce();
     Catalog& cat = catalog();
-    const auto it = cat.glyphs.constFind(normalize(name));
+    const QString key = resolve(name);
+    const auto it = cat.glyphs.constFind(key);
     if (it == cat.glyphs.cend() || !it->svg || !it->svg->isValid()) {
         return false;
     }
     const QRectF& vb = it->viewBox;
-    if (vb.isEmpty()) {
+    const QRectF content = it->content.isEmpty() ? vb : it->content;
+    if (vb.isEmpty() || content.isEmpty()) {
         return false;
     }
 
-    const qreal pad = qMin(r.width(), r.height()) * 0.10;
+    const qreal pad = qMin(r.width(), r.height()) * 0.08;
     const QRectF box = r.adjusted(pad, pad, -pad, -pad);
     if (box.isEmpty()) {
         return false;
     }
-    const qreal s = qMin(box.width() / vb.width(), box.height() / vb.height());
-    const QRectF dest(box.center().x() - vb.width() * s * 0.5,
-                      box.center().y() - vb.height() * s * 0.5, vb.width() * s, vb.height() * s);
+    const qreal s = qMin(box.width() / content.width(), box.height() / content.height());
+    const QRectF dest(box.center().x() - content.width() * s * 0.5,
+                      box.center().y() - content.height() * s * 0.5, content.width() * s,
+                      content.height() * s);
     if (dest.isEmpty()) {
         return false;
     }
@@ -192,7 +203,7 @@ bool paint(QPainter& p, const QString& name, const QRectF& r, const QColor& colo
     const qreal dpr = p.device() ? qMax(1.0, p.device()->devicePixelRatioF()) : 1.0;
     const int w = qMax(1, qCeil(dest.width() * dpr));
     const int h = qMax(1, qCeil(dest.height() * dpr));
-    const QString cacheKey = it.key() + QChar(u'#') + QString::number(color.rgba(), 16) + QChar(u'@')
+    const QString cacheKey = key + QChar(u'#') + QString::number(color.rgba(), 16) + QChar(u'@')
                              + QString::number(w) + QChar(u'x') + QString::number(h);
     if (const QPixmap* hit = cat.rasters.object(cacheKey)) {
         p.drawPixmap(dest.topLeft(), *hit);
@@ -205,7 +216,12 @@ bool paint(QPainter& p, const QString& name, const QRectF& r, const QColor& colo
     {
         QPainter ip(&img);
         ip.setRenderHint(QPainter::Antialiasing, true);
-        it->svg->render(&ip, QRectF(0, 0, dest.width(), dest.height()));
+        // Map the full viewBox so `content` fills the image.
+        const QRectF renderRect(-(content.x() - vb.x()) / content.width() * dest.width(),
+                                -(content.y() - vb.y()) / content.height() * dest.height(),
+                                vb.width() / content.width() * dest.width(),
+                                vb.height() / content.height() * dest.height());
+        it->svg->render(&ip, renderRect);
         ip.setCompositionMode(QPainter::CompositionMode_SourceIn);
         ip.fillRect(QRectF(0, 0, dest.width(), dest.height()), color);
     }

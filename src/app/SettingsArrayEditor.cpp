@@ -52,9 +52,11 @@ PageDocument SettingsUi::buildArrayDocument() const
         grid.cells.push_back(cell(QStringLiteral("inc_%1").arg(i), QStringLiteral("+"), i, 2,
                                   QStringLiteral("settings.array.nudge.%1.inc").arg(i), incBg));
         grid.cells.push_back(cell(QStringLiteral("edit_%1").arg(i), QStringLiteral("Edit"), i, 3,
-                                  QStringLiteral("settings.array.edit.%1").arg(i), editBg));
+                                  QStringLiteral("settings.array.edit.%1").arg(i), editBg, 1, {}, {},
+                                  QStringLiteral("editSquare")));
         grid.cells.push_back(cell(QStringLiteral("del_%1").arg(i), QStringLiteral("Trash"), i, 4,
-                                  QStringLiteral("settings.array.del.%1").arg(i), delBg));
+                                  QStringLiteral("settings.array.del.%1").arg(i), delBg, 1, {}, {},
+                                  QStringLiteral("delete")));
     }
 
     const int bar = n;

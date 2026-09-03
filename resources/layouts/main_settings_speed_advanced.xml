@@ -8,31 +8,31 @@
   <Style id="tabbar" thickness="0" radius="12"/>
   <Grid id="board" desktopMode="true" rows="13" columns="16" anchor="Top" offset="0,0" size="A_ScreenHeight/9*16, A_ScreenHeight" gap="6" margin="12" radius="16">
     <SubGrid id="tabs" row="0" col="0" colSpan="16" rows="1" columns="7" gap="6" margin="4" style="tabbar">
-      <Cell id="tab_speed" row="0" col="0" label="Speed" icon="RepeatMouseActionIcon" role="tab">
+      <Cell id="tab_speed" row="0" col="0" label="Speed" icon="timer" role="tab">
         <ClosePage/>
         <OpenPage value="main_settings_speed"/>
       </Cell>
-      <Cell id="tab_magnify" row="0" col="1" label="Magnify" icon="ZoomToLocation" role="tab">
+      <Cell id="tab_magnify" row="0" col="1" label="Magnify" icon="ZoomSettings" role="tab">
         <ClosePage/>
         <OpenPage value="main_settings_magnify"/>
       </Cell>
-      <Cell id="tab_indicators" row="0" col="2" label="Indicators" icon="CirclesLeftRight" role="tab">
+      <Cell id="tab_indicators" row="0" col="2" label="Indicators" icon="cycle" role="tab">
         <ClosePage/>
         <OpenPage value="main_settings_indicators"/>
       </Cell>
-      <Cell id="tab_assist" row="0" col="3" label="Assist" icon="IdeaIcon" role="tab">
+      <Cell id="tab_assist" row="0" col="3" label="Assist" icon="ideas" role="tab">
         <ClosePage/>
         <OpenPage value="main_settings_assist"/>
       </Cell>
-      <Cell id="tab_tools" row="0" col="4" label="Tools" icon="LookToScrollActive" role="tab">
+      <Cell id="tab_tools" row="0" col="4" label="Tools" icon="lookToScroll" role="tab">
         <ClosePage/>
         <OpenPage value="main_settings_tools"/>
       </Cell>
-      <Cell id="tab_theme" row="0" col="5" label="Theme" icon="SettingsIcon" role="tab">
+      <Cell id="tab_theme" row="0" col="5" label="Theme" icon="palette" role="tab">
         <ClosePage/>
         <OpenPage value="main_settings_theme"/>
       </Cell>
-      <Cell id="tab_done" row="0" col="6" label="Done" icon="CollapseIcon">
+      <Cell id="tab_done" row="0" col="6" label="Done" icon="keyboardHide">
         <CloseAllPages/>
       </Cell>
     </SubGrid>
@@ -47,7 +47,7 @@
           <Cell id="grace_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.dwellGraceMs.dec"/>
           <Cell id="grace_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="dwellGraceMs" style="join"/>
           <Cell id="grace_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.dwellGraceMs.inc"/>
-          <Cell id="grace_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.dwellGraceMs"/>
+          <Cell id="grace_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.dwellGraceMs"/ icon="editSquare">
         </SubGrid>
       </SubGrid>
       <SubGrid id="row_pg" row="2" col="0" rows="1" columns="2" gap="6" style="row">
@@ -56,7 +56,7 @@
           <Cell id="pg_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.mouseMoveSelectTimeoutMs.dec"/>
           <Cell id="pg_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="mouseMoveSelectTimeoutMs" style="join"/>
           <Cell id="pg_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.mouseMoveSelectTimeoutMs.inc"/>
-          <Cell id="pg_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.mouseMoveSelectTimeoutMs"/>
+          <Cell id="pg_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.mouseMoveSelectTimeoutMs"/ icon="editSquare">
         </SubGrid>
       </SubGrid>
     </SubGrid>
@@ -69,7 +69,7 @@
           <Cell id="fsd_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.mouseMoveForesightDwellMs.dec"/>
           <Cell id="fsd_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="mouseMoveForesightDwellMs" style="join"/>
           <Cell id="fsd_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.mouseMoveForesightDwellMs.inc"/>
-          <Cell id="fsd_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.mouseMoveForesightDwellMs"/>
+          <Cell id="fsd_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.mouseMoveForesightDwellMs"/ icon="editSquare">
         </SubGrid>
       </SubGrid>
       <SubGrid id="row_fsh" row="2" col="0" rows="1" columns="2" gap="6" style="row">
@@ -78,7 +78,7 @@
           <Cell id="fsh_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.mouseMoveForesightHoldMs.dec"/>
           <Cell id="fsh_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="mouseMoveForesightHoldMs" style="join"/>
           <Cell id="fsh_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.mouseMoveForesightHoldMs.inc"/>
-          <Cell id="fsh_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.mouseMoveForesightHoldMs"/>
+          <Cell id="fsh_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.mouseMoveForesightHoldMs"/ icon="editSquare">
         </SubGrid>
       </SubGrid>
     </SubGrid>
@@ -95,7 +95,7 @@
           <Cell id="aci_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.layoutAutoCloseIdleMs.dec"/>
           <Cell id="aci_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="layoutAutoCloseIdleMs" style="join"/>
           <Cell id="aci_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.layoutAutoCloseIdleMs.inc"/>
-          <Cell id="aci_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.layoutAutoCloseIdleMs"/>
+          <Cell id="aci_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.layoutAutoCloseIdleMs"/ icon="editSquare">
         </SubGrid>
       </SubGrid>
       <SubGrid id="row_fd" row="3" col="0" rows="1" columns="2" gap="6" style="row">
@@ -104,7 +104,7 @@
           <Cell id="fd_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.flashMs.dec"/>
           <Cell id="fd_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="flashMs" style="join"/>
           <Cell id="fd_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.flashMs.inc"/>
-          <Cell id="fd_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.flashMs"/>
+          <Cell id="fd_edit" row="0" col="7" colSpan="2" label="Edit…" style="joinRight" command="settings.edit.flashMs"/ icon="editSquare">
         </SubGrid>
       </SubGrid>
       <SubGrid id="row_flash" row="4" col="0" rows="1" columns="2" gap="6" style="row">

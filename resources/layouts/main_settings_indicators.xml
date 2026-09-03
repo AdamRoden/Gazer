@@ -8,28 +8,28 @@
   <Style id="tabbar" thickness="0" radius="12"/>
   <Grid id="board" desktopMode="true" rows="10" columns="16" anchor="Top" offset="0,0" size="A_ScreenHeight/9*16, A_ScreenHeight" gap="6" margin="12" radius="16">
     <SubGrid id="tabs" row="0" col="0" colSpan="16" rows="1" columns="7" gap="6" margin="4" style="tabbar">
-      <Cell id="tab_speed" row="0" col="0" label="Speed" icon="RepeatMouseActionIcon" role="tab">
+      <Cell id="tab_speed" row="0" col="0" label="Speed" icon="timer" role="tab">
         <ClosePage/>
         <OpenPage value="main_settings_speed"/>
       </Cell>
-      <Cell id="tab_magnify" row="0" col="1" label="Magnify" icon="ZoomToLocation" role="tab">
+      <Cell id="tab_magnify" row="0" col="1" label="Magnify" icon="ZoomSettings" role="tab">
         <ClosePage/>
         <OpenPage value="main_settings_magnify"/>
       </Cell>
-      <Cell id="tab_indicators" row="0" col="2" label="Indicators" icon="CirclesLeftRight" role="tab"/>
-      <Cell id="tab_assist" row="0" col="3" label="Assist" icon="IdeaIcon" role="tab">
+      <Cell id="tab_indicators" row="0" col="2" label="Indicators" icon="cycle" role="tab"/>
+      <Cell id="tab_assist" row="0" col="3" label="Assist" icon="ideas" role="tab">
         <ClosePage/>
         <OpenPage value="main_settings_assist"/>
       </Cell>
-      <Cell id="tab_tools" row="0" col="4" label="Tools" icon="LookToScrollActive" role="tab">
+      <Cell id="tab_tools" row="0" col="4" label="Tools" icon="lookToScroll" role="tab">
         <ClosePage/>
         <OpenPage value="main_settings_tools"/>
       </Cell>
-      <Cell id="tab_theme" row="0" col="5" label="Theme" icon="SettingsIcon" role="tab">
+      <Cell id="tab_theme" row="0" col="5" label="Theme" icon="palette" role="tab">
         <ClosePage/>
         <OpenPage value="main_settings_theme"/>
       </Cell>
-      <Cell id="tab_done" row="0" col="6" label="Done" icon="CollapseIcon">
+      <Cell id="tab_done" row="0" col="6" label="Done" icon="keyboardHide">
         <CloseAllPages/>
       </Cell>
     </SubGrid>
@@ -83,7 +83,7 @@
       <Cell id="h_preview" row="0" col="0" label="Preview" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_test" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="test_label" row="0" col="0" label="Test" caption="Dwell Move to… to try pick markers." role="label" style="plain"/>
-        <Cell id="test_move" row="0" col="1" icon="MouseMoveTo" label="Move to…" activeState="mouseDwellMove" command="mouseDwellMove"/>
+        <Cell id="test_move" row="0" col="1" icon="dragPan" label="Move to…" activeState="mouseDwellMove" command="mouseDwellMove"/>
       </SubGrid>
     </SubGrid>
   </Grid>
