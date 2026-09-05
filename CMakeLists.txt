@@ -100,6 +100,7 @@ set(GAZER_SOURCES
     src/assist/SpeechHistory.cpp
     src/assist/SpeechEngine.cpp
     src/assist/ClipPlayer.cpp
+    src/assist/ClipBoost.cpp
     src/assist/ComposeBuffer.cpp
     src/assist/SpeechSecrets.cpp
     src/assist/ElevenClient.cpp
@@ -208,6 +209,8 @@ set(GAZER_HEADERS
     src/assist/ElevenRequest.h
     src/assist/SpeechEngine.h
     src/assist/ClipPlayer.h
+    src/assist/ClipBoost.h
+    src/assist/AudioGain.h
     src/assist/ComposeBuffer.h
     src/assist/SpeechSecrets.h
     src/assist/ElevenClient.h
@@ -435,6 +438,7 @@ add_executable(GazerSpeechTests
     tests/VoiceCatalogTest.cpp
     tests/SoundboardStoreTest.cpp
     tests/SpeechHistoryTest.cpp
+    tests/AudioGainTest.cpp
     src/assist/ElevenRequest.cpp
     src/assist/ComposeBuffer.cpp
     src/assist/VoiceCatalog.cpp

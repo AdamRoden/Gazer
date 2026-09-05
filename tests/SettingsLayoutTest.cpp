@@ -249,6 +249,8 @@ void SettingsLayoutTest::hubOpensSixBoards()
     QVERIFY2(loadLayout(QStringLiteral("main_settings_speech"), speech, &err), qPrintable(err));
     QCOMPARE(speech.findCell(QStringLiteral("speed_value"))->settingKey,
              QStringLiteral("speechSpeed"));
+    QCOMPARE(speech.findCell(QStringLiteral("volume_value"))->settingKey,
+             QStringLiteral("speechVolume"));
     QVERIFY(speech.findCell(QStringLiteral("tab_speech")));
 }
 

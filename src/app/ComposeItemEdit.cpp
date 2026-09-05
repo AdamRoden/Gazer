@@ -339,6 +339,7 @@ bool ComposeUi::saveNameEdit(QString* error)
             v.model = ElevenRequest::normalizeModelId(m_settings.speechModel);
             v.voiceId = currentVoiceId();
             v.speed = m_settings.speechSpeed;
+            v.volume = m_settings.speechVolume;
             v.color = m_editColor;
             v.icon = m_editIcon;
             m_settings.savedSpeechVoices.push_back(v);

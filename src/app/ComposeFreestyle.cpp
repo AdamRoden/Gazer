@@ -30,7 +30,13 @@ void ComposeUi::fillFreestyleMode(PageDocument& doc) const
         const AppSettings::SavedSpeechVoice& v = list[i];
         ChoiceSlot s;
         s.label = v.name;
-        s.caption = QString::number(v.speed, 'f', 1);
+        if (qAbs(v.volume - 1.0) < 0.05) {
+            s.caption = QString::number(v.speed, 'f', 1);
+        } else {
+            s.caption = QStringLiteral("%1  %2\u00d7")
+                            .arg(v.speed, 0, 'f', 1)
+                            .arg(v.volume, 0, 'f', 1);
+        }
         s.icon = v.icon;
         s.color = v.color;
         s.useCommand = QStringLiteral("compose.voicePreset.%1").arg(v.id);
@@ -84,6 +90,7 @@ bool ComposeUi::applyVoicePreset(const QString& id, QString* error)
         m_settings.sapiVoiceToken = found->voiceId;
     }
     m_settings.speechSpeed = found->speed;
+    m_settings.speechVolume = found->volume;
     m_activeVoicePresetId = found->id;
     apply();
     rebuildBoard();

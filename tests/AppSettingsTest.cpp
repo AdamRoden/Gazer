@@ -99,6 +99,7 @@ void AppSettingsTest::factoryUsesDomainConstants()
     QCOMPARE(s.progressFillColor, QStringLiteral("#4DFF473D"));
     QCOMPARE(s.speakAlsoType, true);
     QCOMPARE(s.speechModel, QStringLiteral("sapi"));
+    QCOMPARE(s.speechVolume, 1.0);
     QCOMPARE(s.savedSpeechTags, AppSettings::defaultSavedSpeechTags());
     QVERIFY(s.savedSpeechVoices.isEmpty());
     QVERIFY(s.progress.radial);
@@ -430,6 +431,7 @@ void AppSettingsTest::speechSettingsRoundTrip()
     s.speechModel = QStringLiteral("eleven_v3");
     s.speechSpeed = 1.4;
     s.speechPitch = 1.2;
+    s.speechVolume = 2.5;
     s.elevenVoiceId = QStringLiteral("abc123");
     s.speechLangFilter = QStringLiteral("en");
     s.elevenFavoriteVoiceIds = {QStringLiteral("abc"), QString()};
@@ -442,9 +444,11 @@ void AppSettingsTest::speechSettingsRoundTrip()
     preset.model = QStringLiteral("eleven_v3");
     preset.voiceId = QStringLiteral("abc123");
     preset.speed = 1.2;
+    preset.volume = 2.0;
     s.savedSpeechVoices = {preset};
     s.clamp();
     QCOMPARE(s.speechSpeed, 1.4);
+    QCOMPARE(s.speechVolume, 2.5);
     QCOMPARE(s.elevenFavoriteVoiceIds.size(), 1);
     QCOMPARE(s.savedSpeechTags.size(), 2);
     QCOMPARE(s.savedSpeechTags.front().name, QStringLiteral("laugh"));
@@ -459,6 +463,7 @@ void AppSettingsTest::speechSettingsRoundTrip()
     QCOMPARE(b.speechModel, QStringLiteral("eleven_v3"));
     QCOMPARE(b.speechSpeed, 1.4);
     QCOMPARE(b.speechPitch, 1.2);
+    QCOMPARE(b.speechVolume, 2.5);
     QCOMPARE(b.elevenVoiceId, QStringLiteral("abc123"));
     QCOMPARE(b.speechLangFilter, QStringLiteral("en"));
     QCOMPARE(b.elevenFavoriteVoiceIds, s.elevenFavoriteVoiceIds);
@@ -467,6 +472,7 @@ void AppSettingsTest::speechSettingsRoundTrip()
     QCOMPARE(b.savedSpeechVoices.front().id, QStringLiteral("v1"));
     QCOMPARE(b.savedSpeechVoices.front().name, QStringLiteral("Rachel laugh"));
     QCOMPARE(b.savedSpeechVoices.front().voiceId, QStringLiteral("abc123"));
+    QCOMPARE(b.savedSpeechVoices.front().volume, 2.0);
 }
 
 QObject* createAppSettingsTest()

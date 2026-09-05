@@ -152,7 +152,8 @@ void ComposeUi::syncActiveVoicePreset()
                 ? m_settings.elevenVoiceId.trimmed()
                 : m_settings.sapiVoiceToken.trimmed();
         if (v.model == m_settings.speechModel && v.voiceId.trimmed() == liveId
-            && qAbs(v.speed - m_settings.speechSpeed) < 0.05) {
+            && qAbs(v.speed - m_settings.speechSpeed) < 0.05
+            && qAbs(v.volume - m_settings.speechVolume) < 0.05) {
             return;
         }
         break;
@@ -385,6 +386,17 @@ void ComposeUi::setSpeechModel(const QString& model)
 void ComposeUi::nudgeSpeed(int dir)
 {
     if (!m_settings.nudge(QStringLiteral("speechSpeed"), dir)) {
+        return;
+    }
+    apply();
+    if (freestyleMode()) {
+        rebuildBoard();
+    }
+}
+
+void ComposeUi::nudgeVolume(int dir)
+{
+    if (!m_settings.nudge(QStringLiteral("speechVolume"), dir)) {
         return;
     }
     apply();

@@ -43,6 +43,7 @@ public:
     [[nodiscard]] bool editIconPalette() const { return m_editIcons; }
     [[nodiscard]] QString activeTopicId() const;
     [[nodiscard]] QString activeVoicePresetId() const { return m_activeVoicePresetId; }
+    [[nodiscard]] QString currentVoiceId() const;
     /// Consume Send and mapping/modifier Commands while compose (or a compose
     /// live board) is capturing. Composer builtins return false so dispatch runs them.
     [[nodiscard]] bool tryHandle(const PageAction& a, const QString& sourcePageId);
@@ -66,19 +67,22 @@ public:
     void insertTagAt(int index);
     void refresh();
     void refreshLiveBoards();
-    /// Drop a Freestyle voice highlight that no longer matches live model/voice/speed.
+    /// Drop a Freestyle voice highlight that no longer matches live model/voice/speed/boost.
     void syncFromSettings();
     void onCatalogReady(bool ok, const QString& error);
 
     bool openVoices(QString* error = nullptr);
     void setSpeechModel(const QString& model);
     void selectVoice(const QString& encodedId);
-    void toggleFavorite();
+    void toggleFavorite(const QString& encodedId = {});
     void previewCurrent();
+    void previewVoice(const QString& encodedId);
     void voicesPage(int delta);
+    void voicesGoto(int offset);
     void setGenderFilter(const QString& gender);
     void setLangFilter(const QString& language);
     void nudgeSpeed(int dir);
+    void nudgeVolume(int dir);
 
     bool toggleFreestyle(QString* error = nullptr);
     bool pin(QString* error = nullptr);
@@ -154,7 +158,6 @@ private:
     [[nodiscard]] bool elevenMode() const;
     [[nodiscard]] QVector<VoiceCatalog::Voice> currentVoices() const;
     [[nodiscard]] QVector<VoiceCatalog::Voice> filteredVoices() const;
-    [[nodiscard]] QString currentVoiceId() const;
     PageDocument buildVoicesDocument();
     bool presentLive(const QString& id, PageDocument doc, QString* error);
     void rebuildVoices();

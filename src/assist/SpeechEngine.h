@@ -39,6 +39,7 @@ public:
     void speak(const QString& phrase, SpeakKind kind, bool recordHistory = true);
     void stop();
     void previewCurrent();
+    void previewVoice(const QString& voiceId);
     [[nodiscard]] bool playFile(const QString& path);
 
     [[nodiscard]] Status status() const { return m_status; }

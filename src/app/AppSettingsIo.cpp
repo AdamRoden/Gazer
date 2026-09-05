@@ -228,6 +228,7 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
     sapiVoiceToken = o.value(QStringLiteral("sapiVoiceToken")).toString(sapiVoiceToken);
     speechSpeed = o.value(QStringLiteral("speechSpeed")).toDouble(speechSpeed);
     speechPitch = o.value(QStringLiteral("speechPitch")).toDouble(speechPitch);
+    speechVolume = o.value(QStringLiteral("speechVolume")).toDouble(speechVolume);
     speechLangFilter = o.value(QStringLiteral("speechLangFilter")).toString(speechLangFilter);
     elevenApiKeySet = false;
     auto readStringList = [](const QJsonObject& obj, const QString& key, const QStringList& fallback) {
@@ -277,6 +278,7 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
             item.model = vo.value(QStringLiteral("model")).toString();
             item.voiceId = vo.value(QStringLiteral("voiceId")).toString();
             item.speed = vo.value(QStringLiteral("speed")).toDouble(1.0);
+            item.volume = vo.value(QStringLiteral("volume")).toDouble(1.0);
             item.color = vo.value(QStringLiteral("color")).toString();
             item.icon = vo.value(QStringLiteral("icon")).toString();
             savedSpeechVoices.push_back(item);
@@ -497,6 +499,7 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     o.insert(QStringLiteral("sapiVoiceToken"), copy.sapiVoiceToken);
     o.insert(QStringLiteral("speechSpeed"), copy.speechSpeed);
     o.insert(QStringLiteral("speechPitch"), copy.speechPitch);
+    o.insert(QStringLiteral("speechVolume"), copy.speechVolume);
     o.insert(QStringLiteral("speechLangFilter"), copy.speechLangFilter);
     auto writeStringList = [](const QStringList& v) {
         QJsonArray a;
@@ -526,6 +529,7 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
             vo.insert(QStringLiteral("model"), v.model);
             vo.insert(QStringLiteral("voiceId"), v.voiceId);
             vo.insert(QStringLiteral("speed"), v.speed);
+            vo.insert(QStringLiteral("volume"), v.volume);
             vo.insert(QStringLiteral("color"), v.color);
             vo.insert(QStringLiteral("icon"), v.icon);
             voices.append(vo);

@@ -1,6 +1,7 @@
 #include "app/ComposeUi.h"
 
 #include "app/AppSettings.h"
+#include "app/ComposeUiInternal.h"
 #include "app/SettingsPageBuild.h"
 #include "assist/ElevenClient.h"
 #include "assist/ElevenRequest.h"
@@ -18,10 +19,15 @@ namespace gazer {
 
 using SettingsPageBuild::cell;
 using SettingsPageBuild::closeSelf;
-using SettingsPageBuild::initGrid;
+using SettingsPageBuild::initTopOverlay;
+using compose_detail::kOverlayListRows;
+using compose_detail::overlayBody;
+using compose_detail::overlayList;
+using compose_detail::overlayScrollbar;
 
 bool ComposeUi::openVoices(QString* error)
 {
+    m_voicePage = 0;
     requestCatalogIfNeeded();
     return presentLive(QString(kVoicesLiveId), buildVoicesDocument(), error);
 }
@@ -110,12 +116,15 @@ void ComposeUi::selectVoice(const QString& encodedId)
     }
 }
 
-void ComposeUi::toggleFavorite()
+void ComposeUi::toggleFavorite(const QString& encodedId)
 {
     if (!elevenMode()) {
         return;
     }
-    const QString id = m_settings.elevenVoiceId.trimmed();
+    QString id = VoiceCatalog::decodeId(encodedId).trimmed();
+    if (id.isEmpty()) {
+        id = currentVoiceId();
+    }
     if (id.isEmpty()) {
         return;
     }
@@ -134,9 +143,25 @@ void ComposeUi::previewCurrent()
     m_speech.previewCurrent();
 }
 
+void ComposeUi::previewVoice(const QString& encodedId)
+{
+    const QString id = VoiceCatalog::decodeId(encodedId).trimmed();
+    if (id.isEmpty()) {
+        previewCurrent();
+        return;
+    }
+    m_speech.previewVoice(id);
+}
+
 void ComposeUi::voicesPage(int delta)
 {
     m_voicePage += delta;
+    rebuildVoices();
+}
+
+void ComposeUi::voicesGoto(int offset)
+{
+    m_voicePage = offset;
     rebuildVoices();
 }
 
@@ -168,7 +193,7 @@ PageDocument ComposeUi::buildVoicesDocument()
     doc.id = QString(kVoicesLiveId);
     doc.name = QStringLiteral("Voices");
     const ThemeColors theme = m_settings.resolvedTheme();
-    initGrid(doc, 6, 6, 960, 720, 10, 16, theme);
+    initTopOverlay(doc, 10, 3, {1.0, 1.0, 10.0}, 8, 16, theme, QStringLiteral("A_ScreenHeight"));
     PageGrid& grid = doc.grids[0];
     const QColor key = theme.bgSurface.isValid() ? theme.bgSurface : QColor(40, 40, 44);
     const QColor accent = theme.accent.isValid() ? theme.accent : QColor(80, 160, 220);
@@ -189,12 +214,26 @@ PageDocument ComposeUi::buildVoicesDocument()
               QStringLiteral("eleven_flash_v2_5"));
     modelCell(QStringLiteral("m_v3"), QStringLiteral("v3"), 2,
               QStringLiteral("speech.model.eleven_v3"), QStringLiteral("eleven_v3"));
-    grid.cells.push_back(cell(QStringLiteral("preview"), QStringLiteral("Preview"), 0, 3,
-                              QStringLiteral("speech.preview"), accent));
-    grid.cells.push_back(cell(QStringLiteral("prev"), QStringLiteral("Prev"), 0, 4,
-                              QStringLiteral("speech.voiceList.prev"), key));
-    grid.cells.push_back(cell(QStringLiteral("next"), QStringLiteral("Next"), 0, 5,
-                              QStringLiteral("speech.voiceList.next"), key));
+
+    const QString current = currentVoiceId();
+    grid.cells.push_back(cell(QStringLiteral("spd_dec"), QStringLiteral("\u2212"), 0, 3,
+                              QStringLiteral("speech.speed.dec"), key));
+    grid.cells.push_back(cell(QStringLiteral("spd_val"),
+                              QString::number(m_settings.speechSpeed, 'f', 1), 0, 4, {}, value, 1,
+                              QStringLiteral("value")));
+    grid.cells.push_back(cell(QStringLiteral("spd_inc"), QStringLiteral("+"), 0, 5,
+                              QStringLiteral("speech.speed.inc"), key));
+    grid.cells.push_back(cell(QStringLiteral("vol_dec"), QStringLiteral("\u2212"), 0, 6,
+                              QStringLiteral("speech.volume.dec"), key));
+    grid.cells.push_back(cell(QStringLiteral("vol_val"),
+                              QString::number(m_settings.speechVolume, 'f', 1)
+                                  + QStringLiteral("\u00d7"),
+                              0, 7, {}, value, 1, QStringLiteral("value")));
+    grid.cells.push_back(cell(QStringLiteral("vol_inc"), QStringLiteral("+"), 0, 8,
+                              QStringLiteral("speech.volume.inc"), key));
+    PageCell done = cell(QStringLiteral("close"), QStringLiteral("Done"), 0, 9, {}, warn, 1);
+    done.actions.push_back(closeSelf());
+    grid.cells.push_back(done);
 
     const QString g = m_genderFilter;
     auto chip = [&](const QString& id, const QString& label, int col, const QString& cmd, bool on) {
@@ -223,9 +262,9 @@ PageDocument ComposeUi::buildVoicesDocument()
     }
 
     const auto filtered = filteredVoices();
-    int pages = 1;
-    const auto vis = VoiceCatalog::page(filtered, m_voicePage, &pages);
-    m_voicePage = qBound(0, m_voicePage, pages - 1);
+    const int maxOffset = qMax(0, filtered.size() - kOverlayListRows);
+    m_voicePage = qBound(0, m_voicePage, maxOffset);
+    const int start = m_voicePage;
     QString caption;
     if (m_voicesLoading) {
         caption = QStringLiteral("Loading voices\u2026");
@@ -235,59 +274,59 @@ PageDocument ComposeUi::buildVoicesDocument()
         caption = elevenMode() ? QStringLiteral("No matching ElevenLabs voices")
                                : QStringLiteral("No matching SAPI voices");
     } else {
-        const int start = m_voicePage * VoiceCatalog::kPageSize + 1;
-        const int end = start + vis.size() - 1;
         caption = QStringLiteral("%1–%2 of %3")
-                      .arg(start)
-                      .arg(end)
+                      .arg(start + 1)
+                      .arg(qMin(start + kOverlayListRows, filtered.size()))
                       .arg(filtered.size());
     }
-    grid.cells.push_back(cell(QStringLiteral("caption"), caption, 2, 0, {}, value, 5,
+    grid.cells.push_back(cell(QStringLiteral("caption"), caption, 1, 6, {}, value, 4,
                               QStringLiteral("value")));
-    PageCell done = cell(QStringLiteral("close"), QStringLiteral("Done"), 2, 5, {}, warn);
-    done.actions.push_back(closeSelf());
-    grid.cells.push_back(done);
 
-    const QString current = currentVoiceId();
-    const QStringList& favs = m_settings.elevenFavoriteVoiceIds;
-    for (int i = 0; i < VoiceCatalog::kPageSize; ++i) {
-        const int row = 3 + i / 6;
-        const int col = i % 6;
-        if (i >= vis.size()) {
-            grid.cells.push_back(cell(QStringLiteral("v_%1").arg(i), {}, row, col, {}, value, 1,
+    PageGrid body = overlayBody(2, 10);
+    PageGrid list = overlayList(7);
+    for (int i = 0; i < kOverlayListRows; ++i) {
+        const int idx = start + i;
+        if (idx >= filtered.size()) {
+            list.cells.push_back(cell(QStringLiteral("f_%1").arg(i), {}, i, 0, {}, value, 1,
+                                      QStringLiteral("label")));
+            list.cells.push_back(cell(QStringLiteral("v_%1").arg(i), {}, i, 1, {}, value, 5,
+                                      QStringLiteral("label")));
+            list.cells.push_back(cell(QStringLiteral("p_%1").arg(i), {}, i, 6, {}, value, 1,
                                       QStringLiteral("label")));
             continue;
         }
-        const Voice& v = vis[i];
-        const bool sel = v.id == current;
-        const bool fav = elevenMode() && favs.contains(v.id);
-        QString label = v.name;
-        if (fav) {
-            label = QStringLiteral("\u2605 ") + label;
+        const Voice& v = filtered[idx];
+        const QString encoded = VoiceCatalog::encodeId(v.id);
+        const bool sel = !current.isEmpty() && v.id == current;
+        if (elevenMode()) {
+            PageCell fav = cell(QStringLiteral("f_%1").arg(i), {}, i, 0,
+                                QStringLiteral("speech.fav.toggle.%1").arg(encoded), key, 1, {}, {},
+                                QStringLiteral("star"));
+            fav.activeState = QStringLiteral("speech.fav.%1").arg(encoded);
+            list.cells.push_back(fav);
+        } else {
+            list.cells.push_back(cell(QStringLiteral("f_%1").arg(i), {}, i, 0, {}, value, 1,
+                                      QStringLiteral("label")));
         }
-        PageCell c = cell(QStringLiteral("v_%1").arg(i), label, row, col,
-                          QStringLiteral("speech.voice.%1").arg(VoiceCatalog::encodeId(v.id)),
-                          sel ? accent : key, 1, {}, v.language);
-        grid.cells.push_back(c);
+        if (sel) {
+            PageCell name = cell(QStringLiteral("v_%1").arg(i), v.name, i, 1, {}, accent, 5,
+                                 QStringLiteral("label"), v.language);
+            name.activeState = QStringLiteral("speech.voice.%1").arg(encoded);
+            list.cells.push_back(name);
+        } else {
+            list.cells.push_back(cell(QStringLiteral("v_%1").arg(i), v.name, i, 1,
+                                      QStringLiteral("speech.voice.%1").arg(encoded), key, 5, {},
+                                      v.language));
+        }
+        list.cells.push_back(cell(QStringLiteral("p_%1").arg(i), {}, i, 6,
+                                  QStringLiteral("speech.voicePreview.%1").arg(encoded), accent, 1,
+                                  {}, {}, QStringLiteral("recordVoiceOver")));
     }
-
-    if (elevenMode() && !current.isEmpty()) {
-        grid.cells.push_back(cell(QStringLiteral("star"), QStringLiteral("\u2605 Favorite"), 5, 0,
-                                  QStringLiteral("speech.fav.toggle"),
-                                  favs.contains(current) ? accent : key, 2));
-    } else {
-        grid.cells.push_back(cell(QStringLiteral("star"),
-                                  elevenMode() ? QStringLiteral("Select a voice")
-                                               : QStringLiteral("SAPI voice"),
-                                  5, 0, {}, value, 2, QStringLiteral("label")));
-    }
-    grid.cells.push_back(cell(QStringLiteral("spd_dec"), QStringLiteral("\u2212"), 5, 2,
-                              QStringLiteral("speech.speed.dec"), key));
-    grid.cells.push_back(cell(QStringLiteral("spd_val"),
-                              QString::number(m_settings.speechSpeed, 'f', 1), 5, 3, {}, value, 1,
-                              QStringLiteral("value")));
-    grid.cells.push_back(cell(QStringLiteral("spd_inc"), QStringLiteral("+"), 5, 4,
-                              QStringLiteral("speech.speed.inc"), key));
+    body.subGrids.push_back(std::move(list));
+    body.subGrids.push_back(overlayScrollbar(
+        QStringLiteral("speech.voiceList.prev"), QStringLiteral("speech.voiceList.next"),
+        QStringLiteral("speech.voiceList.goto."), start, maxOffset, key, accent, value));
+    grid.subGrids.push_back(std::move(body));
     return doc;
 }
 

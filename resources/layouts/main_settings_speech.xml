@@ -67,14 +67,21 @@
     </SubGrid>
 
     <SubGrid id="sec_spd" row="6" col="0" colSpan="16" rowSpan="2" rows="2" columns="1" rowWeights="1,2" gap="6" margin="6" style="group">
-      <Cell id="h_spd" row="0" col="0" label="Speed" role="label" textStyle="section" style="plain"/>
+      <Cell id="h_spd" row="0" col="0" label="Playback" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_spd" row="1" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="spd_l" row="0" col="0" label="Speech speed" caption="0.5–2.0 for Eleven and SAPI."
-              role="label" style="plain"/>
-        <SubGrid id="act_spd" row="0" col="1" rows="1" columns="3" gap="0" style="row">
-          <Cell id="spd_dec" row="0" col="0" label="−" command="settings.nudge.speechSpeed.dec"/>
-          <Cell id="speed_value" row="0" col="1" label="1.0" role="value" settingKey="speechSpeed"/>
-          <Cell id="spd_inc" row="0" col="2" label="+" command="settings.nudge.speechSpeed.inc"/>
+        <SubGrid id="act_spd" row="0" col="0" rows="1" columns="4" gap="0" style="row">
+          <Cell id="spd_l" row="0" col="0" label="Speed" caption="0.5–2.0 for Eleven and SAPI."
+                role="label" style="plain"/>
+          <Cell id="spd_dec" row="0" col="1" label="−" style="joinLeft" command="settings.nudge.speechSpeed.dec"/>
+          <Cell id="speed_value" row="0" col="2" label="1.0" role="value" settingKey="speechSpeed" style="join"/>
+          <Cell id="spd_inc" row="0" col="3" label="+" style="joinRight" command="settings.nudge.speechSpeed.inc"/>
+        </SubGrid>
+        <SubGrid id="act_vol" row="0" col="1" rows="1" columns="4" gap="0" style="row">
+          <Cell id="vol_l" row="0" col="0" label="Boost" caption="1–5× louder for ElevenLabs clips."
+                role="label" style="plain"/>
+          <Cell id="vol_dec" row="0" col="1" label="−" style="joinLeft" command="settings.nudge.speechVolume.dec"/>
+          <Cell id="volume_value" row="0" col="2" label="1.0×" role="value" settingKey="speechVolume" style="join"/>
+          <Cell id="vol_inc" row="0" col="3" label="+" style="joinRight" command="settings.nudge.speechVolume.inc"/>
         </SubGrid>
       </SubGrid>
     </SubGrid>

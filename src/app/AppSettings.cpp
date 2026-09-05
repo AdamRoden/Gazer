@@ -234,6 +234,8 @@ constexpr DoubleSpec kDoubleSpecs[] = {
      &AppSettings::ltsAccelPerSec, 0.0, 2.0, 0.05, 2},
     {"speechSpeed", "Speech speed", "ElevenLabs and SAPI speed (0.5–2).", "",
      &AppSettings::speechSpeed, 0.5, 2.0, 0.1, 2},
+    {"speechVolume", "Speech boost", "Make composer voices louder (1–5×). Applies to ElevenLabs clips.",
+     "×", &AppSettings::speechVolume, 1.0, 5.0, 0.5, 1},
 };
 
 const ColorSpec kColorSpecs[] = {
@@ -396,6 +398,7 @@ void AppSettings::clamp()
             }
             v.voiceId = v.voiceId.trimmed();
             v.speed = qBound(0.5, v.speed, 2.0);
+            v.volume = qBound(1.0, v.volume, 5.0);
             v.color = v.color.trimmed();
             v.icon = v.icon.trimmed();
             if (v.model != QLatin1String("sapi") && v.model != QLatin1String("eleven_v3")

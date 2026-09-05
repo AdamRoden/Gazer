@@ -12,6 +12,7 @@ QObject* createComposeBufferTest();
 QObject* createVoiceCatalogTest();
 QObject* createSoundboardStoreTest();
 QObject* createSpeechHistoryTest();
+QObject* createAudioGainTest();
 
 namespace {
 
@@ -49,5 +50,7 @@ int main(int argc, char** argv)
     status |= QTest::qExec(board.get(), rest);
     std::unique_ptr<QObject> hist(createSpeechHistoryTest());
     status |= QTest::qExec(hist.get(), rest);
+    std::unique_ptr<QObject> gain(createAudioGainTest());
+    status |= QTest::qExec(gain.get(), rest);
     return status;
 }

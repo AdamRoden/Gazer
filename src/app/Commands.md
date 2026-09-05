@@ -82,11 +82,11 @@ Script: `gazer.openPage` / `loadPage` / `focusedPageId` (`ScriptHost`, not Comma
 | `compose.editShowColors` / `compose.editShowIcons` | Switch the edit overlay between color chips and icons |
 | `compose.editColor.<i>` / `compose.editIcon.<i>` | Set color or icon on the item being edited |
 | `compose.editClearColor` / `compose.editClearIcon` | Clear custom color or icon on the item being edited |
-| `compose.voicePreset.<id>` / `compose.editVoicePreset.<id>` / `compose.newVoicePreset` | Apply, rename, or save a Freestyle voice (voice + speed) |
+| `compose.voicePreset.<id>` / `compose.editVoicePreset.<id>` / `compose.newVoicePreset` | Apply, rename, or save a Freestyle voice (voice + speed + boost) |
 | `compose.editTag.<i>` / `compose.newTag` | Rename or create a saved tag from the composer |
 | `history.play.<id>` / `history.restore.<id>` / `history.delete.<id>` | Replay, put the phrase back in the buffer, or drop the row |
 | `history.list.next` / `.prev` / `history.list.goto.<n>` | Scroll history; jump to item offset |
-| `compose.pin` / `compose.cancelAssign` | Topics: empty buffer no-op; phrase assigns onto the soundboard. Freestyle: save the current voice + speed |
+| `compose.pin` / `compose.cancelAssign` | Topics: empty buffer no-op; phrase assigns onto the soundboard. Freestyle: save the current voice + speed + boost |
 | `compose.editPins` | Edit mode: dwell a pin/topic (or a Freestyle voice/tag) to rename |
 | `soundboard.edit.<id>` | Open the pin item editor |
 | `soundboard.editTopic.<id>` | Open the topic item editor |
@@ -97,12 +97,14 @@ Script: `gazer.openPage` / `loadPage` / `focusedPageId` (`ScriptHost`, not Comma
 | `compose.insertTagAt.<i>` | Prefix; insert `savedSpeechTags[i]` |
 | `speech.model.sapi` / `.eleven_flash_v2_5` / `.eleven_v3` | Composer engine |
 | `speech.voice.<id>` | Prefix; select a voice (percent-encoded id) |
+| `speech.voicePreview.<id>` | Prefix; preview that voice without selecting it |
 | `speech.preview` | Preview the current voice |
-| `speech.fav.toggle` | Favorite the current ElevenLabs voice |
-| `speech.voiceList.next` / `.prev` | Paginate the filtered catalog |
+| `speech.fav.toggle` / `speech.fav.toggle.<id>` | Favorite the current or named ElevenLabs voice |
+| `speech.voiceList.next` / `.prev` / `.goto.<n>` | Scroll the filtered catalog |
 | `speech.gender.all` / `.female` / `.male` | Voice filter |
 | `speech.lang.all` / `speech.lang.set.<code>` | Language filter |
 | `speech.speed.dec` / `.inc` | Nudge `speechSpeed` 0.1 |
+| `speech.volume.dec` / `.inc` | Nudge `speechVolume` 0.5 (1–5× clip boost) |
 
 While `compose` is top (or a compose live board), `Send` and mapping keys (`backspace`, `space`, `enter`, `escape`, modifiers) are captured and never reach the OS. Caps uses XML `ShowLayers`.
 

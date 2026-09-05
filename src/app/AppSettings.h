@@ -127,6 +127,8 @@ struct AppSettings {
     QString sapiVoiceToken;
     double speechSpeed = 1.0;
     double speechPitch = 1.0;
+    /// Playback gain for composer clips (1–5×). SAPI cannot go above 100%.
+    double speechVolume = 1.0;
     QString speechLangFilter;
     QStringList elevenFavoriteVoiceIds;
     /// Runtime mirror of SpeechSecrets::hasKey(); not persisted.
@@ -148,6 +150,7 @@ struct AppSettings {
         QString model;
         QString voiceId;
         double speed = 1.0;
+        double volume = 1.0;
         QString color;
         QString icon;
     };

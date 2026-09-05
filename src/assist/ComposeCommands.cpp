@@ -127,6 +127,8 @@ void registerComposeCommands(CommandRegistry& commands, ComposeUi& compose)
     bindId(QStringLiteral("history.restore."), &ComposeUi::restoreHistory);
     bindId(QStringLiteral("history.delete."), &ComposeUi::deleteHistory);
     bindVoidId(QStringLiteral("speech.voice."), &ComposeUi::selectVoice);
+    bindVoidId(QStringLiteral("speech.voicePreview."), &ComposeUi::previewVoice);
+    bindVoidId(QStringLiteral("speech.fav.toggle."), &ComposeUi::toggleFavorite);
     bindVoidId(QStringLiteral("speech.lang.set."), &ComposeUi::setLangFilter);
     bindInt(QStringLiteral("compose.editTag."), &ComposeUi::editTagAt);
     bindInt(QStringLiteral("compose.editColor."), &ComposeUi::setEditedColor);
@@ -134,6 +136,7 @@ void registerComposeCommands(CommandRegistry& commands, ComposeUi& compose)
     bindVoidInt(QStringLiteral("compose.removeWord."), &ComposeUi::removeVisibleWord);
     bindVoidInt(QStringLiteral("compose.insertTagAt."), &ComposeUi::insertTagAt);
     bindVoidInt(QStringLiteral("history.list.goto."), &ComposeUi::historyGoto);
+    bindVoidInt(QStringLiteral("speech.voiceList.goto."), &ComposeUi::voicesGoto);
 
     auto setModel = [&compose](const QString& model) {
         return [&compose, model](QString*) {
@@ -153,7 +156,7 @@ void registerComposeCommands(CommandRegistry& commands, ComposeUi& compose)
         return true;
     });
     commands.registerBuiltin(QStringLiteral("speech.fav.toggle"), [&compose](QString*) {
-        compose.toggleFavorite();
+        compose.toggleFavorite({});
         return true;
     });
     commands.registerBuiltin(QStringLiteral("speech.voiceList.next"), [&compose](QString*) {
@@ -186,6 +189,14 @@ void registerComposeCommands(CommandRegistry& commands, ComposeUi& compose)
     });
     commands.registerBuiltin(QStringLiteral("speech.speed.inc"), [&compose](QString*) {
         compose.nudgeSpeed(1);
+        return true;
+    });
+    commands.registerBuiltin(QStringLiteral("speech.volume.dec"), [&compose](QString*) {
+        compose.nudgeVolume(-1);
+        return true;
+    });
+    commands.registerBuiltin(QStringLiteral("speech.volume.inc"), [&compose](QString*) {
+        compose.nudgeVolume(1);
         return true;
     });
     commands.registerBuiltin(QStringLiteral("history.list.next"), [&compose](QString*) {

@@ -13,6 +13,7 @@
 #include "app/ComposeUi.h"
 #include "app/SettingsUi.h"
 #include "assist/SpeechEngine.h"
+#include "assist/VoiceCatalog.h"
 #include "ui/PickStyle.h"
 #include "ui/Theme.h"
 
@@ -70,6 +71,16 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
         return ctx.composeUi
                && ctx.composeUi->activeVoicePresetId()
                       == key.mid(int(QLatin1String("compose.voicePreset.").size()));
+    }
+    if (key.startsWith(QLatin1String("speech.voice."))) {
+        const QString id = VoiceCatalog::decodeId(
+            key.mid(int(QLatin1String("speech.voice.").size())));
+        return ctx.composeUi && ctx.composeUi->currentVoiceId() == id;
+    }
+    if (key.startsWith(QLatin1String("speech.fav."))) {
+        const QString id =
+            VoiceCatalog::decodeId(key.mid(int(QLatin1String("speech.fav.").size())));
+        return ctx.settings && ctx.settings->elevenFavoriteVoiceIds.contains(id);
     }
     if (key.startsWith(QLatin1String("soundboard.topic."))) {
         return ctx.composeUi

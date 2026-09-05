@@ -9,7 +9,7 @@ Composition root, settings, command dispatch.
 | `ActionDispatcher` | `PageAction` → commands / clicks / speak |
 | `CommandRegistry` | Builtin names, then mapping profile. Prefix handlers. `compose.*` / `speech.*` / `soundboard.*` / `history.*` / `settings.speech.*` skip the Cmd toast. Catalog: `Commands.md` |
 | `ComposeUi` | Gaze composer capture (`tryHandle`), decorate live values, stamp chrome. Composer Speak is `SpeakKind::Composed` (Eleven when configured). Helpers: `ComposeUiInternal.h` |
-| `ComposeVoices.cpp` | Voice catalog (model + speed) |
+| `ComposeVoices.cpp` | Voice catalog (model + speed + boost) |
 | `ComposeSoundboard.cpp` | Pin/assign, topic rail, soundboard grid |
 | `ComposeFreestyle.cpp` | Freestyle voice rail + tag board, saved-voice presets |
 | `ComposeItemEdit.cpp` | Unified name/color/icon editor overlay |

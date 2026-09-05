@@ -177,6 +177,29 @@ void SpeechEngine::previewCurrent()
     speak(QStringLiteral("This is a preview."), SpeakKind::Composed, false);
 }
 
+void SpeechEngine::previewVoice(const QString& voiceId)
+{
+    const QString id = voiceId.trimmed();
+    if (id.isEmpty()) {
+        previewCurrent();
+        return;
+    }
+    const QString model = ElevenRequest::normalizeModelId(m_settings.speechModel);
+    if (ElevenRequest::isElevenModel(model)) {
+        const QString prev = m_settings.elevenVoiceId;
+        m_settings.elevenVoiceId = id;
+        previewCurrent();
+        m_settings.elevenVoiceId = prev;
+        return;
+    }
+    const QString prev = m_settings.sapiVoiceToken;
+    m_settings.sapiVoiceToken = id;
+    (void)m_tts.setVoiceToken(id);
+    previewCurrent();
+    m_settings.sapiVoiceToken = prev;
+    (void)m_tts.setVoiceToken(prev);
+}
+
 void SpeechEngine::speakSapi(const QString& spoken)
 {
     m_lastBackend = Backend::Sapi;
@@ -285,7 +308,7 @@ bool SpeechEngine::writeMpegTemp(const QByteArray& mpeg, QString* pathOut)
 void SpeechEngine::playMpeg(const QString& path, double localSpeed, const QString& spokenFallback)
 {
     m_clipGen = m_generation;
-    if (m_clips.isAvailable() && m_clips.play(path, localSpeed)) {
+    if (m_clips.isAvailable() && m_clips.play(path, localSpeed, m_settings.speechVolume)) {
         m_status.busy = true;
         m_status.speaking = true;
         emit statusChanged();
@@ -332,7 +355,7 @@ bool SpeechEngine::playFile(const QString& path)
     m_status.lastError.clear();
     emit statusChanged();
     m_clipGen = m_generation;
-    if (m_clips.isAvailable() && m_clips.play(path, 1.0)) {
+    if (m_clips.isAvailable() && m_clips.play(path, 1.0, m_settings.speechVolume)) {
         m_status.speaking = true;
         emit statusChanged();
         return true;

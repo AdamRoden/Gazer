@@ -6,6 +6,7 @@
 
 #include <QColor>
 #include <QString>
+#include <QtGlobal>
 #include <QVector>
 
 namespace gazer {
@@ -49,6 +50,18 @@ inline PageCell cell(const QString& id, const QString& label, int row, int col,
     if (c.isInteractive() && !commandName.isEmpty()) {
         c.actions.push_back(command(commandName));
     }
+    return c;
+}
+
+inline PageCell scrollHit(const QString& id, int row, int rowSpan, const QString& commandName,
+                          const QColor& bg, double radius)
+{
+    PageCell c = cell(id, {}, row, 0, commandName, bg, 1,
+                      commandName.isEmpty() ? QStringLiteral("label") : QString());
+    c.rowSpan = qMax(1, rowSpan);
+    c.style.thickness = PageBox::all(0);
+    c.style.radius = PageBox::all(radius);
+    c.style.borderColor = QColor(0, 0, 0, 0);
     return c;
 }
 
