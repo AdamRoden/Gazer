@@ -199,6 +199,14 @@ void registerComposeCommands(CommandRegistry& commands, ComposeUi& compose)
         compose.nudgeVolume(1);
         return true;
     });
+    commands.registerBuiltin(QStringLiteral("compose.volume.dec"), [&compose](QString*) {
+        compose.nudgeSystemVolume(-1);
+        return true;
+    });
+    commands.registerBuiltin(QStringLiteral("compose.volume.inc"), [&compose](QString*) {
+        compose.nudgeSystemVolume(1);
+        return true;
+    });
     commands.registerBuiltin(QStringLiteral("history.list.next"), [&compose](QString*) {
         compose.historyPage(1);
         return true;

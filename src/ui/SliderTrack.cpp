@@ -106,6 +106,71 @@ ChannelInfo channelInfo(const QString& channel, const QColor& color)
     return info;
 }
 
+Visual volumeVisual(const QRectF& cell, bool scrubbing)
+{
+    Visual geom;
+    const double trackH = qBound(10.0, cell.height() * 0.42, 22.0);
+    geom.ringDiameter = scrubbing ? qMin(cell.height() - 4.0, trackH + 10.0) : trackH;
+    const double inset = geom.ringDiameter * 0.5;
+    geom.trackCy = cell.center().y();
+    geom.track = QRectF(cell.left() + 6.0, geom.trackCy - trackH * 0.5,
+                        qMax(8.0, cell.width() - 12.0), trackH);
+    geom.valueLeft = geom.track.left() + inset;
+    geom.valueRight = geom.track.right() - inset;
+    if (geom.valueRight <= geom.valueLeft + 1.0) {
+        const double mid = geom.track.center().x();
+        geom.valueLeft = mid - 1.0;
+        geom.valueRight = mid + 1.0;
+    }
+    return geom;
+}
+
+int percentFromLabel(const QString& label)
+{
+    bool ok = false;
+    const int n = QString(label).remove(QLatin1Char('%')).trimmed().toInt(&ok);
+    return ok ? qBound(0, n, 100) : 0;
+}
+
+void paintVolumeBar(QPainter& p, const QRectF& cell, const ThemeColors& theme,
+                    const ProgressVisuals& pv, const QString& label, bool hovered,
+                    double hoverProgress, bool scrubbing, double scrubT, double scrubProgress)
+{
+    const double t = scrubbing ? qBound(0.0, scrubT, 1.0) : percentFromLabel(label) / 100.0;
+    const Visual geom = volumeVisual(cell, scrubbing);
+    const QRectF track = geom.track;
+    const double radius = track.height() * 0.5;
+    QColor empty = theme.bgMain.isValid() ? theme.bgMain : QColor(24, 24, 26);
+    QColor fill = theme.accent.isValid() ? theme.accent : QColor(80, 160, 220);
+    p.setPen(Qt::NoPen);
+    p.setBrush(empty);
+    p.drawRoundedRect(track, radius, radius);
+    const double fillRight = geom.valueLeft + (geom.valueRight - geom.valueLeft) * t;
+    QRectF filled = track;
+    filled.setRight(
+        qBound(track.left() + radius, fillRight + geom.ringDiameter * 0.075, track.right()));
+    p.setBrush(fill);
+    p.drawRoundedRect(filled, radius, radius);
+    p.setBrush(Qt::NoBrush);
+    p.setPen(QPen(QColor(255, 255, 255, 70), 1.1));
+    p.drawRoundedRect(track.adjusted(0.5, 0.5, -0.5, -0.5), radius, radius);
+
+    const QPointF pos = geom.posAt(t);
+    const double ringD = geom.ringDiameter;
+    const QRectF ring(pos.x() - ringD * 0.5, pos.y() - ringD * 0.5, ringD, ringD);
+    p.setBrush(empty);
+    p.setPen(QPen(Qt::white, scrubbing ? 2.4 : 2.0));
+    p.drawEllipse(ring);
+    p.setPen(QPen(QColor(0, 0, 0, 90), 1.0));
+    p.setBrush(Qt::NoBrush);
+    p.drawEllipse(ring.adjusted(1.5, 1.5, -1.5, -1.5));
+    const double ringProgress =
+        scrubbing && scrubProgress > 0.0 ? scrubProgress : (hovered ? hoverProgress : 0.0);
+    if (ringProgress > 0.01) {
+        paintProgress(p, ring.adjusted(-3, -3, 3, 3), ringProgress, pv, ProgressShape::Ellipse);
+    }
+}
+
 } // namespace
 
 void paint(QPainter& p, const QRectF& cell, const ThemeColors& theme, const ProgressVisuals& pv,
@@ -113,6 +178,11 @@ void paint(QPainter& p, const QRectF& cell, const ThemeColors& theme, const Prog
            double hoverProgress, bool scrubbing, double scrubT, const QString& scrubValue,
            double scrubProgress)
 {
+    if (channel.compare(QLatin1String("volume"), Qt::CaseInsensitive) == 0) {
+        paintVolumeBar(p, cell, theme, pv, label, hovered, hoverProgress, scrubbing, scrubT,
+                       scrubProgress);
+        return;
+    }
     const Visual geom = visual(cell, scrubbing);
     QColor base = previewColor.isValid() ? previewColor : ThemeColors::defaultProgressColor();
     int h = 0, s = 0, l = 0, a = 255;

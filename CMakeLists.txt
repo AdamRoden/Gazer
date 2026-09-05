@@ -101,6 +101,7 @@ set(GAZER_SOURCES
     src/assist/SpeechEngine.cpp
     src/assist/ClipPlayer.cpp
     src/assist/ClipBoost.cpp
+    src/assist/SystemVolume.cpp
     src/assist/ComposeBuffer.cpp
     src/assist/SpeechSecrets.cpp
     src/assist/ElevenClient.cpp
@@ -211,6 +212,7 @@ set(GAZER_HEADERS
     src/assist/ClipPlayer.h
     src/assist/ClipBoost.h
     src/assist/AudioGain.h
+    src/assist/SystemVolume.h
     src/assist/ComposeBuffer.h
     src/assist/SpeechSecrets.h
     src/assist/ElevenClient.h

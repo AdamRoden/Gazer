@@ -6,6 +6,7 @@
 
 #include <QString>
 #include <functional>
+#include <memory>
 
 namespace gazer {
 
@@ -17,6 +18,7 @@ class SoundboardStore;
 class SpeechHistory;
 class SpeechEngine;
 class SpeechSecrets;
+class SystemVolume;
 class TtsService;
 
 /// Gaze composer: capture Send/mapping on the compose page, stamp labels,
@@ -31,6 +33,7 @@ public:
     ComposeUi(PageSession& pages, PhraseService& phrases, SpeechEngine& speech,
               AppSettings& settings, SpeechSecrets& secrets, ElevenClient& eleven,
               TtsService& tts, SoundboardStore& board, SpeechHistory& history);
+    ~ComposeUi();
 
     void setApplyFn(std::function<void()> fn) { m_apply = std::move(fn); }
     void setNotifyFn(std::function<void(const QString&)> fn) { m_notify = std::move(fn); }
@@ -83,6 +86,7 @@ public:
     void setLangFilter(const QString& language);
     void nudgeSpeed(int dir);
     void nudgeVolume(int dir);
+    void nudgeSystemVolume(int dir);
 
     bool toggleFreestyle(QString* error = nullptr);
     bool pin(QString* error = nullptr);
@@ -175,6 +179,7 @@ private:
     TtsService& m_tts;
     SoundboardStore& m_board;
     SpeechHistory& m_history;
+    std::unique_ptr<SystemVolume> m_systemVolume;
     ComposeBuffer m_buffer;
     std::function<void()> m_apply;
     std::function<void(const QString&)> m_notify;

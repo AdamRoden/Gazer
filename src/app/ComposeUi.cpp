@@ -10,11 +10,13 @@
 #include "assist/SoundboardStore.h"
 #include "assist/SpeechHistory.h"
 #include "assist/SpeechSecrets.h"
+#include "assist/SystemVolume.h"
 #include "assist/TtsService.h"
 #include "layout/PageSession.h"
 #include "layout/PageTypes.h"
 #include "ui/Theme.h"
 
+#include <QObject>
 #include <QStringView>
 #include <QtGlobal>
 #include <QVector>
@@ -37,8 +39,16 @@ ComposeUi::ComposeUi(PageSession& pages, PhraseService& phrases, SpeechEngine& s
     , m_tts(tts)
     , m_board(board)
     , m_history(history)
+    , m_systemVolume(std::make_unique<SystemVolume>())
 {
+    QObject::connect(m_systemVolume.get(), &SystemVolume::changed, &m_pages, [this]() {
+        if (isOpen()) {
+            refresh();
+        }
+    });
 }
+
+ComposeUi::~ComposeUi() = default;
 
 bool ComposeUi::isCapturing(const QString& sourcePageId) const
 {
@@ -405,6 +415,14 @@ void ComposeUi::nudgeVolume(int dir)
     }
 }
 
+void ComposeUi::nudgeSystemVolume(int dir)
+{
+    if (!m_systemVolume->nudge(dir)) {
+        return;
+    }
+    refresh();
+}
+
 QString ComposeUi::ellipsis(const QString& text, int maxChars)
 {
     if (text.size() <= maxChars) {
@@ -431,6 +449,8 @@ void ComposeUi::decoratePage(PageDocument& doc) const
         for (PageCell& c : g.cells) {
             if (c.id == QLatin1String("phrase")) {
                 c.label = naming ? ellipsis(m_buffer.text().trimmed(), 24) : phrase;
+            } else if (c.id == QLatin1String("vol_track")) {
+                c.label = QStringLiteral("%1%").arg(m_systemVolume->percent());
             } else if (c.id == QLatin1String("page_title")) {
                 if (naming) {
                     c.caption = QStringLiteral("Type a name, then Save");

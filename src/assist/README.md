@@ -19,6 +19,7 @@ Gaze tools on top of the page session.
 | `ClipPlayer` | GUI-thread `QMediaPlayer` for baked MPEG. `play()` true means the engine owns the clip; `failed()` is the SAPI fallback; `stopped()` always means finished. Gain > 1× is a `ClipBoost` preprocess, then the same play path. Manual: `tests/fixtures/speech/beep.mp3` |
 | `ClipBoost` | Decode clip → Int16 WAV with `AudioGain`. Not a player. |
 | `AudioGain` | Int16 PCM scale + clamp for clip boost (1–5×) |
+| `SystemVolume` | WASAPI default-device master volume (0–100, step 10). Composer title-row slider. |
 | `ComposeBuffer` | Composer phrase, caret, chips, undo (800 ms coalesce). `load()` replaces the phrase and drops history for name-edit. No UI. |
 | `ComposeCommands` | `compose.*` / `speech.*` builtins and prefixes |
 | `VoiceCatalog` | Parse/filter/sort ElevenLabs voice cache. No network. |

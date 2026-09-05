@@ -105,6 +105,7 @@ Script: `gazer.openPage` / `loadPage` / `focusedPageId` (`ScriptHost`, not Comma
 | `speech.lang.all` / `speech.lang.set.<code>` | Language filter |
 | `speech.speed.dec` / `.inc` | Nudge `speechSpeed` 0.1 |
 | `speech.volume.dec` / `.inc` | Nudge `speechVolume` 0.5 (1–5× clip boost) |
+| `compose.volume.dec` / `.inc` | Nudge Windows master volume by 10% |
 
 While `compose` is top (or a compose live board), `Send` and mapping keys (`backspace`, `space`, `enter`, `escape`, modifiers) are captured and never reach the OS. Caps uses XML `ShowLayers`.
 

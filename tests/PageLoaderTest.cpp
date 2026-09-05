@@ -665,7 +665,18 @@ void PageLoaderTest::loadComposePage()
     QVERIFY(doc.findCell(QStringLiteral("phrase")));
     QCOMPARE(doc.findCell(QStringLiteral("phrase"))->isInteractive(), false);
     QVERIFY(!doc.findCell(QStringLiteral("done")));
-    QCOMPARE(doc.findCell(QStringLiteral("page_title"))->colSpan, 7);
+    QCOMPARE(doc.findCell(QStringLiteral("page_title"))->colSpan, 4);
+    QVERIFY(doc.findGrid(QStringLiteral("sys_vol")));
+    QCOMPARE(doc.findGrid(QStringLiteral("sys_vol"))->columns, 5);
+    QVERIFY(doc.findCell(QStringLiteral("vol_down")));
+    QCOMPARE(doc.findCell(QStringLiteral("vol_down"))->actions[0].command,
+             QStringLiteral("compose.volume.dec"));
+    QVERIFY(doc.findCell(QStringLiteral("vol_track")));
+    QVERIFY(!doc.findCell(QStringLiteral("vol_track"))->isInteractive());
+    QVERIFY(!doc.findCell(QStringLiteral("vol_val")));
+    QVERIFY(doc.findCell(QStringLiteral("vol_up")));
+    QCOMPARE(doc.findCell(QStringLiteral("vol_up"))->actions[0].command,
+             QStringLiteral("compose.volume.inc"));
     QVERIFY(!doc.findCell(QStringLiteral("topic_new")));
     QVERIFY(!doc.findCell(QStringLiteral("delword")));
     QVERIFY(!doc.findGrid(QStringLiteral("actions")));
