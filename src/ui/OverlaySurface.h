@@ -38,13 +38,6 @@ public:
         }
     }
 
-    /// Reassert the Gazer TOPMOST band. No-op when order is already correct.
-    void raiseStack()
-    {
-        applyToolChrome();
-        restackGazerBand();
-    }
-
     /// Show once. Already-visible overlays stay put (no z-order hop / flash).
     void showOverlay()
     {
@@ -52,7 +45,7 @@ public:
             return;
         }
         show();
-        raiseStack();
+        restackGazerBand();
         emit stackChanged();
     }
 

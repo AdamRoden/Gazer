@@ -154,6 +154,8 @@ public:
     void setMagPickEnabled(bool enabled);
     [[nodiscard]] bool isMagPickEnabled() const { return m_magPickEnabled; }
     [[nodiscard]] bool isMagPointPhase() const;
+    /// True while mag-pick is up and gaze is inside the zoom window.
+    [[nodiscard]] bool containsGaze(const GazePoint& point) const;
     void setPickZoom(double z);
     void setPickWindowPx(int px);
     void setPickWindowRound(bool on);

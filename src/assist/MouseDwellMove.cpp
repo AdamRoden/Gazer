@@ -52,6 +52,14 @@ bool MouseDwellMove::isMagPointPhase() const
     return m_armed && m_phase == Phase::MagPoint;
 }
 
+bool MouseDwellMove::containsGaze(const GazePoint& point) const
+{
+    if (!isMagPointPhase() || !point.valid) {
+        return false;
+    }
+    return gazeInZoomWindow(QPointF(point.x, point.y));
+}
+
 void MouseDwellMove::setPhase(Phase phase)
 {
     const bool wasMag = (m_phase == Phase::MagPoint);
