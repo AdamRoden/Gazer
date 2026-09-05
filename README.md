@@ -6,7 +6,7 @@ Contributors and coding agents: start at [AGENTS.md](AGENTS.md). Page XML schema
 
 Gazer turns live gaze (Tobii Eye Tracker 5, or the mouse as a fallback) into on-screen pages you dwell to activate. Pages can send keys, click, move the pointer, speak, and run assist tools (look-to-scroll, magnifier, gaze reticle). The long-term aim is one stack for accessible gaming in place of OptiKey + OpenTrack + UCR + AutoHotkey.
 
-Version **0.5.1**. License: [GPL-3.0](LICENSE). Cell and zone icons are SVG files in `resources/icons/svg/`. Set `icon` to the filename stem (`menu`, `mouseLeftClick`, `keyTab`). Matching is case-insensitive; a trailing `Icon` is ignored. Unknown names fall back to the label. Most glyphs are [Material Symbols Rounded](https://fonts.google.com/icons?icon.set=Material+Symbols&icon.style=Rounded); see [resources/icons/README.md](resources/icons/README.md).
+Version **0.5.2**. License: [GPL-3.0](LICENSE). Cell and zone icons are SVG files in `resources/icons/svg/`. Set `icon` to the filename stem (`menu`, `mouseLeftClick`, `keyTab`). Matching is case-insensitive; a trailing `Icon` is ignored. Unknown names fall back to the label. Most glyphs are [Material Symbols Rounded](https://fonts.google.com/icons?icon.set=Material+Symbols&icon.style=Rounded); see [resources/icons/README.md](resources/icons/README.md).
 
 ## What you get at launch
 
