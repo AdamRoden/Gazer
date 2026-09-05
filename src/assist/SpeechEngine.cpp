@@ -422,9 +422,10 @@ void SpeechEngine::onSpeechReady(const QByteArray& mpeg)
     if (m_recordHistory) {
         setLastClip(path, m_pendingSpoken);
         emitHistoryIfNeeded(QStringLiteral("eleven"), m_pendingPrep.modelId, m_pendingVoiceId);
+        playMpeg(m_lastClip.path, m_pendingPrep.localSpeed, m_pendingSpoken);
+    } else {
+        playMpeg(path, m_pendingPrep.localSpeed, m_pendingSpoken);
     }
-    const QString playPath = (m_recordHistory && !m_lastClip.path.isEmpty()) ? m_lastClip.path : path;
-    playMpeg(playPath, m_pendingPrep.localSpeed, m_pendingSpoken);
 }
 
 void SpeechEngine::onSpeechFailed(int httpStatus, const QString& error, int retryAfterMs)
