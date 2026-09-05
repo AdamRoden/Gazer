@@ -54,10 +54,10 @@ void SettingsUi::applyPreviewColor()
     }
 }
 
-void SettingsUi::colorSyncFromHsv()
+void SettingsUi::colorSyncFromHsl()
 {
-    QColor c = QColor::fromHsv(qBound(0, m_colorH, 359), qBound(0, m_colorS, 255),
-                               qBound(0, m_colorV, 255), qBound(0, m_colorA, 255));
+    QColor c = QColor::fromHsl(qBound(0, m_colorH, 359), qBound(0, m_colorS, 255),
+                               qBound(0, m_colorL, 255), qBound(0, m_colorA, 255));
     m_colorDraft = c;
     m_colorR = c.red();
     m_colorG = c.green();
@@ -68,13 +68,13 @@ void SettingsUi::colorSyncFromRgb()
 {
     m_colorDraft = QColor(qBound(0, m_colorR, 255), qBound(0, m_colorG, 255),
                           qBound(0, m_colorB, 255), qBound(0, m_colorA, 255));
-    int h = 0, s = 0, v = 0, a = 255;
-    m_colorDraft.getHsv(&h, &s, &v, &a);
+    int h = 0, s = 0, l = 0, a = 255;
+    m_colorDraft.getHsl(&h, &s, &l, &a);
     if (h >= 0) {
         m_colorH = h;
     }
     m_colorS = s;
-    m_colorV = v;
+    m_colorL = l;
     m_colorA = a;
 }
 
@@ -85,13 +85,13 @@ void SettingsUi::loadColorDraft(const QColor& c)
     m_colorG = m_colorDraft.green();
     m_colorB = m_colorDraft.blue();
     m_colorA = m_colorDraft.alpha();
-    int h = 0, s = 0, v = 0, a = 255;
-    m_colorDraft.getHsv(&h, &s, &v, &a);
+    int h = 0, s = 0, l = 0, a = 255;
+    m_colorDraft.getHsl(&h, &s, &l, &a);
     if (h >= 0) {
         m_colorH = h;
     }
     m_colorS = s;
-    m_colorV = v;
+    m_colorL = l;
 }
 
 int SettingsUi::colorShownValue(const QString& channel) const
@@ -105,8 +105,8 @@ int SettingsUi::colorShownValue(const QString& channel) const
         return m_colorH;
     case ColorAxis::Kind::Sat:
         return pct255(m_colorS);
-    case ColorAxis::Kind::Val:
-        return pct255(m_colorV);
+    case ColorAxis::Kind::Light:
+        return pct255(m_colorL);
     case ColorAxis::Kind::Red:
         return m_colorR;
     case ColorAxis::Kind::Green:
@@ -128,15 +128,15 @@ bool SettingsUi::applyColorShownValue(const QString& channel, int value)
     switch (axis->kind) {
     case ColorAxis::Kind::Hue:
         m_colorH = qBound(0, value, 359);
-        colorSyncFromHsv();
+        colorSyncFromHsl();
         break;
     case ColorAxis::Kind::Sat:
         m_colorS = fromPct255(value);
-        colorSyncFromHsv();
+        colorSyncFromHsl();
         break;
-    case ColorAxis::Kind::Val:
-        m_colorV = fromPct255(value);
-        colorSyncFromHsv();
+    case ColorAxis::Kind::Light:
+        m_colorL = fromPct255(value);
+        colorSyncFromHsl();
         break;
     case ColorAxis::Kind::Red:
         m_colorR = qBound(0, value, 255);
@@ -370,7 +370,7 @@ PageDocument SettingsUi::buildAccentColorDocument() const
     int axisRow = 1;
     for (const ColorAxis& axis : kColorAxes) {
         if (axis.kind != ColorAxis::Kind::Hue && axis.kind != ColorAxis::Kind::Sat
-            && axis.kind != ColorAxis::Kind::Val) {
+            && axis.kind != ColorAxis::Kind::Light) {
             continue;
         }
         addColorAxis(grid, axis, axisRow, 9, 11, pal);

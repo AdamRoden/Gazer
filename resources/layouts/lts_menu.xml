@@ -10,6 +10,6 @@
     <Cell id="west" row="1" col="0" style="slow" icon="LookToScrollSpeedSlow" command="lts.speed.slower"/>
     <Cell id="east" row="1" col="2" style="fast" icon="LookToScrollSpeedFast" command="lts.speed.faster"/>
     <Cell id="south" row="2" col="1" style="quit" icon="powerOnOff" command="lts.quit"/>
-    <Cell id="hub" row="1" col="1" style="hub" label="5" icon="arrowCircleRight" command="lts.resume"/>
+    <Cell id="hub" row="1" col="1" style="hub" label="5" icon="ArrowPointingToRight" command="lts.resume"/>
   </Grid>
 </Page>

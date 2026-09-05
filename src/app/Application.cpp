@@ -35,8 +35,8 @@
 #include <QApplication>
 #include <QCoreApplication>
 #include <QDir>
-#include <QHash>
 #include <QFileInfo>
+#include <QHash>
 #include <QSize>
 #include <QTimer>
 

@@ -44,9 +44,8 @@ loop" style="pink" activeState="mouseMoveToGazeClickLoop" command="mouseMoveToGa
     <Cell id="gaze_reticle" row="2" col="6" icon="Eye" label="Show gaze" style="purple" activeState="gazeReticle" command="toggleGazeReticle"/>
     <Cell id="magnifier" row="2" col="7" icon="MagnifyTool" label="Gaze Magnifier" style="purple" activeState="magnifier" command="toggleMagnifier"/>
     <Cell id="gaze_follow" row="2" col="8" icon="MouseMagneticCursor" label="Gaze mouse" style="purple" activeState="gazeMouseFollow" command="toggleGazeMouseFollow"/>
-    <Cell id="main" row="2" col="9" icon="menu" label="Main" style="indigo">
+    <Cell id="main" row="2" col="9" icon="AlignBottom" label="Close" style="indigo" action="closePage">
       <ClosePage/>
-      <ShowLayers value="1,2"/>
     </Cell>
   </Grid>
 </Page>

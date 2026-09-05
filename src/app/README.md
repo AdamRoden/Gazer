@@ -16,7 +16,7 @@ Composition root, settings, command dispatch.
 | `ComposeHistory.cpp` | History replay/restore |
 | `GazeRouter` | Gaze sample → session + assist |
 | `ActiveStateResolver` | `visibleWhen` / `activeState` keys (`mod.shift`, …) |
-| `AppSettings` | Persisted prefs. Spec tables + nudge/display in `.cpp`; JSON in `AppSettingsIo.cpp`; Fluent appearance × Apple system accent in `AppSettingsTheme.cpp` |
+| `AppSettings` | Persisted prefs. Factory values on the struct; `defaults()` bakes Fluent neutrals + `applyTheme()`; spec tables + nudge/display in `.cpp`; JSON overlay in `AppSettingsIo.cpp`; Fluent appearance × Apple system accent in `AppSettingsTheme.cpp` |
 | `SettingsUi.h` | Live settings boards (numpad, array, color, hex, speech key, opacity, slider) |
 | `SettingsUi.cpp` | Ctor, decorate, live attach, keyboard focus |
 | `SettingsNumpad.cpp` | Numeric editor |

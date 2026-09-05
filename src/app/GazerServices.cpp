@@ -39,6 +39,8 @@
 
 #include <QColor>
 #include <QDir>
+#include <QFile>
+#include <QFileInfo>
 #include <QStandardPaths>
 #include <QtGlobal>
 #include <utility>
@@ -46,6 +48,42 @@
 namespace gazer {
 
 namespace {
+
+/// Older builds set organizationName to "Gazer", so Qt wrote %AppData%\Gazer\Gazer.
+/// If AppData is only that leftover folder, move its contents up once.
+void flattenLegacyNestedAppData()
+{
+    const QString dest = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    if (dest.isEmpty()) {
+        return;
+    }
+    const QDir destDir(dest);
+    const QString nested = destDir.filePath(QStringLiteral("Gazer"));
+    if (!QFileInfo(nested).isDir()) {
+        return;
+    }
+    const QFileInfoList destEntries = destDir.entryInfoList(
+        QDir::Dirs | QDir::Files | QDir::NoDotAndDotDot | QDir::Hidden | QDir::System);
+    for (const QFileInfo& fi : destEntries) {
+        if (fi.fileName() != QLatin1String("Gazer") || !fi.isDir()) {
+            GAZER_WARN << "Leaving leftover nested AppData at" << nested;
+            return;
+        }
+    }
+    QDir nestedDir(nested);
+    const QFileInfoList entries = nestedDir.entryInfoList(
+        QDir::Dirs | QDir::Files | QDir::NoDotAndDotDot | QDir::Hidden | QDir::System);
+    for (const QFileInfo& fi : entries) {
+        const QString to = destDir.filePath(fi.fileName());
+        if (!QFile::rename(fi.absoluteFilePath(), to)) {
+            GAZER_WARN << "Could not move nested AppData" << fi.absoluteFilePath() << "->" << to;
+        }
+    }
+    nestedDir.refresh();
+    if (nestedDir.isEmpty() && !destDir.rmdir(QStringLiteral("Gazer"))) {
+        GAZER_WARN << "Could not remove leftover nested AppData dir" << nested;
+    }
+}
 
 void applyMouseAmountLabel(QString& label, const QString& command, const QString& move,
                            const QString& scroll)
@@ -94,6 +132,8 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
                                QString* error)
 {
     Q_UNUSED(error);
+
+    flattenLegacyNestedAppData();
 
     m_catalog = std::make_unique<PageCatalog>();
     m_pages = std::make_unique<PageSession>();
@@ -153,9 +193,16 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
     }
 
     QString setErr;
-    if (!m_settings.loadFromFile(AppSettings::defaultFilePath(), &setErr)) {
+    const QString settingsPath = AppSettings::defaultFilePath();
+    if (!m_settings.loadFromFile(settingsPath, &setErr)) {
         GAZER_INFO << "Using default settings (" << setErr << ")";
         m_settings = AppSettings::defaults();
+        if (!QFile::exists(settingsPath)) {
+            QString saveErr;
+            if (!m_settings.saveToFile(settingsPath, &saveErr)) {
+                GAZER_WARN << "Failed to write default settings:" << saveErr;
+            }
+        }
     }
     m_settings.elevenApiKeySet = m_secrets->hasKey();
 

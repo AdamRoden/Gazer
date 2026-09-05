@@ -17,13 +17,6 @@
 
 namespace gazer {
 
-AppSettings AppSettings::defaults()
-{
-    AppSettings s;
-    s.applyTheme();
-    return s;
-}
-
 QString AppSettings::defaultFilePath()
 {
     const QString dir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);

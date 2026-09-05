@@ -173,7 +173,7 @@ void SettingsUi::registerCommands()
                 return true;
             });
     }
-    for (const char* ch : {"h", "s", "v", "r", "g", "b", "a"}) {
+    for (const char* ch : {"h", "s", "l", "r", "g", "b", "a"}) {
         m_commands.registerBuiltin(
             QStringLiteral("settings.color.nudge.%1.dec").arg(QLatin1String(ch)),
             [this, ch](QString*) {

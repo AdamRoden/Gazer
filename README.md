@@ -4,7 +4,7 @@ Gaze-driven AAC and system input for Windows. C++20 / Qt 6.
 
 Contributors and coding agents: start at [AGENTS.md](AGENTS.md). Page XML schema: [docs/page-xml.md](docs/page-xml.md).
 
-Gazer turns live gaze (Tobii Eye Tracker 5, or the mouse as a fallback) into on-screen pages you dwell to activate. Pages can send keys, click, move the pointer, speak, and run assist tools (look-to-scroll, magnifier, gaze reticle). The long-term aim is one stack in place of OptiKey + OpenTrack + UCR + AutoHotkey.
+Gazer turns live gaze (Tobii Eye Tracker 5, or the mouse as a fallback) into on-screen pages you dwell to activate. Pages can send keys, click, move the pointer, speak, and run assist tools (look-to-scroll, magnifier, gaze reticle). The long-term aim is one stack for accessible gaming in place of OptiKey + OpenTrack + UCR + AutoHotkey.
 
 Version **0.5.1**. License: [GPL-3.0](LICENSE). Cell and zone icons are SVG files in `resources/icons/svg/`. Set `icon` to the filename stem (`menu`, `mouseLeftClick`, `keyTab`). Matching is case-insensitive; a trailing `Icon` is ignored. Unknown names fall back to the label. Most glyphs are [Material Symbols Rounded](https://fonts.google.com/icons?icon.set=Material+Symbols&icon.style=Rounded); see [resources/icons/README.md](resources/icons/README.md).
 
@@ -74,7 +74,7 @@ winget install WiXToolset.WiXCLI   # once
 .\scripts\build-msi.ps1 -SkipBuild # reuse existing build\Gazer.exe
 ```
 
-Output: `dist\Gazer-<version>-beta.msi`. Installs to `Program Files\Gazer\` with Start Menu and desktop shortcuts. Pages ship under `resources\`. Settings stay in the user’s AppData.
+Output: `dist\Gazer-<version>-beta.msi`. Installs to `Program Files\Gazer\` with Start Menu and desktop shortcuts. Pages ship under `resources\`. Each install deletes `%AppData%\Gazer\settings.json` (and a leftover `%AppData%\Gazer\Gazer\settings.json` from older builds); the next launch writes factory defaults. Speech secrets, clips, and user layouts are left in place.
 
 Testers still need Tobii drivers for hardware gaze. Without a tracker, use the mouse backend (tray / Settings → tracker).
 

@@ -17,6 +17,7 @@ void overlayCustomRoles(const AppSettings& s, ThemePalette& pal)
 
     pal.colors.accent = ThemeScheme::scaleSaturation(
         AppSettings::parseColor(s.customPrimaryColor, pal.colors.accent), s.themeSaturation);
+    pal.colors.accentHover = pal.colors.accent;
     pal.colors.cellActive = ThemeScheme::scaleSaturation(
         AppSettings::parseColor(s.customTertiaryColor, pal.colors.cellActive), s.themeSaturation);
     pal.colors.bgSurfaceActive = pal.colors.cellActive;
@@ -28,9 +29,7 @@ void overlayCustomRoles(const AppSettings& s, ThemePalette& pal)
     pal.progress = sec;
     pal.colors.progress = sec;
     pal.progressBorder = sec;
-    QColor fill = sec;
-    fill.setAlpha(70);
-    pal.progressFill = fill;
+    pal.progressFill = sec;
 }
 
 void syncCustomNeutralsFromAppearance(AppSettings& s)
@@ -131,8 +130,8 @@ void AppSettings::setThemeSaturation(int saturation)
 ThemeSeeds AppSettings::themeSeeds() const
 {
     ThemeSeeds seeds;
-    seeds.primary = parseColor(customPrimaryColor, QColor(96, 205, 255));
-    seeds.secondary = parseColor(customSecondaryColor, ThemeColors::defaultProgressColor());
+    seeds.primary = parseColor(customPrimaryColor, QColor(0x1E, 0x97, 0xF3));
+    seeds.secondary = parseColor(customSecondaryColor, QColor(0xFF, 0x47, 0x3D, 0x4D));
     return seeds;
 }
 

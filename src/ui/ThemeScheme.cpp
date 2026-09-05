@@ -162,10 +162,10 @@ ThemePalette fluent(ThemeAppearance appearance, int saturation, const QColor& pr
         accentW = 0.065 + 0.035 * t;
     }
 
-    const QColor nBg = dark ? QColor(0x1C, 0x1C, 0x1C) : QColor(0xF3, 0xF3, 0xF3);
-    const QColor nSurf = dark ? QColor(0x26, 0x26, 0x26) : QColor(0xFB, 0xFB, 0xFB);
-    const QColor nHover = dark ? QColor(0x36, 0x36, 0x36) : QColor(0xEB, 0xEB, 0xEB);
-    const QColor nBorder = dark ? QColor(0x3A, 0x3A, 0x3A) : QColor(0xD0, 0xD0, 0xD0);
+    const QColor nBg = dark ? QColor(0x14, 0x14, 0x14) : QColor(0xF3, 0xF3, 0xF3);
+    const QColor nSurf = dark ? QColor(0x1E, 0x1E, 0x1E) : QColor(0xFB, 0xFB, 0xFB);
+    const QColor nHover = dark ? QColor(0x2E, 0x2E, 0x2E) : QColor(0xEB, 0xEB, 0xEB);
+    const QColor nBorder = dark ? QColor(0x32, 0x32, 0x32) : QColor(0xD0, 0xD0, 0xD0);
     const QColor body = dark ? QColor(0xFF, 0xFF, 0xFF) : QColor(0x1A, 0x1A, 0x1A);
 
     ThemePalette out;
@@ -180,7 +180,7 @@ ThemePalette fluent(ThemeAppearance appearance, int saturation, const QColor& pr
     c.border = keepValue(ThemeColors::mix(nBorder, primary, bgTint), nBorder);
     c.accent = primary;
     c.accentHover = scaleSaturation(appearanceTone(primary, appearance), saturation);
-    c.danger = dark ? QColor(0xFF, 0x99, 0xA4) : QColor(0xC4, 0x2B, 0x1C);
+    c.danger = brandAccent(0, appearance);
 
     c.cellActive =
         keepValue(ThemeColors::mix(c.bgSurface, primary, qBound(0.16, surfaceTint + 0.16, 0.42)),

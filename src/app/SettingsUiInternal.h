@@ -31,13 +31,13 @@ struct ColorAxis {
     const char* label;
     const char* title;
     const char* hint;
-    enum class Kind { Hue, Sat, Val, Red, Green, Blue, Alpha } kind;
+    enum class Kind { Hue, Sat, Light, Red, Green, Blue, Alpha } kind;
 };
 
 constexpr ColorAxis kColorAxes[] = {
     {"h", "H", "Hue", "Hue in degrees (0–359).", ColorAxis::Kind::Hue},
     {"s", "S", "Saturation", "Saturation percent (0–100).", ColorAxis::Kind::Sat},
-    {"v", "V", "Value", "Brightness percent (0–100).", ColorAxis::Kind::Val},
+    {"l", "L", "Lightness", "Lightness percent (0–100).", ColorAxis::Kind::Light},
     {"r", "R", "R", "R channel (0–255).", ColorAxis::Kind::Red},
     {"g", "G", "G", "G channel (0–255).", ColorAxis::Kind::Green},
     {"b", "B", "B", "B channel (0–255).", ColorAxis::Kind::Blue},
@@ -72,8 +72,9 @@ inline void colorChannelRange(const QString& channel, int* minV, int* maxV)
         *maxV = 359;
         return;
     }
-    if (ch == QLatin1String("s") || ch == QLatin1String("sat") || ch == QLatin1String("v")
-        || ch == QLatin1String("val") || ch == QLatin1String("a") || ch == QLatin1String("alpha")
+    if (ch == QLatin1String("s") || ch == QLatin1String("sat") || ch == QLatin1String("l")
+        || ch == QLatin1String("light") || ch == QLatin1String("lightness")
+        || ch == QLatin1String("a") || ch == QLatin1String("alpha")
         || ch == QLatin1String("opacity")) {
         *minV = 0;
         *maxV = 100;
@@ -86,8 +87,9 @@ inline void colorChannelRange(const QString& channel, int* minV, int* maxV)
 inline QString colorChannelValueText(const QString& channel, int shown)
 {
     const QString ch = channel.toLower();
-    if (ch == QLatin1String("s") || ch == QLatin1String("sat") || ch == QLatin1String("v")
-        || ch == QLatin1String("val") || ch == QLatin1String("a") || ch == QLatin1String("alpha")
+    if (ch == QLatin1String("s") || ch == QLatin1String("sat") || ch == QLatin1String("l")
+        || ch == QLatin1String("light") || ch == QLatin1String("lightness")
+        || ch == QLatin1String("a") || ch == QLatin1String("alpha")
         || ch == QLatin1String("opacity")) {
         return QStringLiteral("%1%").arg(shown);
     }

@@ -4,11 +4,25 @@
 #include "assist/LtsIndicator.h"
 #include "assist/LtsSpeed.h"
 #include "ui/PickStyle.h"
+#include "ui/ThemeScheme.h"
 
 #include <QStringList>
 #include <utility>
 
 namespace gazer {
+
+AppSettings AppSettings::defaults()
+{
+    AppSettings s;
+    const ThemePalette baked = ThemeScheme::fluent(
+        s.themeAppearance, s.themeSaturation, parseColor(s.customPrimaryColor),
+        parseColor(s.customSecondaryColor));
+    s.customBgColor = colorToHex(baked.colors.bgMain);
+    s.customSurfaceColor = colorToHex(baked.colors.bgSurface);
+    s.customTertiaryColor = colorToHex(baked.colors.cellActive);
+    s.applyTheme();
+    return s;
+}
 
 namespace {
 

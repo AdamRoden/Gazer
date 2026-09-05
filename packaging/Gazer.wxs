@@ -40,6 +40,7 @@
       <ComponentGroupRef Id="PayloadFiles" />
       <ComponentRef Id="StartMenuShortcut" />
       <ComponentRef Id="DesktopShortcut" />
+      <ComponentRef Id="ResetUserSettings" />
     </Feature>
 
     <StandardDirectory Id="ProgramFiles64Folder">
@@ -51,6 +52,14 @@
     </StandardDirectory>
 
     <StandardDirectory Id="DesktopFolder" />
+
+    <!-- Reset settings.json on each install. Nested Gazer\Gazer is leftover from
+         builds that set organizationName; one upgrade generation. -->
+    <StandardDirectory Id="AppDataFolder">
+      <Directory Id="GazerAppDataFolder" Name="Gazer">
+        <Directory Id="GazerLegacyNestedAppData" Name="Gazer" />
+      </Directory>
+    </StandardDirectory>
 
     <!-- Harvest staged payload (exe, Qt DLLs, plugins, resources, Tobii DLL, MinGW runtime). -->
     <ComponentGroup Id="PayloadFiles" Directory="INSTALLFOLDER">
@@ -73,6 +82,18 @@
       <RegistryValue Root="HKCU"
                      Key="Software\Gazer\Installer"
                      Name="StartMenuShortcut"
+                     Type="integer"
+                     Value="1"
+                     KeyPath="yes" />
+    </Component>
+
+    <Component Id="ResetUserSettings" Directory="GazerAppDataFolder" Guid="D4E6A8B0-3F5C-7D9E-1B2A-4C6D8E0F1A3B">
+      <RemoveFile Id="RemoveSettingsJson" Name="settings.json" On="install" />
+      <RemoveFile Id="RemoveLegacyNestedSettingsJson" Name="settings.json" On="install"
+                  Directory="GazerLegacyNestedAppData" />
+      <RegistryValue Root="HKCU"
+                     Key="Software\Gazer\Installer"
+                     Name="ResetSettings"
                      Type="integer"
                      Value="1"
                      KeyPath="yes" />

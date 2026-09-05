@@ -119,7 +119,7 @@ Patterns, not every generated name:
 | `settings.array.*` | Sequence editor (`nudge.N`, `edit.N`, `del.N` for N=0..11) |
 | `settings.edit.color.<colorKey>` | Open color picker |
 | `settings.color.select.` / `.use.` / `.suggest.<colorKey>` | Theme roles |
-| `settings.color.nudge.` / `.edit.` / `.scrub.<h\|s\|v\|r\|g\|b\|a>` | Channels |
+| `settings.color.nudge.` / `.edit.` / `.scrub.<h\|s\|l\|r\|g\|b\|a>` | Channels |
 | `settings.color.editHex` / `.save` / `.cancel` | Hex pad |
 | `settings.hex.digit.*` / `.backspace` / `.clear` / `.save` / `.cancel` | Hex keys |
 | `settings.opacity.*` / `settings.flash.foreground` / `.custom` | Flash opacity / custom flash |

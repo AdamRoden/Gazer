@@ -69,7 +69,7 @@
     <Cell id="enter" row="3" col="150" colSpan="10" icon="keyReturn" background="#3d4f66" foreground="#ffffff" command="enter"/>
   </Grid>
   <Grid id="vert1" rows="6" columns="1" anchor="TopLeft" offset="2000,0" size="100,754" layers="1,2">
-    <Cell id="more" row="0" col="0" icon="moreHoriz" dwell="vert1" openPage="example_keyboard"/>
+    <Cell id="more" row="0" col="0" dwell="vert1" icon="mouse" openPage="example_mouse"/>
     <Cell id="move_lclick" row="1" col="0" icon="mouseLeftClickAtGaze" dwell="vert1" activeState="mouseLeftClickAtGaze" mouseLeftClickAtGaze=""/>
     <Cell id="move_rclick" row="2" col="0" icon="mouseRightClickAtGaze" dwell="vert1" activeState="mouseRightClickAtGaze" mouseRightClickAtGaze=""/>
     <SubGrid id="edge" row="3" col="0" layers="1">

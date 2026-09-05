@@ -1,4 +1,8 @@
 #include "app/AppSettings.h"
+#include "assist/ComboMouseHit.h"
+#include "assist/GazeFollowProfile.h"
+#include "assist/LtsIndicator.h"
+#include "ui/PickStyle.h"
 #include "ui/ThemeScheme.h"
 
 #include <QDir>
@@ -14,6 +18,8 @@ class AppSettingsTest final : public QObject {
     Q_OBJECT
 
 private slots:
+    void defaultConstructIsFactory();
+    void factoryUsesDomainConstants();
     void dwellCustomDoesNotClobberUnmatched();
     void dwellCustomRestoresWhenLeavingPack();
     void dwellPresetsSplitDailyAndDesigner();
@@ -38,6 +44,69 @@ private slots:
     void appearanceSwitchesCustomNeutrals();
     void speechSettingsRoundTrip();
 };
+
+void AppSettingsTest::defaultConstructIsFactory()
+{
+    const AppSettings a;
+    const AppSettings b = AppSettings::defaults();
+    QCOMPARE(a.dwellSequence, b.dwellSequence);
+    QCOMPARE(a.dailyDwellSequence, b.dailyDwellSequence);
+    QCOMPARE(a.scanGraceMs, b.scanGraceMs);
+    QCOMPARE(a.dailyScanGraceMs, b.dailyScanGraceMs);
+    QCOMPARE(a.magFollowProfile, b.magFollowProfile);
+    QCOMPARE(a.progressColor, b.progressColor);
+    QCOMPARE(a.comboInnerRadiusPx, b.comboInnerRadiusPx);
+    QCOMPARE(a.speechModel, b.speechModel);
+    QCOMPARE(a.themePrimaryIndex, b.themePrimaryIndex);
+    QCOMPARE(a.savedSpeechTags, b.savedSpeechTags);
+}
+
+void AppSettingsTest::factoryUsesDomainConstants()
+{
+    const AppSettings s = AppSettings::defaults();
+    const AppSettings::TimingPack pack = AppSettings::defaultTimingPack();
+    QCOMPARE(s.dwellSequence, AppSettings::defaultDwellSequence());
+    QCOMPARE(s.dailyDwellSequence, AppSettings::defaultDailyDwellSequence());
+    QCOMPARE(s.customTiming.sequence, pack.sequence);
+    QCOMPARE(s.customTiming.dailySequence, pack.dailySequence);
+    QCOMPARE(s.mouseMoveDwellMs, pack.pointerDwellMs);
+    QCOMPARE(s.magPickDwellMs, pack.zoomDwellMs);
+    QCOMPARE(s.dwellGraceMs, pack.blinkGraceMs);
+    QCOMPARE(s.scanGraceMs, pack.scanGraceMs);
+    QCOMPARE(s.dailyScanGraceMs, pack.dailyScanGraceMs);
+    QCOMPARE(s.magPickStyle, PickStyle::kDefaultMagPick);
+    QCOMPARE(s.mousePickStyle, PickStyle::kDefaultMousePick);
+    QCOMPARE(s.comboInnerRadiusPx, ComboMouseHit::kDefaultInnerRadiusPx);
+    QCOMPARE(s.comboSharedRadiusPx, ComboMouseHit::kDefaultSharedRadiusPx);
+    QCOMPARE(s.comboOuterRadiusPx, ComboMouseHit::kDefaultOuterRadiusPx);
+    QCOMPARE(s.comboInnerColor, AppSettings::colorToHex(ComboMouseHit::kDefaultInnerFill));
+    QCOMPARE(s.comboOuterColor, AppSettings::colorToHex(ComboMouseHit::kDefaultOuterFill));
+    QCOMPARE(s.magFollowProfile, GazeFollowProfile::Sticky);
+    QCOMPARE(s.ltsIndicatorStyle, LtsIndicator::Fan);
+    QCOMPARE(s.themeAppearance, ThemeAppearance::Dark);
+    QVERIFY(s.themeCustom);
+    QCOMPARE(s.themePrimaryIndex, kThemeDefaultBrandIndex);
+    QCOMPARE(s.themeSecondaryIndex, kThemeDefaultBrandIndex);
+    QCOMPARE(s.themeSaturation, kThemeSaturationDefault);
+    QCOMPARE(s.resolvedTheme().bgMain, QColor(0x14, 0x14, 0x14));
+    QCOMPARE(s.resolvedTheme().bgSurface, QColor(0x1E, 0x1E, 0x1E));
+    QCOMPARE(s.resolvedTheme().accent, QColor(0x1E, 0x97, 0xF3));
+    QCOMPARE(s.resolvedTheme().accentHover, QColor(0x1E, 0x97, 0xF3));
+    QCOMPARE(s.resolvedTheme().danger, QColor(0xFC, 0x1C, 0x1C));
+    QCOMPARE(s.resolvedPalette().progress, QColor(0xFF, 0x47, 0x3D, 0x4D));
+    QCOMPARE(s.resolvedPalette().progressFill, QColor(0xFF, 0x47, 0x3D, 0x4D));
+    QCOMPARE(s.progressColor, QStringLiteral("#4DFF473D"));
+    QCOMPARE(s.progressFillColor, QStringLiteral("#4DFF473D"));
+    QCOMPARE(s.speakAlsoType, true);
+    QCOMPARE(s.speechModel, QStringLiteral("sapi"));
+    QCOMPARE(s.savedSpeechTags, AppSettings::defaultSavedSpeechTags());
+    QVERIFY(s.savedSpeechVoices.isEmpty());
+    QVERIFY(s.progress.radial);
+    QVERIFY(s.progress.border);
+    QVERIFY(s.mouseProgress.radial);
+    QVERIFY(!s.mouseProgress.border);
+    QCOMPARE(s.dwellPreset(), 1);
+}
 
 void AppSettingsTest::dwellCustomDoesNotClobberUnmatched()
 {
@@ -140,6 +209,8 @@ void AppSettingsTest::dailyDwellRoundTrip()
 void AppSettingsTest::brandedThemeUsesFluent()
 {
     AppSettings s = AppSettings::defaults();
+    s.setThemePrimaryIndex(kThemeDefaultBrandIndex);
+    s.setThemeSecondaryIndex(kThemeDefaultBrandIndex);
     QCOMPARE(s.themeCustom, false);
     QCOMPARE(s.themePrimaryIndex, kThemeDefaultBrandIndex);
     QCOMPARE(s.themeSecondaryIndex, kThemeDefaultBrandIndex);

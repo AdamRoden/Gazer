@@ -13,7 +13,7 @@ struct ProgressStyle {
     bool pie = false;
     bool fillBackground = false;
     ProgressFillDir fillDir = ProgressFillDir::Center;
-    bool border = false;
+    bool border = true;
 
     [[nodiscard]] bool any() const
     {
@@ -31,7 +31,7 @@ struct ProgressStyle {
     [[nodiscard]] static ProgressStyle pointerDefaults()
     {
         ProgressStyle s;
-        s.border = true;
+        s.border = false;
         return s;
     }
 

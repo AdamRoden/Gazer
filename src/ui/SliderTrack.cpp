@@ -61,8 +61,8 @@ struct ChannelInfo {
 ChannelInfo channelInfo(const QString& channel, const QColor& color)
 {
     QColor c = color.isValid() ? color : ThemeColors::defaultProgressColor();
-    int h = 0, s = 0, v = 0, a = 255;
-    c.getHsv(&h, &s, &v, &a);
+    int h = 0, s = 0, l = 0, a = 255;
+    c.getHsl(&h, &s, &l, &a);
     if (h < 0) {
         h = 0;
     }
@@ -77,11 +77,12 @@ ChannelInfo channelInfo(const QString& channel, const QColor& color)
         info.name = QStringLiteral("Saturation");
         info.value = QStringLiteral("%1%").arg(pct);
         info.t = s / 255.0;
-    } else if (ch == QLatin1String("v") || ch == QLatin1String("val")) {
-        const int pct = qBound(0, qRound(v / 2.55), 100);
-        info.name = QStringLiteral("Value");
+    } else if (ch == QLatin1String("l") || ch == QLatin1String("light")
+               || ch == QLatin1String("lightness")) {
+        const int pct = qBound(0, qRound(l / 2.55), 100);
+        info.name = QStringLiteral("Lightness");
         info.value = QStringLiteral("%1%").arg(pct);
-        info.t = v / 255.0;
+        info.t = l / 255.0;
     } else if (ch == QLatin1String("r") || ch == QLatin1String("red")) {
         info.name = QStringLiteral("Red");
         info.value = QString::number(c.red());
@@ -114,8 +115,8 @@ void paint(QPainter& p, const QRectF& cell, const ThemeColors& theme, const Prog
 {
     const Visual geom = visual(cell, scrubbing);
     QColor base = previewColor.isValid() ? previewColor : ThemeColors::defaultProgressColor();
-    int h = 0, s = 0, v = 0, a = 255;
-    base.getHsv(&h, &s, &v, &a);
+    int h = 0, s = 0, l = 0, a = 255;
+    base.getHsl(&h, &s, &l, &a);
     if (h < 0) {
         h = 0;
     }
@@ -144,14 +145,16 @@ void paint(QPainter& p, const QRectF& cell, const ThemeColors& theme, const Prog
     QLinearGradient g(track.left(), track.center().y(), track.right(), track.center().y());
     if (ch == QLatin1String("h") || ch == QLatin1String("hue")) {
         for (int i = 0; i <= 6; ++i) {
-            g.setColorAt(i / 6.0, QColor::fromHsv(qMin(359, i * 60), 255, 255));
+            g.setColorAt(i / 6.0, QColor::fromHsl(qMin(359, i * 60), 255, 128));
         }
     } else if (ch == QLatin1String("s") || ch == QLatin1String("sat")) {
-        g.setColorAt(0.0, QColor::fromHsv(h, 0, v));
-        g.setColorAt(1.0, QColor::fromHsv(h, 255, v));
-    } else if (ch == QLatin1String("v") || ch == QLatin1String("val")) {
-        g.setColorAt(0.0, QColor::fromHsv(h, s, 0));
-        g.setColorAt(1.0, QColor::fromHsv(h, s, 255));
+        g.setColorAt(0.0, QColor::fromHsl(h, 0, l));
+        g.setColorAt(1.0, QColor::fromHsl(h, 255, l));
+    } else if (ch == QLatin1String("l") || ch == QLatin1String("light")
+               || ch == QLatin1String("lightness")) {
+        g.setColorAt(0.0, QColor::fromHsl(h, s, 0));
+        g.setColorAt(0.5, QColor::fromHsl(h, s, 128));
+        g.setColorAt(1.0, QColor::fromHsl(h, s, 255));
     } else if (ch == QLatin1String("r") || ch == QLatin1String("red")) {
         g.setColorAt(0.0, QColor(0, cg, cb));
         g.setColorAt(1.0, QColor(255, cg, cb));

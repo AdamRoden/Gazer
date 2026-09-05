@@ -15,6 +15,7 @@
 namespace gazer {
 
 /// User preferences persisted to JSON under AppData.
+/// In-class initializers are the factory. defaults() bakes Fluent neutrals and applyTheme().
 struct AppSettings {
     // --- Timing ---
     /// Designer dwell steps (ms). Last step repeats while gaze holds.
@@ -43,15 +44,15 @@ struct AppSettings {
     TimingPack customTiming = defaultTimingPack();
     /// Cancel armed mouse-move / click-loop if no target is selected within this many ms.
     /// 0 = disabled.
-    int mouseMoveSelectTimeoutMs = 5000;
+    int mouseMoveSelectTimeoutMs = 1500;
     /// Mouse dwell-move uses static magnify + second dwell to refine point.
-    bool mouseMoveMagPick = false;
+    bool mouseMoveMagPick = true;
     /// Place static magnifier centered on the first-dwell point (else screen center).
     bool mouseMoveMagPickCenterOnDwell = true;
     /// Grow the static zoom window to fill the monitor's short axis.
     bool mouseMoveMagPickFullScreen = false;
     /// Inscribe the static zoom window in a circle (else a square).
-    bool pickWindowRound = false;
+    bool pickWindowRound = true;
     /// Remember a desktop dwell and immediately magnify that point when Move-to arms.
     bool mouseMoveForesight = false;
     /// Hold gaze this long (ms) to store a foresight point.
@@ -67,9 +68,9 @@ struct AppSettings {
     // --- Progress visuals (boards + mouse-move) ---
     ProgressStyle progress;
     ProgressStyle mouseProgress = ProgressStyle::pointerDefaults();
-    QString progressColor = QStringLiteral("#00DCFF");
-    QString progressFillColor = QStringLiteral("#00B4DC46");
-    QString progressBorderColor = QStringLiteral("#00DCFF");
+    QString progressColor = QStringLiteral("#4DFF473D");
+    QString progressFillColor = QStringLiteral("#4DFF473D");
+    QString progressBorderColor = QStringLiteral("#4DFF473D");
     /// PickStyle flags: first dwell (region) and final click/move dwell.
     int magPickStyle = 1;   // Cursor
     int mousePickStyle = 1; // Cursor
@@ -83,10 +84,10 @@ struct AppSettings {
 
     // --- Live lens (assistant magnifier; not used by pre-click / foresight) ---
     double magZoom = 2.0;
-    int magLensSize = 440;
+    int magLensSize = 400;
     /// Static pick zoom shared by pre-click and foresight (not the live lens).
     double pickZoom = 4.0;
-    int pickWindowPx = 880;
+    int pickWindowPx = 600;
 
     // --- Look-to-Scroll ---
     int ltsDeadzonePx = 110;
@@ -94,7 +95,7 @@ struct AppSettings {
     double ltsMaxNotchesPerSec = 5.0;
     /// Scroll rate grows by this factor each second gaze stays outside deadzone.
     double ltsAccelPerSec = 0.45;
-    int ltsCenterDwellMs = 650;
+    int ltsCenterDwellMs = 700;
     LtsIndicator ltsIndicatorStyle = LtsIndicator::Fan;
 
     // --- ComboMouse (inner drift annulus + outer command annulus) ---
@@ -170,20 +171,21 @@ struct AppSettings {
 
     // --- Theme (appearance × Apple system accent × progress × saturation) ---
     ThemeAppearance themeAppearance = ThemeAppearance::Dark;
-    bool themeCustom = false;
+    bool themeCustom = true;
     int themePrimaryIndex = kThemeDefaultBrandIndex;
     int themeSecondaryIndex = kThemeDefaultBrandIndex;
     int themeSaturation = kThemeSaturationDefault;
     /// Custom seeds. Branded schemes ignore these until Custom is selected.
-    QString customBgColor = QStringLiteral("#1C1C1C");
-    QString customPrimaryColor = QStringLiteral("#60CDFF");
-    QString customSecondaryColor = QStringLiteral("#60CDFF");
-    QString customTertiaryColor = QStringLiteral("#005FB8");
-    QString customSurfaceColor = QStringLiteral("#262626");
+    /// Bg / surface / tertiary are baked from Fluent in defaults().
+    QString customBgColor = QStringLiteral("#141414");
+    QString customPrimaryColor = QStringLiteral("#1E97F3");
+    QString customSecondaryColor = QStringLiteral("#4DFF473D");
+    QString customTertiaryColor = QStringLiteral("#1E97F3");
+    QString customSurfaceColor = QStringLiteral("#1E1E1E");
     QString customTextColor = QStringLiteral("#FFFFFF");
-    QString customDangerColor = QStringLiteral("#FF99A4");
+    QString customDangerColor = QStringLiteral("#FC1C1C");
     /// Unused; kept so older settings files still load.
-    int themeBrightness = 4;
+    int themeBrightness = 2;
 
     void setThemeAppearance(ThemeAppearance appearance);
     void setThemeCustom(bool on);
@@ -214,6 +216,7 @@ struct AppSettings {
     {
         return {defaultDwellSequence(), defaultDailyDwellSequence(), 800, 800, 200, 150, 100};
     }
+    /// In-class factory plus Fluent neutrals and applyTheme(). JSON overlays this.
     [[nodiscard]] static AppSettings defaults();
     [[nodiscard]] static QString defaultFilePath();
     [[nodiscard]] static QString normalizeSpeechTag(QString raw);

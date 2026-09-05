@@ -2,7 +2,7 @@
   <Dwell id="vert1" scanGrace="200" activation="200,600"/>
   <Dwell id="vert2" scanGrace="100" activation="100,600"/>
   <Grid id="vert1" desktopMode="true" rows="6" columns="1" anchor="TopRight" size="1/16,0.73" layers="1,2">
-    <Cell id="more" row="0" col="0" icon="moreHoriz" dwell="vert1" openPage="example_keyboard"/>
+    <Cell id="more" row="0" col="0" dwell="vert1" icon="mouse" openPage="example_mouse"/>
     <Cell id="move_lclick" row="1" col="0" icon="mouseLeftClickAtGaze" dwell="vert1" activeState="mouseLeftClickAtGaze" mouseLeftClickAtGaze=""/>
     <Cell id="move_rclick" row="2" col="0" icon="mouseRightClickAtGaze" dwell="vert1" activeState="mouseRightClickAtGaze" mouseRightClickAtGaze=""/>
     <SubGrid id="edge" row="3" col="0" layers="1">

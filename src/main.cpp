@@ -64,7 +64,9 @@ int main(int argc, char* argv[])
 
     QApplication qapp(argc, argv);
     QApplication::setApplicationName(QStringLiteral("Gazer"));
-    QApplication::setOrganizationName(QStringLiteral("Gazer"));
+    // Qt nests AppData as %AppData%\<org>\<app> when both are set. Leave org
+    // empty so the on-disk tree is %AppData%\Gazer, not Gazer\Gazer.
+    QApplication::setOrganizationName(QString());
     QApplication::setApplicationVersion(QStringLiteral("0.5.1"));
     // Tray owns lifetime; closing the preview must not quit.
     QApplication::setQuitOnLastWindowClosed(false);

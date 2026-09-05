@@ -115,7 +115,7 @@ private:
     void colorNudge(const QString& channel, int dir);
     void colorSetChannel(const QString& channel, int value);
     void colorUseSaved(const QString& savedKey);
-    void colorSyncFromHsv();
+    void colorSyncFromHsl();
     void colorSyncFromRgb();
     void loadColorDraft(const QColor& c);
     [[nodiscard]] int colorShownValue(const QString& channel) const;
@@ -211,7 +211,7 @@ private:
     QColor m_colorDraft;
     int m_colorH = 180;
     int m_colorS = 255;
-    int m_colorV = 255;
+    int m_colorL = 128;
     int m_colorR = 0;
     int m_colorG = 220;
     int m_colorB = 255;
