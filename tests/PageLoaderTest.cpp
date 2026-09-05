@@ -33,6 +33,7 @@ private slots:
     void rejectNonPageRoot();
     void rejectRemovedActionAliases();
     void loadMainPage();
+    void loadComposePage();
     void loadQwertyXml();
     void layersAttribute();
     void rejectInvalidLayers();
@@ -642,6 +643,113 @@ void PageLoaderTest::keyboardMainOpensDrawer()
     QCOMPARE(z->actions.last().layers, (QVector<int>{1, 2}));
 }
 
+void PageLoaderTest::loadComposePage()
+{
+    PageDocument doc;
+    QString err;
+    const QString path =
+        QStringLiteral(GAZER_SOURCE_DIR) + QStringLiteral("/resources/layouts/compose.xml");
+    QVERIFY2(PageLoader::loadFromFile(path, doc, &err), qPrintable(err));
+    QCOMPARE(doc.id, QStringLiteral("compose"));
+    QVERIFY(doc.findGrid(QStringLiteral("board")));
+    QCOMPARE(doc.findGrid(QStringLiteral("board"))->size.x.unit, PageDim::Unit::Expression);
+    QVERIFY(doc.findGrid(QStringLiteral("keys")));
+    QCOMPARE(doc.findGrid(QStringLiteral("keys"))->rows, 3);
+    QCOMPARE(doc.findGrid(QStringLiteral("keys"))->columns, 120);
+    QCOMPARE(doc.findGrid(QStringLiteral("keys"))->cells.size(), 36);
+    QCOMPARE(doc.findGrid(QStringLiteral("board"))->layers, (QVector<int>{1, 2, 3, 4}));
+    QCOMPARE(doc.findGrid(QStringLiteral("keys"))->layers, QVector<int>({1}));
+    QCOMPARE(doc.findGrid(QStringLiteral("keys_shift"))->layers, QVector<int>({2}));
+    QCOMPARE(doc.findGrid(QStringLiteral("keys_sym"))->layers, QVector<int>({3}));
+    QCOMPARE(doc.findGrid(QStringLiteral("keys_sym_shift"))->layers, QVector<int>({4}));
+    QVERIFY(doc.findCell(QStringLiteral("phrase")));
+    QCOMPARE(doc.findCell(QStringLiteral("phrase"))->isInteractive(), false);
+    QVERIFY(!doc.findCell(QStringLiteral("done")));
+    QCOMPARE(doc.findCell(QStringLiteral("page_title"))->colSpan, 7);
+    QVERIFY(!doc.findCell(QStringLiteral("topic_new")));
+    QVERIFY(!doc.findCell(QStringLiteral("delword")));
+    QVERIFY(!doc.findGrid(QStringLiteral("actions")));
+    QVERIFY(doc.findGrid(QStringLiteral("edit_keys")));
+    QVERIFY(doc.findGrid(QStringLiteral("speak_keys")));
+    QCOMPARE(doc.findGrid(QStringLiteral("edit_keys"))->col, 0);
+    QCOMPARE(doc.findGrid(QStringLiteral("speak_keys"))->col, 7);
+    QCOMPARE(doc.findGrid(QStringLiteral("phrase"))->col, 1);
+    const QVector<int> allLayers{1, 2, 3, 4};
+    QCOMPARE(doc.findGrid(QStringLiteral("compose"))->layers, allLayers);
+    QCOMPARE(doc.findGrid(QStringLiteral("edit_keys"))->layers, allLayers);
+    QCOMPARE(doc.findGrid(QStringLiteral("phrase"))->layers, allLayers);
+    QCOMPARE(doc.findGrid(QStringLiteral("chips"))->layers, allLayers);
+    QCOMPARE(doc.findGrid(QStringLiteral("speak_keys"))->layers, allLayers);
+    QCOMPARE(doc.findGrid(QStringLiteral("board"))->rows, 5);
+    QCOMPARE(doc.findGrid(QStringLiteral("keys"))->row, 4);
+    QVERIFY(doc.findCell(QStringLiteral("speak")));
+    QCOMPARE(doc.findCell(QStringLiteral("speak"))->actions[0].command,
+             QStringLiteral("compose.speak"));
+    QVERIFY(doc.findGrid(QStringLiteral("topics")));
+    QVERIFY(doc.findGrid(QStringLiteral("soundboard")));
+    QVERIFY(doc.findCell(QStringLiteral("undo")));
+    QVERIFY(doc.findCell(QStringLiteral("pin")));
+    QCOMPARE(doc.findCell(QStringLiteral("pin"))->actions[0].command, QStringLiteral("compose.pin"));
+    QVERIFY(doc.findCell(QStringLiteral("editPins")));
+    QCOMPARE(doc.findCell(QStringLiteral("editPins"))->actions[0].command,
+             QStringLiteral("compose.editPins"));
+    QVERIFY(doc.findCell(QStringLiteral("voices")));
+    QCOMPARE(doc.findCell(QStringLiteral("voices"))->actions[0].command,
+             QStringLiteral("compose.openVoices"));
+    QVERIFY(doc.findCell(QStringLiteral("history")));
+    QCOMPARE(doc.findCell(QStringLiteral("history"))->actions[0].command,
+             QStringLiteral("compose.openHistory"));
+    QVERIFY(doc.findCell(QStringLiteral("delivery")));
+    QCOMPARE(doc.findCell(QStringLiteral("delivery"))->label, QStringLiteral("Freestyle"));
+    QCOMPARE(doc.findCell(QStringLiteral("delivery"))->actions[0].command,
+             QStringLiteral("compose.toggleFreestyle"));
+    QCOMPARE(doc.findCell(QStringLiteral("delivery"))->activeState,
+             QStringLiteral("compose.freestyleMode"));
+    QVERIFY(!doc.findCell(QStringLiteral("tags")));
+    QCOMPARE(doc.findCell(QStringLiteral("sym"))->icon, QStringLiteral("numbers"));
+    for (const char* gid : {"keys", "keys_shift", "keys_sym", "keys_sym_shift", "edit_keys",
+                            "speak_keys"}) {
+        const PageGrid* g = doc.findGrid(QLatin1String(gid));
+        QVERIFY2(g, gid);
+        for (const PageCell& c : g->cells) {
+            for (const PageAction& a : c.actions) {
+                QVERIFY2(a.command != QLatin1String("tab"), qPrintable(c.id));
+                QVERIFY2(a.command != QLatin1String("leftWin"), qPrintable(c.id));
+            }
+        }
+    }
+    const PageCell* qKey = doc.findCell(QStringLiteral("ch_113_0_1"));
+    QVERIFY(qKey);
+    QCOMPARE(qKey->actions[0].type, PageActionType::Send);
+    QCOMPARE(qKey->actions[0].sendKey, QStringLiteral("q"));
+    QCOMPARE(qKey->col, 10);
+    QCOMPARE(qKey->colSpan, 10);
+    const PageCell* aKey = doc.findCell(QStringLiteral("ch_97_1_1"));
+    const PageCell* zKey = doc.findCell(QStringLiteral("ch_122_2_2"));
+    QVERIFY(aKey);
+    QVERIFY(zKey);
+    QVERIFY(aKey->col > qKey->col);
+    QVERIFY(zKey->col > aKey->col);
+    QCOMPARE(zKey->colSpan, 9);
+    const PageCell* gKey = doc.findCell(QStringLiteral("ch_103_1_5"));
+    const PageCell* hKey = doc.findCell(QStringLiteral("ch_104_1_6"));
+    const PageCell* space = doc.findCell(QStringLiteral("space"));
+    QVERIFY(gKey);
+    QVERIFY(hKey);
+    QVERIFY(space);
+    QVERIFY(space->col > gKey->col);
+    QVERIFY(space->col < gKey->col + gKey->colSpan);
+    QVERIFY(space->col + space->colSpan > hKey->col);
+    QVERIFY(space->col + space->colSpan < hKey->col + hKey->colSpan);
+    const PageCell* shift = doc.findCell(QStringLiteral("shift"));
+    const PageCell* sym = doc.findCell(QStringLiteral("sym"));
+    QVERIFY(shift);
+    QVERIFY(sym);
+    QCOMPARE(shift->actions[0].type, PageActionType::ShowLayers);
+    QCOMPARE(shift->actions[0].layers, QVector<int>({2}));
+    QCOMPARE(sym->actions[0].layers, QVector<int>({3}));
+}
+
 void PageLoaderTest::loadMainPage()
 {
     PageDocument doc;
@@ -658,7 +766,9 @@ void PageLoaderTest::loadMainPage()
     QCOMPARE(doc.findGrid(QStringLiteral("drawer"))->layers, QVector<int>({2}));
     QCOMPARE(doc.findGrid(QStringLiteral("quit"))->layers, QVector<int>({3}));
     QCOMPARE(doc.showLayers, QVector<int>({1}));
-    QCOMPARE(doc.findGrid(QStringLiteral("drawer"))->cells.size(), 9);
+    QCOMPARE(doc.findGrid(QStringLiteral("drawer"))->cells.size(), 10);
+    QCOMPARE(doc.findCell(QStringLiteral("open_compose"))->actions[0].command,
+             QStringLiteral("compose.open"));
     QCOMPARE(doc.zones[0].actions[1].type, PageActionType::ShowLayers);
     QCOMPARE(doc.zones[0].actions[1].layers, (QVector<int>{1, 2}));
     QVERIFY(doc.zones[0].suspendExempt);

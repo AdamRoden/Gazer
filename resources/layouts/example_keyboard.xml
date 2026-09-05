@@ -11,8 +11,8 @@
     <Cell id="ch_105_0_8" row="0" col="8" label="i" send="i"/>
     <Cell id="ch_111_0_9" row="0" col="9" label="o" send="o"/>
     <Cell id="ch_112_0_10" row="0" col="10" label="p" send="p"/>
-    <Cell id="bksp" row="0" col="11" icon="keyBackspace" label="⌫" background="#3d4f66" foreground="#ffffff" command="backspace"/>
-    <Cell id="shift" row="1" col="0" icon="KeyShift" label="⇧" background="#3d4f66" foreground="#ffffff" showLayers="2"/>
+    <Cell id="bksp" row="0" col="11" icon="keyBackspace" background="#3d4f66" foreground="#ffffff" command="backspace"/>
+    <Cell id="shift" row="1" col="0" icon="KeyShift" background="#3d4f66" foreground="#ffffff" showLayers="2"/>
     <Cell id="ch_97_1_1" row="1" col="1" label="a" send="a"/>
     <Cell id="ch_115_1_2" row="1" col="2" label="s" send="s"/>
     <Cell id="ch_100_1_3" row="1" col="3" label="d" send="d"/>
@@ -24,18 +24,18 @@
     <Cell id="ch_108_1_9" row="1" col="9" label="l" send="l"/>
     <Cell id="comma" row="1" col="10" label="," send=","/>
     <Cell id="quote" row="1" col="11" label="&apos;" send="&apos;"/>
-    <Cell id="cmd" row="2" col="0" icon="KeyWin" label="⌘" background="#3d4f66" foreground="#ffffff" activeState="mod.win" command="leftWin"/>
+    <Cell id="cmd" row="2" col="0" icon="KeyWin" background="#3d4f66" foreground="#ffffff" activeState="mod.win" command="leftWin"/>
     <Cell id="sym" row="2" col="1" icon="dialpad" label="123?" background="#0a7ea4" foreground="#ffffff" showLayers="3"/>
     <Cell id="ch_122_2_2" row="2" col="2" label="z" send="z"/>
     <Cell id="ch_120_2_3" row="2" col="3" label="x" send="x"/>
     <Cell id="ch_99_2_4" row="2" col="4" label="c" send="c"/>
     <Cell id="ch_118_2_5" row="2" col="5" label="v" send="v"/>
-    <Cell id="space" row="2" col="6" icon="keySpace" label="␣" background="#3d4f66" foreground="#ffffff" command="space"/>
+    <Cell id="space" row="2" col="6" icon="keySpace" background="#3d4f66" foreground="#ffffff" command="space"/>
     <Cell id="ch_98_2_7" row="2" col="7" label="b" send="b"/>
     <Cell id="ch_110_2_8" row="2" col="8" label="n" send="n"/>
     <Cell id="ch_109_2_9" row="2" col="9" label="m" send="m"/>
     <Cell id="period" row="2" col="10" label="." send="."/>
-    <Cell id="enter" row="2" col="11" icon="keyReturn" label="↵" background="#0a7ea4" foreground="#ffffff" command="enter"/>
+    <Cell id="enter" row="2" col="11" icon="keyReturn" background="#0a7ea4" foreground="#ffffff" command="enter"/>
   </Grid>
   <Grid id="board_shift" desktopMode="true" rows="3" columns="12" anchor="Bottom" offset="0,0" size="1280,280" gap="4" margin="4" layers="2">
     <Cell id="tab_s" row="0" col="0" icon="keyTab" label="Tab" background="#3d4f66" foreground="#ffffff" command="tab"/>
@@ -49,8 +49,8 @@
     <Cell id="ch_73_0_8" row="0" col="8" label="I" send="I"/>
     <Cell id="ch_79_0_9" row="0" col="9" label="O" send="O"/>
     <Cell id="ch_80_0_10" row="0" col="10" label="P" send="P"/>
-    <Cell id="bksp_s" row="0" col="11" icon="keyBackspace" label="⌫" background="#3d4f66" foreground="#ffffff" command="backspace"/>
-    <Cell id="shift_s" row="1" col="0" icon="KeyShift" label="⇧" background="#e9c46a" foreground="#1a1a1a" showLayers="1"/>
+    <Cell id="bksp_s" row="0" col="11" icon="keyBackspace" background="#3d4f66" foreground="#ffffff" command="backspace"/>
+    <Cell id="shift_s" row="1" col="0" icon="KeyShift" background="#e9c46a" foreground="#1a1a1a" showLayers="1"/>
     <Cell id="ch_65_1_1" row="1" col="1" label="A" send="A"/>
     <Cell id="ch_83_1_2" row="1" col="2" label="S" send="S"/>
     <Cell id="ch_68_1_3" row="1" col="3" label="D" send="D"/>
@@ -62,18 +62,18 @@
     <Cell id="ch_76_1_9" row="1" col="9" label="L" send="L"/>
     <Cell id="comma_s" row="1" col="10" label="?" send="?"/>
     <Cell id="quote_s" row="1" col="11" label="&quot;" send="&quot;"/>
-    <Cell id="cmd_s" row="2" col="0" icon="KeyWin" label="⌘" background="#3d4f66" foreground="#ffffff" activeState="mod.win" command="leftWin"/>
+    <Cell id="cmd_s" row="2" col="0" icon="KeyWin" background="#3d4f66" foreground="#ffffff" activeState="mod.win" command="leftWin"/>
     <Cell id="sym_s" row="2" col="1" icon="dialpad" label="123?" background="#0a7ea4" foreground="#ffffff" showLayers="4"/>
     <Cell id="ch_90_2_2" row="2" col="2" label="Z" send="Z"/>
     <Cell id="ch_88_2_3" row="2" col="3" label="X" send="X"/>
     <Cell id="ch_67_2_4" row="2" col="4" label="C" send="C"/>
     <Cell id="ch_86_2_5" row="2" col="5" label="V" send="V"/>
-    <Cell id="space_s" row="2" col="6" icon="keySpace" label="␣" background="#3d4f66" foreground="#ffffff" command="space"/>
+    <Cell id="space_s" row="2" col="6" icon="keySpace" background="#3d4f66" foreground="#ffffff" command="space"/>
     <Cell id="ch_66_2_7" row="2" col="7" label="B" send="B"/>
     <Cell id="ch_78_2_8" row="2" col="8" label="N" send="N"/>
     <Cell id="ch_77_2_9" row="2" col="9" label="M" send="M"/>
     <Cell id="period_s" row="2" col="10" label="!" send="!"/>
-    <Cell id="enter_s" row="2" col="11" icon="keyReturn" label="↵" background="#0a7ea4" foreground="#ffffff" command="enter"/>
+    <Cell id="enter_s" row="2" col="11" icon="keyReturn" background="#0a7ea4" foreground="#ffffff" command="enter"/>
   </Grid>
   <Grid id="board_sym" desktopMode="true" rows="3" columns="12" anchor="Bottom" offset="0,0" size="1280,280" gap="4" margin="4" layers="3">
     <Cell id="tab_sym" row="0" col="0" icon="keyTab" label="Tab" background="#3d4f66" foreground="#ffffff" command="tab"/>
@@ -87,8 +87,8 @@
     <Cell id="d8" row="0" col="8" label="8" send="8"/>
     <Cell id="d9" row="0" col="9" label="9" send="9"/>
     <Cell id="d10" row="0" col="10" label="0" send="0"/>
-    <Cell id="bksp_sym" row="0" col="11" icon="keyBackspace" label="⌫" background="#3d4f66" foreground="#ffffff" command="backspace"/>
-    <Cell id="shift_sym" row="1" col="0" icon="KeyShift" label="⇧" background="#3d4f66" foreground="#ffffff" showLayers="4"/>
+    <Cell id="bksp_sym" row="0" col="11" icon="keyBackspace" background="#3d4f66" foreground="#ffffff" command="backspace"/>
+    <Cell id="shift_sym" row="1" col="0" icon="KeyShift" background="#3d4f66" foreground="#ffffff" showLayers="4"/>
     <Cell id="s1" row="1" col="1" label="@" send="@"/>
     <Cell id="s2" row="1" col="2" label="#" send="#"/>
     <Cell id="s3" row="1" col="3" label="$" send="$"/>
@@ -99,18 +99,18 @@
     <Cell id="s8" row="1" col="8" label=")" send=")"/>
     <Cell id="comma_sym" row="1" col="9" label="," send=","/>
     <Cell id="quote_sym" row="1" col="10" label="&apos;" send="&apos;"/>
-    <Cell id="cmd_sym" row="2" col="0" icon="KeyWin" label="⌘" background="#3d4f66" foreground="#ffffff" activeState="mod.win" command="leftWin"/>
+    <Cell id="cmd_sym" row="2" col="0" icon="KeyWin" background="#3d4f66" foreground="#ffffff" activeState="mod.win" command="leftWin"/>
     <Cell id="abc" row="2" col="1" icon="keyboardKeys" label="ABC" background="#0a7ea4" foreground="#ffffff" showLayers="1"/>
     <Cell id="l2" row="2" col="2" label="_" send="_"/>
     <Cell id="l3" row="2" col="3" label="=" send="="/>
     <Cell id="l4" row="2" col="4" label="[" send="["/>
     <Cell id="l5" row="2" col="5" label="]" send="]"/>
-    <Cell id="space_sym" row="2" col="6" icon="keySpace" label="␣" background="#3d4f66" foreground="#ffffff" command="space"/>
+    <Cell id="space_sym" row="2" col="6" icon="keySpace" background="#3d4f66" foreground="#ffffff" command="space"/>
     <Cell id="r7" row="2" col="7" label="-" send="-"/>
     <Cell id="r8" row="2" col="8" label="+" send="+"/>
     <Cell id="r9" row="2" col="9" label="/" send="/"/>
     <Cell id="period_sym" row="2" col="10" label="." send="."/>
-    <Cell id="enter_sym" row="2" col="11" icon="keyReturn" label="↵" background="#0a7ea4" foreground="#ffffff" command="enter"/>
+    <Cell id="enter_sym" row="2" col="11" icon="keyReturn" background="#0a7ea4" foreground="#ffffff" command="enter"/>
   </Grid>
   <Grid id="board_sym_shift" desktopMode="true" rows="3" columns="12" anchor="Bottom" offset="0,0" size="1280,280" gap="4" margin="4" layers="4">
     <Cell id="tab_ss" row="0" col="0" icon="keyTab" label="Tab" background="#3d4f66" foreground="#ffffff" command="tab"/>
@@ -124,8 +124,8 @@
     <Cell id="d8_ss" row="0" col="8" label="*" send="*"/>
     <Cell id="d9_ss" row="0" col="9" label="(" send="("/>
     <Cell id="d10_ss" row="0" col="10" label=")" send=")"/>
-    <Cell id="bksp_ss" row="0" col="11" icon="keyBackspace" label="⌫" background="#3d4f66" foreground="#ffffff" command="backspace"/>
-    <Cell id="shift_ss" row="1" col="0" icon="KeyShift" label="⇧" background="#e9c46a" foreground="#1a1a1a" showLayers="3"/>
+    <Cell id="bksp_ss" row="0" col="11" icon="keyBackspace" background="#3d4f66" foreground="#ffffff" command="backspace"/>
+    <Cell id="shift_ss" row="1" col="0" icon="KeyShift" background="#e9c46a" foreground="#1a1a1a" showLayers="3"/>
     <Cell id="s0_ss" row="1" col="1" label="`" send="`"/>
     <Cell id="s1_ss" row="1" col="2" label="~" send="~"/>
     <Cell id="s_gbp" row="1" col="3" label="£" send="£"/>
@@ -136,18 +136,18 @@
     <Cell id="s6_ss" row="1" col="8" label="&gt;" send="&gt;"/>
     <Cell id="comma_ss" row="1" col="9" label="?" send="?"/>
     <Cell id="quote_ss" row="1" col="10" label="&quot;" send="&quot;"/>
-    <Cell id="cmd_ss" row="2" col="0" icon="KeyWin" label="⌘" background="#3d4f66" foreground="#ffffff" activeState="mod.win" command="leftWin"/>
+    <Cell id="cmd_ss" row="2" col="0" icon="KeyWin" background="#3d4f66" foreground="#ffffff" activeState="mod.win" command="leftWin"/>
     <Cell id="abc_ss" row="2" col="1" icon="keyboardKeys" label="ABC" background="#0a7ea4" foreground="#ffffff" showLayers="2"/>
     <Cell id="l2_ss" row="2" col="2" label="·" send="·"/>
     <Cell id="l3_ss" row="2" col="3" label="°" send="°"/>
     <Cell id="l4_ss" row="2" col="4" label="{" send="{"/>
     <Cell id="l5_ss" row="2" col="5" label="}" send="}"/>
-    <Cell id="space_ss" row="2" col="6" icon="keySpace" label="␣" background="#3d4f66" foreground="#ffffff" command="space"/>
+    <Cell id="space_ss" row="2" col="6" icon="keySpace" background="#3d4f66" foreground="#ffffff" command="space"/>
     <Cell id="r7_ss" row="2" col="7" label="—" send="—"/>
     <Cell id="r8_ss" row="2" col="8" label="¿" send="¿"/>
     <Cell id="r9_ss" row="2" col="9" label="¡" send="¡"/>
     <Cell id="period_ss" row="2" col="10" label="!" send="!"/>
-    <Cell id="enter_ss" row="2" col="11" icon="keyReturn" label="↵" background="#0a7ea4" foreground="#ffffff" command="enter"/>
+    <Cell id="enter_ss" row="2" col="11" icon="keyReturn" background="#0a7ea4" foreground="#ffffff" command="enter"/>
   </Grid>
   <Zone id="edge_main" anchor="Top" offset="0,0" size="420,156" icon="menu" label="Main" background="#0a7ea4" foreground="#ffffff" layers="1,2,3,4">
     <ClosePage/>

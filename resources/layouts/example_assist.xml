@@ -3,13 +3,13 @@
     <Cell id="mag" row="0" col="0" icon="MagnifyTool" label="Gaze Magnifier" activeState="magnifier" command="toggleMagnifier"/>
     <Cell id="gaze_reticle" row="0" col="1" icon="Eye" label="Show gaze" activeState="gazeReticle" command="toggleGazeReticle"/>
     <Cell id="gaze_follow" row="0" col="2" icon="MouseMagneticCursor" label="Gaze mouse" activeState="gazeMouseFollow" command="toggleGazeMouseFollow"/>
-    <Cell id="mouse_move" row="0" col="3" icon="dragPan" label="Move mouse
+    <Cell id="mouse_move" row="0" col="3" icon="mouseMove" label="Move mouse
 (dwell)" activeState="mouseMoveToGaze" command="mouseMoveToGaze"/>
     <Cell id="click_loop" row="0" col="4" icon="LoopingAction" label="Gaze click
 loop" activeState="mouseMoveToGazeClickLoop" command="mouseMoveToGazeClickLoop"/>
     <Cell id="mag_pick" row="0" col="5" icon="ZoomConfirm" label="Magnify pick" activeState="mouseMoveMagPick" command="toggleMouseMoveMagPick"/>
     <Cell id="foresight" row="0" col="6" icon="ZoomReset" label="Foresight" activeState="mouseMoveForesight" command="toggleMouseMoveForesight"/>
-    <Cell id="lts" row="0" col="7" icon="lookToScroll" label="Look↕Scroll" activeState="lookToScroll" command="toggleLookToScroll"/>
+    <Cell id="lts" row="0" col="7" icon="lookToScroll" activeState="lookToScroll" command="toggleLookToScroll"/>
     <Cell id="combo" row="0" col="8" icon="comboMouse" label="ComboMouse" activeState="comboMouse" command="toggleComboMouse"/>
     <Cell id="edit_layout" row="0" col="9" icon="editSquare" label="Edit page" command="openPageEditor"/>
     <Cell id="main" row="0" col="10" icon="menu" label="Main">

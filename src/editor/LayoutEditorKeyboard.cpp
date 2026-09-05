@@ -161,7 +161,7 @@ PageDocument makeTemplateDocument(EditorTemplate tmpl, const QString& id, const 
         const QStringList pages = {QStringLiteral("uw_qwerty"), QStringLiteral("example_mouse"),
                                    QStringLiteral("example_assist"),
                                    QStringLiteral("main_settings")};
-        const QStringList icons = {QStringLiteral("keyboardKeys"), QStringLiteral("mouseLeftClick"),
+        const QStringList icons = {QStringLiteral("keyboardKeys"), QStringLiteral("mouse"),
                                    QStringLiteral("ideas"), QStringLiteral("settings")};
         for (int i = 0; i < labels.size(); ++i) {
             PageCell c;

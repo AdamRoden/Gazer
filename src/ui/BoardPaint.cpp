@@ -224,31 +224,83 @@ void paintTab(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeColo
 void paintIconAndText(QPainter& p, const PageTarget& t, const QRectF& r, const QColor& fg,
                       const ThemeColors& theme)
 {
+    Q_UNUSED(theme);
     const QString family = segoeFamily();
     const bool hasText = !t.label.isEmpty();
     const bool hasIcon = !t.icon.isEmpty();
+    const bool hasCap = !t.caption.isEmpty();
+    if (!hasText && !hasIcon) {
+        return;
+    }
     const qreal w = r.width();
     const qreal h = r.height();
     const qreal pad = qBound(6.0, qMin(w, h) * 0.08, 14.0);
-
-    bool paintedIcon = false;
-    QRectF iconR;
-    QRectF textR = r.adjusted(pad, pad, -pad, -pad);
-    int flags = int(Qt::AlignCenter | Qt::TextWordWrap);
-    int startPx = 14;
     const bool keyGlyph =
         !hasIcon && t.textStyle.compare(QLatin1String("key"), Qt::CaseInsensitive) == 0;
+    const bool inlineIcon =
+        hasIcon && hasText
+        && t.textStyle.compare(QLatin1String("title"), Qt::CaseInsensitive) == 0;
     const int weight = keyGlyph ? QFont::Normal : QFont::DemiBold;
 
+    QRectF iconR;
+    QRectF textR = r.adjusted(pad, pad, -pad, -pad);
+    QRectF capR;
+    int flags = int(Qt::AlignCenter | Qt::TextWordWrap);
+    int capFlags = int(Qt::AlignHCenter | Qt::AlignTop | Qt::TextWordWrap);
+    int startPx = 14;
+    bool paintedIcon = false;
+
+    if (inlineIcon) {
+        const QRectF padBox = r.adjusted(pad, pad, -pad, -pad);
+        if (padBox.isEmpty()) {
+            return;
+        }
+        int px = 24;
+        QFont tFont(family, px, weight);
+        flags = int(Qt::AlignLeft | Qt::AlignVCenter | Qt::TextWordWrap);
+        const qreal gap = 12.0;
+        auto textSize = [&]() { return QFontMetricsF(tFont).boundingRect(t.label).size(); };
+        qreal side = QFontMetricsF(tFont).height();
+        while (px > 12) {
+            side = QFontMetricsF(tFont).height();
+            const QSizeF ts = textSize();
+            if (side + gap + ts.width() <= padBox.width() + 0.5
+                && qMax(side, ts.height()) <= padBox.height() + 0.5) {
+                break;
+            }
+            --px;
+            tFont.setPointSize(px);
+        }
+        side = QFontMetricsF(tFont).height();
+        const QSizeF ts = textSize();
+        const qreal totalW = side + gap + ts.width();
+        const qreal totalH = qMax(side, ts.height());
+        const qreal x0 = padBox.left() + qMax(0.0, (padBox.width() - totalW) * 0.5);
+        const qreal y0 = padBox.top() + qMax(0.0, (padBox.height() - totalH) * 0.5);
+        iconR = QRectF(x0, y0 + (totalH - side) * 0.5, side, side);
+        paintedIcon = KeySymbols::paint(p, t.icon, iconR, fg);
+        textR = QRectF(iconR.right() + gap, y0, ts.width(), totalH);
+        p.setPen(fg);
+        p.setFont(tFont);
+        p.drawText(textR, flags, t.label);
+        return;
+    }
+
     if (hasIcon && hasText && h >= 52.0 && w >= 40.0) {
+        const qreal capBand = hasCap ? qBound(14.0, h * 0.20, 22.0) : 0.0;
         const qreal labelBand = qBound(18.0, h * 0.28, 30.0);
         const QRectF iconArea(r.left() + pad, r.top() + pad, w - 2.0 * pad,
-                              qMax(8.0, h - 2.0 * pad - labelBand - 2.0));
+                              qMax(8.0, h - 2.0 * pad - labelBand - capBand - 2.0));
         const qreal side = qMax(8.0, qMin(iconArea.width(), iconArea.height()));
         iconR = QRectF(iconArea.center().x() - side / 2.0, iconArea.center().y() - side / 2.0, side,
                        side);
         paintedIcon = KeySymbols::paint(p, t.icon, iconR, fg);
-        textR = QRectF(r.left() + 6.0, r.bottom() - pad - labelBand, w - 12.0, labelBand);
+        if (hasCap) {
+            capR = QRectF(r.left() + 6.0, r.bottom() - pad - capBand, w - 12.0, capBand);
+            textR = QRectF(r.left() + 6.0, capR.top() - labelBand, w - 12.0, labelBand);
+        } else {
+            textR = QRectF(r.left() + 6.0, r.bottom() - pad - labelBand, w - 12.0, labelBand);
+        }
         flags = int(Qt::AlignHCenter | Qt::AlignVCenter | Qt::TextWordWrap);
         startPx = 13;
     } else if (hasIcon && hasText) {
@@ -259,10 +311,37 @@ void paintIconAndText(QPainter& p, const PageTarget& t, const QRectF& r, const Q
                        h - 2.0 * pad);
         flags = int(Qt::AlignLeft | Qt::AlignVCenter | Qt::TextWordWrap);
         startPx = 13;
+        if (hasCap) {
+            const qreal capBand = qBound(12.0, textR.height() * 0.38, 20.0);
+            capR = QRectF(textR.left(), textR.bottom() - capBand, textR.width(), capBand);
+            textR.setHeight(qMax(8.0, textR.height() - capBand - 2.0));
+            capFlags = int(Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap);
+        }
     } else if (hasIcon) {
         const qreal side = qMax(8.0, qMin(w, h) - 2.0 * pad);
         iconR = QRectF(r.center().x() - side / 2.0, r.center().y() - side / 2.0, side, side);
         paintedIcon = KeySymbols::paint(p, t.icon, iconR, fg);
+    } else if (hasText && hasCap) {
+        const QRectF box = r.adjusted(12, 6, -12, -6);
+        if (box.isEmpty()) {
+            return;
+        }
+        flags = int(Qt::AlignLeft | Qt::AlignVCenter | Qt::TextWordWrap);
+        capFlags = int(Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap);
+        QFont tFont(family, startPx, weight);
+        auto titleH = [&]() {
+            return QFontMetricsF(tFont).boundingRect(box, flags, t.label).height();
+        };
+        const double capLine = QFontMetricsF(QFont(family, 12)).lineSpacing();
+        while (tFont.pointSize() > 11 && titleH() + capLine + 4.0 > box.height()) {
+            tFont.setPointSize(tFont.pointSize() - 1);
+        }
+        const double th =
+            qBound(QFontMetricsF(tFont).lineSpacing(), titleH(),
+                   qMax(QFontMetricsF(tFont).lineSpacing(), box.height() - capLine - 2.0));
+        textR = QRectF(box.left(), box.top(), box.width(), th);
+        capR = QRectF(box.left(), textR.bottom() + 2.0, box.width(),
+                      qMax(1.0, box.bottom() - textR.bottom() - 2.0));
     }
 
     if (hasText && !(paintedIcon && textR.height() < 10.0)) {
@@ -276,6 +355,12 @@ void paintIconAndText(QPainter& p, const PageTarget& t, const QRectF& r, const Q
             p.setFont(QFont(family, px, weight));
         }
         p.drawText(textR, flags, t.label);
+        if (!capR.isEmpty() && hasCap) {
+            p.setPen(fg);
+            p.setFont(QFont(family, fontPxToFit(family, QFont::Normal, 12, 9, t.caption, capR,
+                                                capFlags)));
+            p.drawText(capR, capFlags, t.caption);
+        }
     } else if (!paintedIcon && hasIcon) {
         p.setPen(fg);
         const int px = fontPxToFit(family, QFont::DemiBold, 14, 10, t.icon, textR, flags);
@@ -445,7 +530,7 @@ void paintThemeCard(QPainter& p, const PageTarget& t, const QRectF& r, const The
 
         fillRound(p, mouse, cellRad, surface);
         strokeRound(p, mouse, cellRad, progressCol, borderW);
-        KeySymbols::paint(p, QStringLiteral("mouseLeftClick"), iconAt(mouse), accent);
+        KeySymbols::paint(p, QStringLiteral("mouse"), iconAt(mouse), accent);
     }
 
     if (labelH > 0.0) {

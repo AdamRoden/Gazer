@@ -98,8 +98,7 @@ PageDocument SettingsUi::buildNumpadDocument() const
 
 bool SettingsUi::openNumericEditor(const QString& settingKey, QString* error)
 {
-    if (settingKey == QLatin1String("dwellMs")
-        || settingKey == QLatin1String("dwellSequence")) {
+    if (AppSettings::isSequenceKey(settingKey)) {
         return openArrayEditor(settingKey, error);
     }
     if (!AppSettings::isNumericKey(settingKey)) {
@@ -138,8 +137,7 @@ void SettingsUi::numpadAppend(const QString& ch)
     if (!m_numpad.active) {
         return;
     }
-    const bool sequenceMode = (m_numpadKey == QLatin1String("dwellMs")
-                               || m_numpadKey == QLatin1String("dwellSequence"));
+    const bool sequenceMode = AppSettings::isSequenceKey(m_numpadKey);
     if (ch == QLatin1String(".") && !sequenceMode && m_numpadBuffer.contains(QLatin1Char('.'))) {
         return;
     }
@@ -225,7 +223,7 @@ bool SettingsUi::numpadSave(QString* error)
         }
         resetNumpad();
         if (arrayIndex >= 0 && arrayIndex < m_arrayDraft.size()) {
-            m_arrayDraft[arrayIndex] = qBound(50, v, 10000);
+            m_arrayDraft[arrayIndex] = qBound(0, v, 10000);
         }
         refreshArrayEditor();
         notifyStatus(QStringLiteral("Step %1 = %2 ms").arg(arrayIndex + 1).arg(v));

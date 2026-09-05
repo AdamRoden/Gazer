@@ -23,6 +23,7 @@ private slots:
     void rejectInvalidShowLayers();
     void parseCloseSpecialsAndGoBack();
     void genericActionAttribute();
+    void dailyDriverDwellClassification();
 };
 
 void PageLoaderActionTest::actionExtrasRoundTrip()
@@ -397,6 +398,43 @@ void PageLoaderActionTest::genericActionAttribute()
     QCOMPARE(a.breadcrumb, true);
     QVERIFY2(loadOneAction(QByteArray("<Action goBack=\"true\"/>"), a, &err), qPrintable(err));
     QCOMPARE(a.type, PageActionType::GoBack);
+}
+
+void PageLoaderActionTest::dailyDriverDwellClassification()
+{
+    auto cmd = [](const QString& name) {
+        PageAction a;
+        a.type = PageActionType::Command;
+        a.command = name;
+        return a;
+    };
+    PageAction send;
+    send.type = PageActionType::Send;
+    send.sendKey = QStringLiteral("a");
+    QVERIFY(usesDailyDriverDwell({send}));
+
+    PageAction click;
+    click.type = PageActionType::Click;
+    QVERIFY(usesDailyDriverDwell({click}));
+
+    PageAction ahk;
+    ahk.type = PageActionType::Ahk;
+    QVERIFY(usesDailyDriverDwell({ahk}));
+
+    QVERIFY(usesDailyDriverDwell({cmd(QStringLiteral("leftShift"))}));
+    QVERIFY(usesDailyDriverDwell({cmd(QStringLiteral("leftCtrl"))}));
+    QVERIFY(usesDailyDriverDwell({cmd(QStringLiteral("backspace"))}));
+    QVERIFY(usesDailyDriverDwell({cmd(QStringLiteral("mouseLeftClick"))}));
+    QVERIFY(usesDailyDriverDwell({cmd(QStringLiteral("compose.backspace"))}));
+    QVERIFY(usesDailyDriverDwell({cmd(QStringLiteral("compose.removeWord.3"))}));
+
+    PageAction open;
+    open.type = PageActionType::Nav;
+    QVERIFY(!usesDailyDriverDwell({open}));
+    QVERIFY(!usesDailyDriverDwell({cmd(QStringLiteral("settings.dwell.slow"))}));
+    QVERIFY(!usesDailyDriverDwell({cmd(QStringLiteral("toggleLookToScroll"))}));
+    QVERIFY(!usesDailyDriverDwell({cmd(QStringLiteral("compose.speak"))}));
+    QVERIFY(!usesDailyDriverDwell({cmd(QStringLiteral("quitApp"))}));
 }
 
 

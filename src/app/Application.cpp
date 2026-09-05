@@ -9,8 +9,10 @@
 #include "assist/LookToScroll.h"
 #include "assist/MouseAssistState.h"
 #include "assist/MouseDwellMove.h"
+#include "assist/ClipPlayer.h"
 #include "assist/PhraseService.h"
 #include "assist/ScriptHost.h"
+#include "assist/SpeechEngine.h"
 #include "assist/TtsService.h"
 #include "core/ITracker.h"
 #include "core/TrackerMouse.h"
@@ -380,7 +382,8 @@ void Application::shutdownUi()
         m_svc->mouseAssist().releaseAllHolds();
         QString ignored;
         (void)m_svc->keyState().releaseAll(&ignored);
-        m_svc->tts().stop();
+        m_svc->clipPlayer().stop();
+        m_svc->speechEngine().stop();
         m_svc->pages().hideHost();
     }
     if (m_preview) {

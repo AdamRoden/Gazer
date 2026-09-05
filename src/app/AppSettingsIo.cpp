@@ -50,6 +50,15 @@ QString AppSettings::dwellSequenceString() const
     return parts.join(QLatin1Char(','));
 }
 
+QString AppSettings::dailyDwellSequenceString() const
+{
+    QStringList parts;
+    for (int ms : dailyDwellSequence) {
+        parts << QString::number(ms);
+    }
+    return parts.join(QLatin1Char(','));
+}
+
 QVector<int> AppSettings::parseDwellSequence(const QString& text, QString* error)
 {
     QVector<int> out;
@@ -64,9 +73,9 @@ QVector<int> AppSettings::parseDwellSequence(const QString& text, QString* error
     for (const QString& part : cleaned.split(sep, Qt::SkipEmptyParts)) {
         bool ok = false;
         const int v = part.toInt(&ok);
-        if (!ok || v < 50 || v > 10000) {
+        if (!ok || v < 0 || v > 10000) {
             if (error) {
-                *error = QStringLiteral("Each step must be an integer 50–10000 ms");
+                *error = QStringLiteral("Each step must be an integer 0–10000 ms");
             }
             return {};
         }
@@ -117,46 +126,59 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
     }
     const QJsonObject o = doc.object();
 
-    if (o.contains(QStringLiteral("dwellSequence"))) {
-        dwellSequence.clear();
-        for (const QJsonValue& v : o.value(QStringLiteral("dwellSequence")).toArray()) {
-            const int n = v.toInt(0);
-            if (n > 0) {
-                dwellSequence.push_back(n);
-            }
-        }
-    } else if (o.contains(QStringLiteral("dwellMs"))) {
-        const QJsonValue ms = o.value(QStringLiteral("dwellMs"));
-        if (ms.isArray()) {
-            dwellSequence.clear();
-            for (const QJsonValue& v : ms.toArray()) {
-                const int n = v.toInt(0);
-                if (n > 0) {
-                    dwellSequence.push_back(n);
+    auto loadSeq = [](const QJsonValue& v) {
+        QVector<int> out;
+        if (v.isArray()) {
+            for (const QJsonValue& n : v.toArray()) {
+                if (!n.isDouble() && !n.isString()) {
+                    continue;
+                }
+                const int ms = n.toInt(-1);
+                if (ms >= 0 && ms <= 10000) {
+                    out.push_back(ms);
                 }
             }
-        } else if (ms.isString()) {
-            dwellSequence = parseDwellSequence(ms.toString());
-        } else {
-            dwellSequence = {ms.toInt(700)};
+        } else if (v.isString()) {
+            out = parseDwellSequence(v.toString());
+        } else if (v.isDouble()) {
+            const int ms = v.toInt(-1);
+            if (ms >= 0 && ms <= 10000) {
+                out = {ms};
+            }
         }
+        return out;
+    };
+
+    const bool hadDailySeq = o.contains(QStringLiteral("dailyDwellSequence"));
+    const bool hadDailyScan = o.contains(QStringLiteral("dailyScanGraceMs"));
+
+    if (o.contains(QStringLiteral("dwellSequence"))) {
+        dwellSequence = loadSeq(o.value(QStringLiteral("dwellSequence")));
+    } else if (o.contains(QStringLiteral("dwellMs"))) {
+        dwellSequence = loadSeq(o.value(QStringLiteral("dwellMs")));
+    }
+
+    if (hadDailySeq) {
+        dailyDwellSequence = loadSeq(o.value(QStringLiteral("dailyDwellSequence")));
     }
 
     scanGraceMs = o.value(QStringLiteral("scanGraceMs")).toInt(scanGraceMs);
+    if (hadDailyScan) {
+        dailyScanGraceMs = o.value(QStringLiteral("dailyScanGraceMs")).toInt(dailyScanGraceMs);
+    }
     dwellGraceMs = o.value(QStringLiteral("dwellGraceMs")).toInt(dwellGraceMs);
     mouseMoveDwellMs = o.value(QStringLiteral("mouseMoveDwellMs")).toInt(mouseMoveDwellMs);
     magPickDwellMs = o.value(QStringLiteral("magPickDwellMs")).toInt(magPickDwellMs);
     if (o.contains(QStringLiteral("customDwellSequence"))) {
-        customTiming.sequence.clear();
-        for (const QJsonValue& v : o.value(QStringLiteral("customDwellSequence")).toArray()) {
-            const int n = v.toInt(0);
-            if (n > 0) {
-                customTiming.sequence.push_back(n);
-            }
-        }
+        customTiming.sequence = loadSeq(o.value(QStringLiteral("customDwellSequence")));
+    }
+    if (o.contains(QStringLiteral("customDailyDwellSequence"))) {
+        customTiming.dailySequence = loadSeq(o.value(QStringLiteral("customDailyDwellSequence")));
     }
     customTiming.scanGraceMs =
         o.value(QStringLiteral("customScanGraceMs")).toInt(customTiming.scanGraceMs);
+    customTiming.dailyScanGraceMs =
+        o.value(QStringLiteral("customDailyScanGraceMs")).toInt(customTiming.dailyScanGraceMs);
     customTiming.blinkGraceMs =
         o.value(QStringLiteral("customDwellGraceMs")).toInt(customTiming.blinkGraceMs);
     customTiming.pointerDwellMs =
@@ -208,6 +230,65 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
         o.value(QStringLiteral("layoutAutoCloseFadeMs")).toInt(layoutAutoCloseFadeMs);
     trackerPref = o.value(QStringLiteral("trackerPref")).toInt(trackerPref);
     speakAlsoType = o.value(QStringLiteral("speakAlsoType")).toBool(speakAlsoType);
+    speechModel = o.value(QStringLiteral("speechModel")).toString(speechModel);
+    elevenVoiceId = o.value(QStringLiteral("elevenVoiceId")).toString(elevenVoiceId);
+    sapiVoiceToken = o.value(QStringLiteral("sapiVoiceToken")).toString(sapiVoiceToken);
+    speechSpeed = o.value(QStringLiteral("speechSpeed")).toDouble(speechSpeed);
+    speechPitch = o.value(QStringLiteral("speechPitch")).toDouble(speechPitch);
+    speechLangFilter = o.value(QStringLiteral("speechLangFilter")).toString(speechLangFilter);
+    elevenApiKeySet = false;
+    auto readStringList = [](const QJsonObject& obj, const QString& key, const QStringList& fallback) {
+        if (!obj.contains(key) || !obj.value(key).isArray()) {
+            return fallback;
+        }
+        QStringList out;
+        for (const QJsonValue& v : obj.value(key).toArray()) {
+            const QString s = v.toString().trimmed();
+            if (!s.isEmpty()) {
+                out.push_back(s);
+            }
+        }
+        return out;
+    };
+    elevenFavoriteVoiceIds =
+        readStringList(o, QStringLiteral("elevenFavoriteVoiceIds"), {});
+    savedSpeechTags.clear();
+    if (o.value(QStringLiteral("savedSpeechTags")).isArray()) {
+        for (const QJsonValue& v : o.value(QStringLiteral("savedSpeechTags")).toArray()) {
+            SavedSpeechTag tag;
+            if (v.isString()) {
+                tag.name = v.toString();
+            } else if (v.isObject()) {
+                const QJsonObject to = v.toObject();
+                tag.name = to.value(QStringLiteral("name")).toString();
+                tag.color = to.value(QStringLiteral("color")).toString();
+                tag.icon = to.value(QStringLiteral("icon")).toString();
+            }
+            if (!tag.name.trimmed().isEmpty()) {
+                savedSpeechTags.push_back(tag);
+            }
+        }
+    } else {
+        savedSpeechTags = defaultSavedSpeechTags();
+    }
+    savedSpeechVoices.clear();
+    if (o.value(QStringLiteral("savedSpeechVoices")).isArray()) {
+        for (const QJsonValue& v : o.value(QStringLiteral("savedSpeechVoices")).toArray()) {
+            if (!v.isObject()) {
+                continue;
+            }
+            const QJsonObject vo = v.toObject();
+            SavedSpeechVoice item;
+            item.id = vo.value(QStringLiteral("id")).toString();
+            item.name = vo.value(QStringLiteral("name")).toString();
+            item.model = vo.value(QStringLiteral("model")).toString();
+            item.voiceId = vo.value(QStringLiteral("voiceId")).toString();
+            item.speed = vo.value(QStringLiteral("speed")).toDouble(1.0);
+            item.color = vo.value(QStringLiteral("color")).toString();
+            item.icon = vo.value(QStringLiteral("icon")).toString();
+            savedSpeechVoices.push_back(item);
+        }
+    }
     const QString legacyMode =
         o.value(QStringLiteral("themeMode")).toString(QStringLiteral("dark")).toLower();
     if (o.contains(QStringLiteral("themeAppearance"))) {
@@ -338,6 +419,9 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
     }
     applyTheme();
 
+    if (!hadDailySeq && !hadDailyScan) {
+        inferMissingDailyDwell();
+    }
     clamp();
     GAZER_INFO << "Loaded settings from" << path;
     return true;
@@ -356,7 +440,13 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
         seq.append(ms);
     }
     o.insert(QStringLiteral("dwellSequence"), seq);
+    QJsonArray dailySeq;
+    for (int ms : copy.dailyDwellSequence) {
+        dailySeq.append(ms);
+    }
+    o.insert(QStringLiteral("dailyDwellSequence"), dailySeq);
     o.insert(QStringLiteral("scanGraceMs"), copy.scanGraceMs);
+    o.insert(QStringLiteral("dailyScanGraceMs"), copy.dailyScanGraceMs);
     o.insert(QStringLiteral("dwellGraceMs"), copy.dwellGraceMs);
     o.insert(QStringLiteral("mouseMoveDwellMs"), copy.mouseMoveDwellMs);
     o.insert(QStringLiteral("magPickDwellMs"), copy.magPickDwellMs);
@@ -365,7 +455,13 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
         customSeq.append(ms);
     }
     o.insert(QStringLiteral("customDwellSequence"), customSeq);
+    QJsonArray customDailySeq;
+    for (int ms : copy.customTiming.dailySequence) {
+        customDailySeq.append(ms);
+    }
+    o.insert(QStringLiteral("customDailyDwellSequence"), customDailySeq);
     o.insert(QStringLiteral("customScanGraceMs"), copy.customTiming.scanGraceMs);
+    o.insert(QStringLiteral("customDailyScanGraceMs"), copy.customTiming.dailyScanGraceMs);
     o.insert(QStringLiteral("customDwellGraceMs"), copy.customTiming.blinkGraceMs);
     o.insert(QStringLiteral("customMouseMoveDwellMs"), copy.customTiming.pointerDwellMs);
     o.insert(QStringLiteral("customMagPickDwellMs"), copy.customTiming.zoomDwellMs);
@@ -403,6 +499,46 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     o.insert(QStringLiteral("layoutAutoCloseFadeMs"), copy.layoutAutoCloseFadeMs);
     o.insert(QStringLiteral("trackerPref"), copy.trackerPref);
     o.insert(QStringLiteral("speakAlsoType"), copy.speakAlsoType);
+    o.insert(QStringLiteral("speechModel"), copy.speechModel);
+    o.insert(QStringLiteral("elevenVoiceId"), copy.elevenVoiceId);
+    o.insert(QStringLiteral("sapiVoiceToken"), copy.sapiVoiceToken);
+    o.insert(QStringLiteral("speechSpeed"), copy.speechSpeed);
+    o.insert(QStringLiteral("speechPitch"), copy.speechPitch);
+    o.insert(QStringLiteral("speechLangFilter"), copy.speechLangFilter);
+    auto writeStringList = [](const QStringList& v) {
+        QJsonArray a;
+        for (const QString& s : v) {
+            a.append(s);
+        }
+        return a;
+    };
+    o.insert(QStringLiteral("elevenFavoriteVoiceIds"), writeStringList(copy.elevenFavoriteVoiceIds));
+    {
+        QJsonArray tags;
+        for (const SavedSpeechTag& t : copy.savedSpeechTags) {
+            QJsonObject to;
+            to.insert(QStringLiteral("name"), t.name);
+            to.insert(QStringLiteral("color"), t.color);
+            to.insert(QStringLiteral("icon"), t.icon);
+            tags.append(to);
+        }
+        o.insert(QStringLiteral("savedSpeechTags"), tags);
+    }
+    {
+        QJsonArray voices;
+        for (const SavedSpeechVoice& v : copy.savedSpeechVoices) {
+            QJsonObject vo;
+            vo.insert(QStringLiteral("id"), v.id);
+            vo.insert(QStringLiteral("name"), v.name);
+            vo.insert(QStringLiteral("model"), v.model);
+            vo.insert(QStringLiteral("voiceId"), v.voiceId);
+            vo.insert(QStringLiteral("speed"), v.speed);
+            vo.insert(QStringLiteral("color"), v.color);
+            vo.insert(QStringLiteral("icon"), v.icon);
+            voices.append(vo);
+        }
+        o.insert(QStringLiteral("savedSpeechVoices"), voices);
+    }
     const bool darkAppearance = themeAppearanceIsDark(copy.themeAppearance);
     o.insert(QStringLiteral("themeMode"),
              copy.themeCustom ? QStringLiteral("custom")

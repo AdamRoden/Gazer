@@ -6,6 +6,7 @@
 
 #include <QColor>
 #include <QString>
+#include <QVector>
 
 namespace gazer {
 namespace SettingsPageBuild {
@@ -15,6 +16,15 @@ inline PageAction command(const QString& name)
     PageAction a;
     a.type = PageActionType::Command;
     a.command = name;
+    return a;
+}
+
+inline PageAction closeSelf()
+{
+    PageAction a;
+    a.type = PageActionType::Nav;
+    a.verb = PageVerb::Close;
+    a.targetScope = PageNavScope::Self;
     return a;
 }
 
@@ -53,6 +63,36 @@ inline void initGrid(PageDocument& doc, int cols, int rows, int widthPx, int hei
     g.size.y = PageDim::pixels(heightPx);
     g.rows = rows;
     g.columns = cols;
+    g.gapPx = gap;
+    g.marginPx = margin;
+    QColor bg = theme.bgMain.isValid() ? theme.bgMain : QColor(10, 10, 11);
+    bg.setAlpha(255);
+    g.style.background = bg;
+    if (theme.border.isValid()) {
+        g.style.borderColor = theme.border;
+    }
+    g.style.radius = PageBox::all(PageChrome::kDefaultRadius);
+    g.style.thickness = PageBox::all(PageChrome::kDefaultThickness);
+    doc.grids.push_back(std::move(g));
+}
+
+/// Same width as Speak. Default height covers title + topics + soundboard
+/// (`rowWeights` 1,1,3,3,4 → 5/12), leaving the phrase and keyboard free.
+inline void initTopOverlay(PageDocument& doc, int cols, int rows, const QVector<double>& weights,
+                           int gap, int margin, const ThemeColors& theme,
+                           const QString& heightExpr = QStringLiteral("A_ScreenHeight/12*5+8"))
+{
+    PageGrid g;
+    g.id = QStringLiteral("board");
+    g.desktopMode = true;
+    g.anchor = PageAnchor::Top;
+    g.offset.x = PageDim::pixels(0);
+    g.offset.y = PageDim::pixels(0);
+    g.size.x = PageDim::expression(QStringLiteral("A_ScreenHeight/9*16"));
+    g.size.y = PageDim::expression(heightExpr);
+    g.rows = rows;
+    g.columns = cols;
+    g.rowWeights = weights;
     g.gapPx = gap;
     g.marginPx = margin;
     QColor bg = theme.bgMain.isValid() ? theme.bgMain : QColor(10, 10, 11);

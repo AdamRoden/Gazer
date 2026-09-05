@@ -16,13 +16,18 @@ using SettingsUiInternal::kStepNudge;
 
 bool SettingsUi::openArrayEditor(const QString& settingKey, QString* error)
 {
+    Q_UNUSED(error);
     m_arrayKey = settingKey;
-    m_arrayDraft = m_settings.dwellSequence;
+    const bool daily = AppSettings::isSequenceKey(settingKey)
+                       && (settingKey == QLatin1String("dailyDwellMs")
+                           || settingKey == QLatin1String("dailyDwellSequence"));
+    m_arrayDraft = daily ? m_settings.dailyDwellSequence : m_settings.dwellSequence;
     if (m_arrayDraft.isEmpty()) {
-        m_arrayDraft = AppSettings::defaultDwellSequence();
+        m_arrayDraft = daily ? AppSettings::defaultDailyDwellSequence()
+                             : AppSettings::defaultDwellSequence();
     }
     refreshArrayEditor();
-    notifyStatus(QStringLiteral("Edit dwell sequence"));
+    notifyStatus(QStringLiteral("Edit %1").arg(AppSettings::settingTitle(settingKey)));
     return true;
 }
 
@@ -30,7 +35,8 @@ PageDocument SettingsUi::buildArrayDocument() const
 {
     PageDocument doc;
     doc.id = QLatin1String(kLiveArray);
-    doc.name = QStringLiteral("Dwell sequence");
+    doc.name = AppSettings::settingTitle(m_arrayKey.isEmpty() ? QStringLiteral("dwellSequence")
+                                                              : m_arrayKey);
     const int n = qBound(1, m_arrayDraft.size(), kMaxArraySteps);
     initGrid(doc, 5, n + 2, 920, 200 + (n + 2) * 68, 10, 20, m_settings.resolvedTheme());
     PageGrid& grid = doc.grids[0];
@@ -90,7 +96,7 @@ void SettingsUi::arrayNudge(int index, int dir)
     if (!m_array.active || index < 0 || index >= m_arrayDraft.size()) {
         return;
     }
-    m_arrayDraft[index] = qBound(50, m_arrayDraft[index] + dir * kStepNudge, 10000);
+    m_arrayDraft[index] = qBound(0, m_arrayDraft[index] + dir * kStepNudge, 10000);
     refreshArrayEditor();
 }
 
@@ -100,7 +106,7 @@ void SettingsUi::arrayNudgeAll(int dir)
         return;
     }
     for (int& ms : m_arrayDraft) {
-        ms = qBound(50, ms + dir * kStepNudge, 10000);
+        ms = qBound(0, ms + dir * kStepNudge, 10000);
     }
     refreshArrayEditor();
 }
@@ -136,9 +142,12 @@ void SettingsUi::arrayReset()
     if (!m_array.active) {
         return;
     }
-    m_arrayDraft = m_settings.dwellSequence;
+    const bool daily = m_arrayKey == QLatin1String("dailyDwellMs")
+                       || m_arrayKey == QLatin1String("dailyDwellSequence");
+    m_arrayDraft = daily ? m_settings.dailyDwellSequence : m_settings.dwellSequence;
     if (m_arrayDraft.isEmpty()) {
-        m_arrayDraft = AppSettings::defaultDwellSequence();
+        m_arrayDraft = daily ? AppSettings::defaultDailyDwellSequence()
+                             : AppSettings::defaultDwellSequence();
     }
     refreshArrayEditor();
 }
@@ -156,8 +165,11 @@ bool SettingsUi::arraySave(QString* error)
         parts << QString::number(ms);
     }
     QString err;
-    if (!m_settings.applyNumericBuffer(QStringLiteral("dwellSequence"), parts.join(QLatin1Char(',')),
-                                       &err)) {
+    const QString key = (m_arrayKey == QLatin1String("dailyDwellMs")
+                         || m_arrayKey == QLatin1String("dailyDwellSequence"))
+                            ? QStringLiteral("dailyDwellSequence")
+                            : QStringLiteral("dwellSequence");
+    if (!m_settings.applyNumericBuffer(key, parts.join(QLatin1Char(',')), &err)) {
         notifyStatus(err);
         if (error) {
             *error = err;
@@ -165,10 +177,14 @@ bool SettingsUi::arraySave(QString* error)
         return false;
     }
     apply(true);
+    const QString saved = (key == QLatin1String("dailyDwellSequence"))
+                              ? m_settings.dailyDwellSequenceString()
+                              : m_settings.dwellSequenceString();
     m_arrayKey.clear();
     m_arrayDraft.clear();
     closeLive(m_array);
-    notifyStatus(QStringLiteral("Saved dwell sequence = %1").arg(m_settings.dwellSequenceString()));
+    notifyStatus(QStringLiteral("Saved %1 = %2")
+                     .arg(AppSettings::settingTitle(key), saved));
     return true;
 }
 

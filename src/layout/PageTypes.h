@@ -5,6 +5,7 @@
 
 #include <QColor>
 #include <QHash>
+#include <QSet>
 #include <QString>
 #include <QStringList>
 #include <QStringView>
@@ -280,6 +281,59 @@ struct PageAction {
     /// ShowLayers: replace the page's visible set with these numbers.
     QVector<int> layers;
 };
+
+/// Default dwell for keys, mouse inject, composer typing, AHK, and mapping commands.
+/// Settings / nav / assist toggles use designer dwell instead.
+[[nodiscard]] inline bool isDailyDriverCommand(QStringView name)
+{
+    const QString n = name.toString();
+    if (n.isEmpty()) {
+        return false;
+    }
+    if (n.startsWith(QLatin1String("compose.removeWord."))
+        || n == QLatin1String("compose.backspace")
+        || n == QLatin1String("compose.deleteWord")) {
+        return true;
+    }
+    if (n.startsWith(QLatin1String("settings.")) || n.startsWith(QLatin1String("theme."))
+        || n.startsWith(QLatin1String("speech.")) || n.startsWith(QLatin1String("history."))
+        || n.startsWith(QLatin1String("soundboard.")) || n.startsWith(QLatin1String("compose."))
+        || n.startsWith(QLatin1String("lts.")) || n.startsWith(QLatin1String("gazer."))
+        || n.startsWith(QLatin1String("toggle"))) {
+        return false;
+    }
+    static const QSet<QString> kChrome{
+        QStringLiteral("quitApp"),
+        QStringLiteral("openPageEditor"),
+        QStringLiteral("openPreview"),
+        QStringLiteral("suspendDwell"),
+        QStringLiteral("resumeDwell"),
+        QStringLiteral("stopAllActionLoops"),
+    };
+    return !kChrome.contains(n);
+}
+
+[[nodiscard]] inline bool usesDailyDriverDwell(const QVector<PageAction>& actions)
+{
+    for (const PageAction& a : actions) {
+        switch (a.type) {
+        case PageActionType::Send:
+        case PageActionType::Click:
+        case PageActionType::Move:
+        case PageActionType::MoveAndClick:
+        case PageActionType::Ahk:
+            return true;
+        case PageActionType::Command:
+            if (isDailyDriverCommand(a.command)) {
+                return true;
+            }
+            break;
+        default:
+            break;
+        }
+    }
+    return false;
+}
 
 /// label / value / display / slider / preview are not dwell targets.
 [[nodiscard]] inline bool pageRoleIsPassive(QStringView role)

@@ -18,11 +18,14 @@
 namespace gazer {
 
 class CommandRegistry;
+class ElevenClient;
 class PageSession;
+class SpeechSecrets;
 
 /// Settings boards: live value decoration, numeric editor, color picker, settings commands.
 /// Implementations: SettingsUi.cpp (shared), SettingsNumpad, SettingsArrayEditor,
-/// SettingsColorPicker, SettingsOpacity, SettingsHexEditor, SettingsSliderGaze, SettingsCommands.
+/// SettingsColorPicker, SettingsOpacity, SettingsHexEditor, SettingsSpeechKey,
+/// SettingsSliderGaze, SettingsCommands.
 class SettingsUi {
 public:
     using ApplyFn = std::function<void(bool persist)>;
@@ -30,7 +33,8 @@ public:
     using MutateFn = std::function<void(const std::function<void(AppSettings&)>&, const QString&)>;
     using ResetFn = std::function<void()>;
 
-    SettingsUi(AppSettings& settings, CommandRegistry& commands, PageSession& pages);
+    SettingsUi(AppSettings& settings, CommandRegistry& commands, PageSession& pages,
+               SpeechSecrets& secrets, ElevenClient& eleven);
 
     void setApplyFn(ApplyFn fn) { m_apply = std::move(fn); }
     void setNotifyFn(NotifyFn fn) { m_notify = std::move(fn); }
@@ -39,6 +43,8 @@ public:
 
     void registerCommands();
     void decoratePage(PageDocument& doc) const;
+    /// Store the validated key, or surface the HTTP/DPAPI error. Returns true if stored.
+    [[nodiscard]] bool onSpeechKeyValidated(bool ok, const QString& error);
     /// Gaze-follow color slider after the track is activated.
     void onGaze(const GazePoint& point);
     [[nodiscard]] bool isSliderScrubbing() const { return m_scrub.active; }
@@ -135,6 +141,15 @@ private:
     [[nodiscard]] bool hexSave(QString* error = nullptr);
     [[nodiscard]] bool hexCancel(QString* error = nullptr);
 
+    [[nodiscard]] bool openSpeechKeyBoard(QString* error = nullptr);
+    void refreshSpeechKeyBoard();
+    [[nodiscard]] PageDocument buildSpeechKeyDocument() const;
+    void speechKeyPaste();
+    void speechKeyClear();
+    [[nodiscard]] bool speechKeySave(QString* error = nullptr);
+    void speechKeyCancel();
+    [[nodiscard]] bool clearSpeechKey(QString* error = nullptr);
+
     void applyPreviewColor();
     [[nodiscard]] QColor flashOpacityPreview() const;
 
@@ -161,6 +176,8 @@ private:
     AppSettings& m_settings;
     CommandRegistry& m_commands;
     PageSession& m_pages;
+    SpeechSecrets& m_secrets;
+    ElevenClient& m_eleven;
     ApplyFn m_apply;
     NotifyFn m_notify;
     MutateFn m_mutate;
@@ -202,6 +219,9 @@ private:
 
     bool m_hexActive = false;
     QString m_hexBuffer;
+    LiveBoard m_key;
+    bool m_keyChecking = false;
+    QString m_keyBuffer;
     QMetaObject::Connection m_editorKeyConn;
 
     struct SliderScrub {

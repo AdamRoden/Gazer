@@ -6,6 +6,7 @@
 #include <QObject>
 #include <QString>
 #include <QStringList>
+#include <QVector>
 #include <functional>
 #include <initializer_list>
 
@@ -31,6 +32,8 @@ public:
     /// Same handler under several names (canonical first). See `src/app/Commands.md`.
     void registerBuiltin(std::initializer_list<const char*> names, Handler handler);
     void registerBuiltin(std::initializer_list<const char*> names, InvHandler handler);
+    /// Longest-prefix match after exact builtins. Prefix should end with '.'.
+    void registerPrefix(const QString& prefix, InvHandler handler);
     [[nodiscard]] bool isBuiltin(const QString& name) const;
     [[nodiscard]] QStringList names() const;
 
@@ -44,6 +47,11 @@ signals:
 private:
     MappingEngine& m_mapping;
     QHash<QString, InvHandler> m_builtins;
+    struct PrefixHandler {
+        QString prefix;
+        InvHandler handler;
+    };
+    QVector<PrefixHandler> m_prefixes;
 };
 
 } // namespace gazer

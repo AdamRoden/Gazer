@@ -17,10 +17,15 @@ namespace gazer {
 /// User preferences persisted to JSON under AppData.
 struct AppSettings {
     // --- Timing ---
-    /// Progressive dwell steps (ms). Last step repeats while gaze holds.
+    /// Designer dwell steps (ms). Last step repeats while gaze holds.
+    /// Default for settings, navigation, and other non-input cells.
     QVector<int> dwellSequence = defaultDwellSequence();
-    /// Time on-target before dwell progress animation / sequence begins (ms).
+    /// Daily-driver dwell steps. Default for Send, mouse, composer typing, AHK, modifiers.
+    QVector<int> dailyDwellSequence = defaultDailyDwellSequence();
+    /// Time on-target before designer dwell progress / sequence begins (ms).
     int scanGraceMs = 150;
+    /// Time on-target before daily-driver dwell begins (ms).
+    int dailyScanGraceMs = 100;
     int dwellGraceMs = 200;
     int mouseMoveDwellMs = 800;
     /// Dwell for the first mag-pick step (choose region to magnify).
@@ -28,10 +33,12 @@ struct AppSettings {
     /// Last saved Custom timing package (Speed presets).
     struct TimingPack {
         QVector<int> sequence;
+        QVector<int> dailySequence;
         int pointerDwellMs = 800;
         int zoomDwellMs = 800;
         int blinkGraceMs = 200;
         int scanGraceMs = 150;
+        int dailyScanGraceMs = 100;
     };
     TimingPack customTiming = defaultTimingPack();
     /// Cancel armed mouse-move / click-loop if no target is selected within this many ms.
@@ -114,6 +121,52 @@ struct AppSettings {
 
     // --- Speech ---
     bool speakAlsoType = true;
+    QString speechModel = QStringLiteral("sapi");
+    QString elevenVoiceId;
+    QString sapiVoiceToken;
+    double speechSpeed = 1.0;
+    double speechPitch = 1.0;
+    QString speechLangFilter;
+    QStringList elevenFavoriteVoiceIds;
+    /// Runtime mirror of SpeechSecrets::hasKey(); not persisted.
+    bool elevenApiKeySet = false;
+    struct SavedSpeechTag {
+        QString name;
+        QString color;
+        QString icon;
+        [[nodiscard]] bool operator==(const SavedSpeechTag& o) const
+        {
+            return name == o.name && color == o.color && icon == o.icon;
+        }
+    };
+    QVector<SavedSpeechTag> savedSpeechTags = defaultSavedSpeechTags();
+    /// Freestyle rail: named voice + speed presets (max 8).
+    struct SavedSpeechVoice {
+        QString id;
+        QString name;
+        QString model;
+        QString voiceId;
+        double speed = 1.0;
+        QString color;
+        QString icon;
+    };
+    static constexpr int kMaxSavedSpeechVoices = 8;
+    QVector<SavedSpeechVoice> savedSpeechVoices;
+
+    [[nodiscard]] static QVector<SavedSpeechTag> defaultSavedSpeechTags()
+    {
+        QVector<SavedSpeechTag> out;
+        for (const QString& n : {QStringLiteral("laugh"), QStringLiteral("cry"),
+                                 QStringLiteral("burp"), QStringLiteral("loud"),
+                                 QStringLiteral("soft"), QStringLiteral("sing"),
+                                 QStringLiteral("english accent"), QStringLiteral("irish accent"),
+                                 QStringLiteral("pirate accent")}) {
+            SavedSpeechTag t;
+            t.name = n;
+            out.push_back(t);
+        }
+        return out;
+    }
 
     // --- Theme (appearance × Apple system accent × progress × saturation) ---
     ThemeAppearance themeAppearance = ThemeAppearance::Dark;
@@ -153,12 +206,17 @@ struct AppSettings {
     {
         return {800, 700, 600, 500, 400, 200};
     }
+    [[nodiscard]] static QVector<int> defaultDailyDwellSequence()
+    {
+        return {400, 600, 400, 200, 100, 50};
+    }
     [[nodiscard]] static TimingPack defaultTimingPack()
     {
-        return {defaultDwellSequence(), 800, 800, 200, 150};
+        return {defaultDwellSequence(), defaultDailyDwellSequence(), 800, 800, 200, 150, 100};
     }
     [[nodiscard]] static AppSettings defaults();
     [[nodiscard]] static QString defaultFilePath();
+    [[nodiscard]] static QString normalizeSpeechTag(QString raw);
 
     /// JSON keys stay `progressRadial` / `mouseProgressPie` / … for compatibility.
     struct StyleToggle {
@@ -201,6 +259,8 @@ struct AppSettings {
     [[nodiscard]] int dwellPreset() const;
     void saveDwellCustom();
     void applyDwellCustom();
+    /// Fill daily-driver timings from the matching designer pack when JSON omitted them.
+    void inferMissingDailyDwell();
     void setMagFollowProfile(int profile);
     void setLtsIndicatorStyle(int style);
     void clamp();
@@ -210,6 +270,7 @@ struct AppSettings {
     [[nodiscard]] QString displayValue(const QString& key) const;
     [[nodiscard]] static QString settingTitle(const QString& key);
     [[nodiscard]] static QString settingDescription(const QString& key);
+    [[nodiscard]] static bool isSequenceKey(const QString& key);
     [[nodiscard]] static bool isNumericKey(const QString& key);
     [[nodiscard]] static QStringList numericKeys();
     [[nodiscard]] static bool isColorKey(const QString& key);
@@ -221,6 +282,7 @@ struct AppSettings {
     [[nodiscard]] QColor colorKey(const QString& key) const;
 
     [[nodiscard]] QString dwellSequenceString() const;
+    [[nodiscard]] QString dailyDwellSequenceString() const;
     [[nodiscard]] static QVector<int> parseDwellSequence(const QString& text, QString* error = nullptr);
     [[nodiscard]] static QColor parseColor(const QString& hex, const QColor& fallback = Qt::cyan);
     [[nodiscard]] static QString colorToHex(const QColor& c);

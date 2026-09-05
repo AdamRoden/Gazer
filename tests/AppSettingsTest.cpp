@@ -16,6 +16,11 @@ class AppSettingsTest final : public QObject {
 private slots:
     void dwellCustomDoesNotClobberUnmatched();
     void dwellCustomRestoresWhenLeavingPack();
+    void dwellPresetsSplitDailyAndDesigner();
+    void dailyFastAllowsZeroFirstStep();
+    void parseDwellSequenceAllowsZero();
+    void loadLegacyInfersDailyFromDesignerPack();
+    void dailyDwellRoundTrip();
     void brandedThemeUsesFluent();
     void namedColorsResolveFromPalette();
     void customThemeUsesFluent();
@@ -31,6 +36,7 @@ private slots:
     void lightAppearanceIsLight();
     void tintedWashesNeutrals();
     void appearanceSwitchesCustomNeutrals();
+    void speechSettingsRoundTrip();
 };
 
 void AppSettingsTest::dwellCustomDoesNotClobberUnmatched()
@@ -55,6 +61,80 @@ void AppSettingsTest::dwellCustomRestoresWhenLeavingPack()
     QCOMPARE(s.dwellPreset(), 1);
     s.setDwellPreset(3);
     QCOMPARE(s.dwellPreset(), 0);
+}
+
+void AppSettingsTest::dwellPresetsSplitDailyAndDesigner()
+{
+    AppSettings s;
+    QCOMPARE(s.dwellPreset(), 1);
+    QCOMPARE(s.dwellSequence, (QVector<int>{800, 700, 600, 500, 400, 200}));
+    QCOMPARE(s.scanGraceMs, 150);
+    QCOMPARE(s.dailyDwellSequence, (QVector<int>{400, 600, 400, 200, 100, 50}));
+    QCOMPARE(s.dailyScanGraceMs, 100);
+
+    s.setDwellPreset(0);
+    QCOMPARE(s.dwellPreset(), 0);
+    QCOMPARE(s.dwellSequence, (QVector<int>{1200, 1000, 800, 600, 400}));
+    QCOMPARE(s.scanGraceMs, 200);
+    QCOMPARE(s.dailyDwellSequence, (QVector<int>{800, 700, 600, 500, 400, 200}));
+    QCOMPARE(s.dailyScanGraceMs, 150);
+
+    s.setDwellPreset(2);
+    QCOMPARE(s.dwellPreset(), 2);
+    QCOMPARE(s.dwellSequence, (QVector<int>{400, 600, 400, 200, 100, 50}));
+    QCOMPARE(s.scanGraceMs, 100);
+    QCOMPARE(s.dailyDwellSequence, (QVector<int>{0, 600, 400, 200, 100, 50}));
+    QCOMPARE(s.dailyScanGraceMs, 200);
+}
+
+void AppSettingsTest::dailyFastAllowsZeroFirstStep()
+{
+    AppSettings s;
+    s.setDwellPreset(2);
+    s.clamp();
+    QCOMPARE(s.dailyDwellSequence.front(), 0);
+    QCOMPARE(s.dwellPreset(), 2);
+}
+
+void AppSettingsTest::parseDwellSequenceAllowsZero()
+{
+    QString err;
+    const QVector<int> seq = AppSettings::parseDwellSequence(QStringLiteral("0,600,400"), &err);
+    QCOMPARE(seq, (QVector<int>{0, 600, 400}));
+    QVERIFY(err.isEmpty());
+}
+
+void AppSettingsTest::loadLegacyInfersDailyFromDesignerPack()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("settings.json"));
+    QFile f(path);
+    QVERIFY(f.open(QIODevice::WriteOnly | QIODevice::Truncate));
+    f.write(R"({"dwellSequence":[1200,1000,800,600,400],"scanGraceMs":200,"dwellGraceMs":250,"mouseMoveDwellMs":1200,"magPickDwellMs":1200})");
+    f.close();
+
+    AppSettings s;
+    QVERIFY(s.loadFromFile(path));
+    QCOMPARE(s.dwellSequence, (QVector<int>{1200, 1000, 800, 600, 400}));
+    QCOMPARE(s.dailyDwellSequence, (QVector<int>{800, 700, 600, 500, 400, 200}));
+    QCOMPARE(s.dailyScanGraceMs, 150);
+    QCOMPARE(s.dwellPreset(), 0);
+}
+
+void AppSettingsTest::dailyDwellRoundTrip()
+{
+    AppSettings s;
+    s.setDwellPreset(2);
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("settings.json"));
+    QVERIFY(s.saveToFile(path));
+    AppSettings b;
+    QVERIFY(b.loadFromFile(path));
+    QCOMPARE(b.dwellPreset(), 2);
+    QCOMPARE(b.dailyDwellSequence, (QVector<int>{0, 600, 400, 200, 100, 50}));
+    QCOMPARE(b.dailyScanGraceMs, 200);
 }
 
 void AppSettingsTest::brandedThemeUsesFluent()
@@ -271,6 +351,51 @@ void AppSettingsTest::appearanceSwitchesCustomNeutrals()
     QVERIFY(s.themeCustom);
     QVERIFY(s.resolvedTheme().bgMain.lightness() > 180);
     QVERIFY(s.resolvedTheme().text.lightness() < 80);
+}
+
+void AppSettingsTest::speechSettingsRoundTrip()
+{
+    AppSettings s = AppSettings::defaults();
+    s.speechModel = QStringLiteral("eleven_v3");
+    s.speechSpeed = 1.4;
+    s.speechPitch = 1.2;
+    s.elevenVoiceId = QStringLiteral("abc123");
+    s.speechLangFilter = QStringLiteral("en");
+    s.elevenFavoriteVoiceIds = {QStringLiteral("abc"), QString()};
+    s.savedSpeechTags = {AppSettings::SavedSpeechTag{QStringLiteral("[laugh]"), {}, {}},
+                         AppSettings::SavedSpeechTag{QStringLiteral("  "), {}, {}},
+                         AppSettings::SavedSpeechTag{QStringLiteral("cry"), {}, {}}};
+    AppSettings::SavedSpeechVoice preset;
+    preset.id = QStringLiteral("v1");
+    preset.name = QStringLiteral("Rachel laugh");
+    preset.model = QStringLiteral("eleven_v3");
+    preset.voiceId = QStringLiteral("abc123");
+    preset.speed = 1.2;
+    s.savedSpeechVoices = {preset};
+    s.clamp();
+    QCOMPARE(s.speechSpeed, 1.4);
+    QCOMPARE(s.elevenFavoriteVoiceIds.size(), 1);
+    QCOMPARE(s.savedSpeechTags.size(), 2);
+    QCOMPARE(s.savedSpeechTags.front().name, QStringLiteral("laugh"));
+    QCOMPARE(s.savedSpeechVoices.size(), 1);
+    QCOMPARE(AppSettings::normalizeSpeechTag(QStringLiteral("[ loud ]")), QStringLiteral("loud"));
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("settings.json"));
+    QVERIFY(s.saveToFile(path));
+    AppSettings b;
+    QVERIFY(b.loadFromFile(path));
+    QCOMPARE(b.speechModel, QStringLiteral("eleven_v3"));
+    QCOMPARE(b.speechSpeed, 1.4);
+    QCOMPARE(b.speechPitch, 1.2);
+    QCOMPARE(b.elevenVoiceId, QStringLiteral("abc123"));
+    QCOMPARE(b.speechLangFilter, QStringLiteral("en"));
+    QCOMPARE(b.elevenFavoriteVoiceIds, s.elevenFavoriteVoiceIds);
+    QCOMPARE(b.savedSpeechTags, s.savedSpeechTags);
+    QCOMPARE(b.savedSpeechVoices.size(), 1);
+    QCOMPARE(b.savedSpeechVoices.front().id, QStringLiteral("v1"));
+    QCOMPARE(b.savedSpeechVoices.front().name, QStringLiteral("Rachel laugh"));
+    QCOMPARE(b.savedSpeechVoices.front().voiceId, QStringLiteral("abc123"));
 }
 
 QObject* createAppSettingsTest()

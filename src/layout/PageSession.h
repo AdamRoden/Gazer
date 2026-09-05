@@ -61,10 +61,12 @@ public:
     [[nodiscard]] const QVector<PageGridPaint>& gridPaints() const { return m_gridPaints; }
     [[nodiscard]] double drawerScale() const { return m_drawerScale; }
     /// Attach or replace an in-memory page. decorate=true runs the session decorator.
-    /// A new page, or restack of a buried one, resets dwell and arms leave-gate.
-    /// Replacing the already-top page is a live refresh: dwell sequence continues.
+    /// A new page always comes to front. Replacing a buried page restacks it unless
+    /// `restack` is false (live refresh of a page behind a modal). Replacing the
+    /// already-top page is a live refresh: dwell sequence continues.
     [[nodiscard]] bool attachDocument(PageDocument doc, QString* error = nullptr,
-                                      bool decorate = false);
+                                      bool decorate = false, bool restack = true);
+    [[nodiscard]] PageDocument attachedCopy(const QString& id) const;
     void registerMemoryPage(PageDocument doc);
     void closePreviewPages();
     static QString previewId(const QString& catalogId);
@@ -83,6 +85,7 @@ public:
     void setTheme(const ThemeColors& theme);
     void setProgressVisuals(const ProgressVisuals& visuals);
     void setGlobalDwell(const QVector<int>& sequence, int graceMs, int scanGraceMs);
+    void setDailyDriverDwell(const QVector<int>& sequence, int scanGraceMs);
 
     void setAutoCollapseMain(bool on) { m_autoCollapseMain = on; }
     void setLayoutAutoClose(bool on, int idleMs);
@@ -203,6 +206,8 @@ private:
     QVector<int> m_globalSequence = {800};
     int m_globalGraceMs = 180;
     int m_globalScanGraceMs = 100;
+    QVector<int> m_dailySequence = {400, 600, 400, 200, 100, 50};
+    int m_dailyScanGraceMs = 100;
     QString m_hoverId;
     DispatchFn m_dispatch;
     DecorateFn m_decorate;

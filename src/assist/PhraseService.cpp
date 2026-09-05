@@ -1,41 +1,41 @@
 #include "assist/PhraseService.h"
 
+#include "assist/ElevenRequest.h"
 #include "input/InputTypes.h"
 #include "utils/Log.h"
 
 namespace gazer {
 
-PhraseService::PhraseService(TtsService& tts, InputService& input, MappingEngine& mapping,
+PhraseService::PhraseService(SpeechEngine& engine, InputService& input, MappingEngine& mapping,
                              QObject* parent)
     : QObject(parent)
-    , m_tts(tts)
+    , m_engine(engine)
     , m_input(input)
     , m_mapping(mapping)
 {
+    connect(&m_engine, &SpeechEngine::failed, this, &PhraseService::failed);
 }
 
 bool PhraseService::speak(const QString& text, QString* error)
+{
+    return speak(text, SpeakKind::Canned, error);
+}
+
+bool PhraseService::speak(const QString& text, SpeakKind kind, QString* error, bool recordHistory)
 {
     if (text.isEmpty()) {
         return true;
     }
 
-    QString err;
-    if (m_tts.isAvailable()) {
-        if (!m_tts.speak(text, &err)) {
-            if (error) {
-                *error = err;
-            }
-            emit failed(err);
-            // Still attempt type-through.
-        }
-    }
+    m_engine.speak(text, kind, recordHistory);
 
-    if (m_mapping.speakAlsoType()) {
+    // Composer Speak is voice output. Type-through stays on canned XML <Speak>.
+    if (kind != SpeakKind::Composed && m_mapping.speakAlsoType()) {
         InputOutput o;
         o.type = InputOutput::Type::Text;
-        o.value = text;
-        if (!m_input.execute(o, &err)) {
+        o.value = ElevenRequest::stripInlineTags(text);
+        QString err;
+        if (!o.value.isEmpty() && !m_input.execute(o, &err)) {
             if (error) {
                 *error = err;
             }
@@ -45,6 +45,30 @@ bool PhraseService::speak(const QString& text, QString* error)
     }
 
     emit spoken(text);
+    return true;
+}
+
+bool PhraseService::playClip(const QString& path, const QString& sourceText, QString* error)
+{
+    if (!m_engine.playFile(path)) {
+        if (error) {
+            *error = QStringLiteral("Clip play failed");
+        }
+        return false;
+    }
+    if (m_mapping.speakAlsoType()) {
+        InputOutput o;
+        o.type = InputOutput::Type::Text;
+        o.value = ElevenRequest::stripInlineTags(sourceText);
+        QString err;
+        if (!o.value.isEmpty() && !m_input.execute(o, &err)) {
+            if (error) {
+                *error = err;
+            }
+            emit failed(err);
+            return false;
+        }
+    }
     return true;
 }
 

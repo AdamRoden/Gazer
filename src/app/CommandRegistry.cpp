@@ -3,6 +3,7 @@
 #include "utils/Log.h"
 
 #include <QStringList>
+#include <QVector>
 
 namespace gazer {
 
@@ -38,9 +39,22 @@ void CommandRegistry::registerBuiltin(std::initializer_list<const char*> names, 
     }
 }
 
+void CommandRegistry::registerPrefix(const QString& prefix, InvHandler handler)
+{
+    m_prefixes.push_back(PrefixHandler{prefix, std::move(handler)});
+}
+
 bool CommandRegistry::isBuiltin(const QString& name) const
 {
-    return m_builtins.contains(name);
+    if (m_builtins.contains(name)) {
+        return true;
+    }
+    for (const PrefixHandler& p : m_prefixes) {
+        if (name.startsWith(p.prefix)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 QStringList CommandRegistry::names() const
@@ -59,15 +73,32 @@ bool CommandRegistry::run(const QString& commandName, QString* error)
 
 bool CommandRegistry::run(const Invocation& inv, QString* error)
 {
+    const InvHandler* handler = nullptr;
     if (auto it = m_builtins.constFind(inv.name); it != m_builtins.constEnd()) {
-        GAZER_INFO << "[command builtin]" << inv.name;
-        const bool ok = (*it)(inv, error);
-        if (ok) {
-            emit statusMessage(QStringLiteral("Cmd %1").arg(inv.name));
+        handler = &(*it);
+    } else {
+        int bestLen = -1;
+        for (const PrefixHandler& p : m_prefixes) {
+            if (inv.name.startsWith(p.prefix) && int(p.prefix.size()) > bestLen) {
+                bestLen = int(p.prefix.size());
+                handler = &p.handler;
+            }
         }
-        return ok;
     }
-    return m_mapping.runCommand(inv.name, error);
+    if (!handler) {
+        return m_mapping.runCommand(inv.name, error);
+    }
+    GAZER_INFO << "[command builtin]" << inv.name;
+    const bool ok = (*handler)(inv, error);
+    const bool skipToast = inv.name.startsWith(QLatin1String("compose."))
+                           || inv.name.startsWith(QLatin1String("speech."))
+                           || inv.name.startsWith(QLatin1String("soundboard."))
+                           || inv.name.startsWith(QLatin1String("history."))
+                           || inv.name.startsWith(QLatin1String("settings.speech."));
+    if (ok && !skipToast) {
+        emit statusMessage(QStringLiteral("Cmd %1").arg(inv.name));
+    }
+    return ok;
 }
 
 } // namespace gazer

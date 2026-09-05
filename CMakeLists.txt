@@ -15,7 +15,7 @@ set(CMAKE_AUTOUIC ON)
 
 option(GAZER_USE_TOBII "Build Tobii Stream Engine integration (runtime DLL load)" ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets OpenGL OpenGLWidgets Qml Quick Svg Test)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets OpenGL OpenGLWidgets Qml Quick Svg Test Multimedia Network)
 
 # AUTOMOC may invoke the compiler by basename. Keep MinGW on PATH even when
 # the parent shell did not export it (`cmake --build` / ninja autogen).
@@ -52,9 +52,17 @@ set(GAZER_SOURCES
     src/app/SettingsColorPicker.cpp
     src/app/SettingsOpacity.cpp
     src/app/SettingsHexEditor.cpp
+    src/app/SettingsSpeechKey.cpp
     src/app/SettingsSliderGaze.cpp
     src/app/SettingsCommands.cpp
     src/app/CommandRegistry.cpp
+    src/app/ComposeUi.cpp
+    src/app/ComposeVoices.cpp
+    src/app/ComposeSoundboard.cpp
+    src/app/ComposeFreestyle.cpp
+    src/app/ComposeItemEdit.cpp
+    src/app/ComposeHistory.cpp
+    src/assist/ComposeCommands.cpp
     src/core/TrackerMouse.cpp
     src/core/TrackerTobii.cpp
     src/core/StreamEngineLib.cpp
@@ -86,6 +94,15 @@ set(GAZER_SOURCES
     src/mapping/MappingEngine.cpp
     src/assist/TtsService.cpp
     src/assist/PhraseService.cpp
+    src/assist/ElevenRequest.cpp
+    src/assist/VoiceCatalog.cpp
+    src/assist/SoundboardStore.cpp
+    src/assist/SpeechHistory.cpp
+    src/assist/SpeechEngine.cpp
+    src/assist/ClipPlayer.cpp
+    src/assist/ComposeBuffer.cpp
+    src/assist/SpeechSecrets.cpp
+    src/assist/ElevenClient.cpp
     src/assist/ScriptHost.cpp
     src/assist/AhkLauncher.cpp
     src/assist/LookToScroll.cpp
@@ -145,6 +162,11 @@ set(GAZER_HEADERS
     src/app/SettingsPageBuild.h
     src/app/SettingsUiInternal.h
     src/app/CommandRegistry.h
+    src/app/ComposeUi.h
+    src/assist/ComposeCommands.h
+    src/assist/VoiceCatalog.h
+    src/assist/SoundboardStore.h
+    src/assist/SpeechHistory.h
     src/core/GazePoint.h
     src/core/HeadPose.h
     src/core/ITracker.h
@@ -183,6 +205,12 @@ set(GAZER_HEADERS
     src/mapping/MappingEngine.h
     src/assist/TtsService.h
     src/assist/PhraseService.h
+    src/assist/ElevenRequest.h
+    src/assist/SpeechEngine.h
+    src/assist/ClipPlayer.h
+    src/assist/ComposeBuffer.h
+    src/assist/SpeechSecrets.h
+    src/assist/ElevenClient.h
     src/assist/ScriptHost.h
     src/assist/AhkLauncher.h
     src/assist/LookToScroll.h
@@ -233,6 +261,7 @@ set(GAZER_HEADERS
     src/editor/LayoutEditorWindow.h
     src/editor/LayoutEditorXmlHighlight.h
     src/utils/Log.h
+    src/utils/AtomicFile.h
     src/utils/WinOverlay.h
     src/utils/ScreenGrab.h
 )
@@ -275,10 +304,12 @@ target_link_libraries(Gazer PRIVATE
     Qt6::Qml
     Qt6::Quick
     Qt6::Svg
+    Qt6::Multimedia
+    Qt6::Network
 )
 
 if(WIN32)
-    target_link_libraries(Gazer PRIVATE user32 ole32 oleaut32 uuid sapi)
+    target_link_libraries(Gazer PRIVATE user32 ole32 oleaut32 uuid sapi crypt32)
 endif()
 
 add_custom_command(TARGET Gazer POST_BUILD
@@ -396,3 +427,21 @@ add_executable(GazerDwellTests
 target_include_directories(GazerDwellTests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(GazerDwellTests PRIVATE Qt6::Core Qt6::Gui Qt6::Test)
 add_test(NAME GazerDwellTests COMMAND GazerDwellTests)
+
+add_executable(GazerSpeechTests
+    tests/speech_tests_main.cpp
+    tests/ElevenRequestTest.cpp
+    tests/ComposeBufferTest.cpp
+    tests/VoiceCatalogTest.cpp
+    tests/SoundboardStoreTest.cpp
+    tests/SpeechHistoryTest.cpp
+    src/assist/ElevenRequest.cpp
+    src/assist/ComposeBuffer.cpp
+    src/assist/VoiceCatalog.cpp
+    src/assist/SoundboardStore.cpp
+    src/assist/SpeechHistory.cpp
+    src/assist/ElevenClient.cpp
+)
+target_include_directories(GazerSpeechTests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_link_libraries(GazerSpeechTests PRIVATE Qt6::Core Qt6::Gui Qt6::Network Qt6::Test)
+add_test(NAME GazerSpeechTests COMMAND GazerSpeechTests)

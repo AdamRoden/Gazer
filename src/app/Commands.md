@@ -8,7 +8,8 @@
 | `AssistCommands.cpp` | Dwell pause, LTS, mag, reticle, dwell-move, click-at-gaze |
 | `GazerServices.cpp` | Modifier cycle, click-at-cursor, stop loops |
 | `MouseAssistState.cpp` | Mouse pad: nudge, scroll, edge, holds |
-| `SettingsCommands.cpp` | `settings.*` live boards |
+| `SettingsCommands.cpp` | `settings.*` live boards, including `settings.speech.*` |
+| `ComposeCommands.cpp` | `compose.*` (prefix `compose.removeWord.`) |
 
 When adding a command: register it and add a row here.
 
@@ -65,15 +66,55 @@ Script: `gazer.openPage` / `loadPage` / `focusedPageId` (`ScriptHost`, not Comma
 | `mouseScrollUp` / `Down` / `Left` / `Right` | Scroll by step |
 | `mouseMoveToTop` / `Bottom` / `Left` / `Right` | Jump to screen edge |
 
+## Composer (`ComposeCommands.cpp`)
+
+| Command | Role |
+|---------|------|
+| `compose.open` | Open `compose.xml` |
+| `compose.speak` | Speak buffer, or stop if busy |
+| `compose.stop` | Abort Eleven POST, stop clip, stop SAPI |
+| `compose.clear` / `compose.undo` / `compose.redo` | Buffer |
+| `compose.backspace` / `compose.deleteWord` | Edit |
+| `compose.removeWord.<i>` | Prefix; `i` is visible chip 0–11 |
+| `compose.openVoices` / `compose.openHistory` | Voice list (model, speed, catalog); history |
+| `compose.toggleFreestyle` | Switch Speak between topics and Freestyle (saved voices + tags) |
+| `compose.saveName` / `compose.cancelName` / `compose.deleteName` | Save, discard, or delete the item being edited and return to Topics/Freestyle |
+| `compose.editShowColors` / `compose.editShowIcons` | Switch the edit overlay between color chips and icons |
+| `compose.editColor.<i>` / `compose.editIcon.<i>` | Set color or icon on the item being edited |
+| `compose.editClearColor` / `compose.editClearIcon` | Clear custom color or icon on the item being edited |
+| `compose.voicePreset.<id>` / `compose.editVoicePreset.<id>` / `compose.newVoicePreset` | Apply, rename, or save a Freestyle voice (voice + speed) |
+| `compose.editTag.<i>` / `compose.newTag` | Rename or create a saved tag from the composer |
+| `history.play.<id>` / `history.restore.<id>` / `history.delete.<id>` | Replay, put the phrase back in the buffer, or drop the row |
+| `history.list.next` / `.prev` / `history.list.goto.<n>` | Scroll history; jump to item offset |
+| `compose.pin` / `compose.cancelAssign` | Topics: empty buffer no-op; phrase assigns onto the soundboard. Freestyle: save the current voice + speed |
+| `compose.editPins` | Edit mode: dwell a pin/topic (or a Freestyle voice/tag) to rename |
+| `soundboard.edit.<id>` | Open the pin item editor |
+| `soundboard.editTopic.<id>` | Open the topic item editor |
+| `soundboard.play.<id>` | Prefix; play a button |
+| `soundboard.assign.sb_r_c` | Prefix; create/overwrite a cell |
+| `soundboard.topic.<id>` | Prefix; switch topic |
+| `soundboard.newTopic` / `soundboard.loadStarters` | Topics |
+| `compose.insertTagAt.<i>` | Prefix; insert `savedSpeechTags[i]` |
+| `speech.model.sapi` / `.eleven_flash_v2_5` / `.eleven_v3` | Composer engine |
+| `speech.voice.<id>` | Prefix; select a voice (percent-encoded id) |
+| `speech.preview` | Preview the current voice |
+| `speech.fav.toggle` | Favorite the current ElevenLabs voice |
+| `speech.voiceList.next` / `.prev` | Paginate the filtered catalog |
+| `speech.gender.all` / `.female` / `.male` | Voice filter |
+| `speech.lang.all` / `speech.lang.set.<code>` | Language filter |
+| `speech.speed.dec` / `.inc` | Nudge `speechSpeed` 0.1 |
+
+While `compose` is top (or a compose live board), `Send` and mapping keys (`backspace`, `space`, `enter`, `escape`, modifiers) are captured and never reach the OS. Caps uses XML `ShowLayers`.
+
 ## Settings (`SettingsCommands.cpp`)
 
 Patterns, not every generated name:
 
 | Pattern | Role |
 |---------|------|
-| `settings.edit.<numericKey>` | Numpad (`dwellMs` / `dwellSequence` open the array editor) |
+| `settings.edit.<numericKey>` | Numpad (`dwellMs` / `dwellSequence` / `dailyDwellMs` / `dailyDwellSequence` open the array editor) |
 | `settings.nudge.<numericKey>.dec` / `.inc` | Step a numeric setting |
-| `settings.edit.dwellSequence` | Dwell-sequence array board |
+| `settings.edit.dwellSequence` / `.dailyDwellSequence` | Designer / daily-driver dwell-sequence array boards |
 | `settings.numpad.*` | Live numpad keys |
 | `settings.array.*` | Sequence editor (`nudge.N`, `edit.N`, `del.N` for N=0..11) |
 | `settings.edit.color.<colorKey>` | Open color picker |
@@ -85,7 +126,10 @@ Patterns, not every generated name:
 | `settings.progress.*.toggle` / `settings.mouseProgress.*.toggle` | Progress bits |
 | `settings.session.autoCollapse.toggle` / `.startDocked.toggle` / `.layoutAutoClose.toggle` | Session |
 | `settings.speech.alsoType.toggle` | Speak also types |
-| `settings.dwell.slow` / `.normal` / `.fast` / `.custom` | Dwell presets |
+| `settings.speech.editKey` / `.clearKey` | Paste-from-clipboard API-key board / wipe DPAPI |
+| `settings.speech.key.paste` / `.save` / `.cancel` / `.clear` | Key board |
+| `settings.speech.model.sapi` / `.eleven_flash_v2_5` / `.eleven_v3` | Same handlers as `speech.model.*` (ComposeCommands) |
+| `settings.dwell.slow` / `.normal` / `.fast` / `.custom` | Speed presets (designer + daily-driver dwells together) |
 | `settings.dwell.custom.save` / `.restore` | Save or restore Custom timings |
 | `settings.mag.follow.slow` / `.sticky` / `.smooth` / `.snappy` | Gaze follow (indicator, gaze mouse, live lens) |
 | `settings.lts.indicator.fan` / `.orb` / `.pause` | LTS HUD |
@@ -103,7 +147,7 @@ Patterns, not every generated name:
 | `settings.color.preset.0`…`.8` | Apple system accent chips |
 | `settings.reset` | Defaults |
 
-Numeric keys: `dwellMs` plus `kIntSpecs` / `kDoubleSpecs` in `AppSettings.cpp`. Color keys: `SettingsUi::kColorKeys`.
+Numeric keys: `dwellMs` / `dailyDwellMs` plus `kIntSpecs` / `kDoubleSpecs` in `AppSettings.cpp`. Color keys: `SettingsUi::kColorKeys`.
 
 `activeState` is the command name (`settings.progress.radial.toggle`, `theme.light`). Live assist uses the feature stem (`lookToScroll`, `dwellSuspend`). `CloseAllPages` / `CloseOtherPages` also disable ComboMouse.
 

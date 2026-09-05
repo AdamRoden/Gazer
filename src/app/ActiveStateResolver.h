@@ -14,7 +14,9 @@ class MagnifierOverlay;
 class KeyStateManager;
 class MouseAssistState;
 class MouseDwellMove;
+class ComposeUi;
 class SettingsUi;
+class SpeechEngine;
 
 /// Inputs for resolving layout item `activeState` accent keys.
 struct ActiveStateContext {
@@ -29,6 +31,8 @@ struct ActiveStateContext {
     const KeyStateManager* keyState = nullptr;
     const ActionLoopService* actionLoops = nullptr;
     const SettingsUi* settingsUi = nullptr;
+    const SpeechEngine* speechEngine = nullptr;
+    const ComposeUi* composeUi = nullptr;
     bool dwellSuspended = false;
 };
 

@@ -8,7 +8,7 @@ Host surface, board paint, overlays, theme.
 | `BoardPaint` / `ProgressPaint.h` / `ProgressVisuals.h` | Cells, zones, dwell progress |
 | `SliderTrack` | Settings color/opacity slider geometry |
 | `Theme` / `ThemeScheme` / `PickStyle` | Palettes and pick-window flags |
-| `KeySymbols` | Cell/zone icons from `resources/icons/svg/*.svg` (stem = `icon` name) |
+| `KeySymbols` | Cell/zone icons from `resources/icons/svg/*.svg` (stem = `icon` name). Catalog source: Material Symbols Rounded (`resources/icons/README.md`) |
 | `GlassBackdrop` | Frosted blur (no WDA toggle on the live host; recapture on geometry/underlay only) |
 | `MagnifierOverlay` / `DwellSuspendOverlay` / `OverlaySurface.h` | Overlay HWNDs (owned by the board; click-through). Layered in `OverlayLayer`. SendInput: `OverlayInputPassThrough` punches the board host for the gesture. |
 | `PreviewWindow` / `PreviewGeometry` / `StlMesh` | Head-pose preview (geometry/shaders in PreviewGeometry) |

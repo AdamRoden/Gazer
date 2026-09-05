@@ -2,7 +2,9 @@
 #include "app/SettingsPageBuild.h"
 
 #include "app/CommandRegistry.h"
+#include "assist/SpeechSecrets.h"
 #include "layout/PageDim.h"
+#include "layout/PageEdit.h"
 #include "layout/PageSession.h"
 #include "layout/PageTypes.h"
 #include "ui/PageHostWindow.h"
@@ -18,10 +20,13 @@
 
 namespace gazer {
 
-SettingsUi::SettingsUi(AppSettings& settings, CommandRegistry& commands, PageSession& pages)
+SettingsUi::SettingsUi(AppSettings& settings, CommandRegistry& commands, PageSession& pages,
+                       SpeechSecrets& secrets, ElevenClient& eleven)
     : m_settings(settings)
     , m_commands(commands)
     , m_pages(pages)
+    , m_secrets(secrets)
+    , m_eleven(eleven)
 {
 }
 
@@ -148,6 +153,7 @@ void SettingsUi::handleEditorKey(int key, const QString& text)
                 hexAppend(ch);
             }
         }
+        return;
     }
 }
 
@@ -320,6 +326,16 @@ void SettingsUi::decoratePage(PageDocument& doc) const
     const ThemeColors swatch = live;
     for (PageGrid& g : doc.grids) {
         stampGrid(g, m_settings, swatch, live);
+    }
+    if (doc.id == QLatin1String("main_settings_speech")) {
+        PageEdit::forEachCell(doc, [this](PageGrid&, PageCell& c) {
+            if (c.id == QLatin1String("key_status")) {
+                c.label = m_settings.elevenApiKeySet
+                              ? QStringLiteral("Key set (\u2022\u2022\u2022\u2022%1)")
+                                    .arg(m_secrets.lastFour())
+                              : QStringLiteral("No API key");
+            }
+        });
     }
 }
 

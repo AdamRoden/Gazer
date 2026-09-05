@@ -6,8 +6,8 @@
   <Style id="joinLeft" background="#00000000" thickness="0" radius="10,0,0,10"/>
   <Style id="joinRight" background="#00000000" thickness="0" radius="0,10,10,0"/>
   <Style id="tabbar" thickness="0" radius="12"/>
-  <Grid id="board" desktopMode="true" rows="11" columns="16" anchor="Top" offset="0,0" size="A_ScreenHeight/9*16, A_ScreenHeight" gap="6" margin="12" radius="16">
-    <SubGrid id="tabs" row="0" col="0" colSpan="16" rows="1" columns="7" gap="6" margin="4" style="tabbar">
+  <Grid id="board" desktopMode="true" rows="15" columns="16" anchor="Top" offset="0,0" size="A_ScreenHeight/9*16, A_ScreenHeight" gap="6" margin="12" radius="16">
+    <SubGrid id="tabs" row="0" col="0" colSpan="16" rows="1" columns="8" gap="6" margin="4" style="tabbar">
       <Cell id="tab_speed" row="0" col="0" label="Speed" icon="timer" role="tab"/>
       <Cell id="tab_magnify" row="0" col="1" label="Magnify" icon="ZoomSettings" role="tab">
         <ClosePage/>
@@ -29,12 +29,16 @@
         <ClosePage/>
         <OpenPage value="main_settings_theme"/>
       </Cell>
-      <Cell id="tab_done" row="0" col="6" label="Done" icon="keyboardHide">
+      <Cell id="tab_speech" row="0" col="6" label="Speech" icon="Speak" role="tab">
+        <ClosePage/>
+        <OpenPage value="main_settings_speech"/>
+      </Cell>
+      <Cell id="tab_done" row="0" col="7" label="Done" icon="keyboardHide">
         <CloseAllPages/>
       </Cell>
     </SubGrid>
 
-    <Cell id="page_title" row="1" col="0" colSpan="16" label="Speed" caption="How long to hold gaze on boards and the pointer" role="label" textStyle="title" style="plain"/>
+    <Cell id="page_title" row="1" col="0" colSpan="16" label="Speed" caption="Daily driver for typing and mouse; designer for everything else" role="label" textStyle="title" style="plain"/>
 
     <SubGrid id="sec_presets" row="2" col="0" colSpan="16" rowSpan="3" rows="3" columns="1" rowWeights="1,2,2" gap="6" margin="6" style="group">
       <Cell id="h_presets" row="0" col="0" label="Presets" role="label" textStyle="section" style="plain"/>
@@ -56,17 +60,37 @@
       </SubGrid>
     </SubGrid>
 
-    <SubGrid id="sec_timing" row="5" col="0" colSpan="16" rowSpan="5" rows="5" columns="1" rowWeights="1,2,2,2,2" gap="6" margin="6" style="group">
-      <Cell id="h_timing" row="0" col="0" label="Timing" role="label" textStyle="section" style="plain"/>
+    <SubGrid id="sec_daily" row="5" col="0" colSpan="16" rowSpan="3" rows="3" columns="1" rowWeights="1,2,2" gap="6" margin="6" style="group">
+      <Cell id="h_daily" row="0" col="0" label="Daily driver dwell" role="label" textStyle="section" style="plain"/>
+      <SubGrid id="row_daily_dwell" row="1" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="dd_dwell_label" row="0" col="0" label="Sequence" caption="Keys, mouse, composer, modifiers, and AHK. Last step repeats." role="label" style="plain"/>
+        <SubGrid id="act_daily_dwell" row="0" col="1" rows="1" columns="5" gap="0" style="row">
+          <Cell id="dd_dwell_value" row="0" col="0" colSpan="3" label="—" role="value" settingKey="dailyDwellMs" style="joinLeft"/>
+          <Cell id="dd_dwell_edit" row="0" col="3" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.dailyDwellMs"/>
+        </SubGrid>
+      </SubGrid>
+      <SubGrid id="row_daily_scan" row="2" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="dd_scan_label" row="0" col="0" label="Scan grace" caption="Time on-target before daily-driver dwell starts." role="label" style="plain"/>
+        <SubGrid id="act_daily_scan" row="0" col="1" rows="1" columns="9" gap="0" style="row">
+          <Cell id="dd_scan_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.dailyScanGraceMs.dec"/>
+          <Cell id="dd_scan_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="dailyScanGraceMs" style="join"/>
+          <Cell id="dd_scan_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.dailyScanGraceMs.inc"/>
+          <Cell id="dd_scan_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.dailyScanGraceMs"/>
+        </SubGrid>
+      </SubGrid>
+    </SubGrid>
+
+    <SubGrid id="sec_designer" row="8" col="0" colSpan="16" rowSpan="3" rows="3" columns="1" rowWeights="1,2,2" gap="6" margin="6" style="group">
+      <Cell id="h_designer" row="0" col="0" label="Designer dwell" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_dwell" row="1" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="dwell_label" row="0" col="0" label="Dwell sequence" caption="Hold steps. Last step repeats." role="label" style="plain"/>
+        <Cell id="dwell_label" row="0" col="0" label="Sequence" caption="Settings, navigation, and other boards. Last step repeats." role="label" style="plain"/>
         <SubGrid id="act_dwell" row="0" col="1" rows="1" columns="5" gap="0" style="row">
           <Cell id="dwell_value" row="0" col="0" colSpan="3" label="—" role="value" settingKey="dwellMs" style="joinLeft"/>
           <Cell id="dwell_edit" row="0" col="3" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.dwellMs"/>
         </SubGrid>
       </SubGrid>
       <SubGrid id="row_scan" row="2" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="scan_label" row="0" col="0" label="Scan grace" caption="Time on-target before dwell starts." role="label" style="plain"/>
+        <Cell id="scan_label" row="0" col="0" label="Scan grace" caption="Time on-target before designer dwell starts." role="label" style="plain"/>
         <SubGrid id="act_scan" row="0" col="1" rows="1" columns="9" gap="0" style="row">
           <Cell id="scan_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.scanGraceMs.dec"/>
           <Cell id="scan_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="scanGraceMs" style="join"/>
@@ -74,7 +98,11 @@
           <Cell id="scan_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.scanGraceMs"/>
         </SubGrid>
       </SubGrid>
-      <SubGrid id="row_zd" row="3" col="0" rows="1" columns="2" gap="6" style="row">
+    </SubGrid>
+
+    <SubGrid id="sec_pointer" row="11" col="0" colSpan="16" rowSpan="3" rows="3" columns="1" rowWeights="1,2,2" gap="6" margin="6" style="group">
+      <Cell id="h_pointer" row="0" col="0" label="Pointer" role="label" textStyle="section" style="plain"/>
+      <SubGrid id="row_zd" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="zd_label" row="0" col="0" label="Zoom dwell" caption="Dwell to choose the zoom region." role="label" style="plain"/>
         <SubGrid id="act_zd" row="0" col="1" rows="1" columns="9" gap="0" style="row">
           <Cell id="zd_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.magPickDwellMs.dec"/>
@@ -83,7 +111,7 @@
           <Cell id="zd_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.magPickDwellMs"/>
         </SubGrid>
       </SubGrid>
-      <SubGrid id="row_pd" row="4" col="0" rows="1" columns="2" gap="6" style="row">
+      <SubGrid id="row_pd" row="2" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="pd_label" row="0" col="0" label="Pointer dwell" caption="Dwell to place the cursor." role="label" style="plain"/>
         <SubGrid id="act_pd" row="0" col="1" rows="1" columns="9" gap="0" style="row">
           <Cell id="pd_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.mouseMoveDwellMs.dec"/>
@@ -94,7 +122,7 @@
       </SubGrid>
     </SubGrid>
 
-    <Cell id="open_advanced" row="10" col="0" colSpan="16" label="More…" caption="Blink grace, pointer grace, foresight hold, auto-close." icon="moreHoriz">
+    <Cell id="open_advanced" row="14" col="0" colSpan="16" label="More…" caption="Blink grace, pointer grace, foresight hold, auto-close." icon="moreHoriz">
       <ClosePage/>
       <OpenPage value="main_settings_speed_advanced"/>
     </Cell>

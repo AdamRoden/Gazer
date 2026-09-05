@@ -5,7 +5,8 @@
 #include "assist/LtsSpeed.h"
 #include "ui/PickStyle.h"
 
-
+#include <QStringList>
+#include <utility>
 
 namespace gazer {
 
@@ -48,50 +49,111 @@ struct BoolSpec {
     bool AppSettings::* member;
 };
 
-const AppSettings::TimingPack kDwellSlow{{1200, 1000, 800, 600, 400}, 1200, 1200, 250, 200};
-const AppSettings::TimingPack kDwellNormal{{800, 700, 600, 500, 400, 200}, 800, 800, 200, 150};
-const AppSettings::TimingPack kDwellFast{{400, 600, 400, 200, 100, 50}, 400, 200, 150, 100};
+const AppSettings::TimingPack kDwellSlow{
+    {1200, 1000, 800, 600, 400},
+    {800, 700, 600, 500, 400, 200},
+    1200,
+    1200,
+    250,
+    200,
+    150,
+};
+const AppSettings::TimingPack kDwellNormal = AppSettings::defaultTimingPack();
+const AppSettings::TimingPack kDwellFast{
+    {400, 600, 400, 200, 100, 50},
+    {0, 600, 400, 200, 100, 50},
+    300,
+    300,
+    150,
+    100,
+    200,
+};
+
+void clampSequence(QVector<int>& seq, const QVector<int>& fallback)
+{
+    if (seq.isEmpty()) {
+        seq = fallback;
+    }
+    for (int& ms : seq) {
+        ms = qBound(0, ms, 10000);
+    }
+}
 
 AppSettings::TimingPack liveTiming(const AppSettings& s)
 {
-    return {s.dwellSequence, s.mouseMoveDwellMs, s.magPickDwellMs, s.dwellGraceMs, s.scanGraceMs};
+    return {s.dwellSequence, s.dailyDwellSequence, s.mouseMoveDwellMs, s.magPickDwellMs,
+            s.dwellGraceMs, s.scanGraceMs, s.dailyScanGraceMs};
 }
 
 void applyTimingPack(AppSettings& s, const AppSettings::TimingPack& p)
 {
     s.dwellSequence = p.sequence;
+    s.dailyDwellSequence = p.dailySequence;
     s.mouseMoveDwellMs = p.pointerDwellMs;
     s.magPickDwellMs = p.zoomDwellMs;
     s.dwellGraceMs = p.blinkGraceMs;
     s.scanGraceMs = p.scanGraceMs;
+    s.dailyScanGraceMs = p.dailyScanGraceMs;
+}
+
+bool matchesDesignerTiming(const AppSettings& s, const AppSettings::TimingPack& p)
+{
+    return s.dwellSequence == p.sequence && s.mouseMoveDwellMs == p.pointerDwellMs
+           && s.magPickDwellMs == p.zoomDwellMs && s.dwellGraceMs == p.blinkGraceMs
+           && s.scanGraceMs == p.scanGraceMs;
 }
 
 bool matchesTimingPack(const AppSettings& s, const AppSettings::TimingPack& p)
 {
     const AppSettings::TimingPack live = liveTiming(s);
-    return live.sequence == p.sequence && live.pointerDwellMs == p.pointerDwellMs
-           && live.zoomDwellMs == p.zoomDwellMs && live.blinkGraceMs == p.blinkGraceMs
-           && live.scanGraceMs == p.scanGraceMs;
+    return live.sequence == p.sequence && live.dailySequence == p.dailySequence
+           && live.pointerDwellMs == p.pointerDwellMs && live.zoomDwellMs == p.zoomDwellMs
+           && live.blinkGraceMs == p.blinkGraceMs && live.scanGraceMs == p.scanGraceMs
+           && live.dailyScanGraceMs == p.dailyScanGraceMs;
 }
 
 void clampTimingPack(AppSettings::TimingPack& p)
 {
-    if (p.sequence.isEmpty()) {
-        p.sequence = AppSettings::defaultDwellSequence();
-    }
-    for (int& ms : p.sequence) {
-        ms = qBound(50, ms, 10000);
-    }
+    clampSequence(p.sequence, AppSettings::defaultDwellSequence());
+    clampSequence(p.dailySequence, AppSettings::defaultDailyDwellSequence());
     p.scanGraceMs = qBound(0, p.scanGraceMs, 2000);
+    p.dailyScanGraceMs = qBound(0, p.dailyScanGraceMs, 2000);
     p.blinkGraceMs = qBound(0, p.blinkGraceMs, 800);
     p.pointerDwellMs = qBound(200, p.pointerDwellMs, 2500);
     p.zoomDwellMs = qBound(200, p.zoomDwellMs, 2500);
 }
 
+bool isDailySequenceKey(const QString& key)
+{
+    return key == QLatin1String("dailyDwellMs") || key == QLatin1String("dailyDwellSequence");
+}
+
+QVector<int>& sequenceField(AppSettings& s, const QString& key)
+{
+    return isDailySequenceKey(key) ? s.dailyDwellSequence : s.dwellSequence;
+}
+
+const QVector<int>& sequenceField(const AppSettings& s, const QString& key)
+{
+    return isDailySequenceKey(key) ? s.dailyDwellSequence : s.dwellSequence;
+}
+
+QString formatSequence(const QVector<int>& seq)
+{
+    QStringList parts;
+    for (int ms : seq) {
+        parts << QString::number(ms);
+    }
+    return parts.join(QLatin1Char(','));
+}
+
 constexpr IntSpec kIntSpecs[] = {
-    {"scanGraceMs", "Scan grace",
-     "Time on-target before dwell progress begins (ms).", " ms",
+    {"scanGraceMs", "Designer scan grace",
+     "Time on-target before designer dwell progress begins (ms).", " ms",
      &AppSettings::scanGraceMs, 0, 2000, 20},
+    {"dailyScanGraceMs", "Daily scan grace",
+     "Time on-target before daily-driver dwell progress begins (ms).", " ms",
+     &AppSettings::dailyScanGraceMs, 0, 2000, 20},
     {"dwellGraceMs", "Blink grace",
      "Blink grace window without canceling dwell (ms).", " ms",
      &AppSettings::dwellGraceMs, 0, 800, 20},
@@ -156,6 +218,8 @@ constexpr DoubleSpec kDoubleSpecs[] = {
      &AppSettings::pickZoom, 1.25, 8.0, 0.25, 2},
     {"ltsAccelPerSec", "LTS accel/s", "Speed growth while outside deadzone.", " /s",
      &AppSettings::ltsAccelPerSec, 0.0, 2.0, 0.05, 2},
+    {"speechSpeed", "Speech speed", "ElevenLabs and SAPI speed (0.5–2).", "",
+     &AppSettings::speechSpeed, 0.5, 2.0, 0.1, 2},
 };
 
 const ColorSpec kColorSpecs[] = {
@@ -227,12 +291,13 @@ const ColorSpec* findColor(const QString& key)
     return nullptr;
 }
 
-bool isSequenceKey(const QString& key)
-{
-    return key == QLatin1String("dwellMs") || key == QLatin1String("dwellSequence");
-}
-
 } // namespace
+
+bool AppSettings::isSequenceKey(const QString& key)
+{
+    return key == QLatin1String("dwellMs") || key == QLatin1String("dwellSequence")
+           || isDailySequenceKey(key);
+}
 
 const AppSettings::StyleToggle* AppSettings::findStyleToggle(const QString& jsonKey)
 {
@@ -244,14 +309,21 @@ const AppSettings::StyleToggle* AppSettings::findStyleToggle(const QString& json
     return nullptr;
 }
 
+QString AppSettings::normalizeSpeechTag(QString raw)
+{
+    raw = raw.trimmed();
+    if (raw.startsWith(QLatin1Char('[')) && raw.endsWith(QLatin1Char(']')) && raw.size() >= 2) {
+        raw = raw.mid(1, raw.size() - 2).trimmed();
+    }
+    raw.remove(QLatin1Char('['));
+    raw.remove(QLatin1Char(']'));
+    return raw.simplified();
+}
+
 void AppSettings::clamp()
 {
-    if (dwellSequence.isEmpty()) {
-        dwellSequence = defaultDwellSequence();
-    }
-    for (int& ms : dwellSequence) {
-        ms = qBound(50, ms, 10000);
-    }
+    clampSequence(dwellSequence, defaultDwellSequence());
+    clampSequence(dailyDwellSequence, defaultDailyDwellSequence());
     clampTimingPack(customTiming);
     for (const IntSpec& s : kIntSpecs) {
         this->*s.member = qBound(s.min, this->*s.member, s.max);
@@ -268,6 +340,72 @@ void AppSettings::clamp()
     magPickStyle = PickStyle::sanitizeMag(magPickStyle);
     mousePickStyle = PickStyle::sanitizeMouse(mousePickStyle);
     trackerPref = qBound(0, trackerPref, 1);
+    speechPitch = qBound(0.5, speechPitch, 2.0);
+    auto clampList = [](QStringList list, int max) {
+        QStringList out;
+        for (QString s : list) {
+            s = s.trimmed();
+            if (s.isEmpty()) {
+                continue;
+            }
+            out.push_back(s);
+            if (out.size() >= max) {
+                break;
+            }
+        }
+        return out;
+    };
+    elevenFavoriteVoiceIds = clampList(elevenFavoriteVoiceIds, 24);
+    {
+        QVector<SavedSpeechTag> tags;
+        for (SavedSpeechTag t : savedSpeechTags) {
+            t.name = normalizeSpeechTag(t.name);
+            if (t.name.isEmpty()) {
+                continue;
+            }
+            t.color = t.color.trimmed();
+            t.icon = t.icon.trimmed();
+            tags.push_back(t);
+            if (tags.size() >= 24) {
+                break;
+            }
+        }
+        savedSpeechTags = std::move(tags);
+    }
+    {
+        QVector<SavedSpeechVoice> voices;
+        for (SavedSpeechVoice v : savedSpeechVoices) {
+            v.id = v.id.trimmed();
+            v.name = v.name.trimmed();
+            if (v.name.size() > 24) {
+                v.name = v.name.left(24);
+            }
+            v.voiceId = v.voiceId.trimmed();
+            v.speed = qBound(0.5, v.speed, 2.0);
+            v.color = v.color.trimmed();
+            v.icon = v.icon.trimmed();
+            if (v.model != QLatin1String("sapi") && v.model != QLatin1String("eleven_v3")
+                && v.model != QLatin1String("eleven_flash_v2_5")) {
+                v.model = QStringLiteral("sapi");
+            }
+            if (v.id.isEmpty() || v.name.isEmpty()) {
+                continue;
+            }
+            voices.push_back(v);
+            if (voices.size() >= kMaxSavedSpeechVoices) {
+                break;
+            }
+        }
+        savedSpeechVoices = std::move(voices);
+    }
+    speechLangFilter = speechLangFilter.trimmed().toLower();
+    if (speechLangFilter == QLatin1String("all")) {
+        speechLangFilter.clear();
+    }
+    if (speechModel != QLatin1String("sapi") && speechModel != QLatin1String("eleven_v3")
+        && speechModel != QLatin1String("eleven_flash_v2_5")) {
+        speechModel = QStringLiteral("sapi");
+    }
     layoutAutoCloseFadeMs = qBound(50, layoutAutoCloseFadeMs, 60000);
     progress.ensureDefault();
     mouseProgress.ensureDefault();
@@ -285,10 +423,11 @@ void AppSettings::clamp()
 bool AppSettings::nudge(const QString& key, int dir)
 {
     if (isSequenceKey(key)) {
-        if (dwellSequence.isEmpty()) {
-            dwellSequence = defaultDwellSequence();
+        QVector<int>& seq = sequenceField(*this, key);
+        if (seq.isEmpty()) {
+            seq = isDailySequenceKey(key) ? defaultDailyDwellSequence() : defaultDwellSequence();
         }
-        dwellSequence[0] = qBound(50, dwellSequence[0] + dir * 50, 10000);
+        seq[0] = qBound(0, seq[0] + dir * 50, 10000);
         return true;
     }
     if (const IntSpec* s = findInt(key)) {
@@ -358,6 +497,23 @@ void AppSettings::applyDwellCustom()
     applyTimingPack(*this, customTiming);
 }
 
+void AppSettings::inferMissingDailyDwell()
+{
+    const AppSettings::TimingPack* pack = nullptr;
+    if (matchesDesignerTiming(*this, kDwellSlow)) {
+        pack = &kDwellSlow;
+    } else if (matchesDesignerTiming(*this, kDwellNormal)) {
+        pack = &kDwellNormal;
+    } else if (matchesDesignerTiming(*this, kDwellFast)) {
+        pack = &kDwellFast;
+    }
+    if (!pack) {
+        return;
+    }
+    dailyDwellSequence = pack->dailySequence;
+    dailyScanGraceMs = pack->dailyScanGraceMs;
+}
+
 void AppSettings::setMagFollowProfile(int profile)
 {
     magFollowProfile = gazeFollowProfileFromInt(profile);
@@ -381,7 +537,7 @@ bool AppSettings::isNumericKey(const QString& key)
 QStringList AppSettings::numericKeys()
 {
     QStringList keys;
-    keys << QStringLiteral("dwellMs");
+    keys << QStringLiteral("dwellMs") << QStringLiteral("dailyDwellMs");
     for (const IntSpec& s : kIntSpecs) {
         keys << QLatin1String(s.key);
     }
@@ -425,7 +581,7 @@ bool AppSettings::setColorKey(const QString& key, const QColor& c, bool rebuildP
 QString AppSettings::displayValue(const QString& key) const
 {
     if (isSequenceKey(key)) {
-        return dwellSequenceString() + QStringLiteral(" ms");
+        return formatSequence(sequenceField(*this, key)) + QStringLiteral(" ms");
     }
     if (const IntSpec* s = findInt(key)) {
         const int v = this->*s->member;
@@ -472,8 +628,11 @@ QString AppSettings::displayValue(const QString& key) const
 
 QString AppSettings::settingTitle(const QString& key)
 {
+    if (isDailySequenceKey(key)) {
+        return QStringLiteral("Daily driver dwell");
+    }
     if (isSequenceKey(key)) {
-        return QStringLiteral("Dwell sequence");
+        return QStringLiteral("Designer dwell");
     }
     if (const IntSpec* s = findInt(key)) {
         return QLatin1String(s->title);
@@ -495,11 +654,15 @@ QString AppSettings::settingTitle(const QString& key)
 
 QString AppSettings::settingDescription(const QString& key)
 {
+    if (isDailySequenceKey(key)) {
+        return QStringLiteral(
+            "Comma-separated daily-driver dwell times in ms (keys, mouse, composer, "
+            "modifiers, AHK). Last step repeats. 0 fires immediately after scan grace.");
+    }
     if (isSequenceKey(key)) {
         return QStringLiteral(
-            "Comma-separated dwell times in ms while you keep gazing "
-            "(e.g. 600,300,100,600). Steps advance until the last value, which "
-            "then repeats forever.");
+            "Comma-separated designer dwell times in ms for settings, navigation, "
+            "and other non-input cells. Last step repeats.");
     }
     if (const IntSpec* s = findInt(key)) {
         return QLatin1String(s->hint);
@@ -550,7 +713,7 @@ QString AppSettings::settingDescription(const QString& key)
 QString AppSettings::numericBufferSeed(const QString& key) const
 {
     if (isSequenceKey(key)) {
-        return dwellSequenceString();
+        return formatSequence(sequenceField(*this, key));
     }
     if (const IntSpec* s = findInt(key)) {
         return QString::number(this->*s->member);
@@ -577,7 +740,7 @@ bool AppSettings::applyNumericBuffer(const QString& key, const QString& buffer, 
             }
             return false;
         }
-        dwellSequence = seq;
+        sequenceField(*this, key) = seq;
         clamp();
         return true;
     }

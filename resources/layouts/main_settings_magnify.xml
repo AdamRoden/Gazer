@@ -7,7 +7,7 @@
   <Style id="joinRight" background="#00000000" thickness="0" radius="0,10,10,0"/>
   <Style id="tabbar" thickness="0" radius="12"/>
   <Grid id="board" desktopMode="true" rows="11" columns="16" anchor="Top" offset="0,0" size="A_ScreenHeight/9*16, A_ScreenHeight" gap="6" margin="12" radius="16">
-    <SubGrid id="tabs" row="0" col="0" colSpan="16" rows="1" columns="7" gap="6" margin="4" style="tabbar">
+    <SubGrid id="tabs" row="0" col="0" colSpan="16" rows="1" columns="8" gap="6" margin="4" style="tabbar">
       <Cell id="tab_speed" row="0" col="0" label="Speed" icon="timer" role="tab">
         <ClosePage/>
         <OpenPage value="main_settings_speed"/>
@@ -29,7 +29,11 @@
         <ClosePage/>
         <OpenPage value="main_settings_theme"/>
       </Cell>
-      <Cell id="tab_done" row="0" col="6" label="Done" icon="keyboardHide">
+      <Cell id="tab_speech" row="0" col="6" label="Speech" icon="Speak" role="tab">
+        <ClosePage/>
+        <OpenPage value="main_settings_speech"/>
+      </Cell>
+      <Cell id="tab_done" row="0" col="7" label="Done" icon="keyboardHide">
         <CloseAllPages/>
       </Cell>
     </SubGrid>
@@ -85,7 +89,7 @@
       <Cell id="h_preview" row="0" col="0" label="Preview" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_test" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="test_label" row="0" col="0" label="Test" caption="Dwell Move to… to try zoom." role="label" style="plain"/>
-        <Cell id="test_move" row="0" col="1" icon="dragPan" label="Move to…" activeState="mouseMoveToGaze" command="mouseMoveToGaze"/>
+        <Cell id="test_move" row="0" col="1" icon="mouseMove" label="Move to…" activeState="mouseMoveToGaze" command="mouseMoveToGaze"/>
       </SubGrid>
     </SubGrid>
   </Grid>

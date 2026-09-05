@@ -2,10 +2,12 @@
 
 #include "app/ActiveStateResolver.h"
 #include "app/CommandRegistry.h"
+#include "app/ComposeUi.h"
 #include "app/SettingsUi.h"
 #include "assist/ActionLoopService.h"
 #include "assist/AhkLauncher.h"
 #include "assist/AssistCommands.h"
+#include "assist/ComposeCommands.h"
 #include "assist/AssistSession.h"
 #include "assist/ComboMouse.h"
 #include "assist/GazeMouseFollow.h"
@@ -13,8 +15,14 @@
 #include "assist/LookToScroll.h"
 #include "assist/MouseAssistState.h"
 #include "assist/MouseDwellMove.h"
+#include "assist/ClipPlayer.h"
+#include "assist/ElevenClient.h"
 #include "assist/PhraseService.h"
 #include "assist/ScriptHost.h"
+#include "assist/SoundboardStore.h"
+#include "assist/SpeechEngine.h"
+#include "assist/SpeechHistory.h"
+#include "assist/SpeechSecrets.h"
 #include "assist/TtsService.h"
 #include "input/InputService.h"
 #include "input/InputTypes.h"
@@ -75,7 +83,12 @@ GazerServices::GazerServices(QObject* parent)
 {
 }
 
-GazerServices::~GazerServices() = default;
+GazerServices::~GazerServices()
+{
+    if (m_secrets) {
+        m_secrets->forgetCache();
+    }
+}
 
 bool GazerServices::initialize(const QString& layoutsDir, const QString& mappingPath,
                                QString* error)
@@ -91,8 +104,28 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
     m_input = std::make_unique<InputService>(*m_keyState);
     m_mapping = std::make_unique<MappingEngine>(*m_input);
     m_tts = std::make_unique<TtsService>();
-    m_phrases = std::make_unique<PhraseService>(*m_tts, *m_input, *m_mapping);
+    m_clips = std::make_unique<ClipPlayer>();
+    m_secrets = std::make_unique<SpeechSecrets>();
+    m_eleven = std::make_unique<ElevenClient>(this);
+    m_speech = std::make_unique<SpeechEngine>(*m_tts, m_settings, *m_secrets, *m_eleven, *m_clips);
+    m_phrases = std::make_unique<PhraseService>(*m_speech, *m_input, *m_mapping);
     m_commands = std::make_unique<CommandRegistry>(*m_mapping);
+    m_board = std::make_unique<SoundboardStore>();
+    {
+        QString boardErr;
+        if (!m_board->load(&boardErr) && !boardErr.isEmpty()) {
+            GAZER_WARN << "Soundboard:" << boardErr;
+        }
+    }
+    m_history = std::make_unique<SpeechHistory>();
+    {
+        QString histErr;
+        if (!m_history->load(&histErr) && !histErr.isEmpty()) {
+            GAZER_WARN << "Speech history:" << histErr;
+        }
+    }
+    m_compose = std::make_unique<ComposeUi>(*m_pages, *m_phrases, *m_speech, m_settings, *m_secrets,
+                                           *m_eleven, *m_tts, *m_board, *m_history);
     m_lookToScroll = std::make_unique<LookToScroll>();
     m_comboMouse = std::make_unique<ComboMouse>();
     m_magnifier = std::make_unique<MagnifierOverlay>();
@@ -124,8 +157,10 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
         GAZER_INFO << "Using default settings (" << setErr << ")";
         m_settings = AppSettings::defaults();
     }
+    m_settings.elevenApiKeySet = m_secrets->hasKey();
 
-    m_settingsUi = std::make_unique<SettingsUi>(m_settings, *m_commands, *m_pages);
+    m_settingsUi = std::make_unique<SettingsUi>(m_settings, *m_commands, *m_pages, *m_secrets,
+                                               *m_eleven);
     m_settingsUi->setApplyFn([this](bool persist) { applySettings(persist); });
     m_settingsUi->setNotifyFn([this](const QString& msg) { notifyStatus(msg); });
     m_settingsUi->setMutateFn(
@@ -150,6 +185,9 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
             return;
         }
         m_settingsUi->decoratePage(doc);
+        if (m_compose) {
+            m_compose->decoratePage(doc);
+        }
         if (m_mouseAssist) {
             stampMousePage(doc, QStringLiteral("Step %1 px").arg(m_mouseAssist->moveAmountPx()),
                            QStringLiteral("Scroll ×%1").arg(m_mouseAssist->scrollNotches()));
@@ -165,6 +203,40 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
 
     registerDomainCommands();
     m_settingsUi->registerCommands();
+    registerComposeCommands(*m_commands, *m_compose);
+    m_compose->setApplyFn([this]() { applySettings(true); });
+    m_compose->setNotifyFn([this](const QString& msg) { notifyStatus(msg); });
+    connect(m_speech.get(), &SpeechEngine::historyReady, this,
+            [this](const QString& phrase, const QString& backend, const QString& modelId,
+                   const QString& voiceId, const QString& mpegPath) {
+                if (m_compose) {
+                    m_compose->onHistoryReady(phrase, backend, modelId, voiceId, mpegPath);
+                }
+            });
+    connect(m_speech.get(), &SpeechEngine::statusChanged, this, [this]() {
+        if (m_pages) {
+            m_pages->refreshDecorated();
+            m_pages->refreshActive();
+        }
+    });
+    connect(m_speech.get(), &SpeechEngine::notify, this,
+            [this](const QString& msg) { notifyStatus(msg); });
+    connect(m_eleven.get(), &ElevenClient::keyValidated, this,
+            [this](bool ok, const QString& err) {
+                (void)m_settingsUi->onSpeechKeyValidated(ok, err);
+                if (ok && m_compose) {
+                    m_compose->onCatalogReady(true, {});
+                }
+            });
+    connect(m_eleven.get(), &ElevenClient::catalogReady, this,
+            [this](bool ok, const QString& err) {
+                if (m_compose) {
+                    m_compose->onCatalogReady(ok, err);
+                }
+                if (!ok && !err.isEmpty()) {
+                    notifyStatus(err);
+                }
+            });
 
     connect(m_lookToScroll.get(), &LookToScroll::enabledChanged, this,
             [this](bool) { refreshActiveIndicators(); });
@@ -198,7 +270,12 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
     connect(m_actionLoops.get(), &ActionLoopService::loopsChanged, this,
             [this]() { refreshActiveIndicators(); });
     connect(this, &GazerServices::settingsChanged, this, [this]() { refreshActiveIndicators(); });
-    connect(m_pages.get(), &PageSession::sessionChanged, this, [this]() { refreshActiveIndicators(); });
+    connect(m_pages.get(), &PageSession::sessionChanged, this, [this]() {
+        refreshActiveIndicators();
+        if (m_compose) {
+            m_compose->onSessionChanged();
+        }
+    });
 
     applySettings(false);
     refreshActiveIndicators();
@@ -229,6 +306,8 @@ ActiveStateContext GazerServices::activeStateContext() const
     ctx.keyState = m_keyState.get();
     ctx.actionLoops = m_actionLoops.get();
     ctx.settingsUi = m_settingsUi.get();
+    ctx.speechEngine = m_speech.get();
+    ctx.composeUi = m_compose.get();
     ctx.dwellSuspended = isDwellSuspended();
     return ctx;
 }
@@ -296,6 +375,13 @@ void GazerServices::mutateAndApply(const std::function<void(AppSettings&)>& muta
 void GazerServices::applySettings(bool persist)
 {
     m_settings.clamp();
+    if (m_secrets) {
+        m_settings.elevenApiKeySet = m_secrets->hasKey();
+    }
+    if (m_tts) {
+        QString voiceErr;
+        (void)m_tts->setVoiceToken(m_settings.sapiVoiceToken, &voiceErr);
+    }
 
     if (m_pages) {
         m_pages->setAutoCollapseMain(m_settings.autoCollapseMain);
@@ -316,6 +402,7 @@ void GazerServices::applySettings(bool persist)
         m_pages->setTheme(m_settings.resolvedTheme());
         m_pages->setGlobalDwell(m_settings.dwellSequence, m_settings.dwellGraceMs,
                                 m_settings.scanGraceMs);
+        m_pages->setDailyDriverDwell(m_settings.dailyDwellSequence, m_settings.dailyScanGraceMs);
     }
 
     m_mouseDwellMove->setDwellMs(m_settings.mouseMoveDwellMs);
@@ -354,9 +441,9 @@ void GazerServices::applySettings(bool persist)
                            m_settings.comboOuterRadiusPx);
     m_comboMouse->setAnnulusColors(m_settings.colorKey(QStringLiteral("comboInnerColor")),
                                    m_settings.colorKey(QStringLiteral("comboOuterColor")));
-    m_comboMouse->setScanGraceMs(m_settings.scanGraceMs);
+    m_comboMouse->setScanGraceMs(m_settings.dailyScanGraceMs);
     m_comboMouse->setDwellGraceMs(m_settings.dwellGraceMs);
-    m_comboMouse->setDwellSequence(m_settings.dwellSequence);
+    m_comboMouse->setDwellSequence(m_settings.dailyDwellSequence);
 
     m_magnifier->setZoom(m_settings.magZoom);
     m_magnifier->setLensSize(m_settings.magLensSize);
@@ -368,6 +455,9 @@ void GazerServices::applySettings(bool persist)
 
     if (m_pages) {
         m_pages->refreshDecorated();
+    }
+    if (m_compose) {
+        m_compose->syncFromSettings();
     }
 
     if (persist) {

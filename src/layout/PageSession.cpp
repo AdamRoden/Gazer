@@ -168,6 +168,12 @@ void PageSession::setGlobalDwell(const QVector<int>& sequence, int graceMs, int 
     m_globalScanGraceMs = qMax(0, scanGraceMs);
 }
 
+void PageSession::setDailyDriverDwell(const QVector<int>& sequence, int scanGraceMs)
+{
+    m_dailySequence = sequence.isEmpty() ? m_globalSequence : sequence;
+    m_dailyScanGraceMs = qMax(0, scanGraceMs);
+}
+
 void PageSession::setDwellSuspended(bool on)
 {
     if (m_dwellSuspended == on) {
@@ -264,7 +270,7 @@ void PageSession::closePreviewPages()
     emit sessionChanged();
 }
 
-bool PageSession::attachDocument(PageDocument doc, QString* error, bool decorate)
+bool PageSession::attachDocument(PageDocument doc, QString* error, bool decorate, bool restack)
 {
     if (!doc.isValid()) {
         if (error) {
@@ -279,7 +285,7 @@ bool PageSession::attachDocument(PageDocument doc, QString* error, bool decorate
     for (int i = 0; i < m_attached.size(); ++i) {
         if (m_attached[i].doc.id == id) {
             m_attached[i].doc = std::move(doc);
-            if (i != m_attached.size() - 1) {
+            if (restack && i != m_attached.size() - 1) {
                 m_attached.move(i, m_attached.size() - 1);
                 leaveGaze();
                 rebuild();
@@ -304,6 +310,16 @@ bool PageSession::attachDocument(PageDocument doc, QString* error, bool decorate
     armLeaveGate(id);
     emit sessionChanged();
     return true;
+}
+
+PageDocument PageSession::attachedCopy(const QString& id) const
+{
+    for (const AttachedPage& a : m_attached) {
+        if (a.doc.id == id) {
+            return a.doc;
+        }
+    }
+    return {};
 }
 
 bool PageSession::openPage(const QString& id, QString* error)

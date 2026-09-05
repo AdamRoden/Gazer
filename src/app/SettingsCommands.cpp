@@ -114,6 +114,25 @@ void SettingsUi::registerCommands()
                                    toggleBool(t.member, QLatin1String(t.label)));
     }
 
+    m_commands.registerBuiltin(QStringLiteral("settings.speech.editKey"),
+                               [this](QString* e) { return openSpeechKeyBoard(e); });
+    m_commands.registerBuiltin(QStringLiteral("settings.speech.clearKey"),
+                               [this](QString* e) { return clearSpeechKey(e); });
+    m_commands.registerBuiltin(QStringLiteral("settings.speech.key.save"),
+                               [this](QString* e) { return speechKeySave(e); });
+    m_commands.registerBuiltin(QStringLiteral("settings.speech.key.cancel"), [this](QString*) {
+        speechKeyCancel();
+        return true;
+    });
+    m_commands.registerBuiltin(QStringLiteral("settings.speech.key.clear"), [this](QString*) {
+        speechKeyClear();
+        return true;
+    });
+    m_commands.registerBuiltin(QStringLiteral("settings.speech.key.paste"), [this](QString*) {
+        speechKeyPaste();
+        return true;
+    });
+
     m_commands.registerBuiltin(QStringLiteral("settings.flash.foreground"),
                                [this](QString* e) { return openFlashForeground(e); });
     m_commands.registerBuiltin(QStringLiteral("settings.flash.custom"),
@@ -263,6 +282,9 @@ void SettingsUi::registerCommands()
     m_commands.registerBuiltin(
         QStringLiteral("settings.edit.dwellSequence"),
         [this](QString* e) { return openArrayEditor(QStringLiteral("dwellSequence"), e); });
+    m_commands.registerBuiltin(
+        QStringLiteral("settings.edit.dailyDwellSequence"),
+        [this](QString* e) { return openArrayEditor(QStringLiteral("dailyDwellSequence"), e); });
 
     struct IntChoice {
         const char* cmd;

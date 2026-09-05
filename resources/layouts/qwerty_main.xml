@@ -1,4 +1,4 @@
-<Page id="qwerty_main" name="Qwerty" radius="0" scanGrace="200" activation="10,600,600,500,400,300,200,100">
+<Page id="qwerty_main" name="Qwerty" radius="0">
   <Dwell id="vert1" scanGrace="200" activation="200,600"/>
   <Dwell id="vert2" scanGrace="100" activation="100,600"/>
   <Grid id="vert1" desktopMode="true" rows="6" columns="1" anchor="TopRight" size="1/16,0.73" layers="1,2">

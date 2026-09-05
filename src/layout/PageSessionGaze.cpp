@@ -111,9 +111,10 @@ const PageTarget* PageSession::findTarget(const QString& id) const
 
 void PageSession::applyDwellFor(const PageTarget& t)
 {
-    int scan = m_globalScanGraceMs;
+    const bool daily = usesDailyDriverDwell(t.actions);
+    int scan = daily ? m_dailyScanGraceMs : m_globalScanGraceMs;
     int grace = m_globalGraceMs;
-    QVector<int> seq = m_globalSequence;
+    QVector<int> seq = daily ? m_dailySequence : m_globalSequence;
     if (t.dwell.scanGrace) {
         scan = *t.dwell.scanGrace;
     }

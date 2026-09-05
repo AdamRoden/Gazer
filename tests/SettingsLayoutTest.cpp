@@ -62,6 +62,7 @@ void SettingsLayoutTest::pagesAnchorTop()
                              QStringLiteral("main_settings_assist"),
                              QStringLiteral("main_settings_tools"),
                              QStringLiteral("main_settings_theme"),
+                             QStringLiteral("main_settings_speech"),
                              QStringLiteral("main_settings_speed_advanced")};
     for (const QString& id : ids) {
         PageDocument doc;
@@ -88,10 +89,11 @@ void SettingsLayoutTest::tabsEqualWidth()
     QVERIFY2(loadLayout(QStringLiteral("main_settings_speed"), doc, &err), qPrintable(err));
     const PageGrid* tabs = doc.findGrid(QStringLiteral("tabs"));
     QVERIFY(tabs);
-    QCOMPARE(tabs->columns, 7);
-    QCOMPARE(tabs->cells.size(), 7);
+    QCOMPARE(tabs->columns, 8);
+    QCOMPARE(tabs->cells.size(), 8);
     int tabRoles = 0;
     bool hasDone = false;
+    bool hasSpeech = false;
     for (const PageCell& c : tabs->cells) {
         if (c.role == QLatin1String("tab")) {
             ++tabRoles;
@@ -100,9 +102,13 @@ void SettingsLayoutTest::tabsEqualWidth()
             hasDone = true;
             QVERIFY(c.isInteractive());
         }
+        if (c.id == QLatin1String("tab_speech")) {
+            hasSpeech = true;
+        }
     }
-    QCOMPARE(tabRoles, 6);
+    QCOMPARE(tabRoles, 7);
     QVERIFY(hasDone);
+    QVERIFY(hasSpeech);
 }
 
 void SettingsLayoutTest::timingSectionUsesRowWeights()
@@ -110,12 +116,16 @@ void SettingsLayoutTest::timingSectionUsesRowWeights()
     PageDocument doc;
     QString err;
     QVERIFY2(loadLayout(QStringLiteral("main_settings_speed"), doc, &err), qPrintable(err));
-    const PageGrid* sec = doc.findGrid(QStringLiteral("sec_timing"));
-    QVERIFY(sec);
-    QCOMPARE(sec->styleId, QStringLiteral("group"));
-    QCOMPARE(sec->rows, 5);
-    QCOMPARE(sec->rowWeights, QVector<double>({1.0, 2.0, 2.0, 2.0, 2.0}));
-    const PageGrid* row = doc.findGrid(QStringLiteral("row_scan"));
+    const PageGrid* daily = doc.findGrid(QStringLiteral("sec_daily"));
+    QVERIFY(daily);
+    QCOMPARE(daily->styleId, QStringLiteral("group"));
+    QCOMPARE(daily->rows, 3);
+    QCOMPARE(daily->rowWeights, QVector<double>({1.0, 2.0, 2.0}));
+    const PageGrid* designer = doc.findGrid(QStringLiteral("sec_designer"));
+    QVERIFY(designer);
+    QCOMPARE(designer->rows, 3);
+    QCOMPARE(designer->rowWeights, QVector<double>({1.0, 2.0, 2.0}));
+    const PageGrid* row = doc.findGrid(QStringLiteral("row_daily_scan"));
     QVERIFY(row);
     QCOMPARE(row->styleId, QStringLiteral("row"));
     QCOMPARE(row->rowSpan, 1);
@@ -125,8 +135,8 @@ void SettingsLayoutTest::timingSectionUsesRowWeights()
     frame.screen = QRectF(0, 0, 1920, 1080);
     frame.desktop = frame.screen;
     const QVector<PageTarget> t = PageHit::collect(doc, frame);
-    const PageTarget* header = targetById(t, QStringLiteral("h_timing"));
-    const PageTarget* desc = targetById(t, QStringLiteral("scan_label"));
+    const PageTarget* header = targetById(t, QStringLiteral("h_daily"));
+    const PageTarget* desc = targetById(t, QStringLiteral("dd_scan_label"));
     QVERIFY(header);
     QVERIFY(desc);
     QVERIFY(qAbs(2.0 * header->geom.visual.height() - desc->geom.visual.height()) < 1.5);
@@ -137,7 +147,7 @@ void SettingsLayoutTest::stepperWidths()
     PageDocument doc;
     QString err;
     QVERIFY2(loadLayout(QStringLiteral("main_settings_speed"), doc, &err), qPrintable(err));
-    const PageGrid* act = doc.findGrid(QStringLiteral("act_scan"));
+    const PageGrid* act = doc.findGrid(QStringLiteral("act_daily_scan"));
     QVERIFY(act);
     QCOMPARE(act->gapPx, 0);
     QCOMPARE(act->columns, 9);
@@ -145,10 +155,10 @@ void SettingsLayoutTest::stepperWidths()
     frame.screen = QRectF(0, 0, 1920, 1080);
     frame.desktop = frame.screen;
     const QVector<PageTarget> t = PageHit::collect(doc, frame);
-    const PageTarget* dec = targetById(t, QStringLiteral("scan_dec"));
-    const PageTarget* val = targetById(t, QStringLiteral("scan_val"));
-    const PageTarget* inc = targetById(t, QStringLiteral("scan_inc"));
-    const PageTarget* edit = targetById(t, QStringLiteral("scan_edit"));
+    const PageTarget* dec = targetById(t, QStringLiteral("dd_scan_dec"));
+    const PageTarget* val = targetById(t, QStringLiteral("dd_scan_val"));
+    const PageTarget* inc = targetById(t, QStringLiteral("dd_scan_inc"));
+    const PageTarget* edit = targetById(t, QStringLiteral("dd_scan_edit"));
     QVERIFY(dec && val && inc && edit);
     QCOMPARE(val->role, QStringLiteral("value"));
     QCOMPARE(dec->geom.visual.width(), inc->geom.visual.width());
@@ -166,10 +176,13 @@ void SettingsLayoutTest::valueLabelKeepsKey()
     frame.screen = QRectF(0, 0, 1920, 1080);
     frame.desktop = frame.screen;
     const QVector<PageTarget> t = PageHit::collect(doc, frame);
-    const PageTarget* val = targetById(t, QStringLiteral("scan_val"));
+    const PageTarget* val = targetById(t, QStringLiteral("dd_scan_val"));
     QVERIFY(val);
     QCOMPARE(val->role, QStringLiteral("value"));
-    QCOMPARE(val->settingKey, QStringLiteral("scanGraceMs"));
+    QCOMPARE(val->settingKey, QStringLiteral("dailyScanGraceMs"));
+    const PageTarget* designer = targetById(t, QStringLiteral("scan_val"));
+    QVERIFY(designer);
+    QCOMPARE(designer->settingKey, QStringLiteral("scanGraceMs"));
 }
 
 void SettingsLayoutTest::ltsHasNoMaxSpeedOrPlaceCursor()
@@ -213,7 +226,8 @@ void SettingsLayoutTest::hubOpensSixBoards()
                                QStringLiteral("main_settings_indicators"),
                                QStringLiteral("main_settings_assist"),
                                QStringLiteral("main_settings_tools"),
-                               QStringLiteral("main_settings_theme")};
+                               QStringLiteral("main_settings_theme"),
+                               QStringLiteral("main_settings_speech")};
     QSet<QString> opened;
     const PageCell* done = doc.findCell(QStringLiteral("done"));
     QVERIFY(done);
@@ -230,7 +244,12 @@ void SettingsLayoutTest::hubOpensSixBoards()
     for (const QString& id : pages) {
         QVERIFY2(opened.contains(id), qPrintable(id));
     }
-    QCOMPARE(opened.size(), 6);
+    QCOMPARE(opened.size(), 7);
+    PageDocument speech;
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_speech"), speech, &err), qPrintable(err));
+    QCOMPARE(speech.findCell(QStringLiteral("speed_value"))->settingKey,
+             QStringLiteral("speechSpeed"));
+    QVERIFY(speech.findCell(QStringLiteral("tab_speech")));
 }
 
 void SettingsLayoutTest::presetsComeFirst()
@@ -239,10 +258,13 @@ void SettingsLayoutTest::presetsComeFirst()
     QString err;
     QVERIFY2(loadLayout(QStringLiteral("main_settings_speed"), doc, &err), qPrintable(err));
     const PageGrid* presets = doc.findGrid(QStringLiteral("sec_presets"));
-    const PageGrid* timing = doc.findGrid(QStringLiteral("sec_timing"));
+    const PageGrid* daily = doc.findGrid(QStringLiteral("sec_daily"));
+    const PageGrid* designer = doc.findGrid(QStringLiteral("sec_designer"));
     QVERIFY(presets);
-    QVERIFY(timing);
-    QVERIFY(presets->row < timing->row);
+    QVERIFY(daily);
+    QVERIFY(designer);
+    QVERIFY(presets->row < daily->row);
+    QVERIFY(daily->row < designer->row);
     const PageCell* slow = doc.findCell(QStringLiteral("p_slow"));
     QVERIFY(slow);
     QCOMPARE(slow->role, QStringLiteral("choice"));
@@ -370,7 +392,8 @@ void SettingsLayoutTest::advancedHasHoldAndAutoclose()
     QCOMPARE(doc.findCell(QStringLiteral("grace_val"))->settingKey, QStringLiteral("dwellGraceMs"));
     const PageGrid* tabs = doc.findGrid(QStringLiteral("tabs"));
     QVERIFY(tabs);
-    QCOMPARE(tabs->columns, 7);
+    QCOMPARE(tabs->columns, 8);
+    QVERIFY(doc.findCell(QStringLiteral("tab_speech")));
 }
 
 QObject* createSettingsLayoutTest()

@@ -10,7 +10,9 @@
 #include "assist/MouseDwellMove.h"
 #include "input/KeyStateManager.h"
 #include "ui/MagnifierOverlay.h"
+#include "app/ComposeUi.h"
 #include "app/SettingsUi.h"
+#include "assist/SpeechEngine.h"
 #include "ui/PickStyle.h"
 #include "ui/Theme.h"
 
@@ -34,6 +36,45 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
     }
     if (key == QLatin1String("dwellSuspend")) {
         return ctx.dwellSuspended;
+    }
+    if (key == QLatin1String("compose.busy")) {
+        return ctx.speechEngine && ctx.speechEngine->status().busy;
+    }
+    if (key == QLatin1String("compose.speaking")) {
+        return ctx.speechEngine && ctx.speechEngine->status().speaking;
+    }
+    if (key == QLatin1String("compose.open")) {
+        return ctx.composeUi && ctx.composeUi->isOpen();
+    }
+    if (key == QLatin1String("compose.assignMode")) {
+        return ctx.composeUi && ctx.composeUi->assignMode();
+    }
+    if (key == QLatin1String("compose.editMode")) {
+        return ctx.composeUi && ctx.composeUi->editMode();
+    }
+    if (key == QLatin1String("compose.freestyleMode")) {
+        return ctx.composeUi && ctx.composeUi->freestyleMode();
+    }
+    if (key == QLatin1String("compose.nameEdit")) {
+        return ctx.composeUi && ctx.composeUi->nameEditing();
+    }
+    if (key == QLatin1String("compose.editColors")) {
+        return ctx.composeUi && ctx.composeUi->nameEditing()
+               && !ctx.composeUi->editIconPalette();
+    }
+    if (key == QLatin1String("compose.editIcons")) {
+        return ctx.composeUi && ctx.composeUi->nameEditing()
+               && ctx.composeUi->editIconPalette();
+    }
+    if (key.startsWith(QLatin1String("compose.voicePreset."))) {
+        return ctx.composeUi
+               && ctx.composeUi->activeVoicePresetId()
+                      == key.mid(int(QLatin1String("compose.voicePreset.").size()));
+    }
+    if (key.startsWith(QLatin1String("soundboard.topic."))) {
+        return ctx.composeUi
+               && ctx.composeUi->activeTopicId()
+                      == key.mid(int(QLatin1String("soundboard.topic.").size()));
     }
     if (key == QLatin1String("lookToScroll")) {
         return ctx.lookToScroll && ctx.lookToScroll->isEnabled();
@@ -171,6 +212,20 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
         {"settings.session.startDocked.toggle",
          [](const AppSettings& s) { return s.startDocked; }},
         {"settings.speech.alsoType.toggle", [](const AppSettings& s) { return s.speakAlsoType; }},
+        {"settings.speech.model.sapi",
+         [](const AppSettings& s) { return s.speechModel == QLatin1String("sapi"); }},
+        {"settings.speech.model.eleven_flash_v2_5",
+         [](const AppSettings& s) { return s.speechModel == QLatin1String("eleven_flash_v2_5"); }},
+        {"settings.speech.model.eleven_v3",
+         [](const AppSettings& s) { return s.speechModel == QLatin1String("eleven_v3"); }},
+        {"settings.speech.hasKey", [](const AppSettings& s) { return s.elevenApiKeySet; }},
+        {"speech.model.sapi",
+         [](const AppSettings& s) { return s.speechModel == QLatin1String("sapi"); }},
+        {"speech.model.eleven_flash_v2_5",
+         [](const AppSettings& s) { return s.speechModel == QLatin1String("eleven_flash_v2_5"); }},
+        {"speech.model.eleven_v3",
+         [](const AppSettings& s) { return s.speechModel == QLatin1String("eleven_v3"); }},
+        {"speech.hasKey", [](const AppSettings& s) { return s.elevenApiKeySet; }},
         {"settings.lts.indicator.fan",
          [](const AppSettings& s) { return int(s.ltsIndicatorStyle) == 0; }},
         {"settings.lts.indicator.orb",

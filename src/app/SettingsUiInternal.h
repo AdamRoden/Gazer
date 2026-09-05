@@ -13,6 +13,7 @@ constexpr auto kLiveArray = "settings_array_live";
 constexpr auto kLiveColor = "settings_color_live";
 constexpr auto kLiveOpacity = "settings_opacity_live";
 constexpr auto kLiveHex = "settings_hex_live";
+constexpr auto kLiveSpeechKey = "settings_speech_key_live";
 
 constexpr int kMaxArraySteps = 12;
 constexpr int kStepNudge = 50;

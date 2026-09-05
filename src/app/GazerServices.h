@@ -15,8 +15,10 @@ class ActionLoopService;
 class AhkLauncher;
 class AssistSession;
 struct AssistCommandContext;
+class ClipPlayer;
 class ComboMouse;
 class CommandRegistry;
+class ComposeUi;
 class GazeMouseFollow;
 class GazeReticle;
 class InputService;
@@ -30,7 +32,12 @@ class PageCatalog;
 class PageSession;
 class PhraseService;
 class ScriptHost;
+class SoundboardStore;
 class SettingsUi;
+class ElevenClient;
+class SpeechEngine;
+class SpeechHistory;
+class SpeechSecrets;
 class TtsService;
 
 /// Composition root for domain services (not tray/tracker UI shell).
@@ -56,8 +63,11 @@ public:
     KeyStateManager& keyState() { return *m_keyState; }
     MappingEngine& mapping() { return *m_mapping; }
     TtsService& tts() { return *m_tts; }
+    SpeechEngine& speechEngine() { return *m_speech; }
+    ClipPlayer& clipPlayer() { return *m_clips; }
     PhraseService& phrases() { return *m_phrases; }
     CommandRegistry& commands() { return *m_commands; }
+    ComposeUi& composeUi() { return *m_compose; }
     ScriptHost& scripts() { return *m_scripts; }
     AhkLauncher& ahk() { return *m_ahk; }
     LookToScroll& lookToScroll() { return *m_lookToScroll; }
@@ -98,8 +108,15 @@ private:
     std::unique_ptr<InputService> m_input;
     std::unique_ptr<MappingEngine> m_mapping;
     std::unique_ptr<TtsService> m_tts;
+    std::unique_ptr<ClipPlayer> m_clips;
+    std::unique_ptr<SpeechSecrets> m_secrets;
+    std::unique_ptr<ElevenClient> m_eleven;
+    std::unique_ptr<SpeechEngine> m_speech;
     std::unique_ptr<PhraseService> m_phrases;
     std::unique_ptr<CommandRegistry> m_commands;
+    std::unique_ptr<SoundboardStore> m_board;
+    std::unique_ptr<SpeechHistory> m_history;
+    std::unique_ptr<ComposeUi> m_compose;
     std::unique_ptr<ScriptHost> m_scripts;
     std::unique_ptr<AhkLauncher> m_ahk;
     std::unique_ptr<LookToScroll> m_lookToScroll;

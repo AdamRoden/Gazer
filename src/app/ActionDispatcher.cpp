@@ -1,6 +1,7 @@
 #include "app/ActionDispatcher.h"
 
 #include "app/CommandRegistry.h"
+#include "app/ComposeUi.h"
 #include "app/GazerServices.h"
 #include "assist/AhkLauncher.h"
 #include "assist/ComboMouse.h"
@@ -109,6 +110,9 @@ void ActionDispatcher::dispatchPage(const QVector<PageAction>& actions, const QS
             continue;
         }
         flushShowNav();
+        if (m_svc.composeUi().tryHandle(a, sourcePageId)) {
+            continue;
+        }
         switch (a.type) {
         case PageActionType::Command: {
             QString err;

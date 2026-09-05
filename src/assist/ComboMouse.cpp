@@ -28,7 +28,7 @@ struct SliceSpec {
 
 constexpr SliceSpec kSlices[] = {
     {ComboMouseHit::Slice::Right, "mouseRightClick"},
-    {ComboMouseHit::Slice::Move, "SizeAndPosition"},
+    {ComboMouseHit::Slice::Move, "mouseMove"},
     {ComboMouseHit::Slice::Cancel, "YesNoX"},
     {ComboMouseHit::Slice::Drag, "mouseLeftDrag"},
     {ComboMouseHit::Slice::Left, "mouseLeftClick"},

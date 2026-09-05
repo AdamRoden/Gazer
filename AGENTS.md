@@ -34,9 +34,10 @@ Do not `raise()` / `HWND_TOP` an overlay on every gaze sample. `showOverlay()` i
 |------|------|
 | Page XML schema / actions | `docs/page-xml.md`, then `src/layout/README.md` |
 | Parser / hit / session | `src/layout/` — `PageLoader`, `PageHit`, `PageSession*` |
-| Settings keys, JSON, editors | `src/app/README.md`, `AppSettings.h`, spec tables in `AppSettings.cpp` |
+| Settings keys, JSON, editors | `src/app/README.md`, `AppSettings.h`, spec tables in `AppSettings.cpp`. Speed: designer `dwellSequence` vs daily-driver `dailyDwellSequence` |
 | Builtins / mapping fallthrough | `src/app/Commands.md`, then the file listed in that table |
 | Assist (LTS, mag, dwell-move) | `src/assist/README.md` |
+| Composer / speech | `src/app/ComposeUi.h`, `src/assist/SpeechEngine.h`, `docs/composer-elevenlabs.md` |
 | Page designer | `src/editor/README.md` |
 | Paint / host window / theme | `src/ui/README.md` |
 | OS injectors | `src/input/README.md` |
@@ -61,7 +62,8 @@ Do not `raise()` / `HWND_TOP` an overlay on every gaze sample. `showOverlay()` i
 
 - `PageDim` **struct** is in `layout/PageTypes.h`. `layout/PageDim.h` is parse / `placeRect` only.
 - `GazerServices.h` and `PageSession.h` are façades. Include `assist/LookToScroll.h`, `ui/PageHostWindow.h`, `ui/Theme.h`, etc. at the call site — do not expect those types from the façade.
-- `SettingsUi` methods are split by board: `SettingsUi.cpp` (shared), `SettingsNumpad.cpp`, `SettingsArrayEditor.cpp`, `SettingsColorPicker.cpp`, `SettingsOpacity.cpp`, `SettingsHexEditor.cpp`, `SettingsSliderGaze.cpp`, `SettingsCommands.cpp`. Helpers: `SettingsPageBuild.h`, `SettingsUiInternal.h`.
+- `SettingsUi` methods are split by board: `SettingsUi.cpp` (shared), `SettingsNumpad.cpp`, `SettingsArrayEditor.cpp`, `SettingsColorPicker.cpp`, `SettingsOpacity.cpp`, `SettingsHexEditor.cpp`, `SettingsSpeechKey.cpp`, `SettingsSliderGaze.cpp`, `SettingsCommands.cpp`. Helpers: `SettingsPageBuild.h`, `SettingsUiInternal.h`.
+- `ComposeUi` methods are split by board: `ComposeUi.cpp` (capture + chrome stamp/decorate), `ComposeSoundboard.cpp`, `ComposeFreestyle.cpp`, `ComposeItemEdit.cpp`, `ComposeVoices.cpp`, `ComposeHistory.cpp`. Helpers: `ComposeUiInternal.h`.
 - `AppSettings` JSON is `AppSettingsIo.cpp`; theme palette is `AppSettingsTheme.cpp`.
 - `PageSession` drawer/quit is `PageSessionChrome.cpp`; gaze/dwell is `PageSessionGaze.cpp`.
 - Head-preview math/shaders: `ui/PreviewGeometry.*`. Page XML action tests: `tests/PageLoaderActionTest.cpp`. Live hit tests: `tests/PageHitLiveTest.cpp`.

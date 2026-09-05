@@ -1,0 +1,88 @@
+<Page id="main_settings_speech" name="Speech" radius="16">
+  <Style id="group" thickness="0" radius="16"/>
+  <Style id="row" background="#00000000" thickness="0" radius="0"/>
+  <Style id="plain" background="#00000000" thickness="0" radius="0"/>
+  <Style id="join" background="#00000000" thickness="0" radius="0"/>
+  <Style id="joinLeft" background="#00000000" thickness="0" radius="10,0,0,10"/>
+  <Style id="joinRight" background="#00000000" thickness="0" radius="0,10,10,0"/>
+  <Style id="tabbar" thickness="0" radius="12"/>
+  <Grid id="board" desktopMode="true" rows="10" columns="16" anchor="Top" offset="0,0"
+        size="A_ScreenHeight/9*16, A_ScreenHeight" gap="6" margin="12" radius="16">
+    <SubGrid id="tabs" row="0" col="0" colSpan="16" rows="1" columns="8" gap="6" margin="4" style="tabbar">
+      <Cell id="tab_speed" row="0" col="0" label="Speed" icon="timer" role="tab">
+        <ClosePage/>
+        <OpenPage value="main_settings_speed"/>
+      </Cell>
+      <Cell id="tab_magnify" row="0" col="1" label="Magnify" icon="ZoomSettings" role="tab">
+        <ClosePage/>
+        <OpenPage value="main_settings_magnify"/>
+      </Cell>
+      <Cell id="tab_indicators" row="0" col="2" label="Indicators" icon="cycle" role="tab">
+        <ClosePage/>
+        <OpenPage value="main_settings_indicators"/>
+      </Cell>
+      <Cell id="tab_assist" row="0" col="3" label="Assist" icon="ideas" role="tab">
+        <ClosePage/>
+        <OpenPage value="main_settings_assist"/>
+      </Cell>
+      <Cell id="tab_tools" row="0" col="4" label="Tools" icon="lookToScroll" role="tab">
+        <ClosePage/>
+        <OpenPage value="main_settings_tools"/>
+      </Cell>
+      <Cell id="tab_theme" row="0" col="5" label="Theme" icon="palette" role="tab">
+        <ClosePage/>
+        <OpenPage value="main_settings_theme"/>
+      </Cell>
+      <Cell id="tab_speech" row="0" col="6" label="Speech" icon="Speak" role="tab"/>
+      <Cell id="tab_done" row="0" col="7" label="Done" icon="keyboardHide">
+        <CloseAllPages/>
+      </Cell>
+    </SubGrid>
+
+    <Cell id="page_title" row="1" col="0" colSpan="16" label="Speech" caption="ElevenLabs key and how Speak works"
+          role="label" textStyle="title" style="plain"/>
+
+    <SubGrid id="sec_key" row="2" col="0" colSpan="16" rowSpan="2" rows="2" columns="1" rowWeights="1,2" gap="6" margin="6" style="group">
+      <Cell id="h_key" row="0" col="0" label="ElevenLabs" role="label" textStyle="section" style="plain"/>
+      <SubGrid id="row_key" row="1" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="key_status" row="0" col="0" label="No API key" role="value" style="plain"/>
+        <Cell id="key_edit" row="0" col="1" label="Paste key" icon="contentPaste" command="settings.speech.editKey"/>
+      </SubGrid>
+    </SubGrid>
+
+    <SubGrid id="sec_eng" row="4" col="0" colSpan="16" rowSpan="2" rows="2" columns="1" rowWeights="1,2" gap="6" margin="6" style="group">
+      <Cell id="h_eng" row="0" col="0" label="Engine" role="label" textStyle="section" style="plain"/>
+      <SubGrid id="row_eng" row="1" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="eng_l" row="0" col="0" label="Composer voice" caption="Eleven when a key and voice id are set, otherwise SAPI. XML Speak stays SAPI."
+              role="label" style="plain"/>
+        <SubGrid id="act_eng" row="0" col="1" rows="1" columns="3" gap="0" style="row">
+          <Cell id="m_sapi" row="0" col="0" label="SAPI" role="choice" activeState="settings.speech.model.sapi"
+                style="joinLeft" command="settings.speech.model.sapi"/>
+          <Cell id="m_flash" row="0" col="1" label="Eleven Flash" role="choice" activeState="settings.speech.model.eleven_flash_v2_5"
+                style="join" command="settings.speech.model.eleven_flash_v2_5"/>
+          <Cell id="m_v3" row="0" col="2" label="Eleven v3" role="choice" activeState="settings.speech.model.eleven_v3"
+                style="joinRight" command="settings.speech.model.eleven_v3"/>
+        </SubGrid>
+      </SubGrid>
+    </SubGrid>
+
+    <SubGrid id="sec_spd" row="6" col="0" colSpan="16" rowSpan="2" rows="2" columns="1" rowWeights="1,2" gap="6" margin="6" style="group">
+      <Cell id="h_spd" row="0" col="0" label="Speed" role="label" textStyle="section" style="plain"/>
+      <SubGrid id="row_spd" row="1" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="spd_l" row="0" col="0" label="Speech speed" caption="0.5–2.0 for Eleven and SAPI."
+              role="label" style="plain"/>
+        <SubGrid id="act_spd" row="0" col="1" rows="1" columns="3" gap="0" style="row">
+          <Cell id="spd_dec" row="0" col="0" label="−" command="settings.nudge.speechSpeed.dec"/>
+          <Cell id="speed_value" row="0" col="1" label="1.0" role="value" settingKey="speechSpeed"/>
+          <Cell id="spd_inc" row="0" col="2" label="+" command="settings.nudge.speechSpeed.inc"/>
+        </SubGrid>
+      </SubGrid>
+    </SubGrid>
+
+    <SubGrid id="sec_type" row="8" col="0" colSpan="16" rowSpan="2" rows="2" columns="1" rowWeights="1,2" gap="6" margin="6" style="group">
+      <Cell id="h_type" row="0" col="0" label="Type-through" role="label" textStyle="section" style="plain"/>
+      <Cell id="also" row="1" col="0" label="Canned Speak also types" caption="XML Speak cells type into the focused app. Composer Speak does not."
+            role="toggle" activeState="settings.speech.alsoType.toggle" command="settings.speech.alsoType.toggle"/>
+    </SubGrid>
+  </Grid>
+</Page>

@@ -1,0 +1,198 @@
+<Page id="compose" name="Speak" radius="16">
+  <Style id="group" thickness="0" radius="16"/>
+  <Style id="plain" background="#00000000" thickness="0" radius="0"/>
+  <Grid id="board" desktopMode="true" rows="5" columns="1" anchor="Top" offset="0,0"
+        size="A_ScreenHeight/9*16, A_ScreenHeight" gap="8" margin="16" radius="16"
+        rowWeights="1,1,3,3,4" layers="1,2,3,4">
+    <SubGrid id="title" row="0" col="0" rows="1" columns="8" gap="8" margin="4" style="plain" layers="1,2,3,4">
+      <Cell id="page_title" row="0" col="0" colSpan="7" label="Speak" role="label" textStyle="title" style="plain"/>
+      <Cell id="editPins" row="0" col="7" label="Edit" icon="edit" command="compose.editPins" activeState="compose.editMode"/>
+    </SubGrid>
+    <SubGrid id="topics" row="1" col="0" rows="1" columns="8" gap="8" margin="4" style="group" layers="1,2,3,4">
+      <Cell id="topics_placeholder" row="0" col="0" colSpan="8" role="label"/>
+    </SubGrid>
+    <SubGrid id="soundboard" row="2" col="0" rows="3" columns="4" gap="8" margin="8" style="group" layers="1,2,3,4">
+      <Cell id="sb_placeholder" row="0" col="0" colSpan="4" role="label"/>
+    </SubGrid>
+    <SubGrid id="compose" row="3" col="0" rows="2" columns="8" rowWeights="2,1" gap="8" margin="4" layers="1,2,3,4">
+      <SubGrid id="edit_keys" row="0" col="0" rowSpan="2" rows="3" columns="1" gap="6" margin="0" layers="1,2,3,4">
+        <Cell id="clear" row="0" col="0" label="Clear" command="compose.clear"/>
+        <Cell id="undo" row="1" col="0" icon="undo" label="Undo" command="compose.undo"/>
+        <Cell id="redo" row="2" col="0" icon="redo" label="Redo" command="compose.redo"/>
+      </SubGrid>
+      <SubGrid id="phrase" row="0" col="1" colSpan="6" rows="1" columns="1" gap="0" margin="4" style="group" layers="1,2,3,4">
+        <Cell id="phrase" row="0" col="0" role="display" textStyle="body"/>
+      </SubGrid>
+      <SubGrid id="chips" row="1" col="1" colSpan="6" rows="1" columns="13" gap="6" margin="4" layers="1,2,3,4">
+        <Cell id="chip_0" row="0" col="0" command="compose.removeWord.0"/>
+        <Cell id="chip_1" row="0" col="1" command="compose.removeWord.1"/>
+        <Cell id="chip_2" row="0" col="2" command="compose.removeWord.2"/>
+        <Cell id="chip_3" row="0" col="3" command="compose.removeWord.3"/>
+        <Cell id="chip_4" row="0" col="4" command="compose.removeWord.4"/>
+        <Cell id="chip_5" row="0" col="5" command="compose.removeWord.5"/>
+        <Cell id="chip_6" row="0" col="6" command="compose.removeWord.6"/>
+        <Cell id="chip_7" row="0" col="7" command="compose.removeWord.7"/>
+        <Cell id="chip_8" row="0" col="8" command="compose.removeWord.8"/>
+        <Cell id="chip_9" row="0" col="9" command="compose.removeWord.9"/>
+        <Cell id="chip_10" row="0" col="10" command="compose.removeWord.10"/>
+        <Cell id="chip_11" row="0" col="11" command="compose.removeWord.11"/>
+        <Cell id="chip_more" row="0" col="12" role="label"/>
+      </SubGrid>
+      <SubGrid id="speak_keys" row="0" col="7" rowSpan="2" rows="3" columns="1" gap="6" margin="0" layers="1,2,3,4">
+        <Cell id="speak" row="0" col="0" icon="Speak" label="Speak" activeState="compose.busy" command="compose.speak"/>
+        <Cell id="voices" row="1" col="0" icon="recordVoiceOver" label="Voice" command="compose.openVoices"/>
+        <Cell id="history" row="2" col="0" icon="history" label="History" command="compose.openHistory"/>
+      </SubGrid>
+    </SubGrid>
+    <SubGrid id="keys" row="4" col="0" rows="3" columns="120" gap="4" margin="4" layers="1">
+      <Cell id="pin" row="0" col="0" colSpan="10" icon="pushPin" label="Pin" background="surface" command="compose.pin" activeState="compose.assignMode"/>
+      <Cell id="ch_113_0_1" row="0" col="10" colSpan="10" label="q" textStyle="key" send="q"/>
+      <Cell id="ch_119_0_2" row="0" col="20" colSpan="10" label="w" textStyle="key" send="w"/>
+      <Cell id="ch_101_0_3" row="0" col="30" colSpan="10" label="e" textStyle="key" send="e"/>
+      <Cell id="ch_114_0_4" row="0" col="40" colSpan="10" label="r" textStyle="key" send="r"/>
+      <Cell id="ch_116_0_5" row="0" col="50" colSpan="10" label="t" textStyle="key" send="t"/>
+      <Cell id="ch_121_0_6" row="0" col="60" colSpan="10" label="y" textStyle="key" send="y"/>
+      <Cell id="ch_117_0_7" row="0" col="70" colSpan="10" label="u" textStyle="key" send="u"/>
+      <Cell id="ch_105_0_8" row="0" col="80" colSpan="10" label="i" textStyle="key" send="i"/>
+      <Cell id="ch_111_0_9" row="0" col="90" colSpan="10" label="o" textStyle="key" send="o"/>
+      <Cell id="ch_112_0_10" row="0" col="100" colSpan="10" label="p" textStyle="key" send="p"/>
+      <Cell id="bksp" row="0" col="110" colSpan="10" icon="keyBackspace" background="surface" command="backspace"/>
+      <Cell id="shift" row="1" col="0" colSpan="13" icon="KeyShift" background="surface" showLayers="2"/>
+      <Cell id="ch_97_1_1" row="1" col="13" colSpan="10" label="a" textStyle="key" send="a"/>
+      <Cell id="ch_115_1_2" row="1" col="23" colSpan="10" label="s" textStyle="key" send="s"/>
+      <Cell id="ch_100_1_3" row="1" col="33" colSpan="10" label="d" textStyle="key" send="d"/>
+      <Cell id="ch_102_1_4" row="1" col="43" colSpan="10" label="f" textStyle="key" send="f"/>
+      <Cell id="ch_103_1_5" row="1" col="53" colSpan="10" label="g" textStyle="key" send="g"/>
+      <Cell id="ch_104_1_6" row="1" col="63" colSpan="10" label="h" textStyle="key" send="h"/>
+      <Cell id="ch_106_1_7" row="1" col="73" colSpan="10" label="j" textStyle="key" send="j"/>
+      <Cell id="ch_107_1_8" row="1" col="83" colSpan="10" label="k" textStyle="key" send="k"/>
+      <Cell id="ch_108_1_9" row="1" col="93" colSpan="10" label="l" textStyle="key" send="l"/>
+      <Cell id="comma" row="1" col="103" colSpan="8" label="," textStyle="key" send=","/>
+      <Cell id="quote" row="1" col="111" colSpan="9" label="&apos;" textStyle="key" send="&apos;"/>
+      <Cell id="delivery" row="2" col="0" colSpan="9" icon="graphicEq" label="Freestyle" background="surface" command="compose.toggleFreestyle" activeState="compose.freestyleMode"/>
+      <Cell id="sym" row="2" col="9" colSpan="9" icon="numbers" label="123?" background="accent" showLayers="3"/>
+      <Cell id="ch_122_2_2" row="2" col="18" colSpan="9" label="z" textStyle="key" send="z"/>
+      <Cell id="ch_120_2_3" row="2" col="27" colSpan="9" label="x" textStyle="key" send="x"/>
+      <Cell id="ch_99_2_4" row="2" col="36" colSpan="10" label="c" textStyle="key" send="c"/>
+      <Cell id="ch_118_2_5" row="2" col="46" colSpan="10" label="v" textStyle="key" send="v"/>
+      <Cell id="space" row="2" col="56" colSpan="14" icon="keySpace" background="surface" command="space"/>
+      <Cell id="ch_98_2_7" row="2" col="70" colSpan="10" label="b" textStyle="key" send="b"/>
+      <Cell id="ch_110_2_8" row="2" col="80" colSpan="10" label="n" textStyle="key" send="n"/>
+      <Cell id="ch_109_2_9" row="2" col="90" colSpan="10" label="m" textStyle="key" send="m"/>
+      <Cell id="period" row="2" col="100" colSpan="9" label="." textStyle="key" send="."/>
+      <Cell id="enter" row="2" col="109" colSpan="11" icon="keyReturn" background="accent" command="enter"/>
+    </SubGrid>
+    <SubGrid id="keys_shift" row="4" col="0" rows="3" columns="120" gap="4" margin="4" layers="2">
+      <Cell id="pin_s" row="0" col="0" colSpan="10" icon="pushPin" label="Pin" background="surface" command="compose.pin" activeState="compose.assignMode"/>
+      <Cell id="ch_81_0_1" row="0" col="10" colSpan="10" label="Q" textStyle="key" send="Q"/>
+      <Cell id="ch_87_0_2" row="0" col="20" colSpan="10" label="W" textStyle="key" send="W"/>
+      <Cell id="ch_69_0_3" row="0" col="30" colSpan="10" label="E" textStyle="key" send="E"/>
+      <Cell id="ch_82_0_4" row="0" col="40" colSpan="10" label="R" textStyle="key" send="R"/>
+      <Cell id="ch_84_0_5" row="0" col="50" colSpan="10" label="T" textStyle="key" send="T"/>
+      <Cell id="ch_89_0_6" row="0" col="60" colSpan="10" label="Y" textStyle="key" send="Y"/>
+      <Cell id="ch_85_0_7" row="0" col="70" colSpan="10" label="U" textStyle="key" send="U"/>
+      <Cell id="ch_73_0_8" row="0" col="80" colSpan="10" label="I" textStyle="key" send="I"/>
+      <Cell id="ch_79_0_9" row="0" col="90" colSpan="10" label="O" textStyle="key" send="O"/>
+      <Cell id="ch_80_0_10" row="0" col="100" colSpan="10" label="P" textStyle="key" send="P"/>
+      <Cell id="bksp_s" row="0" col="110" colSpan="10" icon="keyBackspace" background="surface" command="backspace"/>
+      <Cell id="shift_s" row="1" col="0" colSpan="13" icon="KeyShift" background="yellow" showLayers="1"/>
+      <Cell id="ch_65_1_1" row="1" col="13" colSpan="10" label="A" textStyle="key" send="A"/>
+      <Cell id="ch_83_1_2" row="1" col="23" colSpan="10" label="S" textStyle="key" send="S"/>
+      <Cell id="ch_68_1_3" row="1" col="33" colSpan="10" label="D" textStyle="key" send="D"/>
+      <Cell id="ch_70_1_4" row="1" col="43" colSpan="10" label="F" textStyle="key" send="F"/>
+      <Cell id="ch_71_1_5" row="1" col="53" colSpan="10" label="G" textStyle="key" send="G"/>
+      <Cell id="ch_72_1_6" row="1" col="63" colSpan="10" label="H" textStyle="key" send="H"/>
+      <Cell id="ch_74_1_7" row="1" col="73" colSpan="10" label="J" textStyle="key" send="J"/>
+      <Cell id="ch_75_1_8" row="1" col="83" colSpan="10" label="K" textStyle="key" send="K"/>
+      <Cell id="ch_76_1_9" row="1" col="93" colSpan="10" label="L" textStyle="key" send="L"/>
+      <Cell id="comma_s" row="1" col="103" colSpan="8" label="?" textStyle="key" send="?"/>
+      <Cell id="quote_s" row="1" col="111" colSpan="9" label="&quot;" textStyle="key" send="&quot;"/>
+      <Cell id="delivery_s" row="2" col="0" colSpan="9" icon="graphicEq" label="Freestyle" background="surface" command="compose.toggleFreestyle" activeState="compose.freestyleMode"/>
+      <Cell id="sym_s" row="2" col="9" colSpan="9" icon="numbers" label="123?" background="accent" showLayers="4"/>
+      <Cell id="ch_90_2_2" row="2" col="18" colSpan="8" label="Z" textStyle="key" send="Z"/>
+      <Cell id="ch_88_2_3" row="2" col="26" colSpan="8" label="X" textStyle="key" send="X"/>
+      <Cell id="ch_67_2_4" row="2" col="34" colSpan="11" label="C" textStyle="key" send="C"/>
+      <Cell id="ch_86_2_5" row="2" col="45" colSpan="11" label="V" textStyle="key" send="V"/>
+      <Cell id="space_s" row="2" col="56" colSpan="14" icon="keySpace" background="surface" command="space"/>
+      <Cell id="ch_66_2_7" row="2" col="70" colSpan="10" label="B" textStyle="key" send="B"/>
+      <Cell id="ch_78_2_8" row="2" col="80" colSpan="10" label="N" textStyle="key" send="N"/>
+      <Cell id="ch_77_2_9" row="2" col="90" colSpan="10" label="M" textStyle="key" send="M"/>
+      <Cell id="period_s" row="2" col="100" colSpan="9" label="!" textStyle="key" send="!"/>
+      <Cell id="enter_s" row="2" col="109" colSpan="11" icon="keyReturn" background="accent" command="enter"/>
+    </SubGrid>
+    <SubGrid id="keys_sym" row="4" col="0" rows="3" columns="120" gap="4" margin="4" layers="3">
+      <Cell id="pin_sym" row="0" col="0" colSpan="10" icon="pushPin" label="Pin" background="surface" command="compose.pin" activeState="compose.assignMode"/>
+      <Cell id="d1" row="0" col="10" colSpan="10" label="1" textStyle="key" send="1"/>
+      <Cell id="d2" row="0" col="20" colSpan="10" label="2" textStyle="key" send="2"/>
+      <Cell id="d3" row="0" col="30" colSpan="10" label="3" textStyle="key" send="3"/>
+      <Cell id="d4" row="0" col="40" colSpan="10" label="4" textStyle="key" send="4"/>
+      <Cell id="d5" row="0" col="50" colSpan="10" label="5" textStyle="key" send="5"/>
+      <Cell id="d6" row="0" col="60" colSpan="10" label="6" textStyle="key" send="6"/>
+      <Cell id="d7" row="0" col="70" colSpan="10" label="7" textStyle="key" send="7"/>
+      <Cell id="d8" row="0" col="80" colSpan="10" label="8" textStyle="key" send="8"/>
+      <Cell id="d9" row="0" col="90" colSpan="10" label="9" textStyle="key" send="9"/>
+      <Cell id="d10" row="0" col="100" colSpan="10" label="0" textStyle="key" send="0"/>
+      <Cell id="bksp_sym" row="0" col="110" colSpan="10" icon="keyBackspace" background="surface" command="backspace"/>
+      <Cell id="shift_sym" row="1" col="0" colSpan="13" icon="KeyShift" background="surface" showLayers="4"/>
+      <Cell id="s1" row="1" col="13" colSpan="12" label="@" textStyle="key" send="@"/>
+      <Cell id="s2" row="1" col="25" colSpan="11" label="#" textStyle="key" send="#"/>
+      <Cell id="s3" row="1" col="36" colSpan="11" label="$" textStyle="key" send="$"/>
+      <Cell id="s4" row="1" col="47" colSpan="11" label="%" textStyle="key" send="%"/>
+      <Cell id="s5" row="1" col="58" colSpan="11" label="&amp;" textStyle="key" send="&amp;"/>
+      <Cell id="s6" row="1" col="69" colSpan="11" label="*" textStyle="key" send="*"/>
+      <Cell id="s7" row="1" col="80" colSpan="11" label="(" textStyle="key" send="("/>
+      <Cell id="s8" row="1" col="91" colSpan="12" label=")" textStyle="key" send=")"/>
+      <Cell id="comma_sym" row="1" col="103" colSpan="8" label="," textStyle="key" send=","/>
+      <Cell id="quote_sym" row="1" col="111" colSpan="9" label="&apos;" textStyle="key" send="&apos;"/>
+      <Cell id="delivery_sym" row="2" col="0" colSpan="9" icon="graphicEq" label="Freestyle" background="surface" command="compose.toggleFreestyle" activeState="compose.freestyleMode"/>
+      <Cell id="abc" row="2" col="9" colSpan="9" icon="keyboardKeys" label="ABC" background="accent" showLayers="1"/>
+      <Cell id="l2" row="2" col="18" colSpan="8" label="_" textStyle="key" send="_"/>
+      <Cell id="l3" row="2" col="26" colSpan="8" label="=" textStyle="key" send="="/>
+      <Cell id="l4" row="2" col="34" colSpan="11" label="[" textStyle="key" send="["/>
+      <Cell id="l5" row="2" col="45" colSpan="11" label="]" textStyle="key" send="]"/>
+      <Cell id="space_sym" row="2" col="56" colSpan="14" icon="keySpace" background="surface" command="space"/>
+      <Cell id="r7" row="2" col="70" colSpan="10" label="-" textStyle="key" send="-"/>
+      <Cell id="r8" row="2" col="80" colSpan="10" label="+" textStyle="key" send="+"/>
+      <Cell id="r9" row="2" col="90" colSpan="10" label="/" textStyle="key" send="/"/>
+      <Cell id="period_sym" row="2" col="100" colSpan="9" label="." textStyle="key" send="."/>
+      <Cell id="enter_sym" row="2" col="109" colSpan="11" icon="keyReturn" background="accent" command="enter"/>
+    </SubGrid>
+    <SubGrid id="keys_sym_shift" row="4" col="0" rows="3" columns="120" gap="4" margin="4" layers="4">
+      <Cell id="pin_ss" row="0" col="0" colSpan="10" icon="pushPin" label="Pin" background="surface" command="compose.pin" activeState="compose.assignMode"/>
+      <Cell id="d1_ss" row="0" col="10" colSpan="10" label="!" textStyle="key" send="!"/>
+      <Cell id="d2_ss" row="0" col="20" colSpan="10" label="@" textStyle="key" send="@"/>
+      <Cell id="d3_ss" row="0" col="30" colSpan="10" label="#" textStyle="key" send="#"/>
+      <Cell id="d4_ss" row="0" col="40" colSpan="10" label="$" textStyle="key" send="$"/>
+      <Cell id="d5_ss" row="0" col="50" colSpan="10" label="%" textStyle="key" send="%"/>
+      <Cell id="d6_ss" row="0" col="60" colSpan="10" label="^" textStyle="key" send="^"/>
+      <Cell id="d7_ss" row="0" col="70" colSpan="10" label="&amp;" textStyle="key" send="&amp;"/>
+      <Cell id="d8_ss" row="0" col="80" colSpan="10" label="*" textStyle="key" send="*"/>
+      <Cell id="d9_ss" row="0" col="90" colSpan="10" label="(" textStyle="key" send="("/>
+      <Cell id="d10_ss" row="0" col="100" colSpan="10" label=")" textStyle="key" send=")"/>
+      <Cell id="bksp_ss" row="0" col="110" colSpan="10" icon="keyBackspace" background="surface" command="backspace"/>
+      <Cell id="shift_ss" row="1" col="0" colSpan="13" icon="KeyShift" background="yellow" showLayers="3"/>
+      <Cell id="s0_ss" row="1" col="13" colSpan="12" label="`" textStyle="key" send="`"/>
+      <Cell id="s1_ss" row="1" col="25" colSpan="11" label="~" textStyle="key" send="~"/>
+      <Cell id="s_gbp" row="1" col="36" colSpan="11" label="£" textStyle="key" send="£"/>
+      <Cell id="s_eur" row="1" col="47" colSpan="11" label="€" textStyle="key" send="€"/>
+      <Cell id="s3_ss" row="1" col="58" colSpan="11" label="|" textStyle="key" send="|"/>
+      <Cell id="s4_ss" row="1" col="69" colSpan="11" label="&#92;" textStyle="key" send="&#92;"/>
+      <Cell id="s5_ss" row="1" col="80" colSpan="11" label="&lt;" textStyle="key" send="&lt;"/>
+      <Cell id="s6_ss" row="1" col="91" colSpan="12" label="&gt;" textStyle="key" send="&gt;"/>
+      <Cell id="comma_ss" row="1" col="103" colSpan="8" label="?" textStyle="key" send="?"/>
+      <Cell id="quote_ss" row="1" col="111" colSpan="9" label="&quot;" textStyle="key" send="&quot;"/>
+      <Cell id="delivery_ss" row="2" col="0" colSpan="9" icon="graphicEq" label="Freestyle" background="surface" command="compose.toggleFreestyle" activeState="compose.freestyleMode"/>
+      <Cell id="abc_ss" row="2" col="9" colSpan="9" icon="keyboardKeys" label="ABC" background="accent" showLayers="2"/>
+      <Cell id="l2_ss" row="2" col="18" colSpan="9" label="·" textStyle="key" send="·"/>
+      <Cell id="l3_ss" row="2" col="27" colSpan="9" label="°" textStyle="key" send="°"/>
+      <Cell id="l4_ss" row="2" col="36" colSpan="10" label="{" textStyle="key" send="{"/>
+      <Cell id="l5_ss" row="2" col="46" colSpan="10" label="}" textStyle="key" send="}"/>
+      <Cell id="space_ss" row="2" col="56" colSpan="14" icon="keySpace" background="surface" command="space"/>
+      <Cell id="r7_ss" row="2" col="70" colSpan="10" label="—" textStyle="key" send="—"/>
+      <Cell id="r8_ss" row="2" col="80" colSpan="10" label="¿" textStyle="key" send="¿"/>
+      <Cell id="r9_ss" row="2" col="90" colSpan="10" label="¡" textStyle="key" send="¡"/>
+      <Cell id="period_ss" row="2" col="100" colSpan="9" label="!" textStyle="key" send="!"/>
+      <Cell id="enter_ss" row="2" col="109" colSpan="11" icon="keyReturn" background="accent" command="enter"/>
+    </SubGrid>
+  </Grid>
+</Page>

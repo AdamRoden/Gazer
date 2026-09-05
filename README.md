@@ -6,7 +6,7 @@ Contributors and coding agents: start at [AGENTS.md](AGENTS.md). Page XML schema
 
 Gazer turns live gaze (Tobii Eye Tracker 5, or the mouse as a fallback) into on-screen pages you dwell to activate. Pages can send keys, click, move the pointer, speak, and run assist tools (look-to-scroll, magnifier, gaze reticle). The long-term aim is one stack in place of OptiKey + OpenTrack + UCR + AutoHotkey.
 
-Version **0.5.1**. License: [GPL-3.0](LICENSE). Cell and zone icons are SVG files in `resources/icons/svg/`. Set `icon` to the filename stem (`menu`, `mouseLeftClick`, `keyTab`). Matching is case-insensitive; a trailing `Icon` is ignored. Unknown names fall back to the label.
+Version **0.5.1**. License: [GPL-3.0](LICENSE). Cell and zone icons are SVG files in `resources/icons/svg/`. Set `icon` to the filename stem (`menu`, `mouseLeftClick`, `keyTab`). Matching is case-insensitive; a trailing `Icon` is ignored. Unknown names fall back to the label. Most glyphs are [Material Symbols Rounded](https://fonts.google.com/icons?icon.set=Material+Symbols&icon.style=Rounded); see [resources/icons/README.md](resources/icons/README.md).
 
 ## What you get at launch
 
@@ -81,7 +81,7 @@ Testers still need Tobii drivers for hardware gaze. Without a tracker, use the m
 ## Using Gazer
 
 1. Start Gazer. Unless **start docked** is on, the drawer opens.
-2. Dwell a cell until progress completes. Last dwell step repeats while gaze holds.
+2. Dwell a cell until progress completes. Last dwell step repeats while gaze holds. Typing, mouse, composer, modifiers, and AHK use **daily driver dwell**; settings and navigation use **designer dwell**. Both are under Settings → Speed.
 3. Open Keyboard, Mouse, Assist, or Settings as extra pages. They stay up after the drawer collapses.
 4. **Close** hides the drawer. **Close All** closes other pages and then collapses.
 5. **Pause dwell** / **Sleep** suspends dwell everywhere except `suspendExempt` unlock targets. A dim screen border leaves a gap at those targets.
