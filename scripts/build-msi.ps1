@@ -6,7 +6,13 @@
 .DESCRIPTION
   1. Configures/builds the CMake project (MinGW + Ninja by default).
   2. Stages a clean runtime tree (exe + windeployqt + resources + MinGW runtime + Tobii DLL).
-  3. Builds an MSI with WiX Toolset CLI v7.
+  3. Stamps uiAccess=true on the staged exe and Authenticode-signs it (Task Manager /
+     elevated windows). Local build\Gazer.exe is left unsigned so it still starts.
+  4. Builds an MSI with WiX Toolset CLI v7.
+
+  Signing: set GAZER_SIGN_PFX (+ optional GAZER_SIGN_PFX_PASSWORD) to use a real
+  Authenticode cert. Otherwise a persistent self-signed cert is created under
+  %LOCALAPPDATA%\Gazer\signing\ and the MSI trusts it at install time.
 
 .PARAMETER Version
   MSI ProductVersion (major.minor.patch, each 0-65535). Default: from CMakeLists or 0.5.2
@@ -35,6 +41,9 @@ param(
 $ErrorActionPreference = "Stop"
 $RepoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
 Set-Location $RepoRoot
+$signScript = Join-Path $PSScriptRoot "GazerSign.ps1"
+Unblock-File $signScript -ErrorAction SilentlyContinue
+. $signScript
 
 function Find-Tool([string[]]$Candidates, [string]$Name) {
     foreach ($c in $Candidates) {
@@ -199,6 +208,22 @@ if (-not (Test-Path (Join-Path $StageDir "platforms\qwindows.dll"))) {
     throw "Staging incomplete: platforms\qwindows.dll missing after windeployqt"
 }
 
+# --- UIAccess (staged exe only; build\Gazer.exe stays launchable) -------------
+Write-Host "==> UIAccess manifest + Authenticode..." -ForegroundColor Cyan
+$stagedExe = Join-Path $StageDir "Gazer.exe"
+$manifestIn = Join-Path $PackagingDir "Gazer.exe.manifest.in"
+Set-GazerUiAccessManifest -Exe $stagedExe -TemplatePath $manifestIn -Version $Version
+$sign = Get-GazerSigningCert
+Sign-GazerExecutable -Exe $stagedExe -Cert $sign.Cert
+Copy-Item (Join-Path $PackagingDir "trust-gazer-cert.cmd") (Join-Path $StageDir "trust-gazer-cert.cmd") -Force
+if ($sign.SelfSigned) {
+    $cer = Join-Path $StageDir "gazer-codesign.cer"
+    Export-GazerPublicCert -Cert $sign.Cert -Path $cer
+    Write-Host "    Self-signed cert will be trusted at install ($cer)"
+} else {
+    Write-Host "    Publicly trusted signing cert; MSI will not install a root cert."
+}
+
 $fileCount = (Get-ChildItem $StageDir -Recurse -File).Count
 $stageBytes = (Get-ChildItem $StageDir -Recurse -File | Measure-Object -Property Length -Sum).Sum
 Write-Host ("    Staged {0} files ({1:N1} MB)" -f $fileCount, ($stageBytes / 1MB))
@@ -235,6 +260,7 @@ Write-Host "==> Done" -ForegroundColor Green
 Write-Host ("    MSI : {0} ({1:N1} MB)" -f $MsiPath, ($msiSize / 1MB))
 Write-Host "    Install: msiexec /i `"$MsiPath`""
 Write-Host "    Quiet  : msiexec /i `"$MsiPath`" /qn"
+Write-Host "    UIAccess works only for the Program Files copy (not .\build\Gazer.exe)."
 if (-not $TobiiFound) {
     Write-Host "    Note  : Tobii DLL was not bundled; testers need Tobii drivers + DLL for eye tracking." -ForegroundColor Yellow
 }

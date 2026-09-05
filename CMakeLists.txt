@@ -276,17 +276,32 @@ add_executable(Gazer WIN32
     ${GAZER_HEADERS}
 )
 
-# Embed multi-size gazer.ico into the PE so Explorer / taskbar / shortcuts show the brand icon.
+# Embed gazer.ico and the application manifest. uiAccess stays false here so
+# .\build\Gazer.exe still starts; the MSI restamps the staged copy to true.
 if(WIN32)
+    set(GAZER_UIACCESS_XML "false")
+    set(GAZER_VERSION_FOUR "${PROJECT_VERSION}.0")
+    configure_file(
+        "${CMAKE_SOURCE_DIR}/packaging/Gazer.exe.manifest.in"
+        "${CMAKE_CURRENT_BINARY_DIR}/gazer.exe.manifest"
+        @ONLY
+    )
     set(GAZER_ICON_PATH "${CMAKE_SOURCE_DIR}/resources/icons/gazer.ico")
     file(TO_CMAKE_PATH "${GAZER_ICON_PATH}" GAZER_ICON_PATH)
     string(REPLACE "\\" "/" GAZER_ICON_PATH "${GAZER_ICON_PATH}")
+    set(GAZER_MANIFEST_PATH "${CMAKE_CURRENT_BINARY_DIR}/gazer.exe.manifest")
+    file(TO_CMAKE_PATH "${GAZER_MANIFEST_PATH}" GAZER_MANIFEST_PATH)
+    string(REPLACE "\\" "/" GAZER_MANIFEST_PATH "${GAZER_MANIFEST_PATH}")
     configure_file(
         "${CMAKE_SOURCE_DIR}/resources/icons/gazer.rc.in"
         "${CMAKE_CURRENT_BINARY_DIR}/gazer_icon.rc"
         @ONLY
     )
     target_sources(Gazer PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/gazer_icon.rc")
+    if(MSVC)
+        # Our .rc already has RT_MANIFEST; do not let the linker add a second one.
+        target_link_options(Gazer PRIVATE "/MANIFEST:NO")
+    endif()
 endif()
 
 target_include_directories(Gazer PRIVATE
@@ -314,7 +329,7 @@ target_link_libraries(Gazer PRIVATE
 )
 
 if(WIN32)
-    target_link_libraries(Gazer PRIVATE user32 ole32 oleaut32 uuid sapi crypt32)
+    target_link_libraries(Gazer PRIVATE user32 advapi32 ole32 oleaut32 uuid sapi crypt32)
 endif()
 
 add_custom_command(TARGET Gazer POST_BUILD

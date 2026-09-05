@@ -177,6 +177,7 @@ bool Application::initialize()
     updateTrayStatus();
     GAZER_INFO << "Gazer running. Tracker:" << m_tracker->name()
                << "TTS:" << (m_svc->tts().isAvailable() ? "yes" : "no")
+               << "UIAccess:" << (processHasUiAccess() ? "yes" : "no")
                << "settings:" << AppSettings::defaultFilePath();
 
     if (QCoreApplication::arguments().contains(QStringLiteral("--editor"))) {

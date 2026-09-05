@@ -97,9 +97,16 @@ public:
     [[nodiscard]] static bool active();
 };
 
+/// True when this process has the UIAccess token (uiAccess manifest +
+/// Authenticode signature + launch from Program Files). HWND_TOPMOST then
+/// sits in the UIAccess band above Task Manager; SendInput can reach
+/// elevated windows.
+[[nodiscard]] bool processHasUiAccess();
+
 /// Front-to-back Gazer HWND band (always TOPMOST, above the taskbar and other
 /// apps, including borderless fullscreen). Never HWND_NOTOPMOST — that hop
-/// flashes the desktop.
+/// flashes the desktop. Task Manager / system-tools windows sit in a higher
+/// OS band unless this process has UIAccess.
 ///
 /// 0 GazeReticle
 /// 1 MagnifierOverlay (live lens)
@@ -131,6 +138,7 @@ void unregisterOverlayWindow(QWindow* overlay);
 
 /// Watches other processes (foreground, minimize, move) and polls so fullscreen
 /// / tray restacks cannot sit in front of Gazer. Debounced; skips a no-op restack.
+/// Task Manager still wins without UIAccess.
 class OverlayStackWatch final : public QObject {
 public:
     explicit OverlayStackWatch(std::function<void()> restack = {}, QObject* parent = nullptr);

@@ -1,3 +1,7 @@
 // Windows application icon (taskbar, Explorer, Alt+Tab, shortcuts that target the exe).
 // Path is absolute (forward slashes) so MinGW windres and MSVC rc both resolve it.
 IDI_ICON1 ICON "@GAZER_ICON_PATH@"
+
+// CREATEPROCESS_MANIFEST_RESOURCE_ID / RT_MANIFEST. uiAccess is false for
+// local build/ so Gazer.exe still starts; the MSI restamps this to true.
+1 24 "@GAZER_MANIFEST_PATH@"

@@ -76,6 +76,8 @@ winget install WiXToolset.WiXCLI   # once
 
 Output: `dist\Gazer-<version>-beta.msi`. Installs to `Program Files\Gazer\` with Start Menu and desktop shortcuts. Pages ship under `resources\`. Each install deletes `%AppData%\Gazer\settings.json` (and a leftover `%AppData%\Gazer\Gazer\settings.json` from older builds); the next launch writes factory defaults. Speech secrets, clips, and user layouts are left in place.
 
+The MSI stamps `uiAccess=true` on the staged exe and Authenticode-signs it so the **Program Files** copy can sit above Task Manager and type/click into elevated windows. `.\build\Gazer.exe` is left without UIAccess so it still launches from the build directory. A real code-signing PFX: `$env:GAZER_SIGN_PFX` and optional `$env:GAZER_SIGN_PFX_PASSWORD`. Without those, the script uses a local self-signed cert (`%LOCALAPPDATA%\Gazer\signing\`) and the MSI trusts it at install time.
+
 Testers still need Tobii drivers for hardware gaze. Without a tracker, use the mouse backend (tray / Settings → tracker).
 
 ## Using Gazer

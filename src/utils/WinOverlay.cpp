@@ -224,6 +224,23 @@ bool OverlayInputPassThrough::active()
     return g_passDepth > 0;
 }
 
+bool processHasUiAccess()
+{
+#ifdef Q_OS_WIN
+    HANDLE tok = nullptr;
+    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &tok)) {
+        return false;
+    }
+    DWORD uiAccess = 0;
+    DWORD retLen = 0;
+    const BOOL ok = GetTokenInformation(tok, TokenUIAccess, &uiAccess, sizeof(uiAccess), &retLen);
+    CloseHandle(tok);
+    return ok && uiAccess != 0;
+#else
+    return false;
+#endif
+}
+
 bool raiseInTopmostBand(QWindow* w)
 {
     if (!w) {
@@ -350,6 +367,7 @@ void applyGazerBandOrder()
         ensureTopmostStyle(hwnd);
         // HWND_TOPMOST (not HWND_TOP): reassert the topmost band so the taskbar
         // and other TOPMOST / borderless-fullscreen apps cannot sit in front.
+        // UIAccess processes land in the UIAccess band (above Task Manager).
         // Last raise is the front of the Gazer band. Never HWND_NOTOPMOST.
         SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, kZFlags);
     }
@@ -437,7 +455,8 @@ OverlayStackWatch::OverlayStackWatch(std::function<void()> restack, QObject* par
     g_watch = this;
 #ifdef Q_OS_WIN
     // Foreground, movesize, minimize, switch — Explorer restacks Shell_TrayWnd
-    // after these. Exclusive-fullscreen still wins (OS); we reassert TOPMOST.
+    // after these. Exclusive-fullscreen still wins (OS) until it yields; we
+    // reassert TOPMOST. Task Manager needs UIAccess (processHasUiAccess).
     m_hook = SetWinEventHook(EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_MINIMIZEEND, nullptr,
                              &OverlayStackWatch::hookProc, 0, 0,
                              WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS);

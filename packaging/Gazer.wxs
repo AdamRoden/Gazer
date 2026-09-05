@@ -99,6 +99,19 @@
                      KeyPath="yes" />
     </Component>
 
+    <!-- SYSTEM-context: import gazer-codesign.cer into LocalMachine Root +
+         TrustedPublisher so the uiAccess-signed exe can start. The cmd no-ops
+         when the .cer was not staged (publicly trusted PFX). -->
+    <CustomAction Id="TrustGazerCert"
+                  Directory="INSTALLFOLDER"
+                  ExeCommand="cmd.exe /c trust-gazer-cert.cmd"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="check" />
+    <InstallExecuteSequence>
+      <Custom Action="TrustGazerCert" After="InstallFiles" Condition="NOT REMOVE" />
+    </InstallExecuteSequence>
+
     <Component Id="DesktopShortcut" Directory="DesktopFolder" Guid="C3D5F7A9-2E4B-6C8D-0A1F-3E5B7C9D1A2F">
       <Shortcut Id="GazerDesktop"
                 Name="Gazer"
