@@ -30,13 +30,13 @@ struct AppSettings {
     int dwellGraceMs = 200;
     int mouseMoveDwellMs = 800;
     /// Dwell for the first mag-pick step (choose region to magnify).
-    int magPickDwellMs = 800;
+    int magPickDwellMs = 600;
     /// Last saved Custom timing package (Speed presets).
     struct TimingPack {
         QVector<int> sequence;
         QVector<int> dailySequence;
-        int pointerDwellMs = 800;
-        int zoomDwellMs = 800;
+        int mouseMoveDwellMs = 800;
+        int magPickDwellMs = 600;
         int blinkGraceMs = 200;
         int scanGraceMs = 150;
         int dailyScanGraceMs = 100;
@@ -213,11 +213,11 @@ struct AppSettings {
     }
     [[nodiscard]] static QVector<int> defaultDailyDwellSequence()
     {
-        return {400, 600, 400, 200, 100, 50};
+        return {400, 600, 400, 300, 200, 100};
     }
     [[nodiscard]] static TimingPack defaultTimingPack()
     {
-        return {defaultDwellSequence(), defaultDailyDwellSequence(), 800, 800, 200, 150, 100};
+        return {defaultDwellSequence(), defaultDailyDwellSequence(), 800, 600, 200, 150, 100};
     }
     /// In-class factory plus Fluent neutrals and applyTheme(). JSON overlays this.
     [[nodiscard]] static AppSettings defaults();

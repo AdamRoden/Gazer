@@ -67,16 +67,16 @@ const AppSettings::TimingPack kDwellSlow{
     {1200, 1000, 800, 600, 400},
     {800, 700, 600, 500, 400, 200},
     1200,
-    1200,
+    800,
     250,
     200,
     150,
 };
 const AppSettings::TimingPack kDwellNormal = AppSettings::defaultTimingPack();
 const AppSettings::TimingPack kDwellFast{
-    {400, 600, 400, 200, 100, 50},
-    {0, 600, 400, 200, 100, 50},
-    300,
+    {400, 600, 400, 250, 150, 50},
+    {0, 600, 400, 250, 150, 50},
+    400,
     300,
     150,
     100,
@@ -103,8 +103,8 @@ void applyTimingPack(AppSettings& s, const AppSettings::TimingPack& p)
 {
     s.dwellSequence = p.sequence;
     s.dailyDwellSequence = p.dailySequence;
-    s.mouseMoveDwellMs = p.pointerDwellMs;
-    s.magPickDwellMs = p.zoomDwellMs;
+    s.mouseMoveDwellMs = p.mouseMoveDwellMs;
+    s.magPickDwellMs = p.magPickDwellMs;
     s.dwellGraceMs = p.blinkGraceMs;
     s.scanGraceMs = p.scanGraceMs;
     s.dailyScanGraceMs = p.dailyScanGraceMs;
@@ -112,8 +112,8 @@ void applyTimingPack(AppSettings& s, const AppSettings::TimingPack& p)
 
 bool matchesDesignerTiming(const AppSettings& s, const AppSettings::TimingPack& p)
 {
-    return s.dwellSequence == p.sequence && s.mouseMoveDwellMs == p.pointerDwellMs
-           && s.magPickDwellMs == p.zoomDwellMs && s.dwellGraceMs == p.blinkGraceMs
+    return s.dwellSequence == p.sequence && s.mouseMoveDwellMs == p.mouseMoveDwellMs
+           && s.magPickDwellMs == p.magPickDwellMs && s.dwellGraceMs == p.blinkGraceMs
            && s.scanGraceMs == p.scanGraceMs;
 }
 
@@ -121,7 +121,7 @@ bool matchesTimingPack(const AppSettings& s, const AppSettings::TimingPack& p)
 {
     const AppSettings::TimingPack live = liveTiming(s);
     return live.sequence == p.sequence && live.dailySequence == p.dailySequence
-           && live.pointerDwellMs == p.pointerDwellMs && live.zoomDwellMs == p.zoomDwellMs
+           && live.mouseMoveDwellMs == p.mouseMoveDwellMs && live.magPickDwellMs == p.magPickDwellMs
            && live.blinkGraceMs == p.blinkGraceMs && live.scanGraceMs == p.scanGraceMs
            && live.dailyScanGraceMs == p.dailyScanGraceMs;
 }
@@ -133,8 +133,8 @@ void clampTimingPack(AppSettings::TimingPack& p)
     p.scanGraceMs = qBound(0, p.scanGraceMs, 2000);
     p.dailyScanGraceMs = qBound(0, p.dailyScanGraceMs, 2000);
     p.blinkGraceMs = qBound(0, p.blinkGraceMs, 800);
-    p.pointerDwellMs = qBound(200, p.pointerDwellMs, 2500);
-    p.zoomDwellMs = qBound(200, p.zoomDwellMs, 2500);
+    p.mouseMoveDwellMs = qBound(200, p.mouseMoveDwellMs, 2500);
+    p.magPickDwellMs = qBound(200, p.magPickDwellMs, 2500);
 }
 
 bool isDailySequenceKey(const QString& key)
@@ -517,7 +517,9 @@ void AppSettings::applyDwellCustom()
 void AppSettings::inferMissingDailyDwell()
 {
     const AppSettings::TimingPack* pack = nullptr;
-    if (matchesDesignerTiming(*this, kDwellSlow)) {
+    AppSettings::TimingPack slowLegacy = kDwellSlow;
+    slowLegacy.magPickDwellMs = 1200; // pre-retune Slow zoom dwell
+    if (matchesDesignerTiming(*this, kDwellSlow) || matchesDesignerTiming(*this, slowLegacy)) {
         pack = &kDwellSlow;
     } else if (matchesDesignerTiming(*this, kDwellNormal)) {
         pack = &kDwellNormal;

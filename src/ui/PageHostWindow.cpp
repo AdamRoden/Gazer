@@ -31,6 +31,8 @@
 
 namespace gazer {
 
+/// Hover fill delay. Independent of scan grace (rings/chips still use that).
+constexpr int kHoverDelayMs = 100;
 
 class PageHostItem final : public QQuickPaintedItem {
 public:
@@ -130,6 +132,7 @@ PageHostWindow::PageHostWindow(QWindow* parent)
     });
     m_theme = ThemeColors::darkPreset();
     m_flashTimer.setSingleShot(true);
+    m_hoverShowTimer.setSingleShot(true);
     m_raiseTimer.setSingleShot(true);
     connect(&m_raiseTimer, &QTimer::timeout, this, [this]() {
         if (isVisible()) {
@@ -140,6 +143,12 @@ PageHostWindow::PageHostWindow(QWindow* parent)
         m_flashId.clear();
         m_flashRect = {};
         m_flashRadii = {};
+        if (m_board) {
+            m_board->update();
+        }
+    });
+    connect(&m_hoverShowTimer, &QTimer::timeout, this, [this]() {
+        m_hoverShown = true;
         if (m_board) {
             m_board->update();
         }
@@ -185,12 +194,14 @@ void PageHostWindow::paintScene(QPainter& p, ChromePass pass)
             break;
         }
         vis.label = KeyGlyphs::displayLabel(t.label, sendKey, m_shiftHeld);
-        const bool hovered = live && sessionKey(t) == m_hoverId && m_revealProgress;
+        const bool onHoverId = live && sessionKey(t) == m_hoverId;
+        const bool hovered = onHoverId && m_hoverShown;
         const bool flashing = live && sessionKey(t) == m_flashId;
         const bool active = live && m_activeIds.contains(sessionKey(t));
         const bool locked = live && m_lockedIds.contains(sessionKey(t));
-        const double progress = hovered ? m_hoverProgress : 0.0;
-        const bool showProgress = flashing || (hovered && (progress > 0.0 || m_revealProgress));
+        const double progress = onHoverId ? m_hoverProgress : 0.0;
+        const bool showProgress =
+            flashing || (onHoverId && (progress > 0.0 || m_revealProgress));
         if (t.kind == PageTarget::Kind::Zone && t.geom.hidesUntilProgress() && !showProgress) {
             return;
         }
@@ -410,13 +421,23 @@ void PageHostWindow::setDrawerScale(double scale)
 
 void PageHostWindow::setHover(const QString& id, double progress, bool revealProgress)
 {
-    if (m_hoverId == id && qFuzzyCompare(m_hoverProgress + 1.0, progress + 1.0)
-        && m_revealProgress == revealProgress) {
+    const bool idChanged = m_hoverId != id;
+    const bool reveal = revealProgress && !id.isEmpty();
+    if (!idChanged && qFuzzyCompare(m_hoverProgress + 1.0, progress + 1.0)
+        && m_revealProgress == reveal) {
         return;
     }
     m_hoverId = id;
     m_hoverProgress = progress;
-    m_revealProgress = revealProgress && !id.isEmpty();
+    m_revealProgress = reveal;
+    if (idChanged) {
+        m_hoverShown = false;
+        if (id.isEmpty()) {
+            m_hoverShowTimer.stop();
+        } else {
+            m_hoverShowTimer.start(kHoverDelayMs);
+        }
+    }
     if (m_board) {
         m_board->update();
     }

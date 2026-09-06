@@ -89,6 +89,8 @@ private:
     QString m_hoverId;
     double m_hoverProgress = 0.0;
     bool m_revealProgress = false;
+    bool m_hoverShown = false;
+    QTimer m_hoverShowTimer;
     QString m_flashId;
     QTimer m_flashTimer;
     QTimer m_raiseTimer;

@@ -174,10 +174,10 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
         o.value(QStringLiteral("customDailyScanGraceMs")).toInt(customTiming.dailyScanGraceMs);
     customTiming.blinkGraceMs =
         o.value(QStringLiteral("customDwellGraceMs")).toInt(customTiming.blinkGraceMs);
-    customTiming.pointerDwellMs =
-        o.value(QStringLiteral("customMouseMoveDwellMs")).toInt(customTiming.pointerDwellMs);
-    customTiming.zoomDwellMs =
-        o.value(QStringLiteral("customMagPickDwellMs")).toInt(customTiming.zoomDwellMs);
+    customTiming.mouseMoveDwellMs =
+        o.value(QStringLiteral("customMouseMoveDwellMs")).toInt(customTiming.mouseMoveDwellMs);
+    customTiming.magPickDwellMs =
+        o.value(QStringLiteral("customMagPickDwellMs")).toInt(customTiming.magPickDwellMs);
     mouseMoveSelectTimeoutMs =
         o.value(QStringLiteral("mouseMoveSelectTimeoutMs")).toInt(mouseMoveSelectTimeoutMs);
     mouseMoveMagPick = o.value(QStringLiteral("mouseMoveMagPick")).toBool(mouseMoveMagPick);
@@ -458,8 +458,8 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     o.insert(QStringLiteral("customScanGraceMs"), copy.customTiming.scanGraceMs);
     o.insert(QStringLiteral("customDailyScanGraceMs"), copy.customTiming.dailyScanGraceMs);
     o.insert(QStringLiteral("customDwellGraceMs"), copy.customTiming.blinkGraceMs);
-    o.insert(QStringLiteral("customMouseMoveDwellMs"), copy.customTiming.pointerDwellMs);
-    o.insert(QStringLiteral("customMagPickDwellMs"), copy.customTiming.zoomDwellMs);
+    o.insert(QStringLiteral("customMouseMoveDwellMs"), copy.customTiming.mouseMoveDwellMs);
+    o.insert(QStringLiteral("customMagPickDwellMs"), copy.customTiming.magPickDwellMs);
     o.insert(QStringLiteral("mouseMoveSelectTimeoutMs"), copy.mouseMoveSelectTimeoutMs);
     o.insert(QStringLiteral("mouseMoveMagPick"), copy.mouseMoveMagPick);
     o.insert(QStringLiteral("mouseMoveMagPickCenterOnDwell"), copy.mouseMoveMagPickCenterOnDwell);

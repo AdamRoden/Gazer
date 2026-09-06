@@ -206,7 +206,7 @@ private:
     QVector<int> m_globalSequence = {800};
     int m_globalGraceMs = 180;
     int m_globalScanGraceMs = 100;
-    QVector<int> m_dailySequence = {400, 600, 400, 200, 100, 50};
+    QVector<int> m_dailySequence = {400, 600, 400, 300, 200, 100};
     int m_dailyScanGraceMs = 100;
     QString m_hoverId;
     DispatchFn m_dispatch;

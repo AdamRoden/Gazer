@@ -212,7 +212,7 @@ void paintTab(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeColo
         p.setFont(QFont(family, px, selected ? QFont::DemiBold : QFont::Normal));
         p.drawText(content, flags, t.label);
     }
-    const double tBar = selected ? 1.0 : (hovered ? progress : 0.0);
+    const double tBar = selected ? 1.0 : progress;
     if (tBar > 0.01) {
         const double maxW = qMax(24.0, r.width() - 36.0);
         const double barW = maxW * tBar;
@@ -544,7 +544,7 @@ void paintThemeCard(QPainter& p, const PageTarget& t, const QRectF& r, const The
         p.drawText(labelR, flags, t.label);
     }
 
-    if (hovered && progress > 0.0 && t.interactive) {
+    if (progress > 0.0 && t.interactive) {
         const PageBox radii = t.chrome.resolvedRadius();
         ProgressVisuals vis;
         vis.progressColor = accent;
@@ -568,7 +568,7 @@ void paintColorSwatch(QPainter& p, const PageTarget& t, const QRectF& r, const T
     const double ringW = active ? qBound(2.4, d * 0.08, 4.0) : (hovered ? 1.6 : 1.0);
     const QColor ring = active ? ink : ThemeColors::mix(fill, ink, 0.22);
     strokeRound(p, c, d * 0.5, ring, ringW);
-    if (hovered && progress > 0.0 && t.interactive) {
+    if (progress > 0.0 && t.interactive) {
         ProgressVisuals vis;
         vis.progressColor = theme.accent.isValid() ? theme.accent : ink;
         vis.borderColor = vis.progressColor;
@@ -659,7 +659,7 @@ void paintTarget(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeC
             paintThemeCard(p, t, r, theme, glass, hovered, progress, on);
         } else {
             paintSurface(p, r, t.chrome, theme, glass, false, hovered, on, t.interactive);
-            if (hovered && progress > 0.0 && t.interactive) {
+            if (progress > 0.0 && t.interactive) {
                 paintProgress(p, r, progress, vis.withItemFlash(fg), ProgressShape::RoundedRect,
                               radii);
             }

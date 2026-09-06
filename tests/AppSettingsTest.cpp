@@ -69,8 +69,8 @@ void AppSettingsTest::factoryUsesDomainConstants()
     QCOMPARE(s.dailyDwellSequence, AppSettings::defaultDailyDwellSequence());
     QCOMPARE(s.customTiming.sequence, pack.sequence);
     QCOMPARE(s.customTiming.dailySequence, pack.dailySequence);
-    QCOMPARE(s.mouseMoveDwellMs, pack.pointerDwellMs);
-    QCOMPARE(s.magPickDwellMs, pack.zoomDwellMs);
+    QCOMPARE(s.mouseMoveDwellMs, pack.mouseMoveDwellMs);
+    QCOMPARE(s.magPickDwellMs, pack.magPickDwellMs);
     QCOMPARE(s.dwellGraceMs, pack.blinkGraceMs);
     QCOMPARE(s.scanGraceMs, pack.scanGraceMs);
     QCOMPARE(s.dailyScanGraceMs, pack.dailyScanGraceMs);
@@ -139,7 +139,7 @@ void AppSettingsTest::dwellPresetsSplitDailyAndDesigner()
     QCOMPARE(s.dwellPreset(), 1);
     QCOMPARE(s.dwellSequence, (QVector<int>{800, 700, 600, 500, 400, 200}));
     QCOMPARE(s.scanGraceMs, 150);
-    QCOMPARE(s.dailyDwellSequence, (QVector<int>{400, 600, 400, 200, 100, 50}));
+    QCOMPARE(s.dailyDwellSequence, AppSettings::defaultDailyDwellSequence());
     QCOMPARE(s.dailyScanGraceMs, 100);
 
     s.setDwellPreset(0);
@@ -151,9 +151,9 @@ void AppSettingsTest::dwellPresetsSplitDailyAndDesigner()
 
     s.setDwellPreset(2);
     QCOMPARE(s.dwellPreset(), 2);
-    QCOMPARE(s.dwellSequence, (QVector<int>{400, 600, 400, 200, 100, 50}));
+    QCOMPARE(s.dwellSequence, (QVector<int>{400, 600, 400, 250, 150, 50}));
     QCOMPARE(s.scanGraceMs, 100);
-    QCOMPARE(s.dailyDwellSequence, (QVector<int>{0, 600, 400, 200, 100, 50}));
+    QCOMPARE(s.dailyDwellSequence, (QVector<int>{0, 600, 400, 250, 150, 50}));
     QCOMPARE(s.dailyScanGraceMs, 200);
 }
 
@@ -189,7 +189,8 @@ void AppSettingsTest::loadLegacyInfersDailyFromDesignerPack()
     QCOMPARE(s.dwellSequence, (QVector<int>{1200, 1000, 800, 600, 400}));
     QCOMPARE(s.dailyDwellSequence, (QVector<int>{800, 700, 600, 500, 400, 200}));
     QCOMPARE(s.dailyScanGraceMs, 150);
-    QCOMPARE(s.dwellPreset(), 0);
+    QCOMPARE(s.magPickDwellMs, 1200);
+    QCOMPARE(s.dwellPreset(), 3);
 }
 
 void AppSettingsTest::dailyDwellRoundTrip()
@@ -203,7 +204,7 @@ void AppSettingsTest::dailyDwellRoundTrip()
     AppSettings b;
     QVERIFY(b.loadFromFile(path));
     QCOMPARE(b.dwellPreset(), 2);
-    QCOMPARE(b.dailyDwellSequence, (QVector<int>{0, 600, 400, 200, 100, 50}));
+    QCOMPARE(b.dailyDwellSequence, (QVector<int>{0, 600, 400, 250, 150, 50}));
     QCOMPARE(b.dailyScanGraceMs, 200);
 }
 

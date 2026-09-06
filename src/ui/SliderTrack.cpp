@@ -136,6 +136,7 @@ void paintVolumeBar(QPainter& p, const QRectF& cell, const ThemeColors& theme,
                     const ProgressVisuals& pv, const QString& label, bool hovered,
                     double hoverProgress, bool scrubbing, double scrubT, double scrubProgress)
 {
+    Q_UNUSED(hovered);
     const double t = scrubbing ? qBound(0.0, scrubT, 1.0) : percentFromLabel(label) / 100.0;
     const Visual geom = volumeVisual(cell, scrubbing);
     const QRectF track = geom.track;
@@ -165,7 +166,7 @@ void paintVolumeBar(QPainter& p, const QRectF& cell, const ThemeColors& theme,
     p.setBrush(Qt::NoBrush);
     p.drawEllipse(ring.adjusted(1.5, 1.5, -1.5, -1.5));
     const double ringProgress =
-        scrubbing && scrubProgress > 0.0 ? scrubProgress : (hovered ? hoverProgress : 0.0);
+        scrubbing && scrubProgress > 0.0 ? scrubProgress : hoverProgress;
     if (ringProgress > 0.01) {
         paintProgress(p, ring.adjusted(-3, -3, 3, 3), ringProgress, pv, ProgressShape::Ellipse);
     }
@@ -178,6 +179,7 @@ void paint(QPainter& p, const QRectF& cell, const ThemeColors& theme, const Prog
            double hoverProgress, bool scrubbing, double scrubT, const QString& scrubValue,
            double scrubProgress)
 {
+    Q_UNUSED(hovered);
     if (channel.compare(QLatin1String("volume"), Qt::CaseInsensitive) == 0) {
         paintVolumeBar(p, cell, theme, pv, label, hovered, hoverProgress, scrubbing, scrubT,
                        scrubProgress);
@@ -266,7 +268,7 @@ void paint(QPainter& p, const QRectF& cell, const ThemeColors& theme, const Prog
     p.drawEllipse(ring.adjusted(1.5, 1.5, -1.5, -1.5));
 
     const double ringProgress =
-        scrubbing && scrubProgress > 0.0 ? scrubProgress : (hovered ? hoverProgress : 0.0);
+        scrubbing && scrubProgress > 0.0 ? scrubProgress : hoverProgress;
     if (scrubbing) {
         p.setPen(theme.text);
         p.setFont(QFont(QStringLiteral("Segoe UI Semibold"), 10, QFont::DemiBold));
