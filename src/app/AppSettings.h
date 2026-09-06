@@ -181,6 +181,8 @@ struct AppSettings {
     /// Custom seeds. Branded schemes ignore these until Custom is selected.
     /// Bg / surface / tertiary are baked from Fluent in defaults().
     QString customBgColor = QStringLiteral("#141414");
+    /// Unused; kept so older settings files still load.
+    QString customSourceColor = QStringLiteral("#1E97F3");
     QString customPrimaryColor = QStringLiteral("#1E97F3");
     QString customSecondaryColor = QStringLiteral("#99FF473D");
     QString customTertiaryColor = QStringLiteral("#1E97F3");
@@ -197,15 +199,10 @@ struct AppSettings {
     void setThemeSaturation(int saturation);
     /// Rebuild derived progress colors from the live spec.
     void applyTheme();
-    /// Rebuild progress (and optionally seeds) from Fluent. Does not set themeCustom.
-    void applyCustomPalette(bool overlayRoles = true);
-    [[nodiscard]] QColor suggestedThemeColor(const QString& key) const;
     [[nodiscard]] ThemeSeeds themeSeeds() const;
     [[nodiscard]] ThemePalette resolvedPalette() const;
     [[nodiscard]] ThemeColors resolvedTheme() const;
     [[nodiscard]] static QString themeRoleForColorKey(const QString& key);
-    [[nodiscard]] static ThemeColorRole themeColorRoleForKey(const QString& key);
-    [[nodiscard]] static bool isThemeSeedKey(const QString& key);
 
     [[nodiscard]] static QVector<int> defaultDwellSequence()
     {

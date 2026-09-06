@@ -13,7 +13,6 @@ namespace gazer {
 using SettingsUiInternal::colorChannelRange;
 using SettingsUiInternal::colorChannelValueText;
 using SettingsUiInternal::findColorAxis;
-using SettingsUiInternal::localIdOf;
 
 bool SettingsUi::beginSliderScrub(const QString& channel)
 {
@@ -22,6 +21,9 @@ bool SettingsUi::beginSliderScrub(const QString& channel)
     }
     const bool opacity = m_opacity.active
                          && channel.compare(QLatin1String("opacity"), Qt::CaseInsensitive) == 0;
+    if (!opacity && !m_color.active) {
+        (void)ensureInlineThemeEditor();
+    }
     if (!opacity && (!m_color.active || !findColorAxis(channel))) {
         return false;
     }
@@ -64,17 +66,32 @@ void SettingsUi::endSliderScrub(bool commit)
             loadColorDraft(m_scrubRevert);
         }
     }
+    abortSliderScrub();
+    if (m_opacity.active) {
+        refreshOpacityEditor();
+    } else if (isInlineThemeEditor()) {
+        if (commit) {
+            persistThemeDraft(true);
+        } else {
+            applyPreviewColor();
+            m_pages.refreshDecorated();
+        }
+    } else {
+        refreshColorPicker();
+    }
+}
+
+void SettingsUi::abortSliderScrub()
+{
+    if (!m_scrub.active) {
+        return;
+    }
     m_scrub.reset();
     m_scrubDeadlineMs = -1;
     m_scrubLastSampleMs = -1;
     m_scrubDwell.reset();
     if (PageHostWindow* w = m_pages.window()) {
         w->clearSliderScrub();
-    }
-    if (m_opacity.active) {
-        refreshOpacityEditor();
-    } else {
-        refreshColorPicker();
     }
 }
 
@@ -144,10 +161,14 @@ void SettingsUi::feedSliderGaze(const GazePoint& point)
     const PageTarget* hitT =
         PageHit::at(m_pages.targets(), gaze, m_pages.drawerScale(), {}, m_pages.gridPaints(), xf);
     const QString hit = hitT ? localIdOf(*hitT) : QString();
+    const auto isId = [](const QString& id, const QString& local) {
+        return id == local || id.endsWith(QLatin1Char('/') + local);
+    };
     const QString editId = QStringLiteral("edit_%1").arg(m_scrub.channel);
     const QString decId = QStringLiteral("dec_%1").arg(m_scrub.channel);
     const QString incId = QStringLiteral("inc_%1").arg(m_scrub.channel);
-    const bool companion = hit == m_scrub.itemId || hit == editId || hit == decId || hit == incId;
+    const bool companion = isId(hit, m_scrub.itemId) || isId(hit, editId) || isId(hit, decId)
+                           || isId(hit, incId);
     if (hitT && hitT->interactive && !companion) {
         endSliderScrub(true);
         return;
@@ -155,7 +176,9 @@ void SettingsUi::feedSliderGaze(const GazePoint& point)
 
     const PageTarget* track = nullptr;
     for (const PageTarget& t : m_pages.targets()) {
-        if (localIdOf(t) == m_scrub.itemId) {
+        const QString id = localIdOf(t);
+        if (id == m_scrub.itemId || t.id == m_scrub.itemId
+            || id.endsWith(QLatin1Char('/') + m_scrub.itemId)) {
             track = &t;
             break;
         }
@@ -192,6 +215,9 @@ void SettingsUi::feedSliderGaze(const GazePoint& point)
     m_scrubLastSampleMs = now;
     const bool done = m_scrubDwell.sample(geom.posAt(t), dtSec);
     syncSliderScrubVisuals();
+    if (isInlineThemeEditor()) {
+        m_pages.refreshDecorated();
+    }
     if (done) {
         notifyStatus(QStringLiteral("%1 = %2")
                          .arg(QString(m_scrub.channel).toUpper(),

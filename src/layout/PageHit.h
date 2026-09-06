@@ -51,6 +51,14 @@ struct PageTarget {
     return t.pageId + QLatin1Char('/') + t.id;
 }
 
+[[nodiscard]] inline QString localIdOf(const PageTarget& t)
+{
+    if (!t.pageId.isEmpty() && t.id.startsWith(t.pageId + QLatin1Char('/'))) {
+        return t.id.mid(t.pageId.size() + 1);
+    }
+    return t.id;
+}
+
 struct PageFrame {
     QRectF screen;
     QRectF desktop;

@@ -27,8 +27,9 @@ static_assert(kThemeDefaultBrandIndex >= 0 && kThemeDefaultBrandIndex < kThemeBr
 
 QColor hsv(int h, int s, int v, int a = 255)
 {
-    return QColor::fromHsv((h % 360 + 360) % 360, qBound(0, s, 255), qBound(0, v, 255),
-                           qBound(0, a, 255));
+    const QColor c = QColor::fromHsv((h % 360 + 360) % 360, qBound(0, s, 255), qBound(0, v, 255),
+                                     qBound(0, a, 255));
+    return QColor(c.red(), c.green(), c.blue(), c.alpha());
 }
 
 void hsvParts(const QColor& c, int* h, int* s, int* v, int* a)

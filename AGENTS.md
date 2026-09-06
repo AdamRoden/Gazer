@@ -42,6 +42,7 @@ Do not `raise()` / `HWND_TOP` an overlay on every gaze sample. `showOverlay()` i
 | Composer / speech | `src/app/ComposeUi.h`, `src/assist/SpeechEngine.h`, `docs/composer-elevenlabs.md` |
 | Page designer | `src/editor/README.md` |
 | Paint / host window / theme | `src/ui/README.md` |
+| Material palettes (theme) | `src/ui/MaterialPalette.h`, `resources/layouts/main_settings_theme.xml` |
 | OS injectors | `src/input/README.md` |
 | Mapping profiles | `src/mapping/README.md` |
 

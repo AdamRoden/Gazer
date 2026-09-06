@@ -5,7 +5,6 @@
 #include "core/GazePoint.h"
 #include "layout/InvalidGazeGrace.h"
 #include "layout/PageTypes.h"
-#include "ui/ThemeScheme.h"
 
 #include <QColor>
 #include <QElapsedTimer>
@@ -42,7 +41,7 @@ public:
     void setResetFn(ResetFn fn) { m_reset = std::move(fn); }
 
     void registerCommands();
-    void decoratePage(PageDocument& doc) const;
+    void decoratePage(PageDocument& doc);
     /// Store the validated key, or surface the HTTP/DPAPI error. Returns true if stored.
     [[nodiscard]] bool onSpeechKeyValidated(bool ok, const QString& error);
     /// Gaze-follow color slider after the track is activated.
@@ -54,9 +53,9 @@ public:
 
     static constexpr const char* kColorKeys[] = {
         "progressColor",      "progressFillColor",   "progressBorderColor", "flashColor",
-        "comboInnerColor",    "comboOuterColor",
-        "customBgColor",      "customPrimaryColor",  "customSecondaryColor", "customTertiaryColor",
-        "customSurfaceColor", "customTextColor",     "customDangerColor"};
+        "comboInnerColor",    "comboOuterColor",     "customPrimaryColor",  "customSecondaryColor"};
+
+    [[nodiscard]] bool themeAssignPrimary() const { return m_themeAssignPrimary; }
 
     struct EditorSwatch {
         QColor key;
@@ -104,17 +103,16 @@ private:
     void closeOpacityEditor();
     void opacityNudge(int dir);
     [[nodiscard]] bool opacitySave(QString* error = nullptr);
-    enum class ColorPickerPage { Generic, Accent, Roles };
     [[nodiscard]] bool openColorPicker(const QString& colorKey, QString* error = nullptr);
-    [[nodiscard]] bool selectColorTarget(const QString& colorKey, QString* error = nullptr);
     void refreshColorPicker();
-    [[nodiscard]] PageDocument buildColorDocument() const;
-    [[nodiscard]] PageDocument buildAccentColorDocument() const;
-    [[nodiscard]] PageDocument buildRolesColorDocument() const;
+    [[nodiscard]] PageDocument buildGenericColorDocument() const;
     void closeColorPicker();
+    [[nodiscard]] bool isInlineThemeEditor() const;
+    bool ensureInlineThemeEditor();
+    void stopInlineThemeEditor();
+    void persistThemeDraft(bool persist);
     void colorNudge(const QString& channel, int dir);
     void colorSetChannel(const QString& channel, int value);
-    void colorUseSaved(const QString& savedKey);
     void colorSyncFromHsl();
     void colorSyncFromRgb();
     void loadColorDraft(const QColor& c);
@@ -122,15 +120,18 @@ private:
     bool applyColorShownValue(const QString& channel, int value);
     bool beginSliderScrub(const QString& channel);
     void endSliderScrub(bool commit);
+    void abortSliderScrub();
     void feedSliderGaze(const GazePoint& point);
     void syncSliderScrubVisuals();
     [[nodiscard]] int scrubShownValue() const;
-    [[nodiscard]] ThemePalette draftThemePalette() const;
-    [[nodiscard]] AppSettings draftThemeSettings() const;
-    [[nodiscard]] QColor suggestedDraftColor(const QString& colorKey) const;
-    void applySuggestedColor(const QString& colorKey);
-    void colorApplyPreset(int index);
-    void colorSetRolesMode(bool roles);
+    void colorApplyDraftShade(int index);
+    void themeSetAssignPrimary(bool primary);
+    void themePickShade(int family, int index);
+    [[nodiscard]] QColor liveThemeSource() const;
+    [[nodiscard]] QString activeThemeColorKey() const;
+    [[nodiscard]] QColor colorForThemeKey(const QString& key) const;
+    void loadActiveThemeColor();
+    void storeDraftPending();
     void refreshHexEditor();
     [[nodiscard]] bool colorSave(QString* error = nullptr);
     [[nodiscard]] bool colorEditChannel(const QString& channel, QString* error = nullptr);
@@ -205,7 +206,7 @@ private:
 
     LiveBoard m_color;
     bool m_flashCustomSetMode = false;
-    ColorPickerPage m_colorPickerPage = ColorPickerPage::Generic;
+    bool m_themeAssignPrimary = true;
     QString m_colorPickerKey;
     QHash<QString, QColor> m_colorPending;
     QColor m_colorDraft;

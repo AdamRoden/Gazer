@@ -334,6 +334,11 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
     }
     customBgColor = o.value(QStringLiteral("customBgColor")).toString(customBgColor);
     customPrimaryColor = o.value(QStringLiteral("customPrimaryColor")).toString(customPrimaryColor);
+    if (o.contains(QStringLiteral("customSourceColor"))) {
+        customSourceColor = o.value(QStringLiteral("customSourceColor")).toString(customSourceColor);
+    } else {
+        customSourceColor = customPrimaryColor;
+    }
     customSecondaryColor =
         o.value(QStringLiteral("customSecondaryColor")).toString(customSecondaryColor);
     customTertiaryColor =
@@ -564,6 +569,7 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     o.insert(QStringLiteral("darkColors"), darkPal.colors.toJson());
     o.insert(QStringLiteral("customColors"), copy.resolvedPalette().colors.toJson());
     o.insert(QStringLiteral("customBgColor"), copy.customBgColor);
+    o.insert(QStringLiteral("customSourceColor"), copy.customSourceColor);
     o.insert(QStringLiteral("customPrimaryColor"), copy.customPrimaryColor);
     o.insert(QStringLiteral("customSecondaryColor"), copy.customSecondaryColor);
     o.insert(QStringLiteral("customTertiaryColor"), copy.customTertiaryColor);

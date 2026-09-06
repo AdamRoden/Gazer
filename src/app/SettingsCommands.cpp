@@ -3,6 +3,7 @@
 #include "app/CommandRegistry.h"
 #include "assist/GazeFollowProfile.h"
 #include "assist/LtsIndicator.h"
+#include "ui/MaterialPalette.h"
 #include "ui/PickStyle.h"
 #include "ui/ThemeScheme.h"
 
@@ -159,19 +160,6 @@ void SettingsUi::registerCommands()
         m_commands.registerBuiltin(
             QStringLiteral("settings.edit.color.%1").arg(QLatin1String(ck)),
             [this, ck](QString* error) { return openColorPicker(QLatin1String(ck), error); });
-        m_commands.registerBuiltin(
-            QStringLiteral("settings.color.select.%1").arg(QLatin1String(ck)),
-            [this, ck](QString* error) { return selectColorTarget(QLatin1String(ck), error); });
-        m_commands.registerBuiltin(
-            QStringLiteral("settings.color.use.%1").arg(QLatin1String(ck)), [this, ck](QString*) {
-                colorUseSaved(QLatin1String(ck));
-                return true;
-            });
-        m_commands.registerBuiltin(
-            QStringLiteral("settings.color.suggest.%1").arg(QLatin1String(ck)), [this, ck](QString*) {
-                applySuggestedColor(QLatin1String(ck));
-                return true;
-            });
     }
     for (const char* ch : {"h", "s", "l", "r", "g", "b", "a"}) {
         m_commands.registerBuiltin(
@@ -202,21 +190,6 @@ void SettingsUi::registerCommands()
         notifyStatus(QStringLiteral("Color pick cancelled"));
         return true;
     });
-    m_commands.registerBuiltin(QStringLiteral("settings.color.roles"), [this](QString*) {
-        colorSetRolesMode(true);
-        return true;
-    });
-    m_commands.registerBuiltin(QStringLiteral("settings.color.accent"), [this](QString*) {
-        colorSetRolesMode(false);
-        return true;
-    });
-    for (int i = 0; i < kThemeBrandCount; ++i) {
-        m_commands.registerBuiltin(QStringLiteral("settings.color.preset.%1").arg(i),
-                                   [this, i](QString*) {
-                                       colorApplyPreset(i);
-                                       return true;
-                                   });
-    }
     for (QChar d : QStringLiteral("0123456789ABCDEF")) {
         m_commands.registerBuiltin(
             QStringLiteral("settings.hex.digit.%1").arg(d), [this, d](QString*) {
@@ -429,13 +402,42 @@ void SettingsUi::registerCommands()
         return true;
     });
 
-    m_commands.registerBuiltin(QStringLiteral("settings.theme.edit"), [this](QString* error) {
-        if (m_mutate) {
-            m_mutate([](AppSettings& s) { s.setThemeCustom(true); }, QString());
-        }
-        m_colorPickerPage = ColorPickerPage::Roles;
+    m_commands.registerBuiltin(QStringLiteral("settings.theme.source"), [this](QString* error) {
         return openColorPicker(QStringLiteral("customPrimaryColor"), error);
     });
+    m_commands.registerBuiltin(QStringLiteral("settings.theme.assign.primary"), [this](QString*) {
+        themeSetAssignPrimary(true);
+        return true;
+    });
+    m_commands.registerBuiltin(QStringLiteral("settings.theme.assign.secondary"), [this](QString*) {
+        themeSetAssignPrimary(false);
+        return true;
+    });
+    {
+        const MaterialPalette::Family families[] = {
+            MaterialPalette::Family::Primary,    MaterialPalette::Family::Complementary,
+            MaterialPalette::Family::Analogous1, MaterialPalette::Family::Triadic1,
+            MaterialPalette::Family::Triadic2};
+        for (const MaterialPalette::Family fam : families) {
+            const int f = int(fam);
+            const QString fid = QLatin1String(MaterialPalette::familyId(fam));
+            for (int i = 0; i < MaterialPalette::kShadeCount; ++i) {
+                m_commands.registerBuiltin(
+                    QStringLiteral("settings.theme.shade.%1.%2").arg(fid).arg(i),
+                    [this, f, i](QString*) {
+                        themePickShade(f, i);
+                        return true;
+                    });
+            }
+        }
+    }
+    for (int i = 0; i < MaterialPalette::kShadeCount; ++i) {
+        m_commands.registerBuiltin(QStringLiteral("settings.color.draftShade.%1").arg(i),
+                                   [this, i](QString*) {
+                                       colorApplyDraftShade(i);
+                                       return true;
+                                   });
+    }
 
     auto applyAppearance = [this](ThemeAppearance appearance, const char* status) {
         return [this, appearance, status](QString*) {

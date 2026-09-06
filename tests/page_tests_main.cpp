@@ -15,6 +15,7 @@ QObject* createPageHitTest();
 QObject* createPageHitLiveTest();
 QObject* createSettingsLayoutTest();
 QObject* createAppSettingsTest();
+QObject* createMaterialPaletteTest();
 QObject* createMouseDwellMoveTest();
 QObject* createProgressPaintTest();
 QObject* createComboMouseTest();
@@ -63,6 +64,8 @@ int main(int argc, char** argv)
     status |= QTest::qExec(settings.get(), rest);
     std::unique_ptr<QObject> appSettings(createAppSettingsTest());
     status |= QTest::qExec(appSettings.get(), rest);
+    std::unique_ptr<QObject> materialPal(createMaterialPaletteTest());
+    status |= QTest::qExec(materialPal.get(), rest);
     std::unique_ptr<QObject> mouseDwell(createMouseDwellMoveTest());
     status |= QTest::qExec(mouseDwell.get(), rest);
     std::unique_ptr<QObject> progress(createProgressPaintTest());

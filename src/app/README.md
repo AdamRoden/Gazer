@@ -21,7 +21,7 @@ Composition root, settings, command dispatch.
 | `SettingsUi.cpp` | Ctor, decorate, live attach, keyboard focus |
 | `SettingsNumpad.cpp` | Numeric editor |
 | `SettingsArrayEditor.cpp` | Designer / daily-driver dwell-sequence editor |
-| `SettingsColorPicker.cpp` | Color draft + theme roles |
+| `SettingsColorPicker.cpp` | Color draft + Material palettes |
 | `SettingsOpacity.cpp` | Flash-opacity board |
 | `SettingsHexEditor.cpp` | Hex color pad |
 | `SettingsSpeechKey.cpp` | ElevenLabs API-key live board |

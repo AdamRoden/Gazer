@@ -30,6 +30,7 @@ private slots:
     void brandedThemeUsesFluent();
     void namedColorsResolveFromPalette();
     void customThemeUsesFluent();
+    void secondaryColorIsSixtyPercent();
     void loadLegacyNamedSchemeMapsToBrand();
     void loadLegacyCustom();
     void saveRoundTripCustomFlag();
@@ -91,8 +92,11 @@ void AppSettingsTest::factoryUsesDomainConstants()
     QCOMPARE(s.resolvedTheme().bgMain, QColor(0x14, 0x14, 0x14));
     QCOMPARE(s.resolvedTheme().bgSurface, QColor(0x1E, 0x1E, 0x1E));
     QCOMPARE(s.resolvedTheme().accent, QColor(0x1E, 0x97, 0xF3));
-    QCOMPARE(s.resolvedTheme().accentHover, QColor(0x1E, 0x97, 0xF3));
-    QCOMPARE(s.resolvedTheme().danger, QColor(0xFC, 0x1C, 0x1C));
+    QCOMPARE(s.resolvedTheme().accentHover,
+             ThemeScheme::fluent(s.themeAppearance, s.themeSaturation, s.themeSeeds().primary,
+                                 s.themeSeeds().secondary)
+                 .colors.accentHover);
+    QCOMPARE(s.resolvedTheme().danger, QColor(0xFF, 0x45, 0x3A));
     QCOMPARE(s.resolvedPalette().progress, QColor(0xFF, 0x47, 0x3D, kProgressFillAlpha));
     QCOMPARE(s.resolvedPalette().progressFill, QColor(0xFF, 0x47, 0x3D, kProgressFillAlpha));
     QCOMPARE(s.progressColor, QStringLiteral("#99FF473D"));
@@ -249,6 +253,15 @@ void AppSettingsTest::customThemeUsesFluent()
     const ThemePalette pal = ThemeScheme::fluent(s.themeAppearance, s.themeSaturation,
                                                  s.themeSeeds().primary, s.themeSeeds().secondary);
     QCOMPARE(s.resolvedTheme().accent, pal.colors.accent);
+    QCOMPARE(s.resolvedPalette().progress.alpha(), kProgressFillAlpha);
+}
+
+void AppSettingsTest::secondaryColorIsSixtyPercent()
+{
+    AppSettings s = AppSettings::defaults();
+    QVERIFY(s.setColorKey(QStringLiteral("customSecondaryColor"), QColor(255, 0, 0), false));
+    QCOMPARE(s.colorKey(QStringLiteral("customSecondaryColor")).alpha(), kProgressFillAlpha);
+    QCOMPARE(s.resolvedPalette().progress.alpha(), kProgressFillAlpha);
 }
 
 void AppSettingsTest::loadLegacyNamedSchemeMapsToBrand()

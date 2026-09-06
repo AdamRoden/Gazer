@@ -275,9 +275,11 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
         return !s.themeCustom
                && indexKeyEquals(key, QLatin1String("theme.secondary."), s.themeSecondaryIndex);
     }
-    if (key.startsWith(QLatin1String("settings.color.editing."))) {
-        const QString ck = key.mid(QStringLiteral("settings.color.editing.").size());
-        return ctx.settingsUi && ctx.settingsUi->colorPickerKey() == ck;
+    if (key == QLatin1String("settings.theme.assign.primary")) {
+        return ctx.settingsUi && ctx.settingsUi->themeAssignPrimary();
+    }
+    if (key == QLatin1String("settings.theme.assign.secondary")) {
+        return ctx.settingsUi && !ctx.settingsUi->themeAssignPrimary();
     }
     return false;
 }

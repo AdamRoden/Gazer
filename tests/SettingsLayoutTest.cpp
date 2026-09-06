@@ -321,42 +321,71 @@ void SettingsLayoutTest::choiceAndToggleRoles()
     QVERIFY(!doc.findCell(QStringLiteral("scheme_blue")));
     QVERIFY(!doc.findCell(QStringLiteral("c_more")));
     const PageGrid* appearanceSec = doc.findGrid(QStringLiteral("sec_appearance"));
-    const PageGrid* schemesSec = doc.findGrid(QStringLiteral("sec_schemes"));
-    const PageGrid* progressSec = doc.findGrid(QStringLiteral("sec_progress"));
-    const PageGrid* optionsSec = doc.findGrid(QStringLiteral("sec_options"));
+    const PageGrid* selectedSec = doc.findGrid(QStringLiteral("sec_selected"));
+    const PageGrid* palPrimary = doc.findGrid(QStringLiteral("row_pal_primary"));
     QVERIFY(appearanceSec);
-    QVERIFY(schemesSec);
-    QVERIFY(progressSec);
-    QVERIFY(optionsSec);
-    QVERIFY(appearanceSec->row < schemesSec->row);
-    QVERIFY(schemesSec->row < progressSec->row);
-    QVERIFY(progressSec->row < optionsSec->row);
-    QCOMPARE(doc.findCell(QStringLiteral("h_schemes"))->label, QStringLiteral("Accent"));
-    QCOMPARE(doc.findGrid(QStringLiteral("row_schemes"))->columns, 9);
-    QCOMPARE(doc.findGrid(QStringLiteral("row_progress"))->columns, 9);
-    QCOMPARE(doc.findCell(QStringLiteral("pri_0"))->label, QStringLiteral("Red"));
-    QCOMPARE(doc.findCell(QStringLiteral("pri_5"))->label, QStringLiteral("Blue"));
-    QCOMPARE(doc.findCell(QStringLiteral("sec_8"))->label, QStringLiteral("Pink"));
-    for (int i = 0; i < 9; ++i) {
-        const PageCell* pri = doc.findCell(QStringLiteral("pri_%1").arg(i));
-        QVERIFY2(pri, qPrintable(QStringLiteral("pri_%1").arg(i)));
-        QCOMPARE(pri->role, QStringLiteral("choice"));
-        QVERIFY(pri->isInteractive());
-        QVERIFY(!doc.findCell(QStringLiteral("pri_sel_%1").arg(i)));
+    QVERIFY(selectedSec);
+    QVERIFY(palPrimary);
+    QVERIFY(!doc.findGrid(QStringLiteral("sec_palettes")));
+    QVERIFY(!doc.findGrid(QStringLiteral("sec_options")));
+    QVERIFY(!doc.findGrid(QStringLiteral("row_pal_analogous2")));
+    QVERIFY(appearanceSec->row < selectedSec->row);
+    QVERIFY(selectedSec->row < palPrimary->row);
+    QVERIFY(doc.findGrid(QStringLiteral("row_pal_triadic2"))->row
+            < doc.findGrid(QStringLiteral("row_hue"))->row);
+    QVERIFY(doc.findGrid(QStringLiteral("row_hue")));
+    QVERIFY(doc.findCell(QStringLiteral("track_h")));
+    QCOMPARE(doc.findCell(QStringLiteral("track_h"))->role, QStringLiteral("slider"));
+    QVERIFY(!doc.findCell(QStringLiteral("track_h"))->isInteractive());
+    QVERIFY(doc.findCell(QStringLiteral("track_h"))->actions.isEmpty());
+    QVERIFY(doc.findCell(QStringLiteral("edit_h"))->isInteractive());
+    QCOMPARE(doc.findCell(QStringLiteral("edit_h"))->actions[0].command,
+             QStringLiteral("settings.color.scrub.h"));
+    QVERIFY(doc.findCell(QStringLiteral("dec_h"))->isInteractive());
+    QCOMPARE(doc.findCell(QStringLiteral("dec_h"))->actions[0].command,
+             QStringLiteral("settings.color.nudge.h.dec"));
+    QVERIFY(doc.findCell(QStringLiteral("inc_h"))->isInteractive());
+    QCOMPARE(doc.findCell(QStringLiteral("inc_h"))->actions[0].command,
+             QStringLiteral("settings.color.nudge.h.inc"));
+    QVERIFY(!doc.findCell(QStringLiteral("track_s"))->isInteractive());
+    QVERIFY(doc.findCell(QStringLiteral("edit_s"))->isInteractive());
+    QVERIFY(doc.findCell(QStringLiteral("dec_s"))->isInteractive());
+    QVERIFY(doc.findCell(QStringLiteral("inc_s"))->isInteractive());
+    QVERIFY(!doc.findCell(QStringLiteral("track_l"))->isInteractive());
+    QVERIFY(doc.findCell(QStringLiteral("edit_l"))->isInteractive());
+    QVERIFY(doc.findCell(QStringLiteral("dec_l"))->isInteractive());
+    QVERIFY(doc.findCell(QStringLiteral("inc_l"))->isInteractive());
+    QCOMPARE(doc.findGrid(QStringLiteral("row_pal_analogous1"))->row + 1,
+             doc.findGrid(QStringLiteral("row_pal_triadic1"))->row);
+    QVERIFY(!doc.findCell(QStringLiteral("sp_mid2")));
+    QVERIFY(doc.findCell(QStringLiteral("hex"))->isInteractive());
+    QVERIFY(!doc.findGrid(QStringLiteral("sec_schemes")));
+    QVERIFY(!doc.findGrid(QStringLiteral("sec_progress")));
+    QVERIFY(!doc.findCell(QStringLiteral("pri_0")));
+    QVERIFY(!doc.findCell(QStringLiteral("sec_8")));
+    QVERIFY(!doc.findCell(QStringLiteral("page_title")));
+    QVERIFY(!doc.findCell(QStringLiteral("h_appearance")));
+    QVERIFY(!doc.findCell(QStringLiteral("edit_colors")));
+    QVERIFY(!doc.findCell(QStringLiteral("pick_source")));
+    QVERIFY(!doc.findCell(QStringLiteral("sat_dec")));
+    QVERIFY(!doc.findCell(QStringLiteral("assign_p")));
+    QCOMPARE(doc.findCell(QStringLiteral("h_pal_primary"))->label, QStringLiteral("Primary"));
+    QCOMPARE(doc.findCell(QStringLiteral("h_pal_complementary"))->label,
+             QStringLiteral("Complementary"));
+    QCOMPARE(palPrimary->columns, 12);
+    QCOMPARE(palPrimary->gapPx, 0);
+    QVERIFY(!doc.findCell(QStringLiteral("source_swatch")));
+    QCOMPARE(doc.findCell(QStringLiteral("p_swatch"))->role, QStringLiteral("choice"));
+    QCOMPARE(doc.findCell(QStringLiteral("s_swatch"))->role, QStringLiteral("choice"));
+    for (int i = 0; i < 10; ++i) {
+        const PageCell* shade = doc.findCell(QStringLiteral("pal_primary_%1").arg(i));
+        QVERIFY2(shade, qPrintable(QStringLiteral("pal_primary_%1").arg(i)));
+        QVERIFY(shade->isInteractive());
+        QVERIFY(shade->label.isEmpty());
     }
-    QVERIFY(!doc.findCell(QStringLiteral("pri_9")));
-    for (int i = 0; i < 9; ++i) {
-        const PageCell* sec = doc.findCell(QStringLiteral("sec_%1").arg(i));
-        QVERIFY2(sec, qPrintable(QStringLiteral("sec_%1").arg(i)));
-        QCOMPARE(sec->role, QStringLiteral("swatch"));
-        QVERIFY(sec->isInteractive());
-        QVERIFY(!doc.findCell(QStringLiteral("sec_sel_%1").arg(i)));
-    }
-    QVERIFY(!doc.findCell(QStringLiteral("sec_9")));
-    QVERIFY(doc.findCell(QStringLiteral("sat_dec")));
-    QVERIFY(doc.findCell(QStringLiteral("sat_inc")));
-    QVERIFY(!doc.findCell(QStringLiteral("sat_val")));
-    QVERIFY(doc.findCell(QStringLiteral("edit_colors")));
+    QVERIFY(doc.findCell(QStringLiteral("pal_analogous1_0")));
+    QVERIFY(!doc.findCell(QStringLiteral("pal_analogous2_0")));
+    QVERIFY(doc.findCell(QStringLiteral("pal_triadic2_0")));
     QVERIFY(!doc.findCell(QStringLiteral("fl_sw")));
 }
 

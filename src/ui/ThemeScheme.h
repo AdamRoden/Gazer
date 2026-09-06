@@ -20,17 +20,6 @@ struct ThemePalette {
     QColor progressBorder;
 };
 
-/// Named custom-theme roles shown in the color picker.
-enum class ThemeColorRole {
-    Background,
-    Surface,
-    Primary,
-    Secondary,
-    Tertiary,
-    Foreground,
-    Danger
-};
-
 /// Apple system color for the accent / progress card rows.
 struct ThemeBrandInfo {
     const char* key = "blue";

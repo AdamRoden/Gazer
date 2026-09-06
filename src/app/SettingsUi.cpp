@@ -1,22 +1,19 @@
 #include "app/SettingsUi.h"
-#include "app/SettingsPageBuild.h"
 
 #include "app/CommandRegistry.h"
 #include "assist/SpeechSecrets.h"
-#include "layout/PageDim.h"
 #include "layout/PageEdit.h"
 #include "layout/PageSession.h"
 #include "layout/PageTypes.h"
 #include "ui/PageHostWindow.h"
+#include "ui/MaterialPalette.h"
 #include "ui/Theme.h"
-#include "ui/ThemeScheme.h"
 
 #include <QColor>
 #include <QKeyEvent>
 #include <QObject>
 #include <QtGlobal>
 #include <QVector>
-#include <optional>
 
 namespace gazer {
 
@@ -216,64 +213,71 @@ QString colorKeyFromPageCell(const PageCell& cell)
     return {};
 }
 
-void stampThemeChoice(PageCell& cell, const AppSettings& settings)
+void stampPaletteSwatch(PageCell& cell, const QColor& source, const QColor& primary,
+                        const QColor& secondary)
 {
-    const bool swatch = cell.role.compare(QLatin1String("swatch"), Qt::CaseInsensitive) == 0;
-    if (!swatch && cell.role.compare(QLatin1String("choice"), Qt::CaseInsensitive) != 0) {
+    if (!cell.id.startsWith(QLatin1String("pal_"))) {
         return;
     }
-    int primary = settings.themePrimaryIndex;
-    int secondary = settings.themeSecondaryIndex;
-    bool selected = false;
-    bool match = false;
-    for (const PageAction& a : cell.actions) {
-        if (a.type != PageActionType::Command) {
-            continue;
-        }
-        if (a.command.startsWith(QLatin1String("theme.primary."))) {
-            bool ok = false;
-            primary = a.command.mid(int(QLatin1String("theme.primary.").size())).toInt(&ok);
-            if (!ok) {
-                return;
-            }
-            selected = !settings.themeCustom && settings.themePrimaryIndex == primary;
-            match = true;
-        } else if (a.command.startsWith(QLatin1String("theme.secondary."))) {
-            bool ok = false;
-            secondary = a.command.mid(int(QLatin1String("theme.secondary.").size())).toInt(&ok);
-            if (!ok) {
-                return;
-            }
-            selected = !settings.themeCustom && settings.themeSecondaryIndex == secondary;
-            match = true;
-        }
-    }
-    if (!match) {
+    const QString rest = cell.id.mid(4);
+    const int split = rest.lastIndexOf(QLatin1Char('_'));
+    if (split <= 0) {
         return;
     }
-    const ThemePalette pal =
-        ThemeScheme::resolve(settings.themeAppearance, settings.themeSaturation, primary, secondary,
-                             false);
-    if (swatch) {
-        cell.style.background = pal.progress;
-        cell.style.foreground.reset();
-        cell.style.borderColor.reset();
-        cell.style.progressColor.reset();
-        cell.style.thickness = PageBox::all(selected ? 3.0 : 1.0);
+    MaterialPalette::Family family = MaterialPalette::Family::Primary;
+    if (!MaterialPalette::parseFamily(rest.left(split), &family)) {
         return;
     }
-    cell.style.background = pal.colors.bgMain;
-    cell.style.foreground = pal.colors.accent;
-    cell.style.borderColor = pal.colors.bgSurface;
-    cell.style.progressColor = pal.progress;
-    cell.style.thickness = PageBox::all(selected ? 2.6 : 1.0);
-    cell.style.radius = PageBox::all(14.0);
+    bool ok = false;
+    const int index = rest.mid(split + 1).toInt(&ok);
+    if (!ok) {
+        return;
+    }
+    const MaterialPalette::Palettes pals = MaterialPalette::generate(source);
+    const QColor c = MaterialPalette::shade(pals, family, index);
+    cell.style.background = c;
+    cell.style.foreground = ThemeColors::contrastOn(c);
+    cell.caption.clear();
+    if (MaterialPalette::sameRgb(c, primary)) {
+        cell.label = QStringLiteral("P");
+        cell.style.thickness = PageBox::all(3.0);
+    } else if (MaterialPalette::sameRgb(c, secondary)) {
+        cell.label = QStringLiteral("S");
+        cell.style.thickness = PageBox::all(3.0);
+    } else {
+        cell.label.clear();
+        cell.style.thickness = PageBox::all(0.0);
+    }
+}
+
+void stampSelectedWells(PageCell& cell, const QColor& source, const QColor& primary,
+                        const QColor& secondary)
+{
+    if (cell.id == QLatin1String("hex")) {
+        cell.label = source.name(QColor::HexRgb).toUpper();
+        cell.style.background = source;
+        cell.style.foreground = ThemeColors::contrastOn(source);
+        return;
+    }
+    if (cell.id == QLatin1String("p_swatch")) {
+        cell.style.background = primary;
+        cell.style.foreground = ThemeColors::contrastOn(primary);
+        cell.caption = primary.name(QColor::HexRgb).toUpper();
+        return;
+    }
+    if (cell.id == QLatin1String("s_swatch")) {
+        cell.style.background = secondary;
+        cell.style.foreground = ThemeColors::contrastOn(secondary);
+        cell.caption = secondary.name(QColor::HexRgb).toUpper();
+    }
 }
 
 void stampPageCell(PageCell& cell, const AppSettings& settings, const ThemeColors& swatchTheme,
-                   const ThemeColors& liveTheme)
+                   const ThemeColors& liveTheme, const QColor& source, const QColor& primary,
+                   const QColor& secondary)
 {
-    stampThemeChoice(cell, settings);
+    stampPaletteSwatch(cell, source, primary, secondary);
+    stampSelectedWells(cell, source, primary, secondary);
     stampSettingVisuals(cell.label, cell.isInteractive(), cell.settingKey, cell.id,
                         colorKeyFromPageCell(cell), cell.style.background, cell.style.foreground,
                         settings, swatchTheme);
@@ -292,13 +296,14 @@ void stampPageCell(PageCell& cell, const AppSettings& settings, const ThemeColor
 }
 
 void stampGrid(PageGrid& grid, const AppSettings& settings, const ThemeColors& swatchTheme,
-              const ThemeColors& liveTheme)
+              const ThemeColors& liveTheme, const QColor& source, const QColor& primary,
+              const QColor& secondary)
 {
     for (PageCell& cell : grid.cells) {
-        stampPageCell(cell, settings, swatchTheme, liveTheme);
+        stampPageCell(cell, settings, swatchTheme, liveTheme, source, primary, secondary);
     }
     for (PageGrid& sub : grid.subGrids) {
-        stampGrid(sub, settings, swatchTheme, liveTheme);
+        stampGrid(sub, settings, swatchTheme, liveTheme, source, primary, secondary);
     }
 }
 
@@ -315,17 +320,31 @@ void stampNamedSurface(PageDocument& doc, const QString& styleId, const QColor& 
 
 } // namespace
 
-void SettingsUi::decoratePage(PageDocument& doc) const
+void SettingsUi::decoratePage(PageDocument& doc)
 {
     if (!doc.id.startsWith(QLatin1String("main_settings"))) {
         return;
+    }
+    if (doc.id == QLatin1String("main_settings_theme")) {
+        (void)ensureInlineThemeEditor();
+    } else if (doc.id.startsWith(QLatin1String("main_settings_")) && isInlineThemeEditor()) {
+        stopInlineThemeEditor();
     }
     const ThemeColors live = m_settings.resolvedTheme();
     stampNamedSurface(doc, QStringLiteral("group"), live.bgSurface);
     stampNamedSurface(doc, QStringLiteral("tabbar"), live.bgSurface);
     const ThemeColors swatch = live;
+    const QColor source = liveThemeSource();
+    QColor primary = m_colorPending.value(QStringLiteral("customPrimaryColor"));
+    if (!primary.isValid()) {
+        primary = live.accent;
+    }
+    QColor secondary = m_colorPending.value(QStringLiteral("customSecondaryColor"));
+    if (!secondary.isValid()) {
+        secondary = m_settings.resolvedPalette().progress;
+    }
     for (PageGrid& g : doc.grids) {
-        stampGrid(g, m_settings, swatch, live);
+        stampGrid(g, m_settings, swatch, live, source, primary, secondary);
     }
     if (doc.id == QLatin1String("main_settings_speech")) {
         PageEdit::forEachCell(doc, [this](PageGrid&, PageCell& c) {

@@ -1,7 +1,5 @@
 #pragma once
 
-#include "layout/PageHit.h"
-
 #include <QString>
 #include <QtGlobal>
 
@@ -17,14 +15,6 @@ constexpr auto kLiveSpeechKey = "settings_speech_key_live";
 
 constexpr int kMaxArraySteps = 12;
 constexpr int kStepNudge = 50;
-
-inline QString localIdOf(const PageTarget& t)
-{
-    if (!t.pageId.isEmpty() && t.id.startsWith(t.pageId + QLatin1Char('/'))) {
-        return t.id.mid(t.pageId.size() + 1);
-    }
-    return t.id;
-}
 
 struct ColorAxis {
     const char* id;

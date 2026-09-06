@@ -129,6 +129,7 @@ set(GAZER_SOURCES
     src/ui/DwellSuspendOverlay.cpp
     src/ui/Theme.cpp
     src/ui/ThemeScheme.cpp
+    src/ui/MaterialPalette.cpp
     src/ui/KeySymbols.cpp
     src/ui/PickStyle.cpp
     src/editor/LayoutEditorSession.cpp
@@ -253,6 +254,7 @@ set(GAZER_HEADERS
     src/ui/Theme.h
     src/ui/PickStyle.h
     src/ui/ThemeScheme.h
+    src/ui/MaterialPalette.h
     src/editor/LayoutEditorSession.h
     src/editor/LayoutEditorKeyboard.h
     src/editor/LayoutEditorCanvas.h
@@ -417,12 +419,14 @@ add_executable(GazerPageTests
     tests/PageHitLiveTest.cpp
     tests/SettingsLayoutTest.cpp
     tests/AppSettingsTest.cpp
+    tests/MaterialPaletteTest.cpp
     tests/MouseDwellMoveTest.cpp
     src/app/AppSettings.cpp
     src/app/AppSettingsIo.cpp
     src/app/AppSettingsTheme.cpp
     src/ui/Theme.cpp
     src/ui/ThemeScheme.cpp
+    src/ui/MaterialPalette.cpp
     src/ui/PickStyle.cpp
     tests/ProgressPaintTest.cpp
     tests/ComboMouseTest.cpp

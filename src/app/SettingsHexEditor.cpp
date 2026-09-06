@@ -16,6 +16,9 @@ using SettingsUiInternal::kLiveHex;
 bool SettingsUi::openHexEditor(QString* error)
 {
     if (!m_color.active) {
+        (void)ensureInlineThemeEditor();
+    }
+    if (!m_color.active) {
         if (error) {
             *error = QStringLiteral("Color picker is not open");
         }
@@ -131,7 +134,7 @@ bool SettingsUi::hexSave(QString* error)
     m_hexActive = false;
     m_hexBuffer.clear();
     loadColorDraft(c);
-    m_colorPending.insert(m_colorPickerKey, m_colorDraft);
+    storeDraftPending();
     refreshColorPicker();
     notifyStatus(QStringLiteral("Hex %1").arg(c.name(QColor::HexArgb).toUpper()));
     return true;

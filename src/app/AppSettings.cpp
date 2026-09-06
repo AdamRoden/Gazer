@@ -251,6 +251,7 @@ const ColorSpec kColorSpecs[] = {
     {"comboOuterColor", "ComboMouse outer ring", &AppSettings::comboOuterColor,
      ComboMouseHit::kDefaultOuterFill},
     {"customBgColor", "Background", &AppSettings::customBgColor, QColor(10, 10, 11)},
+    {"customSourceColor", "Source", &AppSettings::customSourceColor, QColor(0x1E, 0x97, 0xF3)},
     {"customPrimaryColor", "Accent", &AppSettings::customPrimaryColor, QColor(96, 205, 255)},
     {"customSecondaryColor", "Progress", &AppSettings::customSecondaryColor,
      ThemeColors::defaultProgressColor()},
@@ -583,11 +584,19 @@ bool AppSettings::setColorKey(const QString& key, const QColor& c, bool rebuildP
     if (!s) {
         return false;
     }
-    this->*s->member = colorToHex(c);
+    QColor stored = c;
+    if (key == QLatin1String("progressColor") || key == QLatin1String("progressFillColor")
+        || key == QLatin1String("progressBorderColor")
+        || key == QLatin1String("customSecondaryColor")) {
+        stored.setAlpha(kProgressFillAlpha);
+    }
+    this->*s->member = colorToHex(stored);
     if (key == QLatin1String("progressColor")) {
-        customSecondaryColor = colorToHex(c);
+        customSecondaryColor = colorToHex(stored);
     } else if (key == QLatin1String("customSecondaryColor")) {
-        progressColor = colorToHex(c);
+        progressColor = colorToHex(stored);
+        progressFillColor = colorToHex(stored);
+        progressBorderColor = colorToHex(stored);
     }
     if (!rebuildPalette || themeRoleForColorKey(key).isEmpty()) {
         return true;
@@ -697,6 +706,9 @@ QString AppSettings::settingDescription(const QString& key)
     }
     if (key == QLatin1String("customBgColor")) {
         return QStringLiteral("Page background. Variant, foreground, and accent suggestions come from this.");
+    }
+    if (key == QLatin1String("customSourceColor")) {
+        return QStringLiteral("Material palette source. Complementary, analogous, and triadic rows come from this.");
     }
     if (key == QLatin1String("customPrimaryColor")) {
         return QStringLiteral("Highlighted foreground (active labels, accent).");

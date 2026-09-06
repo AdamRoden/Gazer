@@ -3,9 +3,9 @@
 #include "app/SettingsUiInternal.h"
 
 #include "layout/PageSession.h"
+#include "ui/MaterialPalette.h"
 #include "ui/PageHostWindow.h"
 #include "ui/Theme.h"
-#include "ui/ThemeScheme.h"
 
 #include <QColor>
 #include <QtGlobal>
@@ -155,10 +155,7 @@ bool SettingsUi::applyColorShownValue(const QString& channel, int value)
         m_colorDraft.setAlpha(m_colorA);
         break;
     }
-    if (m_color.active && m_colorDraft.isValid() && !m_colorPickerKey.isEmpty()) {
-        m_colorPending.insert(m_colorPickerKey, m_colorDraft);
-
-    }
+    storeDraftPending();
     return true;
 }
 
@@ -169,6 +166,9 @@ void SettingsUi::colorSetChannel(const QString& channel, int value)
 
 void SettingsUi::colorNudge(const QString& channel, int dir)
 {
+    if (!m_color.active && !m_opacity.active) {
+        (void)ensureInlineThemeEditor();
+    }
     if (m_scrub.active) {
         endSliderScrub(true);
     }
@@ -176,99 +176,55 @@ void SettingsUi::colorNudge(const QString& channel, int dir)
     refreshColorPicker();
 }
 
-AppSettings SettingsUi::draftThemeSettings() const
+bool SettingsUi::isInlineThemeEditor() const
 {
-    AppSettings tmp = m_settings;
-    QHash<QString, QColor> pending = m_colorPending;
-    if (m_color.active && m_colorDraft.isValid() && !m_colorPickerKey.isEmpty()) {
-        pending.insert(m_colorPickerKey, m_colorDraft);
-    }
-    bool anyTheme = false;
-    for (auto it = pending.constBegin(); it != pending.constEnd(); ++it) {
-        if (!tmp.setColorKey(it.key(), it.value(), /*rebuildPalette=*/false)) {
-            continue;
-        }
-        anyTheme = anyTheme || AppSettings::isThemeSeedKey(it.key());
-    }
-    if (anyTheme) {
-        tmp.themeCustom = true;
-    }
-    return tmp;
+    return m_color.active && m_color.pageId.isEmpty();
 }
 
-ThemePalette SettingsUi::draftThemePalette() const
+bool SettingsUi::ensureInlineThemeEditor()
 {
-    const AppSettings tmp = draftThemeSettings();
-    if (m_colorPickerPage == ColorPickerPage::Accent) {
-        return ThemeScheme::fluent(tmp.themeAppearance, tmp.themeSaturation, tmp.themeSeeds().primary,
-                                   tmp.themeSeeds().secondary);
+    if (m_color.active && !m_color.pageId.isEmpty()) {
+        return false;
     }
-    return tmp.resolvedPalette();
+    if (isInlineThemeEditor()) {
+        applyPreviewColor();
+        return true;
+    }
+    m_color.active = true;
+    m_color.pageId.clear();
+    m_colorPending.clear();
+    m_colorPending.insert(QStringLiteral("customPrimaryColor"),
+                          m_settings.resolvedPalette().colors.accent);
+    QColor sec = m_settings.resolvedPalette().progress;
+    sec.setAlpha(kProgressFillAlpha);
+    m_colorPending.insert(QStringLiteral("customSecondaryColor"), sec);
+    loadActiveThemeColor();
+    applyPreviewColor();
+    return true;
 }
 
-QColor SettingsUi::suggestedDraftColor(const QString& colorKey) const
+void SettingsUi::stopInlineThemeEditor()
 {
-    return draftThemeSettings().suggestedThemeColor(colorKey);
+    abortSliderScrub();
+    m_color.reset();
+    m_colorPending.clear();
+    m_colorPickerKey.clear();
 }
 
-void SettingsUi::colorSetRolesMode(bool roles)
+void SettingsUi::persistThemeDraft(bool persist)
 {
-    if (!m_color.active) {
+    if (!isInlineThemeEditor() || !m_colorDraft.isValid()) {
         return;
     }
-    m_colorPickerPage = roles ? ColorPickerPage::Roles : ColorPickerPage::Accent;
-    if (!roles && AppSettings::isThemeSeedKey(m_colorPickerKey)
-        && m_colorPickerKey != QLatin1String("customPrimaryColor")) {
-        (void)selectColorTarget(QStringLiteral("customPrimaryColor"), nullptr);
-        return;
+    if (m_colorPickerKey.isEmpty()) {
+        m_colorPickerKey = activeThemeColorKey();
     }
-    refreshColorPicker();
-    notifyStatus(roles ? QStringLiteral("Editing theme roles")
-                       : QStringLiteral("Editing accent"));
-}
-
-void SettingsUi::colorApplyPreset(int index)
-{
-    if (index < 0 || index >= ThemeScheme::brandCount() || !m_color.active) {
-        return;
-    }
-    QColor c = ThemeScheme::brandAccent(index, m_settings.themeAppearance);
-    c.setAlpha(m_colorA);
-    loadColorDraft(c);
-    if (!m_colorPickerKey.isEmpty()) {
-        m_colorPending.insert(m_colorPickerKey, m_colorDraft);
-    }
-    refreshColorPicker();
-}
-
-void SettingsUi::applySuggestedColor(const QString& colorKey)
-{
-    const QColor sug = suggestedDraftColor(colorKey);
-    if (!sug.isValid()) {
-        return;
-    }
-    if (m_color.active) {
-        m_colorPending.insert(colorKey, sug);
-        if (colorKey == m_colorPickerKey) {
-            loadColorDraft(sug);
-        }
-        refreshColorPicker();
-        notifyStatus(QStringLiteral("Suggested %1").arg(AppSettings::settingTitle(colorKey)));
-        return;
-    }
-    (void)m_settings.setColorKey(colorKey, sug, true);
-    apply(true);
-    notifyStatus(QStringLiteral("%1 = suggested").arg(AppSettings::settingTitle(colorKey)));
-}
-
-void SettingsUi::colorUseSaved(const QString& savedKey)
-{
-    if (!m_color.active || !AppSettings::isColorKey(savedKey)) {
-        return;
-    }
-    loadColorDraft(m_settings.colorKey(savedKey));
-    m_colorPending.insert(m_colorPickerKey, m_colorDraft);
-    refreshColorPicker();
+    storeDraftPending();
+    const QColor stored = m_colorPending.value(m_colorPickerKey, m_colorDraft);
+    m_settings.themeCustom = true;
+    (void)m_settings.setColorKey(m_colorPickerKey, stored, false);
+    m_settings.applyTheme();
+    apply(persist);
 }
 
 bool SettingsUi::openFlashCustom(QString* error)
@@ -293,15 +249,31 @@ bool SettingsUi::openColorPicker(const QString& colorKey, QString* error)
         }
         return false;
     }
-    m_colorPickerKey = colorKey;
-    if (m_colorPickerPage != ColorPickerPage::Roles) {
-        m_colorPickerPage = AppSettings::isThemeSeedKey(colorKey) ? ColorPickerPage::Accent
-                                                                  : ColorPickerPage::Generic;
+    if (colorKey == QLatin1String("customPrimaryColor")
+        || colorKey == QLatin1String("customSecondaryColor")) {
+        m_themeAssignPrimary = colorKey != QLatin1String("customSecondaryColor");
+        if (!ensureInlineThemeEditor()) {
+            if (error) {
+                *error = QStringLiteral("Color picker is busy");
+            }
+            return false;
+        }
+        loadActiveThemeColor();
+        if (!m_pages.hasPage(QStringLiteral("main_settings_theme"))
+            && !m_pages.openPage(QStringLiteral("main_settings_theme"), error)) {
+            return false;
+        }
+        applyPreviewColor();
+        m_pages.refreshDecorated();
+        notifyStatus(m_themeAssignPrimary ? QStringLiteral("Editing Primary")
+                                          : QStringLiteral("Editing Secondary"));
+        return true;
     }
+    m_colorPickerKey = colorKey;
     m_colorPending.clear();
-    loadColorDraft(m_settings.colorKey(colorKey));
-    m_colorPending.insert(colorKey, m_colorDraft);
-    if (!presentLive(m_color, QLatin1String(kLiveColor), buildColorDocument(), error)) {
+    loadColorDraft(m_settings.colorKey(m_colorPickerKey));
+    m_colorPending.insert(m_colorPickerKey, m_colorDraft);
+    if (!presentLive(m_color, QLatin1String(kLiveColor), buildGenericColorDocument(), error)) {
         m_color.reset();
         return false;
     }
@@ -310,47 +282,116 @@ bool SettingsUi::openColorPicker(const QString& colorKey, QString* error)
     return true;
 }
 
-bool SettingsUi::selectColorTarget(const QString& colorKey, QString* error)
+QColor SettingsUi::liveThemeSource() const
 {
-    if (!m_color.active) {
-        return openColorPicker(colorKey, error);
+    if (isInlineThemeEditor() && m_colorDraft.isValid()) {
+        return m_colorDraft;
     }
-    if (!AppSettings::isColorKey(colorKey) || !m_settings.colorKey(colorKey).isValid()) {
-        if (error) {
-            *error = QStringLiteral("Not a color setting");
-        }
-        return false;
+    return colorForThemeKey(activeThemeColorKey());
+}
+
+QString SettingsUi::activeThemeColorKey() const
+{
+    return m_themeAssignPrimary ? QStringLiteral("customPrimaryColor")
+                                : QStringLiteral("customSecondaryColor");
+}
+
+QColor SettingsUi::colorForThemeKey(const QString& key) const
+{
+    const QColor pending = m_colorPending.value(key);
+    if (pending.isValid()) {
+        return pending;
     }
-    if (colorKey == m_colorPickerKey) {
-        return true;
+    if (key == QLatin1String("customPrimaryColor")) {
+        return m_settings.resolvedPalette().colors.accent;
     }
+    if (key == QLatin1String("customSecondaryColor")) {
+        QColor sec = m_settings.resolvedPalette().progress;
+        sec.setAlpha(kProgressFillAlpha);
+        return sec;
+    }
+    return m_settings.colorKey(key);
+}
+
+void SettingsUi::storeDraftPending()
+{
+    if (!m_color.active || !m_colorDraft.isValid() || m_colorPickerKey.isEmpty()) {
+        return;
+    }
+    QColor stored = m_colorDraft;
+    if (m_colorPickerKey == QLatin1String("customSecondaryColor")) {
+        stored.setAlpha(kProgressFillAlpha);
+    }
+    m_colorPending.insert(m_colorPickerKey, stored);
+}
+
+void SettingsUi::loadActiveThemeColor()
+{
+    m_colorPickerKey = activeThemeColorKey();
+    loadColorDraft(colorForThemeKey(m_colorPickerKey));
+    storeDraftPending();
+}
+
+void SettingsUi::themeSetAssignPrimary(bool primary)
+{
     if (m_scrub.active) {
         endSliderScrub(true);
     }
-    if (m_colorDraft.isValid() && !m_colorPickerKey.isEmpty()) {
-        m_colorPending.insert(m_colorPickerKey, m_colorDraft);
+    const bool switched = m_themeAssignPrimary != primary;
+    if (isInlineThemeEditor() && switched) {
+        persistThemeDraft(true);
     }
-    QColor next = m_colorPending.value(colorKey);
-    if (!next.isValid()) {
-        next = m_settings.colorKey(colorKey);
+    m_themeAssignPrimary = primary;
+    if (!ensureInlineThemeEditor()) {
+        apply(false);
+        notifyStatus(primary ? QStringLiteral("Editing Primary")
+                             : QStringLiteral("Editing Secondary"));
+        return;
     }
-    m_colorPickerKey = colorKey;
-    loadColorDraft(next);
-    m_colorPending.insert(colorKey, m_colorDraft);
+    if (switched || m_colorPickerKey != activeThemeColorKey()) {
+        loadActiveThemeColor();
+    }
+    applyPreviewColor();
+    m_pages.refreshDecorated();
+    notifyStatus(primary ? QStringLiteral("Editing Primary")
+                         : QStringLiteral("Editing Secondary"));
+}
+
+void SettingsUi::themePickShade(int family, int index)
+{
+    if (family < 0 || family >= MaterialPalette::kFamilyCount) {
+        return;
+    }
+    const auto f = static_cast<MaterialPalette::Family>(family);
+    const MaterialPalette::Palettes pal = MaterialPalette::generate(liveThemeSource());
+    QColor c = MaterialPalette::shade(pal, f, index);
+    if (!m_themeAssignPrimary) {
+        c.setAlpha(kProgressFillAlpha);
+    }
+    if (!ensureInlineThemeEditor()) {
+        return;
+    }
+    m_colorPickerKey = activeThemeColorKey();
+    loadColorDraft(c);
+    storeDraftPending();
+    persistThemeDraft(true);
+    notifyStatus(QStringLiteral("%1 = %2").arg(m_themeAssignPrimary ? QStringLiteral("Primary")
+                                                                    : QStringLiteral("Secondary"),
+                                               c.name(QColor::HexRgb).toUpper()));
+}
+
+void SettingsUi::colorApplyDraftShade(int index)
+{
+    if (!m_color.active) {
+        return;
+    }
+    const MaterialPalette::Palettes pal = MaterialPalette::generate(m_colorDraft);
+    loadColorDraft(MaterialPalette::shade(pal, MaterialPalette::Family::Primary, index));
+    storeDraftPending();
     refreshColorPicker();
-    notifyStatus(QStringLiteral("Editing %1").arg(AppSettings::settingTitle(colorKey)));
-    return true;
 }
 
-PageDocument SettingsUi::buildColorDocument() const
-{
-    if (m_colorPickerPage == ColorPickerPage::Accent) {
-        return buildAccentColorDocument();
-    }
-    return buildRolesColorDocument();
-}
-
-PageDocument SettingsUi::buildAccentColorDocument() const
+PageDocument SettingsUi::buildGenericColorDocument() const
 {
     PageDocument doc;
     doc.id = QLatin1String(kLiveColor);
@@ -358,115 +399,24 @@ PageDocument SettingsUi::buildAccentColorDocument() const
     initGrid(doc, 12, 9, 1400, 980, 8, 20, m_settings.resolvedTheme());
     PageGrid& grid = doc.grids[0];
     const EditorSwatch pal = editorSwatch();
-
-    const ThemeBrandInfo* brands = ThemeScheme::brands();
-    const int nBrands = ThemeScheme::brandCount();
-    const int span = qMax(1, 12 / nBrands);
-    for (int i = 0; i < nBrands; ++i) {
-        grid.cells.push_back(cell(QStringLiteral("preset_%1").arg(i), QLatin1String(brands[i].name),
-                                  0, i * span, QStringLiteral("settings.color.preset.%1").arg(i),
-                                  brands[i].colorFor(m_settings.themeAppearance), span));
-    }
-    int axisRow = 1;
-    for (const ColorAxis& axis : kColorAxes) {
-        if (axis.kind != ColorAxis::Kind::Hue && axis.kind != ColorAxis::Kind::Sat
-            && axis.kind != ColorAxis::Kind::Light) {
-            continue;
-        }
-        addColorAxis(grid, axis, axisRow, 9, 11, pal);
-        ++axisRow;
-    }
-    grid.cells.push_back(cell(QStringLiteral("swatch"), QStringLiteral("Accent"), 4, 0, {},
-                              m_colorDraft, 6, QStringLiteral("preview")));
-    const QString hex = m_colorDraft.name(QColor::HexArgb).toUpper();
-    grid.cells.push_back(cell(QStringLiteral("hex"), hex, 4, 6,
-                              QStringLiteral("settings.color.editHex"), pal.value, 6));
-    grid.cells.push_back(cell(QStringLiteral("roles"), QStringLiteral("Edit roles"), 6, 0,
-                              QStringLiteral("settings.color.roles"), pal.edit, 4, {}, {},
-                              QStringLiteral("edit")));
-    grid.cells.push_back(cell(QStringLiteral("save"), QStringLiteral("Save"), 6, 4,
-                              QStringLiteral("settings.color.save"), pal.save, 4));
-    grid.cells.push_back(cell(QStringLiteral("cancel"), QStringLiteral("Cancel"), 6, 8,
-                              QStringLiteral("settings.color.cancel"), pal.cancel, 4));
-    return doc;
-}
-
-PageDocument SettingsUi::buildRolesColorDocument() const
-{
-    PageDocument doc;
-    doc.id = QLatin1String(kLiveColor);
-    doc.name = AppSettings::settingTitle(m_colorPickerKey);
-    initGrid(doc, 12, 9, 1400, 980, 8, 20, m_settings.resolvedTheme());
-    PageGrid& grid = doc.grids[0];
-    const EditorSwatch pal = editorSwatch();
-
-    const AppSettings draft = draftThemeSettings();
-    const ThemePalette themePal = draft.resolvedPalette();
-    const bool themePicker = m_colorPickerPage == ColorPickerPage::Roles
-                             || AppSettings::isThemeSeedKey(m_colorPickerKey);
-    const int trackSpan = themePicker ? 5 : 9;
-    const int incCol = themePicker ? 7 : 11;
     for (int i = 0; i < int(std::size(kColorAxes)); ++i) {
-        addColorAxis(grid, kColorAxes[i], i, trackSpan, incCol, pal);
+        addColorAxis(grid, kColorAxes[i], i, 9, 11, pal);
     }
-
-    if (themePicker) {
-        struct RoleRow {
-            const char* id;
-            const char* label;
-            const char* caption;
-            const char* colorKey;
-            QColor color;
-            int row;
-        };
-        const RoleRow roles[] = {
-            {"use_window", "Window", "Board background", "customBgColor", themePal.colors.bgMain, 0},
-            {"use_surface", "Surface", "Panels and cells", "customSurfaceColor",
-             themePal.colors.bgSurface, 1},
-            {"use_accent", "Accent", "Activated items", "customPrimaryColor", themePal.colors.accent,
-             2},
-            {"use_progress", "Progress", "Dwell and mouse-move", "customSecondaryColor",
-             themePal.progress, 3},
-            {"use_text", "Foreground", "Body text", "customTextColor", themePal.colors.text, 4},
-            {"use_danger", "Danger", "Cancel / destructive", "customDangerColor",
-             themePal.colors.danger, 5},
-        };
-        for (const RoleRow& role : roles) {
-            PageCell sw =
-                cell(QLatin1String(role.id), QLatin1String(role.label), role.row, 8,
-                     QStringLiteral("settings.color.select.%1").arg(QLatin1String(role.colorKey)),
-                     role.color, 3, {}, QLatin1String(role.caption));
-            sw.settingKey = QLatin1String(role.colorKey);
-            sw.activeState =
-                QStringLiteral("settings.color.editing.%1").arg(QLatin1String(role.colorKey));
-            grid.cells.push_back(sw);
-            const QColor suggested = draft.suggestedThemeColor(QLatin1String(role.colorKey));
-            grid.cells.push_back(cell(
-                QStringLiteral("suggest_%1").arg(QLatin1String(role.colorKey)),
-                QStringLiteral("Reset"), role.row, 11,
-                QStringLiteral("settings.color.suggest.%1").arg(QLatin1String(role.colorKey)),
-                suggested));
-        }
+    const MaterialPalette::Palettes pals = MaterialPalette::generate(m_colorDraft);
+    for (int display = 0; display < MaterialPalette::kShadeCount; ++display) {
+        const int idx = MaterialPalette::kShadeCount - 1 - display;
+        const QColor c = pals.primary[idx];
+        grid.cells.push_back(cell(QStringLiteral("draft_shade_%1").arg(idx),
+                                  QString::number(MaterialPalette::kShades[idx]), 7, display,
+                                  QStringLiteral("settings.color.draftShade.%1").arg(idx), c));
     }
-
     const QString hex = m_colorDraft.name(QColor::HexArgb).toUpper();
-    if (themePicker) {
-        grid.cells.push_back(cell(QStringLiteral("accent"), QStringLiteral("Accent"), 7, 0,
-                                  QStringLiteral("settings.color.accent"), pal.edit, 4));
-        grid.cells.push_back(cell(QStringLiteral("hex"), hex, 7, 4,
-                                  QStringLiteral("settings.color.editHex"), pal.value, 4));
-        grid.cells.push_back(cell(QStringLiteral("save"), QStringLiteral("Save"), 8, 0,
-                                  QStringLiteral("settings.color.save"), pal.save, 6));
-        grid.cells.push_back(cell(QStringLiteral("cancel"), QStringLiteral("Cancel"), 8, 6,
-                                  QStringLiteral("settings.color.cancel"), pal.cancel, 6));
-    } else {
-        grid.cells.push_back(cell(QStringLiteral("hex"), hex, 7, 0,
-                                  QStringLiteral("settings.color.editHex"), pal.value, 8));
-        grid.cells.push_back(cell(QStringLiteral("save"), QStringLiteral("Save"), 8, 0,
-                                  QStringLiteral("settings.color.save"), pal.save, 4));
-        grid.cells.push_back(cell(QStringLiteral("cancel"), QStringLiteral("Cancel"), 8, 4,
-                                  QStringLiteral("settings.color.cancel"), pal.cancel, 4));
-    }
+    grid.cells.push_back(cell(QStringLiteral("hex"), hex, 8, 0,
+                              QStringLiteral("settings.color.editHex"), pal.value, 4));
+    grid.cells.push_back(cell(QStringLiteral("save"), QStringLiteral("Save"), 8, 4,
+                              QStringLiteral("settings.color.save"), pal.save, 4));
+    grid.cells.push_back(cell(QStringLiteral("cancel"), QStringLiteral("Cancel"), 8, 8,
+                              QStringLiteral("settings.color.cancel"), pal.cancel, 4));
     return doc;
 }
 
@@ -475,8 +425,17 @@ void SettingsUi::refreshColorPicker()
     if (m_hexActive || m_numpad.active) {
         return;
     }
+    if (isInlineThemeEditor()) {
+        if (m_scrub.active) {
+            applyPreviewColor();
+            m_pages.refreshDecorated();
+            return;
+        }
+        persistThemeDraft(true);
+        return;
+    }
     QString err;
-    if (!presentLive(m_color, QLatin1String(kLiveColor), buildColorDocument(), &err)) {
+    if (!presentLive(m_color, QLatin1String(kLiveColor), buildGenericColorDocument(), &err)) {
         notifyStatus(err);
         return;
     }
@@ -488,22 +447,13 @@ void SettingsUi::closeColorPicker()
     if (!m_color.active) {
         return;
     }
-    if (m_scrub.active) {
-        m_scrub.reset();
-        m_scrubDeadlineMs = -1;
-        m_scrubLastSampleMs = -1;
-        m_scrubDwell.reset();
-        if (PageHostWindow* w = m_pages.window()) {
-            w->clearSliderScrub();
-        }
-    }
+    abortSliderScrub();
     if (m_flashCustomSetMode) {
         m_settings.flashUseForeground = true;
         apply(true);
     }
     m_colorPending.clear();
     m_flashCustomSetMode = false;
-    m_colorPickerPage = ColorPickerPage::Generic;
     m_colorPickerKey.clear();
     m_hexBuffer.clear();
     if (m_hexActive) {
@@ -521,25 +471,13 @@ bool SettingsUi::colorSave(QString* error)
         }
         return false;
     }
-    if (m_colorDraft.isValid()) {
-        m_colorPending.insert(m_colorPickerKey, m_colorDraft);
-    }
-    bool anyTheme = false;
+    storeDraftPending();
     for (auto it = m_colorPending.constBegin(); it != m_colorPending.constEnd(); ++it) {
         if (!m_settings.setColorKey(it.key(), it.value(), /*rebuildPalette=*/false)) {
             if (error) {
                 *error = QStringLiteral("Could not apply color");
             }
             return false;
-        }
-        anyTheme = anyTheme || AppSettings::isThemeSeedKey(it.key());
-    }
-    if (anyTheme) {
-        m_settings.themeCustom = true;
-        if (m_colorPickerPage == ColorPickerPage::Accent) {
-            m_settings.applyCustomPalette(false);
-        } else {
-            m_settings.applyTheme();
         }
     }
     apply(true);

@@ -368,6 +368,9 @@ struct PageLeaf {
     /// current tab (selected, not a navigation target).
     [[nodiscard]] bool isInteractive() const
     {
+        if (role.compare(QLatin1String("slider"), Qt::CaseInsensitive) == 0 && !actions.isEmpty()) {
+            return true;
+        }
         if (pageRoleIsPassive(role)) {
             return false;
         }

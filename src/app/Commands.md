@@ -85,7 +85,7 @@ Script: `gazer.openPage` / `loadPage` / `focusedPageId` (`ScriptHost`, not Comma
 | `compose.voicePreset.<id>` / `compose.editVoicePreset.<id>` / `compose.newVoicePreset` | Apply, rename, or save a Freestyle voice (voice + speed + boost) |
 | `compose.editTag.<i>` / `compose.newTag` | Rename or create a saved tag from the composer |
 | `history.play.<id>` / `history.restore.<id>` / `history.delete.<id>` | Replay, put the phrase back in the buffer, or drop the row |
-| `history.list.next` / `.prev` / `history.list.goto.<n>` | Scroll history; jump to item offset |
+| `history.list.next` / `.prev` / `history.list.goto.<n>` | History list: gaze along the track to scroll; commands still page/jump |
 | `compose.pin` / `compose.cancelAssign` | Topics: empty buffer no-op; phrase assigns onto the soundboard. Freestyle: save the current voice + speed + boost |
 | `compose.editPins` | Edit mode: dwell a pin/topic (or a Freestyle voice/tag) to rename |
 | `soundboard.edit.<id>` | Open the pin item editor |
@@ -100,7 +100,7 @@ Script: `gazer.openPage` / `loadPage` / `focusedPageId` (`ScriptHost`, not Comma
 | `speech.voicePreview.<id>` | Prefix; preview that voice without selecting it |
 | `speech.preview` | Preview the current voice |
 | `speech.fav.toggle` / `speech.fav.toggle.<id>` | Favorite the current or named ElevenLabs voice |
-| `speech.voiceList.next` / `.prev` / `.goto.<n>` | Scroll the filtered catalog |
+| `speech.voiceList.next` / `.prev` / `.goto.<n>` | Voice list: gaze along the track to scroll; commands still page/jump |
 | `speech.gender.all` / `.female` / `.male` | Voice filter |
 | `speech.lang.all` / `speech.lang.set.<code>` | Language filter |
 | `speech.speed.dec` / `.inc` | Nudge `speechSpeed` 0.1 |
@@ -121,7 +121,6 @@ Patterns, not every generated name:
 | `settings.numpad.*` | Live numpad keys |
 | `settings.array.*` | Sequence editor (`nudge.N`, `edit.N`, `del.N` for N=0..11) |
 | `settings.edit.color.<colorKey>` | Open color picker |
-| `settings.color.select.` / `.use.` / `.suggest.<colorKey>` | Theme roles |
 | `settings.color.nudge.` / `.edit.` / `.scrub.<h\|s\|l\|r\|g\|b\|a>` | Channels |
 | `settings.color.editHex` / `.save` / `.cancel` | Hex pad |
 | `settings.hex.digit.*` / `.backspace` / `.clear` / `.save` / `.cancel` | Hex keys |
@@ -141,13 +140,14 @@ Patterns, not every generated name:
 | `settings.pickWindow.round` / `.square` | Zoom window shape |
 | `settings.pickCenter.gaze` / `.screen` | Zoom window at gaze point or screen center |
 | `settings.nudge.themeSaturation.dec` / `.inc` | Saturation 20–100 in five steps (surfaces keep brightness) |
-| `settings.theme.edit` | Open Custom on the role list |
+| `settings.theme.source` | Open Theme page editing Primary |
+| `settings.theme.assign.primary` / `.secondary` | Select which color the HSL sliders edit (and that shade dwells assign) |
+| `settings.theme.shade.<family>.0`…`.9` | Load that Material shade (50–900) into the active P or S color |
+| `settings.color.draftShade.0`…`.9` | Set the live draft to a generated primary shade |
 | `theme.light` / `.lightTinted` / `.darkTinted` / `.dark` | Appearance |
 | `theme.primary.0`…`.8` | Accent (Apple system: Red, Orange, Yellow, Green, Teal, Blue, Indigo, Purple, Pink) |
 | `theme.secondary.0`…`.8` | Progress (same 9, light or dark from appearance) |
 | `theme.custom` | Custom palette |
-| `settings.color.roles` / `.accent` | Theme picker: full roles vs accent |
-| `settings.color.preset.0`…`.8` | Apple system accent chips |
 | `settings.reset` | Defaults |
 
 Numeric keys: `dwellMs` / `dailyDwellMs` plus `kIntSpecs` / `kDoubleSpecs` in `AppSettings.cpp`. Color keys: `SettingsUi::kColorKeys`.
