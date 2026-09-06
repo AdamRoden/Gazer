@@ -3,6 +3,7 @@
 #include "ui/KeySymbols.h"
 #include "ui/ProgressPaint.h"
 #include "layout/RoundBox.h"
+#include "ui/ScrollBar.h"
 #include "ui/SliderTrack.h"
 
 #include <QFont>
@@ -638,6 +639,9 @@ void paintTarget(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeC
                 || t.id.endsWith(QLatin1Char('/') + sliderScrubId));
         SliderTrack::paint(p, r, theme, vis, previewColor, channel, t.label, hovered, progress,
                            scrubbing, sliderScrubT, sliderScrubValue, sliderScrubProgress);
+    } else if (role == QLatin1String("scrollbar")) {
+        paintSurface(p, r, t.chrome, theme, glass, false, false, false, false);
+        ScrollBar::paint(p, r, theme, ScrollBar::parseSpec(t.caption));
     } else if (role == QLatin1String("preview")) {
         SliderTrack::paintPreview(p, r, radius, previewColor);
         paintLabel(p, t, r, theme);

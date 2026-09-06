@@ -14,6 +14,7 @@ Composition root, settings, command dispatch.
 | `ComposeFreestyle.cpp` | Freestyle voice rail + tag board, saved-voice presets |
 | `ComposeItemEdit.cpp` | Unified name/color/icon editor overlay |
 | `ComposeHistory.cpp` | History replay/restore |
+| `ComposeListScroll.cpp` | Gaze-follow scrollbar on history / voices live boards |
 | `GazeRouter` | Gaze sample → session + assist |
 | `ActiveStateResolver` | `visibleWhen` / `activeState` keys (`mod.shift`, …) |
 | `AppSettings` | Persisted prefs. Factory values on the struct; `defaults()` bakes Fluent neutrals + `applyTheme()`; spec tables + nudge/display in `.cpp`; JSON overlay in `AppSettingsIo.cpp`; Fluent appearance × Apple system accent in `AppSettingsTheme.cpp` |

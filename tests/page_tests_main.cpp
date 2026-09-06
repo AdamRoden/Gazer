@@ -18,6 +18,7 @@ QObject* createAppSettingsTest();
 QObject* createMaterialPaletteTest();
 QObject* createMouseDwellMoveTest();
 QObject* createProgressPaintTest();
+QObject* createScrollBarTest();
 QObject* createComboMouseTest();
 QObject* createAhkLauncherTest();
 QObject* createKeyStateManagerTest();
@@ -70,6 +71,8 @@ int main(int argc, char** argv)
     status |= QTest::qExec(mouseDwell.get(), rest);
     std::unique_ptr<QObject> progress(createProgressPaintTest());
     status |= QTest::qExec(progress.get(), rest);
+    std::unique_ptr<QObject> scroll(createScrollBarTest());
+    status |= QTest::qExec(scroll.get(), rest);
     std::unique_ptr<QObject> combo(createComboMouseTest());
     status |= QTest::qExec(combo.get(), rest);
     std::unique_ptr<QObject> ahk(createAhkLauncherTest());

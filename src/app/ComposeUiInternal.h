@@ -2,20 +2,20 @@
 
 #include "app/SettingsPageBuild.h"
 #include "layout/PageTypes.h"
+#include "ui/ScrollBar.h"
 #include "ui/Theme.h"
 
 #include <QColor>
 #include <QString>
 #include <QStringList>
-#include <QtMath>
 #include <QVector>
 
 namespace gazer::compose_detail {
 
 constexpr int kOverlayListRows = 10;
-constexpr int kOverlayScrollTrack = 6;
 constexpr int kOverlayBodyCols = 20;
 constexpr int kOverlayListColSpan = 19;
+constexpr auto kOverlayScrollTrackId = QLatin1String("sb_track");
 
 inline PageAction commandAction(const QString& name)
 {
@@ -53,66 +53,29 @@ inline PageGrid overlayList(int columns)
     return list;
 }
 
-/// Narrow strip: square-ish ArrowUp / ArrowDown and a 6-slot track.
-inline PageGrid overlayScrollbar(const QString& prevCmd, const QString& nextCmd,
-                                 const QString& gotoPrefix, int offset, int maxOffset,
-                                 const QColor& surface, const QColor& accent, const QColor& well)
+/// Full-height gaze scrollbar: look along the track to set list offset.
+inline PageGrid overlayScrollbar(int offset, int visible, int total, const QColor& surface)
 {
     using SettingsPageBuild::cell;
-    using SettingsPageBuild::scrollHit;
     PageGrid scroll;
     scroll.id = QStringLiteral("scroll");
     scroll.nested = true;
     scroll.row = 0;
     scroll.col = kOverlayListColSpan;
     scroll.colSpan = 1;
-    scroll.rows = 3;
+    scroll.rows = 1;
     scroll.columns = 1;
-    scroll.rowWeights = {1.0, 6.0, 1.0};
-    scroll.gapPx = 4;
+    scroll.gapPx = 0;
     scroll.marginPx = 4;
     scroll.style.background = surface;
     scroll.style.thickness = PageBox::all(0);
     scroll.style.radius = PageBox::all(16);
-    const bool canPrev = maxOffset > 0 && offset > 0;
-    const bool canNext = maxOffset > 0 && offset < maxOffset;
-    scroll.cells.push_back(cell(QStringLiteral("sb_up"), {}, 0, 0, canPrev ? prevCmd : QString(),
-                                surface, 1, canPrev ? QString() : QStringLiteral("label"), {},
-                                QStringLiteral("ArrowPointingToTop")));
-    scroll.cells.push_back(cell(QStringLiteral("sb_down"), {}, 2, 0, canNext ? nextCmd : QString(),
-                                surface, 1, canNext ? QString() : QStringLiteral("label"), {},
-                                QStringLiteral("ArrowPointingToBottom")));
-
-    PageGrid track;
-    track.id = QStringLiteral("track");
-    track.nested = true;
-    track.row = 1;
-    track.col = 0;
-    track.rows = kOverlayScrollTrack;
-    track.columns = 1;
-    track.gapPx = 2;
-    track.marginPx = 4;
-    track.style.background = well;
+    PageCell track = cell(QString(kOverlayScrollTrackId), {}, 0, 0, {}, QColor(), 1,
+                          QStringLiteral("scrollbar"));
+    track.caption = ScrollBar::formatSpec(offset, visible, total);
     track.style.thickness = PageBox::all(0);
     track.style.radius = PageBox::all(10);
-    const QColor clear(0, 0, 0, 0);
-    if (maxOffset > 0) {
-        const int last = kOverlayScrollTrack - 1;
-        const int thumbStart = qBound(
-            0, int(qRound(double(offset) * double(last) / double(maxOffset))), last);
-        for (int i = 0; i < kOverlayScrollTrack; ++i) {
-            if (i == thumbStart) {
-                track.cells.push_back(scrollHit(QStringLiteral("thumb"), i, 1,
-                                                gotoPrefix + QString::number(offset), accent, 8));
-                continue;
-            }
-            const int pos =
-                qBound(0, int(qRound(double(i) * double(maxOffset) / double(last))), maxOffset);
-            track.cells.push_back(scrollHit(QStringLiteral("sb_%1").arg(i), i, 1,
-                                            gotoPrefix + QString::number(pos), clear, 0));
-        }
-    }
-    scroll.subGrids.push_back(std::move(track));
+    scroll.cells.push_back(std::move(track));
     return scroll;
 }
 

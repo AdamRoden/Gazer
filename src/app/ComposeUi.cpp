@@ -286,6 +286,7 @@ void ComposeUi::abandonClosedSession()
     m_editIcons = false;
     m_editColor.clear();
     m_editIcon.clear();
+    stopListScroll();
     closeItemEdit();
 }
 
@@ -697,6 +698,11 @@ QString ComposeUi::currentVoiceDisplayName() const
 
 void ComposeUi::syncClosedOverlays()
 {
+    if (m_listScroll == ListScroll::History && !hasLive(kHistoryLiveId)) {
+        stopListScroll();
+    } else if (m_listScroll == ListScroll::Voices && !hasLive(kVoicesLiveId)) {
+        stopListScroll();
+    }
     if (nameEditing() && !hasLive(kItemEditLiveId)) {
         finishItemEditor(true);
     }

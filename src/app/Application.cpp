@@ -3,6 +3,7 @@
 #include "app/ActionDispatcher.h"
 #include "app/AppSettings.h"
 #include "app/CommandRegistry.h"
+#include "app/ComposeUi.h"
 #include "app/GazerServices.h"
 #include "app/SettingsUi.h"
 #include "assist/ComboMouse.h"
@@ -296,9 +297,10 @@ void Application::wireTracker()
 
 void Application::onGaze(const gazer::GazePoint& point)
 {
-    // Commit / follow color sliders before board dwell so leaving a slider can
-    // activate minus/plus on the same sample.
+    // Commit / follow color sliders and list scrollbars before board dwell so
+    // leaving them can activate a neighbor on the same sample.
     m_svc->settingsUi().onGaze(point);
+    m_svc->composeUi().onGaze(point);
     m_gazeRouter.dispatch(point);
     if (m_svc->isDwellSuspended()) {
         syncDwellSuspendOverlay();

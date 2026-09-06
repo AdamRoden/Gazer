@@ -230,9 +230,7 @@ PageDocument ComposeUi::buildHistoryDocument()
                                   QStringLiteral("delete")));
     }
     body.subGrids.push_back(std::move(list));
-    body.subGrids.push_back(overlayScrollbar(
-        QStringLiteral("history.list.prev"), QStringLiteral("history.list.next"),
-        QStringLiteral("history.list.goto."), start, maxOffset, key, accent, value));
+    body.subGrids.push_back(overlayScrollbar(start, kOverlayListRows, items.size(), key));
     grid.subGrids.push_back(std::move(body));
     return doc;
 }

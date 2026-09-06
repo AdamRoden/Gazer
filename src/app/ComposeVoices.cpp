@@ -323,9 +323,7 @@ PageDocument ComposeUi::buildVoicesDocument()
                                   {}, {}, QStringLiteral("recordVoiceOver")));
     }
     body.subGrids.push_back(std::move(list));
-    body.subGrids.push_back(overlayScrollbar(
-        QStringLiteral("speech.voiceList.prev"), QStringLiteral("speech.voiceList.next"),
-        QStringLiteral("speech.voiceList.goto."), start, maxOffset, key, accent, value));
+    body.subGrids.push_back(overlayScrollbar(start, kOverlayListRows, filtered.size(), key));
     grid.subGrids.push_back(std::move(body));
     return doc;
 }

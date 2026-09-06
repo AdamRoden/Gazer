@@ -2,8 +2,11 @@
 
 #include "assist/ComposeBuffer.h"
 #include "assist/VoiceCatalog.h"
+#include "core/GazePoint.h"
+#include "layout/InvalidGazeGrace.h"
 #include "layout/PageTypes.h"
 
+#include <QElapsedTimer>
 #include <QString>
 #include <functional>
 #include <memory>
@@ -122,6 +125,8 @@ public:
     void historyGoto(int offset);
     void onHistoryReady(const QString& phrase, const QString& backend, const QString& modelId,
                         const QString& voiceId, const QString& mpegPath);
+    /// Gaze-follow the history / voices scrollbar (passive track, not a dwell cell).
+    void onGaze(const GazePoint& point);
 
 private:
     [[nodiscard]] bool isCapturing(const QString& sourcePageId) const;
@@ -169,6 +174,8 @@ private:
 
     PageDocument buildHistoryDocument();
     void rebuildHistory();
+    void feedListScrollGaze(const GazePoint& point);
+    void stopListScroll();
 
     PageSession& m_pages;
     PhraseService& m_phrases;
@@ -197,6 +204,12 @@ private:
     QString m_editIcon;
     QString m_activeVoicePresetId;
     int m_historyPage = 0;
+    enum class ListScroll { None, History, Voices };
+    ListScroll m_listScroll = ListScroll::None;
+    InvalidGazeGrace m_listScrollGrace;
+    QElapsedTimer m_listScrollClock;
+    qint64 m_listScrollEngageAtMs = -1;
+    double m_listScrollT = 0.0;
 };
 
 } // namespace gazer

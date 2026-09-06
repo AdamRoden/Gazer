@@ -62,6 +62,7 @@ set(GAZER_SOURCES
     src/app/ComposeFreestyle.cpp
     src/app/ComposeItemEdit.cpp
     src/app/ComposeHistory.cpp
+    src/app/ComposeListScroll.cpp
     src/assist/ComposeCommands.cpp
     src/core/TrackerMouse.cpp
     src/core/TrackerTobii.cpp
@@ -123,6 +124,7 @@ set(GAZER_SOURCES
     src/ui/PageHostWindow.cpp
     src/ui/BoardPaint.cpp
     src/ui/SliderTrack.cpp
+    src/ui/ScrollBar.cpp
     src/ui/GlassBackdrop.cpp
     src/ui/TrayIcon.cpp
     src/ui/MagnifierOverlay.cpp
@@ -244,6 +246,7 @@ set(GAZER_HEADERS
     src/ui/ProgressVisuals.h
     src/ui/ProgressPaint.h
     src/ui/SliderTrack.h
+    src/ui/ScrollBar.h
     src/ui/GlassBackdrop.h
     src/ui/TrayIcon.h
     src/ui/MagnifierOverlay.h
@@ -429,6 +432,8 @@ add_executable(GazerPageTests
     src/ui/MaterialPalette.cpp
     src/ui/PickStyle.cpp
     tests/ProgressPaintTest.cpp
+    tests/ScrollBarTest.cpp
+    src/ui/ScrollBar.cpp
     tests/ComboMouseTest.cpp
     tests/AhkLauncherTest.cpp
     tests/KeyStateManagerTest.cpp
