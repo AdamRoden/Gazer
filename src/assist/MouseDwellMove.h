@@ -14,6 +14,7 @@
 #include <QPoint>
 #include <QPointF>
 #include <QRect>
+#include <QTimer>
 #include <memory>
 
 namespace gazer {
@@ -202,6 +203,8 @@ private:
     void onGazeInZoom(const QPointF& g, double dtSec);
     void onGazeAim(const QPointF& g, double dtSec);
     void completeMoveCycle(const QPoint& target);
+    void showCompletionFlash();
+    void onFlashFinished();
     void markSelectDeadline();
     [[nodiscard]] bool selectTimedOut(qint64 nowMs) const;
     [[nodiscard]] bool useMagPickThisArm() const;
@@ -251,6 +254,7 @@ private:
 
     std::unique_ptr<CursorOverlay> m_cursor;
     std::unique_ptr<MagPickOverlay> m_magOverlay;
+    QTimer m_flashTimer;
 };
 
 } // namespace gazer

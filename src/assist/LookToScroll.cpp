@@ -291,7 +291,10 @@ void LookToScroll::pinCursorToOrigin()
     if (!m_hasOrigin) {
         return;
     }
-    if (QCursor::pos() == m_origin) {
+    const QPoint now = QCursor::pos();
+    // Qt/Windows DPI can round setPos by a pixel. Warping every sample against
+    // that error injects a 1px mouse oscillation that shakes the scroll target.
+    if (qAbs(now.x() - m_origin.x()) <= 2 && qAbs(now.y() - m_origin.y()) <= 2) {
         return;
     }
     QString err;

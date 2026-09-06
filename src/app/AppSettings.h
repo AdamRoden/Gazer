@@ -68,9 +68,9 @@ struct AppSettings {
     // --- Progress visuals (boards + mouse-move) ---
     ProgressStyle progress;
     ProgressStyle mouseProgress = ProgressStyle::pointerDefaults();
-    QString progressColor = QStringLiteral("#4DFF473D");
-    QString progressFillColor = QStringLiteral("#4DFF473D");
-    QString progressBorderColor = QStringLiteral("#4DFF473D");
+    QString progressColor = QStringLiteral("#99FF473D");
+    QString progressFillColor = QStringLiteral("#99FF473D");
+    QString progressBorderColor = QStringLiteral("#99FF473D");
     /// PickStyle flags: first dwell (region) and final click/move dwell.
     int magPickStyle = 1;   // Cursor
     int mousePickStyle = 1; // Cursor
@@ -182,7 +182,7 @@ struct AppSettings {
     /// Bg / surface / tertiary are baked from Fluent in defaults().
     QString customBgColor = QStringLiteral("#141414");
     QString customPrimaryColor = QStringLiteral("#1E97F3");
-    QString customSecondaryColor = QStringLiteral("#4DFF473D");
+    QString customSecondaryColor = QStringLiteral("#99FF473D");
     QString customTertiaryColor = QStringLiteral("#1E97F3");
     QString customSurfaceColor = QStringLiteral("#1E1E1E");
     QString customTextColor = QStringLiteral("#FFFFFF");

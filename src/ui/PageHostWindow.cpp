@@ -185,7 +185,7 @@ void PageHostWindow::paintScene(QPainter& p, ChromePass pass)
             break;
         }
         vis.label = KeyGlyphs::displayLabel(t.label, sendKey, m_shiftHeld);
-        const bool hovered = live && sessionKey(t) == m_hoverId;
+        const bool hovered = live && sessionKey(t) == m_hoverId && m_revealProgress;
         const bool flashing = live && sessionKey(t) == m_flashId;
         const bool active = live && m_activeIds.contains(sessionKey(t));
         const bool locked = live && m_lockedIds.contains(sessionKey(t));

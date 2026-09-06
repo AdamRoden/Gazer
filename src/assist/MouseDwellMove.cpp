@@ -43,6 +43,8 @@ MouseDwellMove::MouseDwellMove(QObject* parent)
     m_invalidGrace.graceMs = 220;
     m_cursor = std::make_unique<CursorOverlay>();
     m_magOverlay = std::make_unique<MagPickOverlay>();
+    m_flashTimer.setSingleShot(true);
+    connect(&m_flashTimer, &QTimer::timeout, this, [this]() { onFlashFinished(); });
 }
 
 MouseDwellMove::~MouseDwellMove() = default;
@@ -116,6 +118,7 @@ void MouseDwellMove::setArmed(bool armed, ArmPurpose purpose, ArmZoom zoom)
             m_purpose = purpose;
             m_armZoom = next;
             m_paused = false;
+            m_flashTimer.stop();
             resetDwell();
             if (m_magOverlay) {
                 m_magOverlay->hide();
@@ -134,6 +137,7 @@ void MouseDwellMove::setArmed(bool armed, ArmPurpose purpose, ArmZoom zoom)
     m_gateRect = {};
     m_gateLeftMs = -1;
     m_purpose = armed ? purpose : ArmPurpose::CursorMove;
+    m_flashTimer.stop();
     resetDwell();
     if (!m_armed) {
         hideUi();
@@ -405,7 +409,7 @@ void MouseDwellMove::placeCursor(const QPoint& target)
 
 void MouseDwellMove::onGaze(const GazePoint& point)
 {
-    if (!m_armed || m_paused) {
+    if (!m_armed || m_paused || m_flashTimer.isActive()) {
         return;
     }
 
@@ -515,9 +519,33 @@ void MouseDwellMove::completeMoveCycle(const QPoint& target)
         if (!MouseInjector::click(button, &err)) {
             GAZER_WARN << "MouseDwellMove click failed:" << err;
         }
-        if (!loop) {
-            setArmed(false);
-            return;
+    }
+    showCompletionFlash();
+}
+
+void MouseDwellMove::showCompletionFlash()
+{
+    m_selectDeadlineMs = -1;
+    if (m_phase == Phase::MagPoint && m_magOverlay && m_magOverlay->isVisible()) {
+        m_magOverlay->setProgress(1.0, true);
+        if (m_cursor) {
+            m_cursor->hide();
+        }
+    } else if (m_cursor) {
+        m_cursor->setProgress(1.0, true);
+        m_cursor->showOverlay();
+        if (m_magOverlay) {
+            m_magOverlay->hide();
+        }
+    }
+    m_flashTimer.start(qMax(40, m_progressVisuals.flashMs));
+}
+
+void MouseDwellMove::onFlashFinished()
+{
+    if (m_armed && m_purpose == ArmPurpose::CursorMoveClickLoop) {
+        if (m_magOverlay) {
+            m_magOverlay->hide();
         }
         resetDwell();
         startAimPhase();

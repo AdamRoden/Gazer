@@ -29,7 +29,7 @@ constexpr int kDefaultMousePick = Cursor;
 [[nodiscard]] bool has(int flags, Flag f);
 
 void paint(QPainter& p, const QPointF& center, int flags, double progress,
-           const ProgressVisuals& visuals);
+           const ProgressVisuals& visuals, bool flashing = false);
 
 [[nodiscard]] QString label(int flags);
 

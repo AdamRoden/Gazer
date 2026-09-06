@@ -27,6 +27,20 @@ enum class ThemeAppearance {
 
 /// Brand fills in Page XML (`red`, `blue`, …) are translucent overlays.
 constexpr int kNamedBrandFillAlpha = 0x99;
+/// Pie / theme progress fills. Same 60% as named brand fills.
+constexpr int kProgressFillAlpha = kNamedBrandFillAlpha;
+
+/// Brand progress fills arrive opaque; give them 60% alpha. Authored
+/// translucent colors are left alone.
+[[nodiscard]] inline QColor withProgressFillAlpha(const QColor& c)
+{
+    if (!c.isValid() || c.alpha() < 255) {
+        return c;
+    }
+    QColor o = c;
+    o.setAlpha(kProgressFillAlpha);
+    return o;
+}
 
 /// Chrome palette. JSON ownership lives here (toJson/fromJson).
 /// AppSettings derives a live palette from appearance × accent × progress × saturation.

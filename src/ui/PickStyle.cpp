@@ -3,6 +3,7 @@
 #include "ui/ProgressPaint.h"
 
 #include <QPainterPath>
+#include <QPen>
 #include <QtMath>
 
 namespace gazer {
@@ -43,7 +44,8 @@ QString label(int flags)
     return parts.isEmpty() ? QStringLiteral("Cursor") : parts.join(QStringLiteral(", "));
 }
 
-void paint(QPainter& p, const QPointF& c, int flags, double progress, const ProgressVisuals& visuals)
+void paint(QPainter& p, const QPointF& c, int flags, double progress, const ProgressVisuals& visuals,
+           bool flashing)
 {
     p.setRenderHint(QPainter::Antialiasing, true);
     const QColor accent = visuals.progressColor.isValid() ? visuals.progressColor
@@ -87,11 +89,17 @@ void paint(QPainter& p, const QPointF& c, int flags, double progress, const Prog
         p.drawPath(path);
     }
 
-    if (progress > 0.01
-        && visuals.style.any()) {
-        const qreal s = has(flags, GazeIndicator) ? 128.0 : 64.0;
+    const qreal s = has(flags, GazeIndicator) ? 128.0 : 64.0;
+    if (progress > 0.01 && visuals.style.any()) {
         paintProgress(p, QRectF(c.x() - s * 0.5, c.y() - s * 0.5, s, s), progress, visuals,
                       ProgressShape::Ellipse);
+    }
+    if (flashing) {
+        const QColor fc = visuals.pointerFlashColor();
+        const QRectF r(c.x() - s * 0.5, c.y() - s * 0.5, s, s);
+        p.setBrush(fc);
+        p.setPen(QPen(fc, 3.5));
+        p.drawEllipse(r);
     }
 }
 

@@ -23,9 +23,10 @@ public:
         hide();
     }
 
-    void setProgress(double p)
+    void setProgress(double p, bool flashing = false)
     {
         m_progress = qBound(0.0, p, 1.0);
+        m_flashing = flashing;
         update();
     }
 
@@ -52,13 +53,14 @@ protected:
     void paintEvent(QPaintEvent*) override
     {
         QPainter p(this);
-        PickStyle::paint(p, QRectF(rect()).center(), m_style, m_progress, m_visuals);
+        PickStyle::paint(p, QRectF(rect()).center(), m_style, m_progress, m_visuals, m_flashing);
     }
 
 private:
     double m_progress = 0.0;
     int m_style = PickStyle::kDefaultMousePick;
     ProgressVisuals m_visuals;
+    bool m_flashing = false;
 };
 
 class MouseDwellMove::MagPickOverlay final : public OverlaySurface {
@@ -75,6 +77,7 @@ public:
         m_hasPick = false;
         m_pick = {};
         m_progress = 0.0;
+        m_flashing = false;
         m_hint = hint;
         m_round = round;
         setGeometry(destGlobal);
@@ -101,9 +104,10 @@ public:
         update();
     }
 
-    void setProgress(double p)
+    void setProgress(double p, bool flashing = false)
     {
         m_progress = qBound(0.0, p, 1.0);
+        m_flashing = flashing;
         update();
     }
 
@@ -160,7 +164,7 @@ protected:
             p.drawRect(frame);
         }
         if (m_hasPick) {
-            PickStyle::paint(p, QPointF(m_pick), m_style, m_progress, m_visuals);
+            PickStyle::paint(p, QPointF(m_pick), m_style, m_progress, m_visuals, m_flashing);
         }
         p.setPen(Qt::white);
         p.setFont(QFont(QStringLiteral("Segoe UI"), 11, QFont::DemiBold));
@@ -179,6 +183,7 @@ private:
     ProgressVisuals m_visuals;
     QString m_hint;
     bool m_round = false;
+    bool m_flashing = false;
 };
 
 } // namespace gazer

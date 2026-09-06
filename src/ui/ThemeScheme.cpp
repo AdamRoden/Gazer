@@ -189,13 +189,11 @@ ThemePalette fluent(ThemeAppearance appearance, int saturation, const QColor& pr
         keepValue(ThemeColors::mix(c.bgSurface, primary, qBound(0.10, accentW * 2.0, 0.34)),
                   c.bgSurface);
 
-    const QColor progress =
-        secondaryIn.isValid() ? scaleSaturation(secondaryIn, saturation) : primary;
+    const QColor progress = withProgressFillAlpha(
+        secondaryIn.isValid() ? scaleSaturation(secondaryIn, saturation) : primary);
     out.progress = progress;
     out.progressBorder = progress;
-    QColor fill = progress;
-    fill.setAlpha(qBound(30, int(std::lround(255.0 * accentW * 6.0)), 90));
-    out.progressFill = fill;
+    out.progressFill = progress;
     c.progress = progress;
     c.appearance = appearance;
     return out;

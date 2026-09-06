@@ -131,7 +131,7 @@ ThemeSeeds AppSettings::themeSeeds() const
 {
     ThemeSeeds seeds;
     seeds.primary = parseColor(customPrimaryColor, QColor(0x1E, 0x97, 0xF3));
-    seeds.secondary = parseColor(customSecondaryColor, QColor(0xFF, 0x47, 0x3D, 0x4D));
+    seeds.secondary = parseColor(customSecondaryColor, QColor(0xFF, 0x47, 0x3D, kProgressFillAlpha));
     return seeds;
 }
 

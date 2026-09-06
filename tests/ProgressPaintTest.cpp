@@ -1,4 +1,5 @@
 #include "ui/ProgressPaint.h"
+#include "ui/Theme.h"
 
 #include <QtTest>
 
@@ -11,6 +12,7 @@ private slots:
     void radialRingCell();
     void radialRingMid();
     void radialRingPointer();
+    void strokeMatchesPieAlpha();
 };
 
 void ProgressPaintTest::radialRingCell()
@@ -35,6 +37,14 @@ void ProgressPaintTest::radialRingPointer()
     QCOMPARE(ring.stroke, 6.4);
     QCOMPARE(ring.disk.width(), 64.0);
     QCOMPARE(ring.arc.width(), 57.6);
+}
+
+void ProgressPaintTest::strokeMatchesPieAlpha()
+{
+    const QColor pie(0xFF, 0x47, 0x3D, kProgressFillAlpha);
+    QCOMPARE(progressStrokeColor(QColor(0xFF, 0x47, 0x3D), pie).alpha(), kProgressFillAlpha);
+    const QColor track = radialTrackColor(pie);
+    QCOMPARE(track.alpha(), qRound(kProgressFillAlpha * 80.0 / 255.0));
 }
 
 QObject* createProgressPaintTest()

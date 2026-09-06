@@ -93,10 +93,10 @@ void AppSettingsTest::factoryUsesDomainConstants()
     QCOMPARE(s.resolvedTheme().accent, QColor(0x1E, 0x97, 0xF3));
     QCOMPARE(s.resolvedTheme().accentHover, QColor(0x1E, 0x97, 0xF3));
     QCOMPARE(s.resolvedTheme().danger, QColor(0xFC, 0x1C, 0x1C));
-    QCOMPARE(s.resolvedPalette().progress, QColor(0xFF, 0x47, 0x3D, 0x4D));
-    QCOMPARE(s.resolvedPalette().progressFill, QColor(0xFF, 0x47, 0x3D, 0x4D));
-    QCOMPARE(s.progressColor, QStringLiteral("#4DFF473D"));
-    QCOMPARE(s.progressFillColor, QStringLiteral("#4DFF473D"));
+    QCOMPARE(s.resolvedPalette().progress, QColor(0xFF, 0x47, 0x3D, kProgressFillAlpha));
+    QCOMPARE(s.resolvedPalette().progressFill, QColor(0xFF, 0x47, 0x3D, kProgressFillAlpha));
+    QCOMPARE(s.progressColor, QStringLiteral("#99FF473D"));
+    QCOMPARE(s.progressFillColor, QStringLiteral("#99FF473D"));
     QCOMPARE(s.speakAlsoType, true);
     QCOMPARE(s.speechModel, QStringLiteral("sapi"));
     QCOMPARE(s.speechVolume, 1.0);
@@ -306,10 +306,10 @@ void AppSettingsTest::progressAccentMatchesBrand()
     s.setThemeSaturation(kThemeSaturationDefault);
     QCOMPARE(s.themePrimaryIndex, 5);
     QCOMPARE(s.resolvedTheme().accent, QColor(0x0A, 0x84, 0xFF));
-    QCOMPARE(s.resolvedPalette().progress, QColor(0x0A, 0x84, 0xFF));
+    QCOMPARE(s.resolvedPalette().progress, QColor(0x0A, 0x84, 0xFF, kProgressFillAlpha));
     s.setThemeAppearance(ThemeAppearance::Light);
     QCOMPARE(s.resolvedTheme().accent, QColor(0x00, 0x7A, 0xFF));
-    QCOMPARE(s.resolvedPalette().progress, QColor(0x00, 0x7A, 0xFF));
+    QCOMPARE(s.resolvedPalette().progress, QColor(0x00, 0x7A, 0xFF, kProgressFillAlpha));
 }
 
 void AppSettingsTest::appleSystemColorsFollowAppearance()

@@ -233,6 +233,15 @@ struct PixelScroller::Impl {
             hwnd = nullptr;
             return;
         }
+        const int bar = (msg == WM_VSCROLL) ? SB_VERT : SB_HORZ;
+        SCROLLINFO si{};
+        si.cbSize = sizeof(si);
+        si.fMask = SIF_POS | SIF_TRACKPOS;
+        int pos = 0;
+        if (GetScrollInfo(hwnd, bar, &si)) {
+            pos = si.nPos;
+        }
+        sendTimeout(hwnd, msg, MAKEWPARAM(SB_THUMBPOSITION, WORD(pos)), 0);
         sendTimeout(hwnd, msg, MAKEWPARAM(SB_ENDSCROLL, 0), 0);
         hwnd = nullptr;
     }
@@ -318,10 +327,9 @@ struct PixelScroller::Impl {
         si.nTrackPos = next;
         si.fMask = SIF_POS | SIF_TRACKPOS;
         SetScrollInfo(hwnd, bar, &si, TRUE);
-        const WPARAM track = MAKEWPARAM(SB_THUMBTRACK, WORD(next));
-        const WPARAM pos = MAKEWPARAM(SB_THUMBPOSITION, WORD(next));
-        sendTimeout(hwnd, scrollMsg, track, 0);
-        sendTimeout(hwnd, scrollMsg, pos, 0);
+        // Live drag is THUMBTRACK only. THUMBPOSITION every tick makes many
+        // apps snap/release the thumb, which shakes the window up and down.
+        sendTimeout(hwnd, scrollMsg, MAKEWPARAM(SB_THUMBTRACK, WORD(next)), 0);
         *thumbSlot = hwnd;
         return true;
     }

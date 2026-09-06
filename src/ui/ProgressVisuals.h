@@ -32,6 +32,17 @@ struct ProgressVisuals {
         return c;
     }
 
+    /// Pointer pick has no item foreground. Custom flash color as-is, or that
+    /// color at flashForegroundOpacity when "use foreground" is on.
+    [[nodiscard]] QColor pointerFlashColor() const
+    {
+        QColor c = flashColor.isValid() ? flashColor : QColor(255, 255, 255);
+        if (flashUseForeground) {
+            c.setAlpha(qBound(0, qRound(255.0 * double(flashForegroundOpacity) / 100.0), 255));
+        }
+        return c;
+    }
+
     [[nodiscard]] ProgressVisuals withItemFlash(const QColor& itemForeground) const
     {
         ProgressVisuals v = *this;
