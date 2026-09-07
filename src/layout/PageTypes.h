@@ -18,7 +18,7 @@ namespace gazer {
 /// Suffix `h` (`0.25h`, `1/4h`) is a proportion of the reference *height* on either axis
 /// (square boards: `size="0.25h,0.25h"`).
 /// `Expression` is absolute pixels from `A_ScreenWidth` / `A_ScreenHeight` arithmetic
-/// (`A_ScreenHeight/9*16`).
+/// (`A_ScreenHeight/9*16`, `clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth)`).
 struct PageDim {
     enum class Unit { Unset, Pixels, Proportion, HeightProportion, Expression };
 

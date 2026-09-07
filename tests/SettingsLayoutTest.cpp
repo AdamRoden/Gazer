@@ -70,7 +70,8 @@ void SettingsLayoutTest::pagesAnchorTop()
         QVERIFY2(loadLayout(id, doc, &err), qPrintable(err));
         QCOMPARE(doc.grids[0].anchor, PageAnchor::Top);
         QCOMPARE(doc.grids[0].desktopMode, true);
-        QCOMPARE(PageDimParse::token(doc.grids[0].size.x), QStringLiteral("A_ScreenHeight/9*16"));
+        QCOMPARE(PageDimParse::token(doc.grids[0].size.x),
+                 QStringLiteral("clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth)"));
         QCOMPARE(PageDimParse::token(doc.grids[0].size.y), QStringLiteral("A_ScreenHeight"));
         QVERIFY(!doc.grids[0].style.background.isSet());
         QVERIFY(doc.styles.contains(QStringLiteral("plain")));
@@ -221,6 +222,9 @@ void SettingsLayoutTest::hubOpensSixBoards()
     QVERIFY2(loadLayout(QStringLiteral("main_settings"), doc, &err), qPrintable(err));
     QCOMPARE(doc.id, QStringLiteral("main_settings"));
     QCOMPARE(doc.grids[0].anchor, PageAnchor::Top);
+    QCOMPARE(PageDimParse::token(doc.grids[0].size.x),
+             QStringLiteral("clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth)"));
+    QCOMPARE(PageDimParse::token(doc.grids[0].size.y), QStringLiteral("A_ScreenHeight"));
     const QStringList pages = {QStringLiteral("main_settings_speed"),
                                QStringLiteral("main_settings_magnify"),
                                QStringLiteral("main_settings_indicators"),

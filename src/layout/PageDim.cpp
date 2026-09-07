@@ -152,6 +152,47 @@ struct ExprEval {
         return parsePrimary();
     }
 
+    double parseClamp()
+    {
+        if (!eat(QLatin1Char('('))) {
+            fail(QStringLiteral("Expected '(' after clamp in '%1'").arg(s));
+            return 0.0;
+        }
+        const double v = parseAdd();
+        if (failed) {
+            return 0.0;
+        }
+        if (!eat(QLatin1Char(','))) {
+            fail(QStringLiteral("clamp() takes 3 arguments (value, min, max) in '%1'").arg(s));
+            return 0.0;
+        }
+        const double lo = parseAdd();
+        if (failed) {
+            return 0.0;
+        }
+        if (!eat(QLatin1Char(','))) {
+            fail(QStringLiteral("clamp() takes 3 arguments (value, min, max) in '%1'").arg(s));
+            return 0.0;
+        }
+        const double hi = parseAdd();
+        if (failed) {
+            return 0.0;
+        }
+        if (eat(QLatin1Char(','))) {
+            fail(QStringLiteral("clamp() takes 3 arguments (value, min, max) in '%1'").arg(s));
+            return 0.0;
+        }
+        if (!eat(QLatin1Char(')'))) {
+            fail(QStringLiteral("Missing ')' in '%1'").arg(s));
+            return 0.0;
+        }
+        // If the floor exceeds the cap, honor the cap so boards never overflow the screen.
+        if (lo > hi) {
+            return hi;
+        }
+        return qBound(lo, v, hi);
+    }
+
     double parsePrimary()
     {
         skip();
@@ -183,6 +224,9 @@ struct ExprEval {
             }
             const QString id = s.mid(start, i - start);
             const QString key = id.toLower();
+            if (key == QLatin1String("clamp")) {
+                return parseClamp();
+            }
             if (key == QLatin1String("a_screenwidth")) {
                 return screenW;
             }
@@ -231,6 +275,53 @@ struct ExprEval {
         return 0.0;
     }
 };
+
+[[nodiscard]] bool splitTopLevelPair(const QString& s, QString* left, QString* right, QString* error)
+{
+    int depth = 0;
+    int split = -1;
+    for (int i = 0; i < s.size(); ++i) {
+        const QChar c = s.at(i);
+        if (c == QLatin1Char('(')) {
+            ++depth;
+        } else if (c == QLatin1Char(')')) {
+            --depth;
+            if (depth < 0) {
+                if (error) {
+                    *error = QStringLiteral("Unmatched ')' in '%1'").arg(s);
+                }
+                return false;
+            }
+        } else if (c == QLatin1Char(',') && depth == 0) {
+            if (split >= 0) {
+                if (error) {
+                    *error = QStringLiteral("Expected x,y pair, got '%1'").arg(s);
+                }
+                return false;
+            }
+            split = i;
+        }
+    }
+    if (depth != 0) {
+        if (error) {
+            *error = QStringLiteral("Unmatched '(' in '%1'").arg(s);
+        }
+        return false;
+    }
+    if (split < 0) {
+        if (error) {
+            *error = QStringLiteral("Expected x,y pair, got '%1'").arg(s);
+        }
+        return false;
+    }
+    if (left) {
+        *left = s.left(split);
+    }
+    if (right) {
+        *right = s.mid(split + 1);
+    }
+    return true;
+}
 
 } // namespace
 
@@ -362,23 +453,21 @@ PageDimPair parsePair(const QString& csv, QString* error)
     if (s.isEmpty()) {
         return {};
     }
-    const QStringList parts = s.split(QLatin1Char(','));
-    if (parts.size() != 2) {
-        if (error) {
-            *error = QStringLiteral("Expected x,y pair, got '%1'").arg(s);
-        }
+    QString left;
+    QString right;
+    if (!splitTopLevelPair(s, &left, &right, error)) {
         return {};
     }
     PageDimPair out;
     QString err;
-    out.x = parse(parts[0], &err);
+    out.x = parse(left, &err);
     if (!err.isEmpty()) {
         if (error) {
             *error = err;
         }
         return {};
     }
-    out.y = parse(parts[1], &err);
+    out.y = parse(right, &err);
     if (!err.isEmpty()) {
         if (error) {
             *error = err;

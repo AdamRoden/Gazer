@@ -6,7 +6,7 @@ Pages live in `resources/layouts/*.xml`. Catalog id should match the filename st
 
 | Rule | Behavior |
 |------|----------|
-| Dims | Integer token = pixels (`150`). Token with `.` or `/` = proportion of the bounds (`0.5`, `1/2`). Arithmetic with `A_ScreenWidth` / `A_ScreenHeight` is pixels (`A_ScreenHeight/9*16`), evaluated against the placement surface passed at resolve time (work area when `desktopMode`). |
+| Dims | Integer token = pixels (`150`). Token with `.` or `/` = proportion of the bounds (`0.5`, `1/2`). Arithmetic with `A_ScreenWidth` / `A_ScreenHeight` is pixels (`A_ScreenHeight/9*16`), evaluated against the placement surface passed at resolve time (work area when `desktopMode`). `clamp(value, min, max)` bounds a pixel expression (`clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth)`). |
 | Style / dwell | Page inherits from settings, then overrides per field. Unspecified dwell uses **daily driver** for Send / mouse / AHK / modifiers / mapping keys / composer typing, and **designer** for everything else. Grids, cells, and zones inherit from the **page** (never from a grid). Named `style` / `dwell` plus inline attrs override individual members. Grid resolve then drops `foreground` / `progressStyle` / `progressColor`. |
 | Overlap | Topmost attached page’s grid is opaque. Shell grids/zones paint and hit above the rest. |
 | Drawer / quit | Layer membership. Master XML puts dock chips on layer 1, the drawer on 2, quit on 3. `ShowLayers` sets the visible set (Main chip `1,2`; Dismiss `1`; Quit `1,3`). Consecutive ShowLayers in one cell are applied together, then the drawer animates: appear when a `drawerMotion` grid is shown, dismiss when it is the last master grid hidden, snap when another master grid remains. Hidden shell grids do not reserve host space. |
@@ -53,7 +53,7 @@ A Grid is a placed rectangle of rows and columns. `desktopMode="true"` uses the 
 | Attribute | Description |
 |-----------|-------------|
 | `anchor` | `TopLeft`, `Top`, `Center`, `Bottom`, … |
-| `offset`, `size` | `x,y` dim pairs: pixels, axis proportion (`0.25`), height proportion (`0.25h`), or screen expressions (`A_ScreenHeight/9*16, A_ScreenHeight`) |
+| `offset`, `size` | `x,y` dim pairs: pixels, axis proportion (`0.25`), height proportion (`0.25h`), or screen expressions (`A_ScreenHeight/9*16, A_ScreenHeight`). Commas inside parentheses do not split the pair. |
 | `rows`, `columns`, `gap`, `margin` | Cell mesh |
 | `rowWeights` | Relative row heights (`1,2,2` = header half as tall as each content row). Missing tracks are 1 |
 | `drawerMotion`, `shell` | Drawer scale animation / always-on-top layer |

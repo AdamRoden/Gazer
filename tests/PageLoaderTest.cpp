@@ -20,6 +20,7 @@ class PageLoaderTest final : public QObject {
 
 private slots:
     void expressionSizeRoundTrip();
+    void clampSizeRoundTrip();
     void ltsSpeedLadder();
     void parseRowWeightsCsv();
     void loadFixture();
@@ -64,6 +65,28 @@ void PageLoaderTest::expressionSizeRoundTrip()
     PageDocument written;
     QVERIFY2(PageLoader::loadFromXml(PageWriter::toBytes(doc), written, &err), qPrintable(err));
     QCOMPARE(PageDimParse::token(written.grids[0].size.x), QStringLiteral("A_ScreenHeight/9*16"));
+    QCOMPARE(PageDimParse::token(written.grids[0].size.y), QStringLiteral("A_ScreenHeight"));
+}
+
+void PageLoaderTest::clampSizeRoundTrip()
+{
+    const QByteArray xml = R"xml(
+<Page id="p">
+  <Grid id="g" size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight">
+    <Cell id="c" label="X"/>
+  </Grid>
+</Page>
+)xml";
+    PageDocument doc;
+    QString err;
+    QVERIFY2(PageLoader::loadFromXml(xml, doc, &err), qPrintable(err));
+    QCOMPARE(doc.grids[0].size.x.unit, PageDim::Unit::Expression);
+    QCOMPARE(doc.grids[0].size.y.unit, PageDim::Unit::Expression);
+    QCOMPARE(doc.grids[0].size.x.resolve(0, 0, 3440, 1440), 2592.0);
+    PageDocument written;
+    QVERIFY2(PageLoader::loadFromXml(PageWriter::toBytes(doc), written, &err), qPrintable(err));
+    QCOMPARE(PageDimParse::token(written.grids[0].size.x),
+             QStringLiteral("clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth)"));
     QCOMPARE(PageDimParse::token(written.grids[0].size.y), QStringLiteral("A_ScreenHeight"));
 }
 

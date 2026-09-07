@@ -12,6 +12,7 @@ private slots:
     void dimFraction();
     void dimHeightRelative();
     void dimScreenExpression();
+    void dimClampExpression();
     void expressionDoesNotInventMonitor();
     void placeRectBottom();
     void placeRectHeightSquareAtPoint();
@@ -78,6 +79,41 @@ void PageDimTest::dimScreenExpression()
     QVERIFY(PageDimParse::parse(QStringLiteral("A_Nope"), &err).unit == PageDim::Unit::Unset);
     QVERIFY(err.contains(QStringLiteral("Unknown identifier")));
     QVERIFY(PageDimParse::parse(QStringLiteral("1/2")).unit == PageDim::Unit::Proportion);
+}
+
+void PageDimTest::dimClampExpression()
+{
+    const PageDim d = PageDimParse::parse(QStringLiteral("clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth)"));
+    QCOMPARE(d.unit, PageDim::Unit::Expression);
+    QCOMPARE(d.resolve(0, 0, 3440, 1440), 2592.0);
+    QCOMPARE(d.resolve(0, 0, 1920, 1080), 1920.0);
+    QCOMPARE(d.resolve(0, 0, 800, 600), 800.0);
+    QCOMPARE(d.resolve(0, 0, 1280, 800), 1280.0);
+    QCOMPARE(d.resolve(0, 0, 1920, 500), 1080.0);
+
+    const PageDimPair p = PageDimParse::parsePair(
+        QStringLiteral("clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight"));
+    QCOMPARE(p.x.unit, PageDim::Unit::Expression);
+    QCOMPARE(p.y.unit, PageDim::Unit::Expression);
+    QCOMPARE(p.x.resolve(3440, 1440, 3440, 1440), 2592.0);
+    QCOMPARE(p.y.resolve(1440, 1440, 3440, 1440), 1440.0);
+    QCOMPARE(PageDimParse::token(p.x),
+             QStringLiteral("clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth)"));
+
+    const QRectF ultra(0, 0, 3440, 1440);
+    const QRectF r = PageDimParse::placeRect(ultra, PageAnchor::Top, {}, p, QSizeF(3440, 1440));
+    QCOMPARE(r.width(), 2592.0);
+    QCOMPARE(r.height(), 1440.0);
+
+    QString err;
+    QVERIFY(PageDimParse::parse(QStringLiteral("clamp(1, 2)"), &err).unit == PageDim::Unit::Unset);
+    QVERIFY(err.contains(QStringLiteral("3 arguments")));
+    err.clear();
+    QVERIFY(PageDimParse::parse(QStringLiteral("min(1, 2)"), &err).unit == PageDim::Unit::Unset);
+    QVERIFY(err.contains(QStringLiteral("Unknown identifier")));
+    err.clear();
+    QVERIFY(PageDimParse::parsePair(QStringLiteral("1, 2, 3"), &err).x.unit == PageDim::Unit::Unset);
+    QVERIFY(err.contains(QStringLiteral("Expected x,y pair")));
 }
 
 void PageDimTest::expressionDoesNotInventMonitor()

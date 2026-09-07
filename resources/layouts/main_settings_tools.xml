@@ -6,7 +6,7 @@
   <Style id="joinLeft" background="#00000000" thickness="0" radius="10,0,0,10"/>
   <Style id="joinRight" background="#00000000" thickness="0" radius="0,10,10,0"/>
   <Style id="tabbar" thickness="0" radius="12"/>
-  <Grid id="board" desktopMode="true" rows="14" columns="16" anchor="Top" offset="0,0" size="A_ScreenHeight/9*16, A_ScreenHeight" gap="6" margin="12" radius="16">
+  <Grid id="board" desktopMode="true" rows="14" columns="16" anchor="Top" offset="0,0" size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" gap="6" margin="12" radius="16">
     <SubGrid id="tabs" row="0" col="0" colSpan="16" rows="1" columns="8" gap="6" margin="4" style="tabbar">
       <Cell id="tab_speed" row="0" col="0" label="Speed" icon="timer" role="tab">
         <ClosePage/>
