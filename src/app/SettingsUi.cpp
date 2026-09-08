@@ -8,6 +8,7 @@
 #include "ui/PageHostWindow.h"
 #include "ui/MaterialPalette.h"
 #include "ui/Theme.h"
+#include "ui/ThemeScheme.h"
 
 #include <QColor>
 #include <QKeyEvent>
@@ -213,8 +214,7 @@ QString colorKeyFromPageCell(const PageCell& cell)
     return {};
 }
 
-void stampPaletteSwatch(PageCell& cell, const QColor& source, const QColor& primary,
-                        const QColor& secondary)
+void stampPaletteSwatch(PageCell& cell, const QColor& source, const QColor& secondary)
 {
     if (!cell.id.startsWith(QLatin1String("pal_"))) {
         return;
@@ -238,16 +238,62 @@ void stampPaletteSwatch(PageCell& cell, const QColor& source, const QColor& prim
     cell.style.background = c;
     cell.style.foreground = ThemeColors::contrastOn(c);
     cell.caption.clear();
-    if (MaterialPalette::sameRgb(c, primary)) {
-        cell.label = QStringLiteral("P");
-        cell.style.thickness = PageBox::all(3.0);
-    } else if (MaterialPalette::sameRgb(c, secondary)) {
+    if (MaterialPalette::sameRgb(c, secondary)) {
         cell.label = QStringLiteral("S");
         cell.style.thickness = PageBox::all(3.0);
     } else {
         cell.label.clear();
         cell.style.thickness = PageBox::all(0.0);
     }
+}
+
+void stampBrightnessShade(PageCell& cell, const AppSettings& settings, const QColor& primary,
+                          const QColor& secondary)
+{
+    if (!cell.id.startsWith(QLatin1String("shade_bg_"))) {
+        return;
+    }
+    bool ok = false;
+    const int index = cell.id.mid(9).toInt(&ok);
+    if (!ok) {
+        return;
+    }
+    const ThemePalette pal =
+        ThemeScheme::fluent(settings.themeAppearance, settings.themeSaturation, primary, secondary,
+                            index, settings.surfaceTintColor());
+    cell.style.background = pal.colors.bgMain;
+    cell.style.borderColor = pal.colors.bgSurface;
+    cell.style.foreground = pal.colors.accent;
+    cell.style.progressColor = pal.progress;
+}
+
+void stampTintChip(PageCell& cell, const AppSettings& settings, const QColor& primary)
+{
+    if (!cell.id.startsWith(QLatin1String("tint_"))) {
+        return;
+    }
+    const QString id = cell.id.mid(5);
+    QColor c;
+    if (id == QLatin1String("none")) {
+        const ThemeAppearance plain = themeAppearanceIsDark(settings.themeAppearance)
+                                          ? ThemeAppearance::Dark
+                                          : ThemeAppearance::Light;
+        const ThemePalette pal =
+            ThemeScheme::fluent(plain, settings.themeSaturation, primary, {},
+                                settings.themeBrightness, {});
+        c = pal.colors.bgMain;
+    } else {
+        MaterialPalette::Family family = MaterialPalette::Family::Primary;
+        if (!MaterialPalette::parseFamily(id, &family)) {
+            return;
+        }
+        c = MaterialPalette::shade(MaterialPalette::generate(primary), family, 5);
+    }
+    if (!c.isValid()) {
+        return;
+    }
+    cell.style.background = c;
+    cell.style.foreground = ThemeColors::contrastOn(c);
 }
 
 void stampSelectedWells(PageCell& cell, const QColor& source, const QColor& primary,
@@ -276,7 +322,9 @@ void stampPageCell(PageCell& cell, const AppSettings& settings, const ThemeColor
                    const ThemeColors& liveTheme, const QColor& source, const QColor& primary,
                    const QColor& secondary)
 {
-    stampPaletteSwatch(cell, source, primary, secondary);
+    stampPaletteSwatch(cell, source, secondary);
+    stampBrightnessShade(cell, settings, primary, secondary);
+    stampTintChip(cell, settings, primary);
     stampSelectedWells(cell, source, primary, secondary);
     stampSettingVisuals(cell.label, cell.isInteractive(), cell.settingKey, cell.id,
                         colorKeyFromPageCell(cell), cell.style.background, cell.style.foreground,
@@ -325,20 +373,19 @@ void SettingsUi::decoratePage(PageDocument& doc)
     if (!doc.id.startsWith(QLatin1String("main_settings"))) {
         return;
     }
-    if (doc.id == QLatin1String("main_settings_theme")) {
-        (void)ensureInlineThemeEditor();
-    } else if (doc.id.startsWith(QLatin1String("main_settings_")) && isInlineThemeEditor()) {
+    if (doc.id != QLatin1String("main_settings_theme")
+        && doc.id.startsWith(QLatin1String("main_settings_")) && isInlineThemeEditor()) {
         stopInlineThemeEditor();
     }
     const ThemeColors live = m_settings.resolvedTheme();
     stampNamedSurface(doc, QStringLiteral("group"), live.bgSurface);
     stampNamedSurface(doc, QStringLiteral("tabbar"), live.bgSurface);
     const ThemeColors swatch = live;
-    const QColor source = liveThemeSource();
     QColor primary = m_colorPending.value(QStringLiteral("customPrimaryColor"));
     if (!primary.isValid()) {
         primary = live.accent;
     }
+    const QColor source = primary;
     QColor secondary = m_colorPending.value(QStringLiteral("customSecondaryColor"));
     if (!secondary.isValid()) {
         secondary = m_settings.resolvedPalette().progress;

@@ -354,6 +354,7 @@ void AppSettings::clamp()
     themePrimaryIndex = qBound(0, themePrimaryIndex, kThemeBrandCount - 1);
     themeSecondaryIndex = qBound(0, themeSecondaryIndex, kThemeBrandCount - 1);
     themeSaturation = snapThemeSaturation(themeSaturation);
+    themeBrightness = qBound(kThemeBrightnessMin, themeBrightness, kThemeBrightnessMax);
     magPickStyle = PickStyle::sanitizeMag(magPickStyle);
     mousePickStyle = PickStyle::sanitizeMouse(mousePickStyle);
     trackerPref = qBound(0, trackerPref, 1);

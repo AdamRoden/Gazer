@@ -106,6 +106,52 @@ ThemeAppearance themeAppearanceFromString(const QString& s)
     return ThemeAppearance::Dark;
 }
 
+QString themeTintFamilyToString(ThemeTintFamily f)
+{
+    switch (f) {
+    case ThemeTintFamily::Primary:
+        return QStringLiteral("primary");
+    case ThemeTintFamily::Complementary:
+        return QStringLiteral("complementary");
+    case ThemeTintFamily::Analogous1:
+        return QStringLiteral("analogous1");
+    case ThemeTintFamily::Analogous2:
+        return QStringLiteral("analogous2");
+    case ThemeTintFamily::Tertiary1:
+        return QStringLiteral("tertiary1");
+    case ThemeTintFamily::Tertiary2:
+        return QStringLiteral("tertiary2");
+    case ThemeTintFamily::None:
+    default:
+        return QStringLiteral("none");
+    }
+}
+
+ThemeTintFamily themeTintFamilyFromString(const QString& s)
+{
+    const QString t = s.toLower();
+    if (t == QLatin1String("primary")) {
+        return ThemeTintFamily::Primary;
+    }
+    if (t == QLatin1String("complementary") || t == QLatin1String("complimentary")) {
+        return ThemeTintFamily::Complementary;
+    }
+    if (t == QLatin1String("analogous") || t == QLatin1String("analogous1")) {
+        return ThemeTintFamily::Analogous1;
+    }
+    if (t == QLatin1String("analogous2")) {
+        return ThemeTintFamily::Analogous2;
+    }
+    if (t == QLatin1String("tertiary1") || t == QLatin1String("triadic1")) {
+        return ThemeTintFamily::Tertiary1;
+    }
+    if (t == QLatin1String("tertiary2") || t == QLatin1String("tertiary")
+        || t == QLatin1String("triadic") || t == QLatin1String("triadic2")) {
+        return ThemeTintFamily::Tertiary2;
+    }
+    return ThemeTintFamily::None;
+}
+
 QVector<QString> voiceColorPalette()
 {
     return {

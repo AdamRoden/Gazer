@@ -654,9 +654,9 @@ const char* familyLabel(Family family)
     case Family::Analogous2:
         return "Analogous";
     case Family::Triadic1:
-        return "Triadic";
+        return "Tertiary";
     case Family::Triadic2:
-        return "Triadic";
+        return "Tertiary";
     }
     return "Primary";
 }
@@ -674,7 +674,8 @@ bool parseFamily(const QString& id, Family* family)
         *family = Family::Complementary;
         return true;
     }
-    if (id == QLatin1String("analogous1") || id == QLatin1String("analogous-1")) {
+    if (id == QLatin1String("analogous") || id == QLatin1String("analogous1")
+        || id == QLatin1String("analogous-1")) {
         *family = Family::Analogous1;
         return true;
     }
@@ -682,11 +683,13 @@ bool parseFamily(const QString& id, Family* family)
         *family = Family::Analogous2;
         return true;
     }
-    if (id == QLatin1String("triadic1") || id == QLatin1String("triadic-1")) {
+    if (id == QLatin1String("tertiary1") || id == QLatin1String("triadic1")
+        || id == QLatin1String("triadic-1")) {
         *family = Family::Triadic1;
         return true;
     }
-    if (id == QLatin1String("triadic2") || id == QLatin1String("triadic-2")) {
+    if (id == QLatin1String("tertiary") || id == QLatin1String("tertiary2")
+        || id == QLatin1String("triadic2") || id == QLatin1String("triadic-2")) {
         *family = Family::Triadic2;
         return true;
     }

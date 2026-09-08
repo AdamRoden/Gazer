@@ -414,16 +414,23 @@ void SettingsUi::registerCommands()
         return true;
     });
     {
-        const MaterialPalette::Family families[] = {
-            MaterialPalette::Family::Primary,    MaterialPalette::Family::Complementary,
-            MaterialPalette::Family::Analogous1, MaterialPalette::Family::Triadic1,
-            MaterialPalette::Family::Triadic2};
-        for (const MaterialPalette::Family fam : families) {
-            const int f = int(fam);
-            const QString fid = QLatin1String(MaterialPalette::familyId(fam));
+        struct ShadeCmd {
+            MaterialPalette::Family family;
+            const char* id;
+        };
+        const ShadeCmd cmds[] = {
+            {MaterialPalette::Family::Primary, "primary"},
+            {MaterialPalette::Family::Complementary, "complementary"},
+            {MaterialPalette::Family::Analogous1, "analogous1"},
+            {MaterialPalette::Family::Analogous2, "analogous2"},
+            {MaterialPalette::Family::Triadic1, "tertiary1"},
+            {MaterialPalette::Family::Triadic2, "tertiary2"},
+        };
+        for (const ShadeCmd& cmd : cmds) {
+            const int f = int(cmd.family);
             for (int i = 0; i < MaterialPalette::kShadeCount; ++i) {
                 m_commands.registerBuiltin(
-                    QStringLiteral("settings.theme.shade.%1.%2").arg(fid).arg(i),
+                    QStringLiteral("settings.theme.shade.%1.%2").arg(QLatin1String(cmd.id)).arg(i),
                     [this, f, i](QString*) {
                         themePickShade(f, i);
                         return true;
@@ -448,14 +455,58 @@ void SettingsUi::registerCommands()
             return true;
         };
     };
-    m_commands.registerBuiltin(QStringLiteral("theme.light"),
-                               applyAppearance(ThemeAppearance::Light, "Theme: Light"));
+    m_commands.registerBuiltin(QStringLiteral("theme.light"), [this](QString*) {
+        if (m_mutate) {
+            m_mutate([](AppSettings& s) { s.setThemeDark(false); }, QStringLiteral("Theme: Light"));
+        }
+        return true;
+    });
+    m_commands.registerBuiltin(QStringLiteral("theme.dark"), [this](QString*) {
+        if (m_mutate) {
+            m_mutate([](AppSettings& s) { s.setThemeDark(true); }, QStringLiteral("Theme: Dark"));
+        }
+        return true;
+    });
     m_commands.registerBuiltin(QStringLiteral("theme.lightTinted"),
                                applyAppearance(ThemeAppearance::LightTinted, "Theme: Light tint"));
     m_commands.registerBuiltin(QStringLiteral("theme.darkTinted"),
                                applyAppearance(ThemeAppearance::DarkTinted, "Theme: Dark tint"));
-    m_commands.registerBuiltin(QStringLiteral("theme.dark"),
-                               applyAppearance(ThemeAppearance::Dark, "Theme: Dark"));
+    {
+        struct TintCmd {
+            ThemeTintFamily family;
+            const char* id;
+            const char* status;
+        };
+        const TintCmd tints[] = {
+            {ThemeTintFamily::None, "none", "Tint: None"},
+            {ThemeTintFamily::Primary, "primary", "Tint: Primary"},
+            {ThemeTintFamily::Complementary, "complementary", "Tint: Complementary"},
+            {ThemeTintFamily::Analogous1, "analogous1", "Tint: Analogous"},
+            {ThemeTintFamily::Analogous2, "analogous2", "Tint: Analogous"},
+            {ThemeTintFamily::Tertiary1, "tertiary1", "Tint: Tertiary"},
+            {ThemeTintFamily::Tertiary2, "tertiary2", "Tint: Tertiary"},
+        };
+        for (const TintCmd& t : tints) {
+            m_commands.registerBuiltin(QStringLiteral("theme.tint.%1").arg(QLatin1String(t.id)),
+                                       [this, fam = t.family, status = t.status](QString*) {
+                                           if (m_mutate) {
+                                               m_mutate([fam](AppSettings& s) {
+                                                   s.setThemeTintFamily(fam);
+                                               }, QLatin1String(status));
+                                           }
+                                           return true;
+                                       });
+        }
+    }
+    for (int i = 0; i < kThemeBrightnessLevels; ++i) {
+        m_commands.registerBuiltin(QStringLiteral("theme.brightness.%1").arg(i), [this, i](QString*) {
+            if (m_mutate) {
+                m_mutate([i](AppSettings& s) { s.setThemeBrightness(i); },
+                         QStringLiteral("Background shade %1").arg(i + 1));
+            }
+            return true;
+        });
+    }
     m_commands.registerBuiltin(QStringLiteral("theme.custom"), [this](QString*) {
         if (m_mutate) {
             m_mutate([](AppSettings& s) { s.setThemeCustom(true); },

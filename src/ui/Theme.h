@@ -15,6 +15,17 @@ enum class ThemeAppearance {
     Dark
 };
 
+/// Hue washed onto Light/Dark neutrals. None is gray.
+enum class ThemeTintFamily {
+    None,
+    Primary,
+    Complementary,
+    Analogous1,
+    Analogous2,
+    Tertiary1,
+    Tertiary2
+};
+
 [[nodiscard]] inline bool themeAppearanceIsDark(ThemeAppearance a)
 {
     return a == ThemeAppearance::Dark || a == ThemeAppearance::DarkTinted;
@@ -100,6 +111,10 @@ constexpr int kThemeSaturationMin = 20;
 constexpr int kThemeSaturationMax = 100;
 constexpr int kThemeSaturationDefault = 60;
 constexpr int kThemeSaturationStep = 20;
+constexpr int kThemeBrightnessLevels = 5;
+constexpr int kThemeBrightnessMin = 0;
+constexpr int kThemeBrightnessMax = 4;
+constexpr int kThemeBrightnessDefault = 2;
 
 /// Snap to 20, 40, 60, 80, 100.
 [[nodiscard]] inline int snapThemeSaturation(int v)
@@ -113,6 +128,8 @@ constexpr int kThemeSaturationStep = 20;
 
 [[nodiscard]] QString themeAppearanceToString(ThemeAppearance a);
 [[nodiscard]] ThemeAppearance themeAppearanceFromString(const QString& s);
+[[nodiscard]] QString themeTintFamilyToString(ThemeTintFamily f);
+[[nodiscard]] ThemeTintFamily themeTintFamilyFromString(const QString& s);
 
 /// Voice sample palette (from Voice/js/app.js COLOR_PALETTE).
 [[nodiscard]] QVector<QString> voiceColorPalette();

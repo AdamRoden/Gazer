@@ -40,7 +40,15 @@ void MaterialPaletteTest::parseFamilyIds()
     QCOMPARE(f, MaterialPalette::Family::Complementary);
     QVERIFY(MaterialPalette::parseFamily(QStringLiteral("analogous-2"), &f));
     QCOMPARE(f, MaterialPalette::Family::Analogous2);
+    QVERIFY(MaterialPalette::parseFamily(QStringLiteral("analogous"), &f));
+    QCOMPARE(f, MaterialPalette::Family::Analogous1);
+    QVERIFY(MaterialPalette::parseFamily(QStringLiteral("tertiary"), &f));
+    QCOMPARE(f, MaterialPalette::Family::Triadic2);
     QCOMPARE(MaterialPalette::familyId(MaterialPalette::Family::Triadic1), "triadic1");
+    QCOMPARE(MaterialPalette::familyLabel(MaterialPalette::Family::Triadic1), "Tertiary");
+    QCOMPARE(MaterialPalette::familyLabel(MaterialPalette::Family::Triadic2), "Tertiary");
+    QVERIFY(MaterialPalette::parseFamily(QStringLiteral("tertiary1"), &f));
+    QCOMPARE(f, MaterialPalette::Family::Triadic1);
     QCOMPARE(MaterialPalette::kShades[0], 50);
     QCOMPARE(MaterialPalette::shadeIndexForWeight(700), 7);
 }

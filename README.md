@@ -154,7 +154,9 @@ Builtins first; unknown names fall through to the mapping profile. Full catalog 
 | `stopAllActionLoops` | Stop sticky series and assist loops |
 | `openPreview` | Head-pose preview |
 | `openPageEditor` | XML page designer |
-| `theme.light` / `.lightTinted` / `.darkTinted` / `.dark` | Appearance |
+| `theme.light` / `.dark` | Light or dark surfaces |
+| `theme.brightness.0`…`.4` | Background shade |
+| `theme.tint.none` / `.primary` / `.complementary` / `.analogous1` / `.analogous2` / `.tertiary1` / `.tertiary2` | Surface tint hue |
 | `theme.primary.0`…`.8` | Accent (Apple system: Red … Pink) |
 | `theme.secondary.0`…`.8` | Progress (same 9) |
 | `settings.*` | Settings hub editors, nudges, presets |

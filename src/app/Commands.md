@@ -140,11 +140,14 @@ Patterns, not every generated name:
 | `settings.pickWindow.round` / `.square` | Zoom window shape |
 | `settings.pickCenter.gaze` / `.screen` | Zoom window at gaze point or screen center |
 | `settings.nudge.themeSaturation.dec` / `.inc` | Saturation 20–100 in five steps (surfaces keep brightness) |
-| `settings.theme.source` | Open Theme page editing Primary |
-| `settings.theme.assign.primary` / `.secondary` | Select which color the HSL sliders edit (and that shade dwells assign) |
-| `settings.theme.shade.<family>.0`…`.9` | Load that Material shade (50–900) into the active P or S color |
+| `settings.theme.source` | Open the color picker for Primary |
+| `settings.theme.assign.primary` / `.secondary` | Legacy: select which color inline HSL sliders edit |
+| `settings.theme.shade.<family>.1`…`.9` | Assign that Material shade (100–900) to Progress at 60% opacity. Families: primary, complementary, analogous1/2, tertiary1/2 |
 | `settings.color.draftShade.0`…`.9` | Set the live draft to a generated primary shade |
-| `theme.light` / `.lightTinted` / `.darkTinted` / `.dark` | Appearance |
+| `theme.light` / `.dark` | Light or dark surfaces (keeps the current tint family) |
+| `theme.lightTinted` / `.darkTinted` | Legacy: light/dark plus primary tint |
+| `theme.brightness.0`…`.4` | Five background shades (how light or dark) |
+| `theme.tint.none` / `.primary` / `.complementary` / `.analogous1` / `.analogous2` / `.tertiary1` / `.tertiary2` | Hue washed onto the background shades |
 | `theme.primary.0`…`.8` | Accent (Apple system: Red, Orange, Yellow, Green, Teal, Blue, Indigo, Purple, Pink) |
 | `theme.secondary.0`…`.8` | Progress (same 9, light or dark from appearance) |
 | `theme.custom` | Custom palette |

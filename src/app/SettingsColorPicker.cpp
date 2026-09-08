@@ -167,7 +167,7 @@ void SettingsUi::colorSetChannel(const QString& channel, int value)
 void SettingsUi::colorNudge(const QString& channel, int dir)
 {
     if (!m_color.active && !m_opacity.active) {
-        (void)ensureInlineThemeEditor();
+        return;
     }
     if (m_scrub.active) {
         endSliderScrub(true);
@@ -248,26 +248,6 @@ bool SettingsUi::openColorPicker(const QString& colorKey, QString* error)
             *error = QStringLiteral("Not a color setting");
         }
         return false;
-    }
-    if (colorKey == QLatin1String("customPrimaryColor")
-        || colorKey == QLatin1String("customSecondaryColor")) {
-        m_themeAssignPrimary = colorKey != QLatin1String("customSecondaryColor");
-        if (!ensureInlineThemeEditor()) {
-            if (error) {
-                *error = QStringLiteral("Color picker is busy");
-            }
-            return false;
-        }
-        loadActiveThemeColor();
-        if (!m_pages.hasPage(QStringLiteral("main_settings_theme"))
-            && !m_pages.openPage(QStringLiteral("main_settings_theme"), error)) {
-            return false;
-        }
-        applyPreviewColor();
-        m_pages.refreshDecorated();
-        notifyStatus(m_themeAssignPrimary ? QStringLiteral("Editing Primary")
-                                          : QStringLiteral("Editing Secondary"));
-        return true;
     }
     m_colorPickerKey = colorKey;
     m_colorPending.clear();
@@ -363,21 +343,23 @@ void SettingsUi::themePickShade(int family, int index)
         return;
     }
     const auto f = static_cast<MaterialPalette::Family>(family);
-    const MaterialPalette::Palettes pal = MaterialPalette::generate(liveThemeSource());
-    QColor c = MaterialPalette::shade(pal, f, index);
-    if (!m_themeAssignPrimary) {
-        c.setAlpha(kProgressFillAlpha);
+    QColor src = m_colorPending.value(QStringLiteral("customPrimaryColor"));
+    if (!src.isValid()) {
+        src = m_settings.resolvedPalette().colors.accent;
     }
-    if (!ensureInlineThemeEditor()) {
+    const MaterialPalette::Palettes pal = MaterialPalette::generate(src);
+    QColor c = MaterialPalette::shade(pal, f, index);
+    c.setAlpha(kProgressFillAlpha);
+    if (m_mutate) {
+        m_mutate([c](AppSettings& s) {
+                     (void)s.setColorKey(QStringLiteral("customSecondaryColor"), c, true);
+                 },
+                 QStringLiteral("Progress = %1").arg(c.name(QColor::HexRgb).toUpper()));
         return;
     }
-    m_colorPickerKey = activeThemeColorKey();
-    loadColorDraft(c);
-    storeDraftPending();
-    persistThemeDraft(true);
-    notifyStatus(QStringLiteral("%1 = %2").arg(m_themeAssignPrimary ? QStringLiteral("Primary")
-                                                                    : QStringLiteral("Secondary"),
-                                               c.name(QColor::HexRgb).toUpper()));
+    (void)m_settings.setColorKey(QStringLiteral("customSecondaryColor"), c, true);
+    apply(true);
+    notifyStatus(QStringLiteral("Progress = %1").arg(c.name(QColor::HexRgb).toUpper()));
 }
 
 void SettingsUi::colorApplyDraftShade(int index)
@@ -473,7 +455,8 @@ bool SettingsUi::colorSave(QString* error)
     }
     storeDraftPending();
     for (auto it = m_colorPending.constBegin(); it != m_colorPending.constEnd(); ++it) {
-        if (!m_settings.setColorKey(it.key(), it.value(), /*rebuildPalette=*/false)) {
+        const bool rebuild = !AppSettings::themeRoleForColorKey(it.key()).isEmpty();
+        if (!m_settings.setColorKey(it.key(), it.value(), rebuild)) {
             if (error) {
                 *error = QStringLiteral("Could not apply color");
             }

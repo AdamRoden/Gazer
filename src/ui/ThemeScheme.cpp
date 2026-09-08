@@ -70,6 +70,34 @@ QColor appearanceTone(const QColor& brand, ThemeAppearance appearance)
     return hsv(h, s, v, a);
 }
 
+QColor gray(int v)
+{
+    const int n = qBound(0, v, 255);
+    return QColor(n, n, n);
+}
+
+struct NeutralTone {
+    int bg = 20;
+    int surf = 30;
+    int hover = 46;
+    int border = 50;
+};
+
+NeutralTone appearanceNeutrals(bool dark, int brightness)
+{
+    const int b = qBound(kThemeBrightnessMin, brightness, kThemeBrightnessMax);
+    // Five shades, two steps darker than the previous Light/Dark ramps.
+    static const NeutralTone kDark[kThemeBrightnessLevels] = {
+        {4, 8, 16, 18}, {7, 12, 20, 22}, {10, 16, 26, 28},
+        {14, 22, 36, 40}, {20, 30, 46, 50},
+    };
+    static const NeutralTone kLight[kThemeBrightnessLevels] = {
+        {243, 251, 235, 208}, {232, 244, 222, 196}, {216, 230, 208, 180},
+        {196, 212, 192, 162}, {172, 190, 174, 142},
+    };
+    return dark ? kDark[b] : kLight[b];
+}
+
 } // namespace
 
 const ThemeBrandInfo* brands()
@@ -143,48 +171,50 @@ QColor scaleSaturation(const QColor& c, int saturationPercent)
 }
 
 ThemePalette fluent(ThemeAppearance appearance, int saturation, const QColor& primaryIn,
-                    const QColor& secondaryIn)
+                    const QColor& secondaryIn, int brightness, const QColor& surfaceTintIn)
 {
     const bool dark = themeAppearanceIsDark(appearance);
-    const bool tinted = themeAppearanceIsTinted(appearance);
     const QColor fallbackPrimary = brandAccent(kThemeDefaultBrandIndex, appearance);
     const QColor primary =
         scaleSaturation(primaryIn.isValid() ? primaryIn : fallbackPrimary, saturation);
+    const bool tinted = surfaceTintIn.isValid();
+    const QColor mixHue = tinted ? scaleSaturation(surfaceTintIn, saturation) : primary;
     const double t = qBound(0, saturation, 100) / 100.0;
-    // Untinted Light/Dark stay neutral gray. Tinted appearances wash brand hue
-    // onto those same brightnesses so Light vs Light tint (and Dark vs Dark tint)
-    // are actually distinct.
+    // Untinted Light/Dark stay neutral gray. A tint family washes hue onto those
+    // same brightnesses. Brightness 2 keeps the legacy wash amount.
     double bgTint = 0.0;
-    double surfaceTint = 0.0;
+    double surfaceTintAmt = 0.0;
     double accentW = 0.05 + 0.03 * t;
     if (tinted) {
-        bgTint = ((dark ? 0.14 : 0.16) + 0.10 * t) * 0.5;
-        surfaceTint = ((dark ? 0.22 : 0.24) + 0.12 * t) * 0.5;
+        const double tintVis = 1.0 + 0.18 * (brightness - kThemeBrightnessDefault);
+        bgTint = ((dark ? 0.14 : 0.16) + 0.10 * t) * 0.5 * tintVis;
+        surfaceTintAmt = ((dark ? 0.22 : 0.24) + 0.12 * t) * 0.5 * tintVis;
         accentW = 0.065 + 0.035 * t;
     }
 
-    const QColor nBg = dark ? QColor(0x14, 0x14, 0x14) : QColor(0xF3, 0xF3, 0xF3);
-    const QColor nSurf = dark ? QColor(0x1E, 0x1E, 0x1E) : QColor(0xFB, 0xFB, 0xFB);
-    const QColor nHover = dark ? QColor(0x2E, 0x2E, 0x2E) : QColor(0xEB, 0xEB, 0xEB);
-    const QColor nBorder = dark ? QColor(0x32, 0x32, 0x32) : QColor(0xD0, 0xD0, 0xD0);
+    const NeutralTone tone = appearanceNeutrals(dark, brightness);
+    const QColor nBg = gray(tone.bg);
+    const QColor nSurf = gray(tone.surf);
+    const QColor nHover = gray(tone.hover);
+    const QColor nBorder = gray(tone.border);
     const QColor body = dark ? QColor(0xFF, 0xFF, 0xFF) : QColor(0x1A, 0x1A, 0x1A);
 
     ThemePalette out;
     ThemeColors& c = out.colors;
-    c.bgMain = keepValue(ThemeColors::mix(nBg, primary, bgTint), nBg);
-    c.bgSurface = keepValue(ThemeColors::mix(nSurf, primary, surfaceTint), nSurf);
-    c.bgSurfaceHover = keepValue(ThemeColors::mix(nHover, primary, surfaceTint), nHover);
+    c.bgMain = keepValue(ThemeColors::mix(nBg, mixHue, bgTint), nBg);
+    c.bgSurface = keepValue(ThemeColors::mix(nSurf, mixHue, surfaceTintAmt), nSurf);
+    c.bgSurfaceHover = keepValue(ThemeColors::mix(nHover, mixHue, surfaceTintAmt), nHover);
     c.cellBg = c.bgSurface;
     c.cellHover = c.bgSurfaceHover;
     c.text = body;
     c.textSecondary = dark ? QColor(0xC8, 0xC8, 0xC8) : QColor(0x5D, 0x5D, 0x5D);
-    c.border = keepValue(ThemeColors::mix(nBorder, primary, bgTint), nBorder);
+    c.border = keepValue(ThemeColors::mix(nBorder, mixHue, bgTint), nBorder);
     c.accent = primary;
     c.accentHover = scaleSaturation(appearanceTone(primary, appearance), saturation);
     c.danger = brandAccent(0, appearance);
 
     c.cellActive =
-        keepValue(ThemeColors::mix(c.bgSurface, primary, qBound(0.16, surfaceTint + 0.16, 0.42)),
+        keepValue(ThemeColors::mix(c.bgSurface, primary, qBound(0.16, surfaceTintAmt + 0.16, 0.42)),
                   c.bgSurface);
     c.bgSurfaceActive =
         keepValue(ThemeColors::mix(c.bgSurface, primary, qBound(0.10, accentW * 2.0, 0.34)),
@@ -201,7 +231,8 @@ ThemePalette fluent(ThemeAppearance appearance, int saturation, const QColor& pr
 }
 
 ThemePalette resolve(ThemeAppearance appearance, int saturation, int primaryIndex,
-                     int secondaryIndex, bool custom, const ThemeSeeds& customSeeds)
+                     int secondaryIndex, bool custom, const ThemeSeeds& customSeeds,
+                     int brightness, const QColor& surfaceTint)
 {
     if (custom) {
         const QColor accent =
@@ -209,10 +240,10 @@ ThemePalette resolve(ThemeAppearance appearance, int saturation, int primaryInde
                                           : brandAccent(kThemeDefaultBrandIndex, appearance);
         const QColor progress =
             customSeeds.secondary.isValid() ? customSeeds.secondary : accent;
-        return fluent(appearance, saturation, accent, progress);
+        return fluent(appearance, saturation, accent, progress, brightness, surfaceTint);
     }
     return fluent(appearance, saturation, brandAccent(primaryIndex, appearance),
-                  brandAccent(secondaryIndex, appearance));
+                  brandAccent(secondaryIndex, appearance), brightness, surfaceTint);
 }
 
 } // namespace ThemeScheme

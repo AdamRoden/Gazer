@@ -172,31 +172,35 @@ struct AppSettings {
         return out;
     }
 
-    // --- Theme (appearance × Apple system accent × progress × saturation) ---
+    // --- Theme (appearance × brightness × tint family × accent × progress) ---
     ThemeAppearance themeAppearance = ThemeAppearance::Dark;
     bool themeCustom = true;
     int themePrimaryIndex = kThemeDefaultBrandIndex;
     int themeSecondaryIndex = kThemeDefaultBrandIndex;
     int themeSaturation = kThemeSaturationDefault;
+    ThemeTintFamily themeTintFamily = ThemeTintFamily::None;
     /// Custom seeds. Branded schemes ignore these until Custom is selected.
     /// Bg / surface / tertiary are baked from Fluent in defaults().
-    QString customBgColor = QStringLiteral("#141414");
+    QString customBgColor = QStringLiteral("#0A0A0A");
     /// Unused; kept so older settings files still load.
     QString customSourceColor = QStringLiteral("#1E97F3");
     QString customPrimaryColor = QStringLiteral("#1E97F3");
     QString customSecondaryColor = QStringLiteral("#99FF473D");
     QString customTertiaryColor = QStringLiteral("#1E97F3");
-    QString customSurfaceColor = QStringLiteral("#1E1E1E");
+    QString customSurfaceColor = QStringLiteral("#101010");
     QString customTextColor = QStringLiteral("#FFFFFF");
     QString customDangerColor = QStringLiteral("#FC1C1C");
-    /// Unused; kept so older settings files still load.
-    int themeBrightness = 2;
+    int themeBrightness = kThemeBrightnessDefault;
 
     void setThemeAppearance(ThemeAppearance appearance);
+    void setThemeDark(bool dark);
+    void setThemeTintFamily(ThemeTintFamily family);
+    void setThemeBrightness(int brightness);
     void setThemeCustom(bool on);
     void setThemePrimaryIndex(int index);
     void setThemeSecondaryIndex(int index);
     void setThemeSaturation(int saturation);
+    [[nodiscard]] QColor surfaceTintColor() const;
     /// Rebuild derived progress colors from the live spec.
     void applyTheme();
     [[nodiscard]] ThemeSeeds themeSeeds() const;

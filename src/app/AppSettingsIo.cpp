@@ -347,6 +347,14 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
     customTextColor = o.value(QStringLiteral("customTextColor")).toString(customTextColor);
     customDangerColor = o.value(QStringLiteral("customDangerColor")).toString(customDangerColor);
     themeBrightness = o.value(QStringLiteral("themeBrightness")).toInt(themeBrightness);
+    if (o.contains(QStringLiteral("themeTintFamily"))) {
+        themeTintFamily = themeTintFamilyFromString(
+            o.value(QStringLiteral("themeTintFamily")).toString());
+    } else if (themeAppearanceIsTinted(themeAppearance)) {
+        themeTintFamily = ThemeTintFamily::Primary;
+    } else {
+        themeTintFamily = ThemeTintFamily::None;
+    }
     int legacyContrastPct = 85;
     if (o.contains(QStringLiteral("customContrast"))) {
         const QJsonValue cv = o.value(QStringLiteral("customContrast"));
@@ -577,6 +585,7 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     o.insert(QStringLiteral("customTextColor"), copy.customTextColor);
     o.insert(QStringLiteral("customDangerColor"), copy.customDangerColor);
     o.insert(QStringLiteral("themeBrightness"), copy.themeBrightness);
+    o.insert(QStringLiteral("themeTintFamily"), themeTintFamilyToString(copy.themeTintFamily));
     int derivedContrast = 85;
     if (copy.themeSaturation >= 75) {
         derivedContrast = 100;

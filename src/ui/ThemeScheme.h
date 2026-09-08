@@ -43,15 +43,19 @@ namespace ThemeScheme {
 /// Map an old JSON `themeScheme` key to a brand index. "custom" returns -1.
 [[nodiscard]] int brandIndexFromLegacySchemeKey(const QString& key);
 
-/// Light/Dark are neutral gray at that brightness. Light tint / Dark tint wash
-/// brand hue onto the same brightness. Surfaces keep HSV value.
+/// Light/Dark are neutral gray at that brightness. A valid @p surfaceTint washes
+/// that hue onto the same brightness. Surfaces keep HSV value.
 [[nodiscard]] ThemePalette fluent(ThemeAppearance appearance, int saturation, const QColor& primary,
-                                  const QColor& secondary = {});
+                                  const QColor& secondary = {},
+                                  int brightness = kThemeBrightnessDefault,
+                                  const QColor& surfaceTint = {});
 
 /// Apple system accent × progress × appearance. Custom uses @p customSeeds primary/progress.
 [[nodiscard]] ThemePalette resolve(ThemeAppearance appearance, int saturation, int primaryIndex,
                                    int secondaryIndex, bool custom,
-                                   const ThemeSeeds& customSeeds = {});
+                                   const ThemeSeeds& customSeeds = {},
+                                   int brightness = kThemeBrightnessDefault,
+                                   const QColor& surfaceTint = {});
 
 } // namespace ThemeScheme
 

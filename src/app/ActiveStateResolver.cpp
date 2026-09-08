@@ -253,14 +253,28 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
          [](const AppSettings& s) { return int(s.magFollowProfile) == 3; }},
         {"settings.tracker.auto", [](const AppSettings& s) { return s.trackerPref == 0; }},
         {"settings.tracker.mouse", [](const AppSettings& s) { return s.trackerPref == 1; }},
-        {"theme.dark", [](const AppSettings& s) { return s.themeAppearance == ThemeAppearance::Dark; }},
+        {"theme.dark", [](const AppSettings& s) { return themeAppearanceIsDark(s.themeAppearance); }},
         {"theme.darkTinted",
          [](const AppSettings& s) { return s.themeAppearance == ThemeAppearance::DarkTinted; }},
         {"theme.lightTinted",
          [](const AppSettings& s) { return s.themeAppearance == ThemeAppearance::LightTinted; }},
         {"theme.light",
-         [](const AppSettings& s) { return s.themeAppearance == ThemeAppearance::Light; }},
+         [](const AppSettings& s) { return !themeAppearanceIsDark(s.themeAppearance); }},
         {"theme.custom", [](const AppSettings& s) { return s.themeCustom; }},
+        {"theme.tint.none",
+         [](const AppSettings& s) { return s.themeTintFamily == ThemeTintFamily::None; }},
+        {"theme.tint.primary",
+         [](const AppSettings& s) { return s.themeTintFamily == ThemeTintFamily::Primary; }},
+        {"theme.tint.complementary",
+         [](const AppSettings& s) { return s.themeTintFamily == ThemeTintFamily::Complementary; }},
+        {"theme.tint.analogous1",
+         [](const AppSettings& s) { return s.themeTintFamily == ThemeTintFamily::Analogous1; }},
+        {"theme.tint.analogous2",
+         [](const AppSettings& s) { return s.themeTintFamily == ThemeTintFamily::Analogous2; }},
+        {"theme.tint.tertiary1",
+         [](const AppSettings& s) { return s.themeTintFamily == ThemeTintFamily::Tertiary1; }},
+        {"theme.tint.tertiary2",
+         [](const AppSettings& s) { return s.themeTintFamily == ThemeTintFamily::Tertiary2; }},
     };
     for (const auto& e : kSettings) {
         if (key == QLatin1String(e.id)) {
@@ -274,6 +288,9 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
     if (key.startsWith(QLatin1String("theme.secondary."))) {
         return !s.themeCustom
                && indexKeyEquals(key, QLatin1String("theme.secondary."), s.themeSecondaryIndex);
+    }
+    if (key.startsWith(QLatin1String("theme.brightness."))) {
+        return indexKeyEquals(key, QLatin1String("theme.brightness."), s.themeBrightness);
     }
     if (key == QLatin1String("settings.theme.assign.primary")) {
         return ctx.settingsUi && ctx.settingsUi->themeAssignPrimary();

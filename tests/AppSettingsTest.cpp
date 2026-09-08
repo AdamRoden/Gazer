@@ -43,6 +43,7 @@ private slots:
     void lightAppearanceIsLight();
     void tintedWashesNeutrals();
     void appearanceSwitchesCustomNeutrals();
+    void backgroundShadeAndTintFamily();
     void speechSettingsRoundTrip();
 };
 
@@ -89,8 +90,10 @@ void AppSettingsTest::factoryUsesDomainConstants()
     QCOMPARE(s.themePrimaryIndex, kThemeDefaultBrandIndex);
     QCOMPARE(s.themeSecondaryIndex, kThemeDefaultBrandIndex);
     QCOMPARE(s.themeSaturation, kThemeSaturationDefault);
-    QCOMPARE(s.resolvedTheme().bgMain, QColor(0x14, 0x14, 0x14));
-    QCOMPARE(s.resolvedTheme().bgSurface, QColor(0x1E, 0x1E, 0x1E));
+    QCOMPARE(s.themeBrightness, kThemeBrightnessDefault);
+    QCOMPARE(s.themeTintFamily, ThemeTintFamily::None);
+    QCOMPARE(s.resolvedTheme().bgMain, QColor(0x0A, 0x0A, 0x0A));
+    QCOMPARE(s.resolvedTheme().bgSurface, QColor(0x10, 0x10, 0x10));
     QCOMPARE(s.resolvedTheme().accent, QColor(0x1E, 0x97, 0xF3));
     QCOMPARE(s.resolvedTheme().accentHover,
              ThemeScheme::fluent(s.themeAppearance, s.themeSaturation, s.themeSeeds().primary,
@@ -437,6 +440,47 @@ void AppSettingsTest::appearanceSwitchesCustomNeutrals()
     QVERIFY(s.themeCustom);
     QVERIFY(s.resolvedTheme().bgMain.lightness() > 180);
     QVERIFY(s.resolvedTheme().text.lightness() < 80);
+}
+
+void AppSettingsTest::backgroundShadeAndTintFamily()
+{
+    AppSettings s = AppSettings::defaults();
+    s.setThemeCustom(true);
+    s.setThemeAppearance(ThemeAppearance::Dark);
+    s.setThemeBrightness(0);
+    const int dark0 = s.resolvedTheme().bgMain.lightness();
+    s.setThemeBrightness(4);
+    const int dark4 = s.resolvedTheme().bgMain.lightness();
+    QVERIFY(dark4 > dark0 + 10);
+
+    s.setThemeAppearance(ThemeAppearance::Light);
+    s.setThemeBrightness(0);
+    const int light0 = s.resolvedTheme().bgMain.lightness();
+    s.setThemeBrightness(4);
+    const int light4 = s.resolvedTheme().bgMain.lightness();
+    QVERIFY(light0 > light4 + 10);
+
+    s.setThemeAppearance(ThemeAppearance::Dark);
+    s.setThemeBrightness(kThemeBrightnessDefault);
+    s.setThemeTintFamily(ThemeTintFamily::Complementary);
+    QVERIFY(s.themeTintFamily == ThemeTintFamily::Complementary);
+    QCOMPARE(s.themeAppearance, ThemeAppearance::DarkTinted);
+    QVERIFY(s.resolvedTheme().bgSurface.hsvSaturation() > 8);
+    s.setThemeDark(false);
+    QCOMPARE(s.themeTintFamily, ThemeTintFamily::Complementary);
+    QCOMPARE(s.themeAppearance, ThemeAppearance::LightTinted);
+    QVERIFY(s.resolvedTheme().bgMain.lightness() > 180);
+
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("settings.json"));
+    s.setThemeBrightness(4);
+    s.setThemeTintFamily(ThemeTintFamily::Analogous1);
+    QVERIFY(s.saveToFile(path));
+    AppSettings loaded;
+    QVERIFY(loaded.loadFromFile(path));
+    QCOMPARE(loaded.themeBrightness, 4);
+    QCOMPARE(loaded.themeTintFamily, ThemeTintFamily::Analogous1);
 }
 
 void AppSettingsTest::speechSettingsRoundTrip()
