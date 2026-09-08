@@ -38,6 +38,10 @@ private slots:
     void cellRectSpan();
     void cellIndexAtMatchesCellRect();
     void cellRectRowWeights();
+    void cellRectPixelTracks();
+    void cellRectColumnStars();
+    void cellRectPixelOverflowScalesDown();
+    void cellRectExpressionTrackUsesScreen();
     void drawerMapIsIdentityAtFullScale();
     void drawerMapShrinksAboutBottom();
     void drawerScaleMustNotMoveOtherChrome();
@@ -255,7 +259,7 @@ void PageHitTest::cellRectRowWeights()
     g.columns = 1;
     g.gapPx = 10;
     g.marginPx = 0;
-    g.rowWeights = {1.0, 2.0, 2.0};
+    g.rowTracks = starTracks({1.0, 2.0, 2.0});
     const QRectF board(0, 0, 100, 110);
     const QRectF header = PageHit::cellRect(g, board, 0, 0, 1, 1);
     const QRectF body = PageHit::cellRect(g, board, 1, 0, 1, 1);
@@ -263,6 +267,72 @@ void PageHitTest::cellRectRowWeights()
     QCOMPARE(body.height(), 36.0);
     QCOMPARE(PageHit::cellIndexAt(g, board, header.center()).y(), 0);
     QCOMPARE(PageHit::cellIndexAt(g, board, body.center()).y(), 1);
+}
+
+void PageHitTest::cellRectPixelTracks()
+{
+    PageGrid g;
+    g.rows = 3;
+    g.columns = 2;
+    g.gapPx = 10;
+    g.marginPx = 0;
+    g.rowTracks = {PageTrackSize::fromDim(PageDim::pixels(20)), PageTrackSize::starWeight(1.0),
+                   PageTrackSize::fromDim(PageDim::pixels(20))};
+    g.columnTracks = {PageTrackSize::fromDim(PageDim::pixels(40)), PageTrackSize::starWeight(1.0)};
+    const QRectF board(0, 0, 100, 70);
+    const QRectF a = PageHit::cellRect(g, board, 0, 0, 1, 1);
+    const QRectF b = PageHit::cellRect(g, board, 1, 1, 1, 1);
+    const QRectF c = PageHit::cellRect(g, board, 2, 0, 1, 1);
+    QCOMPARE(a, QRectF(0, 0, 40, 20));
+    QCOMPARE(b, QRectF(50, 30, 50, 10));
+    QCOMPARE(c, QRectF(0, 50, 40, 20));
+    QCOMPARE(PageHit::cellIndexAt(g, board, a.center()), QPoint(0, 0));
+    QCOMPARE(PageHit::cellIndexAt(g, board, b.center()), QPoint(1, 1));
+    QCOMPARE(PageHit::cellIndexAt(g, board, c.center()), QPoint(0, 2));
+}
+
+void PageHitTest::cellRectColumnStars()
+{
+    PageGrid g;
+    g.rows = 1;
+    g.columns = 3;
+    g.gapPx = 0;
+    g.marginPx = 0;
+    g.columnTracks = starTracks({1.0, 2.0, 1.0});
+    const QRectF board(0, 0, 400, 50);
+    const QRectF left = PageHit::cellRect(g, board, 0, 0, 1, 1);
+    const QRectF mid = PageHit::cellRect(g, board, 0, 1, 1, 1);
+    QCOMPARE(left, QRectF(0, 0, 100, 50));
+    QCOMPARE(mid, QRectF(100, 0, 200, 50));
+}
+
+void PageHitTest::cellRectPixelOverflowScalesDown()
+{
+    PageGrid g;
+    g.rows = 2;
+    g.columns = 1;
+    g.gapPx = 0;
+    g.marginPx = 0;
+    g.rowTracks = {PageTrackSize::fromDim(PageDim::pixels(100)),
+                   PageTrackSize::fromDim(PageDim::pixels(100))};
+    const QRectF board(0, 0, 50, 50);
+    QCOMPARE(PageHit::cellRect(g, board, 0, 0, 1, 1), QRectF(0, 0, 50, 25));
+    QCOMPARE(PageHit::cellRect(g, board, 1, 0, 1, 1), QRectF(0, 25, 50, 25));
+}
+
+void PageHitTest::cellRectExpressionTrackUsesScreen()
+{
+    PageGrid g;
+    g.rows = 2;
+    g.columns = 1;
+    g.gapPx = 0;
+    g.marginPx = 0;
+    g.rowTracks = {PageDimParse::parseTrack(QStringLiteral("A_ScreenHeight/54")),
+                   PageTrackSize::starWeight(1.0)};
+    const QRectF board(0, 0, 100, 100);
+    const QSizeF screen(1920, 1080);
+    QCOMPARE(PageHit::cellRect(g, board, 0, 0, 1, 1, screen).height(), 20.0);
+    QCOMPARE(PageHit::cellRect(g, board, 1, 0, 1, 1, screen).height(), 80.0);
 }
 
 void PageHitTest::drawerMapIsIdentityAtFullScale()

@@ -16,6 +16,8 @@ private slots:
     void expressionDoesNotInventMonitor();
     void placeRectBottom();
     void placeRectHeightSquareAtPoint();
+    void trackStarAndPixels();
+    void trackListClampCsv();
 };
 
 void PageDimTest::dimPixelsVsProportion()
@@ -161,6 +163,46 @@ void PageDimTest::placeRectHeightSquareAtPoint()
     QCOMPARE(r.height(), 260.0);
     QCOMPARE(r.center().x(), origin.x());
     QCOMPARE(r.center().y(), origin.y());
+}
+
+void PageDimTest::trackStarAndPixels()
+{
+    const PageTrackSize star = PageDimParse::parseTrack(QStringLiteral("*"));
+    QCOMPARE(star.kind, PageTrackSize::Kind::Star);
+    QCOMPARE(star.star, 1.0);
+    const PageTrackSize two = PageDimParse::parseTrack(QStringLiteral("2*"));
+    QCOMPARE(two.kind, PageTrackSize::Kind::Star);
+    QCOMPARE(two.star, 2.0);
+    const PageTrackSize px = PageDimParse::parseTrack(QStringLiteral("80"));
+    QCOMPARE(px.kind, PageTrackSize::Kind::Dim);
+    QCOMPARE(px.dim.unit, PageDim::Unit::Pixels);
+    QCOMPARE(px.dim.value, 80.0);
+    const PageTrackSize pxSuffix = PageDimParse::parseTrack(QStringLiteral("80px"));
+    QCOMPARE(pxSuffix.dim.unit, PageDim::Unit::Pixels);
+    QCOMPARE(pxSuffix.dim.value, 80.0);
+    QCOMPARE(PageDimParse::token(pxSuffix), QStringLiteral("80"));
+    const PageTrackSize frac = PageDimParse::parseTrack(QStringLiteral("0.25"));
+    QCOMPARE(frac.dim.unit, PageDim::Unit::Proportion);
+    const PageTrackSize expr = PageDimParse::parseTrack(QStringLiteral("A_ScreenHeight/20"));
+    QCOMPARE(expr.dim.unit, PageDim::Unit::Expression);
+    QString err;
+    QVERIFY(PageDimParse::parseTrack(QStringLiteral("2*A_ScreenHeight"), &err).dim.isSet());
+    QCOMPARE(PageDimParse::parseTrack(QStringLiteral("2*A_ScreenHeight")).dim.unit,
+             PageDim::Unit::Expression);
+}
+
+void PageDimTest::trackListClampCsv()
+{
+    QString err;
+    const QVector<PageTrackSize> tracks =
+        PageDimParse::parseTrackList(QStringLiteral("80,*,2*, clamp(40, 20, 80)"), &err);
+    QVERIFY2(err.isEmpty(), qPrintable(err));
+    QCOMPARE(tracks.size(), 4);
+    QCOMPARE(tracks[0].dim.unit, PageDim::Unit::Pixels);
+    QCOMPARE(tracks[1].kind, PageTrackSize::Kind::Star);
+    QCOMPARE(tracks[2].star, 2.0);
+    QCOMPARE(tracks[3].dim.unit, PageDim::Unit::Expression);
+    QCOMPARE(PageDimParse::tokenList(tracks), QStringLiteral("80,*,2*,clamp(40, 20, 80)"));
 }
 
 QObject* createPageDimTest()

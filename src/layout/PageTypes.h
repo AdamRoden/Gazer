@@ -82,6 +82,37 @@ struct PageDimPair {
     [[nodiscard]] bool isSet() const { return x.isSet() || y.isSet(); }
 };
 
+/// One grid track (row height or column width). XAML GridLength-like:
+/// `*` / `2*` share leftover after fixed tracks; otherwise a `PageDim`
+/// (integer pixels, `0.25` / `1/4` of the inner axis, `h` height proportion,
+/// or `A_ScreenWidth` / `A_ScreenHeight` expressions). Optional `px` suffix
+/// forces pixels (`80px`).
+struct PageTrackSize {
+    enum class Kind { Star, Dim };
+
+    Kind kind = Kind::Star;
+    double star = 1.0;
+    PageDim dim;
+
+    [[nodiscard]] bool isStar() const { return kind == Kind::Star; }
+
+    [[nodiscard]] static PageTrackSize starWeight(double w = 1.0)
+    {
+        PageTrackSize t;
+        t.kind = Kind::Star;
+        t.star = w > 0.0 ? w : 1.0;
+        return t;
+    }
+
+    [[nodiscard]] static PageTrackSize fromDim(const PageDim& d)
+    {
+        PageTrackSize t;
+        t.kind = Kind::Dim;
+        t.dim = d;
+        return t;
+    }
+};
+
 /// PageNotes anchors. Top pins top-center to top-center of the reference.
 enum class PageAnchor {
     TopLeft,
@@ -403,8 +434,10 @@ struct PageGrid {
     int colSpan = 1;
     int gapPx = 0;
     int marginPx = 0;
-    /// Relative row heights. Missing / non-positive entries count as 1.
-    QVector<double> rowWeights;
+    /// Row sizes (`80,*,120`). Empty = all `*`. `rowWeights` in XML loads as stars.
+    QVector<PageTrackSize> rowTracks;
+    /// Column sizes (`200,*,*`). Empty = all `*`.
+    QVector<PageTrackSize> columnTracks;
     bool drawerMotion = false;
     bool autoClose = false;
     /// Membership in page layers (`layers="1,2"`). Default `{1}`.
@@ -432,6 +465,16 @@ struct PageGrid {
         if (ok && n > 0.0) {
             out.push_back(n);
         }
+    }
+    return out;
+}
+
+[[nodiscard]] inline QVector<PageTrackSize> starTracks(const QVector<double>& weights)
+{
+    QVector<PageTrackSize> out;
+    out.reserve(weights.size());
+    for (double w : weights) {
+        out.push_back(PageTrackSize::starWeight(w));
     }
     return out;
 }

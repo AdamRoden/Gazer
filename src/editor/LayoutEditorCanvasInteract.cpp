@@ -122,7 +122,8 @@ QPoint LayoutEditorCanvas::cellAt(const QPoint& pos, const ScreenMap& m, QString
         if (gridId) {
             *gridId = gp.gridId;
         }
-        const QPoint idx = PageHit::cellIndexAt(*g, gp.visual, virt);
+        const QPoint idx =
+            PageHit::cellIndexAt(*g, gp.visual, virt, m.pageFrame().screen.size());
         if (idx.x() < 0) {
             return {0, 0};
         }
@@ -553,7 +554,8 @@ void LayoutEditorCanvas::updateDragPreview(const QPoint& pos, const ScreenMap& m
         const QRectF gv = gridVisual(m, gridId);
         const PageCell* cell = PageEdit::findCell(m_session.document(), m_dragId);
         if (g && !gv.isEmpty() && cell && idx.x() >= 0) {
-            m_ghostVirt = PageHit::cellRect(*g, gv, idx.y(), idx.x(), cell->rowSpan, cell->colSpan);
+            m_ghostVirt = PageHit::cellRect(*g, gv, idx.y(), idx.x(), cell->rowSpan, cell->colSpan,
+                                            m.pageFrame().screen.size());
         }
         return;
     }
@@ -591,7 +593,8 @@ void LayoutEditorCanvas::updateDragPreview(const QPoint& pos, const ScreenMap& m
     const PageGrid* g = PageEdit::findGrid(m_session.document(), gridId);
     const QRectF gv = gridVisual(m, g ? g->id : gridId);
     if (g && !gv.isEmpty()) {
-        m_ghostVirt = PageHit::cellRect(*g, gv, span.row, span.col, span.rowSpan, span.colSpan);
+        m_ghostVirt = PageHit::cellRect(*g, gv, span.row, span.col, span.rowSpan, span.colSpan,
+                                        m.pageFrame().screen.size());
     }
 }
 

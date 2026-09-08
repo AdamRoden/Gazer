@@ -5,7 +5,7 @@ Page XML model and the live dwell session.
 | File | Role |
 |------|------|
 | `PageTypes.h` | AST: `PageDim`, chrome, dwell, actions, grid/zone/document |
-| `PageDim.h` / `.cpp` | Token parse, `placeRect` — **not** the `PageDim` struct |
+| `PageDim.h` / `.cpp` | Token parse, `placeRect`, grid track mesh — **not** the `PageDim` struct |
 | `PageBox.h`, `RoundBox.h`, `ChromeBlur.h`, `ProgressStyle.h` | Chrome bits |
 | `PageActionParse*` | Action attributes / child elements |
 | `PageLoader` / `PageWriter` / `PageEdit` | XML ↔ `PageDocument` |

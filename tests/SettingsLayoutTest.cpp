@@ -121,11 +121,11 @@ void SettingsLayoutTest::timingSectionUsesRowWeights()
     QVERIFY(daily);
     QCOMPARE(daily->styleId, QStringLiteral("group"));
     QCOMPARE(daily->rows, 3);
-    QCOMPARE(daily->rowWeights, QVector<double>({1.0, 2.0, 2.0}));
+    QCOMPARE(PageDimParse::tokenList(daily->rowTracks), QStringLiteral("*,2*,2*"));
     const PageGrid* designer = doc.findGrid(QStringLiteral("sec_designer"));
     QVERIFY(designer);
     QCOMPARE(designer->rows, 3);
-    QCOMPARE(designer->rowWeights, QVector<double>({1.0, 2.0, 2.0}));
+    QCOMPARE(PageDimParse::tokenList(designer->rowTracks), QStringLiteral("*,2*,2*"));
     const PageGrid* row = doc.findGrid(QStringLiteral("row_daily_scan"));
     QVERIFY(row);
     QCOMPARE(row->styleId, QStringLiteral("row"));

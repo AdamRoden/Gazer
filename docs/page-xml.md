@@ -6,7 +6,7 @@ Pages live in `resources/layouts/*.xml`. Catalog id should match the filename st
 
 | Rule | Behavior |
 |------|----------|
-| Dims | Integer token = pixels (`150`). Token with `.` or `/` = proportion of the bounds (`0.5`, `1/2`). Arithmetic with `A_ScreenWidth` / `A_ScreenHeight` is pixels (`A_ScreenHeight/9*16`), evaluated against the placement surface passed at resolve time (work area when `desktopMode`). `clamp(value, min, max)` bounds a pixel expression (`clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth)`). |
+| Dims | Integer token = pixels (`150`). Token with `.` or `/` = proportion of the bounds (`0.5`, `1/2`). Arithmetic with `A_ScreenWidth` / `A_ScreenHeight` is pixels (`A_ScreenHeight/9*16`), evaluated against the placement surface passed at resolve time (work area when `desktopMode`). `clamp(value, min, max)` bounds a pixel expression (`clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth)`). Grid tracks add `*` / `2*` for leftover space (`rowHeights="80,*,120"`). `rowWeights` integers stay star weights, not pixels. |
 | Style / dwell | Page inherits from settings, then overrides per field. Unspecified dwell uses **daily driver** for Send / mouse / AHK / modifiers / mapping keys / composer typing, and **designer** for everything else. Grids, cells, and zones inherit from the **page** (never from a grid). Named `style` / `dwell` plus inline attrs override individual members. Grid resolve then drops `foreground` / `progressStyle` / `progressColor`. |
 | Overlap | Topmost attached page’s grid is opaque. Shell grids/zones paint and hit above the rest. |
 | Drawer / quit | Layer membership. Master XML puts dock chips on layer 1, the drawer on 2, quit on 3. `ShowLayers` sets the visible set (Main chip `1,2`; Dismiss `1`; Quit `1,3`). Consecutive ShowLayers in one cell are applied together, then the drawer animates: appear when a `drawerMotion` grid is shown, dismiss when it is the last master grid hidden, snap when another master grid remains. Hidden shell grids do not reserve host space. |
@@ -55,7 +55,8 @@ A Grid is a placed rectangle of rows and columns. `desktopMode="true"` uses the 
 | `anchor` | `TopLeft`, `Top`, `Center`, `Bottom`, … |
 | `offset`, `size` | `x,y` dim pairs: pixels, axis proportion (`0.25`), height proportion (`0.25h`), or screen expressions (`A_ScreenHeight/9*16, A_ScreenHeight`). Commas inside parentheses do not split the pair. |
 | `rows`, `columns`, `gap`, `margin` | Cell mesh |
-| `rowWeights` | Relative row heights (`1,2,2` = header half as tall as each content row). Missing tracks are 1 |
+| `rowWeights` | Legacy all-star row sizes (`1,2,2` = header half as tall as each content row). Integers are **star weights**, not pixels. Loaded as `*` / `2*` tracks. Writer emits this when every row is a star |
+| `rowHeights`, `columnWidths` | Per-track sizes, XAML GridLength-style. Integer token = pixels (`80`, `80px`). `*` / `2*` share leftover space after fixed tracks. Also accepts the usual dim tokens (`0.25`, `1/4`, `0.25h`, `A_ScreenHeight/20`, `clamp(...)`). Missing tracks are `*`. Pixel tracks that overflow the inner size scale down together. Equal columns when `columnWidths` is omitted |
 | `drawerMotion`, `shell` | Drawer scale animation / always-on-top layer |
 | `layers` | Comma-separated layer membership (`1,2`). Default `1`. Visible when any listed layer is in the page's current `showLayers`. Nested subgrids are skipped when the parent is off-layer, so a parent that hosts children on several layers should list all of them (`layers="1,2"`). |
 | `style`, `dwell` | Named style/dwell ids, plus inline chrome/dwell attrs. Grid inherit drops `foreground` / `progressStyle` / `progressColor`. |

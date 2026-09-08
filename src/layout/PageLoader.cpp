@@ -320,8 +320,26 @@ bool readGrid(QXmlStreamReader& xml, PageGrid& grid, bool nested, QString* error
     grid.colSpan = parseIntAttr(a.value(QStringLiteral("colSpan")), 1);
     grid.gapPx = parseIntAttr(a.value(QStringLiteral("gap")), 0);
     grid.marginPx = parseIntAttr(a.value(QStringLiteral("margin")), 0);
-    if (a.hasAttribute(QStringLiteral("rowWeights"))) {
-        grid.rowWeights = parseRowWeights(a.value(QStringLiteral("rowWeights")));
+    auto loadTracks = [&](const QString& name, QVector<PageTrackSize>& dest) -> bool {
+        if (!a.hasAttribute(name)) {
+            return true;
+        }
+        QString err;
+        dest = PageDimParse::parseTrackList(a.value(name).toString(), &err);
+        if (!err.isEmpty()) {
+            if (error) {
+                *error = xmlError(xml, err);
+            }
+            return false;
+        }
+        return true;
+    };
+    if (!loadTracks(QStringLiteral("rowHeights"), grid.rowTracks)
+        || !loadTracks(QStringLiteral("columnWidths"), grid.columnTracks)) {
+        return false;
+    }
+    if (grid.rowTracks.isEmpty() && a.hasAttribute(QStringLiteral("rowWeights"))) {
+        grid.rowTracks = starTracks(parseRowWeights(a.value(QStringLiteral("rowWeights"))));
     }
     grid.drawerMotion = parseBoolAttr(a.value(QStringLiteral("drawerMotion")), false);
     grid.autoClose = parseBoolAttr(a.value(QStringLiteral("autoClose")), false);

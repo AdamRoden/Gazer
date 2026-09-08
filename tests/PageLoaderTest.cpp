@@ -44,6 +44,7 @@ private slots:
     void keyboardMainOpensDrawer();
     void pageWriterRoundTripMain();
     void rowWeightsRoundTrip();
+    void trackSizesRoundTrip();
     void sessionKeyPrefixedAfterPageId();
     void catalogUserCopyWinsPath();
 };
@@ -852,12 +853,43 @@ void PageLoaderTest::rowWeightsRoundTrip()
     g.id = QStringLiteral("g");
     g.rows = 3;
     g.columns = 1;
-    g.rowWeights = {1.0, 2.0, 2.0};
+    g.rowTracks = starTracks({1.0, 2.0, 2.0});
     src.grids.push_back(g);
+    const QByteArray xml = PageWriter::toBytes(src);
+    QVERIFY(QString::fromUtf8(xml).contains(QStringLiteral("rowWeights=\"1,2,2\"")));
+    QVERIFY(!QString::fromUtf8(xml).contains(QStringLiteral("rowHeights")));
     QString err;
     PageDocument dst;
-    QVERIFY2(PageLoader::loadFromXml(PageWriter::toBytes(src), dst, &err), qPrintable(err));
-    QCOMPARE(dst.grids[0].rowWeights, QVector<double>({1.0, 2.0, 2.0}));
+    QVERIFY2(PageLoader::loadFromXml(xml, dst, &err), qPrintable(err));
+    QCOMPARE(PageDimParse::tokenList(dst.grids[0].rowTracks), QStringLiteral("*,2*,2*"));
+}
+
+void PageLoaderTest::trackSizesRoundTrip()
+{
+    const QByteArray xml = R"xml(
+<Page id="p">
+  <Grid id="g" rows="3" columns="3"
+        rowHeights="80px,*,120" columnWidths="200,2*,*">
+    <Cell id="c" label="X"/>
+  </Grid>
+</Page>
+)xml";
+    PageDocument doc;
+    QString err;
+    QVERIFY2(PageLoader::loadFromXml(xml, doc, &err), qPrintable(err));
+    QCOMPARE(doc.grids[0].rowTracks.size(), 3);
+    QCOMPARE(doc.grids[0].rowTracks[0].dim.unit, PageDim::Unit::Pixels);
+    QCOMPARE(doc.grids[0].rowTracks[0].dim.value, 80.0);
+    QCOMPARE(doc.grids[0].rowTracks[1].kind, PageTrackSize::Kind::Star);
+    QCOMPARE(doc.grids[0].columnTracks[1].star, 2.0);
+    PageDocument written;
+    const QByteArray out = PageWriter::toBytes(doc);
+    QVERIFY2(PageLoader::loadFromXml(out, written, &err), qPrintable(err));
+    QCOMPARE(PageDimParse::tokenList(written.grids[0].rowTracks), QStringLiteral("80,*,120"));
+    QCOMPARE(PageDimParse::tokenList(written.grids[0].columnTracks), QStringLiteral("200,2*,*"));
+    QVERIFY(QString::fromUtf8(out).contains(QStringLiteral("rowHeights=")));
+    QVERIFY(QString::fromUtf8(out).contains(QStringLiteral("columnWidths=")));
+    QVERIFY(!QString::fromUtf8(out).contains(QStringLiteral("columnWeights")));
 }
 
 void PageLoaderTest::sessionKeyPrefixedAfterPageId()

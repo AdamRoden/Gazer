@@ -14,13 +14,13 @@ QString norm(const QString& s)
     return s.trimmed().toLower();
 }
 
-[[nodiscard]] bool isNumericToken(const QString& t)
+[[nodiscard]] bool isNumericToken(const QString& t, double* out = nullptr)
 {
     if (t.isEmpty()) {
         return false;
     }
     bool ok = false;
-    (void)t.toDouble(&ok);
+    const double v = t.toDouble(&ok);
     if (!ok) {
         return false;
     }
@@ -28,6 +28,9 @@ QString norm(const QString& s)
         if (c.isLetter() && c != QLatin1Char('e') && c != QLatin1Char('E')) {
             return false;
         }
+    }
+    if (out) {
+        *out = v;
     }
     return true;
 }
@@ -276,10 +279,11 @@ struct ExprEval {
     }
 };
 
-[[nodiscard]] bool splitTopLevelPair(const QString& s, QString* left, QString* right, QString* error)
+[[nodiscard]] QStringList splitTopLevelCsv(const QString& s, QString* error)
 {
+    QStringList out;
     int depth = 0;
-    int split = -1;
+    int start = 0;
     for (int i = 0; i < s.size(); ++i) {
         const QChar c = s.at(i);
         if (c == QLatin1Char('(')) {
@@ -290,35 +294,44 @@ struct ExprEval {
                 if (error) {
                     *error = QStringLiteral("Unmatched ')' in '%1'").arg(s);
                 }
-                return false;
+                return {};
             }
         } else if (c == QLatin1Char(',') && depth == 0) {
-            if (split >= 0) {
-                if (error) {
-                    *error = QStringLiteral("Expected x,y pair, got '%1'").arg(s);
-                }
-                return false;
-            }
-            split = i;
+            out.push_back(s.mid(start, i - start));
+            start = i + 1;
         }
     }
     if (depth != 0) {
         if (error) {
             *error = QStringLiteral("Unmatched '(' in '%1'").arg(s);
         }
+        return {};
+    }
+    out.push_back(s.mid(start));
+    return out;
+}
+
+[[nodiscard]] bool splitTopLevelPair(const QString& s, QString* left, QString* right, QString* error)
+{
+    QString splitErr;
+    const QStringList parts = splitTopLevelCsv(s, &splitErr);
+    if (!splitErr.isEmpty()) {
+        if (error) {
+            *error = splitErr;
+        }
         return false;
     }
-    if (split < 0) {
+    if (parts.size() != 2) {
         if (error) {
             *error = QStringLiteral("Expected x,y pair, got '%1'").arg(s);
         }
         return false;
     }
     if (left) {
-        *left = s.left(split);
+        *left = parts[0];
     }
     if (right) {
-        *right = s.mid(split + 1);
+        *right = parts[1];
     }
     return true;
 }
@@ -596,6 +609,258 @@ QString token(const PageDim& d)
         return QString::number(qRound(d.value));
     }
     return QString::number(d.value, 'g', 8);
+}
+
+PageTrackSize parseTrack(const QString& token, QString* error)
+{
+    const QString t = token.trimmed();
+    if (t.isEmpty()) {
+        if (error) {
+            *error = QStringLiteral("Empty track size");
+        }
+        return {};
+    }
+    if (t.size() > 2 && t.endsWith(QLatin1String("px"), Qt::CaseInsensitive)) {
+        double px = 0.0;
+        if (isNumericToken(t.chopped(2).trimmed(), &px)) {
+            return PageTrackSize::fromDim(PageDim::pixels(px));
+        }
+    }
+    if (t.endsWith(QLatin1Char('*'))) {
+        const QString prefix = t.chopped(1).trimmed();
+        if (prefix.isEmpty()) {
+            return PageTrackSize::starWeight(1.0);
+        }
+        double star = 0.0;
+        if (isNumericToken(prefix, &star) && star > 0.0) {
+            return PageTrackSize::starWeight(star);
+        }
+        if (error) {
+            *error = QStringLiteral("Invalid star track '%1'").arg(token);
+        }
+        return {};
+    }
+    QString err;
+    const PageDim dim = parse(t, &err);
+    if (!dim.isSet()) {
+        if (error) {
+            *error = err.isEmpty() ? QStringLiteral("Invalid track size '%1'").arg(token) : err;
+        }
+        return {};
+    }
+    return PageTrackSize::fromDim(dim);
+}
+
+QVector<PageTrackSize> parseTrackList(const QString& csv, QString* error)
+{
+    QVector<PageTrackSize> out;
+    const QString s = csv.trimmed();
+    if (s.isEmpty()) {
+        return out;
+    }
+    QString splitErr;
+    const QStringList parts = splitTopLevelCsv(s, &splitErr);
+    if (!splitErr.isEmpty()) {
+        if (error) {
+            *error = splitErr;
+        }
+        return {};
+    }
+    for (const QString& part : parts) {
+        if (part.trimmed().isEmpty()) {
+            continue;
+        }
+        QString err;
+        const PageTrackSize t = parseTrack(part, &err);
+        if (!err.isEmpty() || (t.kind == PageTrackSize::Kind::Dim && !t.dim.isSet())) {
+            if (error) {
+                *error = err.isEmpty() ? QStringLiteral("Invalid track size '%1'").arg(part) : err;
+            }
+            return {};
+        }
+        out.push_back(t);
+    }
+    return out;
+}
+
+QString token(const PageTrackSize& t)
+{
+    if (t.kind == PageTrackSize::Kind::Star) {
+        if (qAbs(t.star - 1.0) < 1e-9) {
+            return QStringLiteral("*");
+        }
+        if (qFuzzyCompare(t.star, static_cast<double>(qRound(t.star)))) {
+            return QString::number(qRound(t.star)) + QLatin1Char('*');
+        }
+        return QString::number(t.star, 'g', 8) + QLatin1Char('*');
+    }
+    return token(t.dim);
+}
+
+QString tokenList(const QVector<PageTrackSize>& tracks)
+{
+    QStringList parts;
+    parts.reserve(tracks.size());
+    for (const PageTrackSize& t : tracks) {
+        parts.push_back(token(t));
+    }
+    return parts.join(QLatin1Char(','));
+}
+
+namespace {
+
+QVector<PageTrackSize> padTracks(const QVector<PageTrackSize>& authored, int count)
+{
+    QVector<PageTrackSize> out;
+    out.reserve(count);
+    for (int i = 0; i < count; ++i) {
+        out.push_back(i < authored.size() ? authored[i] : PageTrackSize::starWeight(1.0));
+    }
+    return out;
+}
+
+QVector<double> resolveTracks(const QVector<PageTrackSize>& tracks, double inner, double axisRef,
+                              double heightRef, const QSizeF& screen)
+{
+    const int count = tracks.size();
+    QVector<double> sizes(count, 0.0);
+    if (count <= 0) {
+        return sizes;
+    }
+    const double sw = screen.width() > 0.0 ? screen.width() : axisRef;
+    const double sh = screen.height() > 0.0 ? screen.height() : heightRef;
+    double fixed = 0.0;
+    double starTotal = 0.0;
+    for (int i = 0; i < count; ++i) {
+        if (tracks[i].isStar()) {
+            starTotal += tracks[i].star > 0.0 ? tracks[i].star : 1.0;
+            continue;
+        }
+        const double px = qMax(0.0, tracks[i].dim.resolve(axisRef, heightRef, sw, sh));
+        sizes[i] = px;
+        fixed += px;
+    }
+    double leftover = inner - fixed;
+    if (leftover < 0.0 && fixed > 0.0) {
+        const double scale = inner / fixed;
+        for (int i = 0; i < count; ++i) {
+            if (!tracks[i].isStar()) {
+                sizes[i] *= scale;
+            }
+        }
+        leftover = 0.0;
+        starTotal = 0.0;
+    }
+    if (starTotal > 0.0 && leftover > 0.0) {
+        for (int i = 0; i < count; ++i) {
+            if (tracks[i].isStar()) {
+                const double w = tracks[i].star > 0.0 ? tracks[i].star : 1.0;
+                sizes[i] = leftover * (w / starTotal);
+            }
+        }
+    }
+    return sizes;
+}
+
+struct Mesh {
+    QVector<double> colSizes;
+    QVector<double> rowSizes;
+    double originX = 0.0;
+    double originY = 0.0;
+    int gap = 0;
+
+    [[nodiscard]] bool valid() const { return !colSizes.isEmpty() && !rowSizes.isEmpty(); }
+};
+
+Mesh gridMesh(const PageGrid& grid, const QRectF& gridRect, const QSizeF& screen)
+{
+    const int cols = qMax(1, grid.columns);
+    const int rows = qMax(1, grid.rows);
+    const int gap = qMax(0, grid.gapPx);
+    const int margin = qMax(0, grid.marginPx);
+    const double innerW = gridRect.width() - 2.0 * margin - gap * (cols - 1);
+    const double innerH = gridRect.height() - 2.0 * margin - gap * (rows - 1);
+    Mesh m;
+    if (innerW <= 0.0 || innerH <= 0.0) {
+        return m;
+    }
+    const QSizeF metrics(screen.width() > 0.0 ? screen.width() : gridRect.width(),
+                         screen.height() > 0.0 ? screen.height() : gridRect.height());
+    m.gap = gap;
+    m.originX = gridRect.left() + margin;
+    m.originY = gridRect.top() + margin;
+    m.colSizes = resolveTracks(padTracks(grid.columnTracks, cols), innerW, innerW, innerH, metrics);
+    m.rowSizes = resolveTracks(padTracks(grid.rowTracks, rows), innerH, innerH, innerH, metrics);
+    return m;
+}
+
+double spanStart(const QVector<double>& sizes, int gap, int index)
+{
+    double v = 0.0;
+    const int n = qBound(0, index, sizes.size());
+    for (int i = 0; i < n; ++i) {
+        v += sizes[i] + gap;
+    }
+    return v;
+}
+
+double spanLength(const QVector<double>& sizes, int gap, int index, int span)
+{
+    double v = 0.0;
+    const int begin = qBound(0, index, sizes.size());
+    const int end = qBound(begin, begin + qMax(1, span), sizes.size());
+    for (int i = begin; i < end; ++i) {
+        if (i > begin) {
+            v += gap;
+        }
+        v += sizes[i];
+    }
+    return v;
+}
+
+int trackIndexAt(const QVector<double>& sizes, int gap, double local)
+{
+    if (sizes.isEmpty()) {
+        return 0;
+    }
+    double y = 0.0;
+    for (int i = 0; i < sizes.size(); ++i) {
+        const double next = y + sizes[i] + (i + 1 < sizes.size() ? gap : 0);
+        if (local < next || i == sizes.size() - 1) {
+            return i;
+        }
+        y = next;
+    }
+    return sizes.size() - 1;
+}
+
+} // namespace
+
+QRectF cellRect(const PageGrid& grid, const QRectF& gridRect, int row, int col, int rowSpan,
+                int colSpan, const QSizeF& screen)
+{
+    const Mesh mesh = gridMesh(grid, gridRect, screen);
+    if (!mesh.valid()) {
+        return {};
+    }
+    return QRectF(mesh.originX + spanStart(mesh.colSizes, mesh.gap, col),
+                  mesh.originY + spanStart(mesh.rowSizes, mesh.gap, row),
+                  spanLength(mesh.colSizes, mesh.gap, col, colSpan),
+                  spanLength(mesh.rowSizes, mesh.gap, row, rowSpan));
+}
+
+QPoint cellIndexAt(const PageGrid& grid, const QRectF& gridRect, const QPointF& pos,
+                   const QSizeF& screen)
+{
+    if (!gridRect.contains(pos)) {
+        return {-1, -1};
+    }
+    const Mesh mesh = gridMesh(grid, gridRect, screen);
+    if (!mesh.valid()) {
+        return {-1, -1};
+    }
+    return {trackIndexAt(mesh.colSizes, mesh.gap, pos.x() - mesh.originX),
+            trackIndexAt(mesh.rowSizes, mesh.gap, pos.y() - mesh.originY)};
 }
 
 QPoint anchorDelta(PageAnchor a, int amount)

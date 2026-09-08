@@ -105,7 +105,7 @@ inline void initTopOverlay(PageDocument& doc, int cols, int rows, const QVector<
     g.size.y = PageDim::expression(heightExpr);
     g.rows = rows;
     g.columns = cols;
-    g.rowWeights = weights;
+    g.rowTracks = starTracks(weights);
     g.gapPx = gap;
     g.marginPx = margin;
     QColor bg = theme.bgMain.isValid() ? theme.bgMain : QColor(10, 10, 11);

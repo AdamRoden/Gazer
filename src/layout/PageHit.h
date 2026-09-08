@@ -8,6 +8,7 @@
 #include <QPointF>
 #include <QPolygonF>
 #include <QRectF>
+#include <QSizeF>
 #include <QString>
 #include <QTransform>
 #include <QVariantMap>
@@ -77,12 +78,13 @@ struct PageGridPaint {
 namespace PageHit {
 
 [[nodiscard]] QRectF cellRect(const PageGrid& grid, const QRectF& gridRect, int row, int col,
-                              int rowSpan, int colSpan);
+                              int rowSpan, int colSpan, const QSizeF& screen = {});
 
 [[nodiscard]] QRectF gridBounds(const PageGrid& grid, const PageFrame& frame);
 
 /// Column in x, row in y. {-1,-1} if pos is outside the grid rect.
-[[nodiscard]] QPoint cellIndexAt(const PageGrid& grid, const QRectF& gridRect, const QPointF& pos);
+[[nodiscard]] QPoint cellIndexAt(const PageGrid& grid, const QRectF& gridRect, const QPointF& pos,
+                                 const QSizeF& screen = {});
 
 /// Per-page collect order: grid cells, then zones. Live session appends each
 /// page as one layer (attached oldest→newest, then master). Front-to-back:

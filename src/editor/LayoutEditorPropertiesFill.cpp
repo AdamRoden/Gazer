@@ -78,13 +78,6 @@ void LayoutEditorProperties::fillGrid(QFormLayout* form)
                       QStringLiteral("Grid auto close"));
         });
     });
-    QString weights;
-    for (double w : g->rowWeights) {
-        if (!weights.isEmpty()) {
-            weights += QLatin1Char(',');
-        }
-        weights += QString::number(w, 'g', 8);
-    }
     b.card(form, QStringLiteral("Cells"), [&](QFormLayout* f) {
         b.integer(f, QStringLiteral("Columns"), g->columns, 1, 48, [this](int v) {
             applyGrid([&](PageGrid& grid) { grid.columns = v; }, QStringLiteral("Columns"));
@@ -92,10 +85,28 @@ void LayoutEditorProperties::fillGrid(QFormLayout* form)
         b.integer(f, QStringLiteral("Rows"), g->rows, 1, 48, [this](int v) {
             applyGrid([&](PageGrid& grid) { grid.rows = v; }, QStringLiteral("Rows"));
         });
-        b.text(f, QStringLiteral("Row weights"), weights, [this](const QString& t) {
-            applyGrid([&](PageGrid& grid) { grid.rowWeights = parseRowWeights(t); },
-                      QStringLiteral("Row weights"));
-        });
+        b.text(f, QStringLiteral("Row heights"), PageDimParse::tokenList(g->rowTracks),
+               [this](const QString& t) {
+                   QString err;
+                   const QVector<PageTrackSize> tracks = PageDimParse::parseTrackList(t, &err);
+                   if (!err.isEmpty() && !t.trimmed().isEmpty()) {
+                       rebuild();
+                       return;
+                   }
+                   applyGrid([&](PageGrid& grid) { grid.rowTracks = tracks; },
+                             QStringLiteral("Row heights"));
+               });
+        b.text(f, QStringLiteral("Column widths"), PageDimParse::tokenList(g->columnTracks),
+               [this](const QString& t) {
+                   QString err;
+                   const QVector<PageTrackSize> tracks = PageDimParse::parseTrackList(t, &err);
+                   if (!err.isEmpty() && !t.trimmed().isEmpty()) {
+                       rebuild();
+                       return;
+                   }
+                   applyGrid([&](PageGrid& grid) { grid.columnTracks = tracks; },
+                             QStringLiteral("Column widths"));
+               });
         b.integer(f, QStringLiteral("Gap px"), g->gapPx, 0, 64, [this](int v) {
             applyGrid([&](PageGrid& grid) { grid.gapPx = v; }, QStringLiteral("Gap"));
         });

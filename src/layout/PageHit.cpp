@@ -6,6 +6,7 @@
 
 #include <QHash>
 #include <QPolygonF>
+#include <QSizeF>
 #include <QTransform>
 #include <QtGlobal>
 #include <algorithm>
@@ -38,67 +39,10 @@ namespace {
 
 } // namespace
 
-namespace {
-
-double trackWeight(const QVector<double>& weights, int i)
-{
-    if (i >= 0 && i < weights.size() && weights[i] > 0.0) {
-        return weights[i];
-    }
-    return 1.0;
-}
-
-double trackWeightRange(const QVector<double>& weights, int count, int from, int span)
-{
-    double s = 0.0;
-    const int end = qMin(count, from + span);
-    for (int i = qMax(0, from); i < end; ++i) {
-        s += trackWeight(weights, i);
-    }
-    return s;
-}
-
-int trackIndexAt(const QVector<double>& weights, int count, double inner, int gap, double local)
-{
-    const double total = trackWeightRange(weights, count, 0, count);
-    if (total <= 0.0 || inner <= 0.0) {
-        return 0;
-    }
-    double y = 0.0;
-    for (int i = 0; i < count; ++i) {
-        const double h = inner * (trackWeight(weights, i) / total);
-        const double next = y + h + (i + 1 < count ? gap : 0);
-        if (local < next || i == count - 1) {
-            return i;
-        }
-        y = next;
-    }
-    return count - 1;
-}
-
-} // namespace
-
 QRectF cellRect(const PageGrid& grid, const QRectF& gridRect, int row, int col, int rowSpan,
-                int colSpan)
+                int colSpan, const QSizeF& screen)
 {
-    const int cols = qMax(1, grid.columns);
-    const int rows = qMax(1, grid.rows);
-    const int gap = qMax(0, grid.gapPx);
-    const int margin = qMax(0, grid.marginPx);
-    const double innerW = gridRect.width() - 2.0 * margin - gap * (cols - 1);
-    const double innerH = gridRect.height() - 2.0 * margin - gap * (rows - 1);
-    if (innerW <= 0.0 || innerH <= 0.0) {
-        return {};
-    }
-    const double cellW = innerW / cols;
-    const double x = gridRect.left() + margin + col * (cellW + gap);
-    const double w = cellW * colSpan + gap * (colSpan - 1);
-    const double totalH = trackWeightRange(grid.rowWeights, rows, 0, rows);
-    const double before = trackWeightRange(grid.rowWeights, rows, 0, row);
-    const double spanH = trackWeightRange(grid.rowWeights, rows, row, rowSpan);
-    const double y = gridRect.top() + margin + innerH * (before / totalH) + gap * row;
-    const double h = innerH * (spanH / totalH) + gap * (rowSpan - 1);
-    return QRectF(x, y, w, h);
+    return PageDimParse::cellRect(grid, gridRect, row, col, rowSpan, colSpan, screen);
 }
 
 QRectF gridBounds(const PageGrid& grid, const PageFrame& frame)
@@ -116,7 +60,7 @@ QRectF gridBounds(const PageGrid& grid, const PageFrame& frame)
 namespace {
 
 void accumulateGrid(const PageGrid& grid, const QRectF& bounds, const QVector<int>& shown,
-                    QRectF& u)
+                    const QSizeF& metrics, QRectF& u)
 {
     if (!layersVisible(grid.layers, shown) && grid.shell) {
         return;
@@ -126,8 +70,8 @@ void accumulateGrid(const PageGrid& grid, const QRectF& bounds, const QVector<in
     }
     for (const PageGrid& sub : grid.subGrids) {
         const QRectF slot =
-            cellRect(grid, bounds, sub.row, sub.col, sub.rowSpan, sub.colSpan);
-        accumulateGrid(sub, slot, shown, u);
+            cellRect(grid, bounds, sub.row, sub.col, sub.rowSpan, sub.colSpan, metrics);
+        accumulateGrid(sub, slot, shown, metrics, u);
     }
 }
 
@@ -136,10 +80,11 @@ void accumulateGrid(const PageGrid& grid, const QRectF& bounds, const QVector<in
 QRectF reservedBounds(const PageDocument& page, const PageFrame& frame)
 {
     QRectF u;
-    for (const PageGrid& g : page.grids) {
-        accumulateGrid(g, gridBounds(g, frame), page.showLayers, u);
-    }
     const QRectF screen = frame.screen.isEmpty() ? frame.desktop : frame.screen;
+    const QSizeF metrics(screen.size());
+    for (const PageGrid& g : page.grids) {
+        accumulateGrid(g, gridBounds(g, frame), page.showLayers, metrics, u);
+    }
     for (const PageZone& z : page.zones) {
         const QRectF ref = z.desktopMode ? frame.desktop : frame.screen;
         const QRectF vis = PageDetector::zoneFromDef(z, ref, screen).visual;
@@ -151,26 +96,10 @@ QRectF reservedBounds(const PageDocument& page, const PageFrame& frame)
     return u;
 }
 
-QPoint cellIndexAt(const PageGrid& grid, const QRectF& gridRect, const QPointF& pos)
+QPoint cellIndexAt(const PageGrid& grid, const QRectF& gridRect, const QPointF& pos,
+                   const QSizeF& screen)
 {
-    if (!gridRect.contains(pos)) {
-        return {-1, -1};
-    }
-    const int cols = qMax(1, grid.columns);
-    const int rows = qMax(1, grid.rows);
-    const int gap = qMax(0, grid.gapPx);
-    const int margin = qMax(0, grid.marginPx);
-    const double innerW = gridRect.width() - 2.0 * margin - gap * (cols - 1);
-    const double innerH = gridRect.height() - 2.0 * margin - gap * (rows - 1);
-    if (innerW <= 0.0 || innerH <= 0.0) {
-        return {-1, -1};
-    }
-    const double strideW = innerW / cols + gap;
-    const double lx = pos.x() - gridRect.left() - margin;
-    const double ly = pos.y() - gridRect.top() - margin;
-    const int col = qBound(0, int(lx / qMax(1.0, strideW)), cols - 1);
-    const int row = qBound(0, trackIndexAt(grid.rowWeights, rows, innerH, gap, ly), rows - 1);
-    return {col, row};
+    return PageDimParse::cellIndexAt(grid, gridRect, pos, screen);
 }
 
 namespace {
@@ -202,8 +131,8 @@ void walkGrid(const PageDocument& page, const PageGrid& grid, const QRectF& boun
         if (!evalVisibleWhen(cell.visibleWhen, props)) {
             continue;
         }
-        const QRectF visual =
-            cellRect(grid, bounds, cell.row, cell.col, cell.rowSpan, cell.colSpan);
+        const QRectF visual = cellRect(grid, bounds, cell.row, cell.col, cell.rowSpan,
+                                       cell.colSpan, screen.size());
         PageTarget t;
         t.kind = PageTarget::Kind::Cell;
         t.gridId = grid.id;
@@ -232,8 +161,8 @@ void walkGrid(const PageDocument& page, const PageGrid& grid, const QRectF& boun
             && !(includeDrawerMotion && sub.drawerMotion)) {
             continue;
         }
-        const QRectF slot =
-            cellRect(grid, bounds, sub.row, sub.col, sub.rowSpan, sub.colSpan);
+        const QRectF slot = cellRect(grid, bounds, sub.row, sub.col, sub.rowSpan, sub.colSpan,
+                                     screen.size());
         walkGrid(page, sub, slot, screen, props, dwellSuspended, layer, drawer,
                  includeDrawerMotion, shownLayers, out, grids);
     }
