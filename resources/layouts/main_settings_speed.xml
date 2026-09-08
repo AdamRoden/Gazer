@@ -64,18 +64,18 @@
       <Cell id="h_daily" row="0" col="0" label="Daily driver dwell" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_daily_dwell" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="dd_dwell_label" row="0" col="0" label="Sequence" caption="Keys, mouse, composer, modifiers, and AHK. Last step repeats." role="label" style="plain"/>
-        <SubGrid id="act_daily_dwell" row="0" col="1" rows="1" columns="5" gap="0" style="row">
-          <Cell id="dd_dwell_value" row="0" col="0" colSpan="3" label="—" role="value" settingKey="dailyDwellMs" style="joinLeft"/>
-          <Cell id="dd_dwell_edit" row="0" col="3" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.dailyDwellMs"/>
+        <SubGrid id="act_daily_dwell" row="0" col="1" rows="1" columns="2" columnWidths="7*,2*" gap="0" style="row">
+          <Cell id="dd_dwell_value" row="0" col="0" label="—" role="value" settingKey="dailyDwellMs" style="joinLeft"/>
+          <Cell id="dd_dwell_edit" row="0" col="1" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.dailyDwellMs"/>
         </SubGrid>
       </SubGrid>
       <SubGrid id="row_daily_scan" row="2" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="dd_scan_label" row="0" col="0" label="Scan grace" caption="Time on-target before daily-driver dwell starts." role="label" style="plain"/>
-        <SubGrid id="act_daily_scan" row="0" col="1" rows="1" columns="9" gap="0" style="row">
-          <Cell id="dd_scan_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.dailyScanGraceMs.dec"/>
-          <Cell id="dd_scan_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="dailyScanGraceMs" style="join"/>
-          <Cell id="dd_scan_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.dailyScanGraceMs.inc"/>
-          <Cell id="dd_scan_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.dailyScanGraceMs"/>
+        <SubGrid id="act_daily_scan" row="0" col="1" rows="1" columns="4" columnWidths="2*,3*,2*,2*" gap="0" style="row">
+          <Cell id="dd_scan_dec" row="0" col="0" label="−" style="joinLeft" command="settings.nudge.dailyScanGraceMs.dec"/>
+          <Cell id="dd_scan_val" row="0" col="1" label="—" role="value" settingKey="dailyScanGraceMs" style="join"/>
+          <Cell id="dd_scan_inc" row="0" col="2" label="+" style="join" command="settings.nudge.dailyScanGraceMs.inc"/>
+          <Cell id="dd_scan_edit" row="0" col="3" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.dailyScanGraceMs"/>
         </SubGrid>
       </SubGrid>
     </SubGrid>
@@ -84,18 +84,18 @@
       <Cell id="h_designer" row="0" col="0" label="Designer dwell" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_dwell" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="dwell_label" row="0" col="0" label="Sequence" caption="Settings, navigation, and other boards. Last step repeats." role="label" style="plain"/>
-        <SubGrid id="act_dwell" row="0" col="1" rows="1" columns="5" gap="0" style="row">
-          <Cell id="dwell_value" row="0" col="0" colSpan="3" label="—" role="value" settingKey="dwellMs" style="joinLeft"/>
-          <Cell id="dwell_edit" row="0" col="3" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.dwellMs"/>
+        <SubGrid id="act_dwell" row="0" col="1" rows="1" columns="2" columnWidths="7*,2*" gap="0" style="row">
+          <Cell id="dwell_value" row="0" col="0" label="—" role="value" settingKey="dwellMs" style="joinLeft"/>
+          <Cell id="dwell_edit" row="0" col="1" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.dwellMs"/>
         </SubGrid>
       </SubGrid>
       <SubGrid id="row_scan" row="2" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="scan_label" row="0" col="0" label="Scan grace" caption="Time on-target before designer dwell starts." role="label" style="plain"/>
-        <SubGrid id="act_scan" row="0" col="1" rows="1" columns="9" gap="0" style="row">
-          <Cell id="scan_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.scanGraceMs.dec"/>
-          <Cell id="scan_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="scanGraceMs" style="join"/>
-          <Cell id="scan_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.scanGraceMs.inc"/>
-          <Cell id="scan_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.scanGraceMs"/>
+        <SubGrid id="act_scan" row="0" col="1" rows="1" columns="4" columnWidths="2*,3*,2*,2*" gap="0" style="row">
+          <Cell id="scan_dec" row="0" col="0" label="−" style="joinLeft" command="settings.nudge.scanGraceMs.dec"/>
+          <Cell id="scan_val" row="0" col="1" label="—" role="value" settingKey="scanGraceMs" style="join"/>
+          <Cell id="scan_inc" row="0" col="2" label="+" style="join" command="settings.nudge.scanGraceMs.inc"/>
+          <Cell id="scan_edit" row="0" col="3" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.scanGraceMs"/>
         </SubGrid>
       </SubGrid>
     </SubGrid>
