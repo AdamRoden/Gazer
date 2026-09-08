@@ -6,7 +6,7 @@
   <Style id="joinLeft" background="#00000000" thickness="0" radius="10,0,0,10"/>
   <Style id="joinRight" background="#00000000" thickness="0" radius="0,10,10,0"/>
   <Style id="tabbar" thickness="0" radius="12"/>
-  <Grid id="board" desktopMode="true" rows="10" columns="16" anchor="Top" offset="0,0" size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" gap="8" margin="12" radius="16">
+  <Grid id="board" desktopMode="true" rows="10" columns="16" anchor="Top" offset="0,0" size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" gap="6" margin="12" radius="16">
     <SubGrid id="tabs" row="0" col="0" colSpan="16" rows="1" columns="8" gap="6" margin="4" style="tabbar">
       <Cell id="tab_speed" row="0" col="0" label="Speed" icon="timer" role="tab">
         <ClosePage/>
@@ -39,7 +39,7 @@
     </SubGrid>
 
     <Cell id="page_title" row="1" col="0" colSpan="16" label="Theme" caption="Background, surfaces, accent, and progress" role="label" textStyle="title" style="plain"/>
-    <SubGrid id="theme_columns" row="2" col="0" rowSpan="10" colSpan="16" rows="1" columns="2" gap="16">
+    <SubGrid id="theme_columns" row="2" col="0" rowSpan="7" colSpan="16" rows="1" columns="2" gap="16">
 
       <SubGrid id="sec_surfaces" row="0" col="0" rows="8" columns="2" rowWeights="0.5,1.15,1.5,1.5" columnWidths="1*,3*" gap="8" margin="8" style="group">
         <Cell id="h_surfaces" row="0" col="0" colSpan="2" label="Background and Surface" role="label" textStyle="section" style="plain"/>
