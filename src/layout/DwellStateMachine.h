@@ -28,6 +28,10 @@ public:
     void setInvalidGraceMs(int ms);
     /// Time on-target before dwell sequence / progress animation begins (ms).
     void setScanGraceMs(int ms);
+    /// After each activation, hold progress at 1 and re-run scan grace before
+    /// the next step clocks. Used for phased cells so look-away does not start
+    /// another fill before blink grace can commit.
+    void setRescanAfterStep(bool on) { m_rescanAfterStep = on; }
     void reset();
     void leave();
 
@@ -54,11 +58,13 @@ signals:
 
 private:
     void clearHover();
+    void afterActivation();
     [[nodiscard]] int stepMsAt(int index) const;
 
     bool m_enabled = true;
     QVector<int> m_sequence = {800};
     int m_scanGraceMs = kDefaultScanGraceMs;
+    bool m_rescanAfterStep = false;
 
     QString m_currentId;
     qint64 m_elapsedMs = 0;

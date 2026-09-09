@@ -93,6 +93,19 @@ void DwellStateMachine::clearHover()
     }
 }
 
+void DwellStateMachine::afterActivation()
+{
+    m_elapsedMs = 0;
+    if (m_rescanAfterStep && m_scanGraceMs > 0) {
+        m_scanGraceComplete = false;
+        m_progress = 1.0;
+        emit dwellProgress(m_currentId, 1.0);
+        return;
+    }
+    m_progress = 0.0;
+    emit dwellProgress(m_currentId, 0.0);
+}
+
 void DwellStateMachine::onGazeSample(const gazer::GazePoint& point,
                                      const QString& itemIdUnderGaze)
 {
@@ -143,6 +156,9 @@ void DwellStateMachine::onGazeSample(const gazer::GazePoint& point,
     // start the dwell sequence clock (and progress animation) from zero.
     if (!m_scanGraceComplete) {
         if (m_elapsedMs < m_scanGraceMs) {
+            if (m_rescanAfterStep && m_progress >= 1.0) {
+                return;
+            }
             if (m_progress != 0.0) {
                 m_progress = 0.0;
                 emit dwellProgress(m_currentId, 0.0);
@@ -160,11 +176,12 @@ void DwellStateMachine::onGazeSample(const gazer::GazePoint& point,
         const int needMs = stepMsAt(m_stepIndex);
         if (needMs <= 0) {
             emit itemActivated(m_currentId);
-            m_elapsedMs = 0;
-            m_progress = 0.0;
-            emit dwellProgress(m_currentId, 0.0);
-            if (m_stepIndex + 1 < m_sequence.size()) {
+            const bool more = m_stepIndex + 1 < m_sequence.size();
+            if (more) {
                 ++m_stepIndex;
+            }
+            afterActivation();
+            if (more && m_scanGraceComplete) {
                 continue;
             }
             break;
@@ -180,9 +197,7 @@ void DwellStateMachine::onGazeSample(const gazer::GazePoint& point,
         if (m_stepIndex + 1 < m_sequence.size()) {
             ++m_stepIndex;
         }
-        m_elapsedMs = 0;
-        m_progress = 0.0;
-        emit dwellProgress(m_currentId, 0.0);
+        afterActivation();
         break;
     }
 }

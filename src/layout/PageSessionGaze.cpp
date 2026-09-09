@@ -127,6 +127,7 @@ void PageSession::applyDwellFor(const PageTarget& t)
     m_dwell.setScanGraceMs(scan);
     m_dwell.setInvalidGraceMs(grace);
     m_dwell.setDwellSequence(seq);
+    m_dwell.setRescanAfterStep(!t.phases.isEmpty());
 }
 
 QTransform PageSession::hitXf() const

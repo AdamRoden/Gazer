@@ -20,6 +20,8 @@ private slots:
     void secondInvalidHoldDoesNotAdvance();
     void invalidGraceExpiryRestartsDwell();
     void dwellPhaseArmAdvanceCommitWrap();
+    void rescanAfterStepHoldsProgressUntilNextStep();
+    void rescanAfterStepLookAwayDoesNotFillNextStep();
 };
 
 namespace {
@@ -237,6 +239,65 @@ void DwellStateMachineTest::dwellPhaseArmAdvanceCommitWrap()
     QCOMPARE(b.current(QStringLiteral("c")).value_or(-1), 0);
     QCOMPARE(b.takeCommit(QStringLiteral("c")).value_or(-1), 0);
     QVERIFY(!b.takeCommit(QStringLiteral("c")).has_value());
+}
+
+void DwellStateMachineTest::rescanAfterStepHoldsProgressUntilNextStep()
+{
+    DwellStateMachine sm;
+    sm.setScanGraceMs(100);
+    sm.setRescanAfterStep(true);
+    sm.setDwellSequence({400, 400});
+    QSignalSpy fired(&sm, &DwellStateMachine::itemActivated);
+
+    sm.onGazeSample(sample(0), QStringLiteral("a"));
+    sm.onGazeSample(sample(100), QStringLiteral("a"));
+    sm.onGazeSample(sample(500), QStringLiteral("a"));
+    QCOMPARE(fired.size(), 1);
+    QCOMPARE(sm.progress(), 1.0);
+    QCOMPARE(sm.isScanGraceComplete(), false);
+
+    sm.onGazeSample(sample(599), QStringLiteral("a"));
+    QCOMPARE(fired.size(), 1);
+    QCOMPARE(sm.progress(), 1.0);
+
+    sm.onGazeSample(sample(600), QStringLiteral("a"));
+    QCOMPARE(fired.size(), 1);
+    QCOMPARE(sm.progress(), 0.0);
+    QCOMPARE(sm.isScanGraceComplete(), true);
+
+    sm.onGazeSample(sample(999), QStringLiteral("a"));
+    QCOMPARE(fired.size(), 1);
+    sm.onGazeSample(sample(1000), QStringLiteral("a"));
+    QCOMPARE(fired.size(), 2);
+}
+
+void DwellStateMachineTest::rescanAfterStepLookAwayDoesNotFillNextStep()
+{
+    DwellStateMachine sm;
+    sm.setScanGraceMs(100);
+    sm.setInvalidGraceMs(180);
+    sm.setRescanAfterStep(true);
+    sm.setDwellSequence({400, 400});
+    QSignalSpy fired(&sm, &DwellStateMachine::itemActivated);
+    QSignalSpy hover(&sm, &DwellStateMachine::hoverChanged);
+
+    sm.onGazeSample(sample(0), QStringLiteral("a"));
+    sm.onGazeSample(sample(100), QStringLiteral("a"));
+    sm.onGazeSample(sample(500), QStringLiteral("a"));
+    QCOMPARE(fired.size(), 1);
+    QCOMPARE(sm.progress(), 1.0);
+
+    sm.onGazeSample(sample(500, false), QString());
+    sm.onGazeSample(sample(600, false), QString());
+    QCOMPARE(sm.progress(), 1.0);
+    QCOMPARE(sm.hoveredItemId(), QStringLiteral("a"));
+    QCOMPARE(fired.size(), 1);
+
+    sm.onGazeSample(sample(680, false), QString());
+    QCOMPARE(sm.hoveredItemId(), QString());
+    QCOMPARE(fired.size(), 1);
+    QVERIFY(hover.size() >= 2);
+    QCOMPARE(hover.last().at(0).toString(), QString());
 }
 
 QTEST_MAIN(DwellStateMachineTest)
