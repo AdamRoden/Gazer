@@ -84,7 +84,7 @@ void AppSettingsTest::factoryUsesDomainConstants()
     QCOMPARE(s.comboInnerColor, AppSettings::colorToHex(ComboMouseHit::kDefaultInnerFill));
     QCOMPARE(s.comboOuterColor, AppSettings::colorToHex(ComboMouseHit::kDefaultOuterFill));
     QCOMPARE(s.magFollowProfile, GazeFollowProfile::Sticky);
-    QCOMPARE(s.ltsIndicatorStyle, LtsIndicator::Fan);
+    QCOMPARE(s.ltsIndicatorStyle, LtsIndicator::Filled);
     QCOMPARE(s.themeAppearance, ThemeAppearance::Dark);
     QVERIFY(s.themeCustom);
     QCOMPARE(s.themePrimaryIndex, kThemeDefaultBrandIndex);

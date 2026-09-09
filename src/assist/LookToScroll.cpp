@@ -7,8 +7,10 @@
 #include "ui/Theme.h"
 #include "utils/Log.h"
 
+#include <QColor>
 #include <QCursor>
 #include <QGuiApplication>
+#include <QImage>
 #include <QPainter>
 #include <QPainterPath>
 #include <QPaintEvent>
@@ -59,13 +61,9 @@ public:
         const bool compact = m_paused || m_style == LtsIndicator::PauseOnly;
         int side = activator * 2 + 36;
         if (!compact) {
-            if (m_style == LtsIndicator::Orb) {
-                const int stretch = qMax(48, m_falloff / 3);
-                side = (m_deadzone + stretch) * 2 + 40;
-            } else {
-                const int maxOuter = m_deadzone + qMax(48, m_falloff / 3);
-                side = maxOuter * 2 + 24;
-            }
+            const int grow = qMax(48, m_falloff / 3);
+            const int halo = qRound(orbThickness(m_deadzone) * 2.2);
+            side = (m_deadzone + grow) * 2 + halo * 2 + 16;
             side = qMax(side, activator * 2 + 36);
         }
         if (side != m_box) {
@@ -97,97 +95,76 @@ protected:
         p.setRenderHint(QPainter::Antialiasing, true);
         const QPointF c(rect().center());
         const QColor cyan = m_accent.isValid() ? m_accent : ThemeColors::defaultProgressColor();
-        if (!m_paused) {
-            switch (m_style) {
-            case LtsIndicator::Fan:
-                paintFan(p, c, cyan);
-                break;
-            case LtsIndicator::Orb:
-                paintOrb(p, c, cyan);
-                break;
-            case LtsIndicator::PauseOnly:
-                break;
-            }
+        if (!m_paused && m_style != LtsIndicator::PauseOnly) {
+            paintOrb(p, c, cyan);
         }
         paintActivator(p, c, cyan);
     }
 
 private:
-    void paintFan(QPainter& p, const QPointF& c, const QColor& cyan)
+    [[nodiscard]] static double orbThickness(int deadzonePx)
     {
-        const int r = m_deadzone;
-        if (r > 0) {
-            p.setPen(Qt::NoPen);
-            p.setBrush(QColor(cyan.red(), cyan.green(), cyan.blue(), 16));
-            p.drawEllipse(c, double(r), double(r));
-        }
-        if (m_activity <= 0.02) {
-            return;
-        }
-        const double len = qSqrt(m_dirX * m_dirX + m_dirY * m_dirY);
-        if (len <= 0.05) {
-            return;
-        }
-        const double nx = m_dirX / len;
-        const double ny = m_dirY / len;
-        const int maxGrow = qMax(48, m_falloff / 3);
-        const int rOuter = r + int(maxGrow * m_activity);
-        const double midDeg = qRadiansToDegrees(qAtan2(-ny, nx));
-        const double halfSpread = 22.0 + 28.0 * m_activity;
-
-        QPainterPath pie;
-        pie.moveTo(c);
-        pie.arcTo(QRectF(c.x() - rOuter, c.y() - rOuter, rOuter * 2.0, rOuter * 2.0),
-                  midDeg - halfSpread, halfSpread * 2.0);
-        pie.closeSubpath();
-        QPainterPath hole;
-        hole.addEllipse(c, double(r), double(r));
-
-        p.setPen(Qt::NoPen);
-        p.setBrush(QColor(cyan.red(), cyan.green(), cyan.blue(), int(28 + 90 * m_activity)));
-        p.drawPath(pie.subtracted(hole));
+        return qBound(16.0, double(qMax(1, deadzonePx)) * 0.24, 40.0);
     }
 
     void paintOrb(QPainter& p, const QPointF& c, const QColor& cyan)
     {
-        const double R = double(qMax(1, m_deadzone));
-        const double thickness = qBound(8.0, R * 0.16, 22.0);
-        double nx = 0.0;
-        double ny = 0.0;
+        const bool hollow = m_style == LtsIndicator::Hollow;
         double stretch = 0.0;
+        double ang = 0.0;
         const double len = qSqrt(m_dirX * m_dirX + m_dirY * m_dirY);
         if (len > 0.05 && m_activity > 0.02) {
-            nx = m_dirX / len;
-            ny = m_dirY / len;
             stretch = qMax(48.0, m_falloff / 3.0) * m_activity;
+            ang = qRadiansToDegrees(qAtan2(m_dirY / len, m_dirX / len));
         }
-        const double ang = qRadiansToDegrees(qAtan2(ny, nx));
-        const double midR = qMax(4.0, R - thickness * 0.5);
-
-        auto strokeRing = [&](double extraStretch, double width, int alpha) {
-            const double s = stretch + extraStretch;
-            const double shift = s * 0.5;
-            QPainterPath midline;
-            midline.addEllipse(QPointF(shift, 0), midR + shift, midR);
-            QPainterPathStroker stroker;
-            stroker.setWidth(width);
-            stroker.setCapStyle(Qt::RoundCap);
-            stroker.setJoinStyle(Qt::RoundJoin);
-            p.setPen(Qt::NoPen);
-            p.setBrush(QColor(cyan.red(), cyan.green(), cyan.blue(), alpha));
-            p.drawPath(stroker.createStroke(midline));
-        };
-
-        p.save();
-        p.translate(c);
-        if (stretch > 0.5) {
-            p.rotate(ang);
+        const int alpha = hollow ? int(40 + 32 * m_activity) : int(22 + 20 * m_activity);
+        const OrbKey key{width(),
+                         height(),
+                         m_deadzone,
+                         alpha,
+                         cyan.rgba(),
+                         int(m_style),
+                         qRound(stretch),
+                         stretch > 0.5 ? qRound(ang) : 0};
+        if (key != m_orbKey || m_orbBlur.isNull()) {
+            m_orbKey = key;
+            m_orbBlur = renderOrbBlur(c, stretch, ang, cyan, alpha, hollow);
         }
-        strokeRing(14.0, thickness + 16.0, int(18 + 28 * m_activity));
-        strokeRing(6.0, thickness + 7.0, int(40 + 50 * m_activity));
-        strokeRing(0.0, thickness, int(90 + 90 * m_activity));
-        strokeRing(0.0, qMax(2.5, thickness * 0.32), int(140 + 80 * m_activity));
-        p.restore();
+        p.drawImage(rect().topLeft(), m_orbBlur);
+    }
+
+    [[nodiscard]] QImage renderOrbBlur(const QPointF& c, double stretch, double ang,
+                                       const QColor& cyan, int alpha, bool hollow) const
+    {
+        const double R = double(qMax(1, m_deadzone));
+        const double shift = stretch * 0.5;
+        QPainterPath body;
+        body.addEllipse(QPointF(shift, 0), R + shift, R);
+        if (hollow) {
+            QPainterPathStroker s;
+            s.setWidth(orbThickness(m_deadzone));
+            s.setCapStyle(Qt::RoundCap);
+            s.setJoinStyle(Qt::RoundJoin);
+            body = s.createStroke(body);
+        }
+
+        QImage src(size(), QImage::Format_ARGB32_Premultiplied);
+        src.fill(Qt::transparent);
+        {
+            QPainter ip(&src);
+            ip.setRenderHint(QPainter::Antialiasing, true);
+            ip.translate(c);
+            if (stretch > 0.5) {
+                ip.rotate(ang);
+            }
+            ip.setPen(Qt::NoPen);
+            ip.setBrush(QColor(cyan.red(), cyan.green(), cyan.blue(), alpha));
+            ip.drawPath(body);
+        }
+        const int factor = 5;
+        const QSize small(qMax(1, src.width() / factor), qMax(1, src.height() / factor));
+        return src.scaled(small, Qt::IgnoreAspectRatio, Qt::SmoothTransformation)
+            .scaled(src.size(), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
     }
 
     void paintActivator(QPainter& p, const QPointF& c, const QColor& accent)
@@ -220,9 +197,23 @@ private:
     double m_centerProg = 0.0;
     double m_dirX = 0.0;
     double m_dirY = 0.0;
-    LtsIndicator m_style = LtsIndicator::Fan;
+    LtsIndicator m_style = LtsIndicator::Filled;
     bool m_paused = false;
     QColor m_accent = ThemeColors::defaultProgressColor();
+
+    struct OrbKey {
+        int w = 0;
+        int h = 0;
+        int deadzone = 0;
+        int alpha = 0;
+        QRgb rgb = 0;
+        int style = 0;
+        int stretchQ = 0;
+        int angQ = 0;
+        bool operator==(const OrbKey&) const = default;
+    };
+    OrbKey m_orbKey;
+    QImage m_orbBlur;
 };
 
 LookToScroll::LookToScroll(QObject* parent)

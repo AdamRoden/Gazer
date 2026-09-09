@@ -75,10 +75,10 @@
           </SubGrid>
         </SubGrid>
         <SubGrid id="row_ind" row="5" col="0" rows="1" columns="2" gap="6" style="row">
-          <Cell id="ind_l" row="0" col="0" label="Scroll style" caption="Fan, stretching orb, or hub only." role="label" style="plain"/>
+          <Cell id="ind_l" row="0" col="0" label="Scroll style" caption="Filled orb, hollow orb, or hub only." role="label" style="plain"/>
           <SubGrid id="act_ind" row="0" col="1" rows="1" columns="3" gap="0" style="row">
-            <Cell id="ind_fan" row="0" col="0" label="Fan" role="choice" activeState="settings.lts.indicator.fan" style="joinLeft" command="settings.lts.indicator.fan"/>
-            <Cell id="ind_orb" row="0" col="1" label="Orb" role="choice" activeState="settings.lts.indicator.orb" style="join" command="settings.lts.indicator.orb"/>
+            <Cell id="ind_filled" row="0" col="0" label="Filled" role="choice" activeState="settings.lts.indicator.filled" style="joinLeft" command="settings.lts.indicator.filled"/>
+            <Cell id="ind_hollow" row="0" col="1" label="Hollow" role="choice" activeState="settings.lts.indicator.hollow" style="join" command="settings.lts.indicator.hollow"/>
             <Cell id="ind_pause" row="0" col="2" label="Pause" role="choice" activeState="settings.lts.indicator.pause" style="joinRight" command="settings.lts.indicator.pause"/>
           </SubGrid>
         </SubGrid>

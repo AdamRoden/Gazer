@@ -135,7 +135,7 @@ Patterns, not every generated name:
 | `settings.dwell.slow` / `.normal` / `.fast` / `.custom` | Speed presets (designer + daily-driver dwells together) |
 | `settings.dwell.custom.save` / `.restore` | Save or restore Custom timings |
 | `settings.mag.follow.slow` / `.sticky` / `.smooth` / `.snappy` | Gaze follow (indicator, gaze mouse, live lens) |
-| `settings.lts.indicator.fan` / `.orb` / `.pause` | LTS HUD |
+| `settings.lts.indicator.filled` / `.hollow` / `.pause` | LTS HUD (`fan`/`orb` aliases) |
 | `settings.tracker.auto` / `.mouse` | Tracker pref (restart) |
 | `settings.magPickStyle.*.toggle` / `settings.mousePickStyle.*.toggle` | Pick visuals |
 | `settings.pickWindow.round` / `.square` | Zoom window shape |

@@ -115,7 +115,7 @@ private:
     double m_accelPerSec = 0.45; // +45%/s outside, capped
     double m_accelMax = 3.5;
     int m_centerDwellMs = 650;
-    LtsIndicator m_indicatorStyle = LtsIndicator::Fan;
+    LtsIndicator m_indicatorStyle = LtsIndicator::Filled;
     int m_intervalMs = 16;
 
     QElapsedTimer m_clock;

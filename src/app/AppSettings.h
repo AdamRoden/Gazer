@@ -96,7 +96,7 @@ struct AppSettings {
     /// Scroll rate grows by this factor each second gaze stays outside deadzone.
     double ltsAccelPerSec = 0.45;
     int ltsCenterDwellMs = 700;
-    LtsIndicator ltsIndicatorStyle = LtsIndicator::Fan;
+    LtsIndicator ltsIndicatorStyle = LtsIndicator::Filled;
 
     // --- ComboMouse (inner drift annulus + outer command annulus) ---
     /// Inner radius of the drift ring (px). Hole / deadzone.

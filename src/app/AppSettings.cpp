@@ -731,8 +731,8 @@ QString AppSettings::settingDescription(const QString& key)
     }
     if (key == QLatin1String("ltsIndicatorStyle")) {
         return QStringLiteral(
-            "Look-to-scroll overlay: Fan (deadzone + wedge), Orb (glow that stretches "
-            "in the scroll direction), or Pause (center pause/resume only).");
+            "Look-to-scroll overlay: Filled (soft stretched disk), Hollow (glass ring "
+            "that stretches in the scroll direction), or Pause (center pause/resume only).");
     }
     if (key == QLatin1String("magFollowProfile")) {
         return QStringLiteral(

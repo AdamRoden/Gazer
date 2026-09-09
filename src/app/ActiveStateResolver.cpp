@@ -179,6 +179,11 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
         return false;
     }
     const AppSettings& s = *ctx.settings;
+    for (const auto& c : kLtsIndicatorCommands) {
+        if (key == QLatin1String(c.cmd)) {
+            return s.ltsIndicatorStyle == c.style;
+        }
+    }
     for (const AppSettings::StyleToggle& t : AppSettings::kStyleToggles) {
         if (key == QLatin1String(t.command)) {
             return s.styleFlag(t);
@@ -237,12 +242,6 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
         {"speech.model.eleven_v3",
          [](const AppSettings& s) { return s.speechModel == QLatin1String("eleven_v3"); }},
         {"speech.hasKey", [](const AppSettings& s) { return s.elevenApiKeySet; }},
-        {"settings.lts.indicator.fan",
-         [](const AppSettings& s) { return int(s.ltsIndicatorStyle) == 0; }},
-        {"settings.lts.indicator.orb",
-         [](const AppSettings& s) { return int(s.ltsIndicatorStyle) == 1; }},
-        {"settings.lts.indicator.pause",
-         [](const AppSettings& s) { return int(s.ltsIndicatorStyle) == 2; }},
         {"settings.mag.follow.slow",
          [](const AppSettings& s) { return int(s.magFollowProfile) == 0; }},
         {"settings.mag.follow.sticky",
