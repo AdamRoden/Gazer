@@ -123,9 +123,6 @@ void PageSession::applyDwellFor(const PageTarget& t)
     }
     if (t.dwell.activation && !t.dwell.activation->isEmpty()) {
         seq = *t.dwell.activation;
-    } else if (!t.phases.isEmpty()) {
-        const int ms = seq.isEmpty() ? 400 : seq.first();
-        seq = {ms};
     }
     m_dwell.setScanGraceMs(scan);
     m_dwell.setInvalidGraceMs(grace);
