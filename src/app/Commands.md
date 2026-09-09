@@ -76,6 +76,7 @@ Script: `gazer.openPage` / `loadPage` / `focusedPageId` (`ScriptHost`, not Comma
 | `compose.clear` / `compose.undo` / `compose.redo` | Buffer |
 | `compose.backspace` / `compose.deleteWord` | Edit |
 | `compose.removeWord.<i>` | Prefix; `i` is visible chip 0–11 |
+| `compose.moveEndOfWord.<i>` / `compose.moveStartOfWord.<i>` | Prefix; caret to that chip’s word edge |
 | `compose.openVoices` / `compose.openHistory` | Voice list (model, speed, catalog); history |
 | `compose.toggleFreestyle` | Switch Speak between topics and Freestyle (saved voices + tags) |
 | `compose.saveName` / `compose.cancelName` / `compose.deleteName` | Save, discard, or delete the item being edited and return to Topics/Freestyle |

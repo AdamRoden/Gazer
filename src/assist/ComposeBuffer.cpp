@@ -185,6 +185,25 @@ void ComposeBuffer::load(const QString& text)
     resetHistory();
 }
 
+void ComposeBuffer::setCaret(int pos)
+{
+    m_caret = clampCaret(pos, m_text.size());
+}
+
+void ComposeBuffer::moveCaretToTokenEdge(int index, bool atStart)
+{
+    const QVector<Token> toks = tokens();
+    if (index < 0 || index >= toks.size()) {
+        return;
+    }
+    setCaret(atStart ? toks[index].start : toks[index].end);
+}
+
+void ComposeBuffer::moveCaretToVisibleWordEdge(int slot, bool atStart)
+{
+    moveCaretToTokenEdge(tokenIndexForVisibleSlot(slot), atStart);
+}
+
 bool ComposeBuffer::undo()
 {
     if (m_undo.isEmpty()) {

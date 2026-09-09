@@ -1,6 +1,7 @@
 #include "ui/BoardPaint.h"
 
 #include "ui/KeySymbols.h"
+#include "ui/PhraseLayout.h"
 #include "ui/ProgressPaint.h"
 #include "layout/RoundBox.h"
 #include "ui/ScrollBar.h"
@@ -36,6 +37,21 @@ int fontPxToFit(const QString& family, int weight, int startPx, int minPx, const
 }
 
 namespace {
+
+void paintLabelText(QPainter& p, const QRectF& box, const QFont& font, int flags,
+                    const QString& text, const QColor& color, int caretIndex)
+{
+    if (box.isEmpty() || !color.isValid()) {
+        return;
+    }
+    if (caretIndex >= 0) {
+        paintPhraseLayout(p, box, text, font, flags, color, caretIndex);
+        return;
+    }
+    p.setPen(color);
+    p.setFont(font);
+    p.drawText(box, flags, text);
+}
 
 int fontPixelsToFill(const QString& family, int weight, const QString& text, const QRectF& box,
                      int flags, int minPx = 10)
@@ -118,7 +134,7 @@ void paintLabel(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeCo
 {
     const QString family = segoeFamily();
     const QString ts = t.textStyle.toLower();
-    const QRectF pad = r.adjusted(12, 6, -12, -6);
+    const QRectF pad = phrasePad(r);
     if (pad.isEmpty()) {
         return;
     }
@@ -155,10 +171,11 @@ void paintLabel(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeCo
         titleFg = theme.textSecondary;
     }
     if (t.caption.isEmpty()) {
-        const int px = fontPxToFit(family, titleWeight, titlePx, 11, t.label, pad, flags);
-        p.setPen(titleFg);
-        p.setFont(QFont(family, px, titleWeight));
-        p.drawText(pad, flags, t.label);
+        const int px = t.caretIndex >= 0
+                           ? fontPxToFitPhrase(family, titleWeight, titlePx, 11, t.label, pad, flags)
+                           : fontPxToFit(family, titleWeight, titlePx, 11, t.label, pad, flags);
+        paintLabelText(p, pad, QFont(family, px, titleWeight), flags, t.label, titleFg,
+                       t.caretIndex);
         return;
     }
 
@@ -176,9 +193,7 @@ void paintLabel(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeCo
     const QRectF capR(pad.left(), titleR.bottom() + 2.0, pad.width(),
                       qMax(1.0, pad.bottom() - titleR.bottom() - 2.0));
     const int capPx = fontPxToFit(family, QFont::Normal, 12, 9, t.caption, capR, capFlags);
-    p.setPen(titleFg);
-    p.setFont(tFont);
-    p.drawText(titleR, flags, t.label);
+    paintLabelText(p, titleR, tFont, flags, t.label, titleFg, t.caretIndex);
     p.setPen(theme.textSecondary);
     p.setFont(QFont(family, capPx));
     p.drawText(capR, capFlags, t.caption);
@@ -281,9 +296,7 @@ void paintIconAndText(QPainter& p, const PageTarget& t, const QRectF& r, const Q
         iconR = QRectF(x0, y0 + (totalH - side) * 0.5, side, side);
         paintedIcon = KeySymbols::paint(p, t.icon, iconR, fg);
         textR = QRectF(iconR.right() + gap, y0, ts.width(), totalH);
-        p.setPen(fg);
-        p.setFont(tFont);
-        p.drawText(textR, flags, t.label);
+        paintLabelText(p, textR, tFont, flags, t.label, fg, t.caretIndex);
         return;
     }
 
@@ -323,7 +336,7 @@ void paintIconAndText(QPainter& p, const PageTarget& t, const QRectF& r, const Q
         iconR = QRectF(r.center().x() - side / 2.0, r.center().y() - side / 2.0, side, side);
         paintedIcon = KeySymbols::paint(p, t.icon, iconR, fg);
     } else if (hasText && hasCap) {
-        const QRectF box = r.adjusted(12, 6, -12, -6);
+        const QRectF box = phrasePad(r);
         if (box.isEmpty()) {
             return;
         }
@@ -346,16 +359,15 @@ void paintIconAndText(QPainter& p, const PageTarget& t, const QRectF& r, const Q
     }
 
     if (hasText && !(paintedIcon && textR.height() < 10.0)) {
-        p.setPen(fg);
+        QFont textFont;
         if (keyGlyph) {
-            QFont f(family, -1, weight);
-            f.setPixelSize(fontPixelsToFill(family, weight, t.label, textR, flags));
-            p.setFont(f);
+            textFont = QFont(family, -1, weight);
+            textFont.setPixelSize(fontPixelsToFill(family, weight, t.label, textR, flags));
         } else {
-            const int px = fontPxToFit(family, weight, startPx, 10, t.label, textR, flags);
-            p.setFont(QFont(family, px, weight));
+            textFont = QFont(family, fontPxToFit(family, weight, startPx, 10, t.label, textR, flags),
+                             weight);
         }
-        p.drawText(textR, flags, t.label);
+        paintLabelText(p, textR, textFont, flags, t.label, fg, t.caretIndex);
         if (!capR.isEmpty() && hasCap) {
             p.setPen(fg);
             p.setFont(QFont(family, fontPxToFit(family, QFont::Normal, 12, 9, t.caption, capR,
@@ -647,7 +659,8 @@ void paintTarget(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeC
         paintLabel(p, t, r, theme);
     } else if (role == QLatin1String("tab")) {
         paintTab(p, t, r, theme, hovered, active || t.actions.isEmpty(), progress);
-    } else if (role == QLatin1String("label") || role == QLatin1String("value")) {
+    } else if (role == QLatin1String("label") || role == QLatin1String("value")
+               || role == QLatin1String("display")) {
         paintSurface(p, r, t.chrome, theme, glass, false, false, false, false);
         paintLabel(p, t, r, theme);
     } else if (role == QLatin1String("swatch")) {
@@ -672,6 +685,20 @@ void paintTarget(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeC
                 content.adjust(0.0, 0.0, -controlMarkWidth(r), 0.0);
             }
             paintIconAndText(p, t, content, fg, theme);
+            if (t.phaseIndex >= 0 && t.phases.size() > 1) {
+                const int n = t.phases.size();
+                const double d = 7.0;
+                const double gap = 5.0;
+                const double w = n * d + (n - 1) * gap;
+                double x = r.center().x() - w * 0.5;
+                const double y = r.bottom() - 10.0;
+                for (int i = 0; i < n; ++i) {
+                    const QRectF pip(x, y, d, d);
+                    const bool on = i == t.phaseIndex;
+                    fillRound(p, pip, d * 0.5, on ? fg : ThemeColors::mix(fg, QColor(0, 0, 0), 0.55));
+                    x += d + gap;
+                }
+            }
             if (choice) {
                 paintChoiceRadio(p, r, theme, on);
             } else if (toggle) {

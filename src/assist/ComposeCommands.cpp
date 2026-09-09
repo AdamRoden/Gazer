@@ -134,6 +134,8 @@ void registerComposeCommands(CommandRegistry& commands, ComposeUi& compose)
     bindInt(QStringLiteral("compose.editColor."), &ComposeUi::setEditedColor);
     bindInt(QStringLiteral("compose.editIcon."), &ComposeUi::setEditedIcon);
     bindVoidInt(QStringLiteral("compose.removeWord."), &ComposeUi::removeVisibleWord);
+    bindVoidInt(QStringLiteral("compose.moveEndOfWord."), &ComposeUi::moveEndOfWord);
+    bindVoidInt(QStringLiteral("compose.moveStartOfWord."), &ComposeUi::moveStartOfWord);
     bindVoidInt(QStringLiteral("compose.insertTagAt."), &ComposeUi::insertTagAt);
     bindVoidInt(QStringLiteral("history.list.goto."), &ComposeUi::historyGoto);
     bindVoidInt(QStringLiteral("speech.voiceList.goto."), &ComposeUi::voicesGoto);

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/GazePoint.h"
+#include "layout/DwellPhase.h"
 #include "layout/DwellStateMachine.h"
 #include "layout/PageHit.h"
 #include "layout/PageNav.h"
@@ -143,6 +144,10 @@ private:
     [[nodiscard]] PageFrame frame() const;
     void rebuild();
     void applyDwellFor(const PageTarget& t);
+    void commitDwellPhase(const QString& targetId);
+    void advanceDwellPhase(const PageTarget& t);
+    void setLivePhase(const QString& key, int index);
+    void stampLivePhases();
     void syncExpanded();
     [[nodiscard]] bool anyRootGridShown() const;
     [[nodiscard]] bool drawerMotionShown() const;
@@ -203,6 +208,7 @@ private:
     QVector<PageGridPaint> m_gridPaints;
     std::unique_ptr<PageHostWindow> m_host;
     DwellStateMachine m_dwell;
+    DwellPhaseBank m_dwellPhases;
     QVector<int> m_globalSequence = {800};
     int m_globalGraceMs = 180;
     int m_globalScanGraceMs = 100;

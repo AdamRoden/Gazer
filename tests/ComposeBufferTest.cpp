@@ -20,6 +20,8 @@ private slots:
     void insertTagWrapsBrackets();
     void clearResets();
     void loadReplacesAndDropsHistory();
+    void setCaretDoesNotPushUndo();
+    void moveCaretToTokenEdge();
 };
 
 void ComposeBufferTest::insertAndBackspace()
@@ -169,6 +171,34 @@ void ComposeBufferTest::loadReplacesAndDropsHistory()
     QCOMPARE(b.text(), QStringLiteral("Topic 1x"));
     QVERIFY(b.undo());
     QCOMPARE(b.text(), QStringLiteral("Topic 1"));
+}
+
+void ComposeBufferTest::setCaretDoesNotPushUndo()
+{
+    ComposeBuffer b;
+    b.insert(QStringLiteral("hello"));
+    b.setCaret(1);
+    QCOMPARE(b.caret(), 1);
+    QVERIFY(b.undo());
+    QCOMPARE(b.text(), QString());
+}
+
+void ComposeBufferTest::moveCaretToTokenEdge()
+{
+    ComposeBuffer b;
+    b.insert(QStringLiteral("hello world"));
+    b.moveCaretToTokenEdge(0, true);
+    QCOMPARE(b.caret(), 0);
+    b.moveCaretToTokenEdge(0, false);
+    QCOMPARE(b.caret(), 5);
+    b.moveCaretToTokenEdge(1, true);
+    QCOMPARE(b.caret(), 6);
+    b.moveCaretToTokenEdge(1, false);
+    QCOMPARE(b.caret(), 11);
+    b.moveCaretToVisibleWordEdge(0, true);
+    QCOMPARE(b.caret(), 0);
+    b.moveCaretToVisibleWordEdge(1, false);
+    QCOMPARE(b.caret(), 11);
 }
 
 QObject* createComposeBufferTest()

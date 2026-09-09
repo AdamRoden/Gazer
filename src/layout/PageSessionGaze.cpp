@@ -111,7 +111,7 @@ const PageTarget* PageSession::findTarget(const QString& id) const
 
 void PageSession::applyDwellFor(const PageTarget& t)
 {
-    const bool daily = usesDailyDriverDwell(t.actions);
+    const bool daily = usesDailyDriverDwell(t.actions, t.phases);
     int scan = daily ? m_dailyScanGraceMs : m_globalScanGraceMs;
     int grace = m_globalGraceMs;
     QVector<int> seq = daily ? m_dailySequence : m_globalSequence;
@@ -123,6 +123,9 @@ void PageSession::applyDwellFor(const PageTarget& t)
     }
     if (t.dwell.activation && !t.dwell.activation->isEmpty()) {
         seq = *t.dwell.activation;
+    } else if (!t.phases.isEmpty()) {
+        const int ms = seq.isEmpty() ? 400 : seq.first();
+        seq = {ms};
     }
     m_dwell.setScanGraceMs(scan);
     m_dwell.setInvalidGraceMs(grace);
@@ -333,10 +336,69 @@ QVector<QRect> PageSession::unpauseGapRects() const
     return gaps;
 }
 
+void PageSession::stampLivePhases()
+{
+    for (PageTarget& t : m_targets) {
+        t.phaseIndex = m_dwellPhases.current(sessionKey(t)).value_or(-1);
+    }
+}
+
+void PageSession::setLivePhase(const QString& key, int index)
+{
+    for (PageTarget& live : m_targets) {
+        if (sessionKey(live) == key) {
+            live.phaseIndex = index;
+            break;
+        }
+    }
+    if (m_host) {
+        m_host->setTargetPhase(key, index);
+    }
+}
+
+void PageSession::advanceDwellPhase(const PageTarget& t)
+{
+    const QString key = sessionKey(t);
+    const int before = m_dwellPhases.current(key).value_or(-1);
+    m_dwellPhases.onActivated(key, t.phases.size());
+    const int idx = m_dwellPhases.current(key).value_or(0);
+    setLivePhase(key, idx);
+    if (m_host && idx != before) {
+        m_host->flash(key);
+    }
+}
+
+void PageSession::commitDwellPhase(const QString& targetId)
+{
+    const std::optional<int> idx = m_dwellPhases.takeCommit(targetId);
+    if (!idx) {
+        return;
+    }
+    const PageTarget* t = findTarget(targetId);
+    if (!t || t->phases.isEmpty()) {
+        return;
+    }
+    const int i = qBound(0, *idx, t->phases.size() - 1);
+    const QVector<PageAction> actions = t->phases[i].actions;
+    const QString pageId = t->pageId.isEmpty() ? m_root.id : t->pageId;
+    setLivePhase(targetId, -1);
+    if (m_host) {
+        m_host->flash(targetId);
+    }
+    emit targetActivated(pageId, t->id);
+    if (m_dispatch) {
+        m_dispatch(actions, pageId, t->id);
+    }
+}
+
 void PageSession::activateTarget(const QString& targetId)
 {
     const PageTarget* t = findTarget(targetId);
     if (!t) {
+        return;
+    }
+    if (!t->phases.isEmpty()) {
+        advanceDwellPhase(*t);
         return;
     }
     const QVector<PageAction> actions = t->actions;

@@ -166,6 +166,18 @@ bool writeInlineAction(QXmlStreamWriter& xml, const QVector<PageAction>& acts)
 
 void writeLeafBody(QXmlStreamWriter& xml, const PageLeaf& leaf, bool inlined)
 {
+    if (!leaf.phases.isEmpty()) {
+        for (const PagePhase& phase : leaf.phases) {
+            xml.writeStartElement(QStringLiteral("Phase"));
+            if (!writeInlineAction(xml, phase.actions)) {
+                for (const PageAction& a : phase.actions) {
+                    writeAction(xml, a);
+                }
+            }
+            xml.writeEndElement();
+        }
+        return;
+    }
     if (inlined) {
         return;
     }
@@ -246,7 +258,7 @@ void writeGrid(QXmlStreamWriter& xml, const PageGrid& grid)
         attrInt(xml, QStringLiteral("col"), cell.col, 0);
         attrInt(xml, QStringLiteral("rowSpan"), cell.rowSpan, 1);
         attrInt(xml, QStringLiteral("colSpan"), cell.colSpan, 1);
-        const bool inlined = writeInlineAction(xml, cell.actions);
+        const bool inlined = cell.phases.isEmpty() && writeInlineAction(xml, cell.actions);
         writeLeafBody(xml, cell, inlined);
         xml.writeEndElement();
     }
@@ -292,7 +304,7 @@ QByteArray PageWriter::toBytes(const PageDocument& doc)
         writePlacement(xml, z.desktopMode, z.anchor, z.offset, z.size);
         attr(xml, QStringLiteral("dwellOffset"), pairTok(z.dwellOffset));
         attr(xml, QStringLiteral("dwellSize"), pairTok(z.dwellSize));
-        const bool inlined = writeInlineAction(xml, z.actions);
+        const bool inlined = z.phases.isEmpty() && writeInlineAction(xml, z.actions);
         writeLeafBody(xml, z, inlined);
         xml.writeEndElement();
     }

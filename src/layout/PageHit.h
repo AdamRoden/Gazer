@@ -29,6 +29,7 @@ struct PageTarget {
     QString caption;
     QString textStyle;
     QString role;
+    int caretIndex = -1;
     QString settingKey;
     bool suspendExempt = false;
     bool interactive = true;
@@ -40,6 +41,9 @@ struct PageTarget {
     PageChrome chrome;
     PageDwell dwell;
     QVector<PageAction> actions;
+    QVector<PagePhase> phases;
+    /// 0-based live phase while armed; -1 = not in a dwell phase.
+    int phaseIndex = -1;
     PageDetectorGeom geom;
     bool actionLoop = false;
 };

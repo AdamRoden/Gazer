@@ -4,6 +4,7 @@
 #include "input/KeyNames.h"
 
 #include "ui/BoardPaint.h"
+#include "ui/PhraseLayout.h"
 #include "utils/WinOverlay.h"
 
 #include <QCloseEvent>
@@ -153,6 +154,13 @@ PageHostWindow::PageHostWindow(QWindow* parent)
             m_board->update();
         }
     });
+    m_caretBlinkTimer.setInterval(kPhraseCaretBlinkMs / 2);
+    connect(&m_caretBlinkTimer, &QTimer::timeout, this, [this]() {
+        m_caretOn = !m_caretOn;
+        if (m_board) {
+            m_board->update();
+        }
+    });
 }
 
 void PageHostWindow::syncBoardSize()
@@ -184,6 +192,9 @@ void PageHostWindow::paintScene(QPainter& p, ChromePass pass)
             return;
         }
         PageTarget vis = t;
+        if (!live || !m_caretOn) {
+            vis.caretIndex = -1;
+        }
         QString sendKey;
         for (const PageAction& a : t.actions) {
             if (a.type != PageActionType::Send || a.sendKey.isEmpty()
@@ -351,6 +362,21 @@ void PageHostWindow::commit(QVector<PageTarget> targets, QVector<PageGridPaint> 
     syncGlass();
     fitToChrome();
     syncFrost(true);
+    bool caret = false;
+    for (const PageTarget& t : m_targets) {
+        if (t.caretIndex >= 0) {
+            caret = true;
+            break;
+        }
+    }
+    if (caret) {
+        if (!m_caretBlinkTimer.isActive()) {
+            m_caretOn = true;
+            m_caretBlinkTimer.start();
+        }
+    } else if (m_caretBlinkTimer.isActive()) {
+        m_caretBlinkTimer.stop();
+    }
     if (m_board) {
         m_board->update();
     }
@@ -505,6 +531,26 @@ void PageHostWindow::clearSliderScrub()
     m_sliderScrubProgress = 0.0;
     if (m_board) {
         m_board->update();
+    }
+}
+
+void PageHostWindow::setTargetPhase(const QString& targetKey, int phaseIndex)
+{
+    if (targetKey.isEmpty()) {
+        return;
+    }
+    for (PageTarget& t : m_targets) {
+        if (sessionKey(t) != targetKey) {
+            continue;
+        }
+        if (t.phaseIndex == phaseIndex) {
+            return;
+        }
+        t.phaseIndex = phaseIndex;
+        if (m_board) {
+            m_board->update();
+        }
+        return;
     }
 }
 

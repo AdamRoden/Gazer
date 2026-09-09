@@ -177,8 +177,58 @@ bool parseLayersAttr(const QXmlStreamAttributes& a, QVector<int>& dest, QString*
     return true;
 }
 
-bool readActions(QXmlStreamReader& xml, const QString& parent, QVector<PageAction>& actions,
-                 QString* error)
+bool readActionElement(QXmlStreamReader& xml, QVector<PageAction>& actions, QString* error)
+{
+    const QString name = xml.name().toString();
+    const QXmlStreamAttributes a = xml.attributes();
+    const QString text = xml.readElementText(QXmlStreamReader::IncludeChildElements);
+    PageAction act;
+    QString err;
+    if (!parsePageActionElement(name, a, text, act, &err)) {
+        if (error) {
+            *error = xmlError(xml, err);
+        }
+        return false;
+    }
+    actions.push_back(act);
+    return true;
+}
+
+bool readPhase(QXmlStreamReader& xml, PagePhase& phase, QString* error)
+{
+    const QXmlStreamAttributes a = xml.attributes();
+    QString attrErr;
+    if (!takePageActionAttributes(a, phase.actions, &attrErr)) {
+        if (error) {
+            *error = xmlError(xml, attrErr);
+        }
+        return false;
+    }
+    while (!xml.atEnd()) {
+        const auto tok = xml.readNext();
+        if (tok == QXmlStreamReader::EndElement && xml.name() == QLatin1String("Phase")) {
+            return true;
+        }
+        if (tok != QXmlStreamReader::StartElement) {
+            continue;
+        }
+        const QString name = xml.name().toString();
+        if (isPageActionElementName(name)) {
+            if (!readActionElement(xml, phase.actions, error)) {
+                return false;
+            }
+        } else {
+            return skipUnknownOrFail(xml, QStringLiteral("Phase"), error);
+        }
+    }
+    if (error) {
+        *error = xmlError(xml, QStringLiteral("Unclosed <Phase>"));
+    }
+    return false;
+}
+
+bool readLeafBody(QXmlStreamReader& xml, const QString& parent, QVector<PageAction>& actions,
+                  QVector<PagePhase>& phases, QString* error)
 {
     while (!xml.atEnd()) {
         const auto tok = xml.readNext();
@@ -189,18 +239,16 @@ bool readActions(QXmlStreamReader& xml, const QString& parent, QVector<PageActio
             continue;
         }
         const QString name = xml.name().toString();
-        if (isPageActionElementName(name)) {
-            const QXmlStreamAttributes a = xml.attributes();
-            const QString text = xml.readElementText(QXmlStreamReader::IncludeChildElements);
-            PageAction act;
-            QString err;
-            if (!parsePageActionElement(name, a, text, act, &err)) {
-                if (error) {
-                    *error = xmlError(xml, err);
-                }
+        if (name == QLatin1String("Phase")) {
+            PagePhase phase;
+            if (!readPhase(xml, phase, error)) {
                 return false;
             }
-            actions.push_back(act);
+            phases.push_back(std::move(phase));
+        } else if (isPageActionElementName(name)) {
+            if (!readActionElement(xml, actions, error)) {
+                return false;
+            }
         } else {
             return skipUnknownOrFail(xml, parent, error);
         }
@@ -209,6 +257,29 @@ bool readActions(QXmlStreamReader& xml, const QString& parent, QVector<PageActio
         *error = xmlError(xml, QStringLiteral("Unclosed <%1>").arg(parent));
     }
     return false;
+}
+
+bool finishLeafPhases(QXmlStreamReader& xml, const QVector<PageAction>& actions,
+                      const QVector<PagePhase>& phases, QString* error)
+{
+    if (phases.isEmpty()) {
+        return true;
+    }
+    if (!actions.isEmpty()) {
+        if (error) {
+            *error = xmlError(xml, QStringLiteral("<Phase> children replace cell/zone actions"));
+        }
+        return false;
+    }
+    for (const PagePhase& p : phases) {
+        if (p.actions.isEmpty()) {
+            if (error) {
+                *error = xmlError(xml, QStringLiteral("Empty <Phase>"));
+            }
+            return false;
+        }
+    }
+    return true;
 }
 
 bool isDwellSuspendCommand(const QString& name)
@@ -256,10 +327,16 @@ bool readCell(QXmlStreamReader& xml, PageCell& cell, QString* error)
         }
         return false;
     }
-    if (!readActions(xml, QStringLiteral("Cell"), cell.actions, error)) {
+    if (!readLeafBody(xml, QStringLiteral("Cell"), cell.actions, cell.phases, error)) {
+        return false;
+    }
+    if (!finishLeafPhases(xml, cell.actions, cell.phases, error)) {
         return false;
     }
     applySuspendExemptFromActions(cell.suspendExempt, cell.actions);
+    for (const PagePhase& p : cell.phases) {
+        applySuspendExemptFromActions(cell.suspendExempt, p.actions);
+    }
     return true;
 }
 
@@ -464,10 +541,16 @@ bool readZone(QXmlStreamReader& xml, PageZone& zone, QString* error)
         }
         return false;
     }
-    if (!readActions(xml, QStringLiteral("Zone"), zone.actions, error)) {
+    if (!readLeafBody(xml, QStringLiteral("Zone"), zone.actions, zone.phases, error)) {
+        return false;
+    }
+    if (!finishLeafPhases(xml, zone.actions, zone.phases, error)) {
         return false;
     }
     applySuspendExemptFromActions(zone.suspendExempt, zone.actions);
+    for (const PagePhase& p : zone.phases) {
+        applySuspendExemptFromActions(zone.suspendExempt, p.actions);
+    }
     return true;
 }
 

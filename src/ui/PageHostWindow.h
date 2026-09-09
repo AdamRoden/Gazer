@@ -42,6 +42,7 @@ public:
     void setSliderScrub(const QString& itemId, double t, const QString& valueText,
                         double dwellProgress);
     void clearSliderScrub();
+    void setTargetPhase(const QString& targetKey, int phaseIndex);
     void setInputFocusEnabled(bool on);
     void showHost();
     void raiseHost();
@@ -94,6 +95,8 @@ private:
     QString m_flashId;
     QTimer m_flashTimer;
     QTimer m_raiseTimer;
+    QTimer m_caretBlinkTimer;
+    bool m_caretOn = true;
     QRectF m_flashRect;
     PageBox m_flashRadii;
     QPoint m_origin;

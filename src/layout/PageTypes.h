@@ -322,6 +322,8 @@ struct PageAction {
         return false;
     }
     if (n.startsWith(QLatin1String("compose.removeWord."))
+        || n.startsWith(QLatin1String("compose.moveEndOfWord."))
+        || n.startsWith(QLatin1String("compose.moveStartOfWord."))
         || n == QLatin1String("compose.backspace")
         || n == QLatin1String("compose.deleteWord")) {
         return true;
@@ -366,6 +368,24 @@ struct PageAction {
     return false;
 }
 
+struct PagePhase {
+    QVector<PageAction> actions;
+};
+
+[[nodiscard]] inline bool usesDailyDriverDwell(const QVector<PageAction>& actions,
+                                               const QVector<PagePhase>& phases)
+{
+    if (!phases.isEmpty()) {
+        for (const PagePhase& p : phases) {
+            if (usesDailyDriverDwell(p.actions)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    return usesDailyDriverDwell(actions);
+}
+
 /// label / value / display / slider / preview / scrollbar are not dwell targets.
 [[nodiscard]] inline bool pageRoleIsPassive(QStringView role)
 {
@@ -389,11 +409,15 @@ struct PageLeaf {
     QString role;
     QString textStyle;
     QString visibleWhen;
+    /// UTF-16 offset in `label` for a blinking caret; -1 = none.
+    int caretIndex = -1;
     bool suspendExempt = false;
     bool actionLoop = false;
     /// Zones only. Cells take shell from their grid.
     bool shell = false;
     QVector<PageAction> actions;
+    /// When non-empty, dwell activations cycle these instead of firing `actions`.
+    QVector<PagePhase> phases;
 
     /// Dwell/click target. Passive roles are not. A tab with no actions is the
     /// current tab (selected, not a navigation target).
@@ -405,7 +429,8 @@ struct PageLeaf {
         if (pageRoleIsPassive(role)) {
             return false;
         }
-        if (role.compare(QLatin1String("tab"), Qt::CaseInsensitive) == 0 && actions.isEmpty()) {
+        if (role.compare(QLatin1String("tab"), Qt::CaseInsensitive) == 0 && actions.isEmpty()
+            && phases.isEmpty()) {
             return false;
         }
         return true;

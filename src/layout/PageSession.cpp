@@ -54,7 +54,11 @@ PageSession::PageSession(QObject* parent)
                 }
             });
     connect(&m_dwell, &DwellStateMachine::hoverChanged, this, [this](const QString& id) {
+        const QString prev = m_hoverId;
         m_hoverId = id;
+        if (!prev.isEmpty() && prev != id) {
+            commitDwellPhase(prev);
+        }
         if (!m_host) {
             return;
         }
@@ -460,6 +464,7 @@ void PageSession::rebuild()
             }
             reserved = reserved.isEmpty() ? piece : reserved.united(piece);
         }
+        stampLivePhases();
         m_host->commit(m_targets, m_gridPaints, m_drawerScale, reserved);
     }
     refreshActive();

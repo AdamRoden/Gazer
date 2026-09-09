@@ -31,7 +31,8 @@ QString ComposeUi::activeTopicId() const
 
 void ComposeUi::rebuildBoard()
 {
-    PageDocument doc = m_pages.attachedCopy(QString(kPageId));
+    PageDocument doc = m_composeAuthored.isValid() ? m_composeAuthored
+                                                   : m_pages.attachedCopy(QString(kPageId));
     if (!doc.isValid()) {
         return;
     }

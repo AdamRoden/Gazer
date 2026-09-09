@@ -101,6 +101,18 @@ Action is generic: the specific thing to do is named as an attribute (on `<Actio
 
 A cell or zone may have **one** action attribute. Multiple actions use child elements.
 
+`<Phase>` children replace that single-shot fire. Mixed leftover action attributes or children, and empty `<Phase/>`, are load errors. Each dwell **activation** arms or advances the phase; extra activations latch on the last phase until leave. The phase’s actions run when dwell **leaves** that cell after blink grace (look away, or look at another cell). No activation before leave means no fire. Phased cells use a single dwell step (the first daily-driver or designer value) unless the cell authors `activation`. Example:
+
+```xml
+<Cell id="chip_0" row="0" col="0">
+  <Phase command="compose.moveEndOfWord.0"/>
+  <Phase command="compose.moveStartOfWord.0"/>
+  <Phase command="compose.removeWord.0"/>
+</Cell>
+```
+
+Each `<Phase>` takes the same action attribute or child actions as a cell.
+
 | Name | `value` |
 |------|---------|
 | `Send` | key[, Down\|Up[, durationMs]] |

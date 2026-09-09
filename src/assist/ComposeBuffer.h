@@ -40,6 +40,11 @@ public:
     /// Replace the phrase and caret, and drop undo/redo. Used when the composer
     /// is borrowed as a name field.
     void load(const QString& text);
+    /// Move the caret without an undo step.
+    void setCaret(int pos);
+    /// Place the caret at the start (`true`) or end of token `index`.
+    void moveCaretToTokenEdge(int index, bool atStart);
+    void moveCaretToVisibleWordEdge(int slot, bool atStart);
 
     bool undo();
     bool redo();

@@ -288,6 +288,7 @@ void ComposeUi::abandonClosedSession()
     m_editIcon.clear();
     stopListScroll();
     closeItemEdit();
+    m_composeAuthored = {};
 }
 
 void ComposeUi::onSessionChanged()
@@ -372,6 +373,18 @@ void ComposeUi::removeVisibleWord(int slot)
     refresh();
 }
 
+void ComposeUi::moveEndOfWord(int slot)
+{
+    m_buffer.moveCaretToVisibleWordEdge(slot, false);
+    refresh();
+}
+
+void ComposeUi::moveStartOfWord(int slot)
+{
+    m_buffer.moveCaretToVisibleWordEdge(slot, true);
+    refresh();
+}
+
 void ComposeUi::insertTagAt(int index)
 {
     if (nameEditing()) {
@@ -437,6 +450,9 @@ void ComposeUi::decoratePage(PageDocument& doc) const
     if (doc.id != kPageId) {
         return;
     }
+    if (!m_composeAuthored.isValid()) {
+        m_composeAuthored = doc;
+    }
     if (!doc.findCell(QStringLiteral("topic_0"))) {
         fillSoundboard(doc);
     }
@@ -444,12 +460,20 @@ void ComposeUi::decoratePage(PageDocument& doc) const
     const bool stop = st.busy || st.speaking;
     const bool naming = nameEditing();
     const auto vis = naming ? QVector<ComposeBuffer::Token>{} : m_buffer.visibleTokens();
-    const QString phrase = ellipsis(m_buffer.text(), 120);
 
     auto paint = [&](PageGrid& g, auto& self) -> void {
         for (PageCell& c : g.cells) {
             if (c.id == QLatin1String("phrase")) {
-                c.label = naming ? ellipsis(m_buffer.text().trimmed(), 24) : phrase;
+                if (naming) {
+                    const QString raw = m_buffer.text().trimmed();
+                    c.label = ellipsis(raw, 24);
+                    const int visLen = qMin(raw.size(), 24);
+                    c.caretIndex = qBound(0, qBound(0, m_buffer.caret(), visLen), c.label.size());
+                } else {
+                    c.label = m_buffer.text();
+                    c.caretIndex = qBound(0, m_buffer.caret(), c.label.size());
+                    c.role = QStringLiteral("display");
+                }
             } else if (c.id == QLatin1String("vol_track")) {
                 c.label = QStringLiteral("%1%").arg(m_systemVolume->percent());
             } else if (c.id == QLatin1String("page_title")) {
@@ -496,19 +520,15 @@ void ComposeUi::decoratePage(PageDocument& doc) const
 
 void ComposeUi::stampComposerChrome(PageDocument& doc) const
 {
+    if (!nameEditing()) {
+        return;
+    }
+
     const ThemeColors theme = m_settings.resolvedTheme();
     const QColor ok(46, 125, 50);
     const QColor warn = theme.danger.isValid() ? theme.danger : QColor(180, 80, 80);
     const QColor surface = theme.bgSurface.isValid() ? theme.bgSurface : QColor(40, 40, 44);
     const QColor accent = theme.accent.isValid() ? theme.accent : QColor(80, 160, 220);
-    const bool naming = nameEditing();
-
-    const QVector<int> allLayers{1, 2, 3, 4};
-    for (const char* gid : {"edit_keys", "phrase", "chips", "speak_keys"}) {
-        if (PageGrid* g = doc.findGrid(QLatin1String(gid))) {
-            g->layers = allLayers;
-        }
-    }
 
     auto setCmd = [](PageCell* c, const QString& cmd) {
         if (!c) {
@@ -526,145 +546,86 @@ void ComposeUi::stampComposerChrome(PageDocument& doc) const
     };
 
     if (PageGrid* keys = doc.findGrid(QStringLiteral("edit_keys"))) {
-        keys->cells.clear();
-        keys->rows = naming ? 2 : 3;
-        keys->columns = 1;
-        if (naming) {
-            PageCell color = cell(QStringLiteral("clear"), QStringLiteral("Color"), 0, 0,
-                                  QStringLiteral("compose.editShowColors"),
-                                  !m_editIcons ? accent : surface, 1, {}, {},
-                                  QStringLiteral("palette"));
-            color.activeState = QStringLiteral("compose.editColors");
-            keys->cells.push_back(color);
-            PageCell image = cell(QStringLiteral("undo"), QStringLiteral("Icon"), 1, 0,
-                                  QStringLiteral("compose.editShowIcons"),
-                                  m_editIcons ? accent : surface, 1, {}, {},
-                                  QStringLiteral("photoCamera"));
-            image.activeState = QStringLiteral("compose.editIcons");
-            keys->cells.push_back(image);
-        } else {
-            keys->cells.push_back(cell(QStringLiteral("clear"), QStringLiteral("Clear"), 0, 0,
-                                       QStringLiteral("compose.clear"), QColor()));
-            keys->cells.push_back(cell(QStringLiteral("undo"), QStringLiteral("Undo"), 1, 0,
-                                       QStringLiteral("compose.undo"), QColor(), 1, {}, {},
-                                       QStringLiteral("undo")));
-            keys->cells.push_back(cell(QStringLiteral("redo"), QStringLiteral("Redo"), 2, 0,
-                                       QStringLiteral("compose.redo"), QColor(), 1, {}, {},
-                                       QStringLiteral("redo")));
+        QString styleId;
+        int keyCol = 0;
+        int keyColSpan = 1;
+        if (!keys->cells.isEmpty()) {
+            styleId = keys->cells.first().styleId;
+            keyCol = keys->cells.first().col;
+            keyColSpan = qMax(1, keys->cells.first().colSpan);
         }
+        keys->cells.clear();
+        PageCell color = cell(QStringLiteral("clear"), QStringLiteral("Color"), 0, keyCol,
+                              QStringLiteral("compose.editShowColors"),
+                              !m_editIcons ? accent : surface, keyColSpan, {}, {},
+                              QStringLiteral("palette"));
+        color.styleId = styleId;
+        color.activeState = QStringLiteral("compose.editColors");
+        keys->cells.push_back(std::move(color));
+        PageCell image = cell(QStringLiteral("undo"), QStringLiteral("Icon"), 1, keyCol,
+                              QStringLiteral("compose.editShowIcons"),
+                              m_editIcons ? accent : surface, keyColSpan, {}, {},
+                              QStringLiteral("photoCamera"));
+        image.styleId = styleId;
+        image.activeState = QStringLiteral("compose.editIcons");
+        keys->cells.push_back(std::move(image));
+        keys->rows = keys->cells.size();
     }
 
     if (PageGrid* phraseGrid = doc.findGrid(QStringLiteral("phrase"))) {
-        phraseGrid->rowSpan = naming ? 2 : 1;
+        if (const PageGrid* chips = doc.findGrid(QStringLiteral("chips"))) {
+            const int chipBottom = chips->row + qMax(0, chips->rowSpan);
+            phraseGrid->rowSpan = qMax(phraseGrid->rowSpan, chipBottom - phraseGrid->row);
+        }
     }
     if (PageGrid* chips = doc.findGrid(QStringLiteral("chips"))) {
-        if (naming) {
-            chips->row = 0;
-            chips->col = 0;
-            chips->colSpan = 0;
-            chips->rowSpan = 0;
-            chips->cells.clear();
-        } else {
-            chips->row = 1;
-            chips->col = 1;
-            chips->colSpan = 6;
-            chips->rowSpan = 1;
-            if (chips->cells.isEmpty()) {
-                for (int i = 0; i < ComposeBuffer::kVisibleChips; ++i) {
-                    chips->cells.push_back(
-                        cell(QStringLiteral("chip_%1").arg(i), {}, 0, i,
-                             QStringLiteral("compose.removeWord.%1").arg(i), QColor()));
-                }
-                PageCell more = cell(QStringLiteral("chip_more"), {}, 0, 12, {}, QColor(), 1,
-                                     QStringLiteral("label"));
-                chips->cells.push_back(more);
-            } else {
-                for (int i = 0; i < ComposeBuffer::kVisibleChips; ++i) {
-                    if (PageCell* chip = doc.findCell(QStringLiteral("chip_%1").arg(i))) {
-                        chip->role.clear();
-                        chip->actions.clear();
-                        chip->actions.push_back(
-                            commandAction(QStringLiteral("compose.removeWord.%1").arg(i)));
-                    }
-                }
-            }
-        }
+        chips->rowSpan = 0;
+        chips->colSpan = 0;
+        chips->cells.clear();
     }
 
     if (PageCell* phrase = doc.findCell(QStringLiteral("phrase"))) {
-        if (naming) {
-            const QColor bg = parseColor(m_editColor, surface);
-            phrase->label = ellipsis(m_buffer.text().trimmed(), 24);
-            phrase->icon = m_editIcon;
-            phrase->caption.clear();
-            phrase->role = QStringLiteral("display");
-            phrase->textStyle = QStringLiteral("title");
-            phrase->style.background = bg;
-            phrase->style.foreground = ThemeColors::contrastOn(bg);
-            phrase->style.borderColor = accent;
-            phrase->style.thickness = PageBox::all(3);
-            phrase->actions.clear();
-        } else {
-            phrase->icon.clear();
-            phrase->role = QStringLiteral("display");
-            phrase->textStyle = QStringLiteral("body");
-            phrase->style.background = QColor();
-            phrase->style.foreground = QColor();
-            phrase->style.borderColor = QColor();
-            phrase->style.thickness.reset();
-            phrase->actions.clear();
-        }
+        const QColor bg = parseColor(m_editColor, surface);
+        phrase->label = ellipsis(m_buffer.text().trimmed(), 24);
+        phrase->caretIndex = qBound(0, m_buffer.caret(), phrase->label.size());
+        phrase->icon = m_editIcon;
+        phrase->caption.clear();
+        phrase->role = QStringLiteral("display");
+        phrase->textStyle = QStringLiteral("title");
+        phrase->style.background = bg;
+        phrase->style.foreground = ThemeColors::contrastOn(bg);
+        phrase->style.borderColor = accent;
+        phrase->style.thickness = PageBox::all(3);
+        phrase->actions.clear();
     }
 
     if (PageCell* speak = doc.findCell(QStringLiteral("speak"))) {
-        if (naming) {
-            speak->label = QStringLiteral("Save");
-            speak->icon = QStringLiteral("YesNoCheck");
-            speak->style.background = ok;
-            speak->style.foreground = QColor(255, 255, 255);
-            setCmd(speak, QStringLiteral("compose.saveName"));
-        } else {
-            speak->label = QStringLiteral("Speak");
-            speak->icon = QStringLiteral("Speak");
-            speak->style.background = QColor();
-            speak->style.foreground = QColor();
-            setCmd(speak, QStringLiteral("compose.speak"));
-        }
-        speak->activeState = naming ? QString() : QStringLiteral("compose.busy");
+        speak->label = QStringLiteral("Save");
+        speak->icon = QStringLiteral("YesNoCheck");
+        speak->style.background = ok;
+        speak->style.foreground = QColor(255, 255, 255);
+        speak->activeState.clear();
+        setCmd(speak, QStringLiteral("compose.saveName"));
     }
     if (PageCell* voices = doc.findCell(QStringLiteral("voices"))) {
-        if (naming) {
-            voices->label = QStringLiteral("Cancel");
-            voices->icon = QStringLiteral("close");
-            voices->style.background = surface;
-            setCmd(voices, QStringLiteral("compose.cancelName"));
-        } else {
-            voices->label = QStringLiteral("Voice");
-            voices->icon = QStringLiteral("recordVoiceOver");
-            voices->style.background = QColor();
-            voices->style.foreground = QColor();
-            setCmd(voices, QStringLiteral("compose.openVoices"));
-        }
+        voices->label = QStringLiteral("Cancel");
+        voices->icon = QStringLiteral("close");
+        voices->style.background = surface;
+        setCmd(voices, QStringLiteral("compose.cancelName"));
     }
     if (PageCell* history = doc.findCell(QStringLiteral("history"))) {
-        if (naming && nameEditCanDelete()) {
+        if (nameEditCanDelete()) {
             history->label = QStringLiteral("Delete");
             history->icon = QStringLiteral("delete");
             history->style.background = warn;
             history->style.foreground = ThemeColors::contrastOn(warn);
             setCmd(history, QStringLiteral("compose.deleteName"));
-        } else if (naming) {
+        } else {
             history->label.clear();
             history->icon.clear();
             history->style.background = QColor();
             history->style.foreground = QColor();
             setCmd(history, {});
-        } else {
-            history->label = QStringLiteral("History");
-            history->icon = QStringLiteral("history");
-            history->style.background = QColor();
-            history->style.foreground = QColor();
-            setCmd(history, QStringLiteral("compose.openHistory"));
         }
     }
 }

@@ -97,6 +97,30 @@ struct RadialRing {
     return QRectF(c.x() - hw, c.y() - hh, hw * 2.0, hh * 2.0);
 }
 
+/// Fill region that follows the outer button path (rounded corners included).
+[[nodiscard]] inline QPainterPath progressFillPath(const QPainterPath& shapePath, const QRectF& r,
+                                                   double t, ProgressFillDir dir)
+{
+    t = qBound(0.0, t, 1.0);
+    if (t <= 0.0 || shapePath.isEmpty()) {
+        return {};
+    }
+    if (t >= 1.0 || dir == ProgressFillDir::None) {
+        return shapePath;
+    }
+    if (dir == ProgressFillDir::Center) {
+        const QPointF c = r.center();
+        QTransform xf;
+        xf.translate(c.x(), c.y());
+        xf.scale(t, t);
+        xf.translate(-c.x(), -c.y());
+        return xf.map(shapePath);
+    }
+    QPainterPath slice;
+    slice.addRect(progressFillSlice(r, t, dir));
+    return shapePath.intersected(slice);
+}
+
 inline void paintProgress(QPainter& p, const QRectF& r, double progress, const ProgressVisuals& v,
                           ProgressShape shape, const PageBox& radii)
 {
@@ -116,12 +140,7 @@ inline void paintProgress(QPainter& p, const QRectF& r, double progress, const P
         p.save();
         p.setPen(Qt::NoPen);
         p.setBrush(fill);
-        if (shape == ProgressShape::Ellipse && v.style.fillDir == ProgressFillDir::Center) {
-            p.drawEllipse(c, r.width() * 0.5 * progress, r.height() * 0.5 * progress);
-        } else {
-            p.setClipPath(shapePath);
-            p.drawRect(progressFillSlice(r, progress, v.style.fillDir));
-        }
+        p.drawPath(progressFillPath(shapePath, r, progress, v.style.fillDir));
         p.restore();
     }
     const RadialRing ring = (v.style.pie || v.style.radial) ? radialRingGeom(r, shape) : RadialRing{};

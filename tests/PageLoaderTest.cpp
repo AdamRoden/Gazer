@@ -707,7 +707,16 @@ void PageLoaderTest::loadComposePage()
     QVERIFY(doc.findGrid(QStringLiteral("edit_keys")));
     QVERIFY(doc.findGrid(QStringLiteral("speak_keys")));
     QCOMPARE(doc.findGrid(QStringLiteral("edit_keys"))->col, 0);
-    QCOMPARE(doc.findGrid(QStringLiteral("speak_keys"))->col, 7);
+    QCOMPARE(doc.findGrid(QStringLiteral("speak_keys"))->col, 2);
+    QCOMPARE(doc.findGrid(QStringLiteral("chips"))->col, 1);
+    QCOMPARE(doc.findGrid(QStringLiteral("chips"))->colSpan, 1);
+    QCOMPARE(doc.findGrid(QStringLiteral("compose"))->columns, 3);
+    QCOMPARE(doc.findCell(QStringLiteral("clear"))->styleId, QStringLiteral("round"));
+    QCOMPARE(doc.findCell(QStringLiteral("undo"))->styleId, QStringLiteral("round"));
+    QCOMPARE(doc.findCell(QStringLiteral("redo"))->styleId, QStringLiteral("round"));
+    QCOMPARE(doc.findCell(QStringLiteral("speak"))->styleId, QStringLiteral("round"));
+    QCOMPARE(doc.findCell(QStringLiteral("voices"))->styleId, QStringLiteral("round"));
+    QCOMPARE(doc.findCell(QStringLiteral("history"))->styleId, QStringLiteral("round"));
     QCOMPARE(doc.findGrid(QStringLiteral("phrase"))->col, 1);
     const QVector<int> allLayers{1, 2, 3, 4};
     QCOMPARE(doc.findGrid(QStringLiteral("compose"))->layers, allLayers);

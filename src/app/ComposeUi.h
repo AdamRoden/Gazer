@@ -70,6 +70,8 @@ public:
     void backspace();
     void deleteWord();
     void removeVisibleWord(int slot);
+    void moveEndOfWord(int slot);
+    void moveStartOfWord(int slot);
     void insertTagAt(int index);
     void refresh();
     void refreshLiveBoards();
@@ -206,6 +208,7 @@ private:
     int m_historyPage = 0;
     enum class ListScroll { None, History, Voices };
     ListScroll m_listScroll = ListScroll::None;
+    mutable PageDocument m_composeAuthored;
     InvalidGazeGrace m_listScrollGrace;
     QElapsedTimer m_listScrollClock;
     qint64 m_listScrollEngageAtMs = -1;

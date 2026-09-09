@@ -24,6 +24,9 @@ private slots:
     void parseCloseSpecialsAndGoBack();
     void genericActionAttribute();
     void dailyDriverDwellClassification();
+    void parseDwellPhases();
+    void rejectDwellPhaseMixedActions();
+    void rejectEmptyPhase();
 };
 
 void PageLoaderActionTest::actionExtrasRoundTrip()
@@ -435,6 +438,76 @@ void PageLoaderActionTest::dailyDriverDwellClassification()
     QVERIFY(!usesDailyDriverDwell({cmd(QStringLiteral("toggleLookToScroll"))}));
     QVERIFY(!usesDailyDriverDwell({cmd(QStringLiteral("compose.speak"))}));
     QVERIFY(!usesDailyDriverDwell({cmd(QStringLiteral("quitApp"))}));
+    QVERIFY(usesDailyDriverDwell({cmd(QStringLiteral("compose.moveEndOfWord.0"))}));
+    QVERIFY(usesDailyDriverDwell({cmd(QStringLiteral("compose.moveStartOfWord.1"))}));
+}
+
+void PageLoaderActionTest::parseDwellPhases()
+{
+    QString err;
+    PageDocument doc;
+    QVERIFY2(PageLoader::loadFromXml(R"xml(
+<Page id="p">
+  <Grid id="g" size="100,100">
+    <Cell id="chip_0" row="0" col="0">
+      <Phase command="compose.moveEndOfWord.0"/>
+      <Phase command="compose.moveStartOfWord.0"/>
+      <Phase command="compose.removeWord.0"/>
+    </Cell>
+  </Grid>
+</Page>
+)xml",
+                                    doc, &err),
+            qPrintable(err));
+    const PageCell* c = doc.findCell(QStringLiteral("chip_0"));
+    QVERIFY(c);
+    QCOMPARE(c->actions.size(), 0);
+    QCOMPARE(c->phases.size(), 3);
+    QCOMPARE(c->phases[0].actions.size(), 1);
+    QCOMPARE(c->phases[0].actions[0].command, QStringLiteral("compose.moveEndOfWord.0"));
+    QCOMPARE(c->phases[1].actions[0].command, QStringLiteral("compose.moveStartOfWord.0"));
+    QCOMPARE(c->phases[2].actions[0].command, QStringLiteral("compose.removeWord.0"));
+    QVERIFY(usesDailyDriverDwell(c->actions, c->phases));
+
+    PageDocument round;
+    QVERIFY2(PageLoader::loadFromXml(PageWriter::toBytes(doc), round, &err), qPrintable(err));
+    QCOMPARE(round.findCell(QStringLiteral("chip_0"))->phases.size(), 3);
+    QCOMPARE(round.findCell(QStringLiteral("chip_0"))->phases[2].actions[0].command,
+             QStringLiteral("compose.removeWord.0"));
+}
+
+void PageLoaderActionTest::rejectDwellPhaseMixedActions()
+{
+    PageDocument doc;
+    QString err;
+    QVERIFY(!PageLoader::loadFromXml(R"xml(
+<Page id="p">
+  <Grid id="g" size="100,100">
+    <Cell id="c" row="0" col="0" command="compose.speak">
+      <Phase command="compose.moveEndOfWord.0"/>
+    </Cell>
+  </Grid>
+</Page>
+)xml",
+                                    doc, &err));
+    QVERIFY(err.contains(QStringLiteral("<Phase> children replace")));
+}
+
+void PageLoaderActionTest::rejectEmptyPhase()
+{
+    PageDocument doc;
+    QString err;
+    QVERIFY(!PageLoader::loadFromXml(R"xml(
+<Page id="p">
+  <Grid id="g" size="100,100">
+    <Cell id="c" row="0" col="0">
+      <Phase/>
+    </Cell>
+  </Grid>
+</Page>
+)xml",
+                                    doc, &err));
+    QVERIFY(err.contains(QStringLiteral("Empty <Phase>")));
 }
 
 

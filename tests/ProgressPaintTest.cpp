@@ -13,6 +13,7 @@ private slots:
     void radialRingMid();
     void radialRingPointer();
     void strokeMatchesPieAlpha();
+    void fillFollowsRoundedOuterPath();
 };
 
 void ProgressPaintTest::radialRingCell()
@@ -45,6 +46,19 @@ void ProgressPaintTest::strokeMatchesPieAlpha()
     QCOMPARE(progressStrokeColor(QColor(0xFF, 0x47, 0x3D), pie).alpha(), kProgressFillAlpha);
     const QColor track = radialTrackColor(pie);
     QCOMPARE(track.alpha(), qRound(kProgressFillAlpha * 80.0 / 255.0));
+}
+
+void ProgressPaintTest::fillFollowsRoundedOuterPath()
+{
+    const QRectF r(0, 0, 100, 100);
+    const QPainterPath outer = roundedBoxPath(r, PageBox::all(40.0));
+    const QPainterPath fill = progressFillPath(outer, r, 0.5, ProgressFillDir::Up);
+    QVERIFY(fill.contains(QPointF(50, 90)));
+    QVERIFY(!fill.contains(QPointF(2, 98)));
+    QVERIFY(!fill.contains(QPointF(50, 10)));
+    const QPainterPath center = progressFillPath(outer, r, 0.5, ProgressFillDir::Center);
+    QVERIFY(center.contains(QPointF(50, 50)));
+    QVERIFY(!center.contains(QPointF(2, 50)));
 }
 
 QObject* createProgressPaintTest()

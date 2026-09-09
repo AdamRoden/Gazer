@@ -142,6 +142,7 @@ void walkGrid(const PageDocument& page, const PageGrid& grid, const QRectF& boun
         t.caption = cell.caption;
         t.textStyle = cell.textStyle;
         t.role = cell.role;
+        t.caretIndex = cell.caretIndex;
         t.settingKey = cell.settingKey;
         t.suspendExempt = cell.suspendExempt;
         t.interactive = cell.isInteractive() && !(dwellSuspended && !cell.suspendExempt);
@@ -151,6 +152,7 @@ void walkGrid(const PageDocument& page, const PageGrid& grid, const QRectF& boun
         t.chrome = PageResolve::style(page, cell.styleId, cell.style);
         t.dwell = PageResolve::dwell(page, cell.dwellId, cell.dwell);
         t.actions = cell.actions;
+        t.phases = cell.phases;
         t.actionLoop = cell.actionLoop;
         t.geom = PageDetector::cell(visual, screen);
         out.push_back(t);
@@ -210,6 +212,7 @@ QVector<PageTarget> collect(const PageDocument& page, const PageFrame& frame,
         t.chrome = PageResolve::zoneStyle(page, z);
         t.dwell = PageResolve::zoneDwell(page, z);
         t.actions = z.actions;
+        t.phases = z.phases;
         t.actionLoop = z.actionLoop;
         t.geom = PageDetector::zoneFromDef(z, bounds, screen);
         (t.shell ? shell : rest).push_back(std::move(t));

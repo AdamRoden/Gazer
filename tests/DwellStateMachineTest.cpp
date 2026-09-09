@@ -1,4 +1,5 @@
 #include "core/GazePoint.h"
+#include "layout/DwellPhase.h"
 #include "layout/DwellStateMachine.h"
 
 #include <QSignalSpy>
@@ -18,6 +19,7 @@ private slots:
     void invalidGraceFreezesProgress();
     void secondInvalidHoldDoesNotAdvance();
     void invalidGraceExpiryRestartsDwell();
+    void dwellPhaseArmAdvanceCommitLatch();
 };
 
 namespace {
@@ -219,6 +221,22 @@ void DwellStateMachineTest::invalidGraceExpiryRestartsDwell()
 
     sm.onGazeSample(sample(1180), QStringLiteral("a"));
     QCOMPARE(fired.size(), 1);
+}
+
+void DwellStateMachineTest::dwellPhaseArmAdvanceCommitLatch()
+{
+    DwellPhaseBank b;
+    QVERIFY(!b.current(QStringLiteral("c")).has_value());
+    b.onActivated(QStringLiteral("c"), 3);
+    QCOMPARE(b.current(QStringLiteral("c")).value_or(-1), 0);
+    b.onActivated(QStringLiteral("c"), 3);
+    QCOMPARE(b.current(QStringLiteral("c")).value_or(-1), 1);
+    b.onActivated(QStringLiteral("c"), 3);
+    QCOMPARE(b.current(QStringLiteral("c")).value_or(-1), 2);
+    b.onActivated(QStringLiteral("c"), 3);
+    QCOMPARE(b.current(QStringLiteral("c")).value_or(-1), 2);
+    QCOMPARE(b.takeCommit(QStringLiteral("c")).value_or(-1), 2);
+    QVERIFY(!b.takeCommit(QStringLiteral("c")).has_value());
 }
 
 QTEST_MAIN(DwellStateMachineTest)
