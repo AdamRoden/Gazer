@@ -78,10 +78,9 @@ public:
 
 private:
     int m_dwellMs = 700;
-    // Generous defaults: Tobii noise + natural drift often exceeds ~50px.
-    int m_stableRadiusPx = 72;
-    int m_freezeRadiusPx = 100;
-    int m_cancelRadiusPx = 180;
+    int m_stableRadiusPx = 40;
+    int m_freezeRadiusPx = 80;
+    int m_cancelRadiusPx = 120;
     double m_commitTrackAlpha = 0.16;
     double m_reverseScale = 1.6;
     bool m_tracking = false;
