@@ -2,13 +2,13 @@
 
 #include <QHash>
 #include <QString>
-#include <QtGlobal>
 #include <optional>
 
 namespace gazer {
 
-/// Per-cell dwell phases: activation arms/advances; leave commits the current
-/// phase. Index is 0-based and latches on the last phase until leave.
+/// Per-cell dwell phases: first activation enters phase 0; each later
+/// activation advances, wrapping last → first. Leave after blink grace
+/// commits the current phase.
 struct DwellPhaseBank {
     void onActivated(const QString& key, int phaseCount)
     {
@@ -19,7 +19,7 @@ struct DwellPhaseBank {
             m_index.insert(key, 0);
             return;
         }
-        m_index[key] = qMin(m_index.value(key) + 1, phaseCount - 1);
+        m_index[key] = (m_index.value(key) + 1) % phaseCount;
     }
 
     [[nodiscard]] std::optional<int> current(const QString& key) const

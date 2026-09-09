@@ -101,7 +101,7 @@ Action is generic: the specific thing to do is named as an attribute (on `<Actio
 
 A cell or zone may have **one** action attribute. Multiple actions use child elements.
 
-`<Phase>` children replace that single-shot fire. Mixed leftover action attributes or children, and empty `<Phase/>`, are load errors. Each dwell **activation** arms or advances the phase in lockstep with the cell’s dwell sequence (daily-driver, designer, or authored `activation`). Extra activations latch on the last phase until leave — they do not wrap. The phase’s actions run when dwell **leaves** that cell after blink grace (look away, or look at another cell). No activation before leave means no fire. Example:
+`<Phase>` children replace that single-shot fire. Mixed leftover action attributes or children, and empty `<Phase/>`, are load errors. The first dwell **activation** enters phase 0; each later activation advances to the next phase (last wraps to first). Dwell progress **pauses** during blink grace. The actions of the phase the cell is in run when dwell **ends** and blink grace expires (look away, or look at another cell). No activation before leave means no fire. Example:
 
 ```xml
 <Cell id="chip_0" row="0" col="0">

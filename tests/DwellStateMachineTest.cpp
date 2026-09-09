@@ -19,7 +19,7 @@ private slots:
     void invalidGraceFreezesProgress();
     void secondInvalidHoldDoesNotAdvance();
     void invalidGraceExpiryRestartsDwell();
-    void dwellPhaseArmAdvanceCommitLatch();
+    void dwellPhaseArmAdvanceCommitWrap();
 };
 
 namespace {
@@ -223,7 +223,7 @@ void DwellStateMachineTest::invalidGraceExpiryRestartsDwell()
     QCOMPARE(fired.size(), 1);
 }
 
-void DwellStateMachineTest::dwellPhaseArmAdvanceCommitLatch()
+void DwellStateMachineTest::dwellPhaseArmAdvanceCommitWrap()
 {
     DwellPhaseBank b;
     QVERIFY(!b.current(QStringLiteral("c")).has_value());
@@ -234,8 +234,8 @@ void DwellStateMachineTest::dwellPhaseArmAdvanceCommitLatch()
     b.onActivated(QStringLiteral("c"), 3);
     QCOMPARE(b.current(QStringLiteral("c")).value_or(-1), 2);
     b.onActivated(QStringLiteral("c"), 3);
-    QCOMPARE(b.current(QStringLiteral("c")).value_or(-1), 2);
-    QCOMPARE(b.takeCommit(QStringLiteral("c")).value_or(-1), 2);
+    QCOMPARE(b.current(QStringLiteral("c")).value_or(-1), 0);
+    QCOMPARE(b.takeCommit(QStringLiteral("c")).value_or(-1), 0);
     QVERIFY(!b.takeCommit(QStringLiteral("c")).has_value());
 }
 
