@@ -165,17 +165,13 @@ void PageSession::setProgressVisuals(const ProgressVisuals& visuals)
     }
 }
 
-void PageSession::setGlobalDwell(const QVector<int>& sequence, int graceMs, int scanGraceMs)
+void PageSession::setDwellTiming(const QVector<int>& standard, const QVector<int>& typingBoost,
+                                int blinkGraceMs, int scanGraceMs)
 {
-    m_globalSequence = sequence.isEmpty() ? QVector<int>{800} : sequence;
-    m_globalGraceMs = qMax(0, graceMs);
-    m_globalScanGraceMs = qMax(0, scanGraceMs);
-}
-
-void PageSession::setDailyDriverDwell(const QVector<int>& sequence, int scanGraceMs)
-{
-    m_dailySequence = sequence.isEmpty() ? m_globalSequence : sequence;
-    m_dailyScanGraceMs = qMax(0, scanGraceMs);
+    m_standardSequence = standard.isEmpty() ? QVector<int>{800} : standard;
+    m_typingBoostSequence = typingBoost.isEmpty() ? m_standardSequence : typingBoost;
+    m_blinkGraceMs = qMax(0, blinkGraceMs);
+    m_scanGraceMs = qMax(0, scanGraceMs);
 }
 
 void PageSession::setDwellSuspended(bool on)

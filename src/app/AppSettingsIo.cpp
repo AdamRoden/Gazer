@@ -142,23 +142,17 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
         return out;
     };
 
-    const bool hadDailySeq = o.contains(QStringLiteral("dailyDwellSequence"));
-    const bool hadDailyScan = o.contains(QStringLiteral("dailyScanGraceMs"));
-
     if (o.contains(QStringLiteral("dwellSequence"))) {
         dwellSequence = loadSeq(o.value(QStringLiteral("dwellSequence")));
     } else if (o.contains(QStringLiteral("dwellMs"))) {
         dwellSequence = loadSeq(o.value(QStringLiteral("dwellMs")));
     }
 
-    if (hadDailySeq) {
+    if (o.contains(QStringLiteral("dailyDwellSequence"))) {
         dailyDwellSequence = loadSeq(o.value(QStringLiteral("dailyDwellSequence")));
     }
 
     scanGraceMs = o.value(QStringLiteral("scanGraceMs")).toInt(scanGraceMs);
-    if (hadDailyScan) {
-        dailyScanGraceMs = o.value(QStringLiteral("dailyScanGraceMs")).toInt(dailyScanGraceMs);
-    }
     dwellGraceMs = o.value(QStringLiteral("dwellGraceMs")).toInt(dwellGraceMs);
     mouseMoveDwellMs = o.value(QStringLiteral("mouseMoveDwellMs")).toInt(mouseMoveDwellMs);
     magPickDwellMs = o.value(QStringLiteral("magPickDwellMs")).toInt(magPickDwellMs);
@@ -168,10 +162,6 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
     if (o.contains(QStringLiteral("customDailyDwellSequence"))) {
         customTiming.dailySequence = loadSeq(o.value(QStringLiteral("customDailyDwellSequence")));
     }
-    customTiming.scanGraceMs =
-        o.value(QStringLiteral("customScanGraceMs")).toInt(customTiming.scanGraceMs);
-    customTiming.dailyScanGraceMs =
-        o.value(QStringLiteral("customDailyScanGraceMs")).toInt(customTiming.dailyScanGraceMs);
     customTiming.blinkGraceMs =
         o.value(QStringLiteral("customDwellGraceMs")).toInt(customTiming.blinkGraceMs);
     customTiming.mouseMoveDwellMs =
@@ -427,9 +417,6 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
     }
     applyTheme();
 
-    if (!hadDailySeq && !hadDailyScan) {
-        inferMissingDailyDwell();
-    }
     clamp();
     GAZER_INFO << "Loaded settings from" << path;
     return true;
@@ -454,7 +441,6 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     }
     o.insert(QStringLiteral("dailyDwellSequence"), dailySeq);
     o.insert(QStringLiteral("scanGraceMs"), copy.scanGraceMs);
-    o.insert(QStringLiteral("dailyScanGraceMs"), copy.dailyScanGraceMs);
     o.insert(QStringLiteral("dwellGraceMs"), copy.dwellGraceMs);
     o.insert(QStringLiteral("mouseMoveDwellMs"), copy.mouseMoveDwellMs);
     o.insert(QStringLiteral("magPickDwellMs"), copy.magPickDwellMs);
@@ -468,8 +454,6 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
         customDailySeq.append(ms);
     }
     o.insert(QStringLiteral("customDailyDwellSequence"), customDailySeq);
-    o.insert(QStringLiteral("customScanGraceMs"), copy.customTiming.scanGraceMs);
-    o.insert(QStringLiteral("customDailyScanGraceMs"), copy.customTiming.dailyScanGraceMs);
     o.insert(QStringLiteral("customDwellGraceMs"), copy.customTiming.blinkGraceMs);
     o.insert(QStringLiteral("customMouseMoveDwellMs"), copy.customTiming.mouseMoveDwellMs);
     o.insert(QStringLiteral("customMagPickDwellMs"), copy.customTiming.magPickDwellMs);

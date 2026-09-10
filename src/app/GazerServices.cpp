@@ -447,9 +447,8 @@ void GazerServices::applySettings(bool persist)
     if (m_pages) {
         m_pages->setProgressVisuals(boardPv);
         m_pages->setTheme(m_settings.resolvedTheme());
-        m_pages->setGlobalDwell(m_settings.dwellSequence, m_settings.dwellGraceMs,
-                                m_settings.scanGraceMs);
-        m_pages->setDailyDriverDwell(m_settings.dailyDwellSequence, m_settings.dailyScanGraceMs);
+        m_pages->setDwellTiming(m_settings.dwellSequence, m_settings.dailyDwellSequence,
+                               m_settings.dwellGraceMs, m_settings.scanGraceMs);
     }
 
     m_mouseDwellMove->setDwellMs(m_settings.mouseMoveDwellMs);
@@ -488,7 +487,7 @@ void GazerServices::applySettings(bool persist)
                            m_settings.comboOuterRadiusPx);
     m_comboMouse->setAnnulusColors(m_settings.colorKey(QStringLiteral("comboInnerColor")),
                                    m_settings.colorKey(QStringLiteral("comboOuterColor")));
-    m_comboMouse->setScanGraceMs(m_settings.dailyScanGraceMs);
+    m_comboMouse->setScanGraceMs(m_settings.scanGraceMs);
     m_comboMouse->setDwellGraceMs(m_settings.dwellGraceMs);
     m_comboMouse->setDwellSequence(m_settings.dailyDwellSequence);
 

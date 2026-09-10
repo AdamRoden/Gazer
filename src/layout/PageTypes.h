@@ -313,9 +313,9 @@ struct PageAction {
     QVector<int> layers;
 };
 
-/// Default dwell for keys, mouse inject, composer typing, AHK, and mapping commands.
-/// Settings / nav / assist toggles / composer word chips use designer dwell instead.
-[[nodiscard]] inline bool isDailyDriverCommand(QStringView name)
+/// Typing-boost dwell for keys, mouse inject, composer typing, AHK, and mapping commands.
+/// Settings / nav / assist toggles / composer word chips use standard dwell instead.
+[[nodiscard]] inline bool isTypingBoostCommand(QStringView name)
 {
     const QString n = name.toString();
     if (n.isEmpty()) {
@@ -342,7 +342,7 @@ struct PageAction {
     return !kChrome.contains(n);
 }
 
-[[nodiscard]] inline bool usesDailyDriverDwell(const QVector<PageAction>& actions)
+[[nodiscard]] inline bool usesTypingBoostDwell(const QVector<PageAction>& actions)
 {
     for (const PageAction& a : actions) {
         switch (a.type) {
@@ -353,7 +353,7 @@ struct PageAction {
         case PageActionType::Ahk:
             return true;
         case PageActionType::Command:
-            if (isDailyDriverCommand(a.command)) {
+            if (isTypingBoostCommand(a.command)) {
                 return true;
             }
             break;
@@ -368,18 +368,18 @@ struct PagePhase {
     QVector<PageAction> actions;
 };
 
-[[nodiscard]] inline bool usesDailyDriverDwell(const QVector<PageAction>& actions,
+[[nodiscard]] inline bool usesTypingBoostDwell(const QVector<PageAction>& actions,
                                                const QVector<PagePhase>& phases)
 {
     if (!phases.isEmpty()) {
         for (const PagePhase& p : phases) {
-            if (usesDailyDriverDwell(p.actions)) {
+            if (usesTypingBoostDwell(p.actions)) {
                 return true;
             }
         }
         return false;
     }
-    return usesDailyDriverDwell(actions);
+    return usesTypingBoostDwell(actions);
 }
 
 /// label / value / display / slider / preview / scrollbar are not dwell targets.

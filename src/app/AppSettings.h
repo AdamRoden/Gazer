@@ -18,28 +18,24 @@ namespace gazer {
 /// In-class initializers are the factory. defaults() bakes Fluent neutrals and applyTheme().
 struct AppSettings {
     // --- Timing ---
-    /// Designer dwell steps (ms). Last step repeats while gaze holds.
+    /// Standard dwell steps (ms). Last step repeats while gaze holds.
     /// Default for settings, navigation, composer word chips, and other non-input cells.
     QVector<int> dwellSequence = defaultDwellSequence();
-    /// Daily-driver dwell steps. Default for Send, mouse, composer typing, AHK, modifiers.
+    /// Typing-boost dwell steps. Default for Send, mouse, composer typing, AHK, modifiers.
     QVector<int> dailyDwellSequence = defaultDailyDwellSequence();
-    /// Time on-target before designer dwell progress / sequence begins (ms).
-    int scanGraceMs = 150;
-    /// Time on-target before daily-driver dwell begins (ms).
-    int dailyScanGraceMs = 100;
+    /// Time on-target before dwell progress / sequence begins (ms).
+    int scanGraceMs = 200;
     int dwellGraceMs = 200;
     int mouseMoveDwellMs = 800;
     /// Dwell for the first mag-pick step (choose region to magnify).
     int magPickDwellMs = 600;
-    /// Last saved Custom timing package (Speed presets).
+    /// Last saved Custom timing package (Speed presets). Scan grace is not part of a pack.
     struct TimingPack {
         QVector<int> sequence;
         QVector<int> dailySequence;
         int mouseMoveDwellMs = 800;
         int magPickDwellMs = 600;
         int blinkGraceMs = 200;
-        int scanGraceMs = 150;
-        int dailyScanGraceMs = 100;
     };
     TimingPack customTiming = defaultTimingPack();
     /// Cancel armed mouse-move / click-loop if no target is selected within this many ms.
@@ -218,7 +214,7 @@ struct AppSettings {
     }
     [[nodiscard]] static TimingPack defaultTimingPack()
     {
-        return {defaultDwellSequence(), defaultDailyDwellSequence(), 800, 600, 200, 150, 100};
+        return {defaultDwellSequence(), defaultDailyDwellSequence(), 800, 600, 200};
     }
     /// In-class factory plus Fluent neutrals and applyTheme(). JSON overlays this.
     [[nodiscard]] static AppSettings defaults();
@@ -266,8 +262,6 @@ struct AppSettings {
     [[nodiscard]] int dwellPreset() const;
     void saveDwellCustom();
     void applyDwellCustom();
-    /// Fill daily-driver timings from the matching designer pack when JSON omitted them.
-    void inferMissingDailyDwell();
     void setMagFollowProfile(int profile);
     void setLtsIndicatorStyle(int style);
     void clamp();

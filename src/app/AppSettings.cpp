@@ -69,8 +69,6 @@ const AppSettings::TimingPack kDwellSlow{
     1200,
     800,
     250,
-    200,
-    150,
 };
 const AppSettings::TimingPack kDwellNormal = AppSettings::defaultTimingPack();
 const AppSettings::TimingPack kDwellFast{
@@ -79,8 +77,6 @@ const AppSettings::TimingPack kDwellFast{
     400,
     300,
     150,
-    100,
-    200,
 };
 
 void clampSequence(QVector<int>& seq, const QVector<int>& fallback)
@@ -96,7 +92,7 @@ void clampSequence(QVector<int>& seq, const QVector<int>& fallback)
 AppSettings::TimingPack liveTiming(const AppSettings& s)
 {
     return {s.dwellSequence, s.dailyDwellSequence, s.mouseMoveDwellMs, s.magPickDwellMs,
-            s.dwellGraceMs, s.scanGraceMs, s.dailyScanGraceMs};
+            s.dwellGraceMs};
 }
 
 void applyTimingPack(AppSettings& s, const AppSettings::TimingPack& p)
@@ -106,15 +102,6 @@ void applyTimingPack(AppSettings& s, const AppSettings::TimingPack& p)
     s.mouseMoveDwellMs = p.mouseMoveDwellMs;
     s.magPickDwellMs = p.magPickDwellMs;
     s.dwellGraceMs = p.blinkGraceMs;
-    s.scanGraceMs = p.scanGraceMs;
-    s.dailyScanGraceMs = p.dailyScanGraceMs;
-}
-
-bool matchesDesignerTiming(const AppSettings& s, const AppSettings::TimingPack& p)
-{
-    return s.dwellSequence == p.sequence && s.mouseMoveDwellMs == p.mouseMoveDwellMs
-           && s.magPickDwellMs == p.magPickDwellMs && s.dwellGraceMs == p.blinkGraceMs
-           && s.scanGraceMs == p.scanGraceMs;
 }
 
 bool matchesTimingPack(const AppSettings& s, const AppSettings::TimingPack& p)
@@ -122,16 +109,13 @@ bool matchesTimingPack(const AppSettings& s, const AppSettings::TimingPack& p)
     const AppSettings::TimingPack live = liveTiming(s);
     return live.sequence == p.sequence && live.dailySequence == p.dailySequence
            && live.mouseMoveDwellMs == p.mouseMoveDwellMs && live.magPickDwellMs == p.magPickDwellMs
-           && live.blinkGraceMs == p.blinkGraceMs && live.scanGraceMs == p.scanGraceMs
-           && live.dailyScanGraceMs == p.dailyScanGraceMs;
+           && live.blinkGraceMs == p.blinkGraceMs;
 }
 
 void clampTimingPack(AppSettings::TimingPack& p)
 {
     clampSequence(p.sequence, AppSettings::defaultDwellSequence());
     clampSequence(p.dailySequence, AppSettings::defaultDailyDwellSequence());
-    p.scanGraceMs = qBound(0, p.scanGraceMs, 2000);
-    p.dailyScanGraceMs = qBound(0, p.dailyScanGraceMs, 2000);
     p.blinkGraceMs = qBound(0, p.blinkGraceMs, 800);
     p.mouseMoveDwellMs = qBound(200, p.mouseMoveDwellMs, 2500);
     p.magPickDwellMs = qBound(200, p.magPickDwellMs, 2500);
@@ -162,15 +146,12 @@ QString formatSequence(const QVector<int>& seq)
 }
 
 constexpr IntSpec kIntSpecs[] = {
-    {"scanGraceMs", "Designer scan grace",
-     "Time on-target before designer dwell progress begins (ms).", " ms",
-     &AppSettings::scanGraceMs, 0, 2000, 20},
-    {"dailyScanGraceMs", "Daily scan grace",
-     "Time on-target before daily-driver dwell progress begins (ms).", " ms",
-     &AppSettings::dailyScanGraceMs, 0, 2000, 20},
     {"dwellGraceMs", "Blink grace",
      "Blink grace window without canceling dwell (ms).", " ms",
      &AppSettings::dwellGraceMs, 0, 800, 20},
+    {"scanGraceMs", "Scan grace",
+     "Time on-target before dwell progress begins (ms).", " ms",
+     &AppSettings::scanGraceMs, 0, 2000, 20},
     {"mouseMoveDwellMs", "Pointer dwell",
      "Dwell time for the final cursor / click placement (ms).", " ms",
      &AppSettings::mouseMoveDwellMs, 200, 2500, 50},
@@ -516,25 +497,6 @@ void AppSettings::applyDwellCustom()
     applyTimingPack(*this, customTiming);
 }
 
-void AppSettings::inferMissingDailyDwell()
-{
-    const AppSettings::TimingPack* pack = nullptr;
-    AppSettings::TimingPack slowLegacy = kDwellSlow;
-    slowLegacy.magPickDwellMs = 1200; // pre-retune Slow zoom dwell
-    if (matchesDesignerTiming(*this, kDwellSlow) || matchesDesignerTiming(*this, slowLegacy)) {
-        pack = &kDwellSlow;
-    } else if (matchesDesignerTiming(*this, kDwellNormal)) {
-        pack = &kDwellNormal;
-    } else if (matchesDesignerTiming(*this, kDwellFast)) {
-        pack = &kDwellFast;
-    }
-    if (!pack) {
-        return;
-    }
-    dailyDwellSequence = pack->dailySequence;
-    dailyScanGraceMs = pack->dailyScanGraceMs;
-}
-
 void AppSettings::setMagFollowProfile(int profile)
 {
     magFollowProfile = gazeFollowProfileFromInt(profile);
@@ -658,10 +620,10 @@ QString AppSettings::displayValue(const QString& key) const
 QString AppSettings::settingTitle(const QString& key)
 {
     if (isDailySequenceKey(key)) {
-        return QStringLiteral("Daily driver dwell");
+        return QStringLiteral("Typing boost");
     }
     if (isSequenceKey(key)) {
-        return QStringLiteral("Designer dwell");
+        return QStringLiteral("Standard");
     }
     if (const IntSpec* s = findInt(key)) {
         return QLatin1String(s->title);
@@ -685,12 +647,12 @@ QString AppSettings::settingDescription(const QString& key)
 {
     if (isDailySequenceKey(key)) {
         return QStringLiteral(
-            "Comma-separated daily-driver dwell times in ms (keys, mouse, composer typing, "
+            "Comma-separated typing-boost dwell times in ms (keys, mouse, composer typing, "
             "modifiers, AHK). Last step repeats. 0 fires immediately after scan grace.");
     }
     if (isSequenceKey(key)) {
         return QStringLiteral(
-            "Comma-separated designer dwell times in ms (settings, navigation, "
+            "Comma-separated standard dwell times in ms (settings, navigation, "
             "composer word chips). Last step repeats.");
     }
     if (const IntSpec* s = findInt(key)) {

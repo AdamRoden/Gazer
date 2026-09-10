@@ -118,7 +118,7 @@ Patterns, not every generated name:
 |---------|------|
 | `settings.edit.<numericKey>` | Numpad (`dwellMs` / `dwellSequence` / `dailyDwellMs` / `dailyDwellSequence` open the array editor) |
 | `settings.nudge.<numericKey>.dec` / `.inc` | Step a numeric setting |
-| `settings.edit.dwellSequence` / `.dailyDwellSequence` | Designer / daily-driver dwell-sequence array boards |
+| `settings.edit.dwellSequence` / `.dailyDwellSequence` | Standard / typing-boost dwell-sequence array boards |
 | `settings.numpad.*` | Live numpad keys |
 | `settings.array.*` | Sequence editor (`nudge.N`, `edit.N`, `del.N` for N=0..11) |
 | `settings.edit.color.<colorKey>` | Open color picker |
@@ -132,7 +132,7 @@ Patterns, not every generated name:
 | `settings.speech.editKey` / `.clearKey` | Paste-from-clipboard API-key board / wipe DPAPI |
 | `settings.speech.key.paste` / `.save` / `.cancel` / `.clear` | Key board |
 | `settings.speech.model.sapi` / `.eleven_flash_v2_5` / `.eleven_v3` | Same handlers as `speech.model.*` (ComposeCommands) |
-| `settings.dwell.slow` / `.normal` / `.fast` / `.custom` | Speed presets (designer + daily-driver dwells together) |
+| `settings.dwell.slow` / `.normal` / `.fast` / `.custom` | Speed presets (standard + typing-boost dwells together) |
 | `settings.dwell.custom.save` / `.restore` | Save or restore Custom timings |
 | `settings.mag.follow.slow` / `.sticky` / `.smooth` / `.snappy` | Gaze follow (indicator, gaze mouse, live lens) |
 | `settings.lts.indicator.filled` / `.hollow` / `.pause` | LTS HUD (`fan`/`orb` aliases) |

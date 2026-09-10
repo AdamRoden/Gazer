@@ -36,7 +36,7 @@ Do not `raise()` / `HWND_TOP` an overlay on every gaze sample. `showOverlay()` i
 |------|------|
 | Page XML schema / actions | `docs/page-xml.md`, then `src/layout/README.md` |
 | Parser / hit / session | `src/layout/` — `PageLoader`, `PageHit`, `PageSession*` |
-| Settings keys, JSON, editors | `src/app/README.md`, `AppSettings.h`, spec tables in `AppSettings.cpp`. Speed: designer `dwellSequence` vs daily-driver `dailyDwellSequence` |
+| Settings keys, JSON, editors | `src/app/README.md`, `AppSettings.h`, spec tables in `AppSettings.cpp`. Speed: standard `dwellSequence` vs typing-boost `dailyDwellSequence`; shared `scanGraceMs` |
 | Builtins / mapping fallthrough | `src/app/Commands.md`, then the file listed in that table |
 | Assist (LTS, mag, dwell-move) | `src/assist/README.md` |
 | Composer / speech | `src/app/ComposeUi.h`, `src/assist/SpeechEngine.h`, `docs/composer-elevenlabs.md` |

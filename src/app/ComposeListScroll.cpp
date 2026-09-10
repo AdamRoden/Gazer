@@ -111,7 +111,7 @@ void ComposeUi::feedListScrollGaze(const GazePoint& point)
         m_listScrollEngageAtMs = now;
         return;
     }
-    if (now - m_listScrollEngageAtMs < qMax(0, m_settings.dailyScanGraceMs)) {
+    if (now - m_listScrollEngageAtMs < qMax(0, m_settings.scanGraceMs)) {
         return;
     }
 

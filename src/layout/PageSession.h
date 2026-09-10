@@ -85,8 +85,8 @@ public:
 
     void setTheme(const ThemeColors& theme);
     void setProgressVisuals(const ProgressVisuals& visuals);
-    void setGlobalDwell(const QVector<int>& sequence, int graceMs, int scanGraceMs);
-    void setDailyDriverDwell(const QVector<int>& sequence, int scanGraceMs);
+    void setDwellTiming(const QVector<int>& standard, const QVector<int>& typingBoost,
+                        int blinkGraceMs, int scanGraceMs);
 
     void setAutoCollapseMain(bool on) { m_autoCollapseMain = on; }
     void setLayoutAutoClose(bool on, int idleMs);
@@ -209,11 +209,10 @@ private:
     std::unique_ptr<PageHostWindow> m_host;
     DwellStateMachine m_dwell;
     DwellPhaseBank m_dwellPhases;
-    QVector<int> m_globalSequence = {800};
-    int m_globalGraceMs = 180;
-    int m_globalScanGraceMs = 100;
-    QVector<int> m_dailySequence = {400, 600, 400, 300, 200, 100};
-    int m_dailyScanGraceMs = 100;
+    QVector<int> m_standardSequence = {800};
+    QVector<int> m_typingBoostSequence = {400, 600, 400, 300, 200, 100};
+    int m_blinkGraceMs = 180;
+    int m_scanGraceMs = 200;
     QString m_hoverId;
     DispatchFn m_dispatch;
     DecorateFn m_decorate;

@@ -6,7 +6,8 @@
   <Style id="joinLeft" background="#00000000" thickness="0" radius="10,0,0,10"/>
   <Style id="joinRight" background="#00000000" thickness="0" radius="0,10,10,0"/>
   <Style id="tabbar" thickness="0" radius="12"/>
-  <Grid id="board" desktopMode="true" rows="12" columns="16" anchor="Top" offset="0,0" size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" gap="6" margin="12" radius="16">
+  <Grid id="board" desktopMode="true" rows="5" columns="16" anchor="Top" offset="0,0" size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" gap="6" margin="12" radius="16"
+  rowWeights="0.6,0.6,1.8,1.4,1.8">
     <SubGrid id="tabs" row="0" col="0" colSpan="16" rows="1" columns="8" gap="6" margin="4" style="tabbar">
       <Cell id="tab_speed" row="0" col="0" label="Speed" icon="timer" role="tab">
         <ClosePage/>
@@ -41,9 +42,9 @@
       </Cell>
     </SubGrid>
 
-    <Cell id="page_title" row="1" col="0" colSpan="16" label="Advanced speed" caption="Blink, pointer grace, foresight hold, and auto-close" role="label" textStyle="title" style="plain"/>
+    <Cell id="page_title" row="1" col="0" colSpan="16" label="Advanced speed" caption="Scan grace, blink, pointer grace, foresight hold, and auto-close" role="label" textStyle="title" style="plain"/>
 
-    <SubGrid id="sec_grace" row="2" col="0" colSpan="16" rowSpan="3" rows="3" columns="1" rowWeights="1,2,2" gap="6" margin="6" style="group">
+    <SubGrid id="sec_grace" row="2" col="0" colSpan="16" rows="4" columns="1" rowWeights="1,2,2,2" gap="6" margin="6" style="group">
       <Cell id="h_grace" row="0" col="0" label="Grace" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_grace" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="grace_label" row="0" col="0" label="Blink grace" caption="Blink without canceling dwell." role="label" style="plain"/>
@@ -54,8 +55,17 @@
           <Cell id="grace_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.dwellGraceMs"/>
         </SubGrid>
       </SubGrid>
-      <SubGrid id="row_pg" row="2" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="pg_label" row="0" col="0" label="Pointer grace" caption="Added to zoom dwell on pre-pick, or pointer dwell on point pick. 0 = off." role="label" style="plain"/>
+      <SubGrid id="row_scan" row="2" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="scan_label" row="0" col="0" label="Scan grace" caption="Time on-target before dwell starts." role="label" style="plain"/>
+        <SubGrid id="act_scan" row="0" col="1" rows="1" columns="9" gap="0" style="row">
+          <Cell id="scan_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.scanGraceMs.dec"/>
+          <Cell id="scan_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="scanGraceMs" style="join"/>
+          <Cell id="scan_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.scanGraceMs.inc"/>
+          <Cell id="scan_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.scanGraceMs"/>
+        </SubGrid>
+      </SubGrid>
+      <SubGrid id="row_pg" row="3" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="pg_label" row="0" col="0" label="Pointer grace" caption="Time before an unresolved pointer pick action is canceled. 0 = off." role="label" style="plain"/>
         <SubGrid id="act_pg" row="0" col="1" rows="1" columns="9" gap="0" style="row">
           <Cell id="pg_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.mouseMoveSelectTimeoutMs.dec"/>
           <Cell id="pg_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="mouseMoveSelectTimeoutMs" style="join"/>
@@ -65,7 +75,7 @@
       </SubGrid>
     </SubGrid>
 
-    <SubGrid id="sec_fs" row="5" col="0" colSpan="16" rowSpan="3" rows="3" columns="1" rowWeights="1,2,2" gap="6" margin="6" style="group">
+    <SubGrid id="sec_fs" row="3" col="0" colSpan="16" rows="3" columns="1" rowWeights="1,2,2" gap="6" margin="6" style="group">
       <Cell id="h_fs" row="0" col="0" label="Foresight" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_fsd" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="fsd_label" row="0" col="0" label="Foresight dwell" caption="Gaze this long to store a point." role="label" style="plain"/>
@@ -87,7 +97,7 @@
       </SubGrid>
     </SubGrid>
 
-    <SubGrid id="sec_session" row="8" col="0" colSpan="16" rowSpan="4" rows="4" columns="1" rowWeights="1,2,2,2" gap="6" margin="6" style="group">
+    <SubGrid id="sec_session" row="4" col="0" colSpan="16" rows="4" columns="1" rowWeights="1,2,2,2" gap="6" margin="6" style="group">
       <Cell id="h_session" row="0" col="0" label="Session" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_ac" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="ac_label" row="0" col="0" label="Auto-close boards" caption="Close idle boards that opted in." role="label" style="plain"/>

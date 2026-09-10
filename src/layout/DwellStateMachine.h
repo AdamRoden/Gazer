@@ -46,7 +46,7 @@ public:
     }
 
     static constexpr int kDefaultInvalidGraceMs = 180;
-    static constexpr int kDefaultScanGraceMs = 100;
+    static constexpr int kDefaultScanGraceMs = 200;
 
 public slots:
     void onGazeSample(const gazer::GazePoint& point, const QString& itemIdUnderGaze);
