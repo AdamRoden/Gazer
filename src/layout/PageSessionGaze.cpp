@@ -10,10 +10,11 @@
 
 namespace gazer {
 
-void PageSession::setLayoutAutoClose(bool on, int idleMs)
+void PageSession::setLayoutAutoClose(bool on, int idleMs, int fadeMs)
 {
     m_layoutAutoClose = on;
     m_layoutAutoCloseIdleMs = qBound(500, idleMs, 120000);
+    m_layoutAutoCloseFadeMs = qBound(50, fadeMs, 60000);
     syncAutoClose();
 }
 
@@ -52,8 +53,17 @@ int PageSession::autoCloseIdleMs() const
 
 void PageSession::noteActivity()
 {
+    clearAutoCloseFade();
     m_idleClock.start();
     m_idleClockRunning = true;
+}
+
+void PageSession::clearAutoCloseFade()
+{
+    if (m_autoCloseFading && m_host) {
+        m_host->setOpacity(1.0);
+    }
+    m_autoCloseFading = false;
 }
 
 void PageSession::syncAutoClose()
@@ -61,6 +71,7 @@ void PageSession::syncAutoClose()
     if (m_dwellSuspended || autoCloseIdleMs() < 0) {
         m_autoCloseTimer.stop();
         m_idleClockRunning = false;
+        clearAutoCloseFade();
         return;
     }
     if (!m_idleClockRunning) {
@@ -78,11 +89,22 @@ void PageSession::tickAutoClose()
     }
     const int idle = autoCloseIdleMs();
     if (idle < 0 || !m_idleClockRunning) {
+        clearAutoCloseFade();
         return;
     }
-    if (m_idleClock.elapsed() < idle) {
+    const qint64 elapsed = m_idleClock.elapsed();
+    if (elapsed < idle) {
+        clearAutoCloseFade();
         return;
     }
+    if (elapsed < idle + m_layoutAutoCloseFadeMs) {
+        if (m_host) {
+            m_host->setOpacity(0.5);
+        }
+        m_autoCloseFading = true;
+        return;
+    }
+    clearAutoCloseFade();
     QStringList drop;
     for (const AttachedPage& a : m_attached) {
         bool ac = a.doc.autoClose;

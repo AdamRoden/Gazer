@@ -396,6 +396,7 @@ void PageSession::closePage(const QString& id)
             if (m_loopStopPage) {
                 m_loopStopPage(id);
             }
+            leaveGaze();
             rebuild();
             emit sessionChanged();
             return;
@@ -416,6 +417,7 @@ int PageSession::closeAttached()
         }
     }
     m_attached.clear();
+    leaveGaze();
     rebuild();
     emit sessionChanged();
     return n;

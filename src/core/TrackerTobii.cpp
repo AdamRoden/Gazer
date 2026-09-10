@@ -285,6 +285,17 @@ bool TrackerTobii::start()
 
 void TrackerTobii::workerMain()
 {
+    // Always unblock start()/stop(), including setup-failure returns.
+    struct ExitFlag {
+        TrackerTobii* t = nullptr;
+        ~ExitFlag()
+        {
+            std::lock_guard lock(t->m_exitMutex);
+            t->m_workerExited = true;
+            t->m_exitCv.notify_all();
+        }
+    } exited{this};
+
     // Entire device lifecycle stays on this thread.
     tobii_error_t e = m_lib.api_create(&m_api, nullptr, nullptr);
     if (e != TOBII_ERROR_NO_ERROR || !m_api) {
@@ -410,12 +421,6 @@ void TrackerTobii::workerMain()
     }
 
     teardownDeviceUnlocked();
-
-    {
-        std::lock_guard lock(m_exitMutex);
-        m_workerExited = true;
-    }
-    m_exitCv.notify_all();
 
     const uint64_t gen = m_generation.load();
     const QString reason = failReason;

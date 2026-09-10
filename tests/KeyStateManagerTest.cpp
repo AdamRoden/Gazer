@@ -24,6 +24,7 @@ private slots:
     void comboMapsOemWithoutLetterShift();
     void extraShiftLivesInSlot();
     void extraShiftInjectFailureRollsBack();
+    void comboPartialDownRollsBack();
     void holdReleasesAfterDuration();
 };
 
@@ -322,6 +323,29 @@ void KeyStateManagerTest::extraShiftInjectFailureRollsBack()
     QCOMPARE(err, QStringLiteral("inject failed"));
     QVERIFY(!mgr.isHeld(QStringLiteral("shift")));
     QCOMPARE(names(log), (QStringList{QStringLiteral("Shift↓"), QStringLiteral("Shift↑")}));
+}
+
+void KeyStateManagerTest::comboPartialDownRollsBack()
+{
+    QVector<Event> log;
+    int n = 0;
+    KeyStateManager mgr;
+    mgr.setInjector([&](const QString& key, bool down, QString* error) {
+        ++n;
+        if (n == 2 && down) {
+            if (error) {
+                *error = QStringLiteral("inject failed");
+            }
+            return false;
+        }
+        log.push_back({key, down});
+        return true;
+    });
+    QString err;
+    QVERIFY(!mgr.combo({QStringLiteral("Control"), QStringLiteral("A")}, &err));
+    QCOMPARE(err, QStringLiteral("inject failed"));
+    QCOMPARE(names(log),
+             (QStringList{QStringLiteral("Control↓"), QStringLiteral("Control↑")}));
 }
 
 void KeyStateManagerTest::holdReleasesAfterDuration()

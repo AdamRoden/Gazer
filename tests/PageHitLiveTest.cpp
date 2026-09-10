@@ -39,6 +39,8 @@ private slots:
     void edgeChipGazeHitsOnScreenChrome();
     void liveEditorGridHasOpaqueChrome();
     void overlappingBoardOccludesLowerPage();
+    void coveringGridCornerOccludesLowerPage();
+    void remapPageActionTargetsIncludesPhases();
 };
 
 void PageHitLiveTest::mainChipProgressOverlapsTaskbar()
@@ -407,6 +409,98 @@ void PageHitLiveTest::overlappingBoardOccludesLowerPage()
     const PageTarget* lower = PageHit::at(targets, inEditor);
     QVERIFY(lower);
     QCOMPARE(lower->pageId, settings.id);
+}
+
+void PageHitLiveTest::coveringGridCornerOccludesLowerPage()
+{
+    PageFrame frame;
+    frame.screen = QRectF(0, 0, 1920, 1080);
+    frame.desktop = frame.screen;
+
+    PageDocument back;
+    back.id = QStringLiteral("back");
+    PageGrid bg;
+    bg.id = QStringLiteral("board");
+    bg.desktopMode = true;
+    bg.anchor = PageAnchor::TopLeft;
+    bg.offset.x = PageDim::pixels(0);
+    bg.offset.y = PageDim::pixels(0);
+    bg.size.x = PageDim::pixels(400);
+    bg.size.y = PageDim::pixels(400);
+    bg.rows = 1;
+    bg.columns = 1;
+    PageCell bc;
+    bc.id = QStringLiteral("under");
+    bg.cells.push_back(bc);
+    back.grids.push_back(bg);
+
+    PageDocument front;
+    front.id = QStringLiteral("front");
+    PageGrid fg;
+    fg.id = QStringLiteral("board");
+    fg.desktopMode = true;
+    fg.anchor = PageAnchor::TopLeft;
+    fg.offset.x = PageDim::pixels(0);
+    fg.offset.y = PageDim::pixels(0);
+    fg.size.x = PageDim::pixels(200);
+    fg.size.y = PageDim::pixels(200);
+    fg.style.radius = PageBox::all(80.0);
+    fg.style.background = QColor(10, 10, 11, 255);
+    front.grids.push_back(fg);
+
+    QVector<PageGridPaint> grids;
+    QVector<PageTarget> targets;
+    QVector<PageGridPaint> g1;
+    QVector<PageTarget> t1 = PageHit::collect(back, frame, {}, false, &g1);
+    for (PageGridPaint& gp : g1) {
+        gp.pageId = back.id;
+        grids.push_back(gp);
+    }
+    for (PageTarget& t : t1) {
+        t.pageId = back.id;
+        targets.push_back(t);
+    }
+    QVector<PageGridPaint> g2;
+    QVector<PageTarget> t2 = PageHit::collect(front, frame, {}, false, &g2);
+    for (PageGridPaint& gp : g2) {
+        gp.pageId = front.id;
+        grids.push_back(gp);
+    }
+    for (PageTarget& t : t2) {
+        t.pageId = front.id;
+        targets.push_back(t);
+    }
+
+    const QPointF corner = grids[1].visual.topLeft() + QPointF(2.0, 2.0);
+    QVERIFY(grids[1].visual.contains(corner));
+    QVERIFY(!PageHit::shapeContains(grids[1].visual, grids[1].chrome, corner));
+    QCOMPARE(PageHit::coveringPageId(grids, corner, 1.0, targets), front.id);
+    QVERIFY(PageHit::at(targets, corner, 1.0, {}, grids) == nullptr);
+}
+
+void PageHitLiveTest::remapPageActionTargetsIncludesPhases()
+{
+    PageDocument doc;
+    doc.id = QStringLiteral("p");
+    PageGrid g;
+    g.id = QStringLiteral("g");
+    PageCell c;
+    c.id = QStringLiteral("c");
+    PageAction a;
+    a.type = PageActionType::Nav;
+    a.verb = PageVerb::Open;
+    a.targetScope = PageNavScope::Id;
+    a.targetId = QStringLiteral("old");
+    PagePhase ph;
+    ph.actions.push_back(a);
+    c.phases.push_back(ph);
+    g.cells.push_back(c);
+    doc.grids.push_back(g);
+
+    QHash<QString, QString> idMap;
+    idMap.insert(QStringLiteral("old"), QStringLiteral("new"));
+    PageEdit::remapPageActionTargets(doc, idMap);
+    QCOMPARE(doc.grids[0].cells[0].phases[0].actions[0].targetId, QStringLiteral("new"));
 }
 
 

@@ -54,6 +54,7 @@ void PageSession::restoreBreadcrumb(PageBreadcrumb snap)
         m_attached.push_back(std::move(ap));
     }
     resetDrawerAnim();
+    leaveGaze();
     rebuild();
     raise();
     emit sessionChanged();

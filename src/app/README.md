@@ -7,7 +7,7 @@ Composition root, settings, command dispatch.
 | `Application` | Tracker, tray, preview, editor, overlays over `GazerServices` |
 | `GazerServices` | Owns domain services. Header is a façade — include the domain header at the call site |
 | `ActionDispatcher` | `PageAction` → commands / clicks / speak |
-| `CommandRegistry` | Builtin names, then mapping profile. Prefix handlers. `compose.*` / `speech.*` / `soundboard.*` / `history.*` / `settings.speech.*` skip the Cmd toast. Catalog: `Commands.md` |
+| `CommandRegistry` | Builtin names, then mapping profile. Prefix handlers. `compose.*` / `speech.*` / `soundboard.*` / `history.*` / `settings.*` skip the Cmd toast. Catalog: `Commands.md` |
 | `ComposeUi` | Gaze composer capture (`tryHandle`), decorate live values, stamp chrome, system-volume title slider. Composer Speak is `SpeakKind::Composed` (Eleven when configured). Helpers: `ComposeUiInternal.h` |
 | `ComposeVoices.cpp` | Voice catalog (model + speed + boost) |
 | `ComposeSoundboard.cpp` | Pin/assign, topic rail, soundboard grid |

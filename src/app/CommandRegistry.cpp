@@ -94,7 +94,7 @@ bool CommandRegistry::run(const Invocation& inv, QString* error)
                            || inv.name.startsWith(QLatin1String("speech."))
                            || inv.name.startsWith(QLatin1String("soundboard."))
                            || inv.name.startsWith(QLatin1String("history."))
-                           || inv.name.startsWith(QLatin1String("settings.speech."));
+                           || inv.name.startsWith(QLatin1String("settings."));
     if (ok && !skipToast) {
         emit statusMessage(QStringLiteral("Cmd %1").arg(inv.name));
     }

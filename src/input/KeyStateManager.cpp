@@ -299,10 +299,18 @@ bool KeyStateManager::combo(const QStringList& keys, QString* error)
         }
         return false;
     }
+    int downCount = 0;
     for (const QString& k : keys) {
         if (!injectStroke(k, true, error)) {
+            for (int i = downCount - 1; i >= 0; --i) {
+                QString ignored;
+                (void)injectStroke(keys[i], false, &ignored);
+            }
+            QString ignored;
+            (void)releaseOneShot(&ignored);
             return false;
         }
+        ++downCount;
     }
     for (int i = keys.size() - 1; i >= 0; --i) {
         if (!injectStroke(keys[i], false, error)) {

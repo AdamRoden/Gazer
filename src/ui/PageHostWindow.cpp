@@ -247,22 +247,26 @@ void PageHostWindow::paintScene(QPainter& p, ChromePass pass)
     for (const PageGridPaint& g : m_gridPaints) {
         notePage(g.pageId);
     }
-    for (const QString& pageId : pageOrder) {
+    auto paintPageLayer = [&](const QString& pageId, bool shell) {
         for (const PageGridPaint& g : m_gridPaints) {
-            if (g.pageId == pageId) {
+            if (g.pageId == pageId && g.shell == shell) {
                 paintGrid(g);
             }
         }
         for (const PageTarget& t : m_targets) {
-            if (t.pageId == pageId && t.kind != PageTarget::Kind::Zone) {
+            if (t.pageId == pageId && t.shell == shell && t.kind != PageTarget::Kind::Zone) {
                 paintTarget(t);
             }
         }
         for (const PageTarget& t : m_targets) {
-            if (t.pageId == pageId && t.kind == PageTarget::Kind::Zone) {
+            if (t.pageId == pageId && t.shell == shell && t.kind == PageTarget::Kind::Zone) {
                 paintTarget(t);
             }
         }
+    };
+    for (const QString& pageId : pageOrder) {
+        paintPageLayer(pageId, false);
+        paintPageLayer(pageId, true);
     }
 }
 
@@ -569,7 +573,7 @@ void PageHostWindow::applyInputFocusChrome()
     }
     SetWindowLongPtr(hwnd, GWL_EXSTYLE, ex);
     SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0,
-                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
 #endif
 }
 

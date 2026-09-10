@@ -102,7 +102,8 @@ namespace PageHit {
                                           bool includeDrawerMotion = false,
                                           const std::optional<QVector<int>>& shownLayers = std::nullopt);
 
-/// Topmost painted grid whose visual contains pos (master included). Null if none.
+/// Topmost painted grid whose visual AABB contains pos (corners occlude even
+/// when chrome is rounded). Null if none.
 [[nodiscard]] const PageGridPaint* coveringGrid(const QVector<PageGridPaint>& grids,
                                                 const QPointF& pos, double drawerScale = 1.0,
                                                 const QVector<PageTarget>& targets = {},

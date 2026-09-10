@@ -16,20 +16,51 @@ QString xmlError(QXmlStreamReader& xml, const QString& msg)
     return QStringLiteral("%1 (line %2)").arg(msg).arg(xml.lineNumber());
 }
 
-bool parseBoolAttr(const QStringView v, bool defaultValue)
-{
-    return PageDimParse::boolWord(v, defaultValue);
-}
-
-int parseIntAttr(const QStringView v, int defaultValue)
+bool parseBoolAttr(const QStringView v, bool defaultValue, bool* out, QString* error,
+                   const QString& name)
 {
     const QString s = v.toString().trimmed();
     if (s.isEmpty()) {
-        return defaultValue;
+        if (out) {
+            *out = defaultValue;
+        }
+        return true;
+    }
+    bool flag = false;
+    if (!PageDimParse::strictBool(v, &flag)) {
+        if (error) {
+            *error = QStringLiteral("Expected true/false for %1, got '%2'").arg(name, s);
+        }
+        return false;
+    }
+    if (out) {
+        *out = flag;
+    }
+    return true;
+}
+
+bool parseIntAttr(const QStringView v, int defaultValue, int* out, QString* error,
+                  const QString& name)
+{
+    const QString s = v.toString().trimmed();
+    if (s.isEmpty()) {
+        if (out) {
+            *out = defaultValue;
+        }
+        return true;
     }
     bool ok = false;
     const int n = s.toInt(&ok);
-    return ok ? n : defaultValue;
+    if (!ok) {
+        if (error) {
+            *error = QStringLiteral("Invalid %1 '%2'").arg(name, s);
+        }
+        return false;
+    }
+    if (out) {
+        *out = n;
+    }
+    return true;
 }
 
 void parseChromeColor(const QStringView v, PageColor& dest)
@@ -88,15 +119,23 @@ void applyChromeAttrs(const QXmlStreamAttributes& a, PageChrome& st)
 void applyDwellAttrs(const QXmlStreamAttributes& a, PageDwell& d, QString* error)
 {
     if (a.hasAttribute(QStringLiteral("scanGrace"))) {
-        const QString s = a.value(QStringLiteral("scanGrace")).toString().trimmed();
-        if (!s.isEmpty()) {
-            d.scanGrace = parseIntAttr(a.value(QStringLiteral("scanGrace")), 0);
+        const QStringView v = a.value(QStringLiteral("scanGrace"));
+        if (!v.trimmed().isEmpty()) {
+            int n = 0;
+            if (!parseIntAttr(v, 0, &n, error, QStringLiteral("scanGrace"))) {
+                return;
+            }
+            d.scanGrace = n;
         }
     }
     if (a.hasAttribute(QStringLiteral("dwellGrace"))) {
-        const QString s = a.value(QStringLiteral("dwellGrace")).toString().trimmed();
-        if (!s.isEmpty()) {
-            d.dwellGrace = parseIntAttr(a.value(QStringLiteral("dwellGrace")), 0);
+        const QStringView v = a.value(QStringLiteral("dwellGrace"));
+        if (!v.trimmed().isEmpty()) {
+            int n = 0;
+            if (!parseIntAttr(v, 0, &n, error, QStringLiteral("dwellGrace"))) {
+                return;
+            }
+            d.dwellGrace = n;
         }
     }
     if (a.hasAttribute(QStringLiteral("activation"))) {
@@ -124,9 +163,10 @@ bool skipUnknownOrFail(QXmlStreamReader& xml, const QString& parent, QString* er
     return false;
 }
 
-void applyCommonContent(const QXmlStreamAttributes& a, QString& label, QString& icon,
+bool applyCommonContent(const QXmlStreamAttributes& a, QString& label, QString& icon,
                         QString& caption, QString& settingKey, QString& activeState,
-                        QString& visibleWhen, bool& suspendExempt, bool& actionLoop)
+                        QString& visibleWhen, bool& suspendExempt, bool& actionLoop,
+                        QString* error)
 {
     if (a.hasAttribute(QStringLiteral("label"))) {
         label = a.value(QStringLiteral("label")).toString();
@@ -147,13 +187,23 @@ void applyCommonContent(const QXmlStreamAttributes& a, QString& label, QString& 
         visibleWhen = a.value(QStringLiteral("visibleWhen")).toString();
     }
     if (a.hasAttribute(QStringLiteral("suspendExempt"))) {
-        suspendExempt = parseBoolAttr(a.value(QStringLiteral("suspendExempt")), false);
+        if (!parseBoolAttr(a.value(QStringLiteral("suspendExempt")), false, &suspendExempt, error,
+                           QStringLiteral("suspendExempt"))) {
+            return false;
+        }
     } else if (a.hasAttribute(QStringLiteral("dwellExempt"))) {
-        suspendExempt = parseBoolAttr(a.value(QStringLiteral("dwellExempt")), false);
+        if (!parseBoolAttr(a.value(QStringLiteral("dwellExempt")), false, &suspendExempt, error,
+                           QStringLiteral("dwellExempt"))) {
+            return false;
+        }
     }
     if (a.hasAttribute(QStringLiteral("actionLoop"))) {
-        actionLoop = parseBoolAttr(a.value(QStringLiteral("actionLoop")), false);
+        if (!parseBoolAttr(a.value(QStringLiteral("actionLoop")), false, &actionLoop, error,
+                           QStringLiteral("actionLoop"))) {
+            return false;
+        }
     }
+    return true;
 }
 
 bool parseLayersAttr(const QXmlStreamAttributes& a, QVector<int>& dest, QString* error,
@@ -305,10 +355,17 @@ bool readCell(QXmlStreamReader& xml, PageCell& cell, QString* error)
 {
     const QXmlStreamAttributes a = xml.attributes();
     cell.id = a.value(QStringLiteral("id")).toString();
-    cell.row = parseIntAttr(a.value(QStringLiteral("row")), 0);
-    cell.col = parseIntAttr(a.value(QStringLiteral("col")), 0);
-    cell.rowSpan = parseIntAttr(a.value(QStringLiteral("rowSpan")), 1);
-    cell.colSpan = parseIntAttr(a.value(QStringLiteral("colSpan")), 1);
+    if (!parseIntAttr(a.value(QStringLiteral("row")), 0, &cell.row, error, QStringLiteral("row"))
+        || !parseIntAttr(a.value(QStringLiteral("col")), 0, &cell.col, error, QStringLiteral("col"))
+        || !parseIntAttr(a.value(QStringLiteral("rowSpan")), 1, &cell.rowSpan, error,
+                         QStringLiteral("rowSpan"))
+        || !parseIntAttr(a.value(QStringLiteral("colSpan")), 1, &cell.colSpan, error,
+                         QStringLiteral("colSpan"))) {
+        if (error && !error->isEmpty()) {
+            *error = xmlError(xml, *error);
+        }
+        return false;
+    }
     cell.styleId = a.value(QStringLiteral("style")).toString();
     cell.dwellId = a.value(QStringLiteral("dwell")).toString();
     cell.role = a.value(QStringLiteral("role")).toString();
@@ -318,8 +375,14 @@ bool readCell(QXmlStreamReader& xml, PageCell& cell, QString* error)
     if (error && !error->isEmpty()) {
         return false;
     }
-    applyCommonContent(a, cell.label, cell.icon, cell.caption, cell.settingKey, cell.activeState,
-                       cell.visibleWhen, cell.suspendExempt, cell.actionLoop);
+    if (!applyCommonContent(a, cell.label, cell.icon, cell.caption, cell.settingKey,
+                            cell.activeState, cell.visibleWhen, cell.suspendExempt, cell.actionLoop,
+                            error)) {
+        if (error && !error->isEmpty()) {
+            *error = xmlError(xml, *error);
+        }
+        return false;
+    }
     QString attrErr;
     if (!takePageActionAttributes(a, cell.actions, &attrErr)) {
         if (error) {
@@ -345,7 +408,10 @@ bool readGrid(QXmlStreamReader& xml, PageGrid& grid, bool nested, QString* error
 void applyPlacement(const QXmlStreamAttributes& a, bool& desktopMode, PageAnchor& anchor,
                     PageDimPair& offset, PageDimPair& size, QString* error)
 {
-    desktopMode = parseBoolAttr(a.value(QStringLiteral("desktopMode")), false);
+    if (!parseBoolAttr(a.value(QStringLiteral("desktopMode")), false, &desktopMode, error,
+                       QStringLiteral("desktopMode"))) {
+        return;
+    }
     if (a.hasAttribute(QStringLiteral("anchor"))) {
         bool ok = true;
         anchor = PageDimParse::parseAnchor(a.value(QStringLiteral("anchor")).toString(), &ok);
@@ -383,20 +449,31 @@ bool readGrid(QXmlStreamReader& xml, PageGrid& grid, bool nested, QString* error
     grid.nested = nested;
     const QXmlStreamAttributes a = xml.attributes();
     grid.id = a.value(QStringLiteral("id")).toString();
-    grid.rows = parseIntAttr(a.value(QStringLiteral("rows")), 1);
-    grid.columns = parseIntAttr(a.value(QStringLiteral("columns")), 1);
+    auto takeInt = [&](const QString& name, int fallback, int* dest) {
+        if (!parseIntAttr(a.value(name), fallback, dest, error, name)) {
+            if (error && !error->isEmpty()) {
+                *error = xmlError(xml, *error);
+            }
+            return false;
+        }
+        return true;
+    };
+    if (!takeInt(QStringLiteral("rows"), 1, &grid.rows)
+        || !takeInt(QStringLiteral("columns"), 1, &grid.columns)
+        || !takeInt(QStringLiteral("row"), 0, &grid.row)
+        || !takeInt(QStringLiteral("col"), 0, &grid.col)
+        || !takeInt(QStringLiteral("rowSpan"), 1, &grid.rowSpan)
+        || !takeInt(QStringLiteral("colSpan"), 1, &grid.colSpan)
+        || !takeInt(QStringLiteral("gap"), 0, &grid.gapPx)
+        || !takeInt(QStringLiteral("margin"), 0, &grid.marginPx)) {
+        return false;
+    }
     if (grid.rows < 1) {
         grid.rows = 1;
     }
     if (grid.columns < 1) {
         grid.columns = 1;
     }
-    grid.row = parseIntAttr(a.value(QStringLiteral("row")), 0);
-    grid.col = parseIntAttr(a.value(QStringLiteral("col")), 0);
-    grid.rowSpan = parseIntAttr(a.value(QStringLiteral("rowSpan")), 1);
-    grid.colSpan = parseIntAttr(a.value(QStringLiteral("colSpan")), 1);
-    grid.gapPx = parseIntAttr(a.value(QStringLiteral("gap")), 0);
-    grid.marginPx = parseIntAttr(a.value(QStringLiteral("margin")), 0);
     auto loadTracks = [&](const QString& name, QVector<PageTrackSize>& dest) -> bool {
         if (!a.hasAttribute(name)) {
             return true;
@@ -418,12 +495,25 @@ bool readGrid(QXmlStreamReader& xml, PageGrid& grid, bool nested, QString* error
     if (grid.rowTracks.isEmpty() && a.hasAttribute(QStringLiteral("rowWeights"))) {
         grid.rowTracks = starTracks(parseRowWeights(a.value(QStringLiteral("rowWeights"))));
     }
-    grid.drawerMotion = parseBoolAttr(a.value(QStringLiteral("drawerMotion")), false);
-    grid.autoClose = parseBoolAttr(a.value(QStringLiteral("autoClose")), false);
+    auto takeBool = [&](const QString& name, bool* dest) {
+        if (!parseBoolAttr(a.value(name), false, dest, error, name)) {
+            if (error && !error->isEmpty()) {
+                *error = xmlError(xml, *error);
+            }
+            return false;
+        }
+        return true;
+    };
+    if (!takeBool(QStringLiteral("drawerMotion"), &grid.drawerMotion)
+        || !takeBool(QStringLiteral("autoClose"), &grid.autoClose)) {
+        return false;
+    }
     if (!parseLayersAttr(a, grid.layers, error)) {
         return false;
     }
-    grid.shell = parseBoolAttr(a.value(QStringLiteral("shell")), false);
+    if (!takeBool(QStringLiteral("shell"), &grid.shell)) {
+        return false;
+    }
     grid.styleId = a.value(QStringLiteral("style")).toString();
     grid.dwellId = a.value(QStringLiteral("dwell")).toString();
     applyChromeAttrs(a, grid.style);
@@ -513,12 +603,24 @@ bool readZone(QXmlStreamReader& xml, PageZone& zone, QString* error)
             return false;
         }
     }
-    applyCommonContent(a, zone.label, zone.icon, zone.caption, zone.settingKey, zone.activeState,
-                       zone.visibleWhen, zone.suspendExempt, zone.actionLoop);
+    if (!applyCommonContent(a, zone.label, zone.icon, zone.caption, zone.settingKey,
+                            zone.activeState, zone.visibleWhen, zone.suspendExempt, zone.actionLoop,
+                            error)) {
+        if (error && !error->isEmpty()) {
+            *error = xmlError(xml, *error);
+        }
+        return false;
+    }
     if (!parseLayersAttr(a, zone.layers, error)) {
         return false;
     }
-    zone.shell = parseBoolAttr(a.value(QStringLiteral("shell")), false);
+    if (!parseBoolAttr(a.value(QStringLiteral("shell")), false, &zone.shell, error,
+                       QStringLiteral("shell"))) {
+        if (error && !error->isEmpty()) {
+            *error = xmlError(xml, *error);
+        }
+        return false;
+    }
     if (!zone.size.isSet()) {
         zone.size.x = PageDim::pixels(200);
         zone.size.y = PageDim::pixels(200);
@@ -562,8 +664,15 @@ bool readPage(QXmlStreamReader& xml, PageDocument& out, QString* error)
     if (out.name.isEmpty()) {
         out.name = out.id;
     }
-    out.master = parseBoolAttr(a.value(QStringLiteral("master")), false);
-    out.autoClose = parseBoolAttr(a.value(QStringLiteral("autoClose")), false);
+    if (!parseBoolAttr(a.value(QStringLiteral("master")), false, &out.master, error,
+                       QStringLiteral("master"))
+        || !parseBoolAttr(a.value(QStringLiteral("autoClose")), false, &out.autoClose, error,
+                          QStringLiteral("autoClose"))) {
+        if (error && !error->isEmpty()) {
+            *error = xmlError(xml, *error);
+        }
+        return false;
+    }
     if (a.hasAttribute(QStringLiteral("showLayers"))) {
         if (!parseLayersAttr(a, out.showLayers, error, QStringLiteral("showLayers"))) {
             return false;

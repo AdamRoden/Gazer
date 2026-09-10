@@ -13,6 +13,9 @@ struct InvalidGazeGrace {
 
     Result onInvalid(qint64 timestampMs)
     {
+        if (graceMs <= 0) {
+            return Result::Expired;
+        }
         if (!m_holding) {
             m_holding = true;
             m_startMs = timestampMs;

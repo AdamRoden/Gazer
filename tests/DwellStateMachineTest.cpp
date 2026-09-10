@@ -19,6 +19,7 @@ private slots:
     void invalidGraceFreezesProgress();
     void secondInvalidHoldDoesNotAdvance();
     void invalidGraceExpiryRestartsDwell();
+    void zeroInvalidGraceExpiresImmediately();
     void dwellPhaseArmAdvanceCommitWrap();
     void rescanAfterStepHoldsProgressUntilNextStep();
     void rescanAfterStepLookAwayDoesNotFillNextStep();
@@ -223,6 +224,20 @@ void DwellStateMachineTest::invalidGraceExpiryRestartsDwell()
 
     sm.onGazeSample(sample(1180), QStringLiteral("a"));
     QCOMPARE(fired.size(), 1);
+}
+
+void DwellStateMachineTest::zeroInvalidGraceExpiresImmediately()
+{
+    DwellStateMachine sm;
+    sm.setScanGraceMs(0);
+    sm.setInvalidGraceMs(0);
+    sm.setDwellSequence({800});
+
+    sm.onGazeSample(sample(0), QStringLiteral("a"));
+    sm.onGazeSample(sample(200), QStringLiteral("a"));
+    QCOMPARE(sm.hoveredItemId(), QStringLiteral("a"));
+    sm.onGazeSample(sample(200, false), QString());
+    QCOMPARE(sm.hoveredItemId(), QString());
 }
 
 void DwellStateMachineTest::dwellPhaseArmAdvanceCommitWrap()

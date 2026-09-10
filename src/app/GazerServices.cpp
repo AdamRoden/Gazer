@@ -389,7 +389,8 @@ void GazerServices::applySettings(bool persist)
 
     if (m_pages) {
         m_pages->setAutoCollapseMain(m_settings.autoCollapseMain);
-        m_pages->setLayoutAutoClose(m_settings.layoutAutoClose, m_settings.layoutAutoCloseIdleMs);
+        m_pages->setLayoutAutoClose(m_settings.layoutAutoClose, m_settings.layoutAutoCloseIdleMs,
+                                    m_settings.layoutAutoCloseFadeMs);
     }
 
     ProgressVisuals boardPv;
@@ -525,7 +526,7 @@ void GazerServices::registerDomainCommands()
     m_commands->registerBuiltin(QStringLiteral("leftCtrl"), cycleMod(QStringLiteral("Control")));
     m_commands->registerBuiltin(QStringLiteral("rightCtrl"), cycleMod(QStringLiteral("RControl")));
     m_commands->registerBuiltin(QStringLiteral("leftAlt"), cycleMod(QStringLiteral("Alt")));
-    m_commands->registerBuiltin(QStringLiteral("rightAlt"), cycleMod(QStringLiteral("Alt")));
+    m_commands->registerBuiltin(QStringLiteral("rightAlt"), cycleMod(QStringLiteral("RAlt")));
     m_commands->registerBuiltin(QStringLiteral("leftWin"), cycleMod(QStringLiteral("LWin")));
     m_commands->registerBuiltin(QStringLiteral("rightWin"), cycleMod(QStringLiteral("RWin")));
     m_commands->registerBuiltin(QStringLiteral("leftShift"), cycleMod(QStringLiteral("Shift")));

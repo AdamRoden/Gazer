@@ -36,6 +36,7 @@ private slots:
     void loadQwertyXml();
     void layersAttribute();
     void rejectInvalidLayers();
+    void rejectInvalidIntAndBoolAttrs();
     void cellDropsShellAndInteractive();
     void loadConvertedBoards();
     void keyboardMainOpensDrawer();
@@ -542,6 +543,29 @@ void PageLoaderTest::rejectInvalidLayers()
 )xml",
                                     doc, &err));
     QVERIFY(err.contains(QStringLiteral("showLayers")));
+}
+
+void PageLoaderTest::rejectInvalidIntAndBoolAttrs()
+{
+    PageDocument doc;
+    QString err;
+    QVERIFY(!PageLoader::loadFromXml(R"xml(
+<Page id="p"><Grid id="g" size="10,10"><Cell id="c" row="x"/></Grid></Page>
+)xml",
+                                    doc, &err));
+    QVERIFY(err.contains(QStringLiteral("row")));
+    err.clear();
+    QVERIFY(!PageLoader::loadFromXml(R"xml(
+<Page id="p"><Grid id="g" size="10,10"><Cell id="c" scanGrace="200ms"/></Grid></Page>
+)xml",
+                                    doc, &err));
+    QVERIFY(err.contains(QStringLiteral("scanGrace")));
+    err.clear();
+    QVERIFY(!PageLoader::loadFromXml(R"xml(
+<Page id="p" master="tru"><Grid id="g" size="10,10"><Cell id="c"/></Grid></Page>
+)xml",
+                                    doc, &err));
+    QVERIFY(err.contains(QStringLiteral("master")));
 }
 
 void PageLoaderTest::cellDropsShellAndInteractive()

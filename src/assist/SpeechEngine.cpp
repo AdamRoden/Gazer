@@ -434,10 +434,8 @@ void SpeechEngine::onSpeechFailed(int httpStatus, const QString& error, int retr
         return;
     }
     if (httpStatus == 401) {
-        QString err;
-        (void)m_secrets.clear(&err);
-        m_settings.elevenApiKeySet = m_secrets.hasKey();
         emit notify(error.isEmpty() ? QStringLiteral("Invalid API key") : error);
+        latchIfNeeded();
         fallbackSapi(m_pendingSpoken);
         return;
     }

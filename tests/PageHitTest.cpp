@@ -145,7 +145,8 @@ void PageHitTest::zoneProgressCoercedWhenOffScreen()
     const QRectF dwell(810, 1300, 300, 200);
     const PageDetectorGeom g = PageDetector::zone(visual, dwell, screen);
     QVERIFY(!g.progressCoerced);
-    QCOMPARE(g.progressZone, visual);
+    QCOMPARE(g.progressZone, visual.intersected(screen));
+    QVERIFY(g.progressZone.isEmpty());
     QCOMPARE(g.dwellZone, dwell);
     QVERIFY(!screen.contains(g.visual.center()));
 }

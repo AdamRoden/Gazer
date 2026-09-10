@@ -428,7 +428,7 @@ const PageGridPaint* coveringGrid(const QVector<PageGridPaint>& grids, const QPo
             continue;
         }
         const QRectF z = mapDrawer(g.drawerMotion, g.visual, xf, drawerScale);
-        if (shapeContains(z, g.chrome, pos)) {
+        if (z.contains(pos)) {
             return &g;
         }
     }

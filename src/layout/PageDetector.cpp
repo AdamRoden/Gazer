@@ -17,12 +17,12 @@ PageDetectorGeom cell(const QRectF& visualCell, const QRectF& screen)
     return g;
 }
 
-PageDetectorGeom zone(const QRectF& visual, const QRectF& dwell, const QRectF& /*screen*/)
+PageDetectorGeom zone(const QRectF& visual, const QRectF& dwell, const QRectF& screen)
 {
     PageDetectorGeom g;
     g.visual = visual;
     g.dwellZone = dwell.isEmpty() ? visual : dwell;
-    g.progressZone = visual;
+    g.progressZone = visual.intersected(screen);
     g.progressCoerced = false;
     return g;
 }

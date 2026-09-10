@@ -89,7 +89,7 @@ public:
                         int blinkGraceMs, int scanGraceMs);
 
     void setAutoCollapseMain(bool on) { m_autoCollapseMain = on; }
-    void setLayoutAutoClose(bool on, int idleMs);
+    void setLayoutAutoClose(bool on, int idleMs, int fadeMs = 3000);
     void setDwellSuspended(bool on);
     void toggleDwellSuspended() { setDwellSuspended(!m_dwellSuspended); }
     [[nodiscard]] bool isDwellSuspended() const { return m_dwellSuspended; }
@@ -170,6 +170,7 @@ private:
     void noteActivity();
     void tickAutoClose();
     void syncAutoClose();
+    void clearAutoCloseFade();
     [[nodiscard]] int autoCloseIdleMs() const;
     void syncDrawerScale();
 
@@ -204,6 +205,7 @@ private:
     bool m_autoCollapseMain = false;
     bool m_layoutAutoClose = true;
     int m_layoutAutoCloseIdleMs = 10000;
+    int m_layoutAutoCloseFadeMs = 3000;
     QVector<PageTarget> m_targets;
     QVector<PageGridPaint> m_gridPaints;
     std::unique_ptr<PageHostWindow> m_host;
@@ -223,6 +225,7 @@ private:
     QTimer m_autoCloseTimer;
     QElapsedTimer m_idleClock;
     bool m_idleClockRunning = false;
+    bool m_autoCloseFading = false;
     QVector<QPointer<QScreen>> m_boundScreens;
     PageCatalog* m_catalog = nullptr;
     GazePoint m_lastGaze;

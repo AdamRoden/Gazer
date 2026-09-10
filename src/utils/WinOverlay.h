@@ -47,7 +47,7 @@ inline void applyOverlayWindowChrome(QWindow* w, bool excludeFromCapture = true)
     SetWindowLongPtr(hwnd, GWL_EXSTYLE, ex);
 
     SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0,
-                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
 
     if (excludeFromCapture) {
         SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMCAPTURE);
@@ -108,11 +108,9 @@ public:
 /// flashes the desktop. Task Manager / system-tools windows sit in a higher
 /// OS band unless this process has UIAccess.
 ///
-/// 0 GazeReticle
-/// 1 MagnifierOverlay (live lens)
-/// 2 MouseDwellMove mag-pick
-/// 3 Other assist overlays (combo, LTS ring, dwell cursor, dwell-suspend)
-/// 4 PageHostWindow (master page, then each open page as one layer)
+/// Band (front → back): GazeReticle, MagnifierOverlay, mag-pick, other assist
+/// overlays, PageHostWindow. `OverlayLayer` enumerators are restack order
+/// (host is implicit, then Assist … Reticle); they are not the front→back index.
 enum class OverlayLayer {
     Assist = 0,
     MagPick = 1,

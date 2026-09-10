@@ -413,13 +413,20 @@ void remapPageActionTargets(PageDocument& doc, const QHash<QString, QString>& id
             }
         }
     };
+    auto remapPhases = [&](QVector<PagePhase>& phases) {
+        for (PagePhase& p : phases) {
+            remapActs(p.actions);
+        }
+    };
     walkGrids(doc.grids, [&](PageGrid& g) {
         for (PageCell& c : g.cells) {
             remapActs(c.actions);
+            remapPhases(c.phases);
         }
     });
     for (PageZone& z : doc.zones) {
         remapActs(z.actions);
+        remapPhases(z.phases);
     }
 }
 
