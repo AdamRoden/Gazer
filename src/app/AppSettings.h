@@ -19,10 +19,10 @@ namespace gazer {
 struct AppSettings {
     // --- Timing ---
     /// Standard dwell steps (ms). Last step repeats while gaze holds.
-    /// Default for settings, navigation, composer word chips, and other non-input cells.
+    /// Default for settings, navigation, mouse, AHK, composer word chips, and other non-key cells.
     QVector<int> dwellSequence = defaultDwellSequence();
-    /// Typing-boost dwell steps. Default for Send, mouse, composer typing, AHK, modifiers.
-    QVector<int> dailyDwellSequence = defaultDailyDwellSequence();
+    /// Rapid dwell steps. Default for Send, composer typing, modifiers, and mapping keys.
+    QVector<int> rapidDwellSequence = defaultRapidDwellSequence();
     /// Time on-target before dwell progress / sequence begins (ms).
     int scanGraceMs = 200;
     int dwellGraceMs = 200;
@@ -32,7 +32,7 @@ struct AppSettings {
     /// Last saved Custom timing package (Speed presets). Scan grace is not part of a pack.
     struct TimingPack {
         QVector<int> sequence;
-        QVector<int> dailySequence;
+        QVector<int> rapidSequence;
         int mouseMoveDwellMs = 800;
         int magPickDwellMs = 600;
         int blinkGraceMs = 200;
@@ -178,7 +178,6 @@ struct AppSettings {
     /// Custom seeds. Branded schemes ignore these until Custom is selected.
     /// Bg / surface / tertiary are baked from Fluent in defaults().
     QString customBgColor = QStringLiteral("#0A0A0A");
-    /// Unused; kept so older settings files still load.
     QString customSourceColor = QStringLiteral("#1E97F3");
     QString customPrimaryColor = QStringLiteral("#1E97F3");
     QString customSecondaryColor = QStringLiteral("#99FF473D");
@@ -208,20 +207,20 @@ struct AppSettings {
     {
         return {800, 700, 600, 500, 400, 200};
     }
-    [[nodiscard]] static QVector<int> defaultDailyDwellSequence()
+    [[nodiscard]] static QVector<int> defaultRapidDwellSequence()
     {
         return {400, 600, 400, 300, 200, 100};
     }
     [[nodiscard]] static TimingPack defaultTimingPack()
     {
-        return {defaultDwellSequence(), defaultDailyDwellSequence(), 800, 600, 200};
+        return {defaultDwellSequence(), defaultRapidDwellSequence(), 800, 600, 200};
     }
     /// In-class factory plus Fluent neutrals and applyTheme(). JSON overlays this.
     [[nodiscard]] static AppSettings defaults();
     [[nodiscard]] static QString defaultFilePath();
     [[nodiscard]] static QString normalizeSpeechTag(QString raw);
 
-    /// JSON keys stay `progressRadial` / `mouseProgressPie` / … for compatibility.
+    /// JSON keys: `progressRadial` / `mouseProgressPie` / …
     struct StyleToggle {
         const char* jsonKey;
         const char* command;
@@ -272,6 +271,7 @@ struct AppSettings {
     [[nodiscard]] static QString settingTitle(const QString& key);
     [[nodiscard]] static QString settingDescription(const QString& key);
     [[nodiscard]] static bool isSequenceKey(const QString& key);
+    [[nodiscard]] static bool isRapidSequenceKey(const QString& key);
     [[nodiscard]] static bool isNumericKey(const QString& key);
     [[nodiscard]] static QStringList numericKeys();
     [[nodiscard]] static bool isColorKey(const QString& key);
@@ -283,7 +283,7 @@ struct AppSettings {
     [[nodiscard]] QColor colorKey(const QString& key) const;
 
     [[nodiscard]] QString dwellSequenceString() const;
-    [[nodiscard]] QString dailyDwellSequenceString() const;
+    [[nodiscard]] QString rapidDwellSequenceString() const;
     [[nodiscard]] static QVector<int> parseDwellSequence(const QString& text, QString* error = nullptr);
     [[nodiscard]] static QColor parseColor(const QString& hex, const QColor& fallback = Qt::cyan);
     [[nodiscard]] static QString colorToHex(const QColor& c);

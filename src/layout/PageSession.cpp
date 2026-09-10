@@ -165,11 +165,11 @@ void PageSession::setProgressVisuals(const ProgressVisuals& visuals)
     }
 }
 
-void PageSession::setDwellTiming(const QVector<int>& standard, const QVector<int>& typingBoost,
+void PageSession::setDwellTiming(const QVector<int>& standard, const QVector<int>& rapid,
                                 int blinkGraceMs, int scanGraceMs)
 {
     m_standardSequence = standard.isEmpty() ? QVector<int>{800} : standard;
-    m_typingBoostSequence = typingBoost.isEmpty() ? m_standardSequence : typingBoost;
+    m_rapidSequence = rapid.isEmpty() ? m_standardSequence : rapid;
     m_blinkGraceMs = qMax(0, blinkGraceMs);
     m_scanGraceMs = qMax(0, scanGraceMs);
 }

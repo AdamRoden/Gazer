@@ -40,8 +40,6 @@ namespace ThemeScheme {
 [[nodiscard]] QColor brandCanonical(int index);
 [[nodiscard]] QColor brandAccent(int index, ThemeAppearance appearance);
 [[nodiscard]] QColor scaleSaturation(const QColor& c, int saturationPercent);
-/// Map an old JSON `themeScheme` key to a brand index. "custom" returns -1.
-[[nodiscard]] int brandIndexFromLegacySchemeKey(const QString& key);
 
 /// Light/Dark are neutral gray at that brightness. A valid @p surfaceTint washes
 /// that hue onto the same brightness. Surfaces keep HSV value.

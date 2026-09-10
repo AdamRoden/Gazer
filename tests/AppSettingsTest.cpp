@@ -22,23 +22,21 @@ private slots:
     void factoryUsesDomainConstants();
     void dwellCustomDoesNotClobberUnmatched();
     void dwellCustomRestoresWhenLeavingPack();
-    void dwellPresetsSplitStandardAndTypingBoost();
-    void dailyFastAllowsZeroFirstStep();
+    void dwellPresetsSplitStandardAndRapid();
+    void rapidFastAllowsZeroFirstStep();
     void parseDwellSequenceAllowsZero();
-    void loadOmitsTypingBoostKeepsDefault();
-    void dailyDwellRoundTrip();
+    void loadOmitsRapidKeepsDefault();
+    void rapidDwellRoundTrip();
     void brandedThemeUsesFluent();
     void namedColorsResolveFromPalette();
     void customThemeUsesFluent();
     void secondaryColorIsSixtyPercent();
-    void loadLegacyNamedSchemeMapsToBrand();
-    void loadLegacyCustom();
+    void loadCustomThemeKeys();
     void saveRoundTripCustomFlag();
     void progressAccentMatchesBrand();
     void appleSystemColorsFollowAppearance();
-    void loadLegacyFourBrandRemapsToApple();
-    void loadNamedSecondarySchemeWins();
-    void loadNewSchemeWithoutSecondaryKeyKeepsIndex();
+    void loadThemeIndices();
+    void loadThemeIndicesKeepSecondary();
     void saturationScalesCustomAccent();
     void lightAppearanceIsLight();
     void tintedWashesNeutrals();
@@ -52,7 +50,7 @@ void AppSettingsTest::defaultConstructIsFactory()
     const AppSettings a;
     const AppSettings b = AppSettings::defaults();
     QCOMPARE(a.dwellSequence, b.dwellSequence);
-    QCOMPARE(a.dailyDwellSequence, b.dailyDwellSequence);
+    QCOMPARE(a.rapidDwellSequence, b.rapidDwellSequence);
     QCOMPARE(a.scanGraceMs, b.scanGraceMs);
     QCOMPARE(a.magFollowProfile, b.magFollowProfile);
     QCOMPARE(a.progressColor, b.progressColor);
@@ -67,9 +65,9 @@ void AppSettingsTest::factoryUsesDomainConstants()
     const AppSettings s = AppSettings::defaults();
     const AppSettings::TimingPack pack = AppSettings::defaultTimingPack();
     QCOMPARE(s.dwellSequence, AppSettings::defaultDwellSequence());
-    QCOMPARE(s.dailyDwellSequence, AppSettings::defaultDailyDwellSequence());
+    QCOMPARE(s.rapidDwellSequence, AppSettings::defaultRapidDwellSequence());
     QCOMPARE(s.customTiming.sequence, pack.sequence);
-    QCOMPARE(s.customTiming.dailySequence, pack.dailySequence);
+    QCOMPARE(s.customTiming.rapidSequence, pack.rapidSequence);
     QCOMPARE(s.mouseMoveDwellMs, pack.mouseMoveDwellMs);
     QCOMPARE(s.magPickDwellMs, pack.magPickDwellMs);
     QCOMPARE(s.dwellGraceMs, pack.blinkGraceMs);
@@ -138,34 +136,34 @@ void AppSettingsTest::dwellCustomRestoresWhenLeavingPack()
     QCOMPARE(s.dwellPreset(), 0);
 }
 
-void AppSettingsTest::dwellPresetsSplitStandardAndTypingBoost()
+void AppSettingsTest::dwellPresetsSplitStandardAndRapid()
 {
     AppSettings s;
     QCOMPARE(s.dwellPreset(), 1);
     QCOMPARE(s.dwellSequence, (QVector<int>{800, 700, 600, 500, 400, 200}));
-    QCOMPARE(s.dailyDwellSequence, AppSettings::defaultDailyDwellSequence());
+    QCOMPARE(s.rapidDwellSequence, AppSettings::defaultRapidDwellSequence());
     QCOMPARE(s.scanGraceMs, 200);
 
     s.scanGraceMs = 80;
     s.setDwellPreset(0);
     QCOMPARE(s.dwellPreset(), 0);
     QCOMPARE(s.dwellSequence, (QVector<int>{1200, 1000, 800, 600, 400}));
-    QCOMPARE(s.dailyDwellSequence, (QVector<int>{800, 700, 600, 500, 400, 200}));
+    QCOMPARE(s.rapidDwellSequence, (QVector<int>{800, 700, 600, 500, 400, 200}));
     QCOMPARE(s.scanGraceMs, 80);
 
     s.setDwellPreset(2);
     QCOMPARE(s.dwellPreset(), 2);
     QCOMPARE(s.dwellSequence, (QVector<int>{400, 600, 400, 250, 150, 50}));
-    QCOMPARE(s.dailyDwellSequence, (QVector<int>{0, 600, 400, 250, 150, 50}));
+    QCOMPARE(s.rapidDwellSequence, (QVector<int>{0, 600, 400, 250, 150, 50}));
     QCOMPARE(s.scanGraceMs, 80);
 }
 
-void AppSettingsTest::dailyFastAllowsZeroFirstStep()
+void AppSettingsTest::rapidFastAllowsZeroFirstStep()
 {
     AppSettings s;
     s.setDwellPreset(2);
     s.clamp();
-    QCOMPARE(s.dailyDwellSequence.front(), 0);
+    QCOMPARE(s.rapidDwellSequence.front(), 0);
     QCOMPARE(s.dwellPreset(), 2);
 }
 
@@ -177,7 +175,7 @@ void AppSettingsTest::parseDwellSequenceAllowsZero()
     QVERIFY(err.isEmpty());
 }
 
-void AppSettingsTest::loadOmitsTypingBoostKeepsDefault()
+void AppSettingsTest::loadOmitsRapidKeepsDefault()
 {
     QTemporaryDir dir;
     QVERIFY(dir.isValid());
@@ -190,13 +188,13 @@ void AppSettingsTest::loadOmitsTypingBoostKeepsDefault()
     AppSettings s;
     QVERIFY(s.loadFromFile(path));
     QCOMPARE(s.dwellSequence, (QVector<int>{1200, 1000, 800, 600, 400}));
-    QCOMPARE(s.dailyDwellSequence, AppSettings::defaultDailyDwellSequence());
+    QCOMPARE(s.rapidDwellSequence, AppSettings::defaultRapidDwellSequence());
     QCOMPARE(s.scanGraceMs, 200);
     QCOMPARE(s.magPickDwellMs, 1200);
     QCOMPARE(s.dwellPreset(), 3);
 }
 
-void AppSettingsTest::dailyDwellRoundTrip()
+void AppSettingsTest::rapidDwellRoundTrip()
 {
     AppSettings s;
     s.setDwellPreset(2);
@@ -204,10 +202,20 @@ void AppSettingsTest::dailyDwellRoundTrip()
     QVERIFY(dir.isValid());
     const QString path = dir.filePath(QStringLiteral("settings.json"));
     QVERIFY(s.saveToFile(path));
+    QFile jsonFile(path);
+    QVERIFY(jsonFile.open(QIODevice::ReadOnly));
+    const QByteArray json = jsonFile.readAll();
+    jsonFile.close();
+    QVERIFY(json.contains("\"rapidDwellSequence\""));
+    QVERIFY(json.contains("\"customRapidDwellSequence\""));
+    QVERIFY(!json.contains("\"customrapidDwellSequence\""));
+    QVERIFY(json.contains("\"themeCustom\""));
+    QVERIFY(!json.contains("\"themeMode\""));
+    QVERIFY(!json.contains("\"themeScheme\""));
     AppSettings b;
     QVERIFY(b.loadFromFile(path));
     QCOMPARE(b.dwellPreset(), 2);
-    QCOMPARE(b.dailyDwellSequence, (QVector<int>{0, 600, 400, 250, 150, 50}));
+    QCOMPARE(b.rapidDwellSequence, (QVector<int>{0, 600, 400, 250, 150, 50}));
     QCOMPARE(b.scanGraceMs, 200);
 }
 
@@ -263,30 +271,14 @@ void AppSettingsTest::secondaryColorIsSixtyPercent()
     QCOMPARE(s.resolvedPalette().progress.alpha(), kProgressFillAlpha);
 }
 
-void AppSettingsTest::loadLegacyNamedSchemeMapsToBrand()
+void AppSettingsTest::loadCustomThemeKeys()
 {
     QTemporaryDir dir;
     QVERIFY(dir.isValid());
     const QString path = dir.filePath(QStringLiteral("settings.json"));
     QFile f(path);
     QVERIFY(f.open(QIODevice::WriteOnly | QIODevice::Truncate));
-    f.write(R"({"themeMode":"dark","themeScheme":"meadow"})");
-    f.close();
-
-    AppSettings s;
-    QVERIFY(s.loadFromFile(path));
-    QCOMPARE(s.themeCustom, false);
-    QCOMPARE(s.themePrimaryIndex, 3);
-}
-
-void AppSettingsTest::loadLegacyCustom()
-{
-    QTemporaryDir dir;
-    QVERIFY(dir.isValid());
-    const QString path = dir.filePath(QStringLiteral("settings.json"));
-    QFile f(path);
-    QVERIFY(f.open(QIODevice::WriteOnly | QIODevice::Truncate));
-    f.write(R"({"themeMode":"custom","customPrimaryColor":"#FF0000"})");
+    f.write(R"({"themeCustom":true,"customPrimaryColor":"#FF0000"})");
     f.close();
 
     AppSettings s;
@@ -336,47 +328,31 @@ void AppSettingsTest::appleSystemColorsFollowAppearance()
     QCOMPARE(QString::fromLatin1(ThemeScheme::brands()[5].key), QStringLiteral("blue"));
 }
 
-void AppSettingsTest::loadLegacyFourBrandRemapsToApple()
+void AppSettingsTest::loadThemeIndices()
 {
     QTemporaryDir dir;
     QVERIFY(dir.isValid());
     const QString path = dir.filePath(QStringLiteral("settings.json"));
     QFile f(path);
     QVERIFY(f.open(QIODevice::WriteOnly | QIODevice::Truncate));
-    f.write(R"({"themeAppearance":"dark","themeScheme":"blue","themePrimaryIndex":0,"themeSecondaryIndex":0})");
+    f.write(R"({"themeCustom":false,"themePrimaryIndex":5,"themeSecondaryIndex":0})");
     f.close();
 
     AppSettings s;
     QVERIFY(s.loadFromFile(path));
     QCOMPARE(s.themeCustom, false);
     QCOMPARE(s.themePrimaryIndex, kThemeDefaultBrandIndex);
-    QCOMPARE(s.themeSecondaryIndex, kThemeDefaultBrandIndex);
-}
-
-void AppSettingsTest::loadNamedSecondarySchemeWins()
-{
-    QTemporaryDir dir;
-    QVERIFY(dir.isValid());
-    const QString path = dir.filePath(QStringLiteral("settings.json"));
-    QFile f(path);
-    QVERIFY(f.open(QIODevice::WriteOnly | QIODevice::Truncate));
-    f.write(R"({"themeScheme":"blue","themeSecondaryScheme":"red","themePrimaryIndex":0,"themeSecondaryIndex":0})");
-    f.close();
-
-    AppSettings s;
-    QVERIFY(s.loadFromFile(path));
-    QCOMPARE(s.themePrimaryIndex, kThemeDefaultBrandIndex);
     QCOMPARE(s.themeSecondaryIndex, 0);
 }
 
-void AppSettingsTest::loadNewSchemeWithoutSecondaryKeyKeepsIndex()
+void AppSettingsTest::loadThemeIndicesKeepSecondary()
 {
     QTemporaryDir dir;
     QVERIFY(dir.isValid());
     const QString path = dir.filePath(QStringLiteral("settings.json"));
     QFile f(path);
     QVERIFY(f.open(QIODevice::WriteOnly | QIODevice::Truncate));
-    f.write(R"({"themeScheme":"yellow","themePrimaryIndex":2,"themeSecondaryIndex":2})");
+    f.write(R"({"themeCustom":false,"themePrimaryIndex":2,"themeSecondaryIndex":2})");
     f.close();
 
     AppSettings s;

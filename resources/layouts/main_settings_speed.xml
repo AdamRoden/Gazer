@@ -39,7 +39,7 @@
       </Cell>
     </SubGrid>
 
-    <Cell id="page_title" row="1" col="0" colSpan="16" label="Speed" caption="Standard for settings and navigation; typing boost for keys and mouse" role="label" textStyle="title" style="plain"/>
+    <Cell id="page_title" row="1" col="0" colSpan="16" label="Speed" caption="Standard for settings, navigation, mouse, and AHK; rapid for keys" role="label" textStyle="title" style="plain"/>
 
     <SubGrid id="sec_presets" row="2" col="0" colSpan="16" rows="3" columns="1" rowWeights="1,2,2" gap="6" margin="6" style="group">
       <Cell id="h_presets" row="0" col="0" label="Presets" role="label" textStyle="section" style="plain"/>
@@ -64,17 +64,17 @@
     <SubGrid id="sec_dwell" row="3" col="0" colSpan="16" rows="3" columns="1" rowWeights="1,2,2" gap="6" margin="6" style="group">
       <Cell id="h_dwell" row="0" col="0" label="Dwell" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_dwell" row="1" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="dwell_label" row="0" col="0" label="Standard" caption="Settings, navigation, and composer word chips. Last step repeats." role="label" style="plain"/>
+        <Cell id="dwell_label" row="0" col="0" label="Standard" caption="Settings, navigation, mouse, AHK, and composer word chips. Last step repeats." role="label" style="plain"/>
         <SubGrid id="act_dwell" row="0" col="1" rows="1" columns="2" columnWidths="7*,2*" gap="0" style="row">
           <Cell id="dwell_value" row="0" col="0" label="—" role="value" settingKey="dwellMs" style="joinLeft"/>
           <Cell id="dwell_edit" row="0" col="1" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.dwellMs"/>
         </SubGrid>
       </SubGrid>
-      <SubGrid id="row_daily_dwell" row="2" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="dd_dwell_label" row="0" col="0" label="Typing boost" caption="Keys, mouse, composer typing, modifiers, and AHK. Last step repeats." role="label" style="plain"/>
-        <SubGrid id="act_daily_dwell" row="0" col="1" rows="1" columns="2" columnWidths="7*,2*" gap="0" style="row">
-          <Cell id="dd_dwell_value" row="0" col="0" label="—" role="value" settingKey="dailyDwellMs" style="joinLeft"/>
-          <Cell id="dd_dwell_edit" row="0" col="1" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.dailyDwellMs"/>
+      <SubGrid id="row_rapid_dwell" row="2" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="rapid_dwell_label" row="0" col="0" label="Rapid" caption="Virtual keystrokes, composer typing, and modifiers. Last step repeats." role="label" style="plain"/>
+        <SubGrid id="act_rapid_dwell" row="0" col="1" rows="1" columns="2" columnWidths="7*,2*" gap="0" style="row">
+          <Cell id="rapid_dwell_value" row="0" col="0" label="—" role="value" settingKey="rapidDwellMs" style="joinLeft"/>
+          <Cell id="rapid_dwell_edit" row="0" col="1" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.rapidDwellMs"/>
         </SubGrid>
       </SubGrid>
     </SubGrid>

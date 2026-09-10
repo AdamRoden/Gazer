@@ -83,7 +83,7 @@ Testers still need Tobii drivers for hardware gaze. Without a tracker, use the m
 ## Using Gazer
 
 1. Start Gazer. Unless **start docked** is on, the drawer opens.
-2. Dwell a cell until progress completes. Last dwell step repeats while gaze holds. Typing, mouse, composer typing, modifiers, and AHK use **typing boost**; settings, navigation, and composer word chips use **standard** dwell. Both are under Settings → Speed.
+2. Dwell a cell until progress completes. Last dwell step repeats while gaze holds. Typing, composer typing, and modifiers use **rapid** dwell; settings, navigation, mouse, AHK, and composer word chips use **standard** dwell. Both are under Settings → Speed.
 3. Open Keyboard, Mouse, Assist, or Settings as extra pages. They stay up after the drawer collapses.
 4. **Close** hides the drawer. **Close All** closes other pages and then collapses.
 5. **Pause dwell** / **Sleep** suspends dwell everywhere except `suspendExempt` unlock targets. A dim screen border leaves a gap at those targets.

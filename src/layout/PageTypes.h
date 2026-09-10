@@ -313,9 +313,9 @@ struct PageAction {
     QVector<int> layers;
 };
 
-/// Typing-boost dwell for keys, mouse inject, composer typing, AHK, and mapping commands.
-/// Settings / nav / assist toggles / composer word chips use standard dwell instead.
-[[nodiscard]] inline bool isTypingBoostCommand(QStringView name)
+/// Rapid dwell for keys, composer typing, modifiers, and mapping key commands.
+/// Settings / nav / assist toggles / mouse / AHK / composer word chips use standard dwell.
+[[nodiscard]] inline bool isRapidDwellCommand(QStringView name)
 {
     const QString n = name.toString();
     if (n.isEmpty()) {
@@ -328,7 +328,8 @@ struct PageAction {
         || n.startsWith(QLatin1String("speech.")) || n.startsWith(QLatin1String("history."))
         || n.startsWith(QLatin1String("soundboard.")) || n.startsWith(QLatin1String("compose."))
         || n.startsWith(QLatin1String("lts.")) || n.startsWith(QLatin1String("gazer."))
-        || n.startsWith(QLatin1String("toggle"))) {
+        || n.startsWith(QLatin1String("toggle")) || n.startsWith(QLatin1String("mouse"))
+        || n.startsWith(QLatin1String("cycleMouse"))) {
         return false;
     }
     static const QSet<QString> kChrome{
@@ -342,18 +343,14 @@ struct PageAction {
     return !kChrome.contains(n);
 }
 
-[[nodiscard]] inline bool usesTypingBoostDwell(const QVector<PageAction>& actions)
+[[nodiscard]] inline bool usesRapidDwell(const QVector<PageAction>& actions)
 {
     for (const PageAction& a : actions) {
         switch (a.type) {
         case PageActionType::Send:
-        case PageActionType::Click:
-        case PageActionType::Move:
-        case PageActionType::MoveAndClick:
-        case PageActionType::Ahk:
             return true;
         case PageActionType::Command:
-            if (isTypingBoostCommand(a.command)) {
+            if (isRapidDwellCommand(a.command)) {
                 return true;
             }
             break;
@@ -368,18 +365,18 @@ struct PagePhase {
     QVector<PageAction> actions;
 };
 
-[[nodiscard]] inline bool usesTypingBoostDwell(const QVector<PageAction>& actions,
-                                               const QVector<PagePhase>& phases)
+[[nodiscard]] inline bool usesRapidDwell(const QVector<PageAction>& actions,
+                                         const QVector<PagePhase>& phases)
 {
     if (!phases.isEmpty()) {
         for (const PagePhase& p : phases) {
-            if (usesTypingBoostDwell(p.actions)) {
+            if (usesRapidDwell(p.actions)) {
                 return true;
             }
         }
         return false;
     }
-    return usesTypingBoostDwell(actions);
+    return usesRapidDwell(actions);
 }
 
 /// label / value / display / slider / preview / scrollbar are not dwell targets.

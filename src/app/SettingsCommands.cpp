@@ -256,8 +256,8 @@ void SettingsUi::registerCommands()
         QStringLiteral("settings.edit.dwellSequence"),
         [this](QString* e) { return openArrayEditor(QStringLiteral("dwellSequence"), e); });
     m_commands.registerBuiltin(
-        QStringLiteral("settings.edit.dailyDwellSequence"),
-        [this](QString* e) { return openArrayEditor(QStringLiteral("dailyDwellSequence"), e); });
+        QStringLiteral("settings.edit.rapidDwellSequence"),
+        [this](QString* e) { return openArrayEditor(QStringLiteral("rapidDwellSequence"), e); });
 
     struct IntChoice {
         const char* cmd;

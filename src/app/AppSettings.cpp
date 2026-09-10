@@ -91,14 +91,14 @@ void clampSequence(QVector<int>& seq, const QVector<int>& fallback)
 
 AppSettings::TimingPack liveTiming(const AppSettings& s)
 {
-    return {s.dwellSequence, s.dailyDwellSequence, s.mouseMoveDwellMs, s.magPickDwellMs,
+    return {s.dwellSequence, s.rapidDwellSequence, s.mouseMoveDwellMs, s.magPickDwellMs,
             s.dwellGraceMs};
 }
 
 void applyTimingPack(AppSettings& s, const AppSettings::TimingPack& p)
 {
     s.dwellSequence = p.sequence;
-    s.dailyDwellSequence = p.dailySequence;
+    s.rapidDwellSequence = p.rapidSequence;
     s.mouseMoveDwellMs = p.mouseMoveDwellMs;
     s.magPickDwellMs = p.magPickDwellMs;
     s.dwellGraceMs = p.blinkGraceMs;
@@ -107,7 +107,7 @@ void applyTimingPack(AppSettings& s, const AppSettings::TimingPack& p)
 bool matchesTimingPack(const AppSettings& s, const AppSettings::TimingPack& p)
 {
     const AppSettings::TimingPack live = liveTiming(s);
-    return live.sequence == p.sequence && live.dailySequence == p.dailySequence
+    return live.sequence == p.sequence && live.rapidSequence == p.rapidSequence
            && live.mouseMoveDwellMs == p.mouseMoveDwellMs && live.magPickDwellMs == p.magPickDwellMs
            && live.blinkGraceMs == p.blinkGraceMs;
 }
@@ -115,25 +115,20 @@ bool matchesTimingPack(const AppSettings& s, const AppSettings::TimingPack& p)
 void clampTimingPack(AppSettings::TimingPack& p)
 {
     clampSequence(p.sequence, AppSettings::defaultDwellSequence());
-    clampSequence(p.dailySequence, AppSettings::defaultDailyDwellSequence());
+    clampSequence(p.rapidSequence, AppSettings::defaultRapidDwellSequence());
     p.blinkGraceMs = qBound(0, p.blinkGraceMs, 800);
     p.mouseMoveDwellMs = qBound(200, p.mouseMoveDwellMs, 2500);
     p.magPickDwellMs = qBound(200, p.magPickDwellMs, 2500);
 }
 
-bool isDailySequenceKey(const QString& key)
-{
-    return key == QLatin1String("dailyDwellMs") || key == QLatin1String("dailyDwellSequence");
-}
-
 QVector<int>& sequenceField(AppSettings& s, const QString& key)
 {
-    return isDailySequenceKey(key) ? s.dailyDwellSequence : s.dwellSequence;
+    return AppSettings::isRapidSequenceKey(key) ? s.rapidDwellSequence : s.dwellSequence;
 }
 
 const QVector<int>& sequenceField(const AppSettings& s, const QString& key)
 {
-    return isDailySequenceKey(key) ? s.dailyDwellSequence : s.dwellSequence;
+    return AppSettings::isRapidSequenceKey(key) ? s.rapidDwellSequence : s.dwellSequence;
 }
 
 QString formatSequence(const QVector<int>& seq)
@@ -278,9 +273,6 @@ const DoubleSpec* findDouble(const QString& key)
 
 const ColorSpec* findColor(const QString& key)
 {
-    if (key == QLatin1String("flashBorderColor") || key == QLatin1String("flashFillColor")) {
-        return findColor(QStringLiteral("flashColor"));
-    }
     for (const ColorSpec& s : kColorSpecs) {
         if (keyEq(s.key, key)) {
             return &s;
@@ -291,10 +283,15 @@ const ColorSpec* findColor(const QString& key)
 
 } // namespace
 
+bool AppSettings::isRapidSequenceKey(const QString& key)
+{
+    return key == QLatin1String("rapidDwellMs") || key == QLatin1String("rapidDwellSequence");
+}
+
 bool AppSettings::isSequenceKey(const QString& key)
 {
     return key == QLatin1String("dwellMs") || key == QLatin1String("dwellSequence")
-           || isDailySequenceKey(key);
+           || isRapidSequenceKey(key);
 }
 
 const AppSettings::StyleToggle* AppSettings::findStyleToggle(const QString& jsonKey)
@@ -321,7 +318,7 @@ QString AppSettings::normalizeSpeechTag(QString raw)
 void AppSettings::clamp()
 {
     clampSequence(dwellSequence, defaultDwellSequence());
-    clampSequence(dailyDwellSequence, defaultDailyDwellSequence());
+    clampSequence(rapidDwellSequence, defaultRapidDwellSequence());
     clampTimingPack(customTiming);
     for (const IntSpec& s : kIntSpecs) {
         this->*s.member = qBound(s.min, this->*s.member, s.max);
@@ -425,7 +422,7 @@ bool AppSettings::nudge(const QString& key, int dir)
     if (isSequenceKey(key)) {
         QVector<int>& seq = sequenceField(*this, key);
         if (seq.isEmpty()) {
-            seq = isDailySequenceKey(key) ? defaultDailyDwellSequence() : defaultDwellSequence();
+            seq = isRapidSequenceKey(key) ? defaultRapidDwellSequence() : defaultDwellSequence();
         }
         seq[0] = qBound(0, seq[0] + dir * 50, 10000);
         return true;
@@ -520,7 +517,7 @@ bool AppSettings::isNumericKey(const QString& key)
 QStringList AppSettings::numericKeys()
 {
     QStringList keys;
-    keys << QStringLiteral("dwellMs") << QStringLiteral("dailyDwellMs");
+    keys << QStringLiteral("dwellMs") << QStringLiteral("rapidDwellMs");
     for (const IntSpec& s : kIntSpecs) {
         keys << QLatin1String(s.key);
     }
@@ -619,8 +616,8 @@ QString AppSettings::displayValue(const QString& key) const
 
 QString AppSettings::settingTitle(const QString& key)
 {
-    if (isDailySequenceKey(key)) {
-        return QStringLiteral("Typing boost");
+    if (isRapidSequenceKey(key)) {
+        return QStringLiteral("Rapid");
     }
     if (isSequenceKey(key)) {
         return QStringLiteral("Standard");
@@ -645,15 +642,15 @@ QString AppSettings::settingTitle(const QString& key)
 
 QString AppSettings::settingDescription(const QString& key)
 {
-    if (isDailySequenceKey(key)) {
+    if (isRapidSequenceKey(key)) {
         return QStringLiteral(
-            "Comma-separated typing-boost dwell times in ms (keys, mouse, composer typing, "
-            "modifiers, AHK). Last step repeats. 0 fires immediately after scan grace.");
+            "Comma-separated rapid dwell times in ms (keys, composer typing, "
+            "modifiers). Last step repeats. 0 fires immediately after scan grace.");
     }
     if (isSequenceKey(key)) {
         return QStringLiteral(
-            "Comma-separated standard dwell times in ms (settings, navigation, "
-            "composer word chips). Last step repeats.");
+            "Comma-separated standard dwell times in ms (settings, navigation, mouse, "
+            "AHK, composer word chips). Last step repeats.");
     }
     if (const IntSpec* s = findInt(key)) {
         return QLatin1String(s->hint);

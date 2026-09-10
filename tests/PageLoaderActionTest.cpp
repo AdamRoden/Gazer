@@ -23,7 +23,7 @@ private slots:
     void rejectInvalidShowLayers();
     void parseCloseSpecialsAndGoBack();
     void genericActionAttribute();
-    void typingBoostDwellClassification();
+    void rapidDwellClassification();
     void parseDwellPhases();
     void rejectDwellPhaseMixedActions();
     void rejectEmptyPhase();
@@ -403,7 +403,7 @@ void PageLoaderActionTest::genericActionAttribute()
     QCOMPARE(a.type, PageActionType::GoBack);
 }
 
-void PageLoaderActionTest::typingBoostDwellClassification()
+void PageLoaderActionTest::rapidDwellClassification()
 {
     auto cmd = [](const QString& name) {
         PageAction a;
@@ -414,38 +414,48 @@ void PageLoaderActionTest::typingBoostDwellClassification()
     PageAction send;
     send.type = PageActionType::Send;
     send.sendKey = QStringLiteral("a");
-    QVERIFY(usesTypingBoostDwell({send}));
+    QVERIFY(usesRapidDwell({send}));
 
     PageAction click;
     click.type = PageActionType::Click;
-    QVERIFY(usesTypingBoostDwell({click}));
+    QVERIFY(!usesRapidDwell({click}));
+
+    PageAction move;
+    move.type = PageActionType::Move;
+    QVERIFY(!usesRapidDwell({move}));
+
+    PageAction mac;
+    mac.type = PageActionType::MoveAndClick;
+    QVERIFY(!usesRapidDwell({mac}));
 
     PageAction ahk;
     ahk.type = PageActionType::Ahk;
-    QVERIFY(usesTypingBoostDwell({ahk}));
+    QVERIFY(!usesRapidDwell({ahk}));
 
-    QVERIFY(usesTypingBoostDwell({cmd(QStringLiteral("leftShift"))}));
-    QVERIFY(usesTypingBoostDwell({cmd(QStringLiteral("leftCtrl"))}));
-    QVERIFY(usesTypingBoostDwell({cmd(QStringLiteral("backspace"))}));
-    QVERIFY(usesTypingBoostDwell({cmd(QStringLiteral("mouseLeftClick"))}));
-    QVERIFY(usesTypingBoostDwell({cmd(QStringLiteral("compose.backspace"))}));
-    QVERIFY(usesTypingBoostDwell({cmd(QStringLiteral("compose.deleteWord"))}));
+    QVERIFY(usesRapidDwell({cmd(QStringLiteral("leftShift"))}));
+    QVERIFY(usesRapidDwell({cmd(QStringLiteral("leftCtrl"))}));
+    QVERIFY(usesRapidDwell({cmd(QStringLiteral("backspace"))}));
+    QVERIFY(usesRapidDwell({cmd(QStringLiteral("compose.backspace"))}));
+    QVERIFY(usesRapidDwell({cmd(QStringLiteral("compose.deleteWord"))}));
 
     PageAction show;
     show.type = PageActionType::ShowLayers;
     show.layers = {2};
-    QVERIFY(!usesTypingBoostDwell({show}));
+    QVERIFY(!usesRapidDwell({show}));
 
     PageAction open;
     open.type = PageActionType::Nav;
-    QVERIFY(!usesTypingBoostDwell({open}));
-    QVERIFY(!usesTypingBoostDwell({cmd(QStringLiteral("settings.dwell.slow"))}));
-    QVERIFY(!usesTypingBoostDwell({cmd(QStringLiteral("toggleLookToScroll"))}));
-    QVERIFY(!usesTypingBoostDwell({cmd(QStringLiteral("compose.speak"))}));
-    QVERIFY(!usesTypingBoostDwell({cmd(QStringLiteral("quitApp"))}));
-    QVERIFY(!usesTypingBoostDwell({cmd(QStringLiteral("compose.removeWord.3"))}));
-    QVERIFY(!usesTypingBoostDwell({cmd(QStringLiteral("compose.moveEndOfWord.0"))}));
-    QVERIFY(!usesTypingBoostDwell({cmd(QStringLiteral("compose.moveStartOfWord.1"))}));
+    QVERIFY(!usesRapidDwell({open}));
+    QVERIFY(!usesRapidDwell({cmd(QStringLiteral("settings.dwell.slow"))}));
+    QVERIFY(!usesRapidDwell({cmd(QStringLiteral("mouseLeftClick"))}));
+    QVERIFY(!usesRapidDwell({cmd(QStringLiteral("mouseMoveToGaze"))}));
+    QVERIFY(!usesRapidDwell({cmd(QStringLiteral("cycleMouseMoveAmount"))}));
+    QVERIFY(!usesRapidDwell({cmd(QStringLiteral("toggleLookToScroll"))}));
+    QVERIFY(!usesRapidDwell({cmd(QStringLiteral("compose.speak"))}));
+    QVERIFY(!usesRapidDwell({cmd(QStringLiteral("quitApp"))}));
+    QVERIFY(!usesRapidDwell({cmd(QStringLiteral("compose.removeWord.3"))}));
+    QVERIFY(!usesRapidDwell({cmd(QStringLiteral("compose.moveEndOfWord.0"))}));
+    QVERIFY(!usesRapidDwell({cmd(QStringLiteral("compose.moveStartOfWord.1"))}));
 }
 
 void PageLoaderActionTest::parseDwellPhases()
@@ -473,7 +483,7 @@ void PageLoaderActionTest::parseDwellPhases()
     QCOMPARE(c->phases[0].actions[0].command, QStringLiteral("compose.moveEndOfWord.0"));
     QCOMPARE(c->phases[1].actions[0].command, QStringLiteral("compose.moveStartOfWord.0"));
     QCOMPARE(c->phases[2].actions[0].command, QStringLiteral("compose.removeWord.0"));
-    QVERIFY(!usesTypingBoostDwell(c->actions, c->phases));
+    QVERIFY(!usesRapidDwell(c->actions, c->phases));
 
     PageDocument round;
     QVERIFY2(PageLoader::loadFromXml(PageWriter::toBytes(doc), round, &err), qPrintable(err));

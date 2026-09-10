@@ -85,7 +85,7 @@ public:
 
     void setTheme(const ThemeColors& theme);
     void setProgressVisuals(const ProgressVisuals& visuals);
-    void setDwellTiming(const QVector<int>& standard, const QVector<int>& typingBoost,
+    void setDwellTiming(const QVector<int>& standard, const QVector<int>& rapid,
                         int blinkGraceMs, int scanGraceMs);
 
     void setAutoCollapseMain(bool on) { m_autoCollapseMain = on; }
@@ -210,7 +210,7 @@ private:
     DwellStateMachine m_dwell;
     DwellPhaseBank m_dwellPhases;
     QVector<int> m_standardSequence = {800};
-    QVector<int> m_typingBoostSequence = {400, 600, 400, 300, 200, 100};
+    QVector<int> m_rapidSequence = {400, 600, 400, 300, 200, 100};
     int m_blinkGraceMs = 180;
     int m_scanGraceMs = 200;
     QString m_hoverId;

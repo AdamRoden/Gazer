@@ -3,7 +3,6 @@
 #include "assist/GazeFollowProfile.h"
 #include "assist/LtsIndicator.h"
 #include "ui/Theme.h"
-#include "ui/ThemeScheme.h"
 #include "utils/Log.h"
 
 #include <QDir>
@@ -43,10 +42,10 @@ QString AppSettings::dwellSequenceString() const
     return parts.join(QLatin1Char(','));
 }
 
-QString AppSettings::dailyDwellSequenceString() const
+QString AppSettings::rapidDwellSequenceString() const
 {
     QStringList parts;
-    for (int ms : dailyDwellSequence) {
+    for (int ms : rapidDwellSequence) {
         parts << QString::number(ms);
     }
     return parts.join(QLatin1Char(','));
@@ -79,21 +78,6 @@ QVector<int> AppSettings::parseDwellSequence(const QString& text, QString* error
     }
     return out;
 }
-
-namespace {
-
-bool preApple9SchemeKey(const QString& key)
-{
-    const QString t = key.toLower();
-    return t == QLatin1String("blue") || t == QLatin1String("green") || t == QLatin1String("amber")
-           || t == QLatin1String("red") || t == QLatin1String("meadow")
-           || t == QLatin1String("forest") || t == QLatin1String("orchid")
-           || t == QLatin1String("dusk") || t == QLatin1String("bloom")
-           || t == QLatin1String("sunset") || t == QLatin1String("copper")
-           || t == QLatin1String("sand");
-}
-
-} // namespace
 
 bool AppSettings::loadFromFile(const QString& path, QString* error)
 {
@@ -144,12 +128,10 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
 
     if (o.contains(QStringLiteral("dwellSequence"))) {
         dwellSequence = loadSeq(o.value(QStringLiteral("dwellSequence")));
-    } else if (o.contains(QStringLiteral("dwellMs"))) {
-        dwellSequence = loadSeq(o.value(QStringLiteral("dwellMs")));
     }
 
-    if (o.contains(QStringLiteral("dailyDwellSequence"))) {
-        dailyDwellSequence = loadSeq(o.value(QStringLiteral("dailyDwellSequence")));
+    if (o.contains(QStringLiteral("rapidDwellSequence"))) {
+        rapidDwellSequence = loadSeq(o.value(QStringLiteral("rapidDwellSequence")));
     }
 
     scanGraceMs = o.value(QStringLiteral("scanGraceMs")).toInt(scanGraceMs);
@@ -159,8 +141,8 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
     if (o.contains(QStringLiteral("customDwellSequence"))) {
         customTiming.sequence = loadSeq(o.value(QStringLiteral("customDwellSequence")));
     }
-    if (o.contains(QStringLiteral("customDailyDwellSequence"))) {
-        customTiming.dailySequence = loadSeq(o.value(QStringLiteral("customDailyDwellSequence")));
+    if (o.contains(QStringLiteral("customRapidDwellSequence"))) {
+        customTiming.rapidSequence = loadSeq(o.value(QStringLiteral("customRapidDwellSequence")));
     }
     customTiming.blinkGraceMs =
         o.value(QStringLiteral("customDwellGraceMs")).toInt(customTiming.blinkGraceMs);
@@ -274,61 +256,17 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
             savedSpeechVoices.push_back(item);
         }
     }
-    const QString legacyMode =
-        o.value(QStringLiteral("themeMode")).toString(QStringLiteral("dark")).toLower();
     if (o.contains(QStringLiteral("themeAppearance"))) {
         themeAppearance = themeAppearanceFromString(
             o.value(QStringLiteral("themeAppearance")).toString());
-    } else {
-        themeAppearance = legacyMode == QLatin1String("light") ? ThemeAppearance::Light
-                                                               : ThemeAppearance::Dark;
     }
-    const QString schemeKey = o.value(QStringLiteral("themeScheme")).toString();
-    bool schemeMapsToBrand = false;
-    if (o.contains(QStringLiteral("themeScheme"))) {
-        const int brand = ThemeScheme::brandIndexFromLegacySchemeKey(schemeKey);
-        themeCustom = brand < 0;
-        if (brand >= 0) {
-            themePrimaryIndex = brand;
-            schemeMapsToBrand = true;
-        }
-    } else {
-        themeCustom = legacyMode == QLatin1String("custom");
-    }
-    if (o.contains(QStringLiteral("themePrimaryIndex")) && !schemeMapsToBrand) {
-        themePrimaryIndex = o.value(QStringLiteral("themePrimaryIndex")).toInt(kThemeDefaultBrandIndex);
-    }
-    const QString secondaryKey = o.value(QStringLiteral("themeSecondaryScheme")).toString();
-    const int secondaryBrand = ThemeScheme::brandIndexFromLegacySchemeKey(secondaryKey);
-    if (!secondaryKey.isEmpty() && secondaryBrand >= 0) {
-        themeSecondaryIndex = secondaryBrand;
-    } else if (o.contains(QStringLiteral("themeSecondaryIndex"))) {
-        const int old = o.value(QStringLiteral("themeSecondaryIndex")).toInt(kThemeDefaultBrandIndex);
-        static const int kLegacyFourSwatch[] = {5, 3, 1, 0};
-        if (!o.contains(QStringLiteral("themeSecondaryScheme")) && preApple9SchemeKey(schemeKey)
-            && old >= 0 && old < 4) {
-            themeSecondaryIndex = kLegacyFourSwatch[old];
-        } else {
-            themeSecondaryIndex = old;
-        }
-    }
-    if (o.contains(QStringLiteral("themeSaturation"))) {
-        themeSaturation = o.value(QStringLiteral("themeSaturation")).toInt(kThemeSaturationDefault);
-    } else if (o.contains(QStringLiteral("themeVibrance"))) {
-        themeSaturation = o.value(QStringLiteral("themeVibrance")).toInt(kThemeSaturationDefault);
-    }
-    ThemeColors legacyCustomColors;
-    const bool hasLegacyCustomColors = o.contains(QStringLiteral("customColors"));
-    if (hasLegacyCustomColors) {
-        legacyCustomColors.fromJson(o.value(QStringLiteral("customColors")).toObject());
-    }
+    themeCustom = o.value(QStringLiteral("themeCustom")).toBool(themeCustom);
+    themePrimaryIndex = o.value(QStringLiteral("themePrimaryIndex")).toInt(themePrimaryIndex);
+    themeSecondaryIndex = o.value(QStringLiteral("themeSecondaryIndex")).toInt(themeSecondaryIndex);
+    themeSaturation = o.value(QStringLiteral("themeSaturation")).toInt(themeSaturation);
     customBgColor = o.value(QStringLiteral("customBgColor")).toString(customBgColor);
     customPrimaryColor = o.value(QStringLiteral("customPrimaryColor")).toString(customPrimaryColor);
-    if (o.contains(QStringLiteral("customSourceColor"))) {
-        customSourceColor = o.value(QStringLiteral("customSourceColor")).toString(customSourceColor);
-    } else {
-        customSourceColor = customPrimaryColor;
-    }
+    customSourceColor = o.value(QStringLiteral("customSourceColor")).toString(customSourceColor);
     customSecondaryColor =
         o.value(QStringLiteral("customSecondaryColor")).toString(customSecondaryColor);
     customTertiaryColor =
@@ -340,35 +278,6 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
     if (o.contains(QStringLiteral("themeTintFamily"))) {
         themeTintFamily = themeTintFamilyFromString(
             o.value(QStringLiteral("themeTintFamily")).toString());
-    } else if (themeAppearanceIsTinted(themeAppearance)) {
-        themeTintFamily = ThemeTintFamily::Primary;
-    } else {
-        themeTintFamily = ThemeTintFamily::None;
-    }
-    int legacyContrastPct = 85;
-    if (o.contains(QStringLiteral("customContrast"))) {
-        const QJsonValue cv = o.value(QStringLiteral("customContrast"));
-        if (cv.isString()) {
-            const QString cs = cv.toString().toLower();
-            if (cs == QLatin1String("lowest") || cs == QLatin1String("low")) {
-                legacyContrastPct = 70;
-            } else if (cs == QLatin1String("high") || cs == QLatin1String("highest")) {
-                legacyContrastPct = 100;
-            } else {
-                legacyContrastPct = 85;
-            }
-        } else {
-            const int v = cv.toInt(85);
-            if (v <= 4) {
-                legacyContrastPct = v <= 1 ? 70 : (v >= 3 ? 100 : 85);
-            } else if (v < 78) {
-                legacyContrastPct = 70;
-            } else if (v < 93) {
-                legacyContrastPct = 85;
-            } else {
-                legacyContrastPct = 100;
-            }
-        }
     }
     for (const StyleToggle& t : kStyleToggles) {
         styleFlag(t) = o.value(QLatin1String(t.jsonKey)).toBool(styleFlag(t));
@@ -380,41 +289,9 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
     flashUseForeground = o.value(QStringLiteral("flashUseForeground")).toBool(flashUseForeground);
     flashForegroundOpacity =
         o.value(QStringLiteral("flashForegroundOpacity")).toInt(flashForegroundOpacity);
-    if (o.contains(QStringLiteral("flashColor"))) {
-        flashColor = o.value(QStringLiteral("flashColor")).toString(flashColor);
-    } else if (o.contains(QStringLiteral("flashBorderColor"))) {
-        flashColor = o.value(QStringLiteral("flashBorderColor")).toString(flashColor);
-    } else if (o.contains(QStringLiteral("flashFillColor"))) {
-        flashColor = o.value(QStringLiteral("flashFillColor")).toString(flashColor);
-    }
+    flashColor = o.value(QStringLiteral("flashColor")).toString(flashColor);
     flashMs = o.value(QStringLiteral("flashMs")).toInt(flashMs);
 
-    if (!o.contains(QStringLiteral("customBgColor")) && hasLegacyCustomColors) {
-        customBgColor = colorToHex(legacyCustomColors.bgMain);
-        customPrimaryColor = colorToHex(legacyCustomColors.accent);
-        customSecondaryColor = progressColor;
-        customTertiaryColor = colorToHex(legacyCustomColors.cellActive);
-        customSurfaceColor = colorToHex(legacyCustomColors.bgSurface);
-        customTextColor = colorToHex(legacyCustomColors.text);
-        customDangerColor = colorToHex(legacyCustomColors.danger);
-    }
-    if (!o.contains(QStringLiteral("themeSaturation"))
-        && !o.contains(QStringLiteral("themeVibrance"))) {
-        const bool moreContrast = o.value(QStringLiteral("themeMoreContrast")).toBool(false)
-                                  || legacyContrastPct >= 100;
-        if (moreContrast) {
-            themeSaturation = kThemeSaturationMax;
-        } else if (legacyContrastPct <= 70) {
-            themeSaturation = kThemeSaturationMin;
-        } else {
-            themeSaturation = kThemeSaturationDefault;
-        }
-    }
-    if (themeCustom && legacyMode == QLatin1String("custom")
-        && !o.contains(QStringLiteral("themeAppearance"))) {
-        const QColor bg = parseColor(customBgColor, QColor(10, 10, 11));
-        themeAppearance = bg.lightness() > 140 ? ThemeAppearance::Light : ThemeAppearance::Dark;
-    }
     applyTheme();
 
     clamp();
@@ -435,11 +312,11 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
         seq.append(ms);
     }
     o.insert(QStringLiteral("dwellSequence"), seq);
-    QJsonArray dailySeq;
-    for (int ms : copy.dailyDwellSequence) {
-        dailySeq.append(ms);
+    QJsonArray rapidSeq;
+    for (int ms : copy.rapidDwellSequence) {
+        rapidSeq.append(ms);
     }
-    o.insert(QStringLiteral("dailyDwellSequence"), dailySeq);
+    o.insert(QStringLiteral("rapidDwellSequence"), rapidSeq);
     o.insert(QStringLiteral("scanGraceMs"), copy.scanGraceMs);
     o.insert(QStringLiteral("dwellGraceMs"), copy.dwellGraceMs);
     o.insert(QStringLiteral("mouseMoveDwellMs"), copy.mouseMoveDwellMs);
@@ -449,11 +326,11 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
         customSeq.append(ms);
     }
     o.insert(QStringLiteral("customDwellSequence"), customSeq);
-    QJsonArray customDailySeq;
-    for (int ms : copy.customTiming.dailySequence) {
-        customDailySeq.append(ms);
+    QJsonArray customRapidSeq;
+    for (int ms : copy.customTiming.rapidSequence) {
+        customRapidSeq.append(ms);
     }
-    o.insert(QStringLiteral("customDailyDwellSequence"), customDailySeq);
+    o.insert(QStringLiteral("customRapidDwellSequence"), customRapidSeq);
     o.insert(QStringLiteral("customDwellGraceMs"), copy.customTiming.blinkGraceMs);
     o.insert(QStringLiteral("customMouseMoveDwellMs"), copy.customTiming.mouseMoveDwellMs);
     o.insert(QStringLiteral("customMagPickDwellMs"), copy.customTiming.magPickDwellMs);
@@ -533,33 +410,11 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
         }
         o.insert(QStringLiteral("savedSpeechVoices"), voices);
     }
-    const bool darkAppearance = themeAppearanceIsDark(copy.themeAppearance);
-    o.insert(QStringLiteral("themeMode"),
-             copy.themeCustom ? QStringLiteral("custom")
-                              : (darkAppearance ? QStringLiteral("dark") : QStringLiteral("light")));
     o.insert(QStringLiteral("themeAppearance"), themeAppearanceToString(copy.themeAppearance));
-    o.insert(QStringLiteral("themeScheme"),
-             copy.themeCustom
-                 ? QStringLiteral("custom")
-                 : QLatin1String(ThemeScheme::brands()[qBound(0, copy.themePrimaryIndex,
-                                                              kThemeBrandCount - 1)]
-                                     .key));
+    o.insert(QStringLiteral("themeCustom"), copy.themeCustom);
     o.insert(QStringLiteral("themePrimaryIndex"), copy.themePrimaryIndex);
     o.insert(QStringLiteral("themeSecondaryIndex"), copy.themeSecondaryIndex);
-    o.insert(QStringLiteral("themeSecondaryScheme"),
-             QLatin1String(ThemeScheme::brands()[qBound(0, copy.themeSecondaryIndex,
-                                                        kThemeBrandCount - 1)]
-                               .key));
     o.insert(QStringLiteral("themeSaturation"), copy.themeSaturation);
-    const ThemePalette lightPal = ThemeScheme::resolve(
-        ThemeAppearance::Light, copy.themeSaturation, copy.themePrimaryIndex,
-        copy.themeSecondaryIndex, false);
-    const ThemePalette darkPal = ThemeScheme::resolve(
-        ThemeAppearance::Dark, copy.themeSaturation, copy.themePrimaryIndex,
-        copy.themeSecondaryIndex, false);
-    o.insert(QStringLiteral("lightColors"), lightPal.colors.toJson());
-    o.insert(QStringLiteral("darkColors"), darkPal.colors.toJson());
-    o.insert(QStringLiteral("customColors"), copy.resolvedPalette().colors.toJson());
     o.insert(QStringLiteral("customBgColor"), copy.customBgColor);
     o.insert(QStringLiteral("customSourceColor"), copy.customSourceColor);
     o.insert(QStringLiteral("customPrimaryColor"), copy.customPrimaryColor);
@@ -570,13 +425,6 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     o.insert(QStringLiteral("customDangerColor"), copy.customDangerColor);
     o.insert(QStringLiteral("themeBrightness"), copy.themeBrightness);
     o.insert(QStringLiteral("themeTintFamily"), themeTintFamilyToString(copy.themeTintFamily));
-    int derivedContrast = 85;
-    if (copy.themeSaturation >= 75) {
-        derivedContrast = 100;
-    } else if (copy.themeSaturation <= 40) {
-        derivedContrast = 70;
-    }
-    o.insert(QStringLiteral("customContrast"), derivedContrast);
     for (const StyleToggle& t : kStyleToggles) {
         o.insert(QLatin1String(t.jsonKey), copy.styleFlag(t));
     }

@@ -122,31 +122,6 @@ QColor brandAccent(int index, ThemeAppearance appearance)
     return kBrands[i].colorFor(appearance);
 }
 
-int brandIndexFromLegacySchemeKey(const QString& key)
-{
-    const QString t = key.toLower();
-    if (t == QLatin1String("custom")) {
-        return -1;
-    }
-    for (int i = 0; i < kThemeBrandCount; ++i) {
-        if (t == QLatin1String(kBrands[i].key)) {
-            return i;
-        }
-    }
-    if (t == QLatin1String("meadow") || t == QLatin1String("forest")) {
-        return 3; // green
-    }
-    if (t == QLatin1String("orchid") || t == QLatin1String("dusk")
-        || t == QLatin1String("bloom")) {
-        return 7; // purple
-    }
-    if (t == QLatin1String("amber") || t == QLatin1String("sunset")
-        || t == QLatin1String("copper") || t == QLatin1String("sand")) {
-        return 1; // orange
-    }
-    return kThemeDefaultBrandIndex;
-}
-
 QColor scaleSaturation(const QColor& c, int saturationPercent)
 {
     if (!c.isValid()) {

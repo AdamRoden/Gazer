@@ -128,7 +128,7 @@ void SettingsLayoutTest::timingSectionUsesRowWeights()
     QCOMPARE(standard->styleId, QStringLiteral("row"));
     QCOMPARE(standard->rowSpan, 1);
     QCOMPARE(standard->row, 1);
-    const PageGrid* boost = doc.findGrid(QStringLiteral("row_daily_dwell"));
+    const PageGrid* boost = doc.findGrid(QStringLiteral("row_rapid_dwell"));
     QVERIFY(boost);
     QCOMPARE(boost->row, 2);
 
@@ -137,7 +137,7 @@ void SettingsLayoutTest::timingSectionUsesRowWeights()
     frame.desktop = frame.screen;
     const QVector<PageTarget> t = PageHit::collect(doc, frame);
     const PageTarget* header = targetById(t, QStringLiteral("h_dwell"));
-    const PageTarget* desc = targetById(t, QStringLiteral("dd_dwell_label"));
+    const PageTarget* desc = targetById(t, QStringLiteral("rapid_dwell_label"));
     QVERIFY(header);
     QVERIFY(desc);
     QVERIFY(qAbs(2.0 * header->geom.visual.height() - desc->geom.visual.height()) < 1.5);
@@ -182,9 +182,9 @@ void SettingsLayoutTest::valueLabelKeepsKey()
     QVERIFY(standard);
     QCOMPARE(standard->role, QStringLiteral("value"));
     QCOMPARE(standard->settingKey, QStringLiteral("dwellMs"));
-    const PageTarget* boost = targetById(t, QStringLiteral("dd_dwell_value"));
-    QVERIFY(boost);
-    QCOMPARE(boost->settingKey, QStringLiteral("dailyDwellMs"));
+    const PageTarget* rapid = targetById(t, QStringLiteral("rapid_dwell_value"));
+    QVERIFY(rapid);
+    QCOMPARE(rapid->settingKey, QStringLiteral("rapidDwellMs"));
     QVERIFY(!targetById(t, QStringLiteral("scan_val")));
     QVERIFY(!targetById(t, QStringLiteral("dd_scan_val")));
 }
@@ -272,10 +272,10 @@ void SettingsLayoutTest::presetsComeFirst()
     QVERIFY(dwell);
     QVERIFY(presets->row < dwell->row);
     QCOMPARE(doc.findGrid(QStringLiteral("row_dwell"))->row, 1);
-    QCOMPARE(doc.findGrid(QStringLiteral("row_daily_dwell"))->row, 2);
+    QCOMPARE(doc.findGrid(QStringLiteral("row_rapid_dwell"))->row, 2);
     QCOMPARE(doc.findCell(QStringLiteral("dwell_label"))->label, QStringLiteral("Standard"));
-    QCOMPARE(doc.findCell(QStringLiteral("dd_dwell_label"))->label, QStringLiteral("Typing boost"));
-    QVERIFY(!doc.findGrid(QStringLiteral("sec_daily")));
+    QCOMPARE(doc.findCell(QStringLiteral("rapid_dwell_label"))->label, QStringLiteral("Rapid"));
+    QVERIFY(!doc.findGrid(QStringLiteral("sec_rapid")));
     QVERIFY(!doc.findGrid(QStringLiteral("sec_designer")));
     const PageCell* slow = doc.findCell(QStringLiteral("p_slow"));
     QVERIFY(slow);

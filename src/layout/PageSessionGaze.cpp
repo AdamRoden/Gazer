@@ -111,10 +111,10 @@ const PageTarget* PageSession::findTarget(const QString& id) const
 
 void PageSession::applyDwellFor(const PageTarget& t)
 {
-    const bool boost = usesTypingBoostDwell(t.actions, t.phases);
+    const bool rapid = usesRapidDwell(t.actions, t.phases);
     int scan = m_scanGraceMs;
     int grace = m_blinkGraceMs;
-    QVector<int> seq = boost ? m_typingBoostSequence : m_standardSequence;
+    QVector<int> seq = rapid ? m_rapidSequence : m_standardSequence;
     if (t.dwell.scanGrace) {
         scan = *t.dwell.scanGrace;
     }

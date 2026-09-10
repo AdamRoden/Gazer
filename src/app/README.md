@@ -21,7 +21,7 @@ Composition root, settings, command dispatch.
 | `SettingsUi.h` | Live settings boards (numpad, array, color, hex, speech key, opacity, slider) |
 | `SettingsUi.cpp` | Ctor, decorate, live attach, keyboard focus |
 | `SettingsNumpad.cpp` | Numeric editor |
-| `SettingsArrayEditor.cpp` | Standard / typing-boost dwell-sequence editor |
+| `SettingsArrayEditor.cpp` | Standard / rapid dwell-sequence editor |
 | `SettingsColorPicker.cpp` | Color draft + Material palettes |
 | `SettingsOpacity.cpp` | Flash-opacity board |
 | `SettingsHexEditor.cpp` | Hex color pad |

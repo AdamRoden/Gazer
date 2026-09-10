@@ -18,12 +18,10 @@ bool SettingsUi::openArrayEditor(const QString& settingKey, QString* error)
 {
     Q_UNUSED(error);
     m_arrayKey = settingKey;
-    const bool daily = AppSettings::isSequenceKey(settingKey)
-                       && (settingKey == QLatin1String("dailyDwellMs")
-                           || settingKey == QLatin1String("dailyDwellSequence"));
-    m_arrayDraft = daily ? m_settings.dailyDwellSequence : m_settings.dwellSequence;
+    const bool rapid = AppSettings::isRapidSequenceKey(settingKey);
+    m_arrayDraft = rapid ? m_settings.rapidDwellSequence : m_settings.dwellSequence;
     if (m_arrayDraft.isEmpty()) {
-        m_arrayDraft = daily ? AppSettings::defaultDailyDwellSequence()
+        m_arrayDraft = rapid ? AppSettings::defaultRapidDwellSequence()
                              : AppSettings::defaultDwellSequence();
     }
     refreshArrayEditor();
@@ -142,11 +140,10 @@ void SettingsUi::arrayReset()
     if (!m_array.active) {
         return;
     }
-    const bool daily = m_arrayKey == QLatin1String("dailyDwellMs")
-                       || m_arrayKey == QLatin1String("dailyDwellSequence");
-    m_arrayDraft = daily ? m_settings.dailyDwellSequence : m_settings.dwellSequence;
+    const bool rapid = AppSettings::isRapidSequenceKey(m_arrayKey);
+    m_arrayDraft = rapid ? m_settings.rapidDwellSequence : m_settings.dwellSequence;
     if (m_arrayDraft.isEmpty()) {
-        m_arrayDraft = daily ? AppSettings::defaultDailyDwellSequence()
+        m_arrayDraft = rapid ? AppSettings::defaultRapidDwellSequence()
                              : AppSettings::defaultDwellSequence();
     }
     refreshArrayEditor();
@@ -165,9 +162,8 @@ bool SettingsUi::arraySave(QString* error)
         parts << QString::number(ms);
     }
     QString err;
-    const QString key = (m_arrayKey == QLatin1String("dailyDwellMs")
-                         || m_arrayKey == QLatin1String("dailyDwellSequence"))
-                            ? QStringLiteral("dailyDwellSequence")
+    const QString key = AppSettings::isRapidSequenceKey(m_arrayKey)
+                            ? QStringLiteral("rapidDwellSequence")
                             : QStringLiteral("dwellSequence");
     if (!m_settings.applyNumericBuffer(key, parts.join(QLatin1Char(',')), &err)) {
         notifyStatus(err);
@@ -177,8 +173,8 @@ bool SettingsUi::arraySave(QString* error)
         return false;
     }
     apply(true);
-    const QString saved = (key == QLatin1String("dailyDwellSequence"))
-                              ? m_settings.dailyDwellSequenceString()
+    const QString saved = AppSettings::isRapidSequenceKey(key)
+                              ? m_settings.rapidDwellSequenceString()
                               : m_settings.dwellSequenceString();
     m_arrayKey.clear();
     m_arrayDraft.clear();
