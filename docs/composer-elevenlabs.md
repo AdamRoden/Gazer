@@ -848,7 +848,7 @@ Owns `SpeechEngine`, `ElevenClient`, `ComposeBuffer`/`ComposeUi`, `SoundboardSto
 
 ```cpp
 m_pages->setDecorate([this](PageDocument& doc) {
-    // existing lts_menu + settings + mouse stamps
+    // existing settings + mouse stamps
     if (m_composeUi)
         m_composeUi->decoratePage(doc);
 });

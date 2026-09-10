@@ -2,6 +2,7 @@
 
 #include "assist/GazeFollowProfile.h"
 #include "assist/LtsIndicator.h"
+#include "assist/LtsScrollMode.h"
 #include "assist/LtsSpeed.h"
 #include "ui/PickStyle.h"
 #include "ui/ThemeScheme.h"
@@ -172,7 +173,7 @@ constexpr IntSpec kIntSpecs[] = {
     {"ltsFalloffPx", "LTS falloff", "Distance to full scroll speed past deadzone (px).", " px",
      &AppSettings::ltsFalloffPx, 80, 800, 20},
     {"ltsCenterDwellMs", "LTS center dwell",
-     "Dwell the hub to pause and open the plus menu (ms).",
+     "Dwell the hub to pause and open the Look-to-scroll pie (ms).",
      " ms", &AppSettings::ltsCenterDwellMs, 200, 2500, 50},
     {"comboInnerRadiusPx", "ComboMouse inner radius",
      "Inner edge of the drift ring (px). Hole / deadzone.", " px",
@@ -329,6 +330,7 @@ void AppSettings::clamp()
     }
     magFollowProfile = gazeFollowProfileFromInt(int(magFollowProfile));
     ltsIndicatorStyle = ltsIndicatorFromInt(int(ltsIndicatorStyle));
+    ltsScrollMode = ltsScrollModeFromInt(int(ltsScrollMode));
     themePrimaryIndex = qBound(0, themePrimaryIndex, kThemeBrandCount - 1);
     themeSecondaryIndex = qBound(0, themeSecondaryIndex, kThemeBrandCount - 1);
     themeSaturation = snapThemeSaturation(themeSaturation);
@@ -590,6 +592,9 @@ QString AppSettings::displayValue(const QString& key) const
     }
     if (key == QLatin1String("ltsIndicatorStyle")) {
         return QLatin1String(ltsIndicatorName(ltsIndicatorStyle));
+    }
+    if (key == QLatin1String("ltsScrollMode")) {
+        return QLatin1String(ltsScrollModeName(ltsScrollMode));
     }
     if (key == QLatin1String("magPickStyle")) {
         return PickStyle::label(magPickStyle);

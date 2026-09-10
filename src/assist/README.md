@@ -5,8 +5,8 @@ Gaze tools on top of the page session.
 | File | Role |
 |------|------|
 | `AssistSession` / `AssistCommands` | Tool lifetime + `toggleLookToScroll` and related builtins |
-| `LookToScroll` / `LtsSpeed.h` / `LtsIndicator.h` | Gaze-driven scroll. Always place-cursor first; peak speed is 1/5/10/20/40 from the plus menu |
-| `ComboMouse` / `ComboMouseHit.h` | Directional mouse pad |
+| `LookToScroll` / `LtsSpeed.h` / `LtsIndicator.h` / `LtsScrollMode.h` / `LtsMenu.h` | Gaze-driven scroll. Always place-cursor first; pie for speed, axis (vertical / horizontal / both), reset, quit |
+| `ComboMouse` / `ComboMouseHit.h` / `PieOverlay` | Directional mouse pad. Shared command pie (ComboMouse + LTS) |
 | `MouseDwellMove` | Dwell to warp cursor. Overlays in `MouseDwellMove_p.h`; mag-pick in `MouseDwellMoveMag.cpp` |
 | `MouseAssistState` | Shared pointer-assist flags |
 | `GazeReticle` / `GazeMouseFollow` | Marker / cursor-follows-gaze |

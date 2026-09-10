@@ -34,6 +34,7 @@ Script: `gazer.openPage` / `loadPage` / `focusedPageId` (`ScriptHost`, not Comma
 | `toggleLookToScroll` | Gaze scroll (always place-cursor first) |
 | `lts.resume` / `lts.quit` / `lts.reset` | LTS while on |
 | `lts.speed.slower` / `lts.speed.faster` | LTS peak speed (1, 5, 10, 20, 40) |
+| `lts.cycleMode` | LTS axes: vertical → horizontal → both |
 | `toggleMagnifier` | Live lens (exclusive with reticle) |
 | `toggleGazeReticle` | Gaze marker (exclusive with magnifier) |
 | `toggleGazeMouseFollow` | Cursor follows gaze |

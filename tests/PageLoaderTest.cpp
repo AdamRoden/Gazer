@@ -1,4 +1,3 @@
-#include "assist/LtsSpeed.h"
 #include "layout/PageCatalog.h"
 #include "layout/PageDim.h"
 #include "layout/PageHit.h"
@@ -21,7 +20,6 @@ class PageLoaderTest final : public QObject {
 private slots:
     void expressionSizeRoundTrip();
     void clampSizeRoundTrip();
-    void ltsSpeedLadder();
     void parseRowWeightsCsv();
     void loadFixture();
     void ahkCdataRoundTrip();
@@ -40,7 +38,6 @@ private slots:
     void rejectInvalidLayers();
     void cellDropsShellAndInteractive();
     void loadConvertedBoards();
-    void loadLtsMenu();
     void keyboardMainOpensDrawer();
     void pageWriterRoundTripMain();
     void rowWeightsRoundTrip();
@@ -89,20 +86,6 @@ void PageLoaderTest::clampSizeRoundTrip()
     QCOMPARE(PageDimParse::token(written.grids[0].size.x),
              QStringLiteral("clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth)"));
     QCOMPARE(PageDimParse::token(written.grids[0].size.y), QStringLiteral("A_ScreenHeight"));
-}
-
-void PageLoaderTest::ltsSpeedLadder()
-{
-    QCOMPARE(snapLtsSpeed(4.4), 5.0);
-    QCOMPARE(snapLtsSpeed(2.0), 1.0);
-    QCOMPARE(snapLtsSpeed(4.0), 5.0);
-    QCOMPARE(snapLtsSpeed(1.0), 1.0);
-    QCOMPARE(nudgeLtsSpeed(5.0, +1), 10.0);
-    QCOMPARE(nudgeLtsSpeed(5.0, -1), 1.0);
-    QCOMPARE(nudgeLtsSpeed(1.0, -1), 1.0);
-    QCOMPARE(nudgeLtsSpeed(40.0, +1), 40.0);
-    QCOMPARE(nudgeLtsSpeed(20.0, +1), 40.0);
-    QCOMPARE(snapLtsSpeed(50.0), 40.0);
 }
 
 void PageLoaderTest::parseRowWeightsCsv()
@@ -592,52 +575,6 @@ void PageLoaderTest::cellDropsShellAndInteractive()
             QVERIFY(!line.contains(QLatin1String("shell=")));
         }
     }
-}
-
-void PageLoaderTest::loadLtsMenu()
-{
-    PageDocument doc;
-    QString err;
-    const QString path = QStringLiteral(GAZER_SOURCE_DIR)
-                         + QStringLiteral("/resources/layouts/lts_menu.xml");
-    QVERIFY2(PageLoader::loadFromFile(path, doc, &err), qPrintable(err));
-    QCOMPARE(doc.id, QStringLiteral("lts_menu"));
-    QCOMPARE(doc.grids.size(), 1);
-    QCOMPARE(doc.grids[0].rows, 3);
-    QCOMPARE(doc.grids[0].columns, 3);
-    QCOMPARE(doc.grids[0].gapPx, 0);
-    QCOMPARE(doc.grids[0].size.x.unit, PageDim::Unit::HeightProportion);
-    QCOMPARE(doc.grids[0].size.y.unit, PageDim::Unit::HeightProportion);
-    QCOMPARE(doc.grids[0].size.x.value, 0.25);
-    QCOMPARE(doc.grids[0].cells.size(), 5);
-    QVERIFY(doc.grids[0].style.background.isSet());
-    QCOMPARE(doc.grids[0].style.background.parsed().alpha(), 0);
-    QVERIFY(doc.grids[0].style.thickness.has_value());
-    QCOMPARE(doc.grids[0].style.thickness->first(), 0.0);
-    QVERIFY(doc.styles.contains(QStringLiteral("hub")));
-    QVERIFY(doc.styles.contains(QStringLiteral("slow")));
-    QVERIFY(doc.styles.contains(QStringLiteral("fast")));
-    QVERIFY(doc.styles.contains(QStringLiteral("quit")));
-    QVERIFY(doc.styles.contains(QStringLiteral("reset")));
-    QCOMPARE(doc.styles.value(QStringLiteral("hub")).radius->toToken(), QStringLiteral("0"));
-    QCOMPARE(doc.styles.value(QStringLiteral("reset")).radius->toToken(),
-             QStringLiteral("900,900,0,0"));
-    QCOMPARE(doc.styles.value(QStringLiteral("fast")).radius->toToken(),
-             QStringLiteral("0,900,900,0"));
-    QCOMPARE(doc.styles.value(QStringLiteral("quit")).radius->toToken(),
-             QStringLiteral("0,0,900,900"));
-    QCOMPARE(doc.styles.value(QStringLiteral("slow")).radius->toToken(),
-             QStringLiteral("900,0,0,900"));
-    QCOMPARE(doc.styles.value(QStringLiteral("hub")).blur.value_or(-1.0), 15.0);
-    QCOMPARE(doc.styles.value(QStringLiteral("slow")).blur.value_or(-1.0), 15.0);
-    QCOMPARE(doc.styles.value(QStringLiteral("fast")).blur.value_or(-1.0), 15.0);
-    QCOMPARE(doc.styles.value(QStringLiteral("quit")).blur.value_or(-1.0), 15.0);
-    QCOMPARE(doc.styles.value(QStringLiteral("reset")).blur.value_or(-1.0), 15.0);
-
-    PageDocument written;
-    QVERIFY2(PageLoader::loadFromXml(PageWriter::toBytes(doc), written, &err), qPrintable(err));
-    QCOMPARE(written.grids[0].size.x.unit, PageDim::Unit::HeightProportion);
-    QCOMPARE(written.grids[0].size.x.value, 0.25);
 }
 
 void PageLoaderTest::keyboardMainOpensDrawer()

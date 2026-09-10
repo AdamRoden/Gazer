@@ -1,11 +1,13 @@
 #include "assist/LookToScroll.h"
 
 #include "assist/LtsSpeed.h"
+#include "assist/PieOverlay.h"
 #include "input/MouseInjector.h"
 #include "ui/KeySymbols.h"
 #include "ui/OverlaySurface.h"
 #include "ui/Theme.h"
 #include "utils/Log.h"
+#include "utils/ScreenGrab.h"
 
 #include <QColor>
 #include <QCursor>
@@ -14,6 +16,7 @@
 #include <QPainter>
 #include <QPainterPath>
 #include <QPaintEvent>
+#include <QPen>
 #include <QScreen>
 #include <QtMath>
 
@@ -221,11 +224,22 @@ LookToScroll::LookToScroll(QObject* parent)
 {
     m_clock.start();
     m_overlay = std::make_unique<RingOverlay>();
+    m_plus = std::make_unique<PieOverlay>();
+    connect(&m_plusDwell, &DwellStateMachine::itemActivated, this, [this](const QString& id) {
+        if (!m_plusOpen || !m_enabled) {
+            return;
+        }
+        firePlusAction(ltsMenuActionFromId(id));
+        if (m_plusOpen) {
+            m_plusDwell.leave();
+        }
+    });
 }
 
 LookToScroll::~LookToScroll()
 {
     m_scroller.reset();
+    hidePlus();
     hideOverlay();
 }
 
@@ -240,7 +254,6 @@ void LookToScroll::setEnabled(bool enabled)
     if (m_enabled == enabled) {
         return;
     }
-    const bool was = m_enabled;
     m_enabled = enabled;
     m_lastTickMs = -1;
     m_lastSampleMs = -1;
@@ -252,13 +265,13 @@ void LookToScroll::setEnabled(bool enabled)
     m_scrollSuspended = false;
     m_plusOpen = false;
     m_lookAwaySec = 0.0;
+    m_plusGateId.clear();
+    m_plusDwell.leave();
     m_scroller.reset();
     if (!m_enabled) {
         m_hasOrigin = false;
+        hidePlus();
         hideOverlay();
-        if (was) {
-            emit menuCloseRequested();
-        }
     } else if (!m_hasOrigin) {
         setScrollOrigin(QCursor::pos());
     } else {
@@ -313,6 +326,33 @@ void LookToScroll::nudgeMaxSpeed(int dir)
     m_maxNotchesPerSec = next;
     GAZER_INFO << "LookToScroll speed" << m_maxNotchesPerSec;
     emit maxNotchesPerSecChanged(m_maxNotchesPerSec);
+    if (m_plusOpen) {
+        pushPlusOverlay(m_plusLayout, m_plusBand, m_plusSlice, m_plusDwell.progress());
+    }
+}
+
+void LookToScroll::setScrollMode(LtsScrollMode mode)
+{
+    mode = ltsScrollModeFromInt(int(mode));
+    if (m_scrollMode == mode) {
+        return;
+    }
+    m_scrollMode = mode;
+    if (m_scrollMode == LtsScrollMode::Vertical) {
+        m_accumH = 0.0;
+    } else if (m_scrollMode == LtsScrollMode::Horizontal) {
+        m_accumV = 0.0;
+    }
+    GAZER_INFO << "LookToScroll mode" << ltsScrollModeName(m_scrollMode);
+    emit scrollModeChanged(m_scrollMode);
+    if (m_plusOpen) {
+        pushPlusOverlay(m_plusLayout, m_plusBand, m_plusSlice, m_plusDwell.progress());
+    }
+}
+
+void LookToScroll::cycleScrollMode()
+{
+    setScrollMode(cycleLtsScrollMode(m_scrollMode));
 }
 
 void LookToScroll::resumeScroll()
@@ -369,6 +409,7 @@ void LookToScroll::setScrollSuspended(bool suspended)
     if (!suspended) {
         m_replacing = false;
         closePlus();
+        hidePlus();
         hideOverlay();
     }
     GAZER_INFO << "LookToScroll scroll" << (suspended ? "SUSPENDED" : "resumed");
@@ -388,13 +429,64 @@ void LookToScroll::setFalloffPx(int px)
 void LookToScroll::setMaxNotchesPerSec(double n)
 {
     m_maxNotchesPerSec = snapLtsSpeed(n);
+    if (m_plusOpen) {
+        pushPlusOverlay(m_plusLayout, m_plusBand, m_plusSlice, m_plusDwell.progress());
+    }
 }
 
 void LookToScroll::setAccent(const QColor& c)
 {
+    m_accent = c;
     if (m_overlay) {
         m_overlay->setAccent(c);
     }
+}
+
+void LookToScroll::setRadii(int innerPx, int sharedPx, int outerPx)
+{
+    double inner = double(innerPx);
+    double shared = double(sharedPx);
+    double outer = double(outerPx);
+    ComboMouseHit::clampRadii(inner, shared, outer);
+    m_innerPx = inner;
+    m_sharedPx = shared;
+    m_outerPx = outer;
+    if (m_plusOpen) {
+        pushPlusOverlay(plusLayout(), m_plusBand, m_plusSlice, m_plusDwell.progress());
+    }
+}
+
+void LookToScroll::setAnnulusColors(const QColor& inner, const QColor& outer)
+{
+    if (inner.isValid()) {
+        m_innerColor = inner;
+    }
+    if (outer.isValid()) {
+        m_outerColor = outer;
+    }
+    if (m_plusOpen) {
+        pushPlusOverlay(m_plusLayout, m_plusBand, m_plusSlice, m_plusDwell.progress());
+    }
+}
+
+void LookToScroll::setScanGraceMs(int ms)
+{
+    m_plusDwell.setScanGraceMs(ms);
+}
+
+void LookToScroll::setDwellGraceMs(int ms)
+{
+    m_plusDwell.setInvalidGraceMs(ms);
+}
+
+void LookToScroll::setDwellMs(int ms)
+{
+    m_plusDwell.setDwellMs(ms);
+}
+
+void LookToScroll::setDwellSequence(const QVector<int>& ms)
+{
+    m_plusDwell.setDwellSequence(ms);
 }
 
 void LookToScroll::setAccelPerSec(double a)
@@ -424,6 +516,14 @@ void LookToScroll::hideOverlay()
     }
 }
 
+void LookToScroll::hidePlus()
+{
+    m_plusDwell.leave();
+    if (m_plus) {
+        m_plus->hide();
+    }
+}
+
 void LookToScroll::showPausedHub()
 {
     if (!m_overlay) {
@@ -439,7 +539,13 @@ void LookToScroll::openPlus(bool leaveGate)
     m_lookAwaySec = 0.0;
     hideOverlay();
     m_plusOpen = true;
-    emit menuOpenRequested(originPoint(), leaveGate);
+    m_plusDwell.leave();
+    m_plusGateId = leaveGate ? QLatin1String(ltsMenuActionId(LtsMenuAction::Resume)) : QString();
+    const ComboMouseHit::Layout L = plusLayout();
+    m_plusLayout = L;
+    m_plusBand = ComboMouseHit::Band::Deadzone;
+    m_plusSlice = ComboMouseHit::Slice::Right;
+    pushPlusOverlay(L, m_plusBand, m_plusSlice, 0.0);
 }
 
 void LookToScroll::closePlus()
@@ -449,18 +555,85 @@ void LookToScroll::closePlus()
     }
     m_plusOpen = false;
     m_lookAwaySec = 0.0;
-    emit menuCloseRequested();
+    m_plusGateId.clear();
+    hidePlus();
 }
 
-bool LookToScroll::gazeOnPlus(const GazePoint& point) const
+QRectF LookToScroll::plusScreenRect() const
 {
-    if (!point.valid) {
+    return QRectF(overlayScreenGeometry());
+}
+
+ComboMouseHit::Layout LookToScroll::plusLayout() const
+{
+    return ComboMouseHit::makeLayout(QPointF(originPoint()), plusScreenRect(), m_innerPx,
+                                     m_sharedPx, m_outerPx);
+}
+
+void LookToScroll::pushPlusOverlay(const ComboMouseHit::Layout& L, ComboMouseHit::Band band,
+                                   ComboMouseHit::Slice slice, double dwellProg)
+{
+    if (!m_plus || !m_plusOpen) {
+        return;
+    }
+    m_plusLayout = L;
+    m_plusBand = band;
+    m_plusSlice = slice;
+    PieOverlay::Appearance a;
+    a.layout = L;
+    a.band = band;
+    a.slice = slice;
+    a.dwellProg = dwellProg;
+    a.accent = m_accent;
+    a.theme = m_theme;
+    a.innerColor = m_innerColor;
+    a.outerColor = m_outerColor;
+    fillLtsSliceIcons(m_scrollMode, a.sliceIcons);
+    a.hubLabel = QString::number(int(qRound(m_maxNotchesPerSec)));
+    a.innerActive =
+        band == ComboMouseHit::Band::Deadzone || band == ComboMouseHit::Band::Drift;
+    m_plus->setAppearance(a);
+    m_plus->place(originPoint(), plusScreenRect());
+}
+
+QString LookToScroll::plusHitId(ComboMouseHit::Band band, ComboMouseHit::Slice slice)
+{
+    return QLatin1String(ltsMenuActionId(ltsMenuActionFromHit(band, slice)));
+}
+
+void LookToScroll::firePlusAction(LtsMenuAction action)
+{
+    switch (action) {
+    case LtsMenuAction::Resume:
+        resumeScroll();
+        break;
+    case LtsMenuAction::Faster:
+        nudgeMaxSpeed(+1);
+        break;
+    case LtsMenuAction::Slower:
+        nudgeMaxSpeed(-1);
+        break;
+    case LtsMenuAction::Reset:
+        requestReset();
+        break;
+    case LtsMenuAction::Quit:
+        setEnabled(false);
+        break;
+    case LtsMenuAction::CycleMode:
+        cycleScrollMode();
+        break;
+    case LtsMenuAction::None:
+        break;
+    }
+}
+
+bool LookToScroll::containsGaze(const GazePoint& point) const
+{
+    if (!m_plusOpen || !point.valid) {
         return false;
     }
-    if (!m_menuContains) {
-        return true;
-    }
-    return m_menuContains(point.toPointF());
+    const auto h = ComboMouseHit::hit(point.toPointF(), QPointF(originPoint()), plusLayout());
+    return h.band != ComboMouseHit::Band::None;
 }
 
 void LookToScroll::updateOverlay(const QPoint& center, double gazeDist, double dirX, double dirY,
@@ -498,14 +671,38 @@ void LookToScroll::updatePausedMenu(const GazePoint& point)
                            : qBound(0.004, (now - m_lastSampleMs) / 1000.0, 0.05);
     m_lastSampleMs = now;
 
+    GazePoint gp = point;
+    if (gp.timestampMs <= 0) {
+        gp.timestampMs = now;
+    }
+
     if (m_plusOpen) {
         hideOverlay();
-        if (gazeOnPlus(point)) {
+        const ComboMouseHit::Layout L = plusLayout();
+        if (containsGaze(point)) {
             m_lookAwaySec = 0.0;
+            pinCursorToOrigin();
+            const auto h = ComboMouseHit::hit(gp.toPointF(), QPointF(originPoint()), L);
+            const QString id = plusHitId(h.band, h.slice);
+            if (!m_plusGateId.isEmpty()) {
+                if (id == m_plusGateId) {
+                    m_plusDwell.leave();
+                    pushPlusOverlay(L, h.band, h.slice, 0.0);
+                    return;
+                }
+                m_plusGateId.clear();
+            }
+            m_plusDwell.onGazeSample(gp, id);
+            if (!m_plusOpen) {
+                return;
+            }
+            pushPlusOverlay(L, h.band, h.slice, m_plusDwell.progress());
             return;
         }
+        m_plusDwell.leave();
         m_lookAwaySec += sampleDt;
         if (m_lookAwaySec < kLtsPlusDismissGraceSec) {
+            pushPlusOverlay(L, ComboMouseHit::Band::None, ComboMouseHit::Slice::Right, 0.0);
             return;
         }
         closePlus();
@@ -630,8 +827,11 @@ void LookToScroll::onGaze(const GazePoint& point, bool pauseInput)
     const double nx = delta.x() / dist;
     const double ny = delta.y() / dist;
     const double rate = m_maxNotchesPerSec * PixelScroller::kPixelsPerNotch * t * accel;
-    m_accumV += (-ny) * rate * tickDt;
-    m_accumH += (nx)*rate * tickDt;
+    double dv = (-ny) * rate * tickDt;
+    double dh = (nx)*rate * tickDt;
+    applyLtsScrollMode(m_scrollMode, dv, dh);
+    m_accumV += dv;
+    m_accumH += dh;
 
     int v = 0;
     int h = 0;

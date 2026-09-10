@@ -14,7 +14,6 @@
 #include "utils/Log.h"
 
 #include <QPoint>
-#include <QPointF>
 #include <QRect>
 #include <utility>
 
@@ -162,31 +161,6 @@ void registerAssistCommands(AssistCommandContext& ctx)
                          }
                      });
 
-    constexpr auto kLtsMenuId = "lts_menu";
-    lts->setMenuContainsGaze([pages](QPointF g) {
-        return pages && pages->hitsPage(QLatin1String(kLtsMenuId), g);
-    });
-    QObject::connect(lts, &LookToScroll::menuOpenRequested, session,
-                     [pages](QPoint origin, bool leaveGate) {
-                         if (!pages) {
-                             return;
-                         }
-                         QString err;
-                         if (!pages->openPage(QLatin1String(kLtsMenuId), &err)) {
-                             GAZER_WARN << "LTS menu:" << err;
-                             return;
-                         }
-                         if (!pages->placeAttachedCenter(QLatin1String(kLtsMenuId), origin,
-                                                         leaveGate)) {
-                             GAZER_WARN << "LTS menu: could not place at origin";
-                         }
-                     });
-    QObject::connect(lts, &LookToScroll::menuCloseRequested, session, [pages]() {
-        if (pages) {
-            pages->closePage(QLatin1String(kLtsMenuId));
-        }
-    });
-
     QObject::connect(lts, &LookToScroll::enabledChanged, session, [session, notify](bool on) {
         if (on) {
             if (session->mode() != Mode::LookToScrollPlaceCursor) {
@@ -330,6 +304,10 @@ void registerAssistCommands(AssistCommandContext& ctx)
     });
     commands->registerBuiltin(QStringLiteral("lts.reset"), [lts](QString*) {
         lts->requestReset();
+        return true;
+    });
+    commands->registerBuiltin(QStringLiteral("lts.cycleMode"), [lts](QString*) {
+        lts->cycleScrollMode();
         return true;
     });
     commands->registerBuiltin(

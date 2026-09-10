@@ -3,6 +3,7 @@
 #include "assist/ComboMouseHit.h"
 #include "assist/GazeFollowProfile.h"
 #include "assist/LtsIndicator.h"
+#include "assist/LtsScrollMode.h"
 #include "layout/ProgressStyle.h"
 #include "ui/Theme.h"
 #include "ui/ThemeScheme.h"
@@ -93,6 +94,8 @@ struct AppSettings {
     double ltsAccelPerSec = 0.45;
     int ltsCenterDwellMs = 700;
     LtsIndicator ltsIndicatorStyle = LtsIndicator::Filled;
+    /// Gaze-scroll axes: vertical, horizontal, or both.
+    LtsScrollMode ltsScrollMode = LtsScrollMode::Both;
 
     // --- ComboMouse (inner drift annulus + outer command annulus) ---
     /// Inner radius of the drift ring (px). Hole / deadzone.

@@ -40,8 +40,8 @@
         anchor="Center" offset="0,0" size="480,220" style="quitPrompt"
         gap="12" margin="16" layers="3" shell="true">
     <Cell id="prompt" row="0" col="0" colSpan="2" label="Quit Gazer?" role="label" background="#ee222222"/>
-    <Cell id="yes_quit" row="1" col="0" label="Yes" icon="YesNoCheck" style="quitYes" command="quitApp"/>
-    <Cell id="no_stay" row="1" col="1" label="No" icon="YesNoX" style="quitNo">
+    <Cell id="yes_quit" row="1" col="0" label="Yes" icon="check" style="quitYes" command="quitApp"/>
+    <Cell id="no_stay" row="1" col="1" label="No" icon="close" style="quitNo">
       <ShowLayers value="1,2"/>
     </Cell>
   </Grid>

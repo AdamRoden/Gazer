@@ -23,7 +23,8 @@ bool AssistSession::pausesGazeFollow() const
 
 bool AssistSession::overlayHasGazePriority() const
 {
-    return m_mode == Mode::ComboMouse || m_mode == Mode::MagPickPoint;
+    return m_mode == Mode::ComboMouse || m_mode == Mode::MagPickPoint
+           || m_mode == Mode::LookToScroll;
 }
 
 bool AssistSession::isMouseDwellFamily(Mode m)

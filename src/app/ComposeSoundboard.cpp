@@ -68,7 +68,7 @@ void ComposeUi::fillSoundboard(PageDocument& doc) const
     }
     if (PageCell* edit = doc.findCell(QStringLiteral("editPins"))) {
         edit->label = editMode() ? QStringLiteral("Done") : QStringLiteral("Edit");
-        edit->icon = editMode() ? QStringLiteral("YesNoCheck") : QStringLiteral("edit");
+        edit->icon = editMode() ? QStringLiteral("check") : QStringLiteral("edit");
         edit->actions.clear();
         edit->actions.push_back(
             commandAction(editMode() ? QStringLiteral("compose.cancelAssign")

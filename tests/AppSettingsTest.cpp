@@ -2,6 +2,7 @@
 #include "assist/ComboMouseHit.h"
 #include "assist/GazeFollowProfile.h"
 #include "assist/LtsIndicator.h"
+#include "assist/LtsScrollMode.h"
 #include "ui/PickStyle.h"
 #include "ui/ThemeScheme.h"
 
@@ -81,6 +82,7 @@ void AppSettingsTest::factoryUsesDomainConstants()
     QCOMPARE(s.comboOuterColor, AppSettings::colorToHex(ComboMouseHit::kDefaultOuterFill));
     QCOMPARE(s.magFollowProfile, GazeFollowProfile::Sticky);
     QCOMPARE(s.ltsIndicatorStyle, LtsIndicator::Filled);
+    QCOMPARE(s.ltsScrollMode, LtsScrollMode::Both);
     QCOMPARE(s.themeAppearance, ThemeAppearance::Dark);
     QVERIFY(s.themeCustom);
     QCOMPARE(s.themePrimaryIndex, kThemeDefaultBrandIndex);

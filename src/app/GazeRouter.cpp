@@ -21,12 +21,14 @@ void GazeRouter::dispatch(const GazePoint& point)
     }
 
     const bool freeAim = m_session && m_session->freesScreenForAim();
-    // Combo / mag-pick HWNDs sit in front of PageHostWindow; gaze on them still
-    // geometrically hits the dock. The overlay owns the sample.
+    // Combo / mag-pick / LTS pie HWNDs sit in front of PageHostWindow; gaze on
+    // them still geometrically hits the dock. The overlay owns the sample.
     const bool overCombo = m_comboMouse && m_comboMouse->containsGaze(point);
     const bool overMagPick = m_mouseDwell && m_mouseDwell->containsGaze(point);
-    const bool overFrontOverlay = m_session && m_session->overlayHasGazePriority()
-                                  && (overCombo || overMagPick);
+    const bool overLts = m_lookToScroll && m_lookToScroll->containsGaze(point);
+    const bool overFrontOverlay =
+        m_session && m_session->overlayHasGazePriority()
+        && (overCombo || overMagPick || overLts);
 
     bool overBoard = false;
     if (overFrontOverlay) {
@@ -50,7 +52,7 @@ void GazeRouter::dispatch(const GazePoint& point)
         m_gazeFollow->onGaze(point, /*pauseInput=*/pauseFollow);
     }
     if (m_lookToScroll) {
-        m_lookToScroll->onGaze(point, pauseBackgroundAssist);
+        m_lookToScroll->onGaze(point, pauseBackgroundAssist && !overLts);
     }
     if (m_comboMouse) {
         m_comboMouse->onGaze(point, dwellOff || (pauseBackgroundAssist && !overCombo));

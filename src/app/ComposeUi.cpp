@@ -601,7 +601,7 @@ void ComposeUi::stampComposerChrome(PageDocument& doc) const
 
     if (PageCell* speak = doc.findCell(QStringLiteral("speak"))) {
         speak->label = QStringLiteral("Save");
-        speak->icon = QStringLiteral("YesNoCheck");
+        speak->icon = QStringLiteral("check");
         speak->style.background = ok;
         speak->style.foreground = QColor(255, 255, 255);
         speak->activeState.clear();

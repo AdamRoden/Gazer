@@ -19,6 +19,8 @@
 
 namespace gazer {
 
+class PieOverlay;
+
 /// Gaze pie HUD: dwell to place, then deadzone / inner drift annulus / outer command annulus.
 class ComboMouse final : public QObject {
     Q_OBJECT
@@ -63,8 +65,6 @@ signals:
     void placeRequested();
 
 private:
-    class WheelOverlay;
-
     [[nodiscard]] ComboMouseHit::Layout layout() const;
     [[nodiscard]] QRectF screenRect() const;
     void hideWheel();
@@ -102,7 +102,7 @@ private:
     DwellStateMachine m_dwell;
     QPointF m_nudgeDir;
     QElapsedTimer m_clock;
-    std::unique_ptr<WheelOverlay> m_overlay;
+    std::unique_ptr<PieOverlay> m_overlay;
 };
 
 } // namespace gazer

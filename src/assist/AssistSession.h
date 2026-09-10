@@ -31,7 +31,7 @@ public:
     [[nodiscard]] bool blocksBoards() const { return freesScreenForAim(); }
     /// Pause gaze→mouse follow (aim modes plus ComboMouse while the wheel is up).
     [[nodiscard]] bool pausesGazeFollow() const;
-    /// ComboMouse wheel or mag-pick window owns the sample; boards must not dwell it.
+    /// ComboMouse wheel, mag-pick window, or LTS pie owns the sample; boards must not dwell it.
     [[nodiscard]] bool overlayHasGazePriority() const;
 
     /// Modes that share MouseDwellMove (direct / place-cursor / mag-pick).

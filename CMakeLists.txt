@@ -110,6 +110,7 @@ set(GAZER_SOURCES
     src/assist/AhkLauncher.cpp
     src/assist/LookToScroll.cpp
     src/assist/ComboMouse.cpp
+    src/assist/PieOverlay.cpp
     src/assist/MouseDwellMove.cpp
     src/assist/MouseDwellMoveMag.cpp
     src/assist/MouseAssistState.cpp
@@ -224,8 +225,11 @@ set(GAZER_HEADERS
     src/assist/LookToScroll.h
     src/assist/ComboMouse.h
     src/assist/ComboMouseHit.h
+    src/assist/PieOverlay.h
     src/assist/LtsSpeed.h
     src/assist/LtsIndicator.h
+    src/assist/LtsScrollMode.h
+    src/assist/LtsMenu.h
     src/assist/MouseDwellMove.h
     src/assist/MouseAssistState.h
     src/assist/GazeReticle.h
@@ -435,6 +439,7 @@ add_executable(GazerPageTests
     tests/ScrollBarTest.cpp
     src/ui/ScrollBar.cpp
     tests/ComboMouseTest.cpp
+    tests/LookToScrollTest.cpp
     tests/AhkLauncherTest.cpp
     tests/KeyStateManagerTest.cpp
     src/input/KeyStateManager.cpp

@@ -178,20 +178,6 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
     m_settingsUi->setResetFn([this]() { resetSettingsToDefaults(); });
 
     m_pages->setDecorate([this](PageDocument& doc) {
-        if (doc.id == QLatin1String("lts_menu")) {
-            doc.dwell.scanGrace = qMax(0, m_settings.scanGraceMs);
-            doc.dwell.activation = QVector<int>{m_settings.ltsCenterDwellMs};
-            const QString speed =
-                QString::number(int(qRound(m_settings.ltsMaxNotchesPerSec)));
-            for (PageGrid& g : doc.grids) {
-                for (PageCell& c : g.cells) {
-                    if (c.id == QLatin1String("hub")) {
-                        c.label = speed;
-                    }
-                }
-            }
-            return;
-        }
         m_settingsUi->decoratePage(doc);
         if (m_compose) {
             m_compose->decoratePage(doc);
@@ -256,6 +242,16 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
             [this](double n) {
                 m_settings.ltsMaxNotchesPerSec = n;
                 applySettings(true);
+            });
+    connect(m_lookToScroll.get(), &LookToScroll::scrollModeChanged, this,
+            [this](LtsScrollMode mode) {
+                if (m_settings.ltsScrollMode == mode) {
+                    return;
+                }
+                m_settings.ltsScrollMode = mode;
+                applySettings(true);
+                notifyStatus(QStringLiteral("Look↕Scroll: %1")
+                                 .arg(QLatin1String(ltsScrollModeName(mode))));
             });
     connect(m_mouseDwellMove.get(), &MouseDwellMove::armedChanged, this,
             [this](bool) { refreshActiveIndicators(); });
@@ -441,16 +437,23 @@ void GazerServices::applySettings(bool persist)
     m_lookToScroll->setAccelPerSec(m_settings.ltsAccelPerSec);
     m_lookToScroll->setCenterDwellMs(m_settings.ltsCenterDwellMs);
     m_lookToScroll->setIndicatorStyle(m_settings.ltsIndicatorStyle);
+    m_lookToScroll->setScrollMode(m_settings.ltsScrollMode);
 
     m_comboMouse->setAccent(boardPv.progressColor);
-    m_comboMouse->setTheme(m_settings.resolvedTheme());
-    m_comboMouse->setRadii(m_settings.comboInnerRadiusPx, m_settings.comboSharedRadiusPx,
-                           m_settings.comboOuterRadiusPx);
-    m_comboMouse->setAnnulusColors(m_settings.colorKey(QStringLiteral("comboInnerColor")),
-                                   m_settings.colorKey(QStringLiteral("comboOuterColor")));
-    m_comboMouse->setScanGraceMs(m_settings.scanGraceMs);
-    m_comboMouse->setDwellGraceMs(m_settings.dwellGraceMs);
-    m_comboMouse->setDwellSequence(m_settings.dwellSequence);
+    const ThemeColors theme = m_settings.resolvedTheme();
+    const QColor comboInner = m_settings.colorKey(QStringLiteral("comboInnerColor"));
+    const QColor comboOuter = m_settings.colorKey(QStringLiteral("comboOuterColor"));
+    auto applyPieChrome = [&](auto* pie) {
+        pie->setTheme(theme);
+        pie->setRadii(m_settings.comboInnerRadiusPx, m_settings.comboSharedRadiusPx,
+                      m_settings.comboOuterRadiusPx);
+        pie->setAnnulusColors(comboInner, comboOuter);
+        pie->setScanGraceMs(m_settings.scanGraceMs);
+        pie->setDwellGraceMs(m_settings.dwellGraceMs);
+        pie->setDwellSequence(m_settings.dwellSequence);
+    };
+    applyPieChrome(m_lookToScroll.get());
+    applyPieChrome(m_comboMouse.get());
 
     m_magnifier->setZoom(m_settings.magZoom);
     m_magnifier->setLensSize(m_settings.magLensSize);

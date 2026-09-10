@@ -2,6 +2,7 @@
 
 #include "assist/GazeFollowProfile.h"
 #include "assist/LtsIndicator.h"
+#include "assist/LtsScrollMode.h"
 #include "ui/Theme.h"
 #include "utils/Log.h"
 
@@ -181,6 +182,8 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
     ltsCenterDwellMs = o.value(QStringLiteral("ltsCenterDwellMs")).toInt(ltsCenterDwellMs);
     ltsIndicatorStyle =
         ltsIndicatorFromInt(o.value(QStringLiteral("ltsIndicatorStyle")).toInt(int(ltsIndicatorStyle)));
+    ltsScrollMode =
+        ltsScrollModeFromInt(o.value(QStringLiteral("ltsScrollMode")).toInt(int(ltsScrollMode)));
     comboInnerRadiusPx = o.value(QStringLiteral("comboInnerRadiusPx")).toInt(comboInnerRadiusPx);
     comboSharedRadiusPx = o.value(QStringLiteral("comboSharedRadiusPx")).toInt(comboSharedRadiusPx);
     comboOuterRadiusPx = o.value(QStringLiteral("comboOuterRadiusPx")).toInt(comboOuterRadiusPx);
@@ -356,6 +359,7 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     o.insert(QStringLiteral("ltsAccelPerSec"), copy.ltsAccelPerSec);
     o.insert(QStringLiteral("ltsCenterDwellMs"), copy.ltsCenterDwellMs);
     o.insert(QStringLiteral("ltsIndicatorStyle"), int(copy.ltsIndicatorStyle));
+    o.insert(QStringLiteral("ltsScrollMode"), int(copy.ltsScrollMode));
     o.insert(QStringLiteral("comboInnerRadiusPx"), copy.comboInnerRadiusPx);
     o.insert(QStringLiteral("comboSharedRadiusPx"), copy.comboSharedRadiusPx);
     o.insert(QStringLiteral("comboOuterRadiusPx"), copy.comboOuterRadiusPx);
