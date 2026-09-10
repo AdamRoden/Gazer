@@ -46,7 +46,7 @@ File → New asks for id, name, and a template (blank, full keyboard, keyboard r
 - Windows
 - CMake ≥ 3.21
 - Qt 6 (Core, Gui, Widgets, Qml, Quick) — tested with 6.11.1 MinGW
-- Optional: [Tobii Stream Engine](https://developer.tobii.com/) headers under `third_party/tobii/include` and `tobii_stream_engine.dll` on the machine. Without hardware, Gazer uses the mouse tracker.
+- Optional: [Tobii Stream Engine](https://developer.tobii.com/) headers under `third_party/` (`tobii.h`, `tobii_streams.h`) and `tobii_stream_engine.dll` on the machine. Without hardware, Gazer uses the mouse tracker.
 
 ## Build and run
 

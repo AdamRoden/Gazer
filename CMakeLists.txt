@@ -26,11 +26,11 @@ if(WIN32 AND CMAKE_CXX_COMPILER)
     endif()
 endif()
 
-set(GAZER_TOBII_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/third_party/tobii/include")
+set(GAZER_TOBII_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/third_party")
 set(GAZER_TOBII_EFFECTIVE OFF)
 
 if(GAZER_USE_TOBII)
-    if(EXISTS "${GAZER_TOBII_INCLUDE_DIR}/tobii/tobii.h")
+    if(EXISTS "${GAZER_TOBII_INCLUDE_DIR}/tobii.h")
         set(GAZER_TOBII_EFFECTIVE ON)
         message(STATUS "Tobii Stream Engine headers: ${GAZER_TOBII_INCLUDE_DIR}")
     endif()

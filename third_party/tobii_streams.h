@@ -1,7 +1,7 @@
 /* Gaze point stream declarations for Stream Engine. */
 #pragma once
 
-#include "tobii/tobii.h"
+#include "tobii.h"
 
 #ifdef __cplusplus
 extern "C" {

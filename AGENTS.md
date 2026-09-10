@@ -80,7 +80,7 @@ These dump context and almost never help a code change:
 
 - `resources/icons/svg/*.svg` (icon catalog; `ui/KeySymbols.cpp` loads stems at runtime)
 - `resources/icons/*.png`, `resources/models/head.obj`
-- `third_party/tobii/**` (vendor headers)
+- `third_party/tobii.h`, `third_party/tobii_streams.h` (vendor ABI mirrors)
 - `dist/`, `build/`, `gazer.log`
 - `.gitignore` (stock Visual Studio template)
 
