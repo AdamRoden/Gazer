@@ -24,7 +24,6 @@ namespace PageDimParse {
 [[nodiscard]] QString token(const PageTrackSize& t);
 [[nodiscard]] QString tokenList(const QVector<PageTrackSize>& tracks);
 [[nodiscard]] QPoint anchorDelta(PageAnchor a, int amount);
-[[nodiscard]] bool boolWord(QStringView t, bool defaultValue = false);
 [[nodiscard]] bool strictBool(QStringView t, bool* out);
 
 /// Place a box of `size` at `anchor` on `bounds`, then add `offset`.

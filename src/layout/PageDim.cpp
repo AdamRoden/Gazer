@@ -920,18 +920,6 @@ bool strictBool(QStringView t, bool* out)
     return false;
 }
 
-bool boolWord(QStringView t, bool defaultValue)
-{
-    if (t.trimmed().isEmpty()) {
-        return defaultValue;
-    }
-    bool v = false;
-    if (strictBool(t, &v)) {
-        return v;
-    }
-    return false;
-}
-
 QRectF placeRect(const QRectF& bounds, PageAnchor anchor, const PageDimPair& offset,
                  const PageDimPair& size, const QSizeF& screen)
 {

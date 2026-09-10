@@ -343,11 +343,11 @@ void SettingsLayoutTest::choiceAndToggleRoles()
     QCOMPARE(accents->col, 1);
     QCOMPARE(doc.findCell(QStringLiteral("h_surfaces"))->label,
              QStringLiteral("Background and Surface"));
-    QCOMPARE(doc.findCell(QStringLiteral("h_accents"))->label, QStringLiteral("Accent and Progress"));
+    QCOMPARE(doc.findCell(QStringLiteral("h_accents"))->label, QStringLiteral("Accent Colors"));
     QCOMPARE(doc.findCell(QStringLiteral("h_suggestions"))->label,
-             QStringLiteral("Secondary suggestions"));
-    QCOMPARE(doc.findCell(QStringLiteral("h_primary"))->label, QStringLiteral("Primary accent color"));
-    QCOMPARE(doc.findCell(QStringLiteral("h_progress"))->label, QStringLiteral("Progress"));
+             QStringLiteral("Recommended Progress Choices"));
+    QCOMPARE(doc.findCell(QStringLiteral("pc"))->label, QStringLiteral("Highlight"));
+    QCOMPARE(doc.findCell(QStringLiteral("sc"))->label, QStringLiteral("Progress"));
     for (int i = 0; i < 5; ++i) {
         const PageCell* shade = doc.findCell(QStringLiteral("shade_bg_%1").arg(i));
         QVERIFY2(shade, qPrintable(QStringLiteral("shade_bg_%1").arg(i)));
@@ -384,15 +384,15 @@ void SettingsLayoutTest::choiceAndToggleRoles()
     QVERIFY(!doc.findGrid(QStringLiteral("row_pal_triadic2")));
     const PageGrid* palPrimary = doc.findGrid(QStringLiteral("row_pal_primary"));
     QVERIFY(palPrimary);
-    QCOMPARE(palPrimary->columns, 11);
+    QCOMPARE(palPrimary->columns, 9);
     QCOMPARE(palPrimary->gapPx, 0);
     QCOMPARE(doc.findCell(QStringLiteral("h_pal_primary"))->label, QStringLiteral("Primary"));
     QCOMPARE(doc.findCell(QStringLiteral("h_pal_complementary"))->label,
              QStringLiteral("Complementary"));
-    QCOMPARE(doc.findCell(QStringLiteral("h_pal_analogous1"))->label, QStringLiteral("Analogous"));
-    QCOMPARE(doc.findCell(QStringLiteral("h_pal_analogous2"))->label, QString());
-    QCOMPARE(doc.findCell(QStringLiteral("h_pal_tertiary1"))->label, QStringLiteral("Tertiary"));
-    QCOMPARE(doc.findCell(QStringLiteral("h_pal_tertiary2"))->label, QString());
+    QCOMPARE(doc.findCell(QStringLiteral("h_pal_analogous1"))->label, QStringLiteral("Analogous 1"));
+    QCOMPARE(doc.findCell(QStringLiteral("h_pal_analogous2"))->label, QStringLiteral("Analogous 2"));
+    QCOMPARE(doc.findCell(QStringLiteral("h_pal_tertiary1"))->label, QStringLiteral("Tertiary 1"));
+    QCOMPARE(doc.findCell(QStringLiteral("h_pal_tertiary2"))->label, QStringLiteral("Tertiary 2"));
     QCOMPARE(doc.findGrid(QStringLiteral("row_pal_analogous1"))->row + 1,
              doc.findGrid(QStringLiteral("row_pal_analogous2"))->row);
     QCOMPARE(doc.findGrid(QStringLiteral("row_pal_analogous2"))->row + 1,

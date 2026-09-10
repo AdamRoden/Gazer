@@ -1,46 +1,41 @@
 #include "input/VirtualGamepad.h"
 
-#include "utils/Log.h"
-
 namespace gazer {
+
+namespace {
+
+bool failUnavailable(QString* error)
+{
+    if (error) {
+        *error = QStringLiteral("Virtual gamepad is not available (ViGEm not built)");
+    }
+    return false;
+}
+
+} // namespace
 
 bool VirtualGamepad::ensureConnected(QString* error)
 {
-    // TODO: ViGEmBus + ViGEmClient when third_party/vigem is present.
-    if (!m_connected) {
-        m_connected = true;
-        m_backend = QStringLiteral("stub");
-        GAZER_INFO << "VirtualGamepad: using stub backend (no ViGEm yet)";
-    }
-    Q_UNUSED(error);
-    return true;
+    return failUnavailable(error);
 }
 
 bool VirtualGamepad::pressButton(const QString& button, QString* error)
 {
-    if (!ensureConnected(error)) {
-        return false;
-    }
-    GAZER_INFO << "[gamepad stub] press" << button;
-    return true;
+    Q_UNUSED(button);
+    return failUnavailable(error);
 }
 
 bool VirtualGamepad::releaseButton(const QString& button, QString* error)
 {
-    if (!ensureConnected(error)) {
-        return false;
-    }
-    GAZER_INFO << "[gamepad stub] release" << button;
-    return true;
+    Q_UNUSED(button);
+    return failUnavailable(error);
 }
 
 bool VirtualGamepad::setAxis(const QString& axis, double value, QString* error)
 {
-    if (!ensureConnected(error)) {
-        return false;
-    }
-    GAZER_INFO << "[gamepad stub] axis" << axis << "=" << value;
-    return true;
+    Q_UNUSED(axis);
+    Q_UNUSED(value);
+    return failUnavailable(error);
 }
 
 } // namespace gazer

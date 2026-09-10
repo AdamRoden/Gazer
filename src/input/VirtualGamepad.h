@@ -5,12 +5,12 @@
 namespace gazer {
 
 /// Virtual XInput-style gamepad backend.
-/// Phase 3: logs intents. Phase 3+ can load ViGEmClient without changing callers.
+/// Stub until ViGEm is wired: every call fails so mapping does not look successful.
 class VirtualGamepad {
 public:
     VirtualGamepad() = default;
 
-    /// Connect / create virtual pad. Returns false if unavailable (stub always "ok" as log-only).
+    /// Connect / create virtual pad. Returns false until a real backend exists.
     [[nodiscard]] bool ensureConnected(QString* error = nullptr);
 
     [[nodiscard]] bool pressButton(const QString& button, QString* error = nullptr);

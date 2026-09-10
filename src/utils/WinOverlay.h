@@ -120,10 +120,13 @@ enum class OverlayLayer {
 
 /// Front of the TOPMOST band via HWND_TOP. Never HWND_NOTOPMOST.
 /// Same-process / owned windows are ignored. Returns true if z-order changed.
+/// Prefer restackGazerBand for Gazer chrome — a single HWND_TOP can put the
+/// host in front of mag-pick.
 bool raiseInTopmostBand(QWindow* w);
 
-/// Rebuild the Gazer TOPMOST band back-to-front. No-op when order is already
-/// correct and no foreign window occludes any Gazer HWND (avoids flashing).
+/// Rebuild the Gazer TOPMOST band back-to-front (HWND_TOP, already TOPMOST).
+/// No-op when order is already correct and no foreign window occludes any
+/// Gazer HWND (avoids flashing).
 void restackGazerBand();
 
 /// Tool overlays are Win32-owned by this host so they stay above it.

@@ -369,13 +369,14 @@ void applyGazerBandOrder()
     for (HWND hwnd : band) {
         ensureTopmostStyle(hwnd);
     }
+    // HWND_TOPMOST is a no-op among windows that already have WS_EX_TOPMOST.
+    // HWND_TOP reorders inside the TOPMOST band without dropping the bit.
     // One DeferWindowPos so the host does not paint over mag-pick / overlays
-    // between sequential HWND_TOPMOST raises (looks like the mag window
-    // opening twice). Last hwnd is the front of the Gazer band.
+    // between sequential raises. Last hwnd is the front of the Gazer band.
     HDWP hdwp = BeginDeferWindowPos(band.size());
     if (hdwp) {
         for (HWND hwnd : band) {
-            hdwp = DeferWindowPos(hdwp, hwnd, HWND_TOPMOST, 0, 0, 0, 0, kZFlags);
+            hdwp = DeferWindowPos(hdwp, hwnd, HWND_TOP, 0, 0, 0, 0, kZFlags);
             if (!hdwp) {
                 break;
             }
@@ -386,7 +387,7 @@ void applyGazerBandOrder()
         }
     }
     for (HWND hwnd : band) {
-        SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, kZFlags);
+        SetWindowPos(hwnd, HWND_TOP, 0, 0, 0, 0, kZFlags);
     }
 }
 #endif
