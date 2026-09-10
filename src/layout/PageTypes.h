@@ -314,18 +314,14 @@ struct PageAction {
 };
 
 /// Default dwell for keys, mouse inject, composer typing, AHK, and mapping commands.
-/// Settings / nav / assist toggles use designer dwell instead.
+/// Settings / nav / assist toggles / composer word chips use designer dwell instead.
 [[nodiscard]] inline bool isDailyDriverCommand(QStringView name)
 {
     const QString n = name.toString();
     if (n.isEmpty()) {
         return false;
     }
-    if (n.startsWith(QLatin1String("compose.removeWord."))
-        || n.startsWith(QLatin1String("compose.moveEndOfWord."))
-        || n.startsWith(QLatin1String("compose.moveStartOfWord."))
-        || n == QLatin1String("compose.backspace")
-        || n == QLatin1String("compose.deleteWord")) {
+    if (n == QLatin1String("compose.backspace") || n == QLatin1String("compose.deleteWord")) {
         return true;
     }
     if (n.startsWith(QLatin1String("settings.")) || n.startsWith(QLatin1String("theme."))

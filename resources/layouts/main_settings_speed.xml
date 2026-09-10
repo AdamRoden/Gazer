@@ -63,7 +63,7 @@
     <SubGrid id="sec_daily" row="5" col="0" colSpan="16" rowSpan="3" rows="3" columns="1" rowWeights="1,2,2" gap="6" margin="6" style="group">
       <Cell id="h_daily" row="0" col="0" label="Daily driver dwell" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_daily_dwell" row="1" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="dd_dwell_label" row="0" col="0" label="Sequence" caption="Keys, mouse, composer, modifiers, and AHK. Last step repeats." role="label" style="plain"/>
+        <Cell id="dd_dwell_label" row="0" col="0" label="Sequence" caption="Keys, mouse, composer typing, modifiers, and AHK. Last step repeats." role="label" style="plain"/>
         <SubGrid id="act_daily_dwell" row="0" col="1" rows="1" columns="2" columnWidths="7*,2*" gap="0" style="row">
           <Cell id="dd_dwell_value" row="0" col="0" label="—" role="value" settingKey="dailyDwellMs" style="joinLeft"/>
           <Cell id="dd_dwell_edit" row="0" col="1" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.dailyDwellMs"/>
@@ -83,7 +83,7 @@
     <SubGrid id="sec_designer" row="8" col="0" colSpan="16" rowSpan="3" rows="3" columns="1" rowWeights="1,2,2" gap="6" margin="6" style="group">
       <Cell id="h_designer" row="0" col="0" label="Designer dwell" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_dwell" row="1" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="dwell_label" row="0" col="0" label="Sequence" caption="Settings, navigation, and other boards. Last step repeats." role="label" style="plain"/>
+        <Cell id="dwell_label" row="0" col="0" label="Sequence" caption="Settings, navigation, and composer word chips. Last step repeats." role="label" style="plain"/>
         <SubGrid id="act_dwell" row="0" col="1" rows="1" columns="2" columnWidths="7*,2*" gap="0" style="row">
           <Cell id="dwell_value" row="0" col="0" label="—" role="value" settingKey="dwellMs" style="joinLeft"/>
           <Cell id="dwell_edit" row="0" col="1" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.dwellMs"/>

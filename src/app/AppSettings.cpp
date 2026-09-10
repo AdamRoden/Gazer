@@ -685,13 +685,13 @@ QString AppSettings::settingDescription(const QString& key)
 {
     if (isDailySequenceKey(key)) {
         return QStringLiteral(
-            "Comma-separated daily-driver dwell times in ms (keys, mouse, composer, "
+            "Comma-separated daily-driver dwell times in ms (keys, mouse, composer typing, "
             "modifiers, AHK). Last step repeats. 0 fires immediately after scan grace.");
     }
     if (isSequenceKey(key)) {
         return QStringLiteral(
-            "Comma-separated designer dwell times in ms for settings, navigation, "
-            "and other non-input cells. Last step repeats.");
+            "Comma-separated designer dwell times in ms (settings, navigation, "
+            "composer word chips). Last step repeats.");
     }
     if (const IntSpec* s = findInt(key)) {
         return QLatin1String(s->hint);

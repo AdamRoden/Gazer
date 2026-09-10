@@ -792,6 +792,10 @@ void PageLoaderTest::loadComposePage()
     QCOMPARE(shift->actions[0].type, PageActionType::ShowLayers);
     QCOMPARE(shift->actions[0].layers, QVector<int>({2}));
     QCOMPARE(sym->actions[0].layers, QVector<int>({3}));
+    QVERIFY(!usesDailyDriverDwell(shift->actions, shift->phases));
+    const PageCell* chip = doc.findCell(QStringLiteral("chip_0"));
+    QVERIFY(chip);
+    QVERIFY(!usesDailyDriverDwell(chip->actions, chip->phases));
 }
 
 void PageLoaderTest::loadMainPage()

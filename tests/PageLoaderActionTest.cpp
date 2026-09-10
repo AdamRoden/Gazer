@@ -429,7 +429,12 @@ void PageLoaderActionTest::dailyDriverDwellClassification()
     QVERIFY(usesDailyDriverDwell({cmd(QStringLiteral("backspace"))}));
     QVERIFY(usesDailyDriverDwell({cmd(QStringLiteral("mouseLeftClick"))}));
     QVERIFY(usesDailyDriverDwell({cmd(QStringLiteral("compose.backspace"))}));
-    QVERIFY(usesDailyDriverDwell({cmd(QStringLiteral("compose.removeWord.3"))}));
+    QVERIFY(usesDailyDriverDwell({cmd(QStringLiteral("compose.deleteWord"))}));
+
+    PageAction show;
+    show.type = PageActionType::ShowLayers;
+    show.layers = {2};
+    QVERIFY(!usesDailyDriverDwell({show}));
 
     PageAction open;
     open.type = PageActionType::Nav;
@@ -438,8 +443,9 @@ void PageLoaderActionTest::dailyDriverDwellClassification()
     QVERIFY(!usesDailyDriverDwell({cmd(QStringLiteral("toggleLookToScroll"))}));
     QVERIFY(!usesDailyDriverDwell({cmd(QStringLiteral("compose.speak"))}));
     QVERIFY(!usesDailyDriverDwell({cmd(QStringLiteral("quitApp"))}));
-    QVERIFY(usesDailyDriverDwell({cmd(QStringLiteral("compose.moveEndOfWord.0"))}));
-    QVERIFY(usesDailyDriverDwell({cmd(QStringLiteral("compose.moveStartOfWord.1"))}));
+    QVERIFY(!usesDailyDriverDwell({cmd(QStringLiteral("compose.removeWord.3"))}));
+    QVERIFY(!usesDailyDriverDwell({cmd(QStringLiteral("compose.moveEndOfWord.0"))}));
+    QVERIFY(!usesDailyDriverDwell({cmd(QStringLiteral("compose.moveStartOfWord.1"))}));
 }
 
 void PageLoaderActionTest::parseDwellPhases()
@@ -467,7 +473,7 @@ void PageLoaderActionTest::parseDwellPhases()
     QCOMPARE(c->phases[0].actions[0].command, QStringLiteral("compose.moveEndOfWord.0"));
     QCOMPARE(c->phases[1].actions[0].command, QStringLiteral("compose.moveStartOfWord.0"));
     QCOMPARE(c->phases[2].actions[0].command, QStringLiteral("compose.removeWord.0"));
-    QVERIFY(usesDailyDriverDwell(c->actions, c->phases));
+    QVERIFY(!usesDailyDriverDwell(c->actions, c->phases));
 
     PageDocument round;
     QVERIFY2(PageLoader::loadFromXml(PageWriter::toBytes(doc), round, &err), qPrintable(err));

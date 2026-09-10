@@ -19,7 +19,7 @@ namespace gazer {
 struct AppSettings {
     // --- Timing ---
     /// Designer dwell steps (ms). Last step repeats while gaze holds.
-    /// Default for settings, navigation, and other non-input cells.
+    /// Default for settings, navigation, composer word chips, and other non-input cells.
     QVector<int> dwellSequence = defaultDwellSequence();
     /// Daily-driver dwell steps. Default for Send, mouse, composer typing, AHK, modifiers.
     QVector<int> dailyDwellSequence = defaultDailyDwellSequence();
