@@ -7,6 +7,7 @@
 #include "layout/PageTypes.h"
 #include "ui/PageHostWindow.h"
 #include "ui/MaterialPalette.h"
+#include "ui/ProgressVisuals.h"
 #include "ui/Theme.h"
 #include "ui/ThemeScheme.h"
 
@@ -188,6 +189,10 @@ void stampSettingVisuals(QString& label, bool interactive, const QString& settin
         sw = theme.bgSurface;
     } else if (settingKey == QLatin1String("themeForeground")) {
         sw = theme.text;
+    } else if (settingKey == QLatin1String("flashColor") && settings.flashUseForeground) {
+        ProgressVisuals pv;
+        pv.flashForegroundOpacity = settings.flashForegroundOpacity;
+        sw = pv.resolvedFlashColor(theme.text);
     } else if (!colorKey.isEmpty()) {
         sw = settings.colorKey(colorKey);
     }

@@ -50,6 +50,7 @@ private slots:
     void presetsComeFirst();
     void zoomLivesOnPointerNotLook();
     void choiceAndToggleRoles();
+    void themeHasFlashModes();
     void moreOpensAdvanced();
     void advancedHasHoldAndAutoclose();
 };
@@ -406,7 +407,33 @@ void SettingsLayoutTest::choiceAndToggleRoles()
     }
     QVERIFY(!doc.findCell(QStringLiteral("pal_primary_0")));
     QVERIFY(!doc.findCell(QStringLiteral("pal_analogous1_0")));
-    QVERIFY(!doc.findCell(QStringLiteral("fl_sw")));
+}
+
+void SettingsLayoutTest::themeHasFlashModes()
+{
+    PageDocument doc;
+    QString err;
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_theme"), doc, &err), qPrintable(err));
+    const PageGrid* surfaces = doc.findGrid(QStringLiteral("sec_surfaces"));
+    QVERIFY(surfaces);
+    QCOMPARE(surfaces->rows, 5);
+    const PageGrid* actFlash = doc.findGrid(QStringLiteral("act_flash"));
+    QVERIFY(actFlash);
+    QCOMPARE(actFlash->row, 4);
+    QCOMPARE(actFlash->columns, 3);
+    const PageCell* flFg = doc.findCell(QStringLiteral("fl_fg"));
+    const PageCell* flCustom = doc.findCell(QStringLiteral("fl_custom"));
+    const PageCell* flSw = doc.findCell(QStringLiteral("fl_sw"));
+    QVERIFY(flFg);
+    QVERIFY(flCustom);
+    QVERIFY(flSw);
+    QCOMPARE(flFg->role, QStringLiteral("choice"));
+    QCOMPARE(flCustom->role, QStringLiteral("choice"));
+    QCOMPARE(flSw->role, QStringLiteral("swatch"));
+    QCOMPARE(flSw->settingKey, QStringLiteral("flashColor"));
+    QCOMPARE(flFg->actions[0].command, QStringLiteral("settings.flash.foreground"));
+    QCOMPARE(flCustom->actions[0].command, QStringLiteral("settings.flash.custom"));
+    QCOMPARE(flSw->actions[0].command, QStringLiteral("settings.edit.color.flashColor"));
 }
 
 void SettingsLayoutTest::moreOpensAdvanced()
@@ -438,8 +465,13 @@ void SettingsLayoutTest::advancedHasHoldAndAutoclose()
              QStringLiteral("layoutAutoCloseIdleMs"));
     QCOMPARE(doc.findCell(QStringLiteral("ac_on"))->role, QStringLiteral("toggle"));
     QCOMPARE(doc.findCell(QStringLiteral("fd_val"))->settingKey, QStringLiteral("flashMs"));
-    QCOMPARE(doc.findCell(QStringLiteral("fl_sw"))->settingKey, QStringLiteral("flashColor"));
-    QCOMPARE(doc.findCell(QStringLiteral("fl_fg"))->role, QStringLiteral("choice"));
+    QVERIFY(!doc.findCell(QStringLiteral("fl_sw")));
+    QVERIFY(!doc.findCell(QStringLiteral("fl_fg")));
+    QVERIFY(!doc.findCell(QStringLiteral("fl_custom")));
+    const PageGrid* session = doc.findGrid(QStringLiteral("sec_session"));
+    QVERIFY(session);
+    QCOMPARE(session->rows, 4);
+    QCOMPARE(session->rowSpan, 4);
     QCOMPARE(doc.findCell(QStringLiteral("grace_val"))->settingKey, QStringLiteral("dwellGraceMs"));
     const PageGrid* tabs = doc.findGrid(QStringLiteral("tabs"));
     QVERIFY(tabs);

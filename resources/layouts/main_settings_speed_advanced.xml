@@ -6,7 +6,7 @@
   <Style id="joinLeft" background="#00000000" thickness="0" radius="10,0,0,10"/>
   <Style id="joinRight" background="#00000000" thickness="0" radius="0,10,10,0"/>
   <Style id="tabbar" thickness="0" radius="12"/>
-  <Grid id="board" desktopMode="true" rows="13" columns="16" anchor="Top" offset="0,0" size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" gap="6" margin="12" radius="16">
+  <Grid id="board" desktopMode="true" rows="12" columns="16" anchor="Top" offset="0,0" size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" gap="6" margin="12" radius="16">
     <SubGrid id="tabs" row="0" col="0" colSpan="16" rows="1" columns="8" gap="6" margin="4" style="tabbar">
       <Cell id="tab_speed" row="0" col="0" label="Speed" icon="timer" role="tab">
         <ClosePage/>
@@ -87,7 +87,7 @@
       </SubGrid>
     </SubGrid>
 
-    <SubGrid id="sec_session" row="8" col="0" colSpan="16" rowSpan="5" rows="5" columns="1" rowWeights="1,2,2,2,2" gap="6" margin="6" style="group">
+    <SubGrid id="sec_session" row="8" col="0" colSpan="16" rowSpan="4" rows="4" columns="1" rowWeights="1,2,2,2" gap="6" margin="6" style="group">
       <Cell id="h_session" row="0" col="0" label="Session" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_ac" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="ac_label" row="0" col="0" label="Auto-close boards" caption="Close idle boards that opted in." role="label" style="plain"/>
@@ -109,14 +109,6 @@
           <Cell id="fd_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="flashMs" style="join"/>
           <Cell id="fd_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.flashMs.inc"/>
           <Cell id="fd_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.flashMs"/>
-        </SubGrid>
-      </SubGrid>
-      <SubGrid id="row_flash" row="4" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="fl_name" row="0" col="0" label="Completion flash color" caption="Flash after activation." role="label" style="plain"/>
-        <SubGrid id="act_flash" row="0" col="1" rows="1" columns="3" gap="0" style="row">
-          <Cell id="fl_fg" row="0" col="0" label="Use Foreground" role="choice" activeState="settings.flash.foreground" style="joinLeft" command="settings.flash.foreground"/>
-          <Cell id="fl_custom" row="0" col="1" label="Custom" role="choice" activeState="settings.flash.custom" style="join" command="settings.flash.custom"/>
-          <Cell id="fl_sw" row="0" col="2" label="Flash color" settingKey="flashColor" style="joinRight" command="settings.edit.color.flashColor"/>
         </SubGrid>
       </SubGrid>
     </SubGrid>
