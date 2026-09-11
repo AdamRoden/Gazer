@@ -144,7 +144,7 @@ Drawer **Speak** (`compose.open`) opens `compose.xml`. This is an internal phras
 - **Soundboard**: pin baked MPEG clips onto topic cells; replay without re-synthesis. Store: `%AppData%\Gazer\` (`boards.json`, `clips/`).
 - **Freestyle**: saved voices + ElevenLabs v3 audio tags (`[laugh]`, accents, …).
 - **History**: last 50 composed utterances; replay, restore, or delete.
-- Settings → **Speech**: paste API key from the clipboard (never stored in `settings.json`), model, speed, volume, “speak also types” into the focused app.
+- Settings → **Speech**: paste API key from the clipboard (never stored in `settings.json`), model, speed, volume.
 
 Details: [docs/composer-elevenlabs.md](docs/composer-elevenlabs.md).
 
@@ -162,7 +162,7 @@ Drawer **Settings** (`main_settings`) is a hub of live pages:
 | **Assist** | Tracker (auto Tobii / mouse), live lens, gaze helpers. |
 | **Tools** | Look-to-scroll deadzone / speed / HUD, ComboMouse radii and colors. |
 | **Theme** | Light / dark, brightness, tint family, accent, progress color, saturation, custom palette. |
-| **Speech** | ElevenLabs key, engine, speed, volume, also-type. |
+| **Speech** | ElevenLabs key, engine, speed, volume. |
 
 Session toggles (start docked, auto-collapse drawer, layout auto-close) live on these boards as well.
 

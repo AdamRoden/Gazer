@@ -5,7 +5,6 @@
 #include "app/SettingsPageBuild.h"
 #include "assist/ElevenClient.h"
 #include "assist/ElevenRequest.h"
-#include "assist/PhraseService.h"
 #include "assist/SpeechEngine.h"
 #include "assist/SoundboardStore.h"
 #include "assist/SpeechHistory.h"
@@ -27,11 +26,10 @@ using SettingsPageBuild::cell;
 using compose_detail::commandAction;
 using compose_detail::parseColor;
 
-ComposeUi::ComposeUi(PageSession& pages, PhraseService& phrases, SpeechEngine& speech,
-                     AppSettings& settings, SpeechSecrets& secrets, ElevenClient& eleven,
-                     TtsService& tts, SoundboardStore& board, SpeechHistory& history)
+ComposeUi::ComposeUi(PageSession& pages, SpeechEngine& speech, AppSettings& settings,
+                     SpeechSecrets& secrets, ElevenClient& eleven, TtsService& tts,
+                     SoundboardStore& board, SpeechHistory& history)
     : m_pages(pages)
-    , m_phrases(phrases)
     , m_speech(speech)
     , m_settings(settings)
     , m_secrets(secrets)
@@ -326,7 +324,8 @@ bool ComposeUi::speakOrStop(QString* error)
     if (text.isEmpty()) {
         return true;
     }
-    return m_phrases.speak(text, SpeakKind::Composed, error, true);
+    m_speech.speak(text, SpeakKind::Composed, true);
+    return true;
 }
 
 void ComposeUi::stopSpeech()

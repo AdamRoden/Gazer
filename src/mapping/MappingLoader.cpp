@@ -121,9 +121,6 @@ bool MappingLoader::loadFromJson(const QByteArray& json, MappingProfile& out, QS
         return false;
     }
 
-    const QJsonObject speak = root.value(QStringLiteral("speak")).toObject();
-    profile.speakAlsoType = speak.value(QStringLiteral("alsoType")).toBool(false);
-
     const QJsonObject commands = root.value(QStringLiteral("commands")).toObject();
     for (auto it = commands.begin(); it != commands.end(); ++it) {
         if (!it.value().isArray()) {

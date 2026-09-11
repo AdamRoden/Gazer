@@ -16,7 +16,6 @@ namespace gazer {
 class AppSettings;
 class ElevenClient;
 class PageSession;
-class PhraseService;
 class SoundboardStore;
 class SpeechHistory;
 class SpeechEngine;
@@ -33,9 +32,9 @@ public:
     static constexpr auto kHistoryLiveId = QLatin1String("compose_history_live");
     static constexpr auto kItemEditLiveId = QLatin1String("compose_item_edit_live");
 
-    ComposeUi(PageSession& pages, PhraseService& phrases, SpeechEngine& speech,
-              AppSettings& settings, SpeechSecrets& secrets, ElevenClient& eleven,
-              TtsService& tts, SoundboardStore& board, SpeechHistory& history);
+    ComposeUi(PageSession& pages, SpeechEngine& speech, AppSettings& settings,
+              SpeechSecrets& secrets, ElevenClient& eleven, TtsService& tts,
+              SoundboardStore& board, SpeechHistory& history);
     ~ComposeUi();
 
     void setApplyFn(std::function<void()> fn) { m_apply = std::move(fn); }
@@ -181,7 +180,6 @@ private:
     void stopListScroll();
 
     PageSession& m_pages;
-    PhraseService& m_phrases;
     SpeechEngine& m_speech;
     AppSettings& m_settings;
     SpeechSecrets& m_secrets;

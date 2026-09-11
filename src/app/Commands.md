@@ -129,7 +129,6 @@ Patterns, not every generated name:
 | `settings.opacity.*` / `settings.flash.foreground` / `.custom` | Flash opacity / custom flash |
 | `settings.progress.*.toggle` / `settings.mouseProgress.*.toggle` | Progress bits |
 | `settings.session.autoCollapse.toggle` / `.startDocked.toggle` / `.layoutAutoClose.toggle` | Session |
-| `settings.speech.alsoType.toggle` | Speak also types |
 | `settings.speech.editKey` / `.clearKey` | Paste-from-clipboard API-key board / wipe DPAPI |
 | `settings.speech.key.paste` / `.save` / `.cancel` / `.clear` | Key board |
 | `settings.speech.model.sapi` / `.eleven_flash_v2_5` / `.eleven_v3` | Same handlers as `speech.model.*` (ComposeCommands) |

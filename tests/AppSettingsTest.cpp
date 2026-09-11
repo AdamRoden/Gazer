@@ -102,7 +102,6 @@ void AppSettingsTest::factoryUsesDomainConstants()
     QCOMPARE(s.resolvedPalette().progressFill, QColor(0xFF, 0x47, 0x3D, kProgressFillAlpha));
     QCOMPARE(s.progressColor, QStringLiteral("#99FF473D"));
     QCOMPARE(s.progressFillColor, QStringLiteral("#99FF473D"));
-    QCOMPARE(s.speakAlsoType, true);
     QCOMPARE(s.speechModel, QStringLiteral("sapi"));
     QCOMPARE(s.speechVolume, 1.0);
     QCOMPARE(s.savedSpeechTags, AppSettings::defaultSavedSpeechTags());

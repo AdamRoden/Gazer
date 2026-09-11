@@ -1,7 +1,6 @@
 #pragma once
 
 #include "app/CommandRegistry.h"
-#include "assist/PhraseService.h"
 #include "input/InputService.h"
 #include "layout/PageSession.h"
 
@@ -11,12 +10,14 @@
 
 namespace gazer {
 
+class SpeechEngine;
+
 /// Privileged script API exposed as global `gazer` (not a security sandbox).
 class ScriptApi final : public QObject {
     Q_OBJECT
 
 public:
-    ScriptApi(PhraseService& phrases, CommandRegistry& commands, InputService& input,
+    ScriptApi(SpeechEngine& speech, CommandRegistry& commands, InputService& input,
               PageSession& pages, QObject* parent = nullptr);
 
 public slots:
@@ -32,7 +33,7 @@ signals:
     void statusMessage(const QString& message);
 
 private:
-    PhraseService& m_phrases;
+    SpeechEngine& m_speech;
     CommandRegistry& m_commands;
     InputService& m_input;
     PageSession& m_pages;
@@ -42,7 +43,7 @@ class ScriptHost final : public QObject {
     Q_OBJECT
 
 public:
-    ScriptHost(PhraseService& phrases, CommandRegistry& commands, InputService& input,
+    ScriptHost(SpeechEngine& speech, CommandRegistry& commands, InputService& input,
                PageSession& pages, QObject* parent = nullptr);
 
     [[nodiscard]] bool evaluate(const QString& source, QString* error = nullptr);

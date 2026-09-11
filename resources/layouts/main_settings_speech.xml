@@ -85,11 +85,5 @@
         </SubGrid>
       </SubGrid>
     </SubGrid>
-
-    <SubGrid id="sec_type" row="8" col="0" colSpan="16" rowSpan="2" rows="2" columns="1" rowWeights="1,2" gap="6" margin="6" style="group">
-      <Cell id="h_type" row="0" col="0" label="Type-through" role="label" textStyle="section" style="plain"/>
-      <Cell id="also" row="1" col="0" label="Canned Speak also types" caption="XML Speak cells type into the focused app. Composer Speak does not."
-            role="toggle" activeState="settings.speech.alsoType.toggle" command="settings.speech.alsoType.toggle"/>
-    </SubGrid>
   </Grid>
 </Page>

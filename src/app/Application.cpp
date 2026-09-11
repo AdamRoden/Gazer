@@ -11,7 +11,6 @@
 #include "assist/MouseAssistState.h"
 #include "assist/MouseDwellMove.h"
 #include "assist/ClipPlayer.h"
-#include "assist/PhraseService.h"
 #include "assist/ScriptHost.h"
 #include "assist/SpeechEngine.h"
 #include "assist/TtsService.h"
@@ -142,8 +141,6 @@ bool Application::initialize()
     connect(m_actions.get(), &ActionDispatcher::statusMessage, this, statusToTray);
     connect(&m_svc->commands(), &CommandRegistry::statusMessage, this, statusToTray);
     connect(&m_svc->scripts(), &ScriptHost::statusMessage, this, statusToTray);
-    connect(&m_svc->phrases(), &PhraseService::spoken, this,
-            [statusToTray](const QString& t) { statusToTray(QStringLiteral("Said: %1").arg(t)); });
 
     const QString shippedMain =
         QDir(appDir).filePath(QStringLiteral("resources/layouts/main.xml"));

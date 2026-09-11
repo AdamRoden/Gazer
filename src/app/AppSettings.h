@@ -120,7 +120,6 @@ struct AppSettings {
     int trackerPref = 0;
 
     // --- Speech ---
-    bool speakAlsoType = true;
     QString speechModel = QStringLiteral("sapi");
     QString elevenVoiceId;
     QString sapiVoiceToken;

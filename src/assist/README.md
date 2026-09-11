@@ -14,8 +14,8 @@ Gaze tools on top of the page session.
 | `ActionLoopService` | Sticky command series |
 | `ScriptHost` | `gazer.*` QJS |
 | `AhkLauncher` | Temp `.ahk` + local AutoHotkey |
-| `TtsService` / `PhraseService` | SAPI voice; speak façade + type-through |
-| `SpeechEngine` | Canned = SAPI. Composed = Eleven when model+key+voiceId, else SAPI. Abort + generation + ClipPlayer. Three Eleven failures latch SAPI until model, voice, or API key changes. |
+| `TtsService` | SAPI voice |
+| `SpeechEngine` | Canned = SAPI. Composed = Eleven when model+key+voiceId, else SAPI. Abort + generation + ClipPlayer. Three Eleven failures latch SAPI until model, voice, or API key changes. Speak never types. |
 | `ClipPlayer` | GUI-thread `QMediaPlayer` for baked MPEG. `play()` true means the engine owns the clip; `failed()` is the SAPI fallback; `stopped()` always means finished. Gain > 1× is a `ClipBoost` preprocess, then the same play path. Manual: `tests/fixtures/speech/beep.mp3` |
 | `ClipBoost` | Decode clip → Int16 WAV with `AudioGain`. Not a player. |
 | `AudioGain` | Int16 PCM scale + clamp for clip boost (1–5×) |

@@ -4,7 +4,6 @@
 #include "app/ComposeUiInternal.h"
 #include "app/SettingsPageBuild.h"
 #include "assist/ElevenClient.h"
-#include "assist/PhraseService.h"
 #include "assist/SpeechEngine.h"
 #include "assist/SpeechHistory.h"
 #include "assist/TtsService.h"
@@ -135,7 +134,8 @@ bool ComposeUi::playHistory(const QString& id, QString* error)
             return true;
         }
     }
-    return m_phrases.speak(it->phrase, SpeakKind::Composed, error, false);
+    m_speech.speak(it->phrase, SpeakKind::Composed, false);
+    return true;
 }
 
 bool ComposeUi::restoreHistory(const QString& id, QString* error)

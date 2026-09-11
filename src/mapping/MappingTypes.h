@@ -14,8 +14,6 @@ struct MappingProfile {
     QString name;
     /// command name → ordered outputs
     QHash<QString, QVector<InputOutput>> commands;
-    /// When true, speak actions also type the phrase via keyboard.
-    bool speakAlsoType = false;
 
     [[nodiscard]] bool isValid() const { return !id.isEmpty(); }
 

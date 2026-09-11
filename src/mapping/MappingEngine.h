@@ -22,10 +22,6 @@ public:
     /// Run mapped outputs for a layout command name. Returns false if unknown or inject fail.
     [[nodiscard]] bool runCommand(const QString& commandName, QString* error = nullptr);
 
-    /// Whether speak actions should also type the phrase (from profile).
-    [[nodiscard]] bool speakAlsoType() const { return m_profile.speakAlsoType; }
-    void setSpeakAlsoType(bool enabled) { m_profile.speakAlsoType = enabled; }
-
 signals:
     void statusMessage(const QString& message);
 

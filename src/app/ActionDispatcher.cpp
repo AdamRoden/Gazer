@@ -7,7 +7,7 @@
 #include "assist/ComboMouse.h"
 #include "assist/MouseAssistState.h"
 #include "assist/MouseDwellMove.h"
-#include "assist/PhraseService.h"
+#include "assist/SpeechEngine.h"
 #include "input/KeyStateManager.h"
 #include "input/MouseInjector.h"
 #include "layout/PageDim.h"
@@ -134,13 +134,12 @@ void ActionDispatcher::dispatchPage(const QVector<PageAction>& actions, const QS
             }
             break;
         }
-        case PageActionType::Speak: {
-            QString err;
-            if (!m_svc.phrases().speak(a.speakText, &err) && !err.isEmpty()) {
-                notify(err);
+        case PageActionType::Speak:
+            m_svc.speechEngine().speak(a.speakText, SpeakKind::Canned);
+            if (!a.speakText.isEmpty()) {
+                notify(QStringLiteral("Said: %1").arg(a.speakText));
             }
             break;
-        }
         case PageActionType::Send: {
             if (a.sendKey.isEmpty()) {
                 break;

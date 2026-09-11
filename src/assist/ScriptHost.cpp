@@ -1,5 +1,6 @@
 #include "assist/ScriptHost.h"
 
+#include "assist/SpeechEngine.h"
 #include "input/InputTypes.h"
 #include "utils/Log.h"
 
@@ -7,10 +8,10 @@
 
 namespace gazer {
 
-ScriptApi::ScriptApi(PhraseService& phrases, CommandRegistry& commands, InputService& input,
+ScriptApi::ScriptApi(SpeechEngine& speech, CommandRegistry& commands, InputService& input,
                      PageSession& pages, QObject* parent)
     : QObject(parent)
-    , m_phrases(phrases)
+    , m_speech(speech)
     , m_commands(commands)
     , m_input(input)
     , m_pages(pages)
@@ -25,11 +26,7 @@ void ScriptApi::log(const QString& message)
 
 void ScriptApi::speak(const QString& text)
 {
-    QString err;
-    if (!m_phrases.speak(text, &err) && !err.isEmpty()) {
-        emit statusMessage(err);
-        return;
-    }
+    m_speech.speak(text, SpeakKind::Canned);
     emit statusMessage(QStringLiteral("Said: %1").arg(text));
 }
 
@@ -75,11 +72,11 @@ QString ScriptApi::focusedPageId() const
     return m_pages.topPageId();
 }
 
-ScriptHost::ScriptHost(PhraseService& phrases, CommandRegistry& commands, InputService& input,
+ScriptHost::ScriptHost(SpeechEngine& speech, CommandRegistry& commands, InputService& input,
                        PageSession& pages, QObject* parent)
     : QObject(parent)
 {
-    m_api = new ScriptApi(phrases, commands, input, pages, this);
+    m_api = new ScriptApi(speech, commands, input, pages, this);
     connect(m_api, &ScriptApi::statusMessage, this, &ScriptHost::statusMessage);
 
     const QJSValue gazerObj = m_engine.newQObject(m_api);

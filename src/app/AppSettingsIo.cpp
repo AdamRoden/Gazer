@@ -197,7 +197,6 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
     layoutAutoCloseFadeMs =
         o.value(QStringLiteral("layoutAutoCloseFadeMs")).toInt(layoutAutoCloseFadeMs);
     trackerPref = o.value(QStringLiteral("trackerPref")).toInt(trackerPref);
-    speakAlsoType = o.value(QStringLiteral("speakAlsoType")).toBool(speakAlsoType);
     speechModel = o.value(QStringLiteral("speechModel")).toString(speechModel);
     elevenVoiceId = o.value(QStringLiteral("elevenVoiceId")).toString(elevenVoiceId);
     sapiVoiceToken = o.value(QStringLiteral("sapiVoiceToken")).toString(sapiVoiceToken);
@@ -371,7 +370,6 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     o.insert(QStringLiteral("layoutAutoCloseIdleMs"), copy.layoutAutoCloseIdleMs);
     o.insert(QStringLiteral("layoutAutoCloseFadeMs"), copy.layoutAutoCloseFadeMs);
     o.insert(QStringLiteral("trackerPref"), copy.trackerPref);
-    o.insert(QStringLiteral("speakAlsoType"), copy.speakAlsoType);
     o.insert(QStringLiteral("speechModel"), copy.speechModel);
     o.insert(QStringLiteral("elevenVoiceId"), copy.elevenVoiceId);
     o.insert(QStringLiteral("sapiVoiceToken"), copy.sapiVoiceToken);

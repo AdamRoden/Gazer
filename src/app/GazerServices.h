@@ -30,7 +30,6 @@ class MouseAssistState;
 class MouseDwellMove;
 class PageCatalog;
 class PageSession;
-class PhraseService;
 class ScriptHost;
 class SoundboardStore;
 class SettingsUi;
@@ -65,7 +64,6 @@ public:
     TtsService& tts() { return *m_tts; }
     SpeechEngine& speechEngine() { return *m_speech; }
     ClipPlayer& clipPlayer() { return *m_clips; }
-    PhraseService& phrases() { return *m_phrases; }
     CommandRegistry& commands() { return *m_commands; }
     ComposeUi& composeUi() { return *m_compose; }
     ScriptHost& scripts() { return *m_scripts; }
@@ -112,7 +110,6 @@ private:
     std::unique_ptr<SpeechSecrets> m_secrets;
     std::unique_ptr<ElevenClient> m_eleven;
     std::unique_ptr<SpeechEngine> m_speech;
-    std::unique_ptr<PhraseService> m_phrases;
     std::unique_ptr<CommandRegistry> m_commands;
     std::unique_ptr<SoundboardStore> m_board;
     std::unique_ptr<SpeechHistory> m_history;

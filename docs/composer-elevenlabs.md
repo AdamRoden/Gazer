@@ -12,11 +12,11 @@
 
 ## Overview
 
-Gazer today can speak a canned XML `Speak` string through Windows SAPI (`TtsService` via `PhraseService`) and can type that string into the focused OS app when `speakAlsoType` is on. It cannot compose a phrase internally, switch cloud voices, insert ElevenLabs v3 audio tags, or pin a generated clip onto a dwellable soundboard. The Voice web app already has that product loop: compose → speak (Eleven / Piper / browser) → pin baked audio onto a topic grid → replay without re-synthesis.
+Gazer today can speak a canned XML `Speak` string through Windows SAPI (`TtsService` via `SpeechEngine`). Speak is audio only; it never types into the focused OS app. It cannot compose a phrase internally, switch cloud voices, insert ElevenLabs v3 audio tags, or pin a generated clip onto a dwellable soundboard. The Voice web app already has that product loop: compose → speak (Eleven / Piper / browser) → pin baked audio onto a topic grid → replay without re-synthesis.
 
 This design ports **Voice’s product loop** onto **Gazer’s gaze architecture**: one frameless `QQuickWindow` (`PageHostWindow`), boards as Page XML, dwell cells, no new HWND. ElevenLabs is the cloud engine **for the composer**. SAPI remains the engine for canned XML `<Speak>` / `gazer.speak()`, and the per-utterance fallback when an Eleven request fails. Piper and browser `SpeechSynthesis` are out of v1.
 
-The implementation adds a **composer page** (internal phrase buffer + a **stripped** dwellable keyboard that never injects to the OS), **voice and style live boards** (each with on-board gaze chrome; no buried-keyboard search), a **JSON soundboard store** bound onto a template page (not rewritten XML), and an async **speech engine** behind `PhraseService`. `QNetworkAccessManager` and `QMediaPlayer` stay on the GUI thread; the gaze sample path only queues work.
+The implementation adds a **composer page** (internal phrase buffer + a **stripped** dwellable keyboard that never injects to the OS), **voice and style live boards** (each with on-board gaze chrome; no buried-keyboard search), a **JSON soundboard store** bound onto a template page (not rewritten XML), and an async **speech engine** (`SpeechEngine`). `QNetworkAccessManager` and `QMediaPlayer` stay on the GUI thread; the gaze sample path only queues work.
 
 ---
 
@@ -27,18 +27,15 @@ The implementation adds a **composer page** (internal phrase buffer + a **stripp
 ```
 Page XML <Speak value="Hello"/>
   → ActionDispatcher::dispatchPage (PageActionType::Speak)
-  → PhraseService::speak
+  → SpeechEngine::speak (Canned)
        → TtsService::speak  (ISpVoice, SPF_ASYNC | SPF_PURGEBEFORESPEAK)
-       → optional InputService Text if MappingEngine::speakAlsoType()
 ```
 
 Relevant code:
 
 - `src/assist/TtsService.{h,cpp}` — SAPI only; `stop()` purges; signals `started` / `failed` only (**no `finished`**).
-- `src/assist/PhraseService.{h,cpp}` — single speak façade + type-through of the raw string.
-- `src/app/ActionDispatcher.cpp` case `PageActionType::Speak`.
-- `src/assist/ScriptHost.cpp` `ScriptApi::speak` → `PhraseService`.
-- `AppSettings.speakAlsoType` (JSON `speakAlsoType`), toggled by `settings.speech.alsoType.toggle`.
+- `src/app/ActionDispatcher.cpp` case `PageActionType::Speak` → `SpeechEngine` Canned.
+- `src/assist/ScriptHost.cpp` `ScriptApi::speak` → `SpeechEngine` Canned.
 - Mapping names `clearPhrase` / `speakPhrase` in `resources/mappings/default.json` are **not** builtins. They inject `Ctrl+A, Backspace` and `Ctrl+Enter` into the focused OS app. They are unrelated to any Gazer phrase buffer.
 - `CommandRegistry::run` is exact `QHash` lookup (`src/app/CommandRegistry.cpp`). Unregistered names fall through to the mapping profile. Settings “star” commands work because `SettingsCommands.cpp` **pre-registers each finite name**.
 - `leftShift` / `leftCtrl` / `leftAlt` / `leftWin` are Gazer builtins in `GazerServices.cpp` that **cycle OS modifiers**. `backspace` / `space` / `enter` / `escape` / `tab` / arrows are mapping injectors.
@@ -114,13 +111,13 @@ Product choices below that say **User confirmed 2026-09-03** match this document
 | Voice catalog UX | **Favorites (max 12) + language/gender chips + paginated remainder (12/page, `speech.voiceList.next` / `.prev`).** No free-text search in v1. Pagination names must **not** be a string prefix of `speech.voice.`. | Boards do not scroll. `/v1/voices` is tens to 100+ entries. `speech.voices.next` would be eaten by prefix `speech.voice.` if the exact builtin were missing. |
 | Parameterized commands | **`CommandRegistry::registerPrefix`**. Exact match first, then longest registered prefix, then mapping. | Voice ids and button ids are unbounded. Today’s `QHash` exact lookup would fall through to mapping and no-op. |
 | Canned vs composer engine | **XML `<Speak>` and `gazer.speak` always SAPI in v1.** Composer Speak (and soundboard live `utteranceText`) use Eleven when model+key+voiceId are set. | Avoids quota and latency on every existing board cell the moment a key is saved. |
-| Type-through | **Always `stripInlineTags(text)`** (or per-clip `sourceText` already without tags). | Otherwise `[laugh]` is typed into the focused app. |
+| Speak typing | **Never.** Speak is audio only. | AAC must not inject the utterance into the focused app. |
 | Offline | **Do not pre-resolve “offline”.** Attempt Eleven when configured; on network/timeout error, SAPI-fallback **that utterance**. Latch three consecutive failures → SAPI for the session (notify once). | No reachability API in-tree; airplane vs DNS vs 401 are different. |
 | Speak vs Stop chrome | **One Speak cell.** `ComposeUi::decoratePage` stamps label/icon from `SpeechEngine::status()`. Do not use dotted `visibleWhen`. | `evalVisibleWhen` only accepts `[A-Za-z0-9_]`; dotted keys are invalid → always visible. |
 | SAPI completion | **`TtsService` gains `finished()`** in the SpeechEngine PR, before compose chrome. Prefer `SetNotifySink` / `SetNotifyWindowMessage` on the GUI thread; poll fallback is `SPVOICESTATUS.dwRunningState == SPRS_DONE`. Purge/`stop()` emits `finished()` immediately. `Application::shutdownUi` calls `SpeechEngine::stop()`. | Today only `started`/`failed`. Without `finished`, `compose.speaking` never clears on SAPI. |
 | NAM / player thread | **GUI thread.** Gaze path starts work with `QMetaObject::invokeMethod(..., Qt::QueuedConnection)` on the GUI object. Do not move `QNetworkAccessManager` or `QMediaPlayer` to a worker. | Qt requires both on the thread that created them. |
 | Engines | **ElevenLabs + SAPI.** Piper out of v1. **User confirmed 2026-09-03.** | Gazer already has SAPI. Voice’s Piper path is WASM-specific. |
-| Façade | **Two `PhraseService` overloads.** Existing `speak(text, error)` stays Canned (callers unchanged). New `speak(text, SpeakKind, error)` for composer/soundboard. `SpeechEngine` behind both. `TtsService` remains the SAPI backend. | `ActionDispatcher.cpp` and `ScriptHost.cpp` pass `QString*` as the second argument today; a defaulted `SpeakKind` in the middle is a compile error. |
+| Façade | **`SpeechEngine::speak(phrase, SpeakKind, recordHistory)`.** Canned for XML `<Speak>` / `gazer.speak`. Composed for composer/soundboard. `TtsService` remains the SAPI backend. | One speak entry; no type-through. |
 | New PageAction types | **None for v1.** Composer / soundboard / voice use `Command` builtins **plus prefix handlers**. | Avoids `PageActionParse` / editor / round-trip work. |
 | HTTP | **`QNetworkAccessManager` (Qt Network) on the GUI thread.** | Already in the Qt 6 install; no extra HTTP library. |
 | MPEG playback | **Qt Multimedia `QMediaPlayer` + `QAudioOutput` on the GUI thread**, files on disk. If the player is unavailable, live speak falls back to SAPI; the MP3 is still written for later. | ElevenLabs returns `audio/mpeg`. `PlaySound` cannot play MP3. |
@@ -155,12 +152,10 @@ flowchart TB
   Gaze[Gaze sample] --> GazeRouter
   GazeRouter --> PageSession
   PageSession -->|dwell activate| ActionDispatcher
-  ActionDispatcher -->|Speak XML / gazer.speak Canned| PhraseService
+  ActionDispatcher -->|Speak XML Canned| SpeechEngine
   ActionDispatcher -->|Send or OS command while capturing| ComposeUi
   ActionDispatcher -->|compose.* / soundboard.* / speech.* exact or prefix| CommandRegistry
 
-  PhraseService -->|SpeakKind| SpeechEngine
-  PhraseService -->|speakAlsoType stripInlineTags| InputService
   SpeechEngine -->|Composed + key + voiceId| ElevenClient
   SpeechEngine -->|Canned, or Eleven fail| TtsService
   ElevenClient --> NAM[QNetworkAccessManager GUI thread]
@@ -172,7 +167,7 @@ flowchart TB
   SpeechSecrets --> ElevenClient
 ```
 
-`ComposeUi` is the gaze surface owner (like `SettingsUi`). Domain objects (`ComposeBuffer`, `SpeechEngine`, `ElevenClient`, `SoundboardStore`, `ClipPlayer`, `SpeechSecrets`) live under `src/assist/` next to `TtsService` / `PhraseService`. Commands are registered from `ComposeCommands.cpp` (assist) plus a few settings commands.
+`ComposeUi` is the gaze surface owner (like `SettingsUi`). Domain objects (`ComposeBuffer`, `SpeechEngine`, `ElevenClient`, `SoundboardStore`, `ClipPlayer`, `SpeechSecrets`) live under `src/assist/` next to `TtsService`. Commands are registered from `ComposeCommands.cpp` (assist) plus a few settings commands.
 
 `GazerServices` grows accessors as each object is added (`speechEngine()`, `composeUi()`, `soundboard()`, `secrets()`, `clipPlayer()`, `eleven()`).
 
@@ -186,7 +181,7 @@ flowchart TB
 | `compose_tags_live` | Memory | Saved-tag chips; custom tags typed as `[` `]` on `compose`, not here |
 | `compose_history_live` | Memory | Last N generations; dwell to replay / restore text |
 | `settings_eleven_key_live` | Memory | Masked key display + **on-board** alphanumeric keyboard + Save/Cancel |
-| `main_settings_speech` | Shipped XML | Speech settings hub: also-type, engine, key status, open composer |
+| `main_settings_speech` | Shipped XML | Speech settings hub: engine, key status, open composer |
 
 Assign mode is **not** a new page. It restamps the `soundboard` grid on `compose` plus a Cancel cell on the action row (and an optional banner label on the phrase/actions row).
 
@@ -315,15 +310,12 @@ Document this capture rule in `docs/page-xml.md`: `Send` and mapping/modifier co
 ```mermaid
 sequenceDiagram
   participant Cell as Speak cell
-  participant PS as PhraseService
   participant SE as SpeechEngine
   participant EL as ElevenClient
   participant SAPI as TtsService
   participant CP as ClipPlayer
   participant Hist as History + lastClip
-  Cell->>PS: speak(buffer, Composed)
-  PS->>PS: type-through stripInlineTags if speakAlsoType
-  PS->>SE: speakAsync(phrase, Composed)
+  Cell->>SE: speak(buffer, Composed)
   SE->>SE: cancel in-flight reply + stop playback
   alt Composed and key and voiceId
     SE->>EL: POST /v1/text-to-speech/{voiceId} (25s, abortable, GUI thread)
@@ -536,8 +528,8 @@ Clamp `gridCols` to 1–4 and `gridRows` to 1–6 in v1 (raise later). Ignore un
 
 **Play policy** (Voice `playSpeechSource` plus a **Gazer recovery** step):
 
-1. If `utteranceText` is non-empty → live `PhraseService::speak(utteranceText, SpeakKind::Composed)` (no history spam).
-2. Else if `clipId` file exists → `ClipPlayer::play(path)`; if `speakAlsoType`, type `sourceText` (already untagged).
+1. If `utteranceText` is non-empty → live `SpeechEngine::speak(utteranceText, SpeakKind::Composed)` (no history spam).
+2. Else if `clipId` file exists → `ClipPlayer::play(path)`.
 3. Else if `sourceText` → live speak Composed. **Gazer addition:** Voice does not fall through to `sourceText`; this recovers missing files.
 4. Else no-op.
 
@@ -586,22 +578,9 @@ Last generated clip (`lastClip`): path + phrase + model + voiceId, kept until th
 
 Startup: `SoundboardStore::load`; if `boards.json` missing, create starters in memory and save.
 
-### PhraseService / SpeechEngine split
+### SpeechEngine
 
-Keep the existing overload so `ActionDispatcher.cpp` and `ScriptHost.cpp` compile unchanged (`speak(text, &err)` binds to `QString*`, not a defaulted `SpeakKind`):
-
-```cpp
-enum class SpeakKind { Canned, Composed };
-
-/// Existing callers: Canned / SAPI. Do not insert SpeakKind in front of error.
-[[nodiscard]] bool speak(const QString& text, QString* error = nullptr);
-/// Composer Speak and soundboard live utterance.
-[[nodiscard]] bool speak(const QString& text, SpeakKind kind, QString* error = nullptr);
-```
-
-- `speak(text, error)` = `SpeakKind::Canned` (XML `<Speak>`, `gazer.speak`). **PR 2 does not edit `ActionDispatcher.cpp` or `ScriptHost.cpp`.**
-- `speak(text, SpeakKind::Composed, error)` = composer / soundboard live.
-- Both overloads: `m_engine.speak(text, kind)` (async start), then if `speakAlsoType`, inject **`stripInlineTags(text)`** once. Type-through is still immediate (existing SAPI timing). For Eleven that means typing can precede audio; acceptable, and tags never hit the OS.
+Callers use `SpeechEngine::speak(phrase, SpeakKind, recordHistory)` directly (Canned for XML `<Speak>` / `gazer.speak`, Composed for composer and soundboard). Speak never types into the focused app.
 
 ```cpp
 class SpeechEngine final : public QObject {
@@ -685,7 +664,6 @@ Add to `AppSettings` + `AppSettingsIo.cpp` (plaintext prefs only):
 
 | JSON key | Type | Default | Notes |
 |----------|------|---------|-------|
-| `speakAlsoType` | bool | true | existing; `kBoolSpecs` |
 | `speechModel` | string | `sapi` | `sapi` / `eleven_v3` / `eleven_flash_v2_5` |
 | `elevenVoiceId` | string | `""` | |
 | `sapiVoiceToken` | string | `""` | empty = SAPI default |
@@ -707,7 +685,7 @@ QJsonArray writeStringList(const QStringList& v);
 
 Unknown / non-array → fallback. Clamp length. Trim entries; drop empties.
 
-New settings page `main_settings_speech.xml` linked from `main_settings.xml`. On the hub, change `rowWeights` from `1,2,2,1` to **`1,2,2,2`** so row 3 is category-sized: Speech (col 0) \| Done (col 1) \| empty (col 2). Commands: `settings.speech.alsoType.toggle` (exists), `settings.speech.model.*`, `settings.speech.editKey`, `settings.speech.clearKey`, plus key-board `settings.speech.key.save` / `.cancel` / `.clear` / `.backspace`.
+New settings page `main_settings_speech.xml` linked from `main_settings.xml`. On the hub, change `rowWeights` from `1,2,2,1` to **`1,2,2,2`** so row 3 is category-sized: Speech (col 0) \| Done (col 1) \| empty (col 2). Commands: `settings.speech.model.*`, `settings.speech.editKey`, `settings.speech.clearKey`, plus key-board `settings.speech.key.save` / `.cancel` / `.clear` / `.backspace`.
 
 ### Gaze busy / latency budget
 
@@ -726,11 +704,11 @@ New settings page `main_settings_speech.xml` linked from `main_settings.xml`. On
 
 | Entry | After this work |
 |-------|-----------------|
-| XML `<Speak value="Hello"/>` | **SAPI** via `PhraseService` `SpeakKind::Canned`. Type-through is `stripInlineTags`. |
+| XML `<Speak value="Hello"/>` | **SAPI** via `SpeechEngine` `SpeakKind::Canned`. Audio only. |
 | `gazer.speak(text)` | Same, Canned / SAPI. |
 | Mapping `speakPhrase` | Still `Ctrl+Enter` to the OS. |
 | Compose Speak cell | `SpeakKind::Composed` → Eleven if configured, else SAPI; history on; busy chrome. |
-| Soundboard clip | `ClipPlayer`; type `sourceText` if `speakAlsoType`. |
+| Soundboard clip | `ClipPlayer` only. |
 | Soundboard live button | `SpeakKind::Composed` without history. |
 
 ---
@@ -1082,7 +1060,6 @@ Update `src/assist/README.md`, `src/app/README.md`, `src/app/Commands.md`, `docs
 | Assign mode + mag overlay stealing gaze | **Low** | Existing z-order; assign is cells on the board, not an overlay HWND |
 | `attachDocument` leave-gate when opening voices | **Low** | Expected for a new page; live refresh of `compose` itself does not leave-gate |
 | Large history/clips filling disk | **Med** | 200 MB cap + eviction |
-| Type-through before Eleven audio | **Low** | Same timing as SAPI start; tags stripped |
 
 ---
 
@@ -1116,7 +1093,7 @@ Earlier (non-blocking) architecture choices already in Key Decisions: stripped k
 - Page XML: `docs/page-xml.md`, `src/layout/README.md`, `PageHit.cpp` `evalVisibleWhen`
 - Settings: `src/app/README.md`, `AppSettings.h`, `AppSettings.cpp` spec tables, `AppSettingsIo.cpp`
 - Commands: `src/app/Commands.md`, `src/app/CommandRegistry.cpp`
-- TTS today: `src/assist/TtsService.cpp`, `PhraseService.cpp`, `src/assist/README.md`
+- TTS today: `src/assist/TtsService.cpp`, `SpeechEngine.cpp`, `src/assist/README.md`
 - Live boards pattern: `src/app/SettingsUi.cpp` `presentLive`, `SettingsHexEditor.cpp`, `SettingsPageBuild.h`
 - Dispatch: `src/app/ActionDispatcher.cpp`
 - Session attach: `src/layout/PageSession.h` `attachDocument` / `refreshDecorated`
@@ -1144,8 +1121,8 @@ Incremental, each PR reviewable and mergeable. Every slice lists **out of scope*
 
 - **Title:** Route PhraseService through SpeechEngine and notify SAPI completion
 - **Files:** `src/assist/SpeechEngine.{h,cpp}`, `src/assist/TtsService.{h,cpp}`, `src/assist/PhraseService.{h,cpp}`, `src/app/GazerServices.{h,cpp}`, `src/app/Application.cpp` (`shutdownUi` → `speechEngine().stop()`), `src/assist/README.md`
-- **Depends on:** PR 1 (`stripInlineTags` for type-through)
-- **Changes:** Keep `speak(text, error)` as Canned so `ActionDispatcher.cpp` / `ScriptHost.cpp` are **unchanged**. Add `speak(text, SpeakKind, error)`. Both still SAPI in this PR. `TtsService` `finished()` via `SetNotifySink` / `SetNotifyWindowMessage`, or poll `SPVOICESTATUS.dwRunningState == SPRS_DONE`; purge emits `finished()` immediately. `SpeechEngine::statusChanged` / `finished`. Type-through uses `stripInlineTags`. Accessors on `GazerServices`.
+- **Depends on:** PR 1 (`stripInlineTags` for Eleven request text)
+- **Changes:** Keep `speak(text, error)` as Canned so `ActionDispatcher.cpp` / `ScriptHost.cpp` are **unchanged**. Add `speak(text, SpeakKind, error)`. Both still SAPI in this PR. `TtsService` `finished()` via `SetNotifySink` / `SetNotifyWindowMessage`, or poll `SPVOICESTATUS.dwRunningState == SPRS_DONE`; purge emits `finished()` immediately. `SpeechEngine::statusChanged` / `finished`. Speak never types. Accessors on `GazerServices`.
 - **Out of scope:** Eleven, compose UI, ClipPlayer, busy chrome, editing ActionDispatcher/ScriptHost call sites.
 
 ### PR 3 — ClipPlayer + Qt Multimedia gate

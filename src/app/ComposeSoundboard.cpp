@@ -4,7 +4,6 @@
 #include "app/ComposeUiInternal.h"
 #include "app/SettingsPageBuild.h"
 #include "assist/ElevenRequest.h"
-#include "assist/PhraseService.h"
 #include "assist/SoundboardStore.h"
 #include "assist/SpeechEngine.h"
 #include "assist/SpeechHistory.h"
@@ -252,28 +251,29 @@ bool ComposeUi::playSoundboard(const QString& buttonId, QString* error)
         return false;
     }
     const auto plan = m_board.planPlay(*b);
-    QString err;
-    bool ok = true;
     switch (plan.kind) {
     case SoundboardStore::PlayPlan::Kind::Utterance:
-        ok = m_phrases.speak(plan.text, SpeakKind::Composed, &err);
-        break;
+        m_speech.speak(plan.text, SpeakKind::Composed);
+        return true;
     case SoundboardStore::PlayPlan::Kind::Clip:
-        ok = m_phrases.playClip(plan.clipPath, plan.text, &err);
-        if (!ok && !b->sourceText.trimmed().isEmpty()) {
-            ok = m_phrases.speak(b->sourceText, SpeakKind::Composed, &err);
+        if (m_speech.playFile(plan.clipPath)) {
+            return true;
         }
-        break;
+        if (!b->sourceText.trimmed().isEmpty()) {
+            m_speech.speak(b->sourceText, SpeakKind::Composed);
+            return true;
+        }
+        if (error) {
+            *error = QStringLiteral("Clip play failed");
+        }
+        return false;
     case SoundboardStore::PlayPlan::Kind::Source:
-        ok = m_phrases.speak(plan.text, SpeakKind::Composed, &err);
-        break;
+        m_speech.speak(plan.text, SpeakKind::Composed);
+        return true;
     case SoundboardStore::PlayPlan::Kind::None:
         return true;
     }
-    if (!ok && error) {
-        *error = err;
-    }
-    return ok;
+    return true;
 }
 
 bool ComposeUi::assignSoundboard(const QString& cellOrButtonId, QString* error)

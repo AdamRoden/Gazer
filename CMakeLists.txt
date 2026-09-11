@@ -94,7 +94,6 @@ set(GAZER_SOURCES
     src/mapping/MappingLoader.cpp
     src/mapping/MappingEngine.cpp
     src/assist/TtsService.cpp
-    src/assist/PhraseService.cpp
     src/assist/ElevenRequest.cpp
     src/assist/VoiceCatalog.cpp
     src/assist/SoundboardStore.cpp
@@ -210,7 +209,6 @@ set(GAZER_HEADERS
     src/mapping/MappingLoader.h
     src/mapping/MappingEngine.h
     src/assist/TtsService.h
-    src/assist/PhraseService.h
     src/assist/ElevenRequest.h
     src/assist/SpeechEngine.h
     src/assist/ClipPlayer.h

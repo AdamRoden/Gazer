@@ -227,7 +227,6 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
          [](const AppSettings& s) { return s.autoCollapseMain; }},
         {"settings.session.startDocked.toggle",
          [](const AppSettings& s) { return s.startDocked; }},
-        {"settings.speech.alsoType.toggle", [](const AppSettings& s) { return s.speakAlsoType; }},
         {"settings.speech.model.sapi",
          [](const AppSettings& s) { return s.speechModel == QLatin1String("sapi"); }},
         {"settings.speech.model.eleven_flash_v2_5",

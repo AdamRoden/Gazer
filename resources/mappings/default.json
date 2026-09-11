@@ -2,9 +2,6 @@
   "schemaVersion": 1,
   "id": "default",
   "name": "Default Windows",
-  "speak": {
-    "alsoType": true
-  },
   "commands": {
     "backspace": [
       { "type": "keyTap", "key": "Backspace" }

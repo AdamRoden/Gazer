@@ -242,7 +242,6 @@ constexpr BoolSpec kBoolSpecs[] = {
     {"autoCollapseMain", &AppSettings::autoCollapseMain},
     {"startDocked", &AppSettings::startDocked},
     {"layoutAutoClose", &AppSettings::layoutAutoClose},
-    {"speakAlsoType", &AppSettings::speakAlsoType},
     {"flashUseForeground", &AppSettings::flashUseForeground},
     {"pickWindowRound", &AppSettings::pickWindowRound},
 };

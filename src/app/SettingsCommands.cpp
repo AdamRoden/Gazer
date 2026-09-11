@@ -108,7 +108,6 @@ void SettingsUi::registerCommands()
         {"settings.session.startDocked.toggle", &AppSettings::startDocked, "Start docked"},
         {"settings.session.layoutAutoClose.toggle", &AppSettings::layoutAutoClose,
          "Auto-close boards"},
-        {"settings.speech.alsoType.toggle", &AppSettings::speakAlsoType, "Speak also types"},
     };
     for (const auto& t : boolToggles) {
         m_commands.registerBuiltin(QLatin1String(t.cmd),

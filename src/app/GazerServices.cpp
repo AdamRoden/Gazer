@@ -17,7 +17,6 @@
 #include "assist/MouseDwellMove.h"
 #include "assist/ClipPlayer.h"
 #include "assist/ElevenClient.h"
-#include "assist/PhraseService.h"
 #include "assist/ScriptHost.h"
 #include "assist/SoundboardStore.h"
 #include "assist/SpeechEngine.h"
@@ -109,7 +108,6 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
     m_secrets = std::make_unique<SpeechSecrets>();
     m_eleven = std::make_unique<ElevenClient>(this);
     m_speech = std::make_unique<SpeechEngine>(*m_tts, m_settings, *m_secrets, *m_eleven, *m_clips);
-    m_phrases = std::make_unique<PhraseService>(*m_speech, *m_input, *m_mapping);
     m_commands = std::make_unique<CommandRegistry>(*m_mapping);
     m_board = std::make_unique<SoundboardStore>();
     {
@@ -125,8 +123,8 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
             GAZER_WARN << "Speech history:" << histErr;
         }
     }
-    m_compose = std::make_unique<ComposeUi>(*m_pages, *m_phrases, *m_speech, m_settings, *m_secrets,
-                                           *m_eleven, *m_tts, *m_board, *m_history);
+    m_compose = std::make_unique<ComposeUi>(*m_pages, *m_speech, m_settings, *m_secrets, *m_eleven,
+                                           *m_tts, *m_board, *m_history);
     m_lookToScroll = std::make_unique<LookToScroll>();
     m_comboMouse = std::make_unique<ComboMouse>();
     m_magnifier = std::make_unique<MagnifierOverlay>();
@@ -136,7 +134,7 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
     m_gazeMouseFollow = std::make_unique<GazeMouseFollow>();
     m_assistSession = std::make_unique<AssistSession>();
     m_actionLoops = std::make_unique<ActionLoopService>();
-    m_scripts = std::make_unique<ScriptHost>(*m_phrases, *m_commands, *m_input, *m_pages);
+    m_scripts = std::make_unique<ScriptHost>(*m_speech, *m_commands, *m_input, *m_pages);
     m_ahk = std::make_unique<AhkLauncher>();
 
     m_catalog->setDirectory(layoutsDir);
@@ -461,8 +459,6 @@ void GazerServices::applySettings(bool persist)
     m_magnifier->setFollowProfile(m_settings.magFollowProfile);
     m_gazeReticle->setFollowProfile(m_settings.magFollowProfile);
     m_gazeMouseFollow->setFollowProfile(m_settings.magFollowProfile);
-
-    m_mapping->setSpeakAlsoType(m_settings.speakAlsoType);
 
     if (m_pages) {
         m_pages->refreshDecorated();
