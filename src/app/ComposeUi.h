@@ -144,6 +144,7 @@ private:
     enum class NameEditKind { None, Topic, Pin, Voice, NewVoice, Tag, NewTag };
 
     void rebuildBoard();
+    [[nodiscard]] PageDim speakBoardWidth() const;
     void fillSoundboard(PageDocument& doc) const;
     void fillTopicsMode(PageDocument& doc) const;
     void fillFreestyleMode(PageDocument& doc) const;

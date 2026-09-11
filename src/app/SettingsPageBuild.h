@@ -89,11 +89,18 @@ inline void initGrid(PageDocument& doc, int cols, int rows, int widthPx, int hei
     doc.grids.push_back(std::move(g));
 }
 
+/// Fallback Speak width when the live compose grid is not available.
+inline PageDim defaultSpeakBoardWidth()
+{
+    return PageDim::expression(QStringLiteral("1.5*A_ScreenHeight"));
+}
+
 /// Same width as Speak. Default height covers title + topics + soundboard
 /// (`rowWeights` 1,1,3,3,4 → 5/12), leaving the phrase and keyboard free.
 inline void initTopOverlay(PageDocument& doc, int cols, int rows, const QVector<double>& weights,
                            int gap, int margin, const ThemeColors& theme,
-                           const QString& heightExpr = QStringLiteral("A_ScreenHeight/12*5+8"))
+                           const QString& heightExpr = QStringLiteral("A_ScreenHeight/12*5+8"),
+                           PageDim width = {})
 {
     PageGrid g;
     g.id = QStringLiteral("board");
@@ -101,7 +108,7 @@ inline void initTopOverlay(PageDocument& doc, int cols, int rows, const QVector<
     g.anchor = PageAnchor::Top;
     g.offset.x = PageDim::pixels(0);
     g.offset.y = PageDim::pixels(0);
-    g.size.x = PageDim::expression(QStringLiteral("A_ScreenHeight/9*16"));
+    g.size.x = width.isSet() ? width : defaultSpeakBoardWidth();
     g.size.y = PageDim::expression(heightExpr);
     g.rows = rows;
     g.columns = cols;

@@ -33,6 +33,7 @@ private slots:
     void rejectRemovedActionAliases();
     void loadMainPage();
     void loadComposePage();
+    void findCellMutateDoesNotShareCopy();
     void loadQwertyXml();
     void layersAttribute();
     void rejectInvalidLayers();
@@ -638,6 +639,8 @@ void PageLoaderTest::loadComposePage()
     QCOMPARE(doc.id, QStringLiteral("compose"));
     QVERIFY(doc.findGrid(QStringLiteral("board")));
     QCOMPARE(doc.findGrid(QStringLiteral("board"))->size.x.unit, PageDim::Unit::Expression);
+    QCOMPARE(PageDimParse::token(doc.findGrid(QStringLiteral("board"))->size.x),
+             QStringLiteral("1.5*A_ScreenHeight"));
     QVERIFY(doc.findGrid(QStringLiteral("keys")));
     QCOMPARE(doc.findGrid(QStringLiteral("keys"))->rows, 3);
     QCOMPARE(doc.findGrid(QStringLiteral("keys"))->columns, 120);
@@ -757,6 +760,41 @@ void PageLoaderTest::loadComposePage()
     const PageCell* chip = doc.findCell(QStringLiteral("chip_0"));
     QVERIFY(chip);
     QVERIFY(!usesRapidDwell(chip->actions, chip->phases));
+}
+
+void PageLoaderTest::findCellMutateDoesNotShareCopy()
+{
+    PageDocument doc;
+    QString err;
+    const QString path =
+        QStringLiteral(GAZER_SOURCE_DIR) + QStringLiteral("/resources/layouts/compose.xml");
+    QVERIFY2(PageLoader::loadFromFile(path, doc, &err), qPrintable(err));
+    QCOMPARE(doc.findCell(QStringLiteral("voices"))->label, QStringLiteral("Voice"));
+    QCOMPARE(doc.findCell(QStringLiteral("history"))->label, QStringLiteral("History"));
+    QCOMPARE(doc.findGrid(QStringLiteral("edit_keys"))->cells.size(), 3);
+    QCOMPARE(doc.findCell(QStringLiteral("clear"))->label, QStringLiteral("Clear"));
+
+    PageDocument copy = doc;
+    PageCell* voices = copy.findCell(QStringLiteral("voices"));
+    QVERIFY(voices);
+    voices->label = QStringLiteral("Cancel");
+    voices->actions.clear();
+    PageCell* history = copy.findCell(QStringLiteral("history"));
+    QVERIFY(history);
+    history->label = QStringLiteral("Delete");
+    PageGrid* keys = copy.findGrid(QStringLiteral("edit_keys"));
+    QVERIFY(keys);
+    keys->cells.clear();
+    keys->rows = 2;
+
+    QCOMPARE(doc.findCell(QStringLiteral("voices"))->label, QStringLiteral("Voice"));
+    QCOMPARE(doc.findCell(QStringLiteral("voices"))->actions[0].command,
+             QStringLiteral("compose.openVoices"));
+    QCOMPARE(doc.findCell(QStringLiteral("history"))->label, QStringLiteral("History"));
+    QCOMPARE(doc.findGrid(QStringLiteral("edit_keys"))->cells.size(), 3);
+    QCOMPARE(doc.findCell(QStringLiteral("clear"))->label, QStringLiteral("Clear"));
+    QCOMPARE(doc.findCell(QStringLiteral("undo"))->label, QStringLiteral("Undo"));
+    QCOMPARE(doc.findCell(QStringLiteral("redo"))->label, QStringLiteral("Redo"));
 }
 
 void PageLoaderTest::loadMainPage()

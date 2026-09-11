@@ -48,6 +48,15 @@ bool PageSession::placeAttachedCenter(const QString& id, const QPoint& screenCen
     return true;
 }
 
+void PageSession::gateHover(const QString& pageId)
+{
+    if (pageId.isEmpty()) {
+        leaveGaze();
+        return;
+    }
+    armLeaveGate(pageId);
+}
+
 void PageSession::armLeaveGate(const QString& pageId)
 {
     m_leaveGatePage = pageId;

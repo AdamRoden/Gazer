@@ -26,9 +26,10 @@ constexpr int kEditCols = 8;
 constexpr int kColorRows = 5;
 
 void initEditOverlay(PageDocument& doc, int rows, const QVector<double>& weights,
-                     const ThemeColors& theme)
+                     const ThemeColors& theme, const PageDim& width)
 {
-    initTopOverlay(doc, kEditCols, rows, weights, 8, 16, theme);
+    initTopOverlay(doc, kEditCols, rows, weights, 8, 16, theme,
+                   QStringLiteral("A_ScreenHeight/12*5+8"), width);
 }
 
 void addColorSwatches(PageGrid& grid, int startSlot, const QString& idPrefix,
@@ -222,8 +223,9 @@ PageDocument ComposeUi::buildItemEditDocument() const
     const ThemeColors theme = m_settings.resolvedTheme();
     const QColor key = theme.bgSurface.isValid() ? theme.bgSurface : QColor(40, 40, 44);
     const QColor accent = theme.accent.isValid() ? theme.accent : QColor(80, 160, 220);
+    const PageDim width = speakBoardWidth();
     if (m_editIcons) {
-        initEditOverlay(doc, 4, {1.0, 1.0, 1.0, 1.0}, theme);
+        initEditOverlay(doc, 4, {1.0, 1.0, 1.0, 1.0}, theme, width);
         PageGrid& grid = doc.grids[0];
         PageCell none = cell(QStringLiteral("ti_none"), QStringLiteral("None"), 0, 0,
                              QStringLiteral("compose.editClearIcon"), key);
@@ -248,7 +250,7 @@ PageDocument ComposeUi::buildItemEditDocument() const
             grid.cells.push_back(c);
         }
     } else {
-        initEditOverlay(doc, kColorRows, {1.0, 1.0, 1.0, 1.0, 1.0}, theme);
+        initEditOverlay(doc, kColorRows, {1.0, 1.0, 1.0, 1.0, 1.0}, theme, width);
         PageGrid& grid = doc.grids[0];
         PageCell none = cell(QStringLiteral("c_none"), QStringLiteral("None"), 0, 0,
                              QStringLiteral("compose.editClearColor"), key);

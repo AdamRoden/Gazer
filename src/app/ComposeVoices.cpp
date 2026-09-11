@@ -193,7 +193,8 @@ PageDocument ComposeUi::buildVoicesDocument()
     doc.id = QString(kVoicesLiveId);
     doc.name = QStringLiteral("Voices");
     const ThemeColors theme = m_settings.resolvedTheme();
-    initTopOverlay(doc, 10, 3, {1.0, 1.0, 10.0}, 8, 16, theme, QStringLiteral("A_ScreenHeight"));
+    initTopOverlay(doc, 10, 3, {1.0, 1.0, 10.0}, 8, 16, theme, QStringLiteral("A_ScreenHeight"),
+                   speakBoardWidth());
     PageGrid& grid = doc.grids[0];
     const QColor key = theme.bgSurface.isValid() ? theme.bgSurface : QColor(40, 40, 44);
     const QColor accent = theme.accent.isValid() ? theme.accent : QColor(80, 160, 220);

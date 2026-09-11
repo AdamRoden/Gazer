@@ -129,6 +129,8 @@ public:
     /// True if @p pos is inside a painted grid of page @p id (including shell grids).
     [[nodiscard]] bool hitsPage(const QString& id, const QPointF& pos) const;
     void leaveGaze();
+    /// Do not activate the cell under gaze on @p pageId until gaze leaves it.
+    void gateHover(const QString& pageId);
     void raise();
     void hideHost();
 

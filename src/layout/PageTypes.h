@@ -598,7 +598,7 @@ struct PageDocument {
 
     [[nodiscard]] PageGrid* findGrid(const QString& gridId)
     {
-        return const_cast<PageGrid*>(static_cast<const PageDocument*>(this)->findGrid(gridId));
+        return findGridIn(grids, gridId);
     }
 
     [[nodiscard]] const PageCell* findCell(const QString& cellId) const
@@ -608,7 +608,7 @@ struct PageDocument {
 
     [[nodiscard]] PageCell* findCell(const QString& cellId)
     {
-        return const_cast<PageCell*>(static_cast<const PageDocument*>(this)->findCell(cellId));
+        return findCellIn(grids, cellId);
     }
 
     [[nodiscard]] const PageZone* findZone(const QString& zoneId) const
@@ -623,7 +623,12 @@ struct PageDocument {
 
     [[nodiscard]] PageZone* findZone(const QString& zoneId)
     {
-        return const_cast<PageZone*>(static_cast<const PageDocument*>(this)->findZone(zoneId));
+        for (PageZone& z : zones) {
+            if (z.id == zoneId) {
+                return &z;
+            }
+        }
+        return nullptr;
     }
 
 private:
@@ -635,6 +640,19 @@ private:
                 return &g;
             }
             if (const PageGrid* nested = findGridIn(g.subGrids, gridId)) {
+                return nested;
+            }
+        }
+        return nullptr;
+    }
+
+    [[nodiscard]] static PageGrid* findGridIn(QVector<PageGrid>& nodes, const QString& gridId)
+    {
+        for (PageGrid& g : nodes) {
+            if (!gridId.isEmpty() && g.id == gridId) {
+                return &g;
+            }
+            if (PageGrid* nested = findGridIn(g.subGrids, gridId)) {
                 return nested;
             }
         }
@@ -654,6 +672,24 @@ private:
                 }
             }
             if (const PageCell* nested = findCellIn(g.subGrids, cellId)) {
+                return nested;
+            }
+        }
+        return nullptr;
+    }
+
+    [[nodiscard]] static PageCell* findCellIn(QVector<PageGrid>& nodes, const QString& cellId)
+    {
+        if (cellId.isEmpty()) {
+            return nullptr;
+        }
+        for (PageGrid& g : nodes) {
+            for (PageCell& c : g.cells) {
+                if (c.id == cellId) {
+                    return &c;
+                }
+            }
+            if (PageCell* nested = findCellIn(g.subGrids, cellId)) {
                 return nested;
             }
         }

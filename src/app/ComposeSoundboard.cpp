@@ -2,6 +2,7 @@
 
 #include "app/AppSettings.h"
 #include "app/ComposeUiInternal.h"
+#include "app/SettingsPageBuild.h"
 #include "assist/ElevenRequest.h"
 #include "assist/PhraseService.h"
 #include "assist/SoundboardStore.h"
@@ -31,15 +32,27 @@ QString ComposeUi::activeTopicId() const
 
 void ComposeUi::rebuildBoard()
 {
-    PageDocument doc = m_composeAuthored.isValid() ? m_composeAuthored
-                                                   : m_pages.attachedCopy(QString(kPageId));
+    const PageDocument live = m_pages.attachedCopy(QString(kPageId));
+    PageDocument doc = m_composeAuthored.isValid() ? m_composeAuthored : live;
     if (!doc.isValid()) {
         return;
+    }
+    if (live.isValid()) {
+        doc.showLayers = live.showLayers;
     }
     fillSoundboard(doc);
     QString err;
     (void)m_pages.attachDocument(std::move(doc), &err, false, false);
     refresh();
+    m_pages.gateHover(QString(kPageId));
+}
+
+PageDim ComposeUi::speakBoardWidth() const
+{
+    if (!m_composeAuthored.grids.isEmpty() && m_composeAuthored.grids[0].size.x.isSet()) {
+        return m_composeAuthored.grids[0].size.x;
+    }
+    return SettingsPageBuild::defaultSpeakBoardWidth();
 }
 
 void ComposeUi::fillSoundboard(PageDocument& doc) const
