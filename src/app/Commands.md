@@ -123,10 +123,15 @@ Patterns, not every generated name:
 | `settings.numpad.*` | Live numpad keys |
 | `settings.array.*` | Sequence editor (`nudge.N`, `edit.N`, `del.N` for N=0..11) |
 | `settings.edit.color.<colorKey>` | Open color picker |
-| `settings.color.nudge.` / `.edit.` / `.scrub.<h\|s\|l\|r\|g\|b\|a>` | Channels |
+| `settings.color.nudge.h` / `.a` / `.edit.a` | Hue / opacity |
+| `settings.color.field.left` / `.right` / `.up` / `.down` | Nudge HSV handle on the saturation×value square |
+| `settings.color.pickAtGaze` | Arm move-to on the picker (no OS click) |
+| `settings.color.eyedropper` | Hide Gazer and sample a screen pixel |
+| `settings.color.palette.0`… | Composer palette swatch |
 | `settings.color.editHex` / `.save` / `.cancel` | Hex pad |
-| `settings.hex.digit.*` / `.backspace` / `.clear` / `.save` / `.cancel` | Hex keys |
-| `settings.opacity.*` / `settings.flash.foreground` / `.custom` | Flash opacity / custom flash |
+| `settings.hex.digit.*` / `.backspace` / `.clear` / `.copy` / `.paste` / `.save` / `.cancel` | Hex keys |
+| `settings.numpad.copy` / `.paste` | Clipboard on the numeric editor |
+| `settings.flash.foreground` / `.custom` | Foreground flash (opens numpad) / custom flash color |
 | `settings.progress.*.toggle` / `settings.mouseProgress.*.toggle` | Progress bits |
 | `settings.session.autoCollapse.toggle` / `.startDocked.toggle` / `.layoutAutoClose.toggle` | Session |
 | `settings.speech.editKey` / `.clearKey` | Paste-from-clipboard API-key board / wipe DPAPI |

@@ -50,7 +50,6 @@ set(GAZER_SOURCES
     src/app/SettingsNumpad.cpp
     src/app/SettingsArrayEditor.cpp
     src/app/SettingsColorPicker.cpp
-    src/app/SettingsOpacity.cpp
     src/app/SettingsHexEditor.cpp
     src/app/SettingsSpeechKey.cpp
     src/app/SettingsSliderGaze.cpp
@@ -124,6 +123,7 @@ set(GAZER_SOURCES
     src/ui/PageHostWindow.cpp
     src/ui/BoardPaint.cpp
     src/ui/SliderTrack.cpp
+    src/ui/ColorField.cpp
     src/ui/ScrollBar.cpp
     src/ui/GlassBackdrop.cpp
     src/ui/TrayIcon.cpp
@@ -440,6 +440,7 @@ add_executable(GazerPageTests
     tests/LookToScrollTest.cpp
     tests/AhkLauncherTest.cpp
     tests/KeyStateManagerTest.cpp
+    tests/ColorPickerHexTest.cpp
     src/input/KeyStateManager.cpp
     src/input/KeyGlyphs.cpp
     ${GAZER_PAGE_TEST_LIB}

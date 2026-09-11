@@ -4,14 +4,19 @@
 
 #include "layout/PageSession.h"
 
+#include <QClipboard>
 #include <QColor>
+#include <QGuiApplication>
 #include <QtGlobal>
 
 namespace gazer {
 
 using SettingsPageBuild::cell;
 using SettingsPageBuild::initGrid;
+using SettingsUiInternal::hexSeedFromColor;
 using SettingsUiInternal::kLiveHex;
+using SettingsUiInternal::normalizeHexDigits;
+using SettingsUiInternal::parseHexDraft;
 
 bool SettingsUi::openHexEditor(QString* error)
 {
@@ -28,11 +33,7 @@ bool SettingsUi::openHexEditor(QString* error)
         endSliderScrub(true);
     }
     m_hexActive = true;
-    QString hex = m_colorDraft.name(QColor::HexArgb).toUpper();
-    if (hex.startsWith(QLatin1Char('#'))) {
-        hex = hex.mid(1);
-    }
-    m_hexBuffer = hex;
+    m_hexBuffer = hexSeedFromColor(m_colorDraft);
     LiveBoard hexBoard;
     if (!presentLive(hexBoard, QLatin1String(kLiveHex), buildHexDocument(), error)) {
         m_hexActive = false;
@@ -48,14 +49,19 @@ PageDocument SettingsUi::buildHexDocument() const
     PageDocument doc;
     doc.id = QLatin1String(kLiveHex);
     doc.name = QStringLiteral("Hex color");
-    initGrid(doc, 4, 7, 560, 700, 10, 16, m_settings.resolvedTheme());
+    initGrid(doc, 4, 7, 560, 760, 10, 16, m_settings.resolvedTheme());
     PageGrid& grid = doc.grids[0];
+    grid.rowTracks = starTracks({1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0});
     const EditorSwatch pal = editorSwatch();
     const QString shown =
         m_hexBuffer.isEmpty() ? QStringLiteral("#") : QStringLiteral("#%1").arg(m_hexBuffer);
-    PageCell display = cell(QStringLiteral("display"), shown, 0, 0, {}, pal.value, 4,
+    grid.cells.push_back(cell(QStringLiteral("clear"), QStringLiteral("Clear"), 0, 0,
+                              QStringLiteral("settings.hex.clear"), pal.warn));
+    PageCell display = cell(QStringLiteral("display"), shown, 0, 1, {}, pal.value, 2,
                             QStringLiteral("value"));
     grid.cells.push_back(display);
+    grid.cells.push_back(cell(QStringLiteral("back"), QStringLiteral("⌫"), 0, 3,
+                              QStringLiteral("settings.hex.backspace"), pal.warn));
 
     const char* keys[] = {"1", "2", "3", "A", "4", "5", "6", "B",
                           "7", "8", "9", "C", "0", "D", "E", "F"};
@@ -66,10 +72,10 @@ PageDocument SettingsUi::buildHexDocument() const
         grid.cells.push_back(cell(QStringLiteral("h_%1").arg(k), k, row, col,
                                   QStringLiteral("settings.hex.digit.%1").arg(k), pal.key));
     }
-    grid.cells.push_back(cell(QStringLiteral("back"), QStringLiteral("⌫"), 5, 0,
-                              QStringLiteral("settings.hex.backspace"), pal.warn, 2));
-    grid.cells.push_back(cell(QStringLiteral("clear"), QStringLiteral("Clear"), 5, 2,
-                              QStringLiteral("settings.hex.clear"), pal.warn, 2));
+    grid.cells.push_back(cell(QStringLiteral("copy"), QStringLiteral("Copy"), 5, 0,
+                              QStringLiteral("settings.hex.copy"), pal.nudge, 2));
+    grid.cells.push_back(cell(QStringLiteral("paste"), QStringLiteral("Paste"), 5, 2,
+                              QStringLiteral("settings.hex.paste"), pal.nudge, 2));
     grid.cells.push_back(cell(QStringLiteral("save"), QStringLiteral("Save"), 6, 0,
                               QStringLiteral("settings.hex.save"), pal.save, 2));
     grid.cells.push_back(cell(QStringLiteral("cancel"), QStringLiteral("Cancel"), 6, 2,
@@ -98,6 +104,43 @@ void SettingsUi::hexBackspace()
     refreshHexEditor();
 }
 
+void SettingsUi::hexCopy()
+{
+    if (!m_hexActive) {
+        return;
+    }
+    QClipboard* clip = QGuiApplication::clipboard();
+    if (!clip) {
+        return;
+    }
+    const QString shown =
+        m_hexBuffer.isEmpty() ? QStringLiteral("#") : QStringLiteral("#%1").arg(m_hexBuffer);
+    clip->setText(shown);
+    notifyStatus(QStringLiteral("Copied %1").arg(shown));
+}
+
+void SettingsUi::hexPaste()
+{
+    if (!m_hexActive) {
+        return;
+    }
+    const QClipboard* clip = QGuiApplication::clipboard();
+    if (!clip) {
+        return;
+    }
+    QString digits = normalizeHexDigits(clip->text());
+    if (digits.size() > 8) {
+        digits = digits.left(8);
+    }
+    if (digits.size() < 6 && !digits.isEmpty()) {
+        // Keep partial paste so the user can finish typing.
+    }
+    m_hexBuffer = digits;
+    refreshHexEditor();
+    notifyStatus(digits.isEmpty() ? QStringLiteral("Clipboard has no hex")
+                                  : QStringLiteral("Pasted #%1").arg(digits));
+}
+
 void SettingsUi::refreshHexEditor()
 {
     if (!m_hexActive) {
@@ -116,19 +159,17 @@ bool SettingsUi::hexSave(QString* error)
         }
         return false;
     }
-    QString hex = m_hexBuffer;
-    if (!hex.startsWith(QLatin1Char('#'))) {
-        hex.prepend(QLatin1Char('#'));
-    }
-    const QColor c = AppSettings::parseColor(hex);
-    if (!c.isValid()) {
-        const QString msg = QStringLiteral("Invalid hex color");
+    const auto parsed = parseHexDraft(m_hexBuffer);
+    if (!parsed.ok) {
+        const QString msg = QStringLiteral("Enter 6–8 hex digits");
         notifyStatus(msg);
         if (error) {
             *error = msg;
         }
         return false;
     }
+    QColor c = parsed.rgb;
+    c.setAlpha(parsed.setAlpha ? parsed.alpha : m_colorA);
     unbindEditorKeyboard();
     m_pages.closePage(QLatin1String(kLiveHex));
     m_hexActive = false;
@@ -136,7 +177,7 @@ bool SettingsUi::hexSave(QString* error)
     loadColorDraft(c);
     storeDraftPending();
     refreshColorPicker();
-    notifyStatus(QStringLiteral("Hex %1").arg(c.name(QColor::HexArgb).toUpper()));
+    notifyStatus(QStringLiteral("Hex #%1").arg(hexSeedFromColor(m_colorDraft)));
     return true;
 }
 

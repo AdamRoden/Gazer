@@ -322,6 +322,19 @@ PageDocument PageSession::attachedCopy(const QString& id) const
     return {};
 }
 
+PageDocument PageSession::pageBehind(const QString& id) const
+{
+    for (int i = 0; i < m_attached.size(); ++i) {
+        if (m_attached[i].doc.id == id) {
+            return i > 0 ? m_attached[i - 1].doc : m_root;
+        }
+    }
+    if (!m_attached.isEmpty()) {
+        return m_attached.last().doc;
+    }
+    return m_root;
+}
+
 bool PageSession::openPage(const QString& id, QString* error)
 {
     if (id == m_root.id) {

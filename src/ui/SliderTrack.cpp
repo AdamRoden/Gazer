@@ -33,15 +33,20 @@ Visual visual(const QRectF& cell, bool scrubbing)
     return g;
 }
 
-void paintPreview(QPainter& p, const QRectF& r, double radius, const QColor& color)
+void fillChecker(QPainter& p, const QRectF& r, int tile)
 {
-    const int cell = 10;
+    const int cell = qMax(4, tile);
     for (int y = int(r.top()); y < int(r.bottom()); y += cell) {
         for (int x = int(r.left()); x < int(r.right()); x += cell) {
             const bool lite = ((x / cell) + (y / cell)) % 2 == 0;
             p.fillRect(x, y, cell, cell, lite ? QColor(200, 200, 200) : QColor(140, 140, 140));
         }
     }
+}
+
+void paintPreview(QPainter& p, const QRectF& r, double radius, const QColor& color)
+{
+    fillChecker(p, r);
     p.setPen(Qt::NoPen);
     p.setBrush(color.isValid() ? color : ThemeColors::defaultProgressColor());
     p.drawRoundedRect(r, radius, radius);
@@ -66,12 +71,17 @@ ChannelInfo channelInfo(const QString& channel, const QColor& color)
     if (h < 0) {
         h = 0;
     }
+    int hv = 0, sv = 0, vv = 0;
+    c.getHsv(&hv, &sv, &vv, &a);
+    if (hv < 0) {
+        hv = 0;
+    }
     const QString ch = channel.toLower();
     ChannelInfo info;
     if (ch == QLatin1String("h") || ch == QLatin1String("hue")) {
         info.name = QStringLiteral("Hue");
-        info.value = QString::number(h);
-        info.t = h / 359.0;
+        info.value = QString::number(hv);
+        info.t = hv / 359.0;
     } else if (ch == QLatin1String("s") || ch == QLatin1String("sat")) {
         const int pct = qBound(0, qRound(s / 2.55), 100);
         info.name = QStringLiteral("Saturation");
@@ -217,7 +227,7 @@ void paint(QPainter& p, const QRectF& cell, const ThemeColors& theme, const Prog
     QLinearGradient g(track.left(), track.center().y(), track.right(), track.center().y());
     if (ch == QLatin1String("h") || ch == QLatin1String("hue")) {
         for (int i = 0; i <= 6; ++i) {
-            g.setColorAt(i / 6.0, QColor::fromHsl(qMin(359, i * 60), 255, 128));
+            g.setColorAt(i / 6.0, QColor::fromHsv(qMin(359, i * 60), 255, 255));
         }
     } else if (ch == QLatin1String("s") || ch == QLatin1String("sat")) {
         g.setColorAt(0.0, QColor::fromHsl(h, 0, l));

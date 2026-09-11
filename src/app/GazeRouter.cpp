@@ -8,6 +8,7 @@
 #include "assist/MouseDwellMove.h"
 #include "layout/PageSession.h"
 #include "ui/MagnifierOverlay.h"
+#include "ui/PageHostWindow.h"
 
 namespace gazer {
 
@@ -15,8 +16,11 @@ void GazeRouter::dispatch(const GazePoint& point)
 {
     // One page hit-test per sample. Master page stays dwellable during aim;
     // attached layouts yield so mag-pick / place-cursor can run over them.
+    const bool hostVisible =
+        m_pages && m_pages->window() && m_pages->window()->isVisible();
+
     PageSession::GazeHit hit;
-    if (m_pages) {
+    if (m_pages && hostVisible) {
         hit = m_pages->classifyGaze(point);
     }
 
@@ -35,7 +39,7 @@ void GazeRouter::dispatch(const GazePoint& point)
         if (m_pages) {
             m_pages->leaveGaze();
         }
-    } else if (m_pages && m_pages->hasRoot()) {
+    } else if (m_pages && m_pages->hasRoot() && hostVisible) {
         const auto scope = freeAim ? PageSession::GazeScope::MasterAndActivator
                                    : PageSession::GazeScope::All;
         overBoard = m_pages->feedGaze(point, hit, scope);

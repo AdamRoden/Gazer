@@ -33,7 +33,9 @@ public:
         CursorMoveClickLoop,  ///< Same as CursorMove, then left-click and re-arm until off.
         CursorMoveLeftClick,  ///< Move-to, then one left click and disarm.
         CursorMoveRightClick, ///< Move-to, then one right click and disarm.
-        CursorMoveMiddleClick ///< Move-to, then one middle click and disarm.
+        CursorMoveMiddleClick, ///< Move-to, then one middle click and disarm.
+        ColorPick,            ///< Move-to on the color picker; no OS click.
+        ColorSample           ///< Move-to, sample the screen pixel; no OS click.
     };
 
     explicit MouseDwellMove(QObject* parent = nullptr);
@@ -130,6 +132,16 @@ public:
     }
     void setPaused(bool paused);
     [[nodiscard]] bool isPaused() const { return m_paused; }
+    [[nodiscard]] bool isColorPick() const
+    {
+        return m_armed && m_purpose == ArmPurpose::ColorPick;
+    }
+    [[nodiscard]] bool isColorSample() const
+    {
+        return m_armed && m_purpose == ArmPurpose::ColorSample;
+    }
+    /// If no select timeout is set, arm a fallback deadline so sample/pick cannot hang.
+    void ensureSelectDeadline(int fallbackMs);
 
     void gateUntilGazeLeaves(const QRect& screenRect);
     /// Hold this long after gaze leaves the gate before pick dwell begins (blink grace).
@@ -208,6 +220,7 @@ private:
     void markSelectDeadline();
     [[nodiscard]] bool selectTimedOut(qint64 nowMs) const;
     [[nodiscard]] bool useMagPickThisArm() const;
+    [[nodiscard]] bool isCursorMoveFamily() const;
     [[nodiscard]] bool armWantsForesight() const;
     [[nodiscard]] bool armWantsBonusZoom() const;
     void applyDwellForPhase();

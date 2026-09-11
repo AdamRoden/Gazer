@@ -68,6 +68,8 @@ public:
     [[nodiscard]] bool attachDocument(PageDocument doc, QString* error = nullptr,
                                       bool decorate = false, bool restack = true);
     [[nodiscard]] PageDocument attachedCopy(const QString& id) const;
+    /// Page in front of @p id, or the current top page if @p id is not attached.
+    [[nodiscard]] PageDocument pageBehind(const QString& id) const;
     void registerMemoryPage(PageDocument doc);
     void closePreviewPages();
     static QString previewId(const QString& catalogId);
@@ -133,6 +135,7 @@ public:
     void gateHover(const QString& pageId);
     void raise();
     void hideHost();
+    void showHost();
 
     void activateTarget(const QString& targetId);
     [[nodiscard]] QVector<QRect> unpauseGapRects() const;

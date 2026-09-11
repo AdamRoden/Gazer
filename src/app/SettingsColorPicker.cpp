@@ -2,14 +2,21 @@
 #include "app/SettingsPageBuild.h"
 #include "app/SettingsUiInternal.h"
 
+#include "assist/MouseDwellMove.h"
+#include "layout/PageHit.h"
 #include "layout/PageSession.h"
+#include "ui/ColorField.h"
+#include "ui/ColorSwatches.h"
 #include "ui/MaterialPalette.h"
 #include "ui/PageHostWindow.h"
+#include "ui/SliderTrack.h"
 #include "ui/Theme.h"
+#include "utils/ScreenGrab.h"
 
 #include <QColor>
+#include <QGuiApplication>
+#include <QScreen>
 #include <QtGlobal>
-#include <iterator>
 
 namespace gazer {
 
@@ -18,34 +25,10 @@ using SettingsPageBuild::initGrid;
 using SettingsUiInternal::ColorAxis;
 using SettingsUiInternal::findColorAxis;
 using SettingsUiInternal::fromPct255;
-using SettingsUiInternal::kColorAxes;
+using SettingsUiInternal::hexSeedFromColor;
 using SettingsUiInternal::kLiveColor;
 using SettingsUiInternal::kLiveHex;
 using SettingsUiInternal::pct255;
-
-namespace {
-
-void addColorAxis(PageGrid& grid, const ColorAxis& axis, int row, int trackSpan, int incCol,
-                  const SettingsUi::EditorSwatch& pal)
-{
-    grid.cells.push_back(cell(QStringLiteral("edit_%1").arg(QLatin1String(axis.id)),
-                              QStringLiteral("Edit"), row, 0,
-                              QStringLiteral("settings.color.scrub.%1").arg(QLatin1String(axis.id)),
-                              pal.edit, 1, {}, {}, QStringLiteral("edit")));
-    grid.cells.push_back(cell(QStringLiteral("dec_%1").arg(QLatin1String(axis.id)),
-                              QStringLiteral("−"), row, 1,
-                              QStringLiteral("settings.color.nudge.%1.dec").arg(QLatin1String(axis.id)),
-                              pal.nudge));
-    grid.cells.push_back(cell(QStringLiteral("track_%1").arg(QLatin1String(axis.id)),
-                              QLatin1String(axis.title), row, 2, {}, QColor(), trackSpan,
-                              QStringLiteral("slider"), QLatin1String(axis.id)));
-    grid.cells.push_back(cell(QStringLiteral("inc_%1").arg(QLatin1String(axis.id)),
-                              QStringLiteral("+"), row, incCol,
-                              QStringLiteral("settings.color.nudge.%1.inc").arg(QLatin1String(axis.id)),
-                              pal.nudge));
-}
-
-} // namespace
 
 void SettingsUi::applyPreviewColor()
 {
@@ -54,44 +37,18 @@ void SettingsUi::applyPreviewColor()
     }
 }
 
-void SettingsUi::colorSyncFromHsl()
-{
-    QColor c = QColor::fromHsl(qBound(0, m_colorH, 359), qBound(0, m_colorS, 255),
-                               qBound(0, m_colorL, 255), qBound(0, m_colorA, 255));
-    m_colorDraft = c;
-    m_colorR = c.red();
-    m_colorG = c.green();
-    m_colorB = c.blue();
-}
-
-void SettingsUi::colorSyncFromRgb()
-{
-    m_colorDraft = QColor(qBound(0, m_colorR, 255), qBound(0, m_colorG, 255),
-                          qBound(0, m_colorB, 255), qBound(0, m_colorA, 255));
-    int h = 0, s = 0, l = 0, a = 255;
-    m_colorDraft.getHsl(&h, &s, &l, &a);
-    if (h >= 0) {
-        m_colorH = h;
-    }
-    m_colorS = s;
-    m_colorL = l;
-    m_colorA = a;
-}
-
 void SettingsUi::loadColorDraft(const QColor& c)
 {
     m_colorDraft = c.isValid() ? c : ThemeColors::defaultProgressColor();
-    m_colorR = m_colorDraft.red();
-    m_colorG = m_colorDraft.green();
-    m_colorB = m_colorDraft.blue();
     m_colorA = m_colorDraft.alpha();
-    int h = 0, s = 0, l = 0, a = 255;
-    m_colorDraft.getHsl(&h, &s, &l, &a);
-    if (h >= 0) {
-        m_colorH = h;
-    }
-    m_colorS = s;
-    m_colorL = l;
+}
+
+void SettingsUi::applyHsv(int h, int s, int v, int alpha)
+{
+    QColor c = QColor::fromHsv(qBound(0, h, 359), qBound(0, s, 255), qBound(0, v, 255),
+                               qBound(0, alpha, 255));
+    loadColorDraft(c);
+    storeDraftPending();
 }
 
 int SettingsUi::colorShownValue(const QString& channel) const
@@ -100,23 +57,12 @@ int SettingsUi::colorShownValue(const QString& channel) const
     if (!axis) {
         return 0;
     }
-    switch (axis->kind) {
-    case ColorAxis::Kind::Hue:
-        return m_colorH;
-    case ColorAxis::Kind::Sat:
-        return pct255(m_colorS);
-    case ColorAxis::Kind::Light:
-        return pct255(m_colorL);
-    case ColorAxis::Kind::Red:
-        return m_colorR;
-    case ColorAxis::Kind::Green:
-        return m_colorG;
-    case ColorAxis::Kind::Blue:
-        return m_colorB;
-    case ColorAxis::Kind::Alpha:
-        return pct255(m_colorA);
+    if (axis->kind == ColorAxis::Kind::Hue) {
+        int h = 0, s = 0, v = 0, a = 255;
+        m_colorDraft.getHsv(&h, &s, &v, &a);
+        return h < 0 ? 0 : h;
     }
-    return 0;
+    return pct255(m_colorDraft.alpha());
 }
 
 bool SettingsUi::applyColorShownValue(const QString& channel, int value)
@@ -125,36 +71,14 @@ bool SettingsUi::applyColorShownValue(const QString& channel, int value)
     if (!axis) {
         return false;
     }
-    switch (axis->kind) {
-    case ColorAxis::Kind::Hue:
-        m_colorH = qBound(0, value, 359);
-        colorSyncFromHsl();
-        break;
-    case ColorAxis::Kind::Sat:
-        m_colorS = fromPct255(value);
-        colorSyncFromHsl();
-        break;
-    case ColorAxis::Kind::Light:
-        m_colorL = fromPct255(value);
-        colorSyncFromHsl();
-        break;
-    case ColorAxis::Kind::Red:
-        m_colorR = qBound(0, value, 255);
-        colorSyncFromRgb();
-        break;
-    case ColorAxis::Kind::Green:
-        m_colorG = qBound(0, value, 255);
-        colorSyncFromRgb();
-        break;
-    case ColorAxis::Kind::Blue:
-        m_colorB = qBound(0, value, 255);
-        colorSyncFromRgb();
-        break;
-    case ColorAxis::Kind::Alpha:
-        m_colorA = fromPct255(value);
-        m_colorDraft.setAlpha(m_colorA);
-        break;
+    if (axis->kind == ColorAxis::Kind::Hue) {
+        int h = 0, s = 0, v = 0, a = 255;
+        m_colorDraft.getHsv(&h, &s, &v, &a);
+        applyHsv(value, s, v, m_colorA);
+        return true;
     }
+    m_colorA = fromPct255(value);
+    m_colorDraft.setAlpha(m_colorA);
     storeDraftPending();
     return true;
 }
@@ -166,13 +90,27 @@ void SettingsUi::colorSetChannel(const QString& channel, int value)
 
 void SettingsUi::colorNudge(const QString& channel, int dir)
 {
-    if (!m_color.active && !m_opacity.active) {
+    if (!m_color.active) {
         return;
     }
     if (m_scrub.active) {
         endSliderScrub(true);
     }
     applyColorShownValue(channel, colorShownValue(channel) + dir);
+    refreshColorPicker();
+}
+
+void SettingsUi::colorNudgeField(int ds, int dv)
+{
+    if (!m_color.active) {
+        return;
+    }
+    int h = 0, s = 0, v = 0, a = 255;
+    m_colorDraft.getHsv(&h, &s, &v, &a);
+    if (h < 0) {
+        h = 0;
+    }
+    applyHsv(h, fromPct255(pct255(s) + ds), fromPct255(pct255(v) + dv), m_colorA);
     refreshColorPicker();
 }
 
@@ -225,6 +163,13 @@ void SettingsUi::persistThemeDraft(bool persist)
     (void)m_settings.setColorKey(m_colorPickerKey, stored, false);
     m_settings.applyTheme();
     apply(persist);
+}
+
+bool SettingsUi::openFlashForeground(QString* error)
+{
+    m_settings.flashUseForeground = true;
+    apply(true);
+    return openNumericEditor(QStringLiteral("flashForegroundOpacity"), error);
 }
 
 bool SettingsUi::openFlashCustom(QString* error)
@@ -368,37 +313,160 @@ void SettingsUi::colorApplyDraftShade(int index)
         return;
     }
     const MaterialPalette::Palettes pal = MaterialPalette::generate(m_colorDraft);
-    loadColorDraft(MaterialPalette::shade(pal, MaterialPalette::Family::Primary, index));
+    QColor c = MaterialPalette::shade(pal, MaterialPalette::Family::Primary, index);
+    c.setAlpha(m_colorA);
+    loadColorDraft(c);
     storeDraftPending();
     refreshColorPicker();
 }
+
+void SettingsUi::colorApplyPalette(int index)
+{
+    if (!m_color.active) {
+        return;
+    }
+    const auto& colors = paletteColors();
+    if (index < 0 || index >= colors.size()) {
+        return;
+    }
+    QColor c = ThemeColors::parseColor(colors.at(index), QColor());
+    if (!c.isValid()) {
+        return;
+    }
+    c.setAlpha(m_colorA);
+    loadColorDraft(c);
+    storeDraftPending();
+    refreshColorPicker();
+}
+
+namespace {
+
+void adoptCallerBoard(PageGrid& g, const PageDocument& caller)
+{
+    if (caller.grids.isEmpty() || !caller.grids[0].size.isSet()) {
+        g.desktopMode = true;
+        g.anchor = PageAnchor::Top;
+        g.offset.x = PageDim::pixels(0);
+        g.offset.y = PageDim::pixels(0);
+        g.size.x = PageDim::expression(
+            QStringLiteral("clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth)"));
+        g.size.y = PageDim::expression(QStringLiteral("A_ScreenHeight"));
+        g.gapPx = 6;
+        g.marginPx = 12;
+        return;
+    }
+    const PageGrid& src = caller.grids[0];
+    g.desktopMode = src.desktopMode;
+    g.anchor = src.anchor;
+    g.offset = src.offset;
+    g.size = src.size;
+    g.gapPx = src.gapPx;
+    g.marginPx = src.marginPx;
+}
+
+PageGrid makeNested(const QString& id, int row, int col, int rows, int cols, int gap)
+{
+    PageGrid g;
+    g.id = id;
+    g.nested = true;
+    g.row = row;
+    g.col = col;
+    g.rows = rows;
+    g.columns = cols;
+    g.gapPx = gap;
+    return g;
+}
+
+} // namespace
 
 PageDocument SettingsUi::buildGenericColorDocument() const
 {
     PageDocument doc;
     doc.id = QLatin1String(kLiveColor);
     doc.name = AppSettings::settingTitle(m_colorPickerKey);
-    initGrid(doc, 12, 9, 1400, 980, 8, 20, m_settings.resolvedTheme());
+    initGrid(doc, 2, 1, 1080, 1080, 6, 12, m_settings.resolvedTheme());
     PageGrid& grid = doc.grids[0];
+    adoptCallerBoard(grid, m_pages.pageBehind(QLatin1String(kLiveColor)));
+    grid.columnTracks = starTracks({1.0, 1.0});
     const EditorSwatch pal = editorSwatch();
-    for (int i = 0; i < int(std::size(kColorAxes)); ++i) {
-        addColorAxis(grid, kColorAxes[i], i, 9, 11, pal);
-    }
+    constexpr int kGap = 6;
+
+    PageGrid left = makeNested(QStringLiteral("picker"), 0, 0, 5, 10, kGap);
+    left.rowTracks = starTracks({6.5, 1.0, 0.9, 0.9, 0.8});
+
+    PageGrid hsv = makeNested(QStringLiteral("hsv"), 0, 0, 3, 3, kGap);
+    hsv.colSpan = 10;
+    hsv.rowTracks = starTracks({0.9, 6.0, 0.9});
+    hsv.columnTracks = starTracks({0.9, 8.0, 0.9});
+    hsv.cells.push_back(cell(QStringLiteral("field_up"), QStringLiteral("↑"), 0, 1,
+                             QStringLiteral("settings.color.field.up"), pal.nudge));
+    hsv.cells.push_back(cell(QStringLiteral("field_left"), QStringLiteral("←"), 1, 0,
+                             QStringLiteral("settings.color.field.left"), pal.nudge));
+    hsv.cells.push_back(cell(QStringLiteral("colorfield"), {}, 1, 1, {}, QColor(), 1,
+                             QStringLiteral("colorfield")));
+    hsv.cells.push_back(cell(QStringLiteral("field_right"), QStringLiteral("→"), 1, 2,
+                             QStringLiteral("settings.color.field.right"), pal.nudge));
+    hsv.cells.push_back(cell(QStringLiteral("field_down"), QStringLiteral("↓"), 2, 1,
+                             QStringLiteral("settings.color.field.down"), pal.nudge));
+    left.subGrids.push_back(std::move(hsv));
+
+    PageCell eyedrop = cell(QStringLiteral("eyedrop"), {}, 1, 0,
+                            QStringLiteral("settings.color.eyedropper"), pal.edit, 5, {}, {},
+                            QStringLiteral("colorize"));
+    eyedrop.activeState = QStringLiteral("settings.color.eyedropper");
+    left.cells.push_back(std::move(eyedrop));
+    PageCell clickAt = cell(QStringLiteral("click_gaze"), {}, 1, 5,
+                            QStringLiteral("settings.color.pickAtGaze"), pal.key, 5, {}, {},
+                            QStringLiteral("adsClick"));
+    clickAt.activeState = QStringLiteral("settings.color.pickAtGaze");
+    left.cells.push_back(std::move(clickAt));
+
+    left.cells.push_back(cell(QStringLiteral("dec_h"), QStringLiteral("←"), 2, 0,
+                              QStringLiteral("settings.color.nudge.h.dec"), pal.nudge));
+    left.cells.push_back(cell(QStringLiteral("track_h"), QStringLiteral("Hue"), 2, 1, {}, QColor(),
+                              8, QStringLiteral("slider"), QStringLiteral("h")));
+    left.cells.push_back(cell(QStringLiteral("inc_h"), QStringLiteral("→"), 2, 9,
+                              QStringLiteral("settings.color.nudge.h.inc"), pal.nudge));
+
+    left.cells.push_back(cell(QStringLiteral("dec_a"), QStringLiteral("←"), 3, 0,
+                              QStringLiteral("settings.color.nudge.a.dec"), pal.nudge));
+    left.cells.push_back(cell(QStringLiteral("track_a"), QStringLiteral("Opacity"), 3, 1, {},
+                              QColor(), 8, QStringLiteral("slider"), QStringLiteral("a")));
+    left.cells.push_back(cell(QStringLiteral("inc_a"), QStringLiteral("→"), 3, 9,
+                              QStringLiteral("settings.color.nudge.a.inc"), pal.nudge));
+
+    const QString hexShown = QStringLiteral("#%1").arg(hexSeedFromColor(m_colorDraft));
+    left.cells.push_back(cell(QStringLiteral("hex"), hexShown, 4, 0,
+                              QStringLiteral("settings.color.editHex"), m_colorDraft, 6));
+    left.cells.push_back(cell(QStringLiteral("opacity_label"),
+                              QStringLiteral("%1%").arg(pct255(m_colorA)), 4, 6,
+                              QStringLiteral("settings.color.edit.a"), pal.value, 4));
+    grid.subGrids.push_back(std::move(left));
+
+    PageGrid right = makeNested(QStringLiteral("swatches"), 0, 1, 6, 10, kGap);
+    right.rowTracks = starTracks({1.0, 1.0, 1.0, 1.0, 1.0, 0.9});
     const MaterialPalette::Palettes pals = MaterialPalette::generate(m_colorDraft);
     for (int display = 0; display < MaterialPalette::kShadeCount; ++display) {
         const int idx = MaterialPalette::kShadeCount - 1 - display;
-        const QColor c = pals.primary[idx];
-        grid.cells.push_back(cell(QStringLiteral("draft_shade_%1").arg(idx),
-                                  QString::number(MaterialPalette::kShades[idx]), 7, display,
-                                  QStringLiteral("settings.color.draftShade.%1").arg(idx), c));
+        QColor c = pals.primary[idx];
+        c.setAlpha(m_colorA);
+        right.cells.push_back(cell(QStringLiteral("draft_shade_%1").arg(idx), {}, 0, display,
+                                   QStringLiteral("settings.color.draftShade.%1").arg(idx), c, 1,
+                                   QStringLiteral("swatch")));
     }
-    const QString hex = m_colorDraft.name(QColor::HexArgb).toUpper();
-    grid.cells.push_back(cell(QStringLiteral("hex"), hex, 8, 0,
-                              QStringLiteral("settings.color.editHex"), pal.value, 4));
-    grid.cells.push_back(cell(QStringLiteral("save"), QStringLiteral("Save"), 8, 4,
-                              QStringLiteral("settings.color.save"), pal.save, 4));
-    grid.cells.push_back(cell(QStringLiteral("cancel"), QStringLiteral("Cancel"), 8, 8,
-                              QStringLiteral("settings.color.cancel"), pal.cancel, 4));
+    const auto& colors = paletteColors();
+    for (int i = 0; i < colors.size(); ++i) {
+        QColor bg = ThemeColors::parseColor(colors.at(i), QColor(128, 128, 128));
+        bg.setAlpha(m_colorA);
+        right.cells.push_back(cell(QStringLiteral("palette_%1").arg(i), {}, 1 + i / 10, i % 10,
+                                   QStringLiteral("settings.color.palette.%1").arg(i), bg, 1,
+                                   QStringLiteral("swatch")));
+    }
+    right.cells.push_back(cell(QStringLiteral("save"), QStringLiteral("Save"), 5, 0,
+                               QStringLiteral("settings.color.save"), pal.save, 5));
+    right.cells.push_back(cell(QStringLiteral("cancel"), QStringLiteral("Cancel"), 5, 5,
+                               QStringLiteral("settings.color.cancel"), pal.cancel, 5));
+    grid.subGrids.push_back(std::move(right));
     return doc;
 }
 
@@ -429,6 +497,10 @@ void SettingsUi::closeColorPicker()
     if (!m_color.active) {
         return;
     }
+    if (m_eyedropActive && m_mouseDwell) {
+        m_mouseDwell->setArmed(false);
+    }
+    cancelEyedropper();
     abortSliderScrub();
     if (m_flashCustomSetMode) {
         m_settings.flashUseForeground = true;
@@ -503,6 +575,185 @@ bool SettingsUi::colorEditChannel(const QString& channel, QString* error)
     }
     notifyStatus(QStringLiteral("Edit %1").arg(QLatin1String(axis->label)));
     return true;
+}
+
+void SettingsUi::restoreEyedropHost()
+{
+    if (!m_eyedropHostHidden) {
+        return;
+    }
+    m_pages.showHost();
+    m_eyedropHostHidden = false;
+}
+
+void SettingsUi::cancelEyedropper()
+{
+    const bool was = m_eyedropActive;
+    m_eyedropActive = false;
+    restoreEyedropHost();
+    if (was && m_color.active && !m_hexActive && !m_numpad.active) {
+        refreshColorPicker();
+    }
+}
+
+void SettingsUi::sampleScreenColor(const QPoint& pos)
+{
+    QScreen* screen = QGuiApplication::screenAt(pos);
+    if (!screen) {
+        screen = QGuiApplication::primaryScreen();
+    }
+    if (!screen) {
+        return;
+    }
+    const QPixmap grab = grabScreenRect(screen, QRect(pos, QSize(1, 1)));
+    if (grab.isNull()) {
+        return;
+    }
+    const QColor sampled = grab.toImage().pixelColor(0, 0);
+    if (!sampled.isValid()) {
+        return;
+    }
+    QColor c = sampled;
+    if (c.alpha() <= 0) {
+        c.setAlpha(m_colorA);
+    }
+    loadColorDraft(c);
+    storeDraftPending();
+}
+
+bool SettingsUi::beginColorPick()
+{
+    if (!m_color.active || !m_mouseDwell) {
+        return false;
+    }
+    if (m_scrub.active) {
+        endSliderScrub(true);
+    }
+    m_mouseDwell->toggleArmed(MouseDwellMove::ArmPurpose::ColorPick);
+    if (m_mouseDwell->isColorPick()) {
+        m_mouseDwell->ensureSelectDeadline(8000);
+        notifyStatus(QStringLiteral("Look at the square, slider, or swatch"));
+    }
+    return true;
+}
+
+bool SettingsUi::beginEyedropper()
+{
+    if (!m_color.active && !ensureInlineThemeEditor()) {
+        return false;
+    }
+    if (!m_color.active) {
+        return false;
+    }
+    if (m_scrub.active) {
+        endSliderScrub(true);
+    }
+    const QRect gate = m_pages.targetScreenRect(m_color.pageId, QStringLiteral("eyedrop"));
+    m_eyedropActive = true;
+    if (PageHostWindow* w = m_pages.window(); w && w->isVisible()) {
+        m_pages.hideHost();
+        m_eyedropHostHidden = true;
+    }
+    if (m_mouseDwell) {
+        m_mouseDwell->setArmed(true, MouseDwellMove::ArmPurpose::ColorSample);
+        m_mouseDwell->ensureSelectDeadline(8000);
+        if (!gate.isEmpty()) {
+            m_mouseDwell->gateUntilGazeLeaves(gate);
+            m_pages.setAimActivator(m_color.pageId, QStringLiteral("eyedrop"));
+        }
+    }
+    notifyStatus(QStringLiteral("Eyedropper — dwell to sample a screen color"));
+    return true;
+}
+
+void SettingsUi::onColorAimMoved(const QPoint& pos)
+{
+    if (!m_mouseDwell) {
+        return;
+    }
+    if (m_mouseDwell->isColorSample() || m_eyedropActive) {
+        sampleScreenColor(pos);
+        m_eyedropActive = false;
+        restoreEyedropHost();
+        if (m_color.active) {
+            refreshColorPicker();
+        }
+        notifyStatus(QStringLiteral("Sampled %1").arg(m_colorDraft.name(QColor::HexArgb).toUpper()));
+        return;
+    }
+    if (m_mouseDwell->isColorPick() && m_color.active && !m_hexActive && !m_numpad.active) {
+        applyPickAt(pos);
+    }
+}
+
+void SettingsUi::applyPickAt(const QPoint& pos)
+{
+    const QPointF gaze(pos);
+    auto local = [](const PageTarget& t) { return localIdOf(t); };
+    auto cellOf = [](const PageTarget& t) { return t.geom.contentOnScreen(); };
+
+    const PageTarget* field = nullptr;
+    const PageTarget* hue = nullptr;
+    const PageTarget* alpha = nullptr;
+    const PageTarget* swatch = nullptr;
+    for (const PageTarget& t : m_pages.targets()) {
+        const QString id = local(t);
+        if (id == QLatin1String("colorfield")) {
+            field = &t;
+        } else if (id == QLatin1String("track_h")) {
+            hue = &t;
+        } else if (id == QLatin1String("track_a")) {
+            alpha = &t;
+        } else if ((id.startsWith(QLatin1String("draft_shade_"))
+                    || id.startsWith(QLatin1String("palette_")))
+                   && cellOf(t).contains(gaze)) {
+            swatch = &t;
+        }
+    }
+
+    if (field && cellOf(*field).contains(gaze)) {
+        const ColorField::Visual geom = ColorField::visual(cellOf(*field));
+        double s01 = 0.0, v01 = 0.0;
+        geom.svAt(gaze, &s01, &v01);
+        int h = 0, s = 0, v = 0, a = 255;
+        m_colorDraft.getHsv(&h, &s, &v, &a);
+        if (h < 0) {
+            h = 0;
+        }
+        applyHsv(h, qRound(s01 * 255.0), qRound(v01 * 255.0), m_colorA);
+        refreshColorPicker();
+        return;
+    }
+    if (hue && cellOf(*hue).contains(gaze)) {
+        const double t = SliderTrack::visual(cellOf(*hue), false).tAtX(gaze.x());
+        applyColorShownValue(QStringLiteral("h"), qRound(t * 359.0));
+        refreshColorPicker();
+        return;
+    }
+    if (alpha && cellOf(*alpha).contains(gaze)) {
+        const double t = SliderTrack::visual(cellOf(*alpha), false).tAtX(gaze.x());
+        applyColorShownValue(QStringLiteral("a"), qRound(t * 100.0));
+        refreshColorPicker();
+        return;
+    }
+    if (!swatch) {
+        return;
+    }
+    const QString id = local(*swatch);
+    bool ok = false;
+    if (id.startsWith(QLatin1String("draft_shade_"))) {
+        const int idx = id.mid(int(QStringLiteral("draft_shade_").size())).toInt(&ok);
+        if (ok) {
+            colorApplyDraftShade(idx);
+        }
+        return;
+    }
+    if (id.startsWith(QLatin1String("palette_"))) {
+        const int idx = id.mid(int(QStringLiteral("palette_").size())).toInt(&ok);
+        if (ok) {
+            colorApplyPalette(idx);
+        }
+    }
 }
 
 } // namespace gazer

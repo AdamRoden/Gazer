@@ -66,7 +66,7 @@ Do not `raise()` / `HWND_TOP` an overlay on every gaze sample. `showOverlay()` i
 
 - `PageDim` **struct** is in `layout/PageTypes.h`. `layout/PageDim.h` is parse / `placeRect` only.
 - `GazerServices.h` and `PageSession.h` are façades. Include `assist/LookToScroll.h`, `ui/PageHostWindow.h`, `ui/Theme.h`, etc. at the call site — do not expect those types from the façade.
-- `SettingsUi` methods are split by board: `SettingsUi.cpp` (shared), `SettingsNumpad.cpp`, `SettingsArrayEditor.cpp`, `SettingsColorPicker.cpp`, `SettingsOpacity.cpp`, `SettingsHexEditor.cpp`, `SettingsSpeechKey.cpp`, `SettingsSliderGaze.cpp`, `SettingsCommands.cpp`. Helpers: `SettingsPageBuild.h`, `SettingsUiInternal.h`.
+- `SettingsUi` methods are split by board: `SettingsUi.cpp` (shared), `SettingsNumpad.cpp`, `SettingsArrayEditor.cpp`, `SettingsColorPicker.cpp`, `SettingsHexEditor.cpp`, `SettingsSpeechKey.cpp`, `SettingsSliderGaze.cpp`, `SettingsCommands.cpp`. Helpers: `SettingsPageBuild.h`, `SettingsUiInternal.h`.
 - `ComposeUi` methods are split by board: `ComposeUi.cpp` (capture + chrome stamp/decorate), `ComposeSoundboard.cpp`, `ComposeFreestyle.cpp`, `ComposeItemEdit.cpp`, `ComposeVoices.cpp`, `ComposeHistory.cpp`. Helpers: `ComposeUiInternal.h`.
 - `AppSettings` JSON is `AppSettingsIo.cpp`; theme palette is `AppSettingsTheme.cpp`.
 - `PageSession` drawer/quit is `PageSessionChrome.cpp`; gaze/dwell is `PageSessionGaze.cpp`.

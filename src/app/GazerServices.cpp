@@ -39,6 +39,7 @@
 #include <QColor>
 #include <QDir>
 #include <QFile>
+#include <QPoint>
 #include <QStandardPaths>
 #include <QtGlobal>
 #include <utility>
@@ -174,6 +175,14 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
             mutateAndApply(mutator, status);
         });
     m_settingsUi->setResetFn([this]() { resetSettingsToDefaults(); });
+    m_settingsUi->setMouseDwellMove(m_mouseDwellMove.get());
+    connect(m_mouseDwellMove.get(), &MouseDwellMove::movedTo, this,
+            [this](QPoint pos) { m_settingsUi->onColorAimMoved(pos); });
+    connect(m_mouseDwellMove.get(), &MouseDwellMove::armedChanged, this, [this](bool armed) {
+        if (!armed) {
+            m_settingsUi->cancelEyedropper();
+        }
+    });
 
     m_pages->setDecorate([this](PageDocument& doc) {
         m_settingsUi->decoratePage(doc);

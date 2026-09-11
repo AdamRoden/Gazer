@@ -10,6 +10,7 @@
 #include <QElapsedTimer>
 #include <QHash>
 #include <QMetaObject>
+#include <QPoint>
 #include <QString>
 #include <QVector>
 #include <functional>
@@ -18,13 +19,14 @@ namespace gazer {
 
 class CommandRegistry;
 class ElevenClient;
+class MouseDwellMove;
 class PageSession;
 class SpeechSecrets;
 
 /// Settings boards: live value decoration, numeric editor, color picker, settings commands.
 /// Implementations: SettingsUi.cpp (shared), SettingsNumpad, SettingsArrayEditor,
-/// SettingsColorPicker, SettingsOpacity, SettingsHexEditor, SettingsSpeechKey,
-/// SettingsSliderGaze, SettingsCommands.
+/// SettingsColorPicker, SettingsHexEditor, SettingsSpeechKey, SettingsSliderGaze,
+/// SettingsCommands.
 class SettingsUi {
 public:
     using ApplyFn = std::function<void(bool persist)>;
@@ -39,6 +41,7 @@ public:
     void setNotifyFn(NotifyFn fn) { m_notify = std::move(fn); }
     void setMutateFn(MutateFn fn) { m_mutate = std::move(fn); }
     void setResetFn(ResetFn fn) { m_reset = std::move(fn); }
+    void setMouseDwellMove(MouseDwellMove* move) { m_mouseDwell = move; }
 
     void registerCommands();
     void decoratePage(PageDocument& doc);
@@ -46,6 +49,8 @@ public:
     [[nodiscard]] bool onSpeechKeyValidated(bool ok, const QString& error);
     /// Gaze-follow color slider after the track is activated.
     void onGaze(const GazePoint& point);
+    void onColorAimMoved(const QPoint& pos);
+    void cancelEyedropper();
     [[nodiscard]] bool isSliderScrubbing() const { return m_scrub.active; }
     [[nodiscard]] QString colorPickerKey() const { return m_colorPickerKey; }
 
@@ -78,6 +83,8 @@ private:
     void numpadClear();
     void numpadReset();
     void numpadMinus();
+    void numpadCopy();
+    void numpadPaste();
     [[nodiscard]] bool numpadSave(QString* error = nullptr);
     [[nodiscard]] bool numpadCancel(QString* error = nullptr);
     void resetNumpad();
@@ -97,12 +104,6 @@ private:
 
     [[nodiscard]] bool openFlashForeground(QString* error = nullptr);
     [[nodiscard]] bool openFlashCustom(QString* error = nullptr);
-    [[nodiscard]] bool openOpacityEditor(QString* error = nullptr);
-    void refreshOpacityEditor();
-    [[nodiscard]] PageDocument buildOpacityDocument() const;
-    void closeOpacityEditor();
-    void opacityNudge(int dir);
-    [[nodiscard]] bool opacitySave(QString* error = nullptr);
     [[nodiscard]] bool openColorPicker(const QString& colorKey, QString* error = nullptr);
     void refreshColorPicker();
     [[nodiscard]] PageDocument buildGenericColorDocument() const;
@@ -112,10 +113,16 @@ private:
     void stopInlineThemeEditor();
     void persistThemeDraft(bool persist);
     void colorNudge(const QString& channel, int dir);
+    void colorNudgeField(int ds, int dv);
     void colorSetChannel(const QString& channel, int value);
-    void colorSyncFromHsl();
-    void colorSyncFromRgb();
     void loadColorDraft(const QColor& c);
+    void applyHsv(int h, int s, int v, int alpha);
+    void colorApplyPalette(int index);
+    [[nodiscard]] bool beginColorPick();
+    [[nodiscard]] bool beginEyedropper();
+    void restoreEyedropHost();
+    void sampleScreenColor(const QPoint& pos);
+    void applyPickAt(const QPoint& pos);
     [[nodiscard]] int colorShownValue(const QString& channel) const;
     bool applyColorShownValue(const QString& channel, int value);
     bool beginSliderScrub(const QString& channel);
@@ -139,6 +146,8 @@ private:
     [[nodiscard]] PageDocument buildHexDocument() const;
     void hexAppend(QChar ch);
     void hexBackspace();
+    void hexCopy();
+    void hexPaste();
     [[nodiscard]] bool hexSave(QString* error = nullptr);
     [[nodiscard]] bool hexCancel(QString* error = nullptr);
 
@@ -152,7 +161,6 @@ private:
     [[nodiscard]] bool clearSpeechKey(QString* error = nullptr);
 
     void applyPreviewColor();
-    [[nodiscard]] QColor flashOpacityPreview() const;
 
     struct LiveBoard {
         bool active = false;
@@ -183,6 +191,7 @@ private:
     NotifyFn m_notify;
     MutateFn m_mutate;
     ResetFn m_reset;
+    MouseDwellMove* m_mouseDwell = nullptr;
 
     LiveBoard m_numpad;
     QString m_numpadKey;
@@ -199,24 +208,15 @@ private:
     QString m_arrayKey;
     QVector<int> m_arrayDraft;
 
-    LiveBoard m_opacity;
-    int m_opacityDraft = 60;
-    int m_opacityRevert = 60;
-    bool m_opacitySetMode = false;
-
     LiveBoard m_color;
     bool m_flashCustomSetMode = false;
     bool m_themeAssignPrimary = true;
     QString m_colorPickerKey;
     QHash<QString, QColor> m_colorPending;
     QColor m_colorDraft;
-    int m_colorH = 180;
-    int m_colorS = 255;
-    int m_colorL = 128;
-    int m_colorR = 0;
-    int m_colorG = 220;
-    int m_colorB = 255;
     int m_colorA = 255;
+    bool m_eyedropActive = false;
+    bool m_eyedropHostHidden = false;
 
     bool m_hexActive = false;
     QString m_hexBuffer;
@@ -238,7 +238,6 @@ private:
     };
     SliderScrub m_scrub;
     QColor m_scrubRevert;
-    int m_scrubOpacityRevert = 60;
     GazeDwellTracker m_scrubDwell;
     InvalidGazeGrace m_scrubGrace;
     QElapsedTimer m_scrubClock;

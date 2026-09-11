@@ -39,6 +39,8 @@ struct Visual {
 
 [[nodiscard]] Visual visual(const QRectF& cell, bool scrubbing);
 
+void fillChecker(QPainter& p, const QRectF& r, int tile = 10);
+
 void paintPreview(QPainter& p, const QRectF& r, double radius, const QColor& color);
 
 void paint(QPainter& p, const QRectF& cell, const ThemeColors& theme, const ProgressVisuals& pv,

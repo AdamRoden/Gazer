@@ -3,6 +3,7 @@
 #include "app/AppSettings.h"
 #include "app/ComposeUiInternal.h"
 #include "app/SettingsPageBuild.h"
+#include "ui/ColorSwatches.h"
 #include "assist/ElevenRequest.h"
 #include "assist/SoundboardStore.h"
 #include "layout/PageSession.h"
@@ -16,7 +17,7 @@ namespace gazer {
 
 using SettingsPageBuild::cell;
 using SettingsPageBuild::initTopOverlay;
-using compose_detail::paletteColors;
+using gazer::paletteColors;
 using compose_detail::paletteIcons;
 using compose_detail::parseColor;
 

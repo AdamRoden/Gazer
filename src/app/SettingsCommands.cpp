@@ -55,6 +55,14 @@ void SettingsUi::registerCommands()
         numpadMinus();
         return true;
     });
+    m_commands.registerBuiltin(QStringLiteral("settings.numpad.copy"), [this](QString*) {
+        numpadCopy();
+        return true;
+    });
+    m_commands.registerBuiltin(QStringLiteral("settings.numpad.paste"), [this](QString*) {
+        numpadPaste();
+        return true;
+    });
     m_commands.registerBuiltin(QStringLiteral("settings.numpad.save"),
                                [this](QString* e) { return numpadSave(e); });
     m_commands.registerBuiltin(QStringLiteral("settings.numpad.cancel"),
@@ -137,30 +145,13 @@ void SettingsUi::registerCommands()
                                [this](QString* e) { return openFlashForeground(e); });
     m_commands.registerBuiltin(QStringLiteral("settings.flash.custom"),
                                [this](QString* e) { return openFlashCustom(e); });
-    m_commands.registerBuiltin(QStringLiteral("settings.opacity.scrub"),
-                               [this](QString*) { return beginSliderScrub(QStringLiteral("opacity")); });
-    m_commands.registerBuiltin(QStringLiteral("settings.opacity.nudge.dec"), [this](QString*) {
-        opacityNudge(-5);
-        return true;
-    });
-    m_commands.registerBuiltin(QStringLiteral("settings.opacity.nudge.inc"), [this](QString*) {
-        opacityNudge(+5);
-        return true;
-    });
-    m_commands.registerBuiltin(QStringLiteral("settings.opacity.save"),
-                               [this](QString* e) { return opacitySave(e); });
-    m_commands.registerBuiltin(QStringLiteral("settings.opacity.cancel"), [this](QString*) {
-        closeOpacityEditor();
-        notifyStatus(QStringLiteral("Flash opacity cancelled"));
-        return true;
-    });
 
     for (const char* ck : kColorKeys) {
         m_commands.registerBuiltin(
             QStringLiteral("settings.edit.color.%1").arg(QLatin1String(ck)),
             [this, ck](QString* error) { return openColorPicker(QLatin1String(ck), error); });
     }
-    for (const char* ch : {"h", "s", "l", "r", "g", "b", "a"}) {
+    for (const char* ch : {"h", "a"}) {
         m_commands.registerBuiltin(
             QStringLiteral("settings.color.nudge.%1.dec").arg(QLatin1String(ch)),
             [this, ch](QString*) {
@@ -173,15 +164,33 @@ void SettingsUi::registerCommands()
                 colorNudge(QLatin1String(ch), +1);
                 return true;
             });
-        m_commands.registerBuiltin(
-            QStringLiteral("settings.color.edit.%1").arg(QLatin1String(ch)),
-            [this, ch](QString* error) { return colorEditChannel(QLatin1String(ch), error); });
-        m_commands.registerBuiltin(
-            QStringLiteral("settings.color.scrub.%1").arg(QLatin1String(ch)),
-            [this, ch](QString*) { return beginSliderScrub(QLatin1String(ch)); });
     }
+    m_commands.registerBuiltin(QStringLiteral("settings.color.edit.a"),
+                               [this](QString* error) { return colorEditChannel(QLatin1String("a"), error); });
     m_commands.registerBuiltin(QStringLiteral("settings.color.editHex"),
                                [this](QString* e) { return openHexEditor(e); });
+    m_commands.registerBuiltin(QStringLiteral("settings.color.pickAtGaze"), [this](QString*) {
+        return beginColorPick();
+    });
+    m_commands.registerBuiltin(QStringLiteral("settings.color.eyedropper"), [this](QString*) {
+        return beginEyedropper();
+    });
+    m_commands.registerBuiltin(QStringLiteral("settings.color.field.left"), [this](QString*) {
+        colorNudgeField(-1, 0);
+        return true;
+    });
+    m_commands.registerBuiltin(QStringLiteral("settings.color.field.right"), [this](QString*) {
+        colorNudgeField(+1, 0);
+        return true;
+    });
+    m_commands.registerBuiltin(QStringLiteral("settings.color.field.up"), [this](QString*) {
+        colorNudgeField(0, +1);
+        return true;
+    });
+    m_commands.registerBuiltin(QStringLiteral("settings.color.field.down"), [this](QString*) {
+        colorNudgeField(0, -1);
+        return true;
+    });
     m_commands.registerBuiltin(QStringLiteral("settings.color.save"),
                                [this](QString* e) { return colorSave(e); });
     m_commands.registerBuiltin(QStringLiteral("settings.color.cancel"), [this](QString*) {
@@ -189,6 +198,13 @@ void SettingsUi::registerCommands()
         notifyStatus(QStringLiteral("Color pick cancelled"));
         return true;
     });
+    for (int i = 0; i < 40; ++i) {
+        m_commands.registerBuiltin(
+            QStringLiteral("settings.color.palette.%1").arg(i), [this, i](QString*) {
+                colorApplyPalette(i);
+                return true;
+            });
+    }
     for (QChar d : QStringLiteral("0123456789ABCDEF")) {
         m_commands.registerBuiltin(
             QStringLiteral("settings.hex.digit.%1").arg(d), [this, d](QString*) {
@@ -198,6 +214,14 @@ void SettingsUi::registerCommands()
     }
     m_commands.registerBuiltin(QStringLiteral("settings.hex.backspace"), [this](QString*) {
         hexBackspace();
+        return true;
+    });
+    m_commands.registerBuiltin(QStringLiteral("settings.hex.copy"), [this](QString*) {
+        hexCopy();
+        return true;
+    });
+    m_commands.registerBuiltin(QStringLiteral("settings.hex.paste"), [this](QString*) {
+        hexPaste();
         return true;
     });
     m_commands.registerBuiltin(QStringLiteral("settings.hex.clear"), [this](QString*) {

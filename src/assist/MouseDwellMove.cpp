@@ -30,6 +30,10 @@ const char* MouseDwellMove::purposeName(ArmPurpose purpose)
         return "moveRightClick";
     case ArmPurpose::CursorMoveMiddleClick:
         return "moveMiddleClick";
+    case ArmPurpose::ColorPick:
+        return "colorPick";
+    case ArmPurpose::ColorSample:
+        return "colorSample";
     case ArmPurpose::CursorMove:
     default:
         return "move";
@@ -88,18 +92,27 @@ bool MouseDwellMove::armWantsBonusZoom() const
     return m_armZoom.wantsBonus(m_ForesightSecondZoom);
 }
 
+bool MouseDwellMove::isCursorMoveFamily() const
+{
+    switch (m_purpose) {
+    case ArmPurpose::CursorMove:
+    case ArmPurpose::CursorMoveClickLoop:
+    case ArmPurpose::CursorMoveLeftClick:
+    case ArmPurpose::CursorMoveRightClick:
+    case ArmPurpose::CursorMoveMiddleClick:
+    case ArmPurpose::ColorPick:
+    case ArmPurpose::ColorSample:
+        return true;
+    case ArmPurpose::LookToScrollPlace:
+    case ArmPurpose::ComboMousePlace:
+        break;
+    }
+    return false;
+}
+
 bool MouseDwellMove::useMagPickThisArm() const
 {
-    if (m_purpose == ArmPurpose::LookToScrollPlace
-        || m_purpose == ArmPurpose::ComboMousePlace) {
-        return false;
-    }
-    const bool cursorMove = m_purpose == ArmPurpose::CursorMove
-                            || m_purpose == ArmPurpose::CursorMoveClickLoop
-                            || m_purpose == ArmPurpose::CursorMoveLeftClick
-                            || m_purpose == ArmPurpose::CursorMoveRightClick
-                            || m_purpose == ArmPurpose::CursorMoveMiddleClick;
-    if (!cursorMove) {
+    if (!isCursorMoveFamily()) {
         return false;
     }
     return m_armZoom.useMagPick(m_magPickEnabled);
@@ -259,6 +272,14 @@ void MouseDwellMove::setSelectTimeoutMs(int ms)
     if (m_armed) {
         markSelectDeadline();
     }
+}
+
+void MouseDwellMove::ensureSelectDeadline(int fallbackMs)
+{
+    if (!m_armed || m_selectDeadlineMs >= 0 || fallbackMs <= 0) {
+        return;
+    }
+    m_selectDeadlineMs = m_clock.elapsed() + fallbackMs;
 }
 
 void MouseDwellMove::markSelectDeadline()

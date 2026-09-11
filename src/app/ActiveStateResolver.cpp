@@ -109,6 +109,8 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
             {"mouseLeftClickAtGaze", ArmPurpose::CursorMoveLeftClick},
             {"mouseRightClickAtGaze", ArmPurpose::CursorMoveRightClick},
             {"mouseMiddleClickAtGaze", ArmPurpose::CursorMoveMiddleClick},
+            {"settings.color.pickAtGaze", ArmPurpose::ColorPick},
+            {"settings.color.eyedropper", ArmPurpose::ColorSample},
         };
         for (const auto& e : kArm) {
             if (key == QLatin1String(e.id)) {

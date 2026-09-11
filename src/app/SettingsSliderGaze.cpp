@@ -19,12 +19,10 @@ bool SettingsUi::beginSliderScrub(const QString& channel)
     if (m_hexActive || m_numpad.active) {
         return false;
     }
-    const bool opacity = m_opacity.active
-                         && channel.compare(QLatin1String("opacity"), Qt::CaseInsensitive) == 0;
-    if (!opacity && !m_color.active) {
+    if (!m_color.active) {
         (void)ensureInlineThemeEditor();
     }
-    if (!opacity && (!m_color.active || !findColorAxis(channel))) {
+    if (!m_color.active || !findColorAxis(channel)) {
         return false;
     }
     if (m_scrub.active && m_scrub.channel == channel) {
@@ -36,7 +34,6 @@ bool SettingsUi::beginSliderScrub(const QString& channel)
     m_scrub.active = true;
     m_scrub.channel = channel;
     m_scrub.itemId = QStringLiteral("track_%1").arg(channel);
-    m_scrubOpacityRevert = m_opacityDraft;
     m_scrubRevert = m_colorDraft;
     m_scrubDwell.reset();
     m_scrubDwell.setDwellMs(m_settings.mouseMoveDwellMs);
@@ -60,16 +57,10 @@ void SettingsUi::endSliderScrub(bool commit)
         return;
     }
     if (!commit) {
-        if (m_opacity.active) {
-            m_opacityDraft = m_scrubOpacityRevert;
-        } else {
-            loadColorDraft(m_scrubRevert);
-        }
+        loadColorDraft(m_scrubRevert);
     }
     abortSliderScrub();
-    if (m_opacity.active) {
-        refreshOpacityEditor();
-    } else if (isInlineThemeEditor()) {
+    if (isInlineThemeEditor()) {
         if (commit) {
             persistThemeDraft(true);
         } else {
@@ -97,9 +88,6 @@ void SettingsUi::abortSliderScrub()
 
 int SettingsUi::scrubShownValue() const
 {
-    if (m_opacity.active) {
-        return m_opacityDraft;
-    }
     return colorShownValue(m_scrub.channel);
 }
 
@@ -114,9 +102,7 @@ void SettingsUi::syncSliderScrubVisuals()
     int maxV = 255;
     colorChannelRange(m_scrub.channel, &minV, &maxV);
     const double t = (maxV > minV) ? (shown - minV) / double(maxV - minV) : 0.0;
-    if (m_opacity.active) {
-        w->setPreviewColor(flashOpacityPreview());
-    } else if (m_color.active) {
+    if (m_color.active) {
         w->setPreviewColor(m_colorDraft);
     }
     w->setSliderScrub(m_scrub.itemId, t, colorChannelValueText(m_scrub.channel, shown),
@@ -203,11 +189,7 @@ void SettingsUi::feedSliderGaze(const GazePoint& point)
     int maxV = 255;
     colorChannelRange(m_scrub.channel, &minV, &maxV);
     const int shown = minV + qRound(t * double(maxV - minV));
-    if (m_opacity.active) {
-        m_opacityDraft = qBound(0, shown, 100);
-    } else {
-        applyColorShownValue(m_scrub.channel, shown);
-    }
+    applyColorShownValue(m_scrub.channel, shown);
 
     const double dtSec =
         m_scrubLastSampleMs < 0 ? 0.016

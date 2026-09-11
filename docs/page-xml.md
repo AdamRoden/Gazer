@@ -232,6 +232,7 @@ Nested `<SubGrid>` occupies a cell span.
 | `swatch` | yes | Round color well |
 | `tab` | yes, unless no actions | No actions = current tab (selected, not a target) |
 | `slider` | yes if it has a command | Gaze-follow scrub; without actions it is passive |
+| `colorfield` | no | HSV saturation×value square (click-at-gaze on the live color picker) |
 | `label`, `value`, `display`, `preview` | no | Text / preview only |
 | `scrollbar` | no | Vertical gaze track. Caption `offset,visible,total`. Looking along it scrolls. |
 

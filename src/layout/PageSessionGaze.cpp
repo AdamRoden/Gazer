@@ -325,6 +325,13 @@ void PageSession::hideHost()
     }
 }
 
+void PageSession::showHost()
+{
+    if (m_host) {
+        m_host->showHost();
+    }
+}
+
 QVector<QRect> PageSession::unpauseGapRects() const
 {
     QVector<QRect> gaps;

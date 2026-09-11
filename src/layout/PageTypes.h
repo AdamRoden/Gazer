@@ -379,13 +379,14 @@ struct PagePhase {
     return usesRapidDwell(actions);
 }
 
-/// label / value / display / slider / preview / scrollbar are not dwell targets.
+/// label / value / display / slider / preview / scrollbar / colorfield are not dwell targets.
 [[nodiscard]] inline bool pageRoleIsPassive(QStringView role)
 {
     const QString r = role.toString().trimmed().toLower();
     return r == QLatin1String("label") || r == QLatin1String("value")
            || r == QLatin1String("display") || r == QLatin1String("slider")
-           || r == QLatin1String("preview") || r == QLatin1String("scrollbar");
+           || r == QLatin1String("preview") || r == QLatin1String("scrollbar")
+           || r == QLatin1String("colorfield");
 }
 
 struct PageLeaf {

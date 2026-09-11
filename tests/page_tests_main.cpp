@@ -23,6 +23,7 @@ QObject* createComboMouseTest();
 QObject* createLookToScrollTest();
 QObject* createAhkLauncherTest();
 QObject* createKeyStateManagerTest();
+QObject* createColorPickerHexTest();
 
 namespace {
 
@@ -82,5 +83,7 @@ int main(int argc, char** argv)
     status |= QTest::qExec(ahk.get(), rest);
     std::unique_ptr<QObject> keys(createKeyStateManagerTest());
     status |= QTest::qExec(keys.get(), rest);
+    std::unique_ptr<QObject> colorHex(createColorPickerHexTest());
+    status |= QTest::qExec(colorHex.get(), rest);
     return status;
 }
