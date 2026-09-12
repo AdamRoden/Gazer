@@ -233,6 +233,8 @@ Nested `<SubGrid>` occupies a cell span.
 | `tab` | yes, unless no actions | No actions = current tab (selected, not a target) |
 | `slider` | yes if it has a command | Gaze-follow scrub; without actions it is passive |
 | `colorfield` | no | HSV saturation×value square (click-at-gaze on the live color picker) |
+| `headpreview` | no | Live 3D head mesh (same renderer as tray Head preview) |
+| `curvefield` | yes if it has a command | Input→output transfer curve. Caption `in,out;in,out;…` is a fallback; the live host supplies typed points. |
 | `label`, `value`, `display`, `preview` | no | Text / preview only |
 | `scrollbar` | no | Vertical gaze track. Caption `offset,visible,total`. Looking along it scrolls. |
 

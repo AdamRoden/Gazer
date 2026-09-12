@@ -19,6 +19,8 @@
           icon="palette" openPage="main_settings_theme"/>
     <Cell id="open_speech" row="3" col="0" label="Speech" caption="ElevenLabs key, voice engine, and speed"
           icon="Speak" openPage="main_settings_speech"/>
-    <Cell id="done" row="3" col="1" colSpan="1" label="Done" icon="keyboardHide" closePage="true"/>
+    <Cell id="open_head" row="3" col="1" label="Head" caption="Preview pose and map yaw, pitch, and axes"
+          icon="HeadPreview" openPage="main_settings_head_pose"/>
+    <Cell id="done" row="3" col="2" colSpan="1" label="Done" icon="keyboardHide" closePage="true"/>
   </Grid>
 </Page>

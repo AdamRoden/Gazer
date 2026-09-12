@@ -5,6 +5,7 @@
 #include "ui/ProgressPaint.h"
 #include "layout/RoundBox.h"
 #include "ui/ColorField.h"
+#include "ui/PoseChart.h"
 #include "ui/ScrollBar.h"
 #include "ui/SliderTrack.h"
 
@@ -615,9 +616,7 @@ void paintToggleSwitch(QPainter& p, const QRectF& r, const ThemeColors& theme, b
 
 void paintTarget(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeColors& theme,
                  GlassBackdrop* glass, bool hovered, double progress, bool flashing, bool active,
-                 const ProgressVisuals& pv, const QColor& previewColor, const QString& sliderScrubId,
-                 double sliderScrubT, const QString& sliderScrubValue, double sliderScrubProgress,
-                 bool locked)
+                 const ProgressVisuals& pv, const Live& live, bool locked)
 {
     if (r.isEmpty()) {
         return;
@@ -647,19 +646,33 @@ void paintTarget(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeC
         paintSurface(p, r, t.chrome, theme, glass, false, false, false, false);
         const QString channel = t.caption.isEmpty() ? t.id : t.caption;
         const bool scrubbing =
-            !sliderScrubId.isEmpty()
-            && (sessionKey(t) == sliderScrubId || t.id == sliderScrubId
-                || t.id.endsWith(QLatin1Char('/') + sliderScrubId));
-        SliderTrack::paint(p, r, theme, vis, previewColor, channel, t.label, hovered, progress,
-                           scrubbing, sliderScrubT, sliderScrubValue, sliderScrubProgress);
+            !live.sliderScrubId.isEmpty()
+            && (sessionKey(t) == live.sliderScrubId || t.id == live.sliderScrubId
+                || t.id.endsWith(QLatin1Char('/') + live.sliderScrubId));
+        SliderTrack::paint(p, r, theme, vis, live.previewColor, channel, t.label, hovered, progress,
+                           scrubbing, live.sliderScrubT, live.sliderScrubValue,
+                           live.sliderScrubProgress);
     } else if (role == QLatin1String("colorfield")) {
-        ColorField::paint(p, r, previewColor);
+        ColorField::paint(p, r, live.previewColor);
     } else if (role == QLatin1String("scrollbar")) {
         paintSurface(p, r, t.chrome, theme, glass, false, false, false, false);
         ScrollBar::paint(p, r, theme, ScrollBar::parseSpec(t.caption));
     } else if (role == QLatin1String("preview")) {
-        SliderTrack::paintPreview(p, r, radius, previewColor);
+        SliderTrack::paintPreview(p, r, radius, live.previewColor);
         paintLabel(p, t, r, theme);
+    } else if (role == QLatin1String("headpreview")) {
+        if (!live.headPreview.isNull()) {
+            p.setRenderHint(QPainter::SmoothPixmapTransform, true);
+            p.drawImage(r, live.headPreview);
+        } else {
+            paintSurface(p, r, t.chrome, theme, glass, false, false, false, false);
+            paintLabel(p, t, r, theme);
+        }
+    } else if (role == QLatin1String("curvefield")) {
+        const QVector<HeadPoseCurvePoint> pts =
+            live.curvePoints.isEmpty() ? PoseChart::parseCaption(t.caption) : live.curvePoints;
+        PoseChart::paintCurve(p, r, theme, pts, live.curveSelected, live.curveLiveIn,
+                              live.curveLiveOn);
     } else if (role == QLatin1String("tab")) {
         paintTab(p, t, r, theme, hovered, active || t.actions.isEmpty(), progress);
     } else if (role == QLatin1String("label") || role == QLatin1String("value")

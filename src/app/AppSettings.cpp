@@ -4,10 +4,13 @@
 #include "assist/LtsIndicator.h"
 #include "assist/LtsScrollMode.h"
 #include "assist/LtsSpeed.h"
+#include "mapping/HeadPoseCurve.h"
 #include "ui/PickStyle.h"
 #include "ui/ThemeScheme.h"
 
+#include <QSet>
 #include <QStringList>
+#include <QUuid>
 #include <utility>
 
 namespace gazer {
@@ -23,6 +26,13 @@ AppSettings AppSettings::defaults()
     s.customTertiaryColor = colorToHex(baked.colors.cellActive);
     s.applyTheme();
     return s;
+}
+
+HeadPoseMap AppSettings::makeDefaultHeadPoseMap()
+{
+    HeadPoseMap m = defaultHeadPoseMap();
+    m.id = QUuid::createUuid().toString(QUuid::WithoutBraces).left(8);
+    return m;
 }
 
 namespace {
@@ -404,6 +414,24 @@ void AppSettings::clamp()
         && speechModel != QLatin1String("eleven_flash_v2_5")) {
         speechModel = QStringLiteral("sapi");
     }
+    if (headPoseMaps.size() > kMaxHeadPoseMaps) {
+        headPoseMaps.resize(kMaxHeadPoseMaps);
+    }
+    QVector<HeadPoseMap> maps;
+    QSet<QString> seen;
+    for (HeadPoseMap m : headPoseMaps) {
+        clampHeadPoseMap(m);
+        if (m.id.isEmpty()) {
+            continue;
+        }
+        if (seen.contains(m.id)) {
+            continue;
+        }
+        seen.insert(m.id);
+        maps.push_back(m);
+    }
+    headPoseMaps = std::move(maps);
+
     layoutAutoCloseFadeMs = qBound(50, layoutAutoCloseFadeMs, 60000);
     progress.ensureDefault();
     mouseProgress.ensureDefault();

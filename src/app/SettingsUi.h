@@ -19,6 +19,7 @@ namespace gazer {
 
 class CommandRegistry;
 class ElevenClient;
+class HeadPoseMapper;
 class MouseDwellMove;
 class PageSession;
 class SpeechSecrets;
@@ -26,7 +27,7 @@ class SpeechSecrets;
 /// Settings boards: live value decoration, numeric editor, color picker, settings commands.
 /// Implementations: SettingsUi.cpp (shared), SettingsNumpad, SettingsArrayEditor,
 /// SettingsColorPicker, SettingsHexEditor, SettingsSpeechKey, SettingsSliderGaze,
-/// SettingsCommands.
+/// SettingsCommands, SettingsHeadPose.
 class SettingsUi {
 public:
     using ApplyFn = std::function<void(bool persist)>;
@@ -42,6 +43,12 @@ public:
     void setMutateFn(MutateFn fn) { m_mutate = std::move(fn); }
     void setResetFn(ResetFn fn) { m_reset = std::move(fn); }
     void setMouseDwellMove(MouseDwellMove* move) { m_mouseDwell = move; }
+    void setHeadPoseMapper(HeadPoseMapper* mapper) { m_headPose = mapper; }
+    [[nodiscard]] HeadPoseAxis headChartAxis() const { return m_headChartAxis; }
+    [[nodiscard]] QString headMapSourceId() const;
+    [[nodiscard]] QString headMapDestId() const;
+    [[nodiscard]] bool headMapEnabled() const;
+    void syncHeadPosePaint();
 
     void registerCommands();
     void decoratePage(PageDocument& doc);
@@ -151,6 +158,28 @@ private:
     [[nodiscard]] bool hexSave(QString* error = nullptr);
     [[nodiscard]] bool hexCancel(QString* error = nullptr);
 
+    void decorateHeadPosePage(PageDocument& doc);
+    void fillHeadPoseMaps(PageDocument& doc);
+    HeadPoseMap* mapForChartAxis();
+    const HeadPoseMap* mapForChartAxis() const;
+    void setHeadChartAxis(HeadPoseAxis axis);
+    void registerHeadPoseCommands();
+    [[nodiscard]] bool headPoseRecenter(QString* error);
+    [[nodiscard]] bool headPoseAddMap(QString* error);
+    [[nodiscard]] bool openHeadPoseEditor(const QString& mapId, QString* error = nullptr);
+    void refreshHeadPoseEditor();
+    [[nodiscard]] PageDocument buildHeadPoseEditor() const;
+    HeadPoseMap* headPoseDraft();
+    const HeadPoseMap* headPoseDraft() const;
+    void commitHeadPoseDraft(const HeadPoseMap& m, bool persist = true);
+    [[nodiscard]] bool openHeadPoseCommandList(QString* error = nullptr);
+    void refreshHeadPoseCommandList();
+    [[nodiscard]] PageDocument buildHeadPoseCommandList() const;
+    void beginCurveScrub();
+    void endCurveScrub();
+    void feedCurveGaze(const GazePoint& point);
+    QStringList headPoseCommandCatalog() const;
+
     [[nodiscard]] bool openSpeechKeyBoard(QString* error = nullptr);
     void refreshSpeechKeyBoard();
     [[nodiscard]] PageDocument buildSpeechKeyDocument() const;
@@ -192,6 +221,19 @@ private:
     MutateFn m_mutate;
     ResetFn m_reset;
     MouseDwellMove* m_mouseDwell = nullptr;
+    HeadPoseMapper* m_headPose = nullptr;
+    HeadPoseAxis m_headChartAxis = HeadPoseAxis::Yaw;
+
+    LiveBoard m_headMap;
+    QString m_headMapId;
+    int m_headPointIndex = 0;
+    bool m_headPointEditOut = false;
+    LiveBoard m_headCmd;
+    int m_headCmdPage = 0;
+    bool m_curveScrub = false;
+    GazeDwellTracker m_curveDwell;
+    InvalidGazeGrace m_curveLeaveGrace;
+    qint64 m_curveScrubLastMs = -1;
 
     LiveBoard m_numpad;
     QString m_numpadKey;
@@ -199,7 +241,7 @@ private:
     QString m_numpadHint;
     QString m_numpadResetSeed;
     QString m_numpadBuffer;
-    enum class NumpadReturn { Catalog, Array, Color };
+    enum class NumpadReturn { Catalog, Array, Color, HeadPose };
     NumpadReturn m_numpadReturn = NumpadReturn::Catalog;
     QString m_numpadColorChannel;
     int m_numpadArrayIndex = -1;

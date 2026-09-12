@@ -3,6 +3,7 @@
 #include "app/GazeRouter.h"
 #include "layout/PageTypes.h"
 
+#include <QElapsedTimer>
 #include <QObject>
 #include <QVector>
 #include <memory>
@@ -15,6 +16,7 @@ class GazerServices;
 class ITracker;
 class LayoutEditorWindow;
 class OverlayStackWatch;
+class HeadPreviewRenderer;
 class PreviewWindow;
 class TrayIcon;
 
@@ -38,6 +40,7 @@ private:
     void openPageEditor(const QString& pageId = {});
     [[nodiscard]] bool testEditedLayout(const PageDocument& doc, QString* error);
     void onGaze(const gazer::GazePoint& point);
+    void updateHeadPosePaint();
     void onTobiiStreamFailed(const QString& reason);
     void fallbackToMouse();
     void shutdownUi();
@@ -48,6 +51,8 @@ private:
     GazeRouter m_gazeRouter;
     std::unique_ptr<DwellSuspendOverlay> m_dwellSuspendOverlay;
     std::unique_ptr<PreviewWindow> m_preview;
+    std::unique_ptr<HeadPreviewRenderer> m_headPreviewGl;
+    QElapsedTimer m_headPaintClock;
     std::unique_ptr<LayoutEditorWindow> m_editor;
     std::unique_ptr<TrayIcon> m_tray;
     std::unique_ptr<OverlayStackWatch> m_stackWatch;

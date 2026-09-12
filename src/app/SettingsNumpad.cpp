@@ -1,6 +1,7 @@
 #include "app/SettingsUi.h"
 #include "app/SettingsPageBuild.h"
 #include "app/SettingsUiInternal.h"
+#include "mapping/HeadPoseCurve.h"
 
 #include "layout/PageSession.h"
 
@@ -276,6 +277,32 @@ bool SettingsUi::numpadSave(QString* error)
         notifyStatus(QStringLiteral("Step %1 = %2 ms").arg(arrayIndex + 1).arg(v));
         return true;
     }
+    if (ret == NumpadReturn::HeadPose) {
+        bool ok = false;
+        const double v = buf.toDouble(&ok);
+        if (!ok) {
+            const QString msg = QStringLiteral("Enter a number");
+            notifyStatus(msg);
+            if (error) {
+                *error = msg;
+            }
+            return false;
+        }
+        resetNumpad();
+        if (HeadPoseMap* m = headPoseDraft()) {
+            if (m_headPointIndex >= 0 && m_headPointIndex < m->points.size()) {
+                if (m_headPointEditOut) {
+                    m->points[m_headPointIndex].out = v;
+                } else {
+                    m->points[m_headPointIndex].in = v;
+                }
+                clampHeadPoseMap(*m);
+                commitHeadPoseDraft(*m);
+            }
+        }
+        refreshHeadPoseEditor();
+        return true;
+    }
     if (ret == NumpadReturn::Color) {
         bool ok = false;
         const int v = buf.toInt(&ok);
@@ -331,6 +358,13 @@ bool SettingsUi::numpadCancel(QString* error)
         closeLive(m_numpad);
         resetNumpad();
         refreshColorPicker();
+        notifyStatus(QStringLiteral("Edit cancelled"));
+        return true;
+    }
+    if (ret == NumpadReturn::HeadPose && m_headMap.active) {
+        closeLive(m_numpad);
+        resetNumpad();
+        refreshHeadPoseEditor();
         notifyStatus(QStringLiteral("Edit cancelled"));
         return true;
     }

@@ -53,6 +53,9 @@ bool SettingsUi::presentLive(LiveBoard& board, const QString& id, PageDocument d
 
 void SettingsUi::closeLive(LiveBoard& board)
 {
+    if (&board == &m_headMap) {
+        endCurveScrub();
+    }
     unbindEditorKeyboard();
     if (!board.pageId.isEmpty()) {
         m_pages.closePage(board.pageId);
@@ -407,6 +410,9 @@ void SettingsUi::decoratePage(PageDocument& doc)
                               : QStringLiteral("No API key");
             }
         });
+    }
+    if (doc.id == QLatin1String("main_settings_head_pose")) {
+        decorateHeadPosePage(doc);
     }
 }
 

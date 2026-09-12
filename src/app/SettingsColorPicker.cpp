@@ -20,8 +20,10 @@
 
 namespace gazer {
 
+using SettingsPageBuild::adoptCallerBoard;
 using SettingsPageBuild::cell;
 using SettingsPageBuild::initGrid;
+using SettingsPageBuild::makeNested;
 using SettingsUiInternal::ColorAxis;
 using SettingsUiInternal::findColorAxis;
 using SettingsUiInternal::fromPct255;
@@ -338,46 +340,6 @@ void SettingsUi::colorApplyPalette(int index)
     storeDraftPending();
     refreshColorPicker();
 }
-
-namespace {
-
-void adoptCallerBoard(PageGrid& g, const PageDocument& caller)
-{
-    if (caller.grids.isEmpty() || !caller.grids[0].size.isSet()) {
-        g.desktopMode = true;
-        g.anchor = PageAnchor::Top;
-        g.offset.x = PageDim::pixels(0);
-        g.offset.y = PageDim::pixels(0);
-        g.size.x = PageDim::expression(
-            QStringLiteral("clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth)"));
-        g.size.y = PageDim::expression(QStringLiteral("A_ScreenHeight"));
-        g.gapPx = 6;
-        g.marginPx = 12;
-        return;
-    }
-    const PageGrid& src = caller.grids[0];
-    g.desktopMode = src.desktopMode;
-    g.anchor = src.anchor;
-    g.offset = src.offset;
-    g.size = src.size;
-    g.gapPx = src.gapPx;
-    g.marginPx = src.marginPx;
-}
-
-PageGrid makeNested(const QString& id, int row, int col, int rows, int cols, int gap)
-{
-    PageGrid g;
-    g.id = id;
-    g.nested = true;
-    g.row = row;
-    g.col = col;
-    g.rows = rows;
-    g.columns = cols;
-    g.gapPx = gap;
-    return g;
-}
-
-} // namespace
 
 PageDocument SettingsUi::buildGenericColorDocument() const
 {

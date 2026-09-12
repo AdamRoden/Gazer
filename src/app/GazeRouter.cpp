@@ -4,6 +4,7 @@
 #include "assist/GazeMouseFollow.h"
 #include "assist/GazeReticle.h"
 #include "assist/ComboMouse.h"
+#include "assist/HeadPoseMapper.h"
 #include "assist/LookToScroll.h"
 #include "assist/MouseDwellMove.h"
 #include "layout/PageSession.h"
@@ -48,29 +49,39 @@ void GazeRouter::dispatch(const GazePoint& point)
     const bool dwellOff = m_pages && m_pages->isDwellSuspended();
     const bool pauseBackgroundAssist = overBoard || hit.overMaster || freeAim || dwellOff;
 
+    if (m_headPose) {
+        m_headPose->setPaused(overBoard || hit.overMaster || dwellOff);
+    }
+    GazePoint assist = point;
+    if (m_headPose && !m_headPose->isPaused()) {
+        const QPointF off = m_headPose->gazeOffset();
+        assist.x += off.x();
+        assist.y += off.y();
+    }
+
     if (m_gazeReticle) {
-        m_gazeReticle->onGaze(point);
+        m_gazeReticle->onGaze(assist);
     }
     if (m_gazeFollow) {
         const bool pauseFollow = dwellOff || (m_session && m_session->pausesGazeFollow());
-        m_gazeFollow->onGaze(point, /*pauseInput=*/pauseFollow);
+        m_gazeFollow->onGaze(assist, /*pauseInput=*/pauseFollow);
     }
     if (m_lookToScroll) {
-        m_lookToScroll->onGaze(point, pauseBackgroundAssist && !overLts);
+        m_lookToScroll->onGaze(assist, pauseBackgroundAssist && !overLts);
     }
     if (m_comboMouse) {
-        m_comboMouse->onGaze(point, dwellOff || (pauseBackgroundAssist && !overCombo));
+        m_comboMouse->onGaze(assist, dwellOff || (pauseBackgroundAssist && !overCombo));
     }
     if (m_mouseDwell) {
-        m_mouseDwell->onBackgroundGaze(point, overBoard || hit.overMaster);
+        m_mouseDwell->onBackgroundGaze(assist, overBoard || hit.overMaster);
         const bool pauseAim = dwellOff || (hit.overMaster && !overFrontOverlay);
         m_mouseDwell->setPaused(pauseAim);
         if (!pauseAim) {
-            m_mouseDwell->onGaze(point);
+            m_mouseDwell->onGaze(assist);
         }
     }
     if (m_magnifier) {
-        m_magnifier->onGaze(point);
+        m_magnifier->onGaze(assist);
     }
 }
 

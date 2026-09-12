@@ -9,9 +9,26 @@
 | `GazerServices.cpp` | Modifier cycle, click-at-cursor, stop loops |
 | `MouseAssistState.cpp` | Mouse pad: nudge, scroll, edge, holds |
 | `SettingsCommands.cpp` | `settings.*` live boards, including `settings.speech.*` |
+| `SettingsHeadPose.cpp` | `headPose.*` analog maps |
 | `ComposeCommands.cpp` | `compose.*` (prefix `compose.removeWord.`) |
 
 When adding a command: register it and add a row here.
+
+## Head pose (`SettingsHeadPose.cpp`)
+
+| Command | Role |
+|---------|------|
+| `headPose.enabled.toggle` | Master analog maps on/off |
+| `headPose.recenter` | Zero yaw, pitch, roll, x, y, and z at the current pose |
+| `headPose.chart.axis.<axis>` | Prefix; select graph input (yaw/pitch/roll/x/y/z) |
+| `headPose.map.source.<axis>` / `headPose.map.dest.<dest>` | Prefix; editor source/destination |
+| `headPose.addMap` | Append a map for the selected axis and open the editor |
+| `headPose.edit.<id>` | Prefix; open that map’s editor |
+| `headPose.map.enabled.toggle` / `.delete` / `.done` | Editor |
+| `headPose.map.point.*` | Curve points (prev/next/add/del/nudge/edit) |
+| `headPose.map.curve.scrub` | Gaze-move the selected handle |
+| `headPose.map.pickCommand` / `headPose.cmd.<name>` / `headPose.cmdList.next` / `.prev` / `.cancel` | Command dest |
+| `headPose.map.commandAt.dec` / `.inc` | Trigger input value |
 
 `toggleDwellSuspend` / `suspendDwell` / `resumeDwell` are different handlers, not aliases.
 

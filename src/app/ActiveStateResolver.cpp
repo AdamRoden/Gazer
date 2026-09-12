@@ -12,6 +12,7 @@
 #include "ui/MagnifierOverlay.h"
 #include "app/ComposeUi.h"
 #include "app/SettingsUi.h"
+#include "mapping/HeadPoseTypes.h"
 #include "assist/SpeechEngine.h"
 #include "assist/VoiceCatalog.h"
 #include "ui/PickStyle.h"
@@ -37,6 +38,27 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
     }
     if (key == QLatin1String("dwellSuspend")) {
         return ctx.dwellSuspended;
+    }
+    if (key == QLatin1String("headPose.enabled")) {
+        return ctx.settings && ctx.settings->headPoseEnabled;
+    }
+    if (key.startsWith(QLatin1String("headPose.chart.axis."))) {
+        const QString id = key.mid(int(QLatin1String("headPose.chart.axis.").size()));
+        return ctx.settingsUi
+               && QLatin1String(headPoseAxisId(ctx.settingsUi->headChartAxis())) == id;
+    }
+    if (key.startsWith(QLatin1String("headPose.map.source."))) {
+        return ctx.settingsUi
+               && ctx.settingsUi->headMapSourceId()
+                      == key.mid(int(QLatin1String("headPose.map.source.").size()));
+    }
+    if (key.startsWith(QLatin1String("headPose.map.dest."))) {
+        return ctx.settingsUi
+               && ctx.settingsUi->headMapDestId()
+                      == key.mid(int(QLatin1String("headPose.map.dest.").size()));
+    }
+    if (key == QLatin1String("headPose.map.enabled")) {
+        return ctx.settingsUi && ctx.settingsUi->headMapEnabled();
     }
     if (key == QLatin1String("compose.busy")) {
         return ctx.speechEngine && ctx.speechEngine->status().busy;

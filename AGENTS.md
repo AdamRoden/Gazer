@@ -36,7 +36,7 @@ Do not `raise()` / `HWND_TOP` an overlay on every gaze sample. `showOverlay()` i
 |------|------|
 | Page XML schema / actions | `docs/page-xml.md`, then `src/layout/README.md` |
 | Parser / hit / session | `src/layout/` — `PageLoader`, `PageHit`, `PageSession*` |
-| Settings keys, JSON, editors | `src/app/README.md`, `AppSettings.h`, spec tables in `AppSettings.cpp`. Speed: standard `dwellSequence` vs rapid `rapidDwellSequence`; shared `scanGraceMs` |
+| Settings keys, JSON, editors | `src/app/README.md`, `AppSettings.h`, spec tables in `AppSettings.cpp`. Speed: standard `dwellSequence` vs rapid `rapidDwellSequence`; shared `scanGraceMs`. Head-pose maps: `headPoseMaps` + `SettingsHeadPose.cpp` |
 | Builtins / mapping fallthrough | `src/app/Commands.md`, then the file listed in that table |
 | Assist (LTS, mag, dwell-move) | `src/assist/README.md` |
 | Composer / speech | `src/app/ComposeUi.h`, `src/assist/SpeechEngine.h`, `docs/composer-elevenlabs.md` |
@@ -44,7 +44,7 @@ Do not `raise()` / `HWND_TOP` an overlay on every gaze sample. `showOverlay()` i
 | Paint / host window / theme | `src/ui/README.md` |
 | Material palettes (theme) | `src/ui/MaterialPalette.h`, `resources/layouts/main_settings_theme.xml` |
 | OS injectors | `src/input/README.md` |
-| Mapping profiles | `src/mapping/README.md` |
+| Mapping profiles | `src/mapping/README.md` (command JSON). Analog head maps: `HeadPoseCurve` / `assist/HeadPoseMapper` |
 
 ## Tree
 
@@ -52,12 +52,12 @@ Do not `raise()` / `HWND_TOP` an overlay on every gaze sample. `showOverlay()` i
 |------|------|
 | `src/app/` | Shell wiring, settings, command registry, gaze router |
 | `src/layout/` | Page AST, XML load/write, dwell, live session |
-| `src/assist/` | Magnifier, LTS, combo mouse, scripts, TTS |
+| `src/assist/` | Magnifier, LTS, combo mouse, scripts, TTS, head-pose analog maps |
 | `src/editor/` | Qt Widgets page designer |
 | `src/ui/` | Host window, board paint, overlays, theme |
 | `src/input/` | Keyboard / mouse / scroll / gamepad inject |
 | `src/core/` | `ITracker`, Tobii + mouse backends |
-| `src/mapping/` | JSON command → input profiles |
+| `src/mapping/` | JSON command → input profiles; `HeadPoseCurve` analog eval |
 | `resources/layouts/` | Shipped Page XML (filename stem = catalog id) |
 | `packaging/` | MSI (`Gazer.wxs`), `Gazer.exe.manifest.in` (uiAccess), cert-trust cmd |
 | `tests/` | Qt Test binaries (`GazerPageTests`, `GazerDwellTests`) |
@@ -66,11 +66,11 @@ Do not `raise()` / `HWND_TOP` an overlay on every gaze sample. `showOverlay()` i
 
 - `PageDim` **struct** is in `layout/PageTypes.h`. `layout/PageDim.h` is parse / `placeRect` only.
 - `GazerServices.h` and `PageSession.h` are façades. Include `assist/LookToScroll.h`, `ui/PageHostWindow.h`, `ui/Theme.h`, etc. at the call site — do not expect those types from the façade.
-- `SettingsUi` methods are split by board: `SettingsUi.cpp` (shared), `SettingsNumpad.cpp`, `SettingsArrayEditor.cpp`, `SettingsColorPicker.cpp`, `SettingsHexEditor.cpp`, `SettingsSpeechKey.cpp`, `SettingsSliderGaze.cpp`, `SettingsCommands.cpp`. Helpers: `SettingsPageBuild.h`, `SettingsUiInternal.h`.
+- `SettingsUi` methods are split by board: `SettingsUi.cpp` (shared), `SettingsNumpad.cpp`, `SettingsArrayEditor.cpp`, `SettingsColorPicker.cpp`, `SettingsHexEditor.cpp`, `SettingsSpeechKey.cpp`, `SettingsSliderGaze.cpp`, `SettingsCommands.cpp`, `SettingsHeadPose.cpp`. Helpers: `SettingsPageBuild.h`, `SettingsUiInternal.h`.
 - `ComposeUi` methods are split by board: `ComposeUi.cpp` (capture + chrome stamp/decorate), `ComposeSoundboard.cpp`, `ComposeFreestyle.cpp`, `ComposeItemEdit.cpp`, `ComposeVoices.cpp`, `ComposeHistory.cpp`. Helpers: `ComposeUiInternal.h`.
 - `AppSettings` JSON is `AppSettingsIo.cpp`; theme palette is `AppSettingsTheme.cpp`.
 - `PageSession` drawer/quit is `PageSessionChrome.cpp`; gaze/dwell is `PageSessionGaze.cpp`.
-- Head-preview math/shaders: `ui/PreviewGeometry.*`. Page XML action tests: `tests/PageLoaderActionTest.cpp`. Live hit tests: `tests/PageHitLiveTest.cpp`.
+- Head-preview math/shaders: `ui/PreviewGeometry.*`. GL draw is `ui/HeadPreviewRenderer` (tray `PreviewWindow` and the Head settings cell). Page XML action tests: `tests/PageLoaderActionTest.cpp`. Live hit tests: `tests/PageHitLiveTest.cpp`.
 - Editor inspector forms: `LayoutEditorPropertiesFill.cpp`, `LayoutEditorFieldsGroups.cpp`. File dialogs: `LayoutEditorWindowFile.cpp`.
 - Keyboard XML cell ids like `ch_113_0_1` are codepoints, not key names.
 

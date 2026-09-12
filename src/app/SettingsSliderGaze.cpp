@@ -114,6 +114,9 @@ void SettingsUi::onGaze(const GazePoint& point)
     if (m_scrub.active) {
         feedSliderGaze(point);
     }
+    if (m_curveScrub) {
+        feedCurveGaze(point);
+    }
 }
 
 void SettingsUi::feedSliderGaze(const GazePoint& point)

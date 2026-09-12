@@ -3,6 +3,7 @@
 #include "assist/GazeFollowProfile.h"
 #include "assist/LtsIndicator.h"
 #include "assist/LtsScrollMode.h"
+#include "mapping/HeadPoseCurve.h"
 #include "ui/Theme.h"
 #include "utils/Log.h"
 
@@ -197,6 +198,65 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
     layoutAutoCloseFadeMs =
         o.value(QStringLiteral("layoutAutoCloseFadeMs")).toInt(layoutAutoCloseFadeMs);
     trackerPref = o.value(QStringLiteral("trackerPref")).toInt(trackerPref);
+    headPoseEnabled = o.value(QStringLiteral("headPoseEnabled")).toBool(headPoseEnabled);
+    headPoseOriginSet = o.value(QStringLiteral("headPoseOriginSet")).toBool(false);
+    if (o.value(QStringLiteral("headPoseOrigin")).isObject()) {
+        const QJsonObject ho = o.value(QStringLiteral("headPoseOrigin")).toObject();
+        headPoseOrigin.yaw = ho.value(QStringLiteral("yaw")).toDouble();
+        headPoseOrigin.pitch = ho.value(QStringLiteral("pitch")).toDouble();
+        headPoseOrigin.roll = ho.value(QStringLiteral("roll")).toDouble();
+        headPoseOrigin.x = ho.value(QStringLiteral("x")).toDouble();
+        headPoseOrigin.y = ho.value(QStringLiteral("y")).toDouble();
+        headPoseOrigin.z = ho.value(QStringLiteral("z")).toDouble();
+        headPoseOrigin.rotationValid = true;
+        headPoseOrigin.positionValid = true;
+        headPoseOriginSet = true;
+    }
+    headPoseMaps.clear();
+    if (o.value(QStringLiteral("headPoseMaps")).isArray()) {
+        for (const QJsonValue& v : o.value(QStringLiteral("headPoseMaps")).toArray()) {
+            if (!v.isObject()) {
+                continue;
+            }
+            const QJsonObject mo = v.toObject();
+            HeadPoseMap m;
+            m.id = mo.value(QStringLiteral("id")).toString();
+            m.enabled = mo.value(QStringLiteral("enabled")).toBool(true);
+            bool ok = false;
+            m.source = headPoseAxisFromId(mo.value(QStringLiteral("source")).toString(), &ok);
+            if (!ok) {
+                m.source = HeadPoseAxis::Yaw;
+            }
+            m.dest = headPoseDestFromId(mo.value(QStringLiteral("dest")).toString(), &ok);
+            if (!ok) {
+                continue;
+            }
+            m.command = mo.value(QStringLiteral("command")).toString();
+            m.commandAt = mo.value(QStringLiteral("commandAt")).toDouble(15.0);
+            m.hysteresis = mo.value(QStringLiteral("hysteresis")).toDouble(2.0);
+            if (mo.value(QStringLiteral("points")).isArray()) {
+                for (const QJsonValue& pv : mo.value(QStringLiteral("points")).toArray()) {
+                    if (!pv.isArray()) {
+                        continue;
+                    }
+                    const QJsonArray pa = pv.toArray();
+                    if (pa.size() < 2) {
+                        continue;
+                    }
+                    HeadPoseCurvePoint pt;
+                    pt.in = pa.at(0).toDouble();
+                    pt.out = pa.at(1).toDouble();
+                    m.points.push_back(pt);
+                }
+            }
+            if (m.points.size() < 2) {
+                m.points = defaultHeadPoseMap().points;
+            }
+            if (!m.id.isEmpty()) {
+                headPoseMaps.push_back(m);
+            }
+        }
+    }
     speechModel = o.value(QStringLiteral("speechModel")).toString(speechModel);
     elevenVoiceId = o.value(QStringLiteral("elevenVoiceId")).toString(elevenVoiceId);
     sapiVoiceToken = o.value(QStringLiteral("sapiVoiceToken")).toString(sapiVoiceToken);
@@ -370,6 +430,41 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     o.insert(QStringLiteral("layoutAutoCloseIdleMs"), copy.layoutAutoCloseIdleMs);
     o.insert(QStringLiteral("layoutAutoCloseFadeMs"), copy.layoutAutoCloseFadeMs);
     o.insert(QStringLiteral("trackerPref"), copy.trackerPref);
+    o.insert(QStringLiteral("headPoseEnabled"), copy.headPoseEnabled);
+    o.insert(QStringLiteral("headPoseOriginSet"), copy.headPoseOriginSet);
+    if (copy.headPoseOriginSet) {
+        QJsonObject ho;
+        ho.insert(QStringLiteral("yaw"), copy.headPoseOrigin.yaw);
+        ho.insert(QStringLiteral("pitch"), copy.headPoseOrigin.pitch);
+        ho.insert(QStringLiteral("roll"), copy.headPoseOrigin.roll);
+        ho.insert(QStringLiteral("x"), copy.headPoseOrigin.x);
+        ho.insert(QStringLiteral("y"), copy.headPoseOrigin.y);
+        ho.insert(QStringLiteral("z"), copy.headPoseOrigin.z);
+        o.insert(QStringLiteral("headPoseOrigin"), ho);
+    }
+    {
+        QJsonArray maps;
+        for (const HeadPoseMap& m : copy.headPoseMaps) {
+            QJsonObject mo;
+            mo.insert(QStringLiteral("id"), m.id);
+            mo.insert(QStringLiteral("enabled"), m.enabled);
+            mo.insert(QStringLiteral("source"), QLatin1String(headPoseAxisId(m.source)));
+            mo.insert(QStringLiteral("dest"), QLatin1String(headPoseDestId(m.dest)));
+            mo.insert(QStringLiteral("command"), m.command);
+            mo.insert(QStringLiteral("commandAt"), m.commandAt);
+            mo.insert(QStringLiteral("hysteresis"), m.hysteresis);
+            QJsonArray pts;
+            for (const HeadPoseCurvePoint& p : m.points) {
+                QJsonArray pair;
+                pair.append(p.in);
+                pair.append(p.out);
+                pts.append(pair);
+            }
+            mo.insert(QStringLiteral("points"), pts);
+            maps.append(mo);
+        }
+        o.insert(QStringLiteral("headPoseMaps"), maps);
+    }
     o.insert(QStringLiteral("speechModel"), copy.speechModel);
     o.insert(QStringLiteral("elevenVoiceId"), copy.elevenVoiceId);
     o.insert(QStringLiteral("sapiVoiceToken"), copy.sapiVoiceToken);

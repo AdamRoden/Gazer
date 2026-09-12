@@ -4,7 +4,9 @@
 #include "assist/GazeFollowProfile.h"
 #include "assist/LtsIndicator.h"
 #include "assist/LtsScrollMode.h"
+#include "core/HeadPose.h"
 #include "layout/ProgressStyle.h"
+#include "mapping/HeadPoseTypes.h"
 #include "ui/Theme.h"
 #include "ui/ThemeScheme.h"
 
@@ -118,6 +120,14 @@ struct AppSettings {
     int layoutAutoCloseIdleMs = 10000;
     int layoutAutoCloseFadeMs = 3000;
     int trackerPref = 0;
+
+    // --- Head pose analog maps ---
+    bool headPoseEnabled = false;
+    bool headPoseOriginSet = false;
+    HeadPose headPoseOrigin;
+    QVector<HeadPoseMap> headPoseMaps;
+    static constexpr int kMaxHeadPoseMaps = gazer::kMaxHeadPoseMaps;
+    [[nodiscard]] static HeadPoseMap makeDefaultHeadPoseMap();
 
     // --- Speech ---
     QString speechModel = QStringLiteral("sapi");

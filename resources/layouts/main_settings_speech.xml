@@ -8,7 +8,7 @@
   <Style id="tabbar" thickness="0" radius="12"/>
   <Grid id="board" desktopMode="true" rows="10" columns="16" anchor="Top" offset="0,0"
         size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" gap="6" margin="12" radius="16">
-    <SubGrid id="tabs" row="0" col="0" colSpan="16" rows="1" columns="8" gap="6" margin="4" style="tabbar">
+    <SubGrid id="tabs" row="0" col="0" colSpan="16" rows="1" columns="9" gap="6" margin="4" style="tabbar">
       <Cell id="tab_speed" row="0" col="0" label="Speed" icon="timer" role="tab">
         <ClosePage/>
         <OpenPage value="main_settings_speed"/>
@@ -34,7 +34,11 @@
         <OpenPage value="main_settings_theme"/>
       </Cell>
       <Cell id="tab_speech" row="0" col="6" label="Speech" icon="Speak" role="tab"/>
-      <Cell id="tab_done" row="0" col="7" label="Done" icon="keyboardHide">
+      <Cell id="tab_head" row="0" col="7" label="Head" icon="HeadPreview" role="tab">
+        <ClosePage/>
+        <OpenPage value="main_settings_head_pose"/>
+      </Cell>
+      <Cell id="tab_done" row="0" col="8" label="Done" icon="keyboardHide">
         <CloseAllPages/>
       </Cell>
     </SubGrid>

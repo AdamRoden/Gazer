@@ -6,6 +6,7 @@ Gaze tools on top of the page session.
 |------|------|
 | `AssistSession` / `AssistCommands` | Tool lifetime + `toggleLookToScroll` and related builtins |
 | `LookToScroll` / `LtsSpeed.h` / `LtsIndicator.h` / `LtsScrollMode.h` / `LtsMenu.h` | Gaze-driven scroll. Always place-cursor first; pie for speed, axis (vertical / horizontal / both), reset, quit |
+| `HeadPoseMapper` | Analog maps from tracker head pose (settings-backed). Pauses mouse/scroll/joy/commands while gaze is on Gazer boards. Gaze offset is not applied to board hit-tests. |
 | `ComboMouse` / `ComboMouseHit.h` / `PieOverlay` | Directional mouse pad. Shared command pie (ComboMouse + LTS) |
 | `MouseDwellMove` | Dwell to warp cursor. Overlays in `MouseDwellMove_p.h`; mag-pick in `MouseDwellMoveMag.cpp` |
 | `MouseAssistState` | Shared pointer-assist flags |

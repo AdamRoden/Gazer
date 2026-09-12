@@ -21,6 +21,7 @@ class CommandRegistry;
 class ComposeUi;
 class GazeMouseFollow;
 class GazeReticle;
+class HeadPoseMapper;
 class InputService;
 class KeyStateManager;
 class LookToScroll;
@@ -75,6 +76,7 @@ public:
     MouseAssistState& mouseAssist() { return *m_mouseAssist; }
     GazeReticle& gazeReticle() { return *m_gazeReticle; }
     GazeMouseFollow& gazeMouseFollow() { return *m_gazeMouseFollow; }
+    HeadPoseMapper& headPoseMapper() { return *m_headPose; }
     AssistSession& assistSession() { return *m_assistSession; }
     ActionLoopService& actionLoops() { return *m_actionLoops; }
 
@@ -123,6 +125,7 @@ private:
     std::unique_ptr<MouseAssistState> m_mouseAssist;
     std::unique_ptr<GazeReticle> m_gazeReticle;
     std::unique_ptr<GazeMouseFollow> m_gazeMouseFollow;
+    std::unique_ptr<HeadPoseMapper> m_headPose;
     std::unique_ptr<AssistSession> m_assistSession;
     std::unique_ptr<ActionLoopService> m_actionLoops;
     std::unique_ptr<AssistCommandContext> m_assistCmdCtx;

@@ -12,6 +12,7 @@
 #include "assist/ComboMouse.h"
 #include "assist/GazeMouseFollow.h"
 #include "assist/GazeReticle.h"
+#include "assist/HeadPoseMapper.h"
 #include "assist/LookToScroll.h"
 #include "assist/MouseAssistState.h"
 #include "assist/MouseDwellMove.h"
@@ -133,6 +134,8 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
     m_mouseAssist = std::make_unique<MouseAssistState>(*m_input);
     m_gazeReticle = std::make_unique<GazeReticle>();
     m_gazeMouseFollow = std::make_unique<GazeMouseFollow>();
+    m_headPose = std::make_unique<HeadPoseMapper>();
+    m_headPose->setInput(m_input.get());
     m_assistSession = std::make_unique<AssistSession>();
     m_actionLoops = std::make_unique<ActionLoopService>();
     m_scripts = std::make_unique<ScriptHost>(*m_speech, *m_commands, *m_input, *m_pages);
@@ -176,6 +179,10 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
         });
     m_settingsUi->setResetFn([this]() { resetSettingsToDefaults(); });
     m_settingsUi->setMouseDwellMove(m_mouseDwellMove.get());
+    m_settingsUi->setHeadPoseMapper(m_headPose.get());
+    m_headPose->setRunCommand(
+        [this](const QString& name, QString* error) { return m_commands->run(name, error); });
+    m_headPose->setNotifyFn([this](const QString& msg) { notifyStatus(msg); });
     connect(m_mouseDwellMove.get(), &MouseDwellMove::movedTo, this,
             [this](QPoint pos) { m_settingsUi->onColorAimMoved(pos); });
     connect(m_mouseDwellMove.get(), &MouseDwellMove::armedChanged, this, [this](bool armed) {
@@ -468,6 +475,12 @@ void GazerServices::applySettings(bool persist)
     m_magnifier->setFollowProfile(m_settings.magFollowProfile);
     m_gazeReticle->setFollowProfile(m_settings.magFollowProfile);
     m_gazeMouseFollow->setFollowProfile(m_settings.magFollowProfile);
+
+    if (m_headPose) {
+        m_headPose->setEnabled(m_settings.headPoseEnabled);
+        m_headPose->setOrigin(m_settings.headPoseOrigin, m_settings.headPoseOriginSet);
+        m_headPose->setMaps(m_settings.headPoseMaps);
+    }
 
     if (m_pages) {
         m_pages->refreshDecorated();

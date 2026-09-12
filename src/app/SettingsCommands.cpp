@@ -426,6 +426,8 @@ void SettingsUi::registerCommands()
         return true;
     });
 
+    registerHeadPoseCommands();
+
     m_commands.registerBuiltin(QStringLiteral("settings.theme.source"), [this](QString* error) {
         return openColorPicker(QStringLiteral("customPrimaryColor"), error);
     });

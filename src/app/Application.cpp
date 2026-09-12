@@ -7,6 +7,7 @@
 #include "app/GazerServices.h"
 #include "app/SettingsUi.h"
 #include "assist/ComboMouse.h"
+#include "assist/HeadPoseMapper.h"
 #include "assist/LookToScroll.h"
 #include "assist/MouseAssistState.h"
 #include "assist/MouseDwellMove.h"
@@ -27,6 +28,8 @@
 #include "ui/DwellSuspendOverlay.h"
 #include "ui/Theme.h"
 #include "ui/MagnifierOverlay.h"
+#include "ui/HeadPreviewRenderer.h"
+#include "ui/PageHostWindow.h"
 #include "ui/PreviewWindow.h"
 #include "ui/TrayIcon.h"
 #include "utils/Log.h"
@@ -34,6 +37,7 @@
 
 #include <QApplication>
 #include <QCoreApplication>
+#include <QRect>
 #include <QDir>
 #include <QFileInfo>
 #include <QHash>
@@ -70,7 +74,10 @@ bool Application::initialize()
     }
 
     m_actions = std::make_unique<ActionDispatcher>(*m_svc);
+    m_headPreviewGl = std::make_unique<HeadPreviewRenderer>();
     m_preview = std::make_unique<PreviewWindow>();
+    m_preview->setRenderer(m_headPreviewGl.get());
+    m_headPaintClock.start();
     m_tray = std::make_unique<TrayIcon>();
     m_dwellSuspendOverlay = std::make_unique<DwellSuspendOverlay>();
     m_stackWatch = std::make_unique<OverlayStackWatch>();
@@ -91,8 +98,10 @@ bool Application::initialize()
     m_gazeRouter.setMagnifier(&m_svc->magnifier());
     m_gazeRouter.setGazeReticle(&m_svc->gazeReticle());
     m_gazeRouter.setGazeMouseFollow(&m_svc->gazeMouseFollow());
+    m_gazeRouter.setHeadPoseMapper(&m_svc->headPoseMapper());
 
     m_preview->setTheme(m_svc->settings().resolvedTheme());
+    m_headPreviewGl->setTheme(m_svc->settings().resolvedTheme());
 
     connect(m_tray.get(), &TrayIcon::showPreviewRequested, m_preview.get(),
             &PreviewWindow::showAndRaise);
@@ -122,7 +131,11 @@ bool Application::initialize()
     });
     connect(&m_svc->pages(), &PageSession::dwellSuspendChanged, this,
             [this](bool) { syncDwellSuspendOverlay(); });
-    connect(&m_svc->pages(), &PageSession::sessionChanged, this, &Application::updateTrayStatus);
+    connect(&m_svc->pages(), &PageSession::sessionChanged, this, [this]() {
+        updateTrayStatus();
+        m_headPaintClock.invalidate();
+        updateHeadPosePaint();
+    });
 
     auto statusToTray = [this](const QString& msg) {
         if (m_tray) {
@@ -133,6 +146,9 @@ bool Application::initialize()
         updateTrayStatus();
         if (m_preview) {
             m_preview->setTheme(m_svc->settings().resolvedTheme());
+        }
+        if (m_headPreviewGl) {
+            m_headPreviewGl->setTheme(m_svc->settings().resolvedTheme());
         }
         if (m_editor) {
             m_editor->setTheme(m_svc->settings().resolvedTheme());
@@ -276,10 +292,16 @@ void Application::wireTracker()
             &PreviewWindow::onGazeUpdated);
     connect(m_tracker.get(), &ITracker::headPoseUpdated, m_preview.get(),
             &PreviewWindow::onHeadPoseUpdated);
+    connect(m_tracker.get(), &ITracker::headPoseUpdated, this, [this](const gazer::HeadPose& pose) {
+        m_svc->headPoseMapper().onPose(pose);
+        updateHeadPosePaint();
+    });
     connect(m_tracker.get(), &ITracker::trackingLost, m_preview.get(), [this]() {
         if (m_tracker) {
             m_preview->setTrackerName(QStringLiteral("%1 (lost)").arg(m_tracker->name()));
         }
+        m_svc->headPoseMapper().onTrackingLost();
+        updateHeadPosePaint();
     });
     connect(m_tracker.get(), &ITracker::trackingRestored, m_preview.get(), [this]() {
         if (m_tracker) {
@@ -302,6 +324,42 @@ void Application::onGaze(const gazer::GazePoint& point)
     if (m_svc->isDwellSuspended()) {
         syncDwellSuspendOverlay();
     }
+}
+
+void Application::updateHeadPosePaint()
+{
+    PageSession& pages = m_svc->pages();
+    PageHostWindow* host = pages.window();
+    if (!host) {
+        return;
+    }
+    const bool show = pages.hasPage(QStringLiteral("main_settings_head_pose"))
+                      || pages.topPageId() == QLatin1String("headpose_map_live");
+    if (!show) {
+        return;
+    }
+    if (m_headPaintClock.isValid() && m_headPaintClock.elapsed() < 33) {
+        return;
+    }
+    m_headPaintClock.restart();
+
+    HeadPoseMapper& mapper = m_svc->headPoseMapper();
+    if (m_headPreviewGl) {
+        if (mapper.originSet()) {
+            m_headPreviewGl->setRelativePose(mapper.displayPose());
+        } else {
+            m_headPreviewGl->setPose(mapper.displayPose());
+        }
+        const QRect cell =
+            pages.targetScreenRect(QStringLiteral("main_settings_head_pose"),
+                                   QStringLiteral("head_preview"));
+        if (cell.width() >= 8 && cell.height() >= 8) {
+            host->setHeadPreviewImage(
+                m_headPreviewGl->render(cell.size(), host->devicePixelRatio()));
+        }
+    }
+
+    m_svc->settingsUi().syncHeadPosePaint();
 }
 
 void Application::openPageEditor(const QString& pageId)

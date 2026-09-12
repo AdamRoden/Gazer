@@ -1,11 +1,13 @@
 #pragma once
 
 #include "layout/PageHit.h"
+#include "ui/BoardPaint.h"
 #include "ui/GlassBackdrop.h"
 #include "ui/ProgressVisuals.h"
 #include "ui/Theme.h"
 
 #include <QColor>
+#include <QImage>
 #include <QRectF>
 #include <QQuickWindow>
 #include <QSet>
@@ -39,6 +41,8 @@ public:
     void setHover(const QString& id, double progress, bool revealProgress = false);
     void flash(const QString& id);
     void setPreviewColor(const QColor& color);
+    void setHeadPreviewImage(QImage image);
+    void setCurve(QVector<HeadPoseCurvePoint> points, int selected, double liveIn, bool liveOn);
     void setSliderScrub(const QString& itemId, double t, const QString& valueText,
                         double dwellProgress);
     void clearSliderScrub();
@@ -100,11 +104,7 @@ private:
     QRectF m_flashRect;
     PageBox m_flashRadii;
     QPoint m_origin;
-    QColor m_previewColor;
-    QString m_sliderScrubId;
-    double m_sliderScrubT = 0.0;
-    QString m_sliderScrubValue;
-    double m_sliderScrubProgress = 0.0;
+    BoardPaint::Live m_live;
     bool m_inputFocus = false;
     friend class PageHostItem;
 };

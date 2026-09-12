@@ -54,6 +54,7 @@ set(GAZER_SOURCES
     src/app/SettingsSpeechKey.cpp
     src/app/SettingsSliderGaze.cpp
     src/app/SettingsCommands.cpp
+    src/app/SettingsHeadPose.cpp
     src/app/CommandRegistry.cpp
     src/app/ComposeUi.cpp
     src/app/ComposeVoices.cpp
@@ -92,6 +93,7 @@ set(GAZER_SOURCES
     src/input/InputService.cpp
     src/mapping/MappingLoader.cpp
     src/mapping/MappingEngine.cpp
+    src/mapping/HeadPoseCurve.cpp
     src/assist/TtsService.cpp
     src/assist/ElevenRequest.cpp
     src/assist/VoiceCatalog.cpp
@@ -107,6 +109,7 @@ set(GAZER_SOURCES
     src/assist/ScriptHost.cpp
     src/assist/AhkLauncher.cpp
     src/assist/LookToScroll.cpp
+    src/assist/HeadPoseMapper.cpp
     src/assist/ComboMouse.cpp
     src/assist/PieOverlay.cpp
     src/assist/MouseDwellMove.cpp
@@ -118,12 +121,14 @@ set(GAZER_SOURCES
     src/assist/AssistCommands.cpp
     src/assist/ActionLoopService.cpp
     src/ui/PreviewWindow.cpp
+    src/ui/HeadPreviewRenderer.cpp
     src/ui/PreviewGeometry.cpp
     src/ui/StlMesh.cpp
     src/ui/PageHostWindow.cpp
     src/ui/BoardPaint.cpp
     src/ui/SliderTrack.cpp
     src/ui/ColorField.cpp
+    src/ui/PoseChart.cpp
     src/ui/ScrollBar.cpp
     src/ui/GlassBackdrop.cpp
     src/ui/TrayIcon.cpp
@@ -208,6 +213,8 @@ set(GAZER_HEADERS
     src/mapping/MappingTypes.h
     src/mapping/MappingLoader.h
     src/mapping/MappingEngine.h
+    src/mapping/HeadPoseTypes.h
+    src/mapping/HeadPoseCurve.h
     src/assist/TtsService.h
     src/assist/ElevenRequest.h
     src/assist/SpeechEngine.h
@@ -221,6 +228,7 @@ set(GAZER_HEADERS
     src/assist/ScriptHost.h
     src/assist/AhkLauncher.h
     src/assist/LookToScroll.h
+    src/assist/HeadPoseMapper.h
     src/assist/ComboMouse.h
     src/assist/ComboMouseHit.h
     src/assist/PieOverlay.h
@@ -241,6 +249,7 @@ set(GAZER_HEADERS
     src/assist/ForesightMemory.h
     src/assist/MagLayout.h
     src/ui/PreviewWindow.h
+    src/ui/HeadPreviewRenderer.h
     src/ui/PreviewGeometry.h
     src/ui/StlMesh.h
     src/ui/PageHostWindow.h
@@ -248,6 +257,8 @@ set(GAZER_HEADERS
     src/ui/ProgressVisuals.h
     src/ui/ProgressPaint.h
     src/ui/SliderTrack.h
+    src/ui/PoseChart.h
+    src/ui/ColorField.h
     src/ui/ScrollBar.h
     src/ui/GlassBackdrop.h
     src/ui/TrayIcon.h
@@ -441,6 +452,8 @@ add_executable(GazerPageTests
     tests/AhkLauncherTest.cpp
     tests/KeyStateManagerTest.cpp
     tests/ColorPickerHexTest.cpp
+    tests/HeadPoseMapperTest.cpp
+    src/mapping/HeadPoseCurve.cpp
     src/input/KeyStateManager.cpp
     src/input/KeyGlyphs.cpp
     ${GAZER_PAGE_TEST_LIB}

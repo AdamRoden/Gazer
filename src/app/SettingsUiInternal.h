@@ -12,6 +12,8 @@ constexpr auto kLiveArray = "settings_array_live";
 constexpr auto kLiveColor = "settings_color_live";
 constexpr auto kLiveHex = "settings_hex_live";
 constexpr auto kLiveSpeechKey = "settings_speech_key_live";
+constexpr auto kLiveHeadPoseMap = "headpose_map_live";
+constexpr auto kLiveHeadPoseCmd = "headpose_cmd_live";
 
 constexpr int kMaxArraySteps = 12;
 constexpr int kStepNudge = 50;

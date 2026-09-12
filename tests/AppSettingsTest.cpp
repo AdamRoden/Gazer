@@ -44,6 +44,7 @@ private slots:
     void appearanceSwitchesCustomNeutrals();
     void backgroundShadeAndTintFamily();
     void speechSettingsRoundTrip();
+    void headPoseMapsRoundTrip();
 };
 
 void AppSettingsTest::defaultConstructIsFactory()
@@ -504,6 +505,36 @@ void AppSettingsTest::speechSettingsRoundTrip()
     QCOMPARE(b.savedSpeechVoices.front().name, QStringLiteral("Rachel laugh"));
     QCOMPARE(b.savedSpeechVoices.front().voiceId, QStringLiteral("abc123"));
     QCOMPARE(b.savedSpeechVoices.front().volume, 2.0);
+}
+
+void AppSettingsTest::headPoseMapsRoundTrip()
+{
+    AppSettings s = AppSettings::defaults();
+    s.headPoseEnabled = true;
+    s.headPoseOriginSet = true;
+    s.headPoseOrigin.yaw = 4.5;
+    s.headPoseOrigin.pitch = -1.0;
+    s.headPoseOrigin.rotationValid = true;
+    HeadPoseMap m = AppSettings::makeDefaultHeadPoseMap();
+    m.source = HeadPoseAxis::Pitch;
+    m.dest = HeadPoseDest::ScrollV;
+    m.points = {{-20.0, -8.0}, {0.0, 0.0}, {20.0, 8.0}};
+    s.headPoseMaps.push_back(m);
+
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("settings.json"));
+    QString err;
+    QVERIFY2(s.saveToFile(path, &err), qPrintable(err));
+    AppSettings b;
+    QVERIFY2(b.loadFromFile(path, &err), qPrintable(err));
+    QCOMPARE(b.headPoseEnabled, true);
+    QCOMPARE(b.headPoseOriginSet, true);
+    QCOMPARE(b.headPoseOrigin.yaw, 4.5);
+    QCOMPARE(b.headPoseMaps.size(), 1);
+    QCOMPARE(b.headPoseMaps.front().source, HeadPoseAxis::Pitch);
+    QCOMPARE(b.headPoseMaps.front().dest, HeadPoseDest::ScrollV);
+    QCOMPARE(b.headPoseMaps.front().points.size(), 3);
 }
 
 QObject* createAppSettingsTest()

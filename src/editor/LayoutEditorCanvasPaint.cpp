@@ -186,14 +186,13 @@ void LayoutEditorCanvas::paintBoard(QPainter& p, const ScreenMap& m) const
             }
             if (!progress.isEmpty()) {
                 BoardPaint::paintTarget(p, t, progress, m_theme, nullptr, hovered,
-                                        hovered ? m_testProgress : 0.0, false, selected, {}, {}, {},
-                                        0, {}, 0);
+                                        hovered ? m_testProgress : 0.0, false, selected, {});
             }
             continue;
         }
         const QRectF r = targetRect(t);
         BoardPaint::paintTarget(p, t, r, m_theme, nullptr, hovered, hovered ? m_testProgress : 0.0,
-                                false, selected, {}, {}, {}, 0, {}, 0);
+                                false, selected, {});
     }
     p.restore();
 

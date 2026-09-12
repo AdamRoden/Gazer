@@ -1,18 +1,35 @@
 #pragma once
 
 #include "layout/PageHit.h"
+#include "mapping/HeadPoseTypes.h"
 #include "ui/GlassBackdrop.h"
 #include "ui/ProgressVisuals.h"
 #include "ui/Theme.h"
 
 #include <QColor>
+#include <QImage>
 #include <QRectF>
 #include <QString>
+#include <QVector>
 
 class QPainter;
 
 namespace gazer {
 namespace BoardPaint {
+
+/// Live extras for role paint (color picker, sliders, head-pose curve/preview).
+struct Live {
+    QColor previewColor;
+    QString sliderScrubId;
+    double sliderScrubT = 0.0;
+    QString sliderScrubValue;
+    double sliderScrubProgress = 0.0;
+    QImage headPreview;
+    QVector<HeadPoseCurvePoint> curvePoints;
+    int curveSelected = -1;
+    double curveLiveIn = 0.0;
+    bool curveLiveOn = false;
+};
 
 [[nodiscard]] QString segoeFamily();
 [[nodiscard]] int fontPxToFit(const QString& family, int weight, int startPx, int minPx,
@@ -33,9 +50,7 @@ void paintSurface(QPainter& p, const QRectF& r, const PageChrome& chrome, const 
                   GlassBackdrop* glass, bool grid, bool hovered, bool active, bool interactive);
 void paintTarget(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeColors& theme,
                  GlassBackdrop* glass, bool hovered, double progress, bool flashing, bool active,
-                 const ProgressVisuals& pv, const QColor& previewColor, const QString& sliderScrubId,
-                 double sliderScrubT, const QString& sliderScrubValue, double sliderScrubProgress,
-                 bool locked = false);
+                 const ProgressVisuals& pv, const Live& live = {}, bool locked = false);
 
 } // namespace BoardPaint
 } // namespace gazer

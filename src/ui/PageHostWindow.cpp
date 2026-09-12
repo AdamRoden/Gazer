@@ -219,18 +219,16 @@ void PageHostWindow::paintScene(QPainter& p, ChromePass pass)
         const QRectF content = mapRect(t, t.kind == PageTarget::Kind::Zone ? t.geom.visual
                                                                           : t.geom.contentOnScreen());
         if (!content.isEmpty()) {
+            BoardPaint::Live extras = m_live;
+            if (!live) {
+                extras.sliderScrubId.clear();
+            }
             BoardPaint::paintTarget(p, vis, content, m_theme, glass, hovered, progress, flashing,
-                                    active, m_progress, m_previewColor,
-                                    live ? m_sliderScrubId : QString(),
-                                    live ? m_sliderScrubT : 0.0,
-                                    live ? m_sliderScrubValue : QString(),
-                                    live ? m_sliderScrubProgress : 0.0, locked);
+                                    active, m_progress, extras, locked);
         } else if (showProgress && !t.geom.progressZone.isEmpty()) {
             const QRectF strip = mapRect(t, t.geom.progressZone);
             BoardPaint::paintTarget(p, vis, strip, m_theme, glass, hovered, progress, flashing,
-                                    active, m_progress, m_previewColor, m_sliderScrubId,
-                                    m_sliderScrubT, m_sliderScrubValue, m_sliderScrubProgress,
-                                    locked);
+                                    active, m_progress, m_live, locked);
         }
     };
     // Back-to-front: each page as one layer (grids + cells + zones). Attached
@@ -503,10 +501,30 @@ void PageHostWindow::flash(const QString& id)
 void PageHostWindow::setPreviewColor(const QColor& color)
 {
     const QColor next = color.isValid() ? color : ThemeColors::defaultProgressColor();
-    if (m_previewColor == next) {
+    if (m_live.previewColor == next) {
         return;
     }
-    m_previewColor = next;
+    m_live.previewColor = next;
+    if (m_board) {
+        m_board->update();
+    }
+}
+
+void PageHostWindow::setHeadPreviewImage(QImage image)
+{
+    m_live.headPreview = std::move(image);
+    if (m_board) {
+        m_board->update();
+    }
+}
+
+void PageHostWindow::setCurve(QVector<HeadPoseCurvePoint> points, int selected, double liveIn,
+                              bool liveOn)
+{
+    m_live.curvePoints = std::move(points);
+    m_live.curveSelected = selected;
+    m_live.curveLiveIn = liveIn;
+    m_live.curveLiveOn = liveOn;
     if (m_board) {
         m_board->update();
     }
@@ -515,10 +533,10 @@ void PageHostWindow::setPreviewColor(const QColor& color)
 void PageHostWindow::setSliderScrub(const QString& itemId, double t, const QString& valueText,
                                     double dwellProgress)
 {
-    m_sliderScrubId = itemId;
-    m_sliderScrubT = qBound(0.0, t, 1.0);
-    m_sliderScrubValue = valueText;
-    m_sliderScrubProgress = qBound(0.0, dwellProgress, 1.0);
+    m_live.sliderScrubId = itemId;
+    m_live.sliderScrubT = qBound(0.0, t, 1.0);
+    m_live.sliderScrubValue = valueText;
+    m_live.sliderScrubProgress = qBound(0.0, dwellProgress, 1.0);
     if (m_board) {
         m_board->update();
     }
@@ -526,13 +544,13 @@ void PageHostWindow::setSliderScrub(const QString& itemId, double t, const QStri
 
 void PageHostWindow::clearSliderScrub()
 {
-    if (m_sliderScrubId.isEmpty()) {
+    if (m_live.sliderScrubId.isEmpty()) {
         return;
     }
-    m_sliderScrubId.clear();
-    m_sliderScrubT = 0.0;
-    m_sliderScrubValue.clear();
-    m_sliderScrubProgress = 0.0;
+    m_live.sliderScrubId.clear();
+    m_live.sliderScrubT = 0.0;
+    m_live.sliderScrubValue.clear();
+    m_live.sliderScrubProgress = 0.0;
     if (m_board) {
         m_board->update();
     }

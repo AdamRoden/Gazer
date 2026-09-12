@@ -327,9 +327,9 @@ struct PageAction {
     if (n.startsWith(QLatin1String("settings.")) || n.startsWith(QLatin1String("theme."))
         || n.startsWith(QLatin1String("speech.")) || n.startsWith(QLatin1String("history."))
         || n.startsWith(QLatin1String("soundboard.")) || n.startsWith(QLatin1String("compose."))
-        || n.startsWith(QLatin1String("lts.")) || n.startsWith(QLatin1String("gazer."))
-        || n.startsWith(QLatin1String("toggle")) || n.startsWith(QLatin1String("mouse"))
-        || n.startsWith(QLatin1String("cycleMouse"))) {
+        || n.startsWith(QLatin1String("headPose.")) || n.startsWith(QLatin1String("lts."))
+        || n.startsWith(QLatin1String("gazer.")) || n.startsWith(QLatin1String("toggle"))
+        || n.startsWith(QLatin1String("mouse")) || n.startsWith(QLatin1String("cycleMouse"))) {
         return false;
     }
     static const QSet<QString> kChrome{
@@ -379,14 +379,16 @@ struct PagePhase {
     return usesRapidDwell(actions);
 }
 
-/// label / value / display / slider / preview / scrollbar / colorfield are not dwell targets.
+/// label / value / display / slider / preview / scrollbar / colorfield / headpreview /
+/// curvefield are not dwell targets (slider/curvefield with actions are).
 [[nodiscard]] inline bool pageRoleIsPassive(QStringView role)
 {
     const QString r = role.toString().trimmed().toLower();
     return r == QLatin1String("label") || r == QLatin1String("value")
            || r == QLatin1String("display") || r == QLatin1String("slider")
            || r == QLatin1String("preview") || r == QLatin1String("scrollbar")
-           || r == QLatin1String("colorfield");
+           || r == QLatin1String("colorfield") || r == QLatin1String("headpreview")
+           || r == QLatin1String("curvefield");
 }
 
 struct PageLeaf {
@@ -417,7 +419,9 @@ struct PageLeaf {
     /// current tab (selected, not a navigation target).
     [[nodiscard]] bool isInteractive() const
     {
-        if (role.compare(QLatin1String("slider"), Qt::CaseInsensitive) == 0 && !actions.isEmpty()) {
+        if ((role.compare(QLatin1String("slider"), Qt::CaseInsensitive) == 0
+             || role.compare(QLatin1String("curvefield"), Qt::CaseInsensitive) == 0)
+            && !actions.isEmpty()) {
             return true;
         }
         if (pageRoleIsPassive(role)) {

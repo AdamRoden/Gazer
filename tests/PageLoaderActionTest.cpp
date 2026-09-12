@@ -456,6 +456,9 @@ void PageLoaderActionTest::rapidDwellClassification()
     QVERIFY(!usesRapidDwell({cmd(QStringLiteral("compose.removeWord.3"))}));
     QVERIFY(!usesRapidDwell({cmd(QStringLiteral("compose.moveEndOfWord.0"))}));
     QVERIFY(!usesRapidDwell({cmd(QStringLiteral("compose.moveStartOfWord.1"))}));
+    QVERIFY(!usesRapidDwell({cmd(QStringLiteral("headPose.enabled.toggle"))}));
+    QVERIFY(!usesRapidDwell({cmd(QStringLiteral("headPose.chart.axis.yaw"))}));
+    QVERIFY(!usesRapidDwell({cmd(QStringLiteral("headPose.addMap"))}));
 }
 
 void PageLoaderActionTest::parseDwellPhases()

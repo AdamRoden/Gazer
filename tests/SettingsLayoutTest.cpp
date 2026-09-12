@@ -64,6 +64,7 @@ void SettingsLayoutTest::pagesAnchorTop()
                              QStringLiteral("main_settings_tools"),
                              QStringLiteral("main_settings_theme"),
                              QStringLiteral("main_settings_speech"),
+                             QStringLiteral("main_settings_head_pose"),
                              QStringLiteral("main_settings_speed_advanced")};
     for (const QString& id : ids) {
         PageDocument doc;
@@ -91,11 +92,12 @@ void SettingsLayoutTest::tabsEqualWidth()
     QVERIFY2(loadLayout(QStringLiteral("main_settings_speed"), doc, &err), qPrintable(err));
     const PageGrid* tabs = doc.findGrid(QStringLiteral("tabs"));
     QVERIFY(tabs);
-    QCOMPARE(tabs->columns, 8);
-    QCOMPARE(tabs->cells.size(), 8);
+    QCOMPARE(tabs->columns, 9);
+    QCOMPARE(tabs->cells.size(), 9);
     int tabRoles = 0;
     bool hasDone = false;
     bool hasSpeech = false;
+    bool hasHead = false;
     for (const PageCell& c : tabs->cells) {
         if (c.role == QLatin1String("tab")) {
             ++tabRoles;
@@ -107,10 +109,14 @@ void SettingsLayoutTest::tabsEqualWidth()
         if (c.id == QLatin1String("tab_speech")) {
             hasSpeech = true;
         }
+        if (c.id == QLatin1String("tab_head")) {
+            hasHead = true;
+        }
     }
-    QCOMPARE(tabRoles, 7);
+    QCOMPARE(tabRoles, 8);
     QVERIFY(hasDone);
     QVERIFY(hasSpeech);
+    QVERIFY(hasHead);
 }
 
 void SettingsLayoutTest::timingSectionUsesRowWeights()
@@ -234,7 +240,8 @@ void SettingsLayoutTest::hubOpensSixBoards()
                                QStringLiteral("main_settings_assist"),
                                QStringLiteral("main_settings_tools"),
                                QStringLiteral("main_settings_theme"),
-                               QStringLiteral("main_settings_speech")};
+                               QStringLiteral("main_settings_speech"),
+                               QStringLiteral("main_settings_head_pose")};
     QSet<QString> opened;
     const PageCell* done = doc.findCell(QStringLiteral("done"));
     QVERIFY(done);
@@ -251,7 +258,7 @@ void SettingsLayoutTest::hubOpensSixBoards()
     for (const QString& id : pages) {
         QVERIFY2(opened.contains(id), qPrintable(id));
     }
-    QCOMPARE(opened.size(), 7);
+    QCOMPARE(opened.size(), 8);
     PageDocument speech;
     QVERIFY2(loadLayout(QStringLiteral("main_settings_speech"), speech, &err), qPrintable(err));
     QCOMPARE(speech.findCell(QStringLiteral("speed_value"))->settingKey,
@@ -259,6 +266,20 @@ void SettingsLayoutTest::hubOpensSixBoards()
     QCOMPARE(speech.findCell(QStringLiteral("volume_value"))->settingKey,
              QStringLiteral("speechVolume"));
     QVERIFY(speech.findCell(QStringLiteral("tab_speech")));
+    PageDocument head;
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_head_pose"), head, &err), qPrintable(err));
+    QVERIFY(head.findCell(QStringLiteral("head_preview")));
+    QCOMPARE(head.findCell(QStringLiteral("head_preview"))->role, QStringLiteral("headpreview"));
+    QVERIFY(head.findCell(QStringLiteral("pose_curve")));
+    QCOMPARE(head.findCell(QStringLiteral("pose_curve"))->role, QStringLiteral("curvefield"));
+    QVERIFY(!head.findCell(QStringLiteral("pose_curve"))->isInteractive());
+    QVERIFY(head.findCell(QStringLiteral("axis_yaw")));
+    QVERIFY(head.findCell(QStringLiteral("axis_pitch")));
+    QVERIFY(head.findCell(QStringLiteral("axis_roll")));
+    QVERIFY(head.findCell(QStringLiteral("axis_x")));
+    QVERIFY(head.findCell(QStringLiteral("axis_y")));
+    QVERIFY(head.findCell(QStringLiteral("axis_z")));
+    QCOMPARE(head.findCell(QStringLiteral("axis_yaw"))->role, QStringLiteral("choice"));
 }
 
 void SettingsLayoutTest::presetsComeFirst()
@@ -493,8 +514,9 @@ void SettingsLayoutTest::advancedHasHoldAndAutoclose()
     QCOMPARE(doc.findGrid(QStringLiteral("sec_fs"))->row, 3);
     const PageGrid* tabs = doc.findGrid(QStringLiteral("tabs"));
     QVERIFY(tabs);
-    QCOMPARE(tabs->columns, 8);
+    QCOMPARE(tabs->columns, 9);
     QVERIFY(doc.findCell(QStringLiteral("tab_speech")));
+    QVERIFY(doc.findCell(QStringLiteral("tab_head")));
 }
 
 QObject* createSettingsLayoutTest()

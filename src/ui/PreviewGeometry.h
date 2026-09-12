@@ -17,6 +17,15 @@ constexpr float kEyeZRecess = 0.28f;
 constexpr float kEyeRadiusScale = 1.0f;
 constexpr float kEyeRadiusMin = 0.15f;
 constexpr float kEyeRadiusMax = 0.3f;
+/// Absolute tracker Z is cm from the camera; this rest distance places the mesh at the origin.
+constexpr double kHeadRestZCm = 55.0;
+constexpr double kHeadPosZScale = 0.025;
+
+/// Mesh Z. Origin-relative poses are already 0 at Recenter, so skip the rest subtract.
+inline double headMeshTz(double zCm, bool originRelative)
+{
+    return (originRelative ? zCm : (zCm - kHeadRestZCm)) * kHeadPosZScale;
+}
 
 struct Vec3 {
     double x = 0, y = 0, z = 0;

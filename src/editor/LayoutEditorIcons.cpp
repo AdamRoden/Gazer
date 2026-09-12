@@ -325,7 +325,8 @@ EditorGlyph glyphForLeaf(const PageLeaf& leaf, bool zone)
     }
     const QString role = leaf.role.trimmed().toLower();
     if (role == QLatin1String("label") || role == QLatin1String("value")
-        || role == QLatin1String("display") || role == QLatin1String("preview")) {
+        || role == QLatin1String("display") || role == QLatin1String("preview")
+        || role == QLatin1String("headpreview")) {
         return EditorGlyph::Label;
     }
     if (role == QLatin1String("toggle") || role == QLatin1String("choice")
@@ -336,7 +337,7 @@ EditorGlyph glyphForLeaf(const PageLeaf& leaf, bool zone)
         return EditorGlyph::Tab;
     }
     if (role == QLatin1String("slider") || role == QLatin1String("scrollbar")
-        || role == QLatin1String("colorfield")) {
+        || role == QLatin1String("colorfield") || role == QLatin1String("curvefield")) {
         return EditorGlyph::Slider;
     }
     return EditorGlyph::Button;

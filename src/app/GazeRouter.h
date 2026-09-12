@@ -7,6 +7,7 @@ namespace gazer {
 class AssistSession;
 class GazeMouseFollow;
 class GazeReticle;
+class HeadPoseMapper;
 class PageSession;
 class ComboMouse;
 class LookToScroll;
@@ -24,6 +25,7 @@ public:
     void setMagnifier(MagnifierOverlay* mag) { m_magnifier = mag; }
     void setGazeReticle(GazeReticle* r) { m_gazeReticle = r; }
     void setGazeMouseFollow(GazeMouseFollow* f) { m_gazeFollow = f; }
+    void setHeadPoseMapper(HeadPoseMapper* m) { m_headPose = m; }
 
     void dispatch(const GazePoint& point);
 
@@ -36,6 +38,7 @@ private:
     MagnifierOverlay* m_magnifier = nullptr;
     GazeReticle* m_gazeReticle = nullptr;
     GazeMouseFollow* m_gazeFollow = nullptr;
+    HeadPoseMapper* m_headPose = nullptr;
 };
 
 } // namespace gazer

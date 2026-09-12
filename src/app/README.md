@@ -27,5 +27,6 @@ Composition root, settings, command dispatch.
 | `SettingsSpeechKey.cpp` | ElevenLabs API-key live board |
 | `SettingsSliderGaze.cpp` | Gaze-follow sliders |
 | `SettingsCommands.cpp` | `settings.*` builtins |
+| `SettingsHeadPose.cpp` | Head-pose maps live board (`headPose.*`) |
 | `SettingsPageBuild.h` | Cell/grid helpers for live boards |
 | `SettingsUiInternal.h` | Shared ids / color-axis helpers (SettingsUi TUs only) |

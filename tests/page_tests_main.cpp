@@ -24,6 +24,7 @@ QObject* createLookToScrollTest();
 QObject* createAhkLauncherTest();
 QObject* createKeyStateManagerTest();
 QObject* createColorPickerHexTest();
+QObject* createHeadPoseMapperTest();
 
 namespace {
 
@@ -85,5 +86,7 @@ int main(int argc, char** argv)
     status |= QTest::qExec(keys.get(), rest);
     std::unique_ptr<QObject> colorHex(createColorPickerHexTest());
     status |= QTest::qExec(colorHex.get(), rest);
+    std::unique_ptr<QObject> headPose(createHeadPoseMapperTest());
+    status |= QTest::qExec(headPose.get(), rest);
     return status;
 }
