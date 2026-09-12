@@ -15,6 +15,7 @@ inline constexpr double kSliceDeg = 360.0 / double(kSliceCount);
 inline constexpr double kCornerInnerSliceDeg = 45.0;
 inline constexpr double kCornerOuterSliceDeg = 30.0;
 inline constexpr double kCornerArcSpanDeg = 90.0;
+inline constexpr double kCornerOuterScale = 2.0;
 /// Defaults: inner drift-ring radius, shared radius, outer command-pie radius.
 inline constexpr int kMinInnerRadiusPx = 20;
 inline constexpr int kMaxInnerRadiusPx = 200;
@@ -33,7 +34,7 @@ inline constexpr double kMinOuterThicknessPx = 40.0;
 inline const QColor kDefaultInnerFill{255, 196, 40, 80};
 inline const QColor kDefaultOuterFill{12, 14, 18, 210};
 
-/// Clockwise from 12 o'clock: Right, Move, Cancel, Drag, Left.
+/// Command ids. ComboMouse visual order is per-region in makeComboLayout.
 enum class Slice { Right = 0, Move, Cancel, Drag, Left };
 
 enum class Band { None, Deadzone, Drift, Slice };
@@ -56,6 +57,7 @@ struct Layout {
     double deadzone = kHoleRadiusPx;
     double ringOuter = kRingOuterPx;
     double pieOuter = kPieOuterPx;
+    /// Visible interior sector, clockwise from 12 o'clock — not ComboMouse fill origin.
     double arcStartDeg = 0.0;
     double arcSpanDeg = 360.0;
     int wedgeCount = 0;
@@ -149,70 +151,110 @@ inline void addWedge(Layout& L, Slice id, double inner, double outer, double sta
     L.wedges[L.wedgeCount++] = Wedge{id, inner, outer, startCw, spanDeg};
 }
 
-inline void fillClockwiseBand(Layout& L, double inner, double outer, double startCw, double spanDeg)
+inline void fillBand(Layout& L, double inner, double outer, double startCw, double spanDeg,
+                     bool clockwise, const Slice order[kSliceCount])
 {
     const double slice = spanDeg / double(kSliceCount);
     for (int i = 0; i < kSliceCount; ++i) {
-        addWedge(L, Slice(i), inner, outer, startCw + double(i) * slice, slice);
+        double start = clockwise ? startCw + double(i) * slice
+                                 : startCw - double(i + 1) * slice;
+        // Exclusive-end hit-test: nudge CCW wedges so fill origin sits inside [start, start+span).
+        if (!clockwise) {
+            start += 1e-6;
+        }
+        addWedge(L, order[i], inner, outer, wrap360(start), slice);
     }
 }
 
-/// Interior command sector so the hole can sit on a screen edge. 360° when the
-/// full pie fits; 180° on one edge; 90° in a corner.
-inline void interiorArc(bool nearL, bool nearR, bool nearT, bool nearB, double& start,
-                        double& span)
+inline void fillClockwiseBand(Layout& L, double inner, double outer, double startCw, double spanDeg)
 {
-    start = 0.0;
-    span = 360.0;
+    const Slice order[kSliceCount] = {Slice::Right, Slice::Move, Slice::Cancel, Slice::Drag,
+                                      Slice::Left};
+    fillBand(L, inner, outer, startCw, spanDeg, true, order);
+}
+
+enum class Region : int { Full = 0, Left, Right, Top, Bottom, TL, TR, BR, BL };
+
+inline constexpr int kRegionCount = int(Region::BL) + 1;
+
+struct RegionArc {
+    double startDeg;
+    double spanDeg;
+};
+
+/// Visible interior sector, indexed by Region.
+inline constexpr RegionArc kRegionArc[kRegionCount] = {
+    {0.0, 360.0},   // Full
+    {0.0, 180.0},   // Left
+    {180.0, 180.0}, // Right
+    {90.0, 180.0},  // Top
+    {270.0, 180.0}, // Bottom
+    {90.0, 90.0},   // TL
+    {180.0, 90.0},  // TR
+    {270.0, 90.0},  // BR
+    {0.0, 90.0},    // BL
+};
+
+struct ComboPack {
+    double fillStartDeg;
+    bool clockwise;
+    double outerScale;
+    Slice order[kSliceCount];
+};
+
+/// ComboMouse fill, indexed by Region. Edges/corners share left, right, drag, move, cancel.
+inline constexpr ComboPack kComboPack[kRegionCount] = {
+    {0.0, true, 1.0, {Slice::Drag, Slice::Move, Slice::Cancel, Slice::Left, Slice::Right}},
+    {0.0, true, 1.0, {Slice::Left, Slice::Right, Slice::Drag, Slice::Move, Slice::Cancel}},
+    {0.0, false, 1.0, {Slice::Left, Slice::Right, Slice::Drag, Slice::Move, Slice::Cancel}},
+    {270.0, false, 1.0, {Slice::Left, Slice::Right, Slice::Drag, Slice::Move, Slice::Cancel}},
+    {270.0, true, 1.0, {Slice::Left, Slice::Right, Slice::Drag, Slice::Move, Slice::Cancel}},
+    {180.0, false, kCornerOuterScale,
+     {Slice::Left, Slice::Right, Slice::Drag, Slice::Move, Slice::Cancel}},
+    {270.0, false, kCornerOuterScale,
+     {Slice::Left, Slice::Right, Slice::Drag, Slice::Move, Slice::Cancel}},
+    {270.0, true, kCornerOuterScale,
+     {Slice::Left, Slice::Right, Slice::Drag, Slice::Move, Slice::Cancel}},
+    {0.0, true, kCornerOuterScale,
+     {Slice::Left, Slice::Right, Slice::Drag, Slice::Move, Slice::Cancel}},
+};
+
+[[nodiscard]] inline Region regionOf(bool nearL, bool nearR, bool nearT, bool nearB)
+{
     if ((nearL && nearR) || (nearT && nearB)) {
-        return;
+        return Region::Full;
     }
     if (nearT && nearL) {
-        start = 90.0;
-        span = 90.0;
-        return;
+        return Region::TL;
     }
     if (nearT && nearR) {
-        start = 180.0;
-        span = 90.0;
-        return;
+        return Region::TR;
     }
     if (nearB && nearR) {
-        start = 270.0;
-        span = 90.0;
-        return;
+        return Region::BR;
     }
     if (nearB && nearL) {
-        start = 0.0;
-        span = 90.0;
-        return;
+        return Region::BL;
     }
     if (nearT) {
-        start = 90.0;
-        span = 180.0;
-        return;
+        return Region::Top;
     }
     if (nearR) {
-        start = 180.0;
-        span = 180.0;
-        return;
+        return Region::Right;
     }
     if (nearB) {
-        start = 270.0;
-        span = 180.0;
-        return;
+        return Region::Bottom;
     }
     if (nearL) {
-        start = 0.0;
-        span = 180.0;
+        return Region::Left;
     }
+    return Region::Full;
 }
 
-[[nodiscard]] inline Layout makeLayout(QPointF origin, const QRectF& screen, double deadzone,
-                                       double ringOuter, double fullPieOuter)
+inline Region initSector(Layout& L, QPointF origin, const QRectF& screen, double& deadzone,
+                         double& ringOuter, double& fullPieOuter)
 {
     clampRadii(deadzone, ringOuter, fullPieOuter);
-    Layout L;
     L.deadzone = deadzone;
     L.ringOuter = ringOuter;
     L.pieOuter = fullPieOuter;
@@ -220,8 +262,17 @@ inline void interiorArc(bool nearL, bool nearR, bool nearT, bool nearB, double& 
     const bool nearR = screen.right() - origin.x() < fullPieOuter;
     const bool nearT = origin.y() - screen.top() < fullPieOuter;
     const bool nearB = screen.bottom() - origin.y() < fullPieOuter;
-    interiorArc(nearL, nearR, nearT, nearB, L.arcStartDeg, L.arcSpanDeg);
+    const Region r = regionOf(nearL, nearR, nearT, nearB);
+    L.arcStartDeg = kRegionArc[int(r)].startDeg;
+    L.arcSpanDeg = kRegionArc[int(r)].spanDeg;
+    return r;
+}
 
+[[nodiscard]] inline Layout makeLayout(QPointF origin, const QRectF& screen, double deadzone,
+                                       double ringOuter, double fullPieOuter)
+{
+    Layout L;
+    initSector(L, origin, screen, deadzone, ringOuter, fullPieOuter);
     if (L.arcSpanDeg <= kCornerArcSpanDeg + 1e-6) {
         const double innerOuter = ringOuter + (fullPieOuter - ringOuter) * 0.5;
         const double s = L.arcStartDeg;
@@ -236,6 +287,18 @@ inline void interiorArc(bool nearL, bool nearR, bool nearT, bool nearB, double& 
         return L;
     }
     fillClockwiseBand(L, ringOuter, L.pieOuter, L.arcStartDeg, L.arcSpanDeg);
+    return L;
+}
+
+/// ComboMouse packing: per-region fill order, doubled outer radius in corners.
+[[nodiscard]] inline Layout makeComboLayout(QPointF origin, const QRectF& screen, double deadzone,
+                                            double ringOuter, double fullPieOuter)
+{
+    Layout L;
+    const Region r = initSector(L, origin, screen, deadzone, ringOuter, fullPieOuter);
+    const ComboPack& pack = kComboPack[int(r)];
+    L.pieOuter = fullPieOuter * pack.outerScale;
+    fillBand(L, ringOuter, L.pieOuter, pack.fillStartDeg, L.arcSpanDeg, pack.clockwise, pack.order);
     return L;
 }
 

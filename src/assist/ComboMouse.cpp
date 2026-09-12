@@ -103,7 +103,7 @@ void ComboMouse::setAnnulusColors(const QColor& inner, const QColor& outer)
 
 QRect ComboMouse::originGateRect() const
 {
-    const int r = qMax(24, qRound(m_outerPx)) + 16;
+    const int r = qMax(24, qRound(m_layout.pieOuter)) + 16;
     return QRect(m_origin.x() - r, m_origin.y() - r, r * 2, r * 2);
 }
 
@@ -114,8 +114,8 @@ QRectF ComboMouse::screenRect() const
 
 ComboMouseHit::Layout ComboMouse::layout() const
 {
-    return ComboMouseHit::makeLayout(QPointF(m_origin), screenRect(), m_innerPx, m_sharedPx,
-                                     m_outerPx);
+    return ComboMouseHit::makeComboLayout(QPointF(m_origin), screenRect(), m_innerPx, m_sharedPx,
+                                          m_outerPx);
 }
 
 void ComboMouse::adoptLayout(const ComboMouseHit::Layout& L)

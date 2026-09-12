@@ -155,7 +155,8 @@ void PieOverlay::paintWedge(QPainter& p, const QPointF& c, const QColor& cyan,
     const double rad = qDegreesToRadians(midDeg - 90.0);
     const double midR = (w.inner + w.outer) * 0.5;
     const QPointF mid(c.x() + qCos(rad) * midR, c.y() + qSin(rad) * midR);
-    const double iconSide = qBound(40.0, (w.outer - w.inner) * 0.78, 108.0);
+    const double arcLen = qAbs(qDegreesToRadians(w.spanDeg)) * midR;
+    const double iconSide = qBound(28.0, qMin((w.outer - w.inner) * 0.78, arcLen * 0.9), 108.0);
     const QRectF icon(mid.x() - iconSide * 0.5, mid.y() - iconSide * 0.5, iconSide, iconSide);
     const QColor fg =
         armed && m_a.theme.accent.isValid() ? m_a.theme.accent : QColor(255, 255, 255, 235);
