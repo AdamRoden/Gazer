@@ -1,5 +1,5 @@
 <Page id="main" master="true" name="Dock" background="#aa000000" blur="15" radius="16" thickness="0">
-  <Style id="chip" background="#99000000" blur="15" radius="900,900,0,0" progressStyle="border, fillup"/>
+  <Style id="chip" background="#99000000" blur="15" radius="900,900,0,0" progressStyle="fillup"/>
   <Style id="drawer" background="#aa000000"/>
   <Style id="quitPrompt" background="#ee000000" radius="12"/>
   <Style id="quitYes" background="#9b2226" foreground="#ffffff" radius="12"/>

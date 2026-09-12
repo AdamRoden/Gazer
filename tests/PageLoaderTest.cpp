@@ -248,7 +248,7 @@ void PageLoaderTest::inheritStyleAndDwell()
 
     const QByteArray styleXml = R"xml(
 <Page id="p">
-  <Style id="chip" radius="0,0,12,12" progressStyle="fillup,border" progressColor="#00DCFF"/>
+  <Style id="chip" radius="0,0,12,12" progressStyle="fillup" progressColor="#00DCFF"/>
   <Zone id="z" style="chip" size="100,40"/>
 </Page>
 )xml";
@@ -256,7 +256,7 @@ void PageLoaderTest::inheritStyleAndDwell()
     QVERIFY2(PageLoader::loadFromXml(styleXml, styled, &err), qPrintable(err));
     const PageChrome named = styled.styles.value(QStringLiteral("chip"));
     QVERIFY(named.progressStyle.has_value());
-    QCOMPARE(named.progressStyle->toCsv(), QStringLiteral("fillup,border"));
+    QCOMPARE(named.progressStyle->toCsv(), QStringLiteral("fillup"));
     QVERIFY(named.progressColor.isSet());
     QCOMPARE(named.progressColor.parsed().name(QColor::HexRgb).toUpper(), QStringLiteral("#00DCFF"));
     QCOMPARE(named.radius ? named.radius->at(0) : -1.0, 0.0);
@@ -266,7 +266,7 @@ void PageLoaderTest::inheritStyleAndDwell()
     QVERIFY(!styled.zones.isEmpty());
     const PageChrome zst = PageResolve::zoneStyle(styled, styled.zones[0]);
     QVERIFY(zst.progressStyle.has_value());
-    QCOMPARE(zst.progressStyle->toCsv(), QStringLiteral("fillup,border"));
+    QCOMPARE(zst.progressStyle->toCsv(), QStringLiteral("fillup"));
     QVERIFY(zst.progressColor.isSet());
     QCOMPARE(zst.progressColor.parsed().name(QColor::HexRgb).toUpper(), QStringLiteral("#00DCFF"));
     QCOMPARE(zst.radius ? zst.radius->at(2) : -1.0, 12.0);
@@ -274,7 +274,7 @@ void PageLoaderTest::inheritStyleAndDwell()
     PageDocument gridInherit;
     QVERIFY2(PageLoader::loadFromXml(R"xml(
 <Page id="p">
-  <Style id="chip" foreground="#ffffff" progressStyle="fillup,border" progressColor="#00DCFF"
+  <Style id="chip" foreground="#ffffff" progressStyle="fillup" progressColor="#00DCFF"
          background="#111111"/>
   <Grid id="g" style="chip" size="100,100" foreground="#ff0000" progressStyle="pie"/>
 </Page>
@@ -300,7 +300,7 @@ void PageLoaderTest::inheritStyleAndDwell()
     PageDocument written;
     QVERIFY2(PageLoader::loadFromXml(PageWriter::toBytes(styled), written, &err), qPrintable(err));
     QCOMPARE(written.styles.value(QStringLiteral("chip")).progressStyle->toCsv(),
-             QStringLiteral("fillup,border"));
+             QStringLiteral("fillup"));
     QCOMPARE(written.styles.value(QStringLiteral("chip")).progressColor.parsed().name(QColor::HexRgb).toUpper(),
              QStringLiteral("#00DCFF"));
     QCOMPARE(written.styles.value(QStringLiteral("chip")).radius->toToken(),
@@ -309,18 +309,15 @@ void PageLoaderTest::inheritStyleAndDwell()
     ProgressVisuals pv;
     pv.setStylesFromCsv(QStringLiteral("fillup,border"));
     QVERIFY(pv.style.fillBackground);
-    QVERIFY(pv.style.border);
     QVERIFY(!pv.style.radial);
     QCOMPARE(pv.style.fillDir, ProgressFillDir::Up);
-    QCOMPARE(pv.stylesCsv(), QStringLiteral("fillup,border"));
+    QCOMPARE(pv.stylesCsv(), QStringLiteral("fillup"));
     pv.setStylesFromCsv(QStringLiteral("fillleft"));
     QCOMPARE(pv.style.fillDir, ProgressFillDir::Left);
-    QVERIFY(!pv.style.border);
     pv.setStylesFromCsv(QStringLiteral("pie"));
     QVERIFY(pv.style.pie);
     QVERIFY(!pv.style.radial);
     QVERIFY(!pv.style.fillBackground);
-    QVERIFY(!pv.style.border);
     QCOMPARE(pv.stylesCsv(), QStringLiteral("pie"));
     pv.setStylesFromCsv(QStringLiteral("radial,pie"));
     QVERIFY(pv.style.radial);

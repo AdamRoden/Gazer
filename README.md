@@ -158,7 +158,7 @@ Drawer **Settings** (`main_settings`) is a hub of live pages:
 |-------|-----------------|
 | **Speed** | Slow / Normal / Fast / Custom. Standard vs rapid sequences, mouse-move dwell, mag-pick dwell. Advanced: scan grace. |
 | **Magnify** | Mag-pick, foresight, zoom window size/shape, follow profile (slow / sticky / smooth / snappy). |
-| **Indicators** | Dwell progress shape (radial, pie, border, fill directions), pick markers, flash. |
+| **Indicators** | Dwell progress shape (radial, pie, fill directions), pick markers, flash. |
 | **Assist** | Tracker (auto Tobii / mouse), live lens, gaze helpers. |
 | **Tools** | Look-to-scroll deadzone / speed / HUD, ComboMouse radii and colors. |
 | **Theme** | Light / dark, brightness, tint family, accent, progress color, saturation, custom palette. |

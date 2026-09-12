@@ -411,12 +411,14 @@ void GazerServices::applySettings(bool persist)
     boardPv.style = m_settings.progress;
     boardPv.progressColor = m_settings.colorKey(QStringLiteral("progressColor"));
     boardPv.fillColor = m_settings.colorKey(QStringLiteral("progressFillColor"));
-    boardPv.borderColor = m_settings.colorKey(QStringLiteral("progressBorderColor"));
-    boardPv.flashUseForeground = m_settings.flashUseForeground;
+    boardPv.flashCustom = m_settings.flashCustom;
     boardPv.flashForegroundOpacity = m_settings.flashForegroundOpacity;
     boardPv.flashColor = m_settings.colorKey(QStringLiteral("flashColor"));
     boardPv.flashMs = m_settings.flashMs;
+    boardPv.hoverBorder = m_settings.resolvedHoverBorder();
+    boardPv.hoverBorderWidth = double(m_settings.hoverBorderWeight);
     if (m_pages) {
+        m_pages->setThemeChromeVisibility(m_settings.hoverCustom, m_settings.flashCustom);
         m_pages->setProgressVisuals(boardPv);
         m_pages->setTheme(m_settings.resolvedTheme());
         m_pages->setDwellTiming(m_settings.dwellSequence, m_settings.rapidDwellSequence,

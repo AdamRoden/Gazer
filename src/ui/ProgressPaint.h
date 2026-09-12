@@ -60,21 +60,6 @@ struct RadialRing {
     return track;
 }
 
-/// Cap a stroke at the pie fill alpha so an opaque border/ring does not
-/// overpower a translucent pie.
-[[nodiscard]] inline QColor progressStrokeColor(const QColor& stroke, const QColor& pieFill)
-{
-    QColor c = stroke.isValid() ? stroke : pieFill;
-    if (!c.isValid()) {
-        return c;
-    }
-    const int pieA = pieFill.isValid() ? pieFill.alpha() : 255;
-    if (c.alpha() > pieA) {
-        c.setAlpha(pieA);
-    }
-    return c;
-}
-
 [[nodiscard]] inline QRectF progressFillSlice(const QRectF& r, double t, ProgressFillDir dir)
 {
     t = qBound(0.0, t, 1.0);
@@ -151,18 +136,6 @@ inline void paintProgress(QPainter& p, const QRectF& r, double progress, const P
         p.setBrush(v.progressColor);
         p.drawPie(ring.disk, 90 * 16, int(-360 * 16 * progress));
         p.restore();
-    }
-    if (v.style.border) {
-        p.setBrush(Qt::NoBrush);
-        const qreal w = 2.0 + 2.0 * progress;
-        p.setPen(QPen(progressStrokeColor(v.borderColor, v.progressColor), w, Qt::SolidLine,
-                      Qt::FlatCap, Qt::RoundJoin));
-        if (shape == ProgressShape::Ellipse) {
-            p.drawEllipse(r.adjusted(2, 2, -2, -2));
-        } else {
-            const double h = w / 2.0;
-            p.drawPath(roundedBoxPath(r.adjusted(h, h, -h, -h), radii));
-        }
     }
     if (v.style.radial) {
         p.setBrush(Qt::NoBrush);

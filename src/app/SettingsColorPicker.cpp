@@ -167,27 +167,6 @@ void SettingsUi::persistThemeDraft(bool persist)
     apply(persist);
 }
 
-bool SettingsUi::openFlashForeground(QString* error)
-{
-    m_settings.flashUseForeground = true;
-    apply(true);
-    return openNumericEditor(QStringLiteral("flashForegroundOpacity"), error);
-}
-
-bool SettingsUi::openFlashCustom(QString* error)
-{
-    if (!openColorPicker(QStringLiteral("flashColor"), error)) {
-        return false;
-    }
-    m_flashCustomSetMode = false;
-    if (m_settings.flashUseForeground) {
-        m_settings.flashUseForeground = false;
-        m_flashCustomSetMode = true;
-        apply(true);
-    }
-    return true;
-}
-
 bool SettingsUi::openColorPicker(const QString& colorKey, QString* error)
 {
     if (!AppSettings::isColorKey(colorKey)) {
@@ -464,12 +443,7 @@ void SettingsUi::closeColorPicker()
     }
     cancelEyedropper();
     abortSliderScrub();
-    if (m_flashCustomSetMode) {
-        m_settings.flashUseForeground = true;
-        apply(true);
-    }
     m_colorPending.clear();
-    m_flashCustomSetMode = false;
     m_colorPickerKey.clear();
     m_hexBuffer.clear();
     if (m_hexActive) {
@@ -500,7 +474,6 @@ bool SettingsUi::colorSave(QString* error)
     apply(true);
     const QString title = AppSettings::settingTitle(m_colorPickerKey);
     const QString hex = m_colorDraft.name(QColor::HexArgb).toUpper();
-    m_flashCustomSetMode = false;
     closeColorPicker();
     notifyStatus(QStringLiteral("%1 = %2").arg(title, hex));
     return true;

@@ -17,7 +17,6 @@ struct ThemePalette {
     ThemeColors colors;
     QColor progress;
     QColor progressFill;
-    QColor progressBorder;
 };
 
 /// Apple system color for the accent / progress card rows.

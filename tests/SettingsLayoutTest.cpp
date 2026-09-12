@@ -51,6 +51,7 @@ private slots:
     void zoomLivesOnPointerNotLook();
     void choiceAndToggleRoles();
     void themeHasFlashModes();
+    void themeHasHoverRow();
     void moreOpensAdvanced();
     void advancedHasHoldAndAutoclose();
 };
@@ -442,24 +443,67 @@ void SettingsLayoutTest::themeHasFlashModes()
     QVERIFY2(loadLayout(QStringLiteral("main_settings_theme"), doc, &err), qPrintable(err));
     const PageGrid* surfaces = doc.findGrid(QStringLiteral("sec_surfaces"));
     QVERIFY(surfaces);
-    QCOMPARE(surfaces->rows, 5);
+    QCOMPARE(surfaces->rows, 6);
     const PageGrid* actFlash = doc.findGrid(QStringLiteral("act_flash"));
     QVERIFY(actFlash);
-    QCOMPARE(actFlash->row, 4);
+    QCOMPARE(actFlash->row, 5);
     QCOMPARE(actFlash->columns, 3);
-    const PageCell* flFg = doc.findCell(QStringLiteral("fl_fg"));
+    QVERIFY(!doc.findCell(QStringLiteral("fl_fg")));
+    const PageCell* flName = doc.findCell(QStringLiteral("fl_name"));
     const PageCell* flCustom = doc.findCell(QStringLiteral("fl_custom"));
     const PageCell* flSw = doc.findCell(QStringLiteral("fl_sw"));
-    QVERIFY(flFg);
+    const PageCell* flVal = doc.findCell(QStringLiteral("fl_val"));
+    QVERIFY(flName);
     QVERIFY(flCustom);
     QVERIFY(flSw);
-    QCOMPARE(flFg->role, QStringLiteral("choice"));
-    QCOMPARE(flCustom->role, QStringLiteral("choice"));
+    QVERIFY(flVal);
+    QCOMPARE(flName->caption, QStringLiteral("Defaults to foreground"));
+    QCOMPARE(flVal->settingKey, QStringLiteral("flashMs"));
+    QCOMPARE(flCustom->role, QStringLiteral("toggle"));
+    QCOMPARE(flCustom->actions[0].command, QStringLiteral("settings.flash.custom.toggle"));
     QCOMPARE(flSw->role, QStringLiteral("swatch"));
     QCOMPARE(flSw->settingKey, QStringLiteral("flashColor"));
-    QCOMPARE(flFg->actions[0].command, QStringLiteral("settings.flash.foreground"));
-    QCOMPARE(flCustom->actions[0].command, QStringLiteral("settings.flash.custom"));
+    QCOMPARE(flSw->visibleWhen, QStringLiteral("flash_custom"));
     QCOMPARE(flSw->actions[0].command, QStringLiteral("settings.edit.color.flashColor"));
+}
+
+void SettingsLayoutTest::themeHasHoverRow()
+{
+    PageDocument doc;
+    QString err;
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_theme"), doc, &err), qPrintable(err));
+    const PageGrid* actHover = doc.findGrid(QStringLiteral("act_hover"));
+    QVERIFY(actHover);
+    QCOMPARE(actHover->row, 4);
+    QCOMPARE(actHover->columns, 3);
+    const PageCell* hvName = doc.findCell(QStringLiteral("hv_name"));
+    const PageCell* hvSw = doc.findCell(QStringLiteral("hv_sw"));
+    const PageCell* hvVal = doc.findCell(QStringLiteral("hv_val"));
+    const PageCell* hvCustom = doc.findCell(QStringLiteral("hv_custom"));
+    QVERIFY(hvName);
+    QVERIFY(hvSw);
+    QVERIFY(hvVal);
+    QVERIFY(hvCustom);
+    QVERIFY(!doc.findCell(QStringLiteral("hv_prog")));
+    QCOMPARE(hvName->label, QStringLiteral("Hover"));
+    QCOMPARE(hvName->caption, QStringLiteral("Defaults to progress color"));
+    QCOMPARE(hvVal->settingKey, QStringLiteral("hoverBorderWeight"));
+    QCOMPARE(hvVal->role, QStringLiteral("value"));
+    QCOMPARE(hvCustom->role, QStringLiteral("toggle"));
+    QCOMPARE(hvCustom->actions[0].command, QStringLiteral("settings.hover.custom.toggle"));
+    QCOMPARE(hvSw->role, QStringLiteral("swatch"));
+    QCOMPARE(hvSw->settingKey, QStringLiteral("hoverColor"));
+    QCOMPARE(hvSw->visibleWhen, QStringLiteral("hover_custom"));
+    QCOMPARE(hvSw->actions[0].command, QStringLiteral("settings.edit.color.hoverColor"));
+    QCOMPARE(doc.findGrid(QStringLiteral("act_hv_w"))->col, 0);
+    QCOMPARE(hvCustom->col, 1);
+    QCOMPARE(hvSw->col, 2);
+    QCOMPARE(doc.findGrid(QStringLiteral("act_flash"))->row, actHover->row + 1);
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_indicators"), doc, &err), qPrintable(err));
+    QVERIFY(!doc.findCell(QStringLiteral("bp_b")));
+    QVERIFY(!doc.findCell(QStringLiteral("pp_b")));
+    QCOMPARE(doc.findGrid(QStringLiteral("act_bp"))->columns, 3);
+    QCOMPARE(doc.findGrid(QStringLiteral("act_pp"))->columns, 3);
 }
 
 void SettingsLayoutTest::moreOpensAdvanced()
@@ -490,7 +534,7 @@ void SettingsLayoutTest::advancedHasHoldAndAutoclose()
     QCOMPARE(doc.findCell(QStringLiteral("aci_val"))->settingKey,
              QStringLiteral("layoutAutoCloseIdleMs"));
     QCOMPARE(doc.findCell(QStringLiteral("ac_on"))->role, QStringLiteral("toggle"));
-    QCOMPARE(doc.findCell(QStringLiteral("fd_val"))->settingKey, QStringLiteral("flashMs"));
+    QVERIFY(!doc.findCell(QStringLiteral("fd_val")));
     QVERIFY(!doc.findCell(QStringLiteral("fl_sw")));
     QVERIFY(!doc.findCell(QStringLiteral("fl_fg")));
     QVERIFY(!doc.findCell(QStringLiteral("fl_custom")));
@@ -499,7 +543,7 @@ void SettingsLayoutTest::advancedHasHoldAndAutoclose()
     QCOMPARE(board->rows, 5);
     const PageGrid* session = doc.findGrid(QStringLiteral("sec_session"));
     QVERIFY(session);
-    QCOMPARE(session->rows, 4);
+    QCOMPARE(session->rows, 3);
     QCOMPARE(session->row, 4);
     QCOMPARE(session->rowSpan, 1);
     QCOMPARE(doc.findCell(QStringLiteral("grace_val"))->settingKey, QStringLiteral("dwellGraceMs"));

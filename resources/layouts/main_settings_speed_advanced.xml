@@ -101,7 +101,7 @@
       </SubGrid>
     </SubGrid>
 
-    <SubGrid id="sec_session" row="4" col="0" colSpan="16" rows="4" columns="1" rowWeights="1,2,2,2" gap="6" margin="6" style="group">
+    <SubGrid id="sec_session" row="4" col="0" colSpan="16" rows="3" columns="1" rowWeights="1,2,2" gap="6" margin="6" style="group">
       <Cell id="h_session" row="0" col="0" label="Session" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_ac" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="ac_label" row="0" col="0" label="Auto-close boards" caption="Close idle boards that opted in." role="label" style="plain"/>
@@ -114,15 +114,6 @@
           <Cell id="aci_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="layoutAutoCloseIdleMs" style="join"/>
           <Cell id="aci_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.layoutAutoCloseIdleMs.inc"/>
           <Cell id="aci_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.layoutAutoCloseIdleMs"/>
-        </SubGrid>
-      </SubGrid>
-      <SubGrid id="row_fd" row="3" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="fd_label" row="0" col="0" label="Completion flash" caption="How long the flash shows." role="label" style="plain"/>
-        <SubGrid id="act_fd" row="0" col="1" rows="1" columns="9" gap="0" style="row">
-          <Cell id="fd_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.flashMs.dec"/>
-          <Cell id="fd_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="flashMs" style="join"/>
-          <Cell id="fd_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.flashMs.inc"/>
-          <Cell id="fd_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.flashMs"/>
         </SubGrid>
       </SubGrid>
     </SubGrid>

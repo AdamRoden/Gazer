@@ -87,6 +87,7 @@ public:
 
     void setTheme(const ThemeColors& theme);
     void setProgressVisuals(const ProgressVisuals& visuals);
+    void setThemeChromeVisibility(bool hoverCustom, bool flashCustom);
     void setDwellTiming(const QVector<int>& standard, const QVector<int>& rapid,
                         int blinkGraceMs, int scanGraceMs);
 

@@ -13,11 +13,10 @@ struct ProgressStyle {
     bool pie = false;
     bool fillBackground = false;
     ProgressFillDir fillDir = ProgressFillDir::Center;
-    bool border = true;
 
     [[nodiscard]] bool any() const
     {
-        return radial || pie || fillBackground || border;
+        return radial || pie || fillBackground;
     }
 
     void ensureDefault()
@@ -27,14 +26,6 @@ struct ProgressStyle {
         }
     }
 
-    /// Pointer dwell: ring + border (boards default to ring only).
-    [[nodiscard]] static ProgressStyle pointerDefaults()
-    {
-        ProgressStyle s;
-        s.border = false;
-        return s;
-    }
-
     [[nodiscard]] static ProgressStyle fromCsv(const QString& csv)
     {
         ProgressStyle s;
@@ -42,7 +33,6 @@ struct ProgressStyle {
         s.pie = false;
         s.fillBackground = false;
         s.fillDir = ProgressFillDir::Center;
-        s.border = false;
         const QStringList parts = csv.toLower().split(QLatin1Char(','), Qt::SkipEmptyParts);
         for (QString p : parts) {
             p = p.trimmed();
@@ -65,8 +55,6 @@ struct ProgressStyle {
             } else if (p == QLatin1String("fillleft") || p == QLatin1String("left")) {
                 s.fillBackground = true;
                 s.fillDir = ProgressFillDir::Left;
-            } else if (p == QLatin1String("border") || p == QLatin1String("outline")) {
-                s.border = true;
             }
         }
         s.ensureDefault();
@@ -101,9 +89,6 @@ struct ProgressStyle {
                 p << QStringLiteral("fill");
                 break;
             }
-        }
-        if (border) {
-            p << QStringLiteral("border");
         }
         return p.join(QLatin1Char(','));
     }

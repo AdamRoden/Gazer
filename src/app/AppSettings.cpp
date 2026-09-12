@@ -199,6 +199,8 @@ constexpr IntSpec kIntSpecs[] = {
      ComboMouseHit::kMaxOuterRadiusPx, 8},
     {"flashMs", "Completion flash duration", "How long the completion flash is shown (ms).", " ms",
      &AppSettings::flashMs, 40, 1000, 20},
+    {"hoverBorderWeight", "Hover border", "Outline thickness while gazing at a cell (px).", " px",
+     &AppSettings::hoverBorderWeight, 0, 16, 1},
     {"layoutAutoCloseIdleMs", "Auto-close idle",
      "Close idle boards after this many ms.", " ms",
      &AppSettings::layoutAutoCloseIdleMs, 500, 120000, 500},
@@ -230,8 +232,7 @@ const ColorSpec kColorSpecs[] = {
      ThemeColors::defaultProgressColor()},
     {"progressFillColor", "Fill highlight", &AppSettings::progressFillColor,
      QColor(0, 180, 220, 70)},
-    {"progressBorderColor", "Border highlight", &AppSettings::progressBorderColor,
-     ThemeColors::defaultProgressColor()},
+    {"hoverColor", "Hover color", &AppSettings::hoverColor, ThemeColors::defaultProgressColor()},
     {"flashColor", "Flash color", &AppSettings::flashColor, Qt::white},
     {"comboInnerColor", "ComboMouse inner ring", &AppSettings::comboInnerColor,
      ComboMouseHit::kDefaultInnerFill},
@@ -252,7 +253,8 @@ constexpr BoolSpec kBoolSpecs[] = {
     {"autoCollapseMain", &AppSettings::autoCollapseMain},
     {"startDocked", &AppSettings::startDocked},
     {"layoutAutoClose", &AppSettings::layoutAutoClose},
-    {"flashUseForeground", &AppSettings::flashUseForeground},
+    {"flashCustom", &AppSettings::flashCustom},
+    {"hoverCustom", &AppSettings::hoverCustom},
     {"pickWindowRound", &AppSettings::pickWindowRound},
 };
 
@@ -575,7 +577,6 @@ bool AppSettings::setColorKey(const QString& key, const QColor& c, bool rebuildP
     }
     QColor stored = c;
     if (key == QLatin1String("progressColor") || key == QLatin1String("progressFillColor")
-        || key == QLatin1String("progressBorderColor")
         || key == QLatin1String("customSecondaryColor")) {
         stored.setAlpha(kProgressFillAlpha);
     }
@@ -585,7 +586,6 @@ bool AppSettings::setColorKey(const QString& key, const QColor& c, bool rebuildP
     } else if (key == QLatin1String("customSecondaryColor")) {
         progressColor = colorToHex(stored);
         progressFillColor = colorToHex(stored);
-        progressBorderColor = colorToHex(stored);
     }
     if (!rebuildPalette || themeRoleForColorKey(key).isEmpty()) {
         return true;
@@ -693,8 +693,14 @@ QString AppSettings::settingDescription(const QString& key)
     if (key == QLatin1String("flashColor")) {
         return QStringLiteral("Custom color for the completion flash border and fill.");
     }
-    if (key == QLatin1String("flashUseForeground")) {
-        return QStringLiteral("Flash the activating item's foreground color.");
+    if (key == QLatin1String("flashCustom")) {
+        return QStringLiteral("Flash a custom color instead of the item foreground.");
+    }
+    if (key == QLatin1String("hoverColor")) {
+        return QStringLiteral("Hover outline when Custom is on.");
+    }
+    if (key == QLatin1String("hoverCustom")) {
+        return QStringLiteral("Hover outline uses a custom color instead of progress.");
     }
     if (key == QLatin1String("customBgColor")) {
         return QStringLiteral("Page background. Variant, foreground, and accent suggestions come from this.");
@@ -706,7 +712,7 @@ QString AppSettings::settingDescription(const QString& key)
         return QStringLiteral("Highlighted foreground (active labels, accent).");
     }
     if (key == QLatin1String("customSecondaryColor")) {
-        return QStringLiteral("Progress ring / fill / border color.");
+        return QStringLiteral("Progress ring and fill color.");
     }
     if (key == QLatin1String("customTertiaryColor")) {
         return QStringLiteral("Highlighted background (active cells).");

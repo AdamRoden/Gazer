@@ -110,7 +110,7 @@ Named or anonymous chrome. An unnamed `<Style>` (no `id`) sets the page default.
 | `background`, `foreground`, `border` | Colors (see [Colors](#colors)). Grids ignore `foreground`. |
 | `thickness` | Border widths: one value, or `t,r,b,l` |
 | `radius` | Corner radii: one value, or `tl,tr,br,bl` |
-| `progressStyle` | How dwell progress is drawn. Comma-separated: `radial`, `pie`, `border`, `fill` (center), `fillup`, `filldown`, `fillleft`, `fillright`. Grids ignore this. |
+| `progressStyle` | How dwell progress is drawn. Comma-separated: `radial`, `pie`, `fill` (center), `fillup`, `filldown`, `fillleft`, `fillright`. Grids ignore this. |
 | `progressColor` | Dwell-progress accent. Empty inherits settings. Grids ignore this. |
 | `blur` | Frosted-glass blur radius |
 
@@ -118,7 +118,7 @@ The same chrome attributes may be set on `<Page>`, `<Grid>`, `<Cell>`, and `<Zon
 
 ```xml
 <Style id="chip" background="#99000000" blur="15" radius="900,900,0,0"
-       progressStyle="border, fillup"/>
+       progressStyle="fillup"/>
 <Style id="quitYes" background="#9b2226" foreground="#ffffff" radius="12"/>
 ```
 
@@ -258,6 +258,8 @@ Known session properties:
 |----------|-----------|
 | `expanded` | Any master-page grid is shown (drawer or quit) |
 | `dwellSuspend` | Global dwell pause is on |
+| `hover_custom` | Theme hover outline uses a custom color |
+| `flash_custom` | Theme flash uses a custom color |
 
 ```xml
 <Zone id="mainChip" visibleWhen="!expanded" …/>
@@ -462,7 +464,7 @@ AHK cells use **standard** dwell. Discovery: local AutoHotkey v2, unless the scr
 <Page id="main" master="true" name="Dock"
       background="#aa000000" blur="15" radius="16" thickness="0">
   <Style id="chip" background="#99000000" blur="15"
-         radius="900,900,0,0" progressStyle="border, fillup"/>
+         radius="900,900,0,0" progressStyle="fillup"/>
   <Style id="drawer" background="#aa000000"/>
 
   <Zone id="mainChip" anchor="Bottom" offset="0,0" size="200,100"

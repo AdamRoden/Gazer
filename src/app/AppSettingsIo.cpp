@@ -346,9 +346,22 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
     }
     progressColor = o.value(QStringLiteral("progressColor")).toString(progressColor);
     progressFillColor = o.value(QStringLiteral("progressFillColor")).toString(progressFillColor);
-    progressBorderColor =
-        o.value(QStringLiteral("progressBorderColor")).toString(progressBorderColor);
-    flashUseForeground = o.value(QStringLiteral("flashUseForeground")).toBool(flashUseForeground);
+    if (o.contains(QStringLiteral("hoverColor"))) {
+        hoverColor = o.value(QStringLiteral("hoverColor")).toString(hoverColor);
+    } else if (o.contains(QStringLiteral("progressBorderColor"))) {
+        hoverColor = o.value(QStringLiteral("progressBorderColor")).toString(hoverColor);
+    }
+    hoverBorderWeight = o.value(QStringLiteral("hoverBorderWeight")).toInt(hoverBorderWeight);
+    if (o.contains(QStringLiteral("hoverCustom"))) {
+        hoverCustom = o.value(QStringLiteral("hoverCustom")).toBool(hoverCustom);
+    } else if (o.contains(QStringLiteral("hoverUseProgressColor"))) {
+        hoverCustom = !o.value(QStringLiteral("hoverUseProgressColor")).toBool(true);
+    }
+    if (o.contains(QStringLiteral("flashCustom"))) {
+        flashCustom = o.value(QStringLiteral("flashCustom")).toBool(flashCustom);
+    } else if (o.contains(QStringLiteral("flashUseForeground"))) {
+        flashCustom = !o.value(QStringLiteral("flashUseForeground")).toBool(true);
+    }
     flashForegroundOpacity =
         o.value(QStringLiteral("flashForegroundOpacity")).toInt(flashForegroundOpacity);
     flashColor = o.value(QStringLiteral("flashColor")).toString(flashColor);
@@ -527,8 +540,10 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     }
     o.insert(QStringLiteral("progressColor"), copy.progressColor);
     o.insert(QStringLiteral("progressFillColor"), copy.progressFillColor);
-    o.insert(QStringLiteral("progressBorderColor"), copy.progressBorderColor);
-    o.insert(QStringLiteral("flashUseForeground"), copy.flashUseForeground);
+    o.insert(QStringLiteral("hoverColor"), copy.hoverColor);
+    o.insert(QStringLiteral("hoverBorderWeight"), copy.hoverBorderWeight);
+    o.insert(QStringLiteral("hoverCustom"), copy.hoverCustom);
+    o.insert(QStringLiteral("flashCustom"), copy.flashCustom);
     o.insert(QStringLiteral("flashForegroundOpacity"), copy.flashForegroundOpacity);
     o.insert(QStringLiteral("flashColor"), copy.flashColor);
     o.insert(QStringLiteral("flashMs"), copy.flashMs);

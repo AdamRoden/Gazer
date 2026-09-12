@@ -66,18 +66,20 @@ struct AppSettings {
 
     // --- Progress visuals (boards + mouse-move) ---
     ProgressStyle progress;
-    ProgressStyle mouseProgress = ProgressStyle::pointerDefaults();
+    ProgressStyle mouseProgress;
     QString progressColor = QStringLiteral("#99FF473D");
     QString progressFillColor = QStringLiteral("#99FF473D");
-    QString progressBorderColor = QStringLiteral("#99FF473D");
+    /// Hover outline while gazing at a cell. Custom off uses progressColor.
+    QString hoverColor = QStringLiteral("#99FF473D");
+    int hoverBorderWeight = 2;
+    bool hoverCustom = false;
     /// PickStyle flags: first dwell (region) and final click/move dwell.
     int magPickStyle = 1;   // Cursor
     int mousePickStyle = 1; // Cursor
-    /// When true, flash uses the item foreground at flashForegroundOpacity.
-    bool flashUseForeground = true;
-    /// Opacity percent (0–100) when flashUseForeground is on.
+    /// Custom flash color. Off uses the item foreground at flashForegroundOpacity.
+    bool flashCustom = false;
+    /// Opacity percent (0–100) when flashCustom is off.
     int flashForegroundOpacity = 60;
-    /// Custom flash fill/border when flashUseForeground is off.
     QString flashColor = QStringLiteral("#FFFFFF");
     int flashMs = 140;
 
@@ -213,6 +215,7 @@ struct AppSettings {
     [[nodiscard]] ThemeSeeds themeSeeds() const;
     [[nodiscard]] ThemePalette resolvedPalette() const;
     [[nodiscard]] ThemeColors resolvedTheme() const;
+    [[nodiscard]] QColor resolvedHoverBorder() const;
     [[nodiscard]] static QString themeRoleForColorKey(const QString& key);
 
     [[nodiscard]] static QVector<int> defaultDwellSequence()
@@ -247,16 +250,12 @@ struct AppSettings {
          &ProgressStyle::pie},
         {"progressFill", "settings.progress.fill.toggle", "Fill", &AppSettings::progress,
          &ProgressStyle::fillBackground},
-        {"progressBorder", "settings.progress.border.toggle", "Border", &AppSettings::progress,
-         &ProgressStyle::border},
         {"mouseProgressRadial", "settings.mouseProgress.radial.toggle", "Mouse radial",
          &AppSettings::mouseProgress, &ProgressStyle::radial},
         {"mouseProgressPie", "settings.mouseProgress.pie.toggle", "Mouse pie",
          &AppSettings::mouseProgress, &ProgressStyle::pie},
         {"mouseProgressFill", "settings.mouseProgress.fill.toggle", "Mouse fill",
          &AppSettings::mouseProgress, &ProgressStyle::fillBackground},
-        {"mouseProgressBorder", "settings.mouseProgress.border.toggle", "Mouse border",
-         &AppSettings::mouseProgress, &ProgressStyle::border},
     };
     [[nodiscard]] bool& styleFlag(const StyleToggle& t) { return (this->*t.group).*t.flag; }
     [[nodiscard]] const bool& styleFlag(const StyleToggle& t) const

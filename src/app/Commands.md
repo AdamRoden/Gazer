@@ -148,8 +148,9 @@ Patterns, not every generated name:
 | `settings.color.editHex` / `.save` / `.cancel` | Hex pad |
 | `settings.hex.digit.*` / `.backspace` / `.clear` / `.copy` / `.paste` / `.save` / `.cancel` | Hex keys |
 | `settings.numpad.copy` / `.paste` | Clipboard on the numeric editor |
-| `settings.flash.foreground` / `.custom` | Foreground flash (opens numpad) / custom flash color |
-| `settings.progress.*.toggle` / `settings.mouseProgress.*.toggle` | Progress bits |
+| `settings.flash.custom.toggle` | Custom flash color (off = item foreground) |
+| `settings.hover.custom.toggle` | Custom hover outline (off = progress color) |
+| `settings.progress.*.toggle` / `settings.mouseProgress.*.toggle` | Progress bits (radial / pie / fill) |
 | `settings.session.autoCollapse.toggle` / `.startDocked.toggle` / `.layoutAutoClose.toggle` | Session |
 | `settings.speech.editKey` / `.clearKey` | Paste-from-clipboard API-key board / wipe DPAPI |
 | `settings.speech.key.paste` / `.save` / `.cancel` / `.clear` | Key board |
@@ -176,7 +177,7 @@ Patterns, not every generated name:
 | `theme.custom` | Custom palette |
 | `settings.reset` | Defaults |
 
-Numeric keys: `dwellMs` / `rapidDwellMs` plus `kIntSpecs` / `kDoubleSpecs` in `AppSettings.cpp`. Color keys: `SettingsUi::kColorKeys`.
+Numeric keys: `dwellMs` / `rapidDwellMs` plus `kIntSpecs` / `kDoubleSpecs` in `AppSettings.cpp`. Color keys: `SettingsUi::kColorKeys` (`hoverColor`, `flashColor`, progress, combo, custom primary/secondary).
 
 `activeState` is the command name (`settings.progress.radial.toggle`, `theme.light`). Live assist uses the feature stem (`lookToScroll`, `dwellSuspend`). `CloseAllPages` / `CloseOtherPages` also disable ComboMouse.
 

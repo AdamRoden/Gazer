@@ -426,13 +426,6 @@ void paintSurface(QPainter& p, const QRectF& r, const PageChrome& chrome, const 
         } else {
             bg = theme.cellHover.isValid() ? theme.cellHover : themeBase.lighter(118);
         }
-        if (thickness.first() <= 0.0) {
-            thickness = PageBox::all(1.0);
-            if (!borderColor) {
-                border = theme.border;
-                border.setAlpha(qBound(40, border.alpha(), 120));
-            }
-        }
     } else if (!grid && !fillColor && !authoredThickness && thickness.first() <= 0.0) {
         thickness = PageBox::all(1.0);
         border = theme.border;
@@ -505,12 +498,8 @@ void paintThemeCard(QPainter& p, const PageTarget& t, const QRectF& r, const The
     if (active) {
         chrome.borderColor = accent;
         chrome.thickness = PageBox::all(qMax(2.4, chrome.resolvedThickness().first()));
-    } else if (hovered) {
-        if (!chrome.thickness || chrome.resolvedThickness().first() <= 0.0) {
-            chrome.thickness = PageBox::all(1.2);
-        }
     }
-    paintSurface(p, r, chrome, theme, glass, false, false, false, false);
+    paintSurface(p, r, chrome, theme, glass, false, hovered, active, true);
 
     const double pad = qBound(6.0, qMin(r.width(), r.height()) * 0.06, 12.0);
     const double labelH = t.label.isEmpty() ? 0.0 : qBound(18.0, r.height() * 0.22, 28.0);
@@ -563,7 +552,6 @@ void paintThemeCard(QPainter& p, const PageTarget& t, const QRectF& r, const The
         const PageBox radii = t.chrome.resolvedRadius();
         ProgressVisuals vis;
         vis.progressColor = accent;
-        vis.borderColor = accent;
         paintProgress(p, r, progress, vis, ProgressShape::RoundedRect, radii);
     }
 }
@@ -586,7 +574,6 @@ void paintColorSwatch(QPainter& p, const PageTarget& t, const QRectF& r, const T
     if (progress > 0.0 && t.interactive) {
         ProgressVisuals vis;
         vis.progressColor = theme.accent.isValid() ? theme.accent : ink;
-        vis.borderColor = vis.progressColor;
         paintProgress(p, c.adjusted(-3.0, -3.0, 3.0, 3.0), progress, vis, ProgressShape::Ellipse,
                       PageBox::all(d * 0.5));
     }
@@ -630,7 +617,6 @@ void paintTarget(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeC
     if (const std::optional<QColor> pc = theme.resolveToken(t.chrome.progressColor.token)) {
         if (pc->isValid()) {
             vis.progressColor = *pc;
-            vis.borderColor = *pc;
         }
     }
     QColor fg = theme.resolveToken(t.chrome.foreground.token).value_or(theme.text);
@@ -721,6 +707,9 @@ void paintTarget(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeC
                 paintToggleSwitch(p, r, theme, on);
             }
         }
+    }
+    if (hovered && t.interactive && pv.hoverBorderWidth > 0.0 && pv.hoverBorder.isValid()) {
+        strokeRound(p, r, radii, pv.hoverBorder, PageBox::all(pv.hoverBorderWidth));
     }
     if (flashing) {
         const QColor fc = vis.resolvedFlashColor(fg);

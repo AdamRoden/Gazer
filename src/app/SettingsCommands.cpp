@@ -116,6 +116,8 @@ void SettingsUi::registerCommands()
         {"settings.session.startDocked.toggle", &AppSettings::startDocked, "Start docked"},
         {"settings.session.layoutAutoClose.toggle", &AppSettings::layoutAutoClose,
          "Auto-close boards"},
+        {"settings.hover.custom.toggle", &AppSettings::hoverCustom, "Hover custom"},
+        {"settings.flash.custom.toggle", &AppSettings::flashCustom, "Flash custom"},
     };
     for (const auto& t : boolToggles) {
         m_commands.registerBuiltin(QLatin1String(t.cmd),
@@ -140,11 +142,6 @@ void SettingsUi::registerCommands()
         speechKeyPaste();
         return true;
     });
-
-    m_commands.registerBuiltin(QStringLiteral("settings.flash.foreground"),
-                               [this](QString* e) { return openFlashForeground(e); });
-    m_commands.registerBuiltin(QStringLiteral("settings.flash.custom"),
-                               [this](QString* e) { return openFlashCustom(e); });
 
     for (const char* ck : kColorKeys) {
         m_commands.registerBuiltin(

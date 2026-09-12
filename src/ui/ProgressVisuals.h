@@ -5,26 +5,27 @@
 
 #include <QColor>
 #include <QString>
-#include <QtMath>
 
 namespace gazer {
 
-/// How dwell progress is drawn on activators (and mouse-move reticle).
+/// How dwell progress, hover outline, and completion flash are drawn.
 struct ProgressVisuals {
     ProgressStyle style;
 
     QColor progressColor = ThemeColors::defaultProgressColor();
     QColor fillColor = QColor(0, 180, 220, 70);
-    QColor borderColor = ThemeColors::defaultProgressColor();
 
-    bool flashUseForeground = true;
+    bool flashCustom = false;
     int flashForegroundOpacity = 60;
     QColor flashColor = QColor(255, 255, 255);
     int flashMs = 140;
 
+    QColor hoverBorder;
+    double hoverBorderWidth = 0.0;
+
     [[nodiscard]] QColor resolvedFlashColor(const QColor& itemForeground) const
     {
-        if (!flashUseForeground) {
+        if (flashCustom) {
             return flashColor;
         }
         QColor c = itemForeground.isValid() ? itemForeground : QColor(255, 255, 255);
@@ -33,11 +34,11 @@ struct ProgressVisuals {
     }
 
     /// Pointer pick has no item foreground. Custom flash color as-is, or that
-    /// color at flashForegroundOpacity when "use foreground" is on.
+    /// color at flashForegroundOpacity when Custom is off.
     [[nodiscard]] QColor pointerFlashColor() const
     {
         QColor c = flashColor.isValid() ? flashColor : QColor(255, 255, 255);
-        if (flashUseForeground) {
+        if (!flashCustom) {
             c.setAlpha(qBound(0, qRound(255.0 * double(flashForegroundOpacity) / 100.0), 255));
         }
         return c;

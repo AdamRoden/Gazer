@@ -70,7 +70,6 @@ void commitTheme(AppSettings& s)
 void writeProgress(AppSettings& s, const ThemePalette& pal)
 {
     s.progressColor = AppSettings::colorToHex(pal.progress);
-    s.progressBorderColor = AppSettings::colorToHex(pal.progressBorder);
     s.progressFillColor = AppSettings::colorToHex(pal.progressFill);
 }
 
@@ -104,6 +103,12 @@ ThemePalette AppSettings::resolvedPalette() const
 ThemeColors AppSettings::resolvedTheme() const
 {
     return resolvedPalette().colors;
+}
+
+QColor AppSettings::resolvedHoverBorder() const
+{
+    return hoverCustom ? colorKey(QStringLiteral("hoverColor"))
+                       : colorKey(QStringLiteral("progressColor"));
 }
 
 void AppSettings::applyTheme()
@@ -208,7 +213,7 @@ QString AppSettings::themeRoleForColorKey(const QString& key)
         return QStringLiteral("accent");
     }
     if (key == QLatin1String("customSecondaryColor") || key == QLatin1String("progressColor")
-        || key == QLatin1String("progressFillColor") || key == QLatin1String("progressBorderColor")) {
+        || key == QLatin1String("progressFillColor")) {
         return QStringLiteral("progress");
     }
     if (key == QLatin1String("customTertiaryColor")) {

@@ -45,7 +45,7 @@
     <Cell id="page_title" row="1" col="0" colSpan="16" label="Theme" caption="Background, surfaces, accent, and progress" role="label" textStyle="title" style="plain"/>
     <SubGrid id="theme_columns" row="2" col="0" rowSpan="7" colSpan="16" rows="1" columns="2" gap="16">
 
-      <SubGrid id="sec_surfaces" row="0" col="0" rows="5" columns="2" rowWeights="0.5,1.5,1.5,1.5,1.5" columnWidths="1*,3*" gap="8" margin="8" style="group">
+      <SubGrid id="sec_surfaces" row="0" col="0" rows="6" columns="2" rowWeights="0.5,1.5,1.5,1.5,1.5,1.5" columnWidths="1*,3*" gap="8" margin="8" style="group">
         <Cell id="h_surfaces" row="0" col="0" colSpan="2" label="Background and Surface" role="label" textStyle="section" style="plain"/>
         <Cell id="theme_l_d" row="1" col="0" label="Theme" role="label" style="plain"/>
         <SubGrid id="row_appearance" row="1" col="1" rows="1" columns="2" gap="0" style="row">
@@ -70,11 +70,25 @@
           <Cell id="tint_tertiary1" row="0" col="5" role="swatch" activeState="theme.tint.tertiary1" command="theme.tint.tertiary1"/>
           <Cell id="tint_tertiary2" row="0" col="6" role="swatch" activeState="theme.tint.tertiary2" command="theme.tint.tertiary2"/>
         </SubGrid>
-        <Cell id="fl_name" row="4" col="0" label="Flash" caption="Flash color after activation" role="label" style="plain"/>
-        <SubGrid id="act_flash" row="4" col="1" rows="1" columns="3" gap="0" style="row">
-          <Cell id="fl_fg" row="0" col="0" label="Foreground" role="choice" activeState="settings.flash.foreground" style="joinLeft" command="settings.flash.foreground"/>
-          <Cell id="fl_custom" row="0" col="1" label="Custom" role="choice" activeState="settings.flash.custom" style="joinRight" command="settings.flash.custom"/>
-          <Cell id="fl_sw" row="0" col="2" role="swatch" settingKey="flashColor" command="settings.edit.color.flashColor"/>
+        <Cell id="hv_name" row="4" col="0" label="Hover" caption="Defaults to progress color" role="label" style="plain"/>
+        <SubGrid id="act_hover" row="4" col="1" rows="1" columns="3" columnWidths="2*,2*,1*" gap="6" style="row">
+          <SubGrid id="act_hv_w" row="0" col="0" rows="1" columns="3" columnWidths="1*,2*,1*" gap="0" style="row">
+            <Cell id="hv_dec" row="0" col="0" label="−" style="joinLeft" command="settings.nudge.hoverBorderWeight.dec"/>
+            <Cell id="hv_val" row="0" col="1" label="—" role="value" settingKey="hoverBorderWeight" style="join"/>
+            <Cell id="hv_inc" row="0" col="2" label="+" style="joinRight" command="settings.nudge.hoverBorderWeight.inc"/>
+          </SubGrid>
+          <Cell id="hv_custom" row="0" col="1" label="Custom" role="toggle" activeState="settings.hover.custom.toggle" command="settings.hover.custom.toggle"/>
+          <Cell id="hv_sw" row="0" col="2" role="swatch" settingKey="hoverColor" visibleWhen="hover_custom" command="settings.edit.color.hoverColor"/>
+        </SubGrid>
+        <Cell id="fl_name" row="5" col="0" label="Flash" caption="Defaults to foreground" role="label" style="plain"/>
+        <SubGrid id="act_flash" row="5" col="1" rows="1" columns="3" columnWidths="2*,2*,1*" gap="6" style="row">
+          <SubGrid id="act_fl_ms" row="0" col="0" rows="1" columns="3" columnWidths="1*,2*,1*" gap="0" style="row">
+            <Cell id="fl_dec" row="0" col="0" label="−" style="joinLeft" command="settings.nudge.flashMs.dec"/>
+            <Cell id="fl_val" row="0" col="1" label="—" role="value" settingKey="flashMs" style="join"/>
+            <Cell id="fl_inc" row="0" col="2" label="+" style="joinRight" command="settings.nudge.flashMs.inc"/>
+          </SubGrid>
+          <Cell id="fl_custom" row="0" col="1" label="Custom" role="toggle" activeState="settings.flash.custom.toggle" command="settings.flash.custom.toggle"/>
+          <Cell id="fl_sw" row="0" col="2" role="swatch" settingKey="flashColor" visibleWhen="flash_custom" command="settings.edit.color.flashColor"/>
         </SubGrid>
       </SubGrid>
 

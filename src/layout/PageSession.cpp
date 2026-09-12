@@ -43,6 +43,8 @@ PageSession::PageSession(QObject* parent)
 {
     m_props.insert(QStringLiteral("expanded"), false);
     m_props.insert(QStringLiteral("dwellSuspend"), false);
+    m_props.insert(QStringLiteral("hover_custom"), false);
+    m_props.insert(QStringLiteral("flash_custom"), false);
     m_autoCloseTimer.setInterval(200);
     connect(&m_autoCloseTimer, &QTimer::timeout, this, [this]() { tickAutoClose(); });
     m_drawerTimer.setInterval(16);
@@ -156,6 +158,12 @@ void PageSession::setTheme(const ThemeColors& theme)
     if (m_host) {
         m_host->setTheme(theme);
     }
+}
+
+void PageSession::setThemeChromeVisibility(bool hoverCustom, bool flashCustom)
+{
+    m_props.insert(QStringLiteral("hover_custom"), hoverCustom);
+    m_props.insert(QStringLiteral("flash_custom"), flashCustom);
 }
 
 void PageSession::setProgressVisuals(const ProgressVisuals& visuals)

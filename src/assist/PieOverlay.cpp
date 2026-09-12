@@ -42,12 +42,6 @@ void paintPathProgress(QPainter& p, const QPainterPath& zone, const QPointF& c, 
         p.drawEllipse(c, outerR * progress, outerR * progress);
         p.restore();
     }
-    if (vis.style.border) {
-        p.setBrush(Qt::NoBrush);
-        p.setPen(QPen(vis.borderColor, 2.0 + 2.4 * progress, Qt::SolidLine, Qt::FlatCap,
-                      Qt::RoundJoin));
-        p.drawPath(zone);
-    }
     if (vis.style.radial) {
         const qreal penW = 5.0;
         const QRectF arc(c.x() - outerR + penW, c.y() - outerR + penW, (outerR - penW) * 2.0,
@@ -146,7 +140,6 @@ void PieOverlay::paintWedge(QPainter& p, const QPointF& c, const QColor& cyan,
     vis.style.fillBackground = true;
     vis.fillColor = QColor(cyan.red(), cyan.green(), cyan.blue(), 90);
     vis.progressColor = cyan;
-    vis.borderColor = primary;
     const double qtStart = 90.0 - w.startCw;
     const double prog = hover ? qMax(0.08, m_a.dwellProg) : 0.0;
     paintPathProgress(p, zone, c, w.outer, qtStart, -w.spanDeg, prog, vis);
@@ -187,8 +180,6 @@ void PieOverlay::paintInnerRing(QPainter& p, const QPointF& c, const QColor& cya
     ProgressVisuals vis;
     vis.style.radial = true;
     vis.style.fillBackground = true;
-    vis.style.border = true;
-    vis.borderColor = cyan;
     vis.fillColor = QColor(cyan.red(), cyan.green(), cyan.blue(), 70);
     vis.progressColor = cyan;
     paintPathProgress(p, annulus, c, outer, 90.0, -360.0, m_a.innerActive ? m_a.dwellProg : 0.0,

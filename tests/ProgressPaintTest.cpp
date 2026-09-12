@@ -43,7 +43,6 @@ void ProgressPaintTest::radialRingPointer()
 void ProgressPaintTest::strokeMatchesPieAlpha()
 {
     const QColor pie(0xFF, 0x47, 0x3D, kProgressFillAlpha);
-    QCOMPARE(progressStrokeColor(QColor(0xFF, 0x47, 0x3D), pie).alpha(), kProgressFillAlpha);
     const QColor track = radialTrackColor(pie);
     QCOMPARE(track.alpha(), qRound(kProgressFillAlpha * 80.0 / 255.0));
 }

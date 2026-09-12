@@ -45,6 +45,7 @@ private slots:
     void backgroundShadeAndTintFamily();
     void speechSettingsRoundTrip();
     void headPoseMapsRoundTrip();
+    void hoverBorderFollowsProgressAndRoundTrips();
 };
 
 void AppSettingsTest::defaultConstructIsFactory()
@@ -103,14 +104,19 @@ void AppSettingsTest::factoryUsesDomainConstants()
     QCOMPARE(s.resolvedPalette().progressFill, QColor(0xFF, 0x47, 0x3D, kProgressFillAlpha));
     QCOMPARE(s.progressColor, QStringLiteral("#99FF473D"));
     QCOMPARE(s.progressFillColor, QStringLiteral("#99FF473D"));
+    QCOMPARE(s.hoverColor, QStringLiteral("#99FF473D"));
+    QCOMPARE(s.hoverBorderWeight, 2);
+    QVERIFY(!s.hoverCustom);
+    QVERIFY(!s.flashCustom);
+    QCOMPARE(s.resolvedHoverBorder(), s.colorKey(QStringLiteral("progressColor")));
     QCOMPARE(s.speechModel, QStringLiteral("sapi"));
     QCOMPARE(s.speechVolume, 1.0);
     QCOMPARE(s.savedSpeechTags, AppSettings::defaultSavedSpeechTags());
     QVERIFY(s.savedSpeechVoices.isEmpty());
     QVERIFY(s.progress.radial);
-    QVERIFY(s.progress.border);
+    QVERIFY(!s.progress.pie);
     QVERIFY(s.mouseProgress.radial);
-    QVERIFY(!s.mouseProgress.border);
+    QVERIFY(!s.mouseProgress.pie);
     QCOMPARE(s.dwellPreset(), 1);
 }
 
@@ -535,6 +541,39 @@ void AppSettingsTest::headPoseMapsRoundTrip()
     QCOMPARE(b.headPoseMaps.front().source, HeadPoseAxis::Pitch);
     QCOMPARE(b.headPoseMaps.front().dest, HeadPoseDest::ScrollV);
     QCOMPARE(b.headPoseMaps.front().points.size(), 3);
+}
+
+void AppSettingsTest::hoverBorderFollowsProgressAndRoundTrips()
+{
+    AppSettings s = AppSettings::defaults();
+    QVERIFY(!s.hoverCustom);
+    QCOMPARE(s.resolvedHoverBorder(), s.colorKey(QStringLiteral("progressColor")));
+    QVERIFY(s.setColorKey(QStringLiteral("hoverColor"), QColor(0, 255, 0), false));
+    QCOMPARE(s.resolvedHoverBorder(), s.colorKey(QStringLiteral("progressColor")));
+    s.hoverCustom = true;
+    s.hoverBorderWeight = 4;
+    QCOMPARE(s.resolvedHoverBorder(), s.colorKey(QStringLiteral("hoverColor")));
+
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("settings.json"));
+    QVERIFY(s.saveToFile(path));
+    AppSettings loaded;
+    QVERIFY(loaded.loadFromFile(path));
+    QVERIFY(loaded.hoverCustom);
+    QCOMPARE(loaded.hoverBorderWeight, 4);
+    QCOMPARE(loaded.hoverColor, s.hoverColor);
+
+    const QString legacy = dir.filePath(QStringLiteral("legacy.json"));
+    QFile f(legacy);
+    QVERIFY(f.open(QIODevice::WriteOnly | QIODevice::Truncate));
+    f.write(R"({"progressBorderColor":"#80AABBCC","hoverUseProgressColor":false,"flashUseForeground":false})");
+    f.close();
+    AppSettings migrated;
+    QVERIFY(migrated.loadFromFile(legacy));
+    QCOMPARE(migrated.hoverColor, QStringLiteral("#80AABBCC"));
+    QVERIFY(migrated.hoverCustom);
+    QVERIFY(migrated.flashCustom);
 }
 
 QObject* createAppSettingsTest()

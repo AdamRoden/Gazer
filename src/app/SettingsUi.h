@@ -64,7 +64,7 @@ public:
     [[nodiscard]] bool isNumpadActive() const { return m_numpad.active; }
 
     static constexpr const char* kColorKeys[] = {
-        "progressColor",      "progressFillColor",   "progressBorderColor", "flashColor",
+        "progressColor",      "progressFillColor",   "hoverColor",          "flashColor",
         "comboInnerColor",    "comboOuterColor",     "customPrimaryColor",  "customSecondaryColor"};
 
     [[nodiscard]] bool themeAssignPrimary() const { return m_themeAssignPrimary; }
@@ -109,8 +109,6 @@ private:
     [[nodiscard]] bool arrayCancel(QString* error = nullptr);
     [[nodiscard]] bool arrayEditIndex(int index, QString* error = nullptr);
 
-    [[nodiscard]] bool openFlashForeground(QString* error = nullptr);
-    [[nodiscard]] bool openFlashCustom(QString* error = nullptr);
     [[nodiscard]] bool openColorPicker(const QString& colorKey, QString* error = nullptr);
     void refreshColorPicker();
     [[nodiscard]] PageDocument buildGenericColorDocument() const;
@@ -251,7 +249,6 @@ private:
     QVector<int> m_arrayDraft;
 
     LiveBoard m_color;
-    bool m_flashCustomSetMode = false;
     bool m_themeAssignPrimary = true;
     QString m_colorPickerKey;
     QHash<QString, QColor> m_colorPending;

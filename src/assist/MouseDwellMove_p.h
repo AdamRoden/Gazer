@@ -155,7 +155,7 @@ protected:
         p.restore();
 
         const QColor ring = m_visuals.progressColor;
-        p.setPen(QPen(m_visuals.borderColor.isValid() ? m_visuals.borderColor : ring, 3.0));
+        p.setPen(QPen(ring, 3.0));
         p.setBrush(Qt::NoBrush);
         const QRectF frame = QRectF(rect()).adjusted(1.5, 1.5, -1.5, -1.5);
         if (m_round) {

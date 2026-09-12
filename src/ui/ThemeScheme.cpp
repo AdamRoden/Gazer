@@ -198,7 +198,6 @@ ThemePalette fluent(ThemeAppearance appearance, int saturation, const QColor& pr
     const QColor progress = withProgressFillAlpha(
         secondaryIn.isValid() ? scaleSaturation(secondaryIn, saturation) : primary);
     out.progress = progress;
-    out.progressBorder = progress;
     out.progressFill = progress;
     c.progress = progress;
     c.appearance = appearance;

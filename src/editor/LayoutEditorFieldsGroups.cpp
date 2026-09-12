@@ -71,7 +71,7 @@ void addChromeFields(PropertyBinder& b, QFormLayout* form, const PageChrome& st,
             apply(QStringLiteral("Progress color"),
                   [&](PageChrome& s) { s.progressColor = std::move(c); });
         });
-        b.note(f, QStringLiteral("Empty inherits. Tokens: radial, pie, border, fill, fillup, "
+        b.note(f, QStringLiteral("Empty inherits. Tokens: radial, pie, fill, fillup, "
                                  "filldown, fillleft, fillright."));
     });
 }
@@ -361,7 +361,8 @@ QStringList visibleWhenChoices()
 {
     return {QString(), QStringLiteral("expanded"), QStringLiteral("!expanded"),
             QStringLiteral("quitConfirm"), QStringLiteral("!quitConfirm"),
-            QStringLiteral("dwellSuspend"), QStringLiteral("!dwellSuspend")};
+            QStringLiteral("dwellSuspend"), QStringLiteral("!dwellSuspend"),
+            QStringLiteral("hover_custom"), QStringLiteral("flash_custom")};
 }
 
 QStringList iconChoices()
