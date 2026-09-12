@@ -4,7 +4,7 @@ Gaze-driven AAC and system input for Windows. C++20 / Qt 6.
 
 Gazer turns live gaze (Tobii Eye Tracker 5, or the mouse as a fallback) into on-screen pages you **dwell** to activate. Pages can type, click, move the pointer, speak, and run assist tools. The long-term aim is one stack for accessible gaming in place of OptiKey + OpenTrack + UCR + AutoHotkey.
 
-Version **0.5.3**. License: [GPL-3.0](LICENSE).
+Version **0.6.0**. License: [GPL-3.0](LICENSE).
 
 Contributors and coding agents: start at [AGENTS.md](AGENTS.md). Page XML schema: [docs/page-xml.md](docs/page-xml.md). Command catalog: [src/app/Commands.md](src/app/Commands.md).
 
@@ -20,7 +20,7 @@ Contributors and coding agents: start at [AGENTS.md](AGENTS.md). Page XML schema
 | **Mouse pad** | Nudge, click, hold, scroll, dwell-move, click-at-gaze, ComboMouse. |
 | **Assist** | Live magnifier, gaze reticle, gaze-follows-cursor, look-to-scroll, mag-pick zoom, foresight. |
 | **Speech** | Canned `<Speak>` (Windows SAPI). Gaze composer: internal phrase, word chips, ElevenLabs or SAPI, soundboard clips, history. |
-| **Settings** | Gaze-operated boards for Speed, Magnify, Indicators, Assist, Tools, Theme, Speech. No desktop dialogs for live prefs. |
+| **Settings** | Gaze-operated boards for Speed, Magnify, Indicators, Assist, Tools, Theme, Speech, Head. No desktop dialogs for live prefs. |
 | **Page editor** | Qt Widgets designer for the same XML the runtime loads. Save of a shipped page writes a user copy. |
 | **Always on top** | Overlay stays above the taskbar and other apps. The installed MSI can sit above Task Manager (`uiAccess`). |
 | **Scripts / AHK** | Cells can run AutoHotkey from a local install, or `gazer.*` from scripts. |
