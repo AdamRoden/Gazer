@@ -7,6 +7,34 @@ namespace gazer {
 inline constexpr double kLtsSpeedStops[] = {1.0, 5.0, 10.0, 20.0, 40.0};
 inline constexpr int kLtsSpeedStopCount = 5;
 
+/// Once engaged, never stream slower than this. Targets that latch a gesture
+/// (Chromium wheel animation, Win32 thumb-track) treat long gaps as end/start
+/// and bounce. 12 px/s ≈ one high-res wheel unit / 55 ms.
+inline constexpr double kLtsMinEngagedPxPerSec = 12.0;
+
+[[nodiscard]] inline double easeLtsFalloff(double t)
+{
+    t = qBound(0.0, t, 1.0);
+    return t * t;
+}
+
+[[nodiscard]] inline int ltsDeadzoneHysteresisPx(int deadzonePx)
+{
+    return qBound(16, qMax(1, deadzonePx) / 4, 40);
+}
+
+/// Deadzone is the start line; deadzone − hysteresis is the stop line.
+/// While engaged, LTS still emits (at least kLtsMinEngagedPxPerSec), including
+/// in the band just inside the ring, so tracker jitter does not break the stream.
+[[nodiscard]] inline bool ltsKeepScrolling(bool engaged, double dist, int deadzonePx)
+{
+    const double zone = double(qMax(1, deadzonePx));
+    if (engaged) {
+        return dist > zone - double(ltsDeadzoneHysteresisPx(deadzonePx));
+    }
+    return dist > zone;
+}
+
 [[nodiscard]] inline int nearestLtsSpeedIndex(double n)
 {
     int idx = 0;

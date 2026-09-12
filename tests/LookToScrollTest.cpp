@@ -12,6 +12,7 @@ class LookToScrollTest final : public QObject {
 
 private slots:
     void speedLadder();
+    void falloffEaseAndHysteresis();
     void scrollModeCycle();
     void pieActionsFromHit();
 };
@@ -28,6 +29,22 @@ void LookToScrollTest::speedLadder()
     QCOMPARE(nudgeLtsSpeed(40.0, +1), 40.0);
     QCOMPARE(nudgeLtsSpeed(20.0, +1), 40.0);
     QCOMPARE(snapLtsSpeed(50.0), 40.0);
+}
+
+void LookToScrollTest::falloffEaseAndHysteresis()
+{
+    QCOMPARE(easeLtsFalloff(0.0), 0.0);
+    QCOMPARE(easeLtsFalloff(1.0), 1.0);
+    QCOMPARE(easeLtsFalloff(0.5), 0.25);
+    QVERIFY(easeLtsFalloff(0.2) > 0.03);
+    QCOMPARE(ltsDeadzoneHysteresisPx(110), 27);
+    QCOMPARE(ltsDeadzoneHysteresisPx(20), 16);
+    QCOMPARE(ltsDeadzoneHysteresisPx(400), 40);
+    QVERIFY(!ltsKeepScrolling(false, 110.0, 110));
+    QVERIFY(ltsKeepScrolling(false, 110.1, 110));
+    QVERIFY(ltsKeepScrolling(true, 90.0, 110));
+    QVERIFY(!ltsKeepScrolling(true, 83.0, 110));
+    QVERIFY(kLtsMinEngagedPxPerSec >= 12.0);
 }
 
 void LookToScrollTest::scrollModeCycle()

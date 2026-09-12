@@ -9,6 +9,6 @@ OS / virtual device injection used by mapping profiles.
 | `KeyGlyphs` | US QWERTY label overlay and OEM stroke mapping |
 | `KeyStateManager` | Modifier cycle Up → Down → LockedDown; Down auto-releases after a standard key |
 | `MouseInjector` | Windows click / relative move / scroll (button/wheel: board HTTRANSPARENT for the gesture) |
-| `PixelScroller` | Pixel scroll for LTS (native bars + UIA, wheel fallback) |
+| `PixelScroller` | Pixel scroll for LTS (classify HWND, drain logical remainder) |
 | `VirtualGamepad` | Stub (fails until ViGEm) |
 | `InputService` | Facade over the above |

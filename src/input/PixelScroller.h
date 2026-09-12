@@ -7,11 +7,12 @@ namespace gazer {
 
 /// Pixel-level scroll of the window under the cursor (LTS origin).
 ///
-/// WM_MOUSEWHEEL is quantized to whole lines by most Win32 / Office / editor
-/// apps. This tries, in order:
-///   1. Native pixel APIs (ListView LVM_SCROLL, pixel-sized scrollbars)
-///   2. UI Automation ScrollPattern (fractional percent)
-///   3. High-resolution mouse wheel (browsers and other high-res-aware apps)
+/// Classifies the HWND once, then drains a single logical-pixel remainder:
+///   HighResWheel — Chromium / Firefox (subpixel WM_MOUSEWHEEL)
+///   Scintilla    — SCI_LINESCROLL / SCI_SETXOFFSET (Notepad++)
+///   ListView     — LVM_SCROLL
+///   Fallback     — pixel scrollbar, then UIA if 1 px is ≥ 0.5% of range,
+///                  then wheel
 class PixelScroller {
 public:
     PixelScroller();
@@ -23,8 +24,8 @@ public:
     static constexpr double kPixelsPerNotch = 80.0;
 
     /// @p dx / @p dy match mouse wheel: positive dy = away from the user (up),
-    /// positive dx = right. Values are Qt logical pixels.
-    [[nodiscard]] bool scrollBy(int dx, int dy, QString* error = nullptr);
+    /// positive dx = right. Values are Qt logical pixels (fractional OK).
+    [[nodiscard]] bool scrollBy(double dx, double dy, QString* error = nullptr);
 
     /// Release an in-progress thumb-drag (deadzone / pause / disable).
     void lift();

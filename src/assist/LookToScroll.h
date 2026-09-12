@@ -7,6 +7,7 @@
 #include "core/GazePoint.h"
 #include "input/PixelScroller.h"
 #include "layout/DwellStateMachine.h"
+#include "layout/InvalidGazeGrace.h"
 #include "ui/Theme.h"
 
 #include <QColor>
@@ -28,7 +29,9 @@ inline constexpr double kLtsHubDwellDiameterFrac = 0.08;
 /// Gaze must leave the plus this long before it collapses to the overlay hub.
 inline constexpr double kLtsPlusDismissGraceSec = 0.18;
 
-/// Circular deadzone around the cursor. Gaze outside scrolls (cubic ease + accel).
+/// Circular deadzone around the cursor. Gaze outside scrolls (quadratic ease +
+/// accel). Once engaged, speed is at least `kLtsMinEngagedPxPerSec` until gaze
+/// is clearly back inside the ring (hysteresis).
 /// Dwell the hub (`kLtsHubDwellDiameterFrac` of screen height) to pause and open a
 /// ComboMouse-style pie (speed, axis mode, reset, quit; inner ring resumes).
 /// Looking away closes that pie and shows the overlay hub with a pause icon; looking
@@ -121,11 +124,11 @@ private:
     [[nodiscard]] double hubVisualRadiusPx() const;
     [[nodiscard]] double hubDwellRadiusPx() const;
     [[nodiscard]] static QString plusHitId(ComboMouseHit::Band band, ComboMouseHit::Slice slice);
-    [[nodiscard]] static double easeNearDeadzone(double t);
 
     bool m_enabled = false;
     bool m_allowOverBoard = false;
     bool m_scrollSuspended = false;
+    bool m_scrollEngaged = false;
     bool m_plusOpen = false;
     bool m_replacing = false;
     bool m_hasOrigin = false;
@@ -143,8 +146,7 @@ private:
     QElapsedTimer m_clock;
     qint64 m_lastTickMs = -1;    // scroll emission gate
     qint64 m_lastSampleMs = -1;  // center-dwell / decay dt (every sample)
-    double m_accumV = 0.0;
-    double m_accumH = 0.0;
+    InvalidGazeGrace m_invalidGrace;
     /// Continuous time gaze has been outside the deadzone (for acceleration).
     double m_outsideSec = 0.0;
     double m_centerProgress = 0.0;

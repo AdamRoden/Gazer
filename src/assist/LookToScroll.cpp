@@ -23,7 +23,6 @@
 namespace gazer {
 
 namespace {
-constexpr double kMinEmitPx = 1.0;
 
 void paintRoundProgress(QPainter& p, const QPointF& c, double radius, double prog, const QColor& color)
 {
@@ -243,12 +242,6 @@ LookToScroll::~LookToScroll()
     hideOverlay();
 }
 
-double LookToScroll::easeNearDeadzone(double t)
-{
-    t = qBound(0.0, t, 1.0);
-    return t * t * t;
-}
-
 void LookToScroll::setEnabled(bool enabled)
 {
     if (m_enabled == enabled) {
@@ -257,16 +250,16 @@ void LookToScroll::setEnabled(bool enabled)
     m_enabled = enabled;
     m_lastTickMs = -1;
     m_lastSampleMs = -1;
-    m_accumV = 0.0;
-    m_accumH = 0.0;
     m_outsideSec = 0.0;
     m_centerProgress = 0.0;
     m_replacing = false;
     m_scrollSuspended = false;
+    m_scrollEngaged = false;
     m_plusOpen = false;
     m_lookAwaySec = 0.0;
     m_plusGateId.clear();
     m_plusDwell.leave();
+    m_invalidGrace.reset();
     m_scroller.reset();
     if (!m_enabled) {
         m_hasOrigin = false;
@@ -338,11 +331,6 @@ void LookToScroll::setScrollMode(LtsScrollMode mode)
         return;
     }
     m_scrollMode = mode;
-    if (m_scrollMode == LtsScrollMode::Vertical) {
-        m_accumH = 0.0;
-    } else if (m_scrollMode == LtsScrollMode::Horizontal) {
-        m_accumV = 0.0;
-    }
     GAZER_INFO << "LookToScroll mode" << ltsScrollModeName(m_scrollMode);
     emit scrollModeChanged(m_scrollMode);
     if (m_plusOpen) {
@@ -402,9 +390,9 @@ void LookToScroll::setScrollSuspended(bool suspended)
     }
     m_scrollSuspended = suspended;
     m_outsideSec = 0.0;
-    m_accumV = 0.0;
-    m_accumH = 0.0;
     m_centerProgress = 0.0;
+    m_scrollEngaged = false;
+    m_invalidGrace.reset();
     m_scroller.lift();
     if (!suspended) {
         m_replacing = false;
@@ -477,6 +465,7 @@ void LookToScroll::setScanGraceMs(int ms)
 void LookToScroll::setDwellGraceMs(int ms)
 {
     m_plusDwell.setInvalidGraceMs(ms);
+    m_invalidGrace.graceMs = ms;
 }
 
 void LookToScroll::setDwellMs(int ms)
@@ -645,7 +634,7 @@ void LookToScroll::updateOverlay(const QPoint& center, double gazeDist, double d
     double activity = 0.0;
     if (active && !m_scrollSuspended && gazeDist > m_deadzonePx) {
         const double t = qBound(0.0, (gazeDist - m_deadzonePx) / double(m_falloffPx), 1.0);
-        activity = easeNearDeadzone(t);
+        activity = easeLtsFalloff(t);
     }
     m_overlay->setState(m_deadzonePx, m_falloffPx, activity, centerProg, dirX, dirY,
                         m_indicatorStyle, hubVisualRadiusPx());
@@ -738,6 +727,7 @@ void LookToScroll::onGaze(const GazePoint& point, bool pauseInput)
         return;
     }
     if (m_replacing) {
+        m_scrollEngaged = false;
         m_scroller.lift();
         hideOverlay();
         return;
@@ -746,12 +736,23 @@ void LookToScroll::onGaze(const GazePoint& point, bool pauseInput)
         updatePausedMenu(point);
         return;
     }
+
+    const qint64 now = m_clock.elapsed();
+    const qint64 sampleTs = point.timestampMs > 0 ? point.timestampMs : now;
+
     if (!point.valid) {
+        if (m_invalidGrace.onInvalid(sampleTs) == InvalidGazeGrace::Result::Holding) {
+            return;
+        }
+        m_scrollEngaged = false;
         m_scroller.lift();
         hideOverlay();
         return;
     }
+    m_invalidGrace.onValid();
+
     if (pauseInput && !m_allowOverBoard) {
+        m_scrollEngaged = false;
         m_scroller.lift();
         hideOverlay();
         m_centerProgress = 0.0;
@@ -768,17 +769,15 @@ void LookToScroll::onGaze(const GazePoint& point, bool pauseInput)
     const double dirY = dist > 1.0 ? delta.y() / dist : 0.0;
     const double hubR = hubDwellRadiusPx();
 
-    const qint64 now = m_clock.elapsed();
     const double sampleDt =
         m_lastSampleMs < 0 ? 0.016
                            : qBound(0.004, (now - m_lastSampleMs) / 1000.0, 0.05);
     m_lastSampleMs = now;
 
     if (dist <= hubR) {
+        m_scrollEngaged = false;
         m_scroller.lift();
         m_outsideSec = 0.0;
-        m_accumV *= 0.5;
-        m_accumH *= 0.5;
         m_centerProgress =
             qBound(0.0, m_centerProgress + sampleDt * 1000.0 / double(m_centerDwellMs), 1.0);
         updateOverlay(origin, dist, dirX, dirY, false, m_centerProgress);
@@ -794,17 +793,10 @@ void LookToScroll::onGaze(const GazePoint& point, bool pauseInput)
         m_centerProgress = 0.0;
     }
 
-    if (dist <= m_deadzonePx || dist < 1.0) {
+    m_scrollEngaged = ltsKeepScrolling(m_scrollEngaged, dist, m_deadzonePx) && dist >= 1.0;
+    if (!m_scrollEngaged) {
         m_scroller.lift();
         m_outsideSec = 0.0;
-        m_accumV *= 0.5;
-        m_accumH *= 0.5;
-        if (qAbs(m_accumV) < kMinEmitPx) {
-            m_accumV = 0.0;
-        }
-        if (qAbs(m_accumH) < kMinEmitPx) {
-            m_accumH = 0.0;
-        }
         updateOverlay(origin, dist, dirX, dirY, false, m_centerProgress);
         return;
     }
@@ -818,39 +810,32 @@ void LookToScroll::onGaze(const GazePoint& point, bool pauseInput)
         m_lastTickMs < 0 ? (m_intervalMs / 1000.0)
                          : qBound(0.008, (now - m_lastTickMs) / 1000.0, 0.08);
     m_lastTickMs = now;
-    m_outsideSec += tickDt;
+    if (dist > m_deadzonePx) {
+        m_outsideSec += tickDt;
+    }
 
     const double tLin = qBound(0.0, (dist - m_deadzonePx) / double(m_falloffPx), 1.0);
-    const double t = easeNearDeadzone(tLin);
+    const double t = easeLtsFalloff(tLin);
     const double accel = qMin(m_accelMax, 1.0 + m_accelPerSec * m_outsideSec);
 
     const double nx = delta.x() / dist;
     const double ny = delta.y() / dist;
-    const double rate = m_maxNotchesPerSec * PixelScroller::kPixelsPerNotch * t * accel;
+    double rate = m_maxNotchesPerSec * PixelScroller::kPixelsPerNotch * t * accel;
+    if (rate < kLtsMinEngagedPxPerSec) {
+        rate = kLtsMinEngagedPxPerSec;
+    }
     double dv = (-ny) * rate * tickDt;
     double dh = (nx)*rate * tickDt;
     applyLtsScrollMode(m_scrollMode, dv, dh);
-    m_accumV += dv;
-    m_accumH += dh;
 
-    int v = 0;
-    int h = 0;
-    if (qAbs(m_accumV) >= kMinEmitPx) {
-        v = int(m_accumV > 0 ? qFloor(m_accumV) : qCeil(m_accumV));
-        m_accumV -= v;
-    }
-    if (qAbs(m_accumH) >= kMinEmitPx) {
-        h = int(m_accumH > 0 ? qFloor(m_accumH) : qCeil(m_accumH));
-        m_accumH -= h;
-    }
-
-    if (v == 0 && h == 0) {
+    if (qAbs(dv) < 1e-6 && qAbs(dh) < 1e-6) {
         return;
     }
 
     QString err;
-    if (m_scroller.scrollBy(h, v, &err)) {
-        emit scrolled(v, h);
+    if (m_scroller.scrollBy(dh, dv, &err)) {
+        emit scrolled(int(dv > 0 ? qFloor(dv) : qCeil(dv)),
+                      int(dh > 0 ? qFloor(dh) : qCeil(dh)));
     } else if (!err.isEmpty()) {
         GAZER_WARN << "LookToScroll:" << err;
     }

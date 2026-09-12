@@ -23,7 +23,25 @@ namespace gazer {
 namespace {
 
 constexpr double kUiaNoScroll = -1.0;
+constexpr double kUiaMinPctPerPx = 0.5;
 constexpr UINT kMsgTimeoutMs = 40;
+// Scintilla.h — Notepad++ and other SCI hosts. Do not include the full header.
+constexpr UINT kSciLineScroll = 2168;
+constexpr UINT kSciTextHeight = 2279;
+constexpr UINT kSciSetXOffset = 2397;
+constexpr UINT kSciGetXOffset = 2398;
+
+enum class ScrollKind {
+    HighResWheel,
+    Scintilla,
+    ListView,
+    Fallback,
+};
+
+struct Target {
+    ScrollKind kind = ScrollKind::Fallback;
+    HWND hwnd = nullptr;
+};
 
 template<typename T>
 void comRelease(T*& p)
@@ -129,14 +147,28 @@ double dpiScale(HWND hwnd)
     if (dpi == 0) {
         dpi = 96;
     }
-    return double(dpi) / 96.0;
+    const double s = double(dpi) / 96.0;
+    return s > 0.1 ? s : 1.0;
 }
 
-int takeWhole(double& acc)
+int takeTowardZero(double& acc)
 {
     const int v = int(acc);
     acc -= v;
     return v;
+}
+
+int takeDevicePx(double& logical, double scale)
+{
+    double device = logical * scale;
+    const int px = takeTowardZero(device);
+    logical = device / scale;
+    return px;
+}
+
+void putDevicePx(double& logical, int px, double scale)
+{
+    logical += double(px) / scale;
 }
 
 bool looksLikePixelBar(const SCROLLINFO& si, int clientExtent)
@@ -172,6 +204,54 @@ bool usesHighResWheel(HWND hwnd)
     return false;
 }
 
+HWND skipScrollbar(HWND hwnd)
+{
+    if (classIs(hwnd, L"ScrollBar")) {
+        HWND parent = GetAncestor(hwnd, GA_PARENT);
+        if (parent) {
+            return parent;
+        }
+    }
+    return hwnd;
+}
+
+HWND parentWindow(HWND hwnd)
+{
+    HWND parent = GetAncestor(hwnd, GA_PARENT);
+    if (!parent || parent == GetDesktopWindow() || parent == hwnd) {
+        return nullptr;
+    }
+    return parent;
+}
+
+Target resolveTarget(HWND start)
+{
+    Target t;
+    t.hwnd = start;
+    if (!start) {
+        return t;
+    }
+    if (usesHighResWheel(start)) {
+        t.kind = ScrollKind::HighResWheel;
+        return t;
+    }
+    HWND hwnd = skipScrollbar(start);
+    for (int hop = 0; hop < 8 && hwnd; ++hop) {
+        if (classIs(hwnd, L"SysListView32")) {
+            t.kind = ScrollKind::ListView;
+            t.hwnd = hwnd;
+            return t;
+        }
+        if (classStartsWith(hwnd, L"Scintilla")) {
+            t.kind = ScrollKind::Scintilla;
+            t.hwnd = hwnd;
+            return t;
+        }
+        hwnd = parentWindow(hwnd);
+    }
+    return t;
+}
+
 IUIAutomationScrollPattern* patternFromElement(IUIAutomationElement* el)
 {
     if (!el) {
@@ -194,6 +274,54 @@ IUIAutomationScrollPattern* patternFromElement(IUIAutomationElement* el)
     return sp;
 }
 
+bool axisMetrics(IUIAutomationScrollPattern* sp, IUIAutomationElement* el, bool vertical,
+                 double* pct, double* pctPerPx)
+{
+    WINBOOL scrollable = FALSE;
+    double view = 0.0;
+    double p = 0.0;
+    RECT bbox{};
+    if (vertical) {
+        sp->get_CurrentVerticallyScrollable(&scrollable);
+        sp->get_CurrentVerticalViewSize(&view);
+        sp->get_CurrentVerticalScrollPercent(&p);
+    } else {
+        sp->get_CurrentHorizontallyScrollable(&scrollable);
+        sp->get_CurrentHorizontalViewSize(&view);
+        sp->get_CurrentHorizontalScrollPercent(&p);
+    }
+    if (!scrollable || view <= 0.5 || view >= 99.5 || p < 0.0) {
+        return false;
+    }
+    if (el) {
+        el->get_CurrentBoundingRectangle(&bbox);
+    }
+    const int extent = vertical ? (bbox.bottom - bbox.top) : (bbox.right - bbox.left);
+    if (extent < 8) {
+        return false;
+    }
+    const double rangePx = double(extent) * (100.0 - view) / view;
+    if (rangePx < 1.0) {
+        return false;
+    }
+    *pct = p;
+    *pctPerPx = 100.0 / rangePx;
+    return true;
+}
+
+bool uiaTooCoarse(IUIAutomationScrollPattern* sp, IUIAutomationElement* el)
+{
+    double pct = 0.0;
+    double pctPerPx = 0.0;
+    if (axisMetrics(sp, el, true, &pct, &pctPerPx) && pctPerPx < kUiaMinPctPerPx) {
+        return true;
+    }
+    if (axisMetrics(sp, el, false, &pct, &pctPerPx) && pctPerPx < kUiaMinPctPerPx) {
+        return true;
+    }
+    return false;
+}
+
 } // namespace
 
 struct PixelScroller::Impl {
@@ -211,10 +339,8 @@ struct PixelScroller::Impl {
     UiaState uia;
     HWND thumbVert = nullptr;
     HWND thumbHorz = nullptr;
-    double fracX = 0.0;
-    double fracY = 0.0;
-    double wheelFracV = 0.0;
-    double wheelFracH = 0.0;
+    double remX = 0.0;
+    double remY = 0.0;
 
     ~Impl()
     {
@@ -334,23 +460,67 @@ struct PixelScroller::Impl {
         return true;
     }
 
-    bool nativeScroll(HWND start, int* dx, int* dy)
+    bool drainWheel(QString* error)
     {
-        HWND hwnd = start;
-        if (classIs(hwnd, L"ScrollBar")) {
-            HWND parent = GetAncestor(hwnd, GA_PARENT);
-            if (parent) {
-                hwnd = parent;
+        const double k = 120.0 / PixelScroller::kPixelsPerNotch;
+        double unitsV = remY * k;
+        double unitsH = remX * k;
+        const int v = takeTowardZero(unitsV);
+        const int h = takeTowardZero(unitsH);
+        remY = unitsV / k;
+        remX = unitsH / k;
+        bool any = true;
+        if (v != 0) {
+            any = MouseInjector::scrollDelta(v, error) && any;
+        }
+        if (h != 0) {
+            any = MouseInjector::scrollHorizontalDelta(h, error) && any;
+        }
+        return any;
+    }
+
+    bool drainListView(HWND hwnd)
+    {
+        const double scale = dpiScale(hwnd);
+        const int dx = takeDevicePx(remX, scale);
+        const int dy = takeDevicePx(remY, scale);
+        if (dx != 0 || dy != 0) {
+            sendTimeout(hwnd, LVM_SCROLL, WPARAM(dx), LPARAM(-dy));
+        }
+        return true;
+    }
+
+    bool drainScintilla(HWND hwnd)
+    {
+        const double scale = dpiScale(hwnd);
+        const int dx = takeDevicePx(remX, scale);
+        if (dx != 0) {
+            const int xOff = int(sendTimeout(hwnd, kSciGetXOffset, 0, 0));
+            int next = xOff + dx;
+            if (next < 0) {
+                next = 0;
             }
+            sendTimeout(hwnd, kSciSetXOffset, WPARAM(next), 0);
         }
 
+        int lineH = int(sendTimeout(hwnd, kSciTextHeight, 0, 0));
+        if (lineH < 4 || lineH > 256) {
+            lineH = 16;
+        }
+        const double lineLogical = double(lineH) / scale;
+        const int lines = int(remY / lineLogical);
+        remY -= double(lines) * lineLogical;
+        if (lines != 0) {
+            // Positive remY = away (up). Positive SCI_LINESCROLL = later lines.
+            sendTimeout(hwnd, kSciLineScroll, 0, LPARAM(-lines));
+        }
+        return true;
+    }
+
+    void drainPixelBars(HWND start, int* dx, int* dy)
+    {
+        HWND hwnd = skipScrollbar(start);
         for (int hop = 0; hop < 8 && hwnd && (*dx != 0 || *dy != 0); ++hop) {
-            if (classIs(hwnd, L"SysListView32")) {
-                sendTimeout(hwnd, LVM_SCROLL, WPARAM(int(*dx)), LPARAM(int(-*dy)));
-                *dx = 0;
-                *dy = 0;
-                return true;
-            }
             const bool v = applyPixelBar(hwnd, SB_VERT, *dy, &thumbVert, WM_VSCROLL);
             const bool h = applyPixelBar(hwnd, SB_HORZ, *dx, &thumbHorz, WM_HSCROLL);
             if (v) {
@@ -359,16 +529,8 @@ struct PixelScroller::Impl {
             if (h) {
                 *dx = 0;
             }
-            if (*dx == 0 && *dy == 0) {
-                return true;
-            }
-            HWND parent = GetAncestor(hwnd, GA_PARENT);
-            if (!parent || parent == GetDesktopWindow() || parent == hwnd) {
-                break;
-            }
-            hwnd = parent;
+            hwnd = parentWindow(hwnd);
         }
-        return *dx == 0 && *dy == 0;
     }
 
     bool cacheScrollPattern(HWND hwnd, POINT pt)
@@ -412,6 +574,12 @@ struct PixelScroller::Impl {
             uia.noPatternHwnd = hwnd;
             return false;
         }
+        if (uiaTooCoarse(found, foundEl)) {
+            found->Release();
+            foundEl->Release();
+            uia.noPatternHwnd = hwnd;
+            return false;
+        }
         uia.element = foundEl;
         uia.scroll = found;
         uia.hwnd = hwnd;
@@ -421,35 +589,12 @@ struct PixelScroller::Impl {
 
     bool uiaAxis(IUIAutomationScrollPattern* sp, bool vertical, int pixels, double* percentOut)
     {
-        WINBOOL scrollable = FALSE;
-        double view = 0.0;
         double pct = 0.0;
-        RECT bbox{};
-        if (vertical) {
-            sp->get_CurrentVerticallyScrollable(&scrollable);
-            sp->get_CurrentVerticalViewSize(&view);
-            sp->get_CurrentVerticalScrollPercent(&pct);
-        } else {
-            sp->get_CurrentHorizontallyScrollable(&scrollable);
-            sp->get_CurrentHorizontalViewSize(&view);
-            sp->get_CurrentHorizontalScrollPercent(&pct);
-        }
-        if (!scrollable || view <= 0.5 || view >= 99.5 || pct < 0.0) {
+        double pctPerPx = 0.0;
+        if (!axisMetrics(sp, uia.element, vertical, &pct, &pctPerPx)) {
             return false;
         }
-        if (uia.element) {
-            uia.element->get_CurrentBoundingRectangle(&bbox);
-        }
-        const int extent = vertical ? (bbox.bottom - bbox.top) : (bbox.right - bbox.left);
-        if (extent < 8) {
-            return false;
-        }
-        const double rangePx = double(extent) * (100.0 - view) / view;
-        if (rangePx < 1.0) {
-            return false;
-        }
-        const double deltaPct = (vertical ? -pixels : pixels) * 100.0 / rangePx;
-        double next = pct + deltaPct;
+        double next = pct + (vertical ? -pixels : pixels) * pctPerPx;
         if (next < 0.0) {
             next = 0.0;
         }
@@ -460,7 +605,7 @@ struct PixelScroller::Impl {
         return true;
     }
 
-    bool uiaScroll(HWND hwnd, int* dx, int* dy)
+    bool drainUia(HWND hwnd, int* dx, int* dy)
     {
         POINT pt{};
         if (!GetCursorPos(&pt)) {
@@ -496,61 +641,49 @@ struct PixelScroller::Impl {
         return *dx == 0 && *dy == 0;
     }
 
-    bool wheelLeftover(int dx, int dy, double scale, QString* error)
+    bool drainFallback(HWND hwnd, QString* error)
     {
-        if (dx == 0 && dy == 0) {
-            return true;
-        }
-        const double pxPerUnit =
-            PixelScroller::kPixelsPerNotch * (scale > 0.1 ? scale : 1.0) / 120.0;
-        if (pxPerUnit <= 0.0) {
-            return false;
-        }
-        wheelFracV += double(dy) / pxPerUnit;
-        wheelFracH += double(dx) / pxPerUnit;
-        const int v = takeWhole(wheelFracV);
-        const int h = takeWhole(wheelFracH);
-        bool any = true;
-        if (v != 0) {
-            any = MouseInjector::scrollDelta(v, error) && any;
-        }
-        if (h != 0) {
-            any = MouseInjector::scrollHorizontalDelta(h, error) && any;
-        }
-        return any;
-    }
-
-    bool scrollBy(int dx, int dy, QString* error)
-    {
-        if (dx == 0 && dy == 0) {
-            return true;
-        }
-
-        HWND hwnd = windowUnderCursor();
         const double scale = dpiScale(hwnd);
-        fracX += double(dx) * scale;
-        fracY += double(dy) * scale;
-        int px = takeWhole(fracX);
-        int py = takeWhole(fracY);
-        if (px == 0 && py == 0) {
+        int dx = takeDevicePx(remX, scale);
+        int dy = takeDevicePx(remY, scale);
+        if (dx == 0 && dy == 0) {
             return true;
         }
-
-        int rx = px;
-        int ry = py;
         if (hwnd) {
-            nativeScroll(hwnd, &rx, &ry);
-            if (rx == 0 && ry == 0) {
+            drainPixelBars(hwnd, &dx, &dy);
+            if (dx == 0 && dy == 0) {
                 return true;
             }
-            if (!usesHighResWheel(hwnd)) {
-                uiaScroll(hwnd, &rx, &ry);
-                if (rx == 0 && ry == 0) {
-                    return true;
-                }
+            drainUia(hwnd, &dx, &dy);
+            if (dx == 0 && dy == 0) {
+                return true;
             }
         }
-        return wheelLeftover(rx, ry, scale, error);
+        putDevicePx(remX, dx, scale);
+        putDevicePx(remY, dy, scale);
+        return drainWheel(error);
+    }
+
+    bool scrollBy(double dx, double dy, QString* error)
+    {
+        if (dx == 0.0 && dy == 0.0) {
+            return true;
+        }
+        remX += dx;
+        remY += dy;
+
+        const Target t = resolveTarget(windowUnderCursor());
+        switch (t.kind) {
+        case ScrollKind::HighResWheel:
+            return drainWheel(error);
+        case ScrollKind::Scintilla:
+            return drainScintilla(t.hwnd);
+        case ScrollKind::ListView:
+            return drainListView(t.hwnd);
+        case ScrollKind::Fallback:
+            break;
+        }
+        return drainFallback(t.hwnd, error);
     }
 
     void lift()
@@ -564,10 +697,8 @@ struct PixelScroller::Impl {
         lift();
         clearUiaElement();
         uia.noPatternHwnd = nullptr;
-        fracX = 0.0;
-        fracY = 0.0;
-        wheelFracV = 0.0;
-        wheelFracH = 0.0;
+        remX = 0.0;
+        remY = 0.0;
     }
 };
 
@@ -578,7 +709,7 @@ PixelScroller::PixelScroller()
 
 PixelScroller::~PixelScroller() = default;
 
-bool PixelScroller::scrollBy(int dx, int dy, QString* error)
+bool PixelScroller::scrollBy(double dx, double dy, QString* error)
 {
     return d->scrollBy(dx, dy, error);
 }
@@ -604,7 +735,7 @@ PixelScroller::PixelScroller()
 
 PixelScroller::~PixelScroller() = default;
 
-bool PixelScroller::scrollBy(int, int, QString* error)
+bool PixelScroller::scrollBy(double, double, QString* error)
 {
     if (error) {
         *error = QStringLiteral("Pixel scroll only supported on Windows");
