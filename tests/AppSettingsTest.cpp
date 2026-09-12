@@ -82,6 +82,8 @@ void AppSettingsTest::factoryUsesDomainConstants()
     QCOMPARE(s.comboOuterRadiusPx, ComboMouseHit::kDefaultOuterRadiusPx);
     QCOMPARE(s.comboInnerColor, AppSettings::colorToHex(ComboMouseHit::kDefaultInnerFill));
     QCOMPARE(s.comboOuterColor, AppSettings::colorToHex(ComboMouseHit::kDefaultOuterFill));
+    QCOMPARE(ComboMouseHit::kDefaultInnerFill.alpha(), qRound(0.20 * 255));
+    QCOMPARE(ComboMouseHit::kDefaultOuterFill.alpha(), qRound(0.60 * 255));
     QCOMPARE(s.magFollowProfile, GazeFollowProfile::Sticky);
     QCOMPARE(s.ltsIndicatorStyle, LtsIndicator::Filled);
     QCOMPARE(s.ltsScrollMode, LtsScrollMode::Both);
@@ -105,7 +107,12 @@ void AppSettingsTest::factoryUsesDomainConstants()
     QCOMPARE(s.progressColor, QStringLiteral("#99FF473D"));
     QCOMPARE(s.progressFillColor, QStringLiteral("#99FF473D"));
     QCOMPARE(s.hoverColor, QStringLiteral("#99FF473D"));
-    QCOMPARE(s.hoverBorderWeight, 2);
+    QCOMPARE(s.hoverBorderWeight, 4);
+    QCOMPARE(s.flashMs, 60);
+    QCOMPARE(s.pickWindowRound, false);
+    QCOMPARE(s.ltsDeadzonePx, 80);
+    QCOMPARE(s.ltsFalloffPx, 300);
+    QCOMPARE(s.ltsAccelPerSec, 0.5);
     QVERIFY(!s.hoverCustom);
     QVERIFY(!s.flashCustom);
     QCOMPARE(s.resolvedHoverBorder(), s.colorKey(QStringLiteral("progressColor")));

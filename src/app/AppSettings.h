@@ -51,7 +51,7 @@ struct AppSettings {
     /// Grow the static zoom window to fill the monitor's short axis.
     bool mouseMoveMagPickFullScreen = false;
     /// Inscribe the static zoom window in a circle (else a square).
-    bool pickWindowRound = true;
+    bool pickWindowRound = false;
     /// Remember a desktop dwell and immediately magnify that point when Move-to arms.
     bool mouseMoveForesight = false;
     /// Hold gaze this long (ms) to store a foresight point.
@@ -71,7 +71,7 @@ struct AppSettings {
     QString progressFillColor = QStringLiteral("#99FF473D");
     /// Hover outline while gazing at a cell. Custom off uses progressColor.
     QString hoverColor = QStringLiteral("#99FF473D");
-    int hoverBorderWeight = 2;
+    int hoverBorderWeight = 4;
     bool hoverCustom = false;
     /// PickStyle flags: first dwell (region) and final click/move dwell.
     int magPickStyle = 1;   // Cursor
@@ -81,7 +81,7 @@ struct AppSettings {
     /// Opacity percent (0–100) when flashCustom is off.
     int flashForegroundOpacity = 60;
     QString flashColor = QStringLiteral("#FFFFFF");
-    int flashMs = 140;
+    int flashMs = 60;
 
     // --- Live lens (assistant magnifier; not used by pre-click / foresight) ---
     double magZoom = 2.0;
@@ -91,11 +91,11 @@ struct AppSettings {
     int pickWindowPx = 600;
 
     // --- Look-to-Scroll ---
-    int ltsDeadzonePx = 110;
-    int ltsFalloffPx = 360;
+    int ltsDeadzonePx = 80;
+    int ltsFalloffPx = 300;
     double ltsMaxNotchesPerSec = 5.0;
     /// Scroll rate grows by this factor each second gaze stays outside deadzone.
-    double ltsAccelPerSec = 0.45;
+    double ltsAccelPerSec = 0.5;
     int ltsCenterDwellMs = 700;
     LtsIndicator ltsIndicatorStyle = LtsIndicator::Filled;
     /// Gaze-scroll axes: vertical, horizontal, or both.

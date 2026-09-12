@@ -191,8 +191,8 @@ private:
         }
     }
 
-    int m_deadzone = 110;
-    int m_falloff = 360;
+    int m_deadzone = 80;
+    int m_falloff = 300;
     int m_box = 260;
     double m_hubR = 27.0;
     double m_activity = 0.0;

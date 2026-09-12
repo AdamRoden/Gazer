@@ -28,8 +28,8 @@ inline constexpr double kRingOuterPx = double(kDefaultSharedRadiusPx);
 inline constexpr double kPieOuterPx = double(kDefaultOuterRadiusPx);
 inline constexpr double kMinInnerThicknessPx = 20.0;
 inline constexpr double kMinOuterThicknessPx = 40.0;
-inline const QColor kDefaultInnerFill{255, 196, 40, 80};
-inline const QColor kDefaultOuterFill{12, 14, 18, 210};
+inline const QColor kDefaultInnerFill{255, 196, 40, 51};  // 20%
+inline const QColor kDefaultOuterFill{12, 14, 18, 153};   // 60%
 
 /// Command ids. ComboMouse visual order is per-region in makeComboLayout.
 enum class Slice { Right = 0, Move, Cancel, Drag, Left };

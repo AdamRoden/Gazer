@@ -18,7 +18,7 @@ struct ProgressVisuals {
     bool flashCustom = false;
     int flashForegroundOpacity = 60;
     QColor flashColor = QColor(255, 255, 255);
-    int flashMs = 140;
+    int flashMs = 60;
 
     QColor hoverBorder;
     double hoverBorderWidth = 0.0;

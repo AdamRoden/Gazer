@@ -134,10 +134,10 @@ private:
     bool m_replacing = false;
     bool m_hasOrigin = false;
     QPoint m_origin;
-    int m_deadzonePx = 110;
-    int m_falloffPx = 360;
+    int m_deadzonePx = 80;
+    int m_falloffPx = 300;
     double m_maxNotchesPerSec = 5.0;
-    double m_accelPerSec = 0.45; // +45%/s outside, capped
+    double m_accelPerSec = 0.5; // +50%/s outside, capped
     double m_accelMax = 3.5;
     int m_centerDwellMs = 650;
     LtsIndicator m_indicatorStyle = LtsIndicator::Filled;
