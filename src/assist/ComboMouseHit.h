@@ -12,9 +12,6 @@ namespace ComboMouseHit {
 
 inline constexpr int kSliceCount = 5;
 inline constexpr double kSliceDeg = 360.0 / double(kSliceCount);
-inline constexpr double kCornerInnerSliceDeg = 45.0;
-inline constexpr double kCornerOuterSliceDeg = 30.0;
-inline constexpr double kCornerArcSpanDeg = 90.0;
 inline constexpr double kCornerOuterScale = 2.0;
 /// Defaults: inner drift-ring radius, shared radius, outer command-pie radius.
 inline constexpr int kMinInnerRadiusPx = 20;
@@ -268,38 +265,22 @@ inline Region initSector(Layout& L, QPointF origin, const QRectF& screen, double
     return r;
 }
 
-[[nodiscard]] inline Layout makeLayout(QPointF origin, const QRectF& screen, double deadzone,
-                                       double ringOuter, double fullPieOuter)
-{
-    Layout L;
-    initSector(L, origin, screen, deadzone, ringOuter, fullPieOuter);
-    if (L.arcSpanDeg <= kCornerArcSpanDeg + 1e-6) {
-        const double innerOuter = ringOuter + (fullPieOuter - ringOuter) * 0.5;
-        const double s = L.arcStartDeg;
-        addWedge(L, Slice::Right, ringOuter, innerOuter, s, kCornerInnerSliceDeg);
-        addWedge(L, Slice::Left, ringOuter, innerOuter, s + kCornerInnerSliceDeg,
-                 kCornerInnerSliceDeg);
-        addWedge(L, Slice::Move, innerOuter, L.pieOuter, s, kCornerOuterSliceDeg);
-        addWedge(L, Slice::Cancel, innerOuter, L.pieOuter, s + kCornerOuterSliceDeg,
-                 kCornerOuterSliceDeg);
-        addWedge(L, Slice::Drag, innerOuter, L.pieOuter, s + 2.0 * kCornerOuterSliceDeg,
-                 kCornerOuterSliceDeg);
-        return L;
-    }
-    fillClockwiseBand(L, ringOuter, L.pieOuter, L.arcStartDeg, L.arcSpanDeg);
-    return L;
-}
-
-/// ComboMouse packing: per-region fill order, doubled outer radius in corners.
-[[nodiscard]] inline Layout makeComboLayout(QPointF origin, const QRectF& screen, double deadzone,
-                                            double ringOuter, double fullPieOuter)
+[[nodiscard]] inline Layout makePackedLayout(QPointF origin, const QRectF& screen, double deadzone,
+                                             double ringOuter, double fullPieOuter,
+                                             const ComboPack packs[kRegionCount])
 {
     Layout L;
     const Region r = initSector(L, origin, screen, deadzone, ringOuter, fullPieOuter);
-    const ComboPack& pack = kComboPack[int(r)];
+    const ComboPack& pack = packs[int(r)];
     L.pieOuter = fullPieOuter * pack.outerScale;
     fillBand(L, ringOuter, L.pieOuter, pack.fillStartDeg, L.arcSpanDeg, pack.clockwise, pack.order);
     return L;
+}
+
+[[nodiscard]] inline Layout makeComboLayout(QPointF origin, const QRectF& screen, double deadzone,
+                                            double ringOuter, double fullPieOuter)
+{
+    return makePackedLayout(origin, screen, deadzone, ringOuter, fullPieOuter, kComboPack);
 }
 
 [[nodiscard]] inline QRect overlayRect(QPointF origin, const Layout& L, const QRectF& screen)

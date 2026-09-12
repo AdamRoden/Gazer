@@ -33,9 +33,10 @@ inline constexpr double kLtsPlusDismissGraceSec = 0.18;
 /// accel). Once engaged, speed is at least `kLtsMinEngagedPxPerSec` until gaze
 /// is clearly back inside the ring (hysteresis).
 /// Dwell the hub (`kLtsHubDwellDiameterFrac` of screen height) to pause and open a
-/// ComboMouse-style pie (speed, axis mode, reset, quit; inner ring resumes).
+/// ComboMouse-style pie (speed, axis mode, reset, quit). Reset re-places the origin
+/// and is the only pie path back to scrolling; the hole is not an activator.
 /// Looking away closes that pie and shows the overlay hub with a pause icon; looking
-/// at the hub opens the pie again (resume dwell starts on the inner ring).
+/// at the hub opens the pie again.
 /// Painted hub diameter is `kLtsHubVisualDiameterFrac` of screen height.
 class LookToScroll final : public QObject {
     Q_OBJECT
@@ -111,7 +112,7 @@ private:
     void hidePlus();
     void pinCursorToOrigin();
     void pauseAtHub();
-    void openPlus(bool leaveGate);
+    void openPlus();
     void closePlus();
     void updatePausedMenu(const GazePoint& point);
     void pushPlusOverlay(const ComboMouseHit::Layout& L, ComboMouseHit::Band band,
@@ -151,7 +152,6 @@ private:
     double m_outsideSec = 0.0;
     double m_centerProgress = 0.0;
     double m_lookAwaySec = 0.0;
-    QString m_plusGateId;
 
     double m_innerPx = ComboMouseHit::kHoleRadiusPx;
     double m_sharedPx = ComboMouseHit::kRingOuterPx;

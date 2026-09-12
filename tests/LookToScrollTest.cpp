@@ -15,6 +15,7 @@ private slots:
     void falloffEaseAndHysteresis();
     void scrollModeCycle();
     void pieActionsFromHit();
+    void ltsRegionOrders();
 };
 
 void LookToScrollTest::speedLadder()
@@ -95,9 +96,9 @@ void LookToScrollTest::pieActionsFromHit()
     const auto topLeft = at(-70, -70);
     QCOMPARE(ltsMenuActionFromHit(topLeft.band, topLeft.slice), LtsMenuAction::Slower);
     QCOMPARE(ltsMenuActionFromHit(ComboMouseHit::Band::Deadzone, ComboMouseHit::Slice::Right),
-             LtsMenuAction::Resume);
+             LtsMenuAction::None);
     QCOMPARE(ltsMenuActionFromHit(ComboMouseHit::Band::Drift, ComboMouseHit::Slice::Right),
-             LtsMenuAction::Resume);
+             LtsMenuAction::None);
     QCOMPARE(ltsMenuActionFromHit(ComboMouseHit::Band::None, ComboMouseHit::Slice::Right),
              LtsMenuAction::None);
     QCOMPARE(QLatin1String(ltsMenuActionId(LtsMenuAction::Resume)), QLatin1String("resume"));
@@ -119,6 +120,106 @@ void LookToScrollTest::pieActionsFromHit()
     QVERIFY(cycle >= 0 && quit >= 0);
     QCOMPARE(QLatin1String(icons[cycle]), QLatin1String("lookToScrollHorizontal"));
     QCOMPARE(QLatin1String(icons[quit]), QLatin1String("close"));
+}
+
+void LookToScrollTest::ltsRegionOrders()
+{
+    const QRectF screen(0, 0, 1920, 1080);
+    const double dead = 60;
+    const double ring = 120;
+    const double pie = 200;
+    using S = ComboMouseHit::Slice;
+    using A = LtsMenuAction;
+    struct Case {
+        QPointF o;
+        double fillStart;
+        bool clockwise;
+        double span;
+        double outer;
+        S order[ComboMouseHit::kSliceCount];
+        A actions[ComboMouseHit::kSliceCount];
+    };
+    const Case cases[] = {
+        {{960, 540},
+         0.0,
+         true,
+         360.0,
+         pie,
+         {S::Right, S::Move, S::Cancel, S::Drag, S::Left},
+         {A::Faster, A::Reset, A::Quit, A::CycleMode, A::Slower}},
+        {{0, 540},
+         0.0,
+         true,
+         180.0,
+         pie,
+         {S::Left, S::Right, S::Drag, S::Move, S::Cancel},
+         {A::Slower, A::Faster, A::CycleMode, A::Reset, A::Quit}},
+        {{1919, 540},
+         180.0,
+         true,
+         180.0,
+         pie,
+         {S::Cancel, S::Move, S::Left, S::Right, S::Drag},
+         {A::Quit, A::Reset, A::Slower, A::Faster, A::CycleMode}},
+        {{960, 0},
+         90.0,
+         true,
+         180.0,
+         pie,
+         {S::Cancel, S::Move, S::Drag, S::Right, S::Left},
+         {A::Quit, A::Reset, A::CycleMode, A::Faster, A::Slower}},
+        {{960, 1079},
+         270.0,
+         true,
+         180.0,
+         pie,
+         {S::Left, S::Right, S::Drag, S::Move, S::Cancel},
+         {A::Slower, A::Faster, A::CycleMode, A::Reset, A::Quit}},
+        {{0, 0},
+         90.0,
+         true,
+         90.0,
+         pie * 2.0,
+         {S::Cancel, S::Move, S::Drag, S::Right, S::Left},
+         {A::Quit, A::Reset, A::CycleMode, A::Faster, A::Slower}},
+        {{1919, 0},
+         180.0,
+         true,
+         90.0,
+         pie * 2.0,
+         {S::Cancel, S::Move, S::Drag, S::Right, S::Left},
+         {A::Quit, A::Reset, A::CycleMode, A::Faster, A::Slower}},
+        {{1919, 1079},
+         270.0,
+         true,
+         90.0,
+         pie * 2.0,
+         {S::Left, S::Right, S::Drag, S::Move, S::Cancel},
+         {A::Slower, A::Faster, A::CycleMode, A::Reset, A::Quit}},
+        {{0, 1079},
+         0.0,
+         true,
+         90.0,
+         pie * 2.0,
+         {S::Left, S::Right, S::Drag, S::Move, S::Cancel},
+         {A::Slower, A::Faster, A::CycleMode, A::Reset, A::Quit}},
+    };
+    for (const auto& c : cases) {
+        const auto L = makeLtsLayout(c.o, screen, dead, ring, pie);
+        QCOMPARE(L.arcSpanDeg, c.span);
+        QCOMPARE(L.pieOuter, c.outer);
+        QCOMPARE(L.wedgeCount, ComboMouseHit::kSliceCount);
+        const double sliceDeg = c.span / double(ComboMouseHit::kSliceCount);
+        const double r = (L.ringOuter + L.pieOuter) * 0.5;
+        for (int i = 0; i < ComboMouseHit::kSliceCount; ++i) {
+            const double cw = c.clockwise ? c.fillStart + (double(i) + 0.5) * sliceDeg
+                                          : c.fillStart - (double(i) + 0.5) * sliceDeg;
+            const auto h = ComboMouseHit::hit(ComboMouseHit::pointOnRay(c.o, cw, r), c.o, L);
+            QCOMPARE(h.band, ComboMouseHit::Band::Slice);
+            QCOMPARE(h.slice, c.order[i]);
+            QCOMPARE(ltsMenuActionFromHit(h.band, h.slice), c.actions[i]);
+        }
+    }
 }
 
 QObject* createLookToScrollTest()

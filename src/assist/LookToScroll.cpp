@@ -257,7 +257,6 @@ void LookToScroll::setEnabled(bool enabled)
     m_scrollEngaged = false;
     m_plusOpen = false;
     m_lookAwaySec = 0.0;
-    m_plusGateId.clear();
     m_plusDwell.leave();
     m_invalidGrace.reset();
     m_scroller.reset();
@@ -380,7 +379,7 @@ void LookToScroll::pauseAtHub()
     if (!m_scrollSuspended) {
         setScrollSuspended(true);
     }
-    openPlus(true);
+    openPlus();
 }
 
 void LookToScroll::setScrollSuspended(bool suspended)
@@ -523,13 +522,12 @@ void LookToScroll::showPausedHub()
     m_overlay->placeCenter(originPoint());
 }
 
-void LookToScroll::openPlus(bool leaveGate)
+void LookToScroll::openPlus()
 {
     m_lookAwaySec = 0.0;
     hideOverlay();
     m_plusOpen = true;
     m_plusDwell.leave();
-    m_plusGateId = leaveGate ? QLatin1String(ltsMenuActionId(LtsMenuAction::Resume)) : QString();
     const ComboMouseHit::Layout L = plusLayout();
     m_plusLayout = L;
     m_plusBand = ComboMouseHit::Band::Deadzone;
@@ -544,7 +542,6 @@ void LookToScroll::closePlus()
     }
     m_plusOpen = false;
     m_lookAwaySec = 0.0;
-    m_plusGateId.clear();
     hidePlus();
 }
 
@@ -555,8 +552,7 @@ QRectF LookToScroll::plusScreenRect() const
 
 ComboMouseHit::Layout LookToScroll::plusLayout() const
 {
-    return ComboMouseHit::makeLayout(QPointF(originPoint()), plusScreenRect(), m_innerPx,
-                                     m_sharedPx, m_outerPx);
+    return makeLtsLayout(QPointF(originPoint()), plusScreenRect(), m_innerPx, m_sharedPx, m_outerPx);
 }
 
 void LookToScroll::pushPlusOverlay(const ComboMouseHit::Layout& L, ComboMouseHit::Band band,
@@ -579,8 +575,6 @@ void LookToScroll::pushPlusOverlay(const ComboMouseHit::Layout& L, ComboMouseHit
     a.outerColor = m_outerColor;
     fillLtsSliceIcons(m_scrollMode, a.sliceIcons);
     a.hubLabel = QString::number(int(qRound(m_maxNotchesPerSec)));
-    a.innerActive =
-        band == ComboMouseHit::Band::Deadzone || band == ComboMouseHit::Band::Drift;
     m_plus->setAppearance(a);
     m_plus->place(originPoint(), plusScreenRect());
 }
@@ -673,14 +667,6 @@ void LookToScroll::updatePausedMenu(const GazePoint& point)
             pinCursorToOrigin();
             const auto h = ComboMouseHit::hit(gp.toPointF(), QPointF(originPoint()), L);
             const QString id = plusHitId(h.band, h.slice);
-            if (!m_plusGateId.isEmpty()) {
-                if (id == m_plusGateId) {
-                    m_plusDwell.leave();
-                    pushPlusOverlay(L, h.band, h.slice, 0.0);
-                    return;
-                }
-                m_plusGateId.clear();
-            }
             m_plusDwell.onGazeSample(gp, id);
             if (!m_plusOpen) {
                 return;
@@ -702,7 +688,7 @@ void LookToScroll::updatePausedMenu(const GazePoint& point)
         const QPointF delta = point.toPointF() - QPointF(originPoint());
         const double dist = qSqrt(delta.x() * delta.x() + delta.y() * delta.y());
         if (dist <= hubDwellRadiusPx()) {
-            openPlus(false);
+            openPlus();
             return;
         }
     }
