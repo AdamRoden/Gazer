@@ -51,12 +51,6 @@
     ],
     "speakPhrase": [
       { "type": "keyCombo", "keys": ["Control", "Enter"] }
-    ],
-    "windowMid": [
-      { "type": "keyCombo", "keys": ["Control", "Alt", "U"] }
-    ],
-    "windowMax": [
-      { "type": "keyCombo", "keys": ["Control", "Alt", "W"] }
     ]
   }
 }

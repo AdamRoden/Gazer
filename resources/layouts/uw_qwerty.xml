@@ -1,7 +1,7 @@
 <Page id="uw_qwerty" name="Qwerty" radius="0">
-  <Dwell id="vert1" scanGrace="200" activation="200,600"/>
-  <Dwell id="vert2" scanGrace="100" activation="100,600"/>
-  <Grid id="board" rows="4" columns="160" anchor="TopLeft" offset="500,754" size="1600,280" gap="0" margin="0">
+  <Dwell id="vert1" activation="0,600"/>
+  <Dwell id="overlapped" activation="100,600"/>
+  <Grid id="board" rows="4" columns="160" anchor="TopLeft" offset="500,740" size="1600,300" gap="0" margin="0">
     <Cell id="esc" row="0" col="0" colSpan="9" label="Esc" background="#3d4f66" foreground="#ffffff" command="escape"/>
     <Cell id="n1" row="0" col="9" colSpan="10" label="1" textStyle="key" send="1"/>
     <Cell id="n2" row="0" col="19" colSpan="10" label="2" textStyle="key" send="2"/>
@@ -68,22 +68,37 @@
     <Cell id="pgdn" row="3" col="140" colSpan="10" label="Pg Dn" background="#3d4f66" foreground="#ffffff" command="pageDown"/>
     <Cell id="enter" row="3" col="150" colSpan="10" icon="keyReturn" background="#3d4f66" foreground="#ffffff" command="enter"/>
   </Grid>
-  <Grid id="vert1" rows="6" columns="1" anchor="TopLeft" offset="2000,0" size="100,754" layers="1,2">
+  <Grid id="vert1" rows="6" columns="1" anchor="TopLeft" offset="2000,0" size="100,740" layers="1,2">
     <Cell id="more" row="0" col="0" dwell="vert1" icon="mouse" openPage="example_mouse"/>
     <Cell id="move_lclick" row="1" col="0" icon="mouseLeftClickAtGaze" dwell="vert1" activeState="mouseLeftClickAtGaze" mouseLeftClickAtGaze=""/>
     <Cell id="move_rclick" row="2" col="0" icon="mouseRightClickAtGaze" dwell="vert1" activeState="mouseRightClickAtGaze" mouseRightClickAtGaze=""/>
     <SubGrid id="edge" row="3" col="0" layers="1">
-      <Cell id="edge" row="0" col="0" icon="ArrowPointingToRight" dwell="vert1" showLayers="2"/>
+      <Cell id="edge" row="0" col="0" icon="ArrowPointingToRight" dwell="overlapped" showLayers="2"/>
     </SubGrid>
     <SubGrid id="keyboard" row="3" col="0" layers="2">
-      <Cell id="keyboard" row="0" col="0" icon="keyboardKeys" dwell="vert1" showLayers="1"/>
+      <Cell id="keyboard" row="0" col="0" icon="keyboardKeys" dwell="overlapped" showLayers="1"/>
     </SubGrid>
     <Cell id="sleep" row="4" col="0" icon="Sleep" dwell="vert1" activeState="dwellSuspend" command="toggleDwellSuspend"/>
     <Cell id="lts" row="5" col="0" icon="lookToScroll" dwell="vert1" activeState="lookToScroll" command="toggleLookToScroll"/>
   </Grid>
-  <Grid id="vert2"  rows="2" columns="1" anchor="TopLeft" offset="2000,754" size="100,280"  layers="2">
-    <Cell id="mid" row="0" col="0" icon="WindowMid" label="Mid" dwell="vert2" command="windowMid"/>
-    <Cell id="max" row="1" col="0" icon="WindowMax" label="Max" dwell="vert2">
+  <Grid id="vert2"  rows="2" columns="1" anchor="TopLeft" offset="2000,740" size="100,300"  layers="2">
+    <Cell id="mid" row="0" col="0" icon="WindowMid" label="Mid" dwell="vert1">
+      <AHK><![CDATA[
+      {
+      try { 
+      Title := WinGetTitle("A")
+      xPos := 494
+      yPos := -6
+      v_nWidthN := 1514
+      v_nHeightN := 756
+      WinRestore Title 
+      WinMove xPos, yPos, v_nWidthN, v_nHeightN, Title
+      } catch { 
+      }
+      }
+      ]]></AHK>
+    </Cell>
+    <Cell id="max" row="1" col="0" icon="WindowMax" label="Max" dwell="vert1">
     <AHK><![CDATA[
     {
     try { 
