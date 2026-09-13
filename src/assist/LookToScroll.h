@@ -29,9 +29,10 @@ inline constexpr double kLtsHubDwellDiameterFrac = 0.08;
 /// Gaze must leave the plus this long before it collapses to the overlay hub.
 inline constexpr double kLtsPlusDismissGraceSec = 0.18;
 
-/// Circular deadzone around the cursor. Gaze outside scrolls (quadratic ease +
-/// accel). Once engaged, speed is at least `kLtsMinEngagedPxPerSec` until gaze
-/// is clearly back inside the ring (hysteresis).
+/// Circular deadzone around the cursor. Gaze outside scrolls (linear falloff +
+/// per-axis accel). Vertical accel resets when |dy| is ~0, horizontal when |dx|
+/// is ~0 — not when gaze re-enters the ring. Once engaged, speed is at least
+/// `kLtsMinEngagedPxPerSec` until gaze is clearly back inside the ring (hysteresis).
 /// Dwell the hub (`kLtsHubDwellDiameterFrac` of screen height) to pause and open a
 /// ComboMouse-style pie (speed, axis mode, reset, quit). Reset re-places the origin
 /// and is the only pie path back to scrolling; the hole is not an activator.
@@ -62,7 +63,7 @@ public:
     void setDeadzonePx(int px);
     void setFalloffPx(int px);
     void setMaxNotchesPerSec(double n);
-    /// Extra rate multiplier per second of continuous outside-deadzone gaze.
+    /// Extra rate multiplier per second of continuous gaze on that axis.
     void setAccelPerSec(double a);
     void setCenterDwellMs(int ms);
     void setAccent(const QColor& c);
@@ -136,20 +137,18 @@ private:
     QPoint m_origin;
     int m_deadzonePx = 80;
     int m_falloffPx = 300;
-    double m_maxNotchesPerSec = 5.0;
-    double m_accelPerSec = 0.5; // +50%/s outside, capped
-    double m_accelMax = 3.5;
+    double m_maxNotchesPerSec = 2.0;
+    double m_accelPerSec = 5.0; // +500%/s while that axis is contributing
     int m_centerDwellMs = 650;
     LtsIndicator m_indicatorStyle = LtsIndicator::Filled;
     LtsScrollMode m_scrollMode = LtsScrollMode::Both;
-    int m_intervalMs = 16;
 
     QElapsedTimer m_clock;
-    qint64 m_lastTickMs = -1;    // scroll emission gate
-    qint64 m_lastSampleMs = -1;  // center-dwell / decay dt (every sample)
+    qint64 m_lastSampleMs = -1;  // center-dwell / scroll dt (every sample)
     InvalidGazeGrace m_invalidGrace;
-    /// Continuous time gaze has been outside the deadzone (for acceleration).
-    double m_outsideSec = 0.0;
+    /// Accel time per axis. Resets when that axis offset goes to ~0.
+    double m_accelSecV = 0.0;
+    double m_accelSecH = 0.0;
     double m_centerProgress = 0.0;
     double m_lookAwaySec = 0.0;
 

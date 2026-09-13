@@ -248,9 +248,9 @@ void LookToScroll::setEnabled(bool enabled)
         return;
     }
     m_enabled = enabled;
-    m_lastTickMs = -1;
     m_lastSampleMs = -1;
-    m_outsideSec = 0.0;
+    m_accelSecV = 0.0;
+    m_accelSecH = 0.0;
     m_centerProgress = 0.0;
     m_replacing = false;
     m_scrollSuspended = false;
@@ -278,6 +278,8 @@ void LookToScroll::setScrollOrigin(const QPoint& pos)
 {
     m_origin = pos;
     m_hasOrigin = true;
+    m_accelSecV = 0.0;
+    m_accelSecH = 0.0;
     m_scroller.reset();
     pinCursorToOrigin();
 }
@@ -388,7 +390,8 @@ void LookToScroll::setScrollSuspended(bool suspended)
         return;
     }
     m_scrollSuspended = suspended;
-    m_outsideSec = 0.0;
+    m_accelSecV = 0.0;
+    m_accelSecH = 0.0;
     m_centerProgress = 0.0;
     m_scrollEngaged = false;
     m_invalidGrace.reset();
@@ -479,7 +482,7 @@ void LookToScroll::setDwellSequence(const QVector<int>& ms)
 
 void LookToScroll::setAccelPerSec(double a)
 {
-    m_accelPerSec = qBound(0.0, a, 2.0);
+    m_accelPerSec = qBound(1.0, a, 10.0);
 }
 
 void LookToScroll::setCenterDwellMs(int ms)
@@ -742,7 +745,6 @@ void LookToScroll::onGaze(const GazePoint& point, bool pauseInput)
         m_scroller.lift();
         hideOverlay();
         m_centerProgress = 0.0;
-        m_outsideSec = 0.0;
         return;
     }
 
@@ -754,16 +756,25 @@ void LookToScroll::onGaze(const GazePoint& point, bool pauseInput)
     const double dirX = dist > 1.0 ? delta.x() / dist : 0.0;
     const double dirY = dist > 1.0 ? delta.y() / dist : 0.0;
     const double hubR = hubDwellRadiusPx();
+    const bool vActive =
+        m_scrollMode != LtsScrollMode::Horizontal && ltsAxisAccelActive(delta.y(), m_deadzonePx);
+    const bool hActive =
+        m_scrollMode != LtsScrollMode::Vertical && ltsAxisAccelActive(delta.x(), m_deadzonePx);
 
     const double sampleDt =
         m_lastSampleMs < 0 ? 0.016
                            : qBound(0.004, (now - m_lastSampleMs) / 1000.0, 0.05);
     m_lastSampleMs = now;
 
-    if (dist <= hubR) {
-        m_scrollEngaged = false;
+    const bool inHub = dist <= hubR;
+    m_scrollEngaged =
+        !inHub && ltsKeepScrolling(m_scrollEngaged, dist, m_deadzonePx) && dist >= 1.0;
+    const bool grow = m_scrollEngaged && dist > m_deadzonePx;
+    stepLtsAxisAccelSec(m_accelSecV, vActive, grow, grow ? sampleDt : 0.0);
+    stepLtsAxisAccelSec(m_accelSecH, hActive, grow, grow ? sampleDt : 0.0);
+
+    if (inHub) {
         m_scroller.lift();
-        m_outsideSec = 0.0;
         m_centerProgress =
             qBound(0.0, m_centerProgress + sampleDt * 1000.0 / double(m_centerDwellMs), 1.0);
         updateOverlay(origin, dist, dirX, dirY, false, m_centerProgress);
@@ -779,39 +790,24 @@ void LookToScroll::onGaze(const GazePoint& point, bool pauseInput)
         m_centerProgress = 0.0;
     }
 
-    m_scrollEngaged = ltsKeepScrolling(m_scrollEngaged, dist, m_deadzonePx) && dist >= 1.0;
     if (!m_scrollEngaged) {
         m_scroller.lift();
-        m_outsideSec = 0.0;
         updateOverlay(origin, dist, dirX, dirY, false, m_centerProgress);
         return;
     }
 
     updateOverlay(origin, dist, dirX, dirY, true, m_centerProgress);
 
-    if (m_lastTickMs >= 0 && (now - m_lastTickMs) < m_intervalMs) {
-        return;
-    }
-    const double tickDt =
-        m_lastTickMs < 0 ? (m_intervalMs / 1000.0)
-                         : qBound(0.008, (now - m_lastTickMs) / 1000.0, 0.08);
-    m_lastTickMs = now;
-    if (dist > m_deadzonePx) {
-        m_outsideSec += tickDt;
-    }
-
     const double tLin = qBound(0.0, (dist - m_deadzonePx) / double(m_falloffPx), 1.0);
     const double t = easeLtsFalloff(tLin);
-    const double accel = qMin(m_accelMax, 1.0 + m_accelPerSec * m_outsideSec);
+    const double base = m_maxNotchesPerSec * PixelScroller::kPixelsPerNotch * t;
+    const double rateV = qMax(kLtsMinEngagedPxPerSec, base * (1.0 + m_accelPerSec * m_accelSecV));
+    const double rateH = qMax(kLtsMinEngagedPxPerSec, base * (1.0 + m_accelPerSec * m_accelSecH));
 
     const double nx = delta.x() / dist;
     const double ny = delta.y() / dist;
-    double rate = m_maxNotchesPerSec * PixelScroller::kPixelsPerNotch * t * accel;
-    if (rate < kLtsMinEngagedPxPerSec) {
-        rate = kLtsMinEngagedPxPerSec;
-    }
-    double dv = (-ny) * rate * tickDt;
-    double dh = (nx)*rate * tickDt;
+    double dv = (-ny) * rateV * sampleDt;
+    double dh = (nx)*rateH * sampleDt;
     applyLtsScrollMode(m_scrollMode, dv, dh);
 
     if (qAbs(dv) < 1e-6 && qAbs(dh) < 1e-6) {

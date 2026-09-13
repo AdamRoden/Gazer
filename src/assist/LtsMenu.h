@@ -28,7 +28,7 @@ inline constexpr LtsMenuAction kLtsSliceActions[ComboMouseHit::kSliceCount] = {
 
 inline constexpr const char* kLtsSliceIcons[ComboMouseHit::kSliceCount] = {
     "LookToScrollSpeedFast",
-    "mouseMove",
+    "cycle",
     "close",
     "",
     "LookToScrollSpeedSlow",

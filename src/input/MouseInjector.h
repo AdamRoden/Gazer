@@ -32,11 +32,16 @@ public:
     [[nodiscard]] static bool scrollHorizontal(int notches, QString* error = nullptr);
 
     /// High-resolution vertical wheel in raw mouseData units (WHEEL_DELTA = 120 per notch).
-    /// Fractional values give smoother continuous scroll than whole notches.
+    /// Punches the board host so a key-sourced gesture reaches the window under the cursor.
     [[nodiscard]] static bool scrollDelta(int wheelDelta, QString* error = nullptr);
 
     /// High-resolution horizontal wheel in raw mouseData units.
     [[nodiscard]] static bool scrollHorizontalDelta(int wheelDelta, QString* error = nullptr);
+
+    /// SendInput wheel in raw mouseData units. No OverlayInputPassThrough —
+    /// the dummy MOUSEEVENTF_MOVE used to flush hit-testing cancels Chromium
+    /// scroll latching on nested pages.
+    [[nodiscard]] static bool scrollWheelRaw(int horizontal, int vertical, QString* error = nullptr);
 };
 
 } // namespace gazer

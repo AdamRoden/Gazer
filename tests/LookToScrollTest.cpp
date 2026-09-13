@@ -2,6 +2,7 @@
 #include "assist/LtsMenu.h"
 #include "assist/LtsScrollMode.h"
 #include "assist/LtsSpeed.h"
+#include "input/PixelScroller.h"
 
 #include <QtTest>
 
@@ -13,31 +14,35 @@ class LookToScrollTest final : public QObject {
 private slots:
     void speedLadder();
     void falloffEaseAndHysteresis();
+    void axisAccelReset();
     void scrollModeCycle();
     void pieActionsFromHit();
     void ltsRegionOrders();
+    void wheelLeftoverQuantize();
 };
 
 void LookToScrollTest::speedLadder()
 {
     QCOMPARE(snapLtsSpeed(4.4), 5.0);
-    QCOMPARE(snapLtsSpeed(2.0), 1.0);
-    QCOMPARE(snapLtsSpeed(4.0), 5.0);
+    QCOMPARE(snapLtsSpeed(1.4), 1.0);
+    QCOMPARE(snapLtsSpeed(1.6), 2.0);
+    QCOMPARE(snapLtsSpeed(2.0), 2.0);
     QCOMPARE(snapLtsSpeed(1.0), 1.0);
     QCOMPARE(nudgeLtsSpeed(5.0, +1), 10.0);
-    QCOMPARE(nudgeLtsSpeed(5.0, -1), 1.0);
+    QCOMPARE(nudgeLtsSpeed(5.0, -1), 2.0);
+    QCOMPARE(nudgeLtsSpeed(2.0, -1), 1.0);
     QCOMPARE(nudgeLtsSpeed(1.0, -1), 1.0);
-    QCOMPARE(nudgeLtsSpeed(40.0, +1), 40.0);
-    QCOMPARE(nudgeLtsSpeed(20.0, +1), 40.0);
-    QCOMPARE(snapLtsSpeed(50.0), 40.0);
+    QCOMPARE(nudgeLtsSpeed(20.0, +1), 20.0);
+    QCOMPARE(nudgeLtsSpeed(10.0, +1), 20.0);
+    QCOMPARE(snapLtsSpeed(50.0), 20.0);
 }
 
 void LookToScrollTest::falloffEaseAndHysteresis()
 {
     QCOMPARE(easeLtsFalloff(0.0), 0.0);
     QCOMPARE(easeLtsFalloff(1.0), 1.0);
-    QCOMPARE(easeLtsFalloff(0.5), 0.25);
-    QVERIFY(easeLtsFalloff(0.2) > 0.03);
+    QCOMPARE(easeLtsFalloff(0.5), 0.5);
+    QVERIFY(easeLtsFalloff(0.2) > 0.19);
     QCOMPARE(ltsDeadzoneHysteresisPx(110), 27);
     QCOMPARE(ltsDeadzoneHysteresisPx(20), 16);
     QCOMPARE(ltsDeadzoneHysteresisPx(400), 40);
@@ -46,6 +51,26 @@ void LookToScrollTest::falloffEaseAndHysteresis()
     QVERIFY(ltsKeepScrolling(true, 90.0, 110));
     QVERIFY(!ltsKeepScrolling(true, 83.0, 110));
     QVERIFY(kLtsMinEngagedPxPerSec >= 12.0);
+}
+
+void LookToScrollTest::axisAccelReset()
+{
+    QCOMPARE(ltsDeadzoneHysteresisPx(80), 20);
+    QVERIFY(!ltsAxisAccelActive(0.0, 80));
+    QVERIFY(!ltsAxisAccelActive(20.0, 80));
+    QVERIFY(ltsAxisAccelActive(20.1, 80));
+    QVERIFY(ltsAxisAccelActive(-21.0, 80));
+
+    double sec = 1.5;
+    stepLtsAxisAccelSec(sec, false, true, 0.016);
+    QCOMPARE(sec, 0.0);
+
+    sec = 1.5;
+    stepLtsAxisAccelSec(sec, true, false, 0.016);
+    QCOMPARE(sec, 1.5);
+
+    stepLtsAxisAccelSec(sec, true, true, 0.5);
+    QCOMPARE(sec, 2.0);
 }
 
 void LookToScrollTest::scrollModeCycle()
@@ -109,6 +134,7 @@ void LookToScrollTest::pieActionsFromHit()
     fillLtsSliceIcons(LtsScrollMode::Horizontal, icons);
     int cycle = -1;
     int quit = -1;
+    int reset = -1;
     for (int i = 0; i < ComboMouseHit::kSliceCount; ++i) {
         if (kLtsSliceActions[i] == LtsMenuAction::CycleMode) {
             cycle = i;
@@ -116,10 +142,14 @@ void LookToScrollTest::pieActionsFromHit()
         if (kLtsSliceActions[i] == LtsMenuAction::Quit) {
             quit = i;
         }
+        if (kLtsSliceActions[i] == LtsMenuAction::Reset) {
+            reset = i;
+        }
     }
-    QVERIFY(cycle >= 0 && quit >= 0);
+    QVERIFY(cycle >= 0 && quit >= 0 && reset >= 0);
     QCOMPARE(QLatin1String(icons[cycle]), QLatin1String("lookToScrollHorizontal"));
     QCOMPARE(QLatin1String(icons[quit]), QLatin1String("close"));
+    QCOMPARE(QLatin1String(icons[reset]), QLatin1String("cycle"));
 }
 
 void LookToScrollTest::ltsRegionOrders()
@@ -220,6 +250,27 @@ void LookToScrollTest::ltsRegionOrders()
             QCOMPARE(ltsMenuActionFromHit(h.band, h.slice), c.actions[i]);
         }
     }
+}
+
+void LookToScrollTest::wheelLeftoverQuantize()
+{
+    QCOMPARE(kWheelUnitsPerNotch, 120);
+    // 80 px / notch → 1.5 wheel units per px.
+    QCOMPARE(120.0 / PixelScroller::kPixelsPerNotch, 1.5);
+
+    double rem = 80.0; // exactly one notch
+    QCOMPARE(takeWheelUnits(rem, 1), 120);
+    QCOMPARE(rem, 0.0);
+
+    rem = 0.4; // 0.6 units — hold until a whole unit
+    QCOMPARE(takeWheelUnits(rem, 1), 0);
+    rem = 0.8; // 1.2 units
+    QCOMPARE(takeWheelUnits(rem, 1), 1);
+    QVERIFY(qAbs(rem - (0.2 / 1.5)) < 1e-9);
+
+    rem = -0.8;
+    QCOMPARE(takeWheelUnits(rem, 1), -1);
+    QVERIFY(qAbs(rem - (-0.2 / 1.5)) < 1e-9);
 }
 
 QObject* createLookToScrollTest()

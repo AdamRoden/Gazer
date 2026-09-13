@@ -96,6 +96,34 @@ bool clickOnce(DWORD down, DWORD up, QString* error)
     return true;
 }
 
+bool sendWheelRaw(int horizontal, int vertical, QString* error)
+{
+    INPUT in[2]{};
+    UINT n = 0;
+    if (vertical != 0) {
+        in[n].type = INPUT_MOUSE;
+        in[n].mi.dwFlags = MOUSEEVENTF_WHEEL;
+        in[n].mi.mouseData = static_cast<DWORD>(vertical);
+        ++n;
+    }
+    if (horizontal != 0) {
+        in[n].type = INPUT_MOUSE;
+        in[n].mi.dwFlags = MOUSEEVENTF_HWHEEL;
+        in[n].mi.mouseData = static_cast<DWORD>(horizontal);
+        ++n;
+    }
+    if (n == 0) {
+        return true;
+    }
+    if (!sendMouseInputs(in, n)) {
+        if (error) {
+            *error = QStringLiteral("SendInput mouse scroll failed");
+        }
+        return false;
+    }
+    return true;
+}
+
 #endif
 
 } // namespace
@@ -229,17 +257,7 @@ bool MouseInjector::scrollDelta(int wheelDelta, QString* error)
         return true;
     }
     OverlayInputPassThrough pass;
-    INPUT in{};
-    in.type = INPUT_MOUSE;
-    in.mi.dwFlags = MOUSEEVENTF_WHEEL;
-    in.mi.mouseData = static_cast<DWORD>(wheelDelta);
-    if (!sendMouseInputs(&in, 1)) {
-        if (error) {
-            *error = QStringLiteral("SendInput mouse scroll failed");
-        }
-        return false;
-    }
-    return true;
+    return sendWheelRaw(0, wheelDelta, error);
 #else
     Q_UNUSED(wheelDelta);
     if (error) {
@@ -256,19 +274,23 @@ bool MouseInjector::scrollHorizontalDelta(int wheelDelta, QString* error)
         return true;
     }
     OverlayInputPassThrough pass;
-    INPUT in{};
-    in.type = INPUT_MOUSE;
-    in.mi.dwFlags = MOUSEEVENTF_HWHEEL;
-    in.mi.mouseData = static_cast<DWORD>(wheelDelta);
-    if (!sendMouseInputs(&in, 1)) {
-        if (error) {
-            *error = QStringLiteral("SendInput horizontal scroll failed");
-        }
-        return false;
-    }
-    return true;
+    return sendWheelRaw(wheelDelta, 0, error);
 #else
     Q_UNUSED(wheelDelta);
+    if (error) {
+        *error = QStringLiteral("Mouse injection only supported on Windows");
+    }
+    return false;
+#endif
+}
+
+bool MouseInjector::scrollWheelRaw(int horizontal, int vertical, QString* error)
+{
+#ifdef Q_OS_WIN
+    return sendWheelRaw(horizontal, vertical, error);
+#else
+    Q_UNUSED(horizontal);
+    Q_UNUSED(vertical);
     if (error) {
         *error = QStringLiteral("Mouse injection only supported on Windows");
     }

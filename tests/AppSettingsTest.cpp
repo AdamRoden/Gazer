@@ -112,7 +112,7 @@ void AppSettingsTest::factoryUsesDomainConstants()
     QCOMPARE(s.pickWindowRound, false);
     QCOMPARE(s.ltsDeadzonePx, 80);
     QCOMPARE(s.ltsFalloffPx, 300);
-    QCOMPARE(s.ltsAccelPerSec, 0.5);
+    QCOMPARE(s.ltsAccelPerSec, 5.0);
     QVERIFY(!s.hoverCustom);
     QVERIFY(!s.flashCustom);
     QCOMPARE(s.resolvedHoverBorder(), s.colorKey(QStringLiteral("progressColor")));

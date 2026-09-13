@@ -201,6 +201,9 @@ bool usesHighResWheel(HWND hwnd)
     if (classIs(root, L"MozillaWindowClass") || classStartsWith(hwnd, L"Mozilla")) {
         return true;
     }
+    if (classIs(root, L"IEFrame") || classIs(hwnd, L"Internet Explorer_Server")) {
+        return true;
+    }
     return false;
 }
 
@@ -339,6 +342,8 @@ struct PixelScroller::Impl {
     UiaState uia;
     HWND thumbVert = nullptr;
     HWND thumbHorz = nullptr;
+    HWND cachedHwnd = nullptr;
+    ScrollKind cachedKind = ScrollKind::Fallback;
     double remX = 0.0;
     double remY = 0.0;
 
@@ -460,23 +465,28 @@ struct PixelScroller::Impl {
         return true;
     }
 
-    bool drainWheel(QString* error)
+    bool drainWheel(QString* error, int minAbsUnits)
     {
-        const double k = 120.0 / PixelScroller::kPixelsPerNotch;
-        double unitsV = remY * k;
-        double unitsH = remX * k;
-        const int v = takeTowardZero(unitsV);
-        const int h = takeTowardZero(unitsH);
-        remY = unitsV / k;
-        remX = unitsH / k;
-        bool any = true;
-        if (v != 0) {
-            any = MouseInjector::scrollDelta(v, error) && any;
+        const int v = takeWheelUnits(remY, minAbsUnits);
+        const int h = takeWheelUnits(remX, minAbsUnits);
+        if (v == 0 && h == 0) {
+            return true;
         }
-        if (h != 0) {
-            any = MouseInjector::scrollHorizontalDelta(h, error) && any;
+        return MouseInjector::scrollWheelRaw(h, v, error);
+    }
+
+    Target cachedTarget()
+    {
+        if (cachedHwnd && IsWindow(cachedHwnd)) {
+            Target t;
+            t.kind = cachedKind;
+            t.hwnd = cachedHwnd;
+            return t;
         }
-        return any;
+        Target t = resolveTarget(windowUnderCursor());
+        cachedHwnd = t.hwnd;
+        cachedKind = t.kind;
+        return t;
     }
 
     bool drainListView(HWND hwnd)
@@ -661,7 +671,7 @@ struct PixelScroller::Impl {
         }
         putDevicePx(remX, dx, scale);
         putDevicePx(remY, dy, scale);
-        return drainWheel(error);
+        return drainWheel(error, 1);
     }
 
     bool scrollBy(double dx, double dy, QString* error)
@@ -672,10 +682,10 @@ struct PixelScroller::Impl {
         remX += dx;
         remY += dy;
 
-        const Target t = resolveTarget(windowUnderCursor());
+        const Target t = cachedTarget();
         switch (t.kind) {
         case ScrollKind::HighResWheel:
-            return drainWheel(error);
+            return drainWheel(error, 1);
         case ScrollKind::Scintilla:
             return drainScintilla(t.hwnd);
         case ScrollKind::ListView:
@@ -697,6 +707,8 @@ struct PixelScroller::Impl {
         lift();
         clearUiaElement();
         uia.noPatternHwnd = nullptr;
+        cachedHwnd = nullptr;
+        cachedKind = ScrollKind::Fallback;
         remX = 0.0;
         remY = 0.0;
     }

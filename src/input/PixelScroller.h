@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QString>
+#include <QtGlobal>
 #include <memory>
 
 namespace gazer {
@@ -8,7 +9,7 @@ namespace gazer {
 /// Pixel-level scroll of the window under the cursor (LTS origin).
 ///
 /// Classifies the HWND once, then drains a single logical-pixel remainder:
-///   HighResWheel — Chromium / Firefox (subpixel WM_MOUSEWHEEL)
+///   HighResWheel — Chromium / Firefox / IE (SendInput leftover wheel units)
 ///   Scintilla    — SCI_LINESCROLL / SCI_SETXOFFSET (Notepad++)
 ///   ListView     — LVM_SCROLL
 ///   Fallback     — pixel scrollbar, then UIA if 1 px is ≥ 0.5% of range,
@@ -37,5 +38,26 @@ private:
     struct Impl;
     std::unique_ptr<Impl> d;
 };
+
+/// Logical px → WM_MOUSEWHEEL units (WHEEL_DELTA = 120 / notch). High-res path
+/// emits whole leftover units (OptiKey-style); remainder stays in @p remPx.
+inline constexpr int kWheelUnitsPerNotch = 120;
+
+[[nodiscard]] inline int takeWheelUnits(double& remPx, int minAbsUnits = 1)
+{
+    const int step = qMax(1, minAbsUnits);
+    const double k = double(kWheelUnitsPerNotch) / PixelScroller::kPixelsPerNotch;
+    const double units = remPx * k;
+    if (qAbs(units) < double(step)) {
+        return 0;
+    }
+    int v = int(units);
+    v -= v % step;
+    if (v == 0) {
+        return 0;
+    }
+    remPx = (units - double(v)) / k;
+    return v;
+}
 
 } // namespace gazer

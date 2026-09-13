@@ -219,8 +219,9 @@ constexpr DoubleSpec kDoubleSpecs[] = {
     {"pickZoom", "Zoom level",
      "Static magnification for magnify and foresight (1.25–8).", "",
      &AppSettings::pickZoom, 1.25, 8.0, 0.25, 2},
-    {"ltsAccelPerSec", "LTS accel/s", "Speed growth while outside deadzone.", " /s",
-     &AppSettings::ltsAccelPerSec, 0.0, 2.0, 0.05, 2},
+    {"ltsAccelPerSec", "LTS accel/s",
+     "Speed growth per second while that axis is contributing. Resets when the axis is ~0.", " /s",
+     &AppSettings::ltsAccelPerSec, 1.0, 10.0, 0.5, 1},
     {"speechSpeed", "Speech speed", "ElevenLabs and SAPI speed (0.5–2).", "",
      &AppSettings::speechSpeed, 0.5, 2.0, 0.1, 2},
     {"speechVolume", "Speech boost", "Make composer voices louder (1–5×). Applies to ElevenLabs clips.",
@@ -437,7 +438,8 @@ void AppSettings::clamp()
     layoutAutoCloseFadeMs = qBound(50, layoutAutoCloseFadeMs, 60000);
     progress.ensureDefault();
     mouseProgress.ensureDefault();
-    ltsMaxNotchesPerSec = snapLtsSpeed(qBound(1.0, ltsMaxNotchesPerSec, 40.0));
+    ltsMaxNotchesPerSec = snapLtsSpeed(
+        qBound(kLtsSpeedStops[0], ltsMaxNotchesPerSec, kLtsSpeedStops[kLtsSpeedStopCount - 1]));
 
     double inner = comboInnerRadiusPx;
     double shared = comboSharedRadiusPx;
