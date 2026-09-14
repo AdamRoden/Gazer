@@ -27,7 +27,7 @@ struct AppSettings {
     /// Rapid dwell steps. Default for Send, composer typing, modifiers, and mapping keys.
     QVector<int> rapidDwellSequence = defaultRapidDwellSequence();
     /// Time on-target before dwell progress / sequence begins (ms).
-    int scanGraceMs = 200;
+    int scanGraceMs = 100;
     int dwellGraceMs = 200;
     int mouseMoveDwellMs = 800;
     /// Dwell for the first mag-pick step (choose region to magnify).

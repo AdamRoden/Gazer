@@ -24,7 +24,7 @@ private slots:
     void dwellCustomDoesNotClobberUnmatched();
     void dwellCustomRestoresWhenLeavingPack();
     void dwellPresetsSplitStandardAndRapid();
-    void rapidFastAllowsZeroFirstStep();
+    void rapidFastFirstStepIsOneHundred();
     void parseDwellSequenceAllowsZero();
     void loadOmitsRapidKeepsDefault();
     void rapidDwellRoundTrip();
@@ -74,7 +74,7 @@ void AppSettingsTest::factoryUsesDomainConstants()
     QCOMPARE(s.mouseMoveDwellMs, pack.mouseMoveDwellMs);
     QCOMPARE(s.magPickDwellMs, pack.magPickDwellMs);
     QCOMPARE(s.dwellGraceMs, pack.blinkGraceMs);
-    QCOMPARE(s.scanGraceMs, 200);
+    QCOMPARE(s.scanGraceMs, 100);
     QCOMPARE(s.magPickStyle, PickStyle::kDefaultMagPick);
     QCOMPARE(s.mousePickStyle, PickStyle::kDefaultMousePick);
     QCOMPARE(s.comboInnerRadiusPx, ComboMouseHit::kDefaultInnerRadiusPx);
@@ -157,7 +157,7 @@ void AppSettingsTest::dwellPresetsSplitStandardAndRapid()
     QCOMPARE(s.dwellPreset(), 1);
     QCOMPARE(s.dwellSequence, (QVector<int>{800, 700, 600, 500, 400, 200}));
     QCOMPARE(s.rapidDwellSequence, AppSettings::defaultRapidDwellSequence());
-    QCOMPARE(s.scanGraceMs, 200);
+    QCOMPARE(s.scanGraceMs, 100);
 
     s.scanGraceMs = 80;
     s.setDwellPreset(0);
@@ -169,16 +169,16 @@ void AppSettingsTest::dwellPresetsSplitStandardAndRapid()
     s.setDwellPreset(2);
     QCOMPARE(s.dwellPreset(), 2);
     QCOMPARE(s.dwellSequence, (QVector<int>{400, 600, 400, 250, 150, 50}));
-    QCOMPARE(s.rapidDwellSequence, (QVector<int>{0, 600, 400, 250, 150, 50}));
+    QCOMPARE(s.rapidDwellSequence, (QVector<int>{100, 600, 400, 250, 150, 50}));
     QCOMPARE(s.scanGraceMs, 80);
 }
 
-void AppSettingsTest::rapidFastAllowsZeroFirstStep()
+void AppSettingsTest::rapidFastFirstStepIsOneHundred()
 {
     AppSettings s;
     s.setDwellPreset(2);
     s.clamp();
-    QCOMPARE(s.rapidDwellSequence.front(), 0);
+    QCOMPARE(s.rapidDwellSequence.front(), 100);
     QCOMPARE(s.dwellPreset(), 2);
 }
 
@@ -230,8 +230,8 @@ void AppSettingsTest::rapidDwellRoundTrip()
     AppSettings b;
     QVERIFY(b.loadFromFile(path));
     QCOMPARE(b.dwellPreset(), 2);
-    QCOMPARE(b.rapidDwellSequence, (QVector<int>{0, 600, 400, 250, 150, 50}));
-    QCOMPARE(b.scanGraceMs, 200);
+    QCOMPARE(b.rapidDwellSequence, (QVector<int>{100, 600, 400, 250, 150, 50}));
+    QCOMPARE(b.scanGraceMs, 100);
 }
 
 void AppSettingsTest::brandedThemeUsesFluent()

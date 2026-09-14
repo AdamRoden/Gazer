@@ -220,7 +220,7 @@ private:
     QVector<int> m_standardSequence = {800};
     QVector<int> m_rapidSequence = {400, 600, 400, 300, 200, 100};
     int m_blinkGraceMs = 180;
-    int m_scanGraceMs = 200;
+    int m_scanGraceMs = 100;
     QString m_hoverId;
     DispatchFn m_dispatch;
     DecorateFn m_decorate;

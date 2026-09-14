@@ -84,7 +84,7 @@ const AppSettings::TimingPack kDwellSlow{
 const AppSettings::TimingPack kDwellNormal = AppSettings::defaultTimingPack();
 const AppSettings::TimingPack kDwellFast{
     {400, 600, 400, 250, 150, 50},
-    {0, 600, 400, 250, 150, 50},
+    {100, 600, 400, 250, 150, 50},
     400,
     300,
     150,

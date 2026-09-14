@@ -30,7 +30,7 @@ Contributors and coding agents: start at [AGENTS.md](AGENTS.md). Page XML schema
 ## How dwell works
 
 1. Gaze lands on a cell or zone.
-2. **Scan grace** waits until you are stably on-target (default 200 ms; Settings → Speed → Advanced).
+2. **Scan grace** waits until you are stably on-target (default 100 ms; Settings → Speed → Advanced).
 3. **Activation** is a sequence of step times in milliseconds. Progress fills through each step. The **last** step repeats while gaze holds.
 4. The cell fires when dwell **ends** and blink grace expires (look away, or look at another cell). Blink grace **pauses** progress; look-away does not start another fill until grace expires.
 
