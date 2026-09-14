@@ -132,7 +132,8 @@ void strokeRound(QPainter& p, const QRectF& r, const PageBox& radii, const QColo
     p.drawPath(ring);
 }
 
-void paintLabel(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeColors& theme)
+void paintLabel(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeColors& theme,
+                const QColor& canvas)
 {
     const QString family = segoeFamily();
     const QString ts = t.textStyle.toLower();
@@ -167,9 +168,9 @@ void paintLabel(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeCo
         titlePx = 24;
     }
 
-    const std::optional<QColor> authoredFg = theme.resolveToken(t.chrome.foreground.token);
-    QColor titleFg = authoredFg.value_or(theme.text);
-    if (ts == QLatin1String("caption") && !authoredFg) {
+    const QColor fill = theme.resolveFill(t.chrome.background.token, canvas, false, false);
+    QColor titleFg = theme.readableForeground(fill, t.chrome.foreground.token, canvas);
+    if (ts == QLatin1String("caption") && t.chrome.foreground.token.trimmed().isEmpty()) {
         titleFg = theme.textSecondary;
     }
     if (t.caption.isEmpty()) {
@@ -202,22 +203,21 @@ void paintLabel(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeCo
 }
 
 void paintTab(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeColors& theme,
-              bool hovered, bool selected, double progress)
+              const QColor& canvas, bool hovered, bool selected, double progress)
 {
     const double radius = qMax(8.0, t.chrome.resolvedRadius().first());
     const QRectF pill = r.adjusted(4, 4, -4, 6);
-    if (selected) {
-        QColor fill = theme.cellActive.isValid() ? theme.cellActive : theme.bgSurfaceActive;
-        if (!fill.isValid()) {
-            fill = theme.cellHover;
+    const QColor fill =
+        theme.resolveFill(t.chrome.background.token, canvas, hovered && !selected, selected);
+    if (selected || hovered) {
+        QColor painted = fill;
+        if (!selected) {
+            painted.setAlpha(qBound(24, painted.alpha(), 80));
         }
-        fillRound(p, pill, radius, fill);
-    } else if (hovered) {
-        QColor fill = theme.bgSurfaceHover.isValid() ? theme.bgSurfaceHover : theme.cellHover;
-        fill.setAlpha(qBound(24, fill.alpha(), 80));
-        fillRound(p, pill, radius, fill);
+        fillRound(p, pill, radius, painted);
     }
-    const QColor fg = selected ? theme.text : theme.textSecondary;
+    const QColor fg = selected ? theme.readableForeground(fill, t.chrome.foreground.token, canvas)
+                               : theme.textSecondary;
     const QRectF content = r.adjusted(8, 4, -8, -12);
     if (!t.icon.isEmpty()) {
         paintIconAndText(p, t, content, fg, theme);
@@ -384,49 +384,32 @@ void paintIconAndText(QPainter& p, const PageTarget& t, const QRectF& r, const Q
     }
 }
 
-QColor opaqueFill(const QColor& c, const QColor& fallback)
-{
-    QColor out = (c.isValid() && c.alpha() > 0) ? c : fallback;
-    if (!out.isValid() || out.alpha() <= 0) {
-        out = QColor(10, 10, 11);
-    }
-    out.setAlpha(255);
-    return out;
-}
-
 void paintSurface(QPainter& p, const QRectF& r, const PageChrome& chrome, const ThemeColors& theme,
-                  GlassBackdrop* glass, bool grid, bool hovered, bool active, bool interactive)
+                  GlassBackdrop* glass, bool grid, bool hovered, bool active, bool interactive,
+                  const QColor& canvas)
 {
     if (r.isEmpty()) {
         return;
     }
     const PageBox radii = chrome.resolvedRadius();
-    const QColor themeBase = opaqueFill(grid ? theme.bgMain : theme.cellBg,
-                                        grid ? QColor(10, 10, 11) : QColor(26, 27, 28));
-    const std::optional<QColor> fillColor = theme.resolveToken(chrome.background.token);
-    const std::optional<QColor> borderColor = theme.resolveToken(chrome.borderColor.token);
+    const std::optional<QColor> fillColor = theme.resolveToken(chrome.background.token, canvas);
+    const std::optional<QColor> borderColor = theme.resolveToken(chrome.borderColor.token, canvas);
     // Authored colors keep their alpha. Unset chrome still uses an opaque theme fill
     // so a board without a background stays a solid overlay.
     const bool authoredFill =
         fillColor && fillColor->isValid() && fillColor->alpha() > 0;
     const bool authoredThickness = chrome.thickness.has_value();
-    QColor bg = fillColor.value_or(themeBase);
+    const bool hover = hovered && interactive;
+    QColor bg = theme.resolveFill(chrome.background.token, canvas, hover, active);
     QColor border = borderColor.value_or(theme.border);
     PageBox thickness = chrome.resolvedThickness();
 
     if (active) {
-        bg = theme.cellActive;
-        border = theme.accentHover;
+        border = theme.accentHover.isValid() ? theme.accentHover : theme.accent;
         if (thickness.first() < 1.5) {
             thickness = PageBox::all(1.5);
         }
-    } else if (hovered && interactive) {
-        if (authoredFill) {
-            bg = bg.lighter(114);
-        } else {
-            bg = theme.cellHover.isValid() ? theme.cellHover : themeBase.lighter(118);
-        }
-    } else if (!grid && !fillColor && !authoredThickness && thickness.first() <= 0.0) {
+    } else if (!grid && !authoredFill && !authoredThickness && thickness.first() <= 0.0) {
         thickness = PageBox::all(1.0);
         border = theme.border;
         border.setAlpha(qBound(28, border.alpha(), 70));
@@ -486,20 +469,21 @@ void paintChoiceRadio(QPainter& p, const QRectF& r, const ThemeColors& theme, bo
 }
 
 void paintThemeCard(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeColors& theme,
-                    GlassBackdrop* glass, bool hovered, double progress, bool active)
+                    GlassBackdrop* glass, const QColor& canvas, bool hovered, double progress,
+                    bool active)
 {
     PageChrome chrome = t.chrome;
-    const QColor window = theme.resolveToken(chrome.background.token).value_or(theme.bgMain);
-    const QColor surface = theme.resolveToken(chrome.borderColor.token)
+    const QColor window = theme.resolveToken(chrome.background.token, canvas).value_or(theme.bgMain);
+    const QColor surface = theme.resolveToken(chrome.borderColor.token, canvas)
                                .value_or(ThemeColors::mix(window, theme.text, 0.08));
-    const QColor accent = theme.resolveToken(chrome.foreground.token)
+    const QColor accent = theme.resolveToken(chrome.foreground.token, canvas)
                               .value_or(theme.accent.isValid() ? theme.accent : theme.text);
-    const QColor progressCol = theme.resolveToken(chrome.progressColor.token).value_or(accent);
+    const QColor progressCol = theme.resolveToken(chrome.progressColor.token, canvas).value_or(accent);
     if (active) {
         chrome.borderColor = accent;
         chrome.thickness = PageBox::all(qMax(2.4, chrome.resolvedThickness().first()));
     }
-    paintSurface(p, r, chrome, theme, glass, false, hovered, active, true);
+    paintSurface(p, r, chrome, theme, glass, false, hovered, active, true, canvas);
 
     const double pad = qBound(6.0, qMin(r.width(), r.height()) * 0.06, 12.0);
     const double labelH = t.label.isEmpty() ? 0.0 : qBound(18.0, r.height() * 0.22, 28.0);
@@ -557,29 +541,45 @@ void paintThemeCard(QPainter& p, const PageTarget& t, const QRectF& r, const The
 }
 
 void paintColorSwatch(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeColors& theme,
-                      bool hovered, double progress, bool active)
+                      const QColor& canvas, bool hovered, double progress, bool active,
+                      bool roundedRect)
 {
-    const QColor fill = theme.resolveToken(t.chrome.background.token).value_or(theme.accent);
+    const QColor fill = theme.resolveToken(t.chrome.background.token, canvas).value_or(theme.accent);
     if (!fill.isValid() || r.isEmpty()) {
         return;
     }
-    const double pad = qBound(4.0, qMin(r.width(), r.height()) * 0.14, 16.0);
-    const double d = qMax(8.0, qMin(r.width(), r.height()) - 2.0 * pad);
-    const QRectF c(r.center().x() - d * 0.5, r.center().y() - d * 0.5, d, d);
-    fillRound(p, c, d * 0.5, fill);
+    QRectF well;
+    double rad = 0.0;
+    ProgressShape shape = ProgressShape::Ellipse;
+    if (roundedRect) {
+        const double pad = qBound(1.5, qMin(r.width(), r.height()) * 0.06, 5.0);
+        well = r.adjusted(pad, pad, -pad, -pad);
+        rad = qBound(3.0, qMin(well.width(), well.height()) * 0.28, 10.0);
+        shape = ProgressShape::RoundedRect;
+    } else {
+        const double pad = qBound(4.0, qMin(r.width(), r.height()) * 0.14, 16.0);
+        const double d = qMax(8.0, qMin(r.width(), r.height()) - 2.0 * pad);
+        well = QRectF(r.center().x() - d * 0.5, r.center().y() - d * 0.5, d, d);
+        rad = d * 0.5;
+    }
+    if (well.isEmpty()) {
+        return;
+    }
     const QColor ink = theme.text.isValid() ? theme.text : ThemeColors::contrastOn(fill);
-    const double ringW = active ? qBound(2.4, d * 0.08, 4.0) : (hovered ? 1.6 : 1.0);
+    const double ringW = active ? qBound(2.0, rad * 0.35, 3.2) : (hovered ? 1.5 : 1.0);
     const QColor ring = active ? ink : ThemeColors::mix(fill, ink, 0.22);
-    strokeRound(p, c, d * 0.5, ring, ringW);
+    fillRound(p, well, rad, fill);
+    strokeRound(p, well, rad, ring, ringW);
     if (progress > 0.0 && t.interactive) {
         ProgressVisuals vis;
         vis.progressColor = theme.accent.isValid() ? theme.accent : ink;
-        paintProgress(p, c.adjusted(-3.0, -3.0, 3.0, 3.0), progress, vis, ProgressShape::Ellipse,
-                      PageBox::all(d * 0.5));
+        paintProgress(p, well.adjusted(-3.0, -3.0, 3.0, 3.0), progress, vis, shape,
+                      PageBox::all(rad));
     }
 }
 
-void paintToggleSwitch(QPainter& p, const QRectF& r, const ThemeColors& theme, bool on)
+void paintToggleSwitch(QPainter& p, const QRectF& r, const ThemeColors& theme, const QColor& canvas,
+                       bool on)
 {
     const double h = qBound(16.0, qMin(r.height() * 0.42, 26.0), r.width() * 0.22);
     const double w = h * 1.72;
@@ -587,23 +587,24 @@ void paintToggleSwitch(QPainter& p, const QRectF& r, const ThemeColors& theme, b
         return;
     }
     const QRectF track(r.right() - w - 10.0, r.center().y() - h * 0.5, w, h);
-    QColor fill = on ? theme.accent : (theme.bgSurfaceActive.isValid() ? theme.bgSurfaceActive
-                                                                       : theme.cellHover);
+    const QColor seed = canvas.isValid() ? canvas : theme.bgMain;
+    QColor fill = on ? theme.accent : ThemeColors::mixTone(seed, 80);
     if (!fill.isValid()) {
-        fill = QColor(80, 80, 84);
+        fill = ThemeColors::mixTone(seed, 80);
     }
     fillRound(p, track, h * 0.5, fill);
     const double d = qMax(10.0, h - 6.0);
     const double x = on ? track.right() - d - 3.0 : track.left() + 3.0;
-    QColor thumb = theme.text.isValid() ? theme.text : QColor(255, 255, 255);
-    fillRound(p, QRectF(x, track.center().y() - d * 0.5, d, d), d * 0.5, thumb);
+    fillRound(p, QRectF(x, track.center().y() - d * 0.5, d, d), d * 0.5,
+              ThemeColors::contrastOn(fill));
 }
 
 } // namespace
 
 void paintTarget(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeColors& theme,
-                 GlassBackdrop* glass, bool hovered, double progress, bool flashing, bool active,
-                 const ProgressVisuals& pv, const Live& live, bool locked)
+                 const QColor& canvas, GlassBackdrop* glass, bool hovered, double progress,
+                 bool flashing, bool active, const ProgressVisuals& pv, const Live& live,
+                 bool locked)
 {
     if (r.isEmpty()) {
         return;
@@ -614,22 +615,23 @@ void paintTarget(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeC
     if (t.chrome.progressStyle) {
         vis.applyStyle(*t.chrome.progressStyle);
     }
-    if (const std::optional<QColor> pc = theme.resolveToken(t.chrome.progressColor.token)) {
+    if (const std::optional<QColor> pc = theme.resolveToken(t.chrome.progressColor.token, canvas)) {
         if (pc->isValid()) {
             vis.progressColor = *pc;
         }
     }
-    QColor fg = theme.resolveToken(t.chrome.foreground.token).value_or(theme.text);
+    const QColor fillForFg =
+        theme.resolveFill(t.chrome.background.token, canvas, hovered, active);
+    QColor fg = theme.readableForeground(fillForFg, t.chrome.foreground.token, canvas);
     if (active && !t.activeState.isEmpty()) {
-        const QColor fill = theme.cellActive.isValid() ? theme.cellActive : theme.bgSurface;
         const QColor accent = theme.accent.isValid() ? theme.accent : fg;
-        fg = ThemeColors::contrastRatio(accent, fill) >= ThemeColors::kReadableContrast
+        fg = ThemeColors::contrastRatio(accent, fillForFg) >= ThemeColors::kReadableContrast
                  ? accent
-                 : ThemeColors::contrastOn(fill);
+                 : ThemeColors::contrastOn(fillForFg);
     }
     const QString role = t.role.toLower();
     if (role == QLatin1String("slider")) {
-        paintSurface(p, r, t.chrome, theme, glass, false, false, false, false);
+        paintSurface(p, r, t.chrome, theme, glass, false, false, false, false, canvas);
         const QString channel = t.caption.isEmpty() ? t.id : t.caption;
         const bool scrubbing =
             !live.sliderScrubId.isEmpty()
@@ -641,18 +643,18 @@ void paintTarget(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeC
     } else if (role == QLatin1String("colorfield")) {
         ColorField::paint(p, r, live.previewColor);
     } else if (role == QLatin1String("scrollbar")) {
-        paintSurface(p, r, t.chrome, theme, glass, false, false, false, false);
+        paintSurface(p, r, t.chrome, theme, glass, false, false, false, false, canvas);
         ScrollBar::paint(p, r, theme, ScrollBar::parseSpec(t.caption));
     } else if (role == QLatin1String("preview")) {
         SliderTrack::paintPreview(p, r, radius, live.previewColor);
-        paintLabel(p, t, r, theme);
+        paintLabel(p, t, r, theme, canvas);
     } else if (role == QLatin1String("headpreview")) {
         if (!live.headPreview.isNull()) {
             p.setRenderHint(QPainter::SmoothPixmapTransform, true);
             p.drawImage(r, live.headPreview);
         } else {
-            paintSurface(p, r, t.chrome, theme, glass, false, false, false, false);
-            paintLabel(p, t, r, theme);
+            paintSurface(p, r, t.chrome, theme, glass, false, false, false, false, canvas);
+            paintLabel(p, t, r, theme, canvas);
         }
     } else if (role == QLatin1String("curvefield")) {
         const QVector<HeadPoseCurvePoint> pts =
@@ -660,24 +662,25 @@ void paintTarget(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeC
         PoseChart::paintCurve(p, r, theme, pts, live.curveSelected, live.curveLiveIn,
                               live.curveLiveOn);
     } else if (role == QLatin1String("tab")) {
-        paintTab(p, t, r, theme, hovered, active || t.actions.isEmpty(), progress);
+        paintTab(p, t, r, theme, canvas, hovered, active || t.actions.isEmpty(), progress);
     } else if (role == QLatin1String("label") || role == QLatin1String("value")
                || role == QLatin1String("display")) {
-        paintSurface(p, r, t.chrome, theme, glass, false, false, false, false);
-        paintLabel(p, t, r, theme);
-    } else if (role == QLatin1String("swatch")) {
+        paintSurface(p, r, t.chrome, theme, glass, false, false, false, false, canvas);
+        paintLabel(p, t, r, theme, canvas);
+    } else if (role == QLatin1String("swatch") || role == QLatin1String("swatchrect")) {
         const bool on = active && !t.activeState.isEmpty();
-        paintColorSwatch(p, t, r, theme, hovered, progress, on);
+        paintColorSwatch(p, t, r, theme, canvas, hovered, progress, on,
+                         role == QLatin1String("swatchrect"));
     } else {
         const bool on = active && !t.activeState.isEmpty();
         const bool choice = role == QLatin1String("choice");
         const bool toggle = role == QLatin1String("toggle");
-        const bool schemeChoice = choice && theme.resolveToken(t.chrome.progressColor.token)
-                                  && theme.resolveToken(t.chrome.background.token);
+        const bool schemeChoice = choice && theme.resolveToken(t.chrome.progressColor.token, canvas)
+                                  && theme.resolveToken(t.chrome.background.token, canvas);
         if (schemeChoice) {
-            paintThemeCard(p, t, r, theme, glass, hovered, progress, on);
+            paintThemeCard(p, t, r, theme, glass, canvas, hovered, progress, on);
         } else {
-            paintSurface(p, r, t.chrome, theme, glass, false, hovered, on, t.interactive);
+            paintSurface(p, r, t.chrome, theme, glass, false, hovered, on, t.interactive, canvas);
             if (progress > 0.0 && t.interactive) {
                 paintProgress(p, r, progress, vis.withItemFlash(fg), ProgressShape::RoundedRect,
                               radii);
@@ -704,7 +707,7 @@ void paintTarget(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeC
             if (choice) {
                 paintChoiceRadio(p, r, theme, on);
             } else if (toggle) {
-                paintToggleSwitch(p, r, theme, on);
+                paintToggleSwitch(p, r, theme, canvas, on);
             }
         }
     }

@@ -1,13 +1,13 @@
 <Page id="example_mouse" name="Mouse">
-  <Style id="red" background="red" foreground="foreground"/>
-  <Style id="orange" background="orange" foreground="foreground"/>
-  <Style id="yellow" background="yellow" foreground="foreground"/>
-  <Style id="green" background="green" foreground="foreground"/>
-  <Style id="teal" background="teal" foreground="foreground"/>
-  <Style id="blue" background="blue" foreground="foreground"/>
-  <Style id="indigo" background="indigo" foreground="foreground"/>
-  <Style id="purple" background="purple" foreground="foreground"/>
-  <Style id="pink" background="pink" foreground="foreground"/>
+  <Style id="red" background="red80" foreground="foreground"/>
+  <Style id="orange" background="orange70" foreground="foreground"/>
+  <Style id="yellow" background="yellow80" foreground="foreground"/>
+  <Style id="green" background="green70" foreground="foreground"/>
+  <Style id="teal" background="teal70" foreground="foreground"/>
+  <Style id="blue" background="blue70" foreground="foreground"/>
+  <Style id="indigo" background="indigo60" foreground="foreground"/>
+  <Style id="purple" background="purple60" foreground="foreground"/>
+  <Style id="pink" background="pink70" foreground="foreground"/>
 
   <Grid id="board" desktopMode="true" rows="3" columns="10" anchor="Bottom" offset="0,0"
         size="A_ScreenHeight, 0.27" gap="8" margin="8">

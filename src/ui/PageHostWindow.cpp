@@ -179,15 +179,18 @@ void PageHostWindow::paintScene(QPainter& p, ChromePass pass)
     auto mapRect = [&](const PageTarget& t, const QRectF& r) {
         return PageHit::mapDrawer(t, r, xf, m_drawerScale).translated(-origin);
     };
-    auto paintGrid = [&](const PageGridPaint& g) {
+    auto canvasFor = [&](const QString& pageId) {
+        return m_theme.pageCanvas(m_pageBgTokens.value(pageId));
+    };
+    auto paintGrid = [&](const PageGridPaint& g, const QColor& canvas) {
         if (!live && g.chrome.hasBlur()) {
             return;
         }
         const QRectF r =
             PageHit::mapDrawer(g.drawerMotion, g.visual, xf, m_drawerScale).translated(-origin);
-        BoardPaint::paintSurface(p, r, g.chrome, m_theme, glass, true, false, false, false);
+        BoardPaint::paintSurface(p, r, g.chrome, m_theme, glass, true, false, false, false, canvas);
     };
-    auto paintTarget = [&](const PageTarget& t) {
+    auto paintTarget = [&](const PageTarget& t, const QColor& canvas) {
         if (!live && t.chrome.hasBlur()) {
             return;
         }
@@ -223,12 +226,12 @@ void PageHostWindow::paintScene(QPainter& p, ChromePass pass)
             if (!live) {
                 extras.sliderScrubId.clear();
             }
-            BoardPaint::paintTarget(p, vis, content, m_theme, glass, hovered, progress, flashing,
-                                    active, m_progress, extras, locked);
+            BoardPaint::paintTarget(p, vis, content, m_theme, canvas, glass, hovered, progress,
+                                    flashing, active, m_progress, extras, locked);
         } else if (showProgress && !t.geom.progressZone.isEmpty()) {
             const QRectF strip = mapRect(t, t.geom.progressZone);
-            BoardPaint::paintTarget(p, vis, strip, m_theme, glass, hovered, progress, flashing,
-                                    active, m_progress, m_live, locked);
+            BoardPaint::paintTarget(p, vis, strip, m_theme, canvas, glass, hovered, progress,
+                                    flashing, active, m_progress, m_live, locked);
         }
     };
     // Back-to-front: each page as one layer (grids + cells + zones). Attached
@@ -246,19 +249,20 @@ void PageHostWindow::paintScene(QPainter& p, ChromePass pass)
         notePage(g.pageId);
     }
     auto paintPageLayer = [&](const QString& pageId, bool shell) {
+        const QColor canvas = canvasFor(pageId);
         for (const PageGridPaint& g : m_gridPaints) {
             if (g.pageId == pageId && g.shell == shell) {
-                paintGrid(g);
+                paintGrid(g, canvas);
             }
         }
         for (const PageTarget& t : m_targets) {
             if (t.pageId == pageId && t.shell == shell && t.kind != PageTarget::Kind::Zone) {
-                paintTarget(t);
+                paintTarget(t, canvas);
             }
         }
         for (const PageTarget& t : m_targets) {
             if (t.pageId == pageId && t.shell == shell && t.kind == PageTarget::Kind::Zone) {
-                paintTarget(t);
+                paintTarget(t, canvas);
             }
         }
     };
@@ -354,10 +358,11 @@ void PageHostWindow::fitToChrome()
 }
 
 void PageHostWindow::commit(QVector<PageTarget> targets, QVector<PageGridPaint> grids,
-                            double drawerScale, QRectF reserved)
+                            double drawerScale, QRectF reserved, QHash<QString, QString> pageBgTokens)
 {
     m_targets = std::move(targets);
     m_gridPaints = std::move(grids);
+    m_pageBgTokens = std::move(pageBgTokens);
     m_reserved = reserved;
     m_drawerScale = drawerScale;
     cacheDrawerXf();

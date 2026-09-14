@@ -122,8 +122,8 @@ void PieOverlay::paintWedge(QPainter& p, const QPointF& c, const QColor& cyan,
     if (hover || armed) {
         fill.setAlpha(qBound(0, fill.alpha() + 20, 255));
     }
-    if (armed && m_a.theme.cellActive.isValid()) {
-        fill = m_a.theme.cellActive;
+    if (armed) {
+        fill = m_a.theme.defaultActive();
     }
     p.setPen(Qt::NoPen);
     p.setBrush(fill);

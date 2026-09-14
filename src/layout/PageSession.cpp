@@ -445,8 +445,12 @@ int PageSession::closeAttached()
 }
 
 void PageSession::ingest(const PageDocument& doc, bool isMaster, QVector<PageTarget>& targets,
-                         QVector<PageGridPaint>& gridPaints, bool includeDrawerMotion)
+                         QVector<PageGridPaint>& gridPaints, QHash<QString, QString>* pageBgTokens,
+                         bool includeDrawerMotion)
 {
+    if (pageBgTokens) {
+        pageBgTokens->insert(doc.id, doc.style.background.token);
+    }
     QVector<PageGridPaint> g;
     QVector<PageTarget> piece =
         PageHit::collect(doc, frame(), m_props, m_dwellSuspended, &g, includeDrawerMotion);
@@ -467,11 +471,12 @@ void PageSession::rebuild()
     syncExpanded();
     m_targets.clear();
     m_gridPaints.clear();
+    QHash<QString, QString> pageBgTokens;
     const bool keepDrawer = m_drawerPhase == DrawerPhase::Dismiss;
     for (const AttachedPage& a : m_attached) {
-        ingest(a.doc, false, m_targets, m_gridPaints);
+        ingest(a.doc, false, m_targets, m_gridPaints, &pageBgTokens);
     }
-    ingest(m_root, true, m_targets, m_gridPaints, keepDrawer);
+    ingest(m_root, true, m_targets, m_gridPaints, &pageBgTokens, keepDrawer);
 
     if (m_host) {
         const PageFrame fr = frame();
@@ -484,7 +489,7 @@ void PageSession::rebuild()
             reserved = reserved.isEmpty() ? piece : reserved.united(piece);
         }
         stampLivePhases();
-        m_host->commit(m_targets, m_gridPaints, m_drawerScale, reserved);
+        m_host->commit(m_targets, m_gridPaints, m_drawerScale, reserved, pageBgTokens);
     }
     refreshActive();
     syncAutoClose();

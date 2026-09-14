@@ -1,7 +1,6 @@
-<Page id="main_settings" name="Settings" radius="16">
-  <Style id="group" thickness="0" radius="16"/>
-  <Style id="plain" background="#00000000" thickness="0" radius="0"/>
-  <Grid id="board" desktopMode="true" rows="4" columns="3" anchor="Top" offset="0,0"
+<Page id="main_settings" name="Settings" radius="16" background="bg95">
+  <Style id="plain" background="transparent" thickness="0" radius="0"/>
+  <Grid id="board" desktopMode="true" rows="4" columns="3" anchor="Top" offset="0,0" background="bg100"
         size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" gap="72" margin="90" radius="16"
         rowWeights="1,2,2,2">
     <Cell id="page_title" row="0" col="0" colSpan="3" label="Settings" role="label" textStyle="title" style="plain"/>

@@ -17,7 +17,7 @@ using compose_detail::fillChoiceGrid;
 void ComposeUi::fillFreestyleMode(PageDocument& doc) const
 {
     const ThemeColors theme = m_settings.resolvedTheme();
-    const QColor surface = theme.bgSurface.isValid() ? theme.bgSurface : QColor(40, 40, 44);
+    const QColor surface = theme.defaultCell();
     const QColor accent = theme.accent.isValid() ? theme.accent : QColor(80, 160, 220);
     const QColor value = theme.bgMain.isValid() ? theme.bgMain : QColor(24, 24, 26);
     const bool editing = editMode();

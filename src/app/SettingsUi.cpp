@@ -162,11 +162,11 @@ SettingsUi::EditorSwatch SettingsUi::editorSwatch() const
 {
     const ThemeColors t = m_settings.resolvedTheme();
     EditorSwatch s;
-    s.key = t.cellActive;
+    s.key = t.defaultActive();
     s.save = t.accent;
     s.cancel = t.danger;
-    s.nudge = t.bgSurfaceActive;
-    s.warn = t.cellHover;
+    s.nudge = t.defaultActive();
+    s.warn = t.defaultHover();
     s.add = t.accentHover;
     s.value = t.bgMain;
     s.edit = t.accent;
@@ -188,7 +188,7 @@ void stampSettingVisuals(QString& label, bool interactive, const QString& settin
     }
     QColor sw;
     if (settingKey == QLatin1String("themeVariant")) {
-        sw = theme.bgSurface;
+        sw = theme.defaultCell();
     } else if (settingKey == QLatin1String("themeForeground")) {
         sw = theme.text;
     } else if (!colorKey.isEmpty()) {
@@ -265,7 +265,7 @@ void stampBrightnessShade(PageCell& cell, const AppSettings& settings, const QCo
         ThemeScheme::fluent(settings.themeAppearance, settings.themeSaturation, primary, secondary,
                             index, settings.surfaceTintColor());
     cell.style.background = pal.colors.bgMain;
-    cell.style.borderColor = pal.colors.bgSurface;
+    cell.style.borderColor = pal.colors.bgAt(95);
     cell.style.foreground = pal.colors.accent;
     cell.style.progressColor = pal.progress;
 }
@@ -358,17 +358,6 @@ void stampGrid(PageGrid& grid, const AppSettings& settings, const ThemeColors& s
     }
 }
 
-void stampNamedSurface(PageDocument& doc, const QString& styleId, const QColor& fill)
-{
-    const auto it = doc.styles.find(styleId);
-    if (it == doc.styles.end()) {
-        return;
-    }
-    QColor bg = fill.isValid() ? fill : QColor(18, 19, 20);
-    bg.setAlpha(255);
-    it->background = bg;
-}
-
 } // namespace
 
 void SettingsUi::decoratePage(PageDocument& doc)
@@ -381,8 +370,6 @@ void SettingsUi::decoratePage(PageDocument& doc)
         stopInlineThemeEditor();
     }
     const ThemeColors live = m_settings.resolvedTheme();
-    stampNamedSurface(doc, QStringLiteral("group"), live.bgSurface);
-    stampNamedSurface(doc, QStringLiteral("tabbar"), live.bgSurface);
     const ThemeColors swatch = live;
     QColor primary = m_colorPending.value(QStringLiteral("customPrimaryColor"));
     if (!primary.isValid()) {

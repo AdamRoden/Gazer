@@ -28,16 +28,13 @@ private slots:
     void parseDwellSequenceAllowsZero();
     void loadOmitsRapidKeepsDefault();
     void rapidDwellRoundTrip();
-    void brandedThemeUsesFluent();
     void namedColorsResolveFromPalette();
+    void toneTokensFollowSeed();
+    void activeOffsetStepsDown();
     void customThemeUsesFluent();
     void secondaryColorIsSixtyPercent();
     void loadCustomThemeKeys();
     void saveRoundTripCustomFlag();
-    void progressAccentMatchesBrand();
-    void appleSystemColorsFollowAppearance();
-    void loadThemeIndices();
-    void loadThemeIndicesKeepSecondary();
     void saturationScalesCustomAccent();
     void lightAppearanceIsLight();
     void tintedWashesNeutrals();
@@ -59,7 +56,7 @@ void AppSettingsTest::defaultConstructIsFactory()
     QCOMPARE(a.progressColor, b.progressColor);
     QCOMPARE(a.comboInnerRadiusPx, b.comboInnerRadiusPx);
     QCOMPARE(a.speechModel, b.speechModel);
-    QCOMPARE(a.themePrimaryIndex, b.themePrimaryIndex);
+    QCOMPARE(a.themeSaturation, b.themeSaturation);
     QCOMPARE(a.savedSpeechTags, b.savedSpeechTags);
 }
 
@@ -88,20 +85,19 @@ void AppSettingsTest::factoryUsesDomainConstants()
     QCOMPARE(s.ltsIndicatorStyle, LtsIndicator::Filled);
     QCOMPARE(s.ltsScrollMode, LtsScrollMode::Both);
     QCOMPARE(s.themeAppearance, ThemeAppearance::Dark);
-    QVERIFY(s.themeCustom);
-    QCOMPARE(s.themePrimaryIndex, kThemeDefaultBrandIndex);
-    QCOMPARE(s.themeSecondaryIndex, kThemeDefaultBrandIndex);
     QCOMPARE(s.themeSaturation, kThemeSaturationDefault);
     QCOMPARE(s.themeBrightness, kThemeBrightnessDefault);
     QCOMPARE(s.themeTintFamily, ThemeTintFamily::None);
     QCOMPARE(s.resolvedTheme().bgMain, QColor(0x0A, 0x0A, 0x0A));
-    QCOMPARE(s.resolvedTheme().bgSurface, QColor(0x10, 0x10, 0x10));
     QCOMPARE(s.resolvedTheme().accent, QColor(0x1E, 0x97, 0xF3));
     QCOMPARE(s.resolvedTheme().accentHover,
              ThemeScheme::fluent(s.themeAppearance, s.themeSaturation, s.themeSeeds().primary,
                                  s.themeSeeds().secondary)
                  .colors.accentHover);
-    QCOMPARE(s.resolvedTheme().danger, QColor(0xFF, 0x45, 0x3A));
+    QCOMPARE(s.resolvedTheme().danger,
+             ThemeScheme::fluent(s.themeAppearance, s.themeSaturation, s.themeSeeds().primary,
+                                 s.themeSeeds().secondary)
+                 .colors.danger);
     QCOMPARE(s.resolvedPalette().progress, QColor(0xFF, 0x47, 0x3D, kProgressFillAlpha));
     QCOMPARE(s.resolvedPalette().progressFill, QColor(0xFF, 0x47, 0x3D, kProgressFillAlpha));
     QCOMPARE(s.progressColor, QStringLiteral("#99FF473D"));
@@ -224,7 +220,7 @@ void AppSettingsTest::rapidDwellRoundTrip()
     QVERIFY(json.contains("\"rapidDwellSequence\""));
     QVERIFY(json.contains("\"customRapidDwellSequence\""));
     QVERIFY(!json.contains("\"customrapidDwellSequence\""));
-    QVERIFY(json.contains("\"themeCustom\""));
+    QVERIFY(!json.contains("\"themeCustom\""));
     QVERIFY(!json.contains("\"themeMode\""));
     QVERIFY(!json.contains("\"themeScheme\""));
     AppSettings b;
@@ -232,20 +228,6 @@ void AppSettingsTest::rapidDwellRoundTrip()
     QCOMPARE(b.dwellPreset(), 2);
     QCOMPARE(b.rapidDwellSequence, (QVector<int>{100, 600, 400, 250, 150, 50}));
     QCOMPARE(b.scanGraceMs, 100);
-}
-
-void AppSettingsTest::brandedThemeUsesFluent()
-{
-    AppSettings s = AppSettings::defaults();
-    s.setThemePrimaryIndex(kThemeDefaultBrandIndex);
-    s.setThemeSecondaryIndex(kThemeDefaultBrandIndex);
-    QCOMPARE(s.themeCustom, false);
-    QCOMPARE(s.themePrimaryIndex, kThemeDefaultBrandIndex);
-    QCOMPARE(s.themeSecondaryIndex, kThemeDefaultBrandIndex);
-    const ThemePalette pal = ThemeScheme::resolve(
-        s.themeAppearance, s.themeSaturation, s.themePrimaryIndex, s.themeSecondaryIndex, false);
-    QCOMPARE(s.resolvedTheme().accent, pal.colors.accent);
-    QCOMPARE(s.progressColor, AppSettings::colorToHex(pal.progress));
 }
 
 void AppSettingsTest::namedColorsResolveFromPalette()
@@ -258,20 +240,114 @@ void AppSettingsTest::namedColorsResolveFromPalette()
     QCOMPARE(t.resolveToken(QStringLiteral("progress")).value_or(QColor()), pal.progress);
     QCOMPARE(t.resolveToken(QStringLiteral("accent")).value_or(QColor()), t.accent);
     QCOMPARE(t.resolveToken(QStringLiteral("foreground")).value_or(QColor()), t.text);
-    QVERIFY(ThemeColors::isNamedColor(QStringLiteral("red")));
+    QCOMPARE(t.resolveToken(QStringLiteral("background")).value_or(QColor()), t.bgMain);
+    QVERIFY(ThemeColors::isNamedColor(QStringLiteral("bg100")));
+    QVERIFY(ThemeColors::isNamedColor(QStringLiteral("accent100")));
+    QVERIFY(ThemeColors::isNamedColor(QStringLiteral("bg80")));
+    QVERIFY(ThemeColors::isNamedColor(QStringLiteral("bg05")));
+    QVERIFY(ThemeColors::isNamedColor(QStringLiteral("accent95")));
     QVERIFY(ThemeColors::isNamedColor(QStringLiteral("accent")));
+    QVERIFY(ThemeColors::isNamedColor(QStringLiteral("danger")));
+    QVERIFY(ThemeColors::isNamedColor(QStringLiteral("red80")));
+    QVERIFY(ThemeColors::isNamedColor(QStringLiteral("red05")));
+    QVERIFY(ThemeColors::isNamedColor(QStringLiteral("neutral95")));
+    QVERIFY(!ThemeColors::isNamedColor(QStringLiteral("red")));
+    QVERIFY(!ThemeColors::isNamedColor(QStringLiteral("red100")));
+    QVERIFY(!ThemeColors::isNamedColor(QStringLiteral("surface")));
+    QVERIFY(!ThemeColors::isNamedColor(QStringLiteral("tertiary")));
     QVERIFY(!ThemeColors::isNamedColor(QStringLiteral("window")));
     QVERIFY(!ThemeColors::isNamedColor(QStringLiteral("primary")));
-    const std::optional<QColor> red = t.namedColor(QStringLiteral("red"));
-    QVERIFY(red.has_value());
-    QCOMPARE(red->alpha(), kNamedBrandFillAlpha);
+    QCOMPARE(t.resolveToken(QStringLiteral("bg100")).value_or(QColor()), t.bgMain);
+    QCOMPARE(t.resolveToken(QStringLiteral("accent100")).value_or(QColor()), t.accent);
+    QCOMPARE(t.resolveToken(QStringLiteral("bg90")).value_or(QColor()), t.bgAt(90));
+    QCOMPARE(t.resolveToken(QStringLiteral("accent50")).value_or(QColor()), t.accentAt(50));
+    QCOMPARE(t.resolveToken(QStringLiteral("red05")).value_or(QColor()).name(QColor::HexRgb),
+             QStringLiteral("#fef2f2"));
+    QCOMPARE(t.resolveToken(QStringLiteral("red95")).value_or(QColor()).name(QColor::HexRgb),
+             QStringLiteral("#460809"));
+    QCOMPARE(t.resolveToken(QStringLiteral("red50")).value_or(QColor()).name(QColor::HexRgb),
+             QStringLiteral("#fb2c36"));
+    const QColor red80 = t.resolveToken(QStringLiteral("red80")).value_or(QColor());
+    const QColor red70 = t.resolveToken(QStringLiteral("red70")).value_or(QColor());
+    QCOMPARE(t.resolveFill(QStringLiteral("red80"), t.bgMain, true, false), red70);
+    QCOMPARE(t.resolveFill(QStringLiteral("red80"), t.bgMain, false, false), red80);
+}
+
+void AppSettingsTest::toneTokensFollowSeed()
+{
+    AppSettings s = AppSettings::defaults();
+    const ThemeColors dark = s.resolvedTheme();
+    const QColor bg80Dark = dark.bgAt(80);
+    s.setThemeBrightness(4);
+    const ThemeColors lifted = s.resolvedTheme();
+    QVERIFY(lifted.bgMain.lightness() > dark.bgMain.lightness());
+    QVERIFY(lifted.bgAt(80).lightness() > bg80Dark.lightness());
+
+    const QColor local = dark.resolveToken(QStringLiteral("bg80"), dark.accent).value_or(QColor());
+    QVERIFY(local.isValid());
+    QVERIFY(local != dark.bgAt(80));
+
+    s.setThemeAppearance(ThemeAppearance::DarkTinted);
+    QVERIFY(s.resolvedTheme().bgMain.hsvSaturation() > dark.bgMain.hsvSaturation());
+}
+
+void AppSettingsTest::activeOffsetStepsDown()
+{
+    QCOMPARE(ThemeColors::toneRef(QStringLiteral("bg100")).family, QStringLiteral("bg"));
+    QCOMPARE(ThemeColors::toneRef(QStringLiteral("bg100")).weight, 100);
+    QCOMPARE(ThemeColors::toneRef(QStringLiteral("accent80")).family, QStringLiteral("accent"));
+    QCOMPARE(ThemeColors::toneRef(QStringLiteral("accent80")).weight, 80);
+    QCOMPARE(ThemeColors::toneRef(QStringLiteral("background")).family, QStringLiteral("bg"));
+    QCOMPARE(ThemeColors::toneRef(QString()).family, QStringLiteral("bg"));
+    QCOMPARE(ThemeColors::toneRef(QStringLiteral("accent")).family, QStringLiteral("accent"));
+    QVERIFY(ThemeColors::toneRef(QStringLiteral("#112233")).family.isEmpty());
+    QCOMPARE(ThemeColors::steppedWeight(100, 1), 95);
+    QCOMPARE(ThemeColors::steppedWeight(80, 1), 70);
+
+    AppSettings s = AppSettings::defaults();
+    const ThemeColors t = s.resolvedTheme();
+    const QColor rest = t.resolveFill(QStringLiteral("bg80"), t.bgMain, false, false);
+    const QColor active = t.resolveFill(QStringLiteral("bg80"), t.bgMain, false, true);
+    QCOMPARE(rest, t.bgAt(80));
+    QCOMPARE(active,
+             ThemeColors::mix(ThemeColors::shadeTowardBlack(rest, kHoverToneSteps, 80), t.accent,
+                              kActiveAccentMix));
+    QVERIFY(ThemeColors::shadeTowardBlack(rest, kHoverToneSteps, 80).lightness() < rest.lightness());
+    QCOMPARE(t.resolveToken(QStringLiteral("bg100")).value_or(QColor()), t.bgAt(100));
+    QCOMPARE(t.defaultActive(),
+             ThemeColors::mix(ThemeColors::shadeTowardBlack(t.bgMain, kHoverToneSteps), t.accent,
+                              kActiveAccentMix));
+    QCOMPARE(t.resolveFill({}, t.bgMain, false, false), t.bgMain);
+    const QColor darkerBg = ThemeColors::shadeTowardBlack(t.bgMain, kHoverToneSteps);
+    QCOMPARE(t.resolveFill(QStringLiteral("accent80"), t.bgMain, false, true), darkerBg);
+    QCOMPARE(t.resolveFill(QStringLiteral("red80"), t.bgMain, false, true), darkerBg);
+    const QColor neuRest = t.resolveFill(QStringLiteral("neutral80"), t.bgMain, false, false);
+    const QColor neuActive = t.resolveFill(QStringLiteral("neutral80"), t.bgMain, false, true);
+    QCOMPARE(neuActive,
+             ThemeColors::mix(ThemeColors::shadeTowardBlack(neuRest, kHoverToneSteps, 80), t.accent,
+                              kActiveAccentMix));
+
+    s.setThemeAppearance(ThemeAppearance::Light);
+    const ThemeColors light = s.resolvedTheme();
+    const QColor lightRest = light.resolveFill(QStringLiteral("bg80"), light.bgMain, false, false);
+    QVERIFY(ThemeColors::shadeTowardBlack(lightRest, kHoverToneSteps, 80).lightness()
+            < lightRest.lightness());
+
+    const QColor lightFill(250, 250, 250);
+    const QColor ink = t.readableForeground(lightFill);
+    QVERIFY(ink.lightness() < 128);
+    QVERIFY(ThemeColors::contrastRatio(ink, lightFill) >= ThemeColors::kReadableContrast);
+    const QColor mid = t.bgAt(50);
+    QVERIFY(t.readableForeground(mid).lightness() > 128);
+    QVERIFY(ThemeColors::contrastOn(mid).lightness() > 128);
+    const QColor clear(0, 0, 0, 0);
+    QVERIFY(light.readableForeground(clear, {}, light.bgMain).lightness() < 128);
+    QVERIFY(t.readableForeground(clear, {}, t.bgMain).lightness() > 128);
 }
 
 void AppSettingsTest::customThemeUsesFluent()
 {
     AppSettings s = AppSettings::defaults();
-    s.setThemeCustom(true);
-    QVERIFY(s.themeCustom);
     const ThemePalette pal = ThemeScheme::fluent(s.themeAppearance, s.themeSaturation,
                                                  s.themeSeeds().primary, s.themeSeeds().secondary);
     QCOMPARE(s.resolvedTheme().accent, pal.colors.accent);
@@ -293,12 +369,11 @@ void AppSettingsTest::loadCustomThemeKeys()
     const QString path = dir.filePath(QStringLiteral("settings.json"));
     QFile f(path);
     QVERIFY(f.open(QIODevice::WriteOnly | QIODevice::Truncate));
-    f.write(R"({"themeCustom":true,"customPrimaryColor":"#FF0000"})");
+    f.write(R"({"customPrimaryColor":"#FF0000"})");
     f.close();
 
     AppSettings s;
     QVERIFY(s.loadFromFile(path));
-    QVERIFY(s.themeCustom);
     QCOMPARE(s.themeSeeds().primary, QColor(QStringLiteral("#FF0000")));
 }
 
@@ -309,77 +384,16 @@ void AppSettingsTest::saveRoundTripCustomFlag()
     const QString path = dir.filePath(QStringLiteral("settings.json"));
 
     AppSettings s = AppSettings::defaults();
-    s.setThemeCustom(true);
     QVERIFY(s.saveToFile(path));
 
     AppSettings loaded;
     QVERIFY(loaded.loadFromFile(path));
-    QVERIFY(loaded.themeCustom);
     QCOMPARE(loaded.resolvedTheme().accent, s.resolvedTheme().accent);
-}
-
-void AppSettingsTest::progressAccentMatchesBrand()
-{
-    AppSettings s = AppSettings::defaults();
-    s.setThemePrimaryIndex(kThemeDefaultBrandIndex);
-    s.setThemeSecondaryIndex(kThemeDefaultBrandIndex);
-    s.setThemeSaturation(kThemeSaturationDefault);
-    QCOMPARE(s.themePrimaryIndex, 5);
-    QCOMPARE(s.resolvedTheme().accent, QColor(0x0A, 0x84, 0xFF));
-    QCOMPARE(s.resolvedPalette().progress, QColor(0x0A, 0x84, 0xFF, kProgressFillAlpha));
-    s.setThemeAppearance(ThemeAppearance::Light);
-    QCOMPARE(s.resolvedTheme().accent, QColor(0x00, 0x7A, 0xFF));
-    QCOMPARE(s.resolvedPalette().progress, QColor(0x00, 0x7A, 0xFF, kProgressFillAlpha));
-}
-
-void AppSettingsTest::appleSystemColorsFollowAppearance()
-{
-    QCOMPARE(ThemeScheme::brandCount(), 9);
-    QCOMPARE(ThemeScheme::brandAccent(0, ThemeAppearance::Light), QColor(0xFF, 0x3B, 0x30));
-    QCOMPARE(ThemeScheme::brandAccent(0, ThemeAppearance::Dark), QColor(0xFF, 0x45, 0x3A));
-    QCOMPARE(ThemeScheme::brandAccent(5, ThemeAppearance::Light), QColor(0x00, 0x7A, 0xFF));
-    QCOMPARE(ThemeScheme::brandAccent(8, ThemeAppearance::Dark), QColor(0xFF, 0x37, 0x5F));
-    QCOMPARE(QString::fromLatin1(ThemeScheme::brands()[0].name), QStringLiteral("Red"));
-    QCOMPARE(QString::fromLatin1(ThemeScheme::brands()[5].key), QStringLiteral("blue"));
-}
-
-void AppSettingsTest::loadThemeIndices()
-{
-    QTemporaryDir dir;
-    QVERIFY(dir.isValid());
-    const QString path = dir.filePath(QStringLiteral("settings.json"));
-    QFile f(path);
-    QVERIFY(f.open(QIODevice::WriteOnly | QIODevice::Truncate));
-    f.write(R"({"themeCustom":false,"themePrimaryIndex":5,"themeSecondaryIndex":0})");
-    f.close();
-
-    AppSettings s;
-    QVERIFY(s.loadFromFile(path));
-    QCOMPARE(s.themeCustom, false);
-    QCOMPARE(s.themePrimaryIndex, kThemeDefaultBrandIndex);
-    QCOMPARE(s.themeSecondaryIndex, 0);
-}
-
-void AppSettingsTest::loadThemeIndicesKeepSecondary()
-{
-    QTemporaryDir dir;
-    QVERIFY(dir.isValid());
-    const QString path = dir.filePath(QStringLiteral("settings.json"));
-    QFile f(path);
-    QVERIFY(f.open(QIODevice::WriteOnly | QIODevice::Truncate));
-    f.write(R"({"themeCustom":false,"themePrimaryIndex":2,"themeSecondaryIndex":2})");
-    f.close();
-
-    AppSettings s;
-    QVERIFY(s.loadFromFile(path));
-    QCOMPARE(s.themePrimaryIndex, 2);
-    QCOMPARE(s.themeSecondaryIndex, 2);
 }
 
 void AppSettingsTest::saturationScalesCustomAccent()
 {
     AppSettings s = AppSettings::defaults();
-    s.setThemeCustom(true);
     s.customPrimaryColor = QStringLiteral("#FF0000");
     s.setThemeSaturation(kThemeSaturationDefault);
     const QColor atDefault = s.resolvedTheme().accent;
@@ -406,25 +420,23 @@ void AppSettingsTest::tintedWashesNeutrals()
 {
     AppSettings s = AppSettings::defaults();
     s.setThemeAppearance(ThemeAppearance::Dark);
-    const int darkSat = s.resolvedTheme().bgSurface.hsvSaturation();
+    const int darkSat = s.resolvedTheme().bgMain.hsvSaturation();
     s.setThemeAppearance(ThemeAppearance::DarkTinted);
-    QVERIFY(s.resolvedTheme().bgSurface.hsvSaturation() > darkSat + 8);
+    QVERIFY(s.resolvedTheme().bgMain.hsvSaturation() > darkSat + 8);
     QVERIFY(s.resolvedTheme().bgMain.lightness() < 80);
 
     s.setThemeAppearance(ThemeAppearance::Light);
-    const int lightSat = s.resolvedTheme().bgSurface.hsvSaturation();
+    const int lightSat = s.resolvedTheme().bgMain.hsvSaturation();
     s.setThemeAppearance(ThemeAppearance::LightTinted);
-    QVERIFY(s.resolvedTheme().bgSurface.hsvSaturation() > lightSat + 8);
+    QVERIFY(s.resolvedTheme().bgMain.hsvSaturation() > lightSat + 8);
     QVERIFY(s.resolvedTheme().bgMain.lightness() > 180);
 }
 
 void AppSettingsTest::appearanceSwitchesCustomNeutrals()
 {
     AppSettings s = AppSettings::defaults();
-    s.setThemeCustom(true);
     QVERIFY(s.resolvedTheme().bgMain.lightness() < 80);
     s.setThemeAppearance(ThemeAppearance::Light);
-    QVERIFY(s.themeCustom);
     QVERIFY(s.resolvedTheme().bgMain.lightness() > 180);
     QVERIFY(s.resolvedTheme().text.lightness() < 80);
 }
@@ -432,7 +444,6 @@ void AppSettingsTest::appearanceSwitchesCustomNeutrals()
 void AppSettingsTest::backgroundShadeAndTintFamily()
 {
     AppSettings s = AppSettings::defaults();
-    s.setThemeCustom(true);
     s.setThemeAppearance(ThemeAppearance::Dark);
     s.setThemeBrightness(0);
     const int dark0 = s.resolvedTheme().bgMain.lightness();
@@ -452,7 +463,7 @@ void AppSettingsTest::backgroundShadeAndTintFamily()
     s.setThemeTintFamily(ThemeTintFamily::Complementary);
     QVERIFY(s.themeTintFamily == ThemeTintFamily::Complementary);
     QCOMPARE(s.themeAppearance, ThemeAppearance::DarkTinted);
-    QVERIFY(s.resolvedTheme().bgSurface.hsvSaturation() > 8);
+    QVERIFY(s.resolvedTheme().bgMain.hsvSaturation() > 8);
     s.setThemeDark(false);
     QCOMPARE(s.themeTintFamily, ThemeTintFamily::Complementary);
     QCOMPARE(s.themeAppearance, ThemeAppearance::LightTinted);

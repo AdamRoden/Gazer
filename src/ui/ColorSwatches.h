@@ -4,7 +4,7 @@
 
 namespace gazer {
 
-/// Fixed composer / color-picker palette (document colors).
+/// Fixed composer palette (document colors).
 inline const QStringList& paletteColors()
 {
     static const QStringList k = {

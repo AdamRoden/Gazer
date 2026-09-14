@@ -339,10 +339,10 @@ void PageLoaderTest::namedColorTokensRoundTrip()
     PageDocument doc;
     QString err;
     QVERIFY2(PageLoader::loadFromXml(R"xml(
-<Page id="p" background="accent" foreground="foreground" border="surface"
+<Page id="p" background="accent" foreground="foreground" border="bg80"
       progressColor="progress">
-  <Style id="brand" background="red" foreground="foreground"/>
-  <Grid id="g" size="100,100" background="green">
+  <Style id="brand" background="accent60" foreground="foreground"/>
+  <Grid id="g" size="100,100" background="bg90">
     <Cell id="c" label="X"/>
   </Grid>
 </Page>
@@ -351,15 +351,16 @@ void PageLoaderTest::namedColorTokensRoundTrip()
             qPrintable(err));
     QCOMPARE(doc.style.background.token, QStringLiteral("accent"));
     QCOMPARE(doc.style.foreground.token, QStringLiteral("foreground"));
-    QCOMPARE(doc.style.borderColor.token, QStringLiteral("surface"));
+    QCOMPARE(doc.style.borderColor.token, QStringLiteral("bg80"));
     QCOMPARE(doc.style.progressColor.token, QStringLiteral("progress"));
-    QCOMPARE(doc.styles.value(QStringLiteral("brand")).background.token, QStringLiteral("red"));
-    QCOMPARE(doc.grids[0].style.background.token, QStringLiteral("green"));
+    QCOMPARE(doc.styles.value(QStringLiteral("brand")).background.token, QStringLiteral("accent60"));
+    QCOMPARE(doc.grids[0].style.background.token, QStringLiteral("bg90"));
     PageDocument written;
     QVERIFY2(PageLoader::loadFromXml(PageWriter::toBytes(doc), written, &err), qPrintable(err));
     QCOMPARE(written.style.background.token, QStringLiteral("accent"));
     QCOMPARE(written.style.progressColor.token, QStringLiteral("progress"));
-    QCOMPARE(written.styles.value(QStringLiteral("brand")).background.token, QStringLiteral("red"));
+    QCOMPARE(written.styles.value(QStringLiteral("brand")).background.token,
+             QStringLiteral("accent60"));
 }
 
 void PageLoaderTest::zoneDwellDefaultsAndOffset()

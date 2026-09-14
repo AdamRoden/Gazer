@@ -5,7 +5,6 @@
 #include "assist/LtsIndicator.h"
 #include "ui/MaterialPalette.h"
 #include "ui/PickStyle.h"
-#include "ui/ThemeScheme.h"
 
 #include <QString>
 #include <initializer_list>
@@ -195,13 +194,18 @@ void SettingsUi::registerCommands()
         notifyStatus(QStringLiteral("Color pick cancelled"));
         return true;
     });
-    for (int i = 0; i < 40; ++i) {
-        m_commands.registerBuiltin(
-            QStringLiteral("settings.color.palette.%1").arg(i), [this, i](QString*) {
-                colorApplyPalette(i);
-                return true;
-            });
-    }
+    m_commands.registerPrefix(
+        QStringLiteral("settings.color.palette."),
+        [this](const CommandRegistry::Invocation& inv, QString*) {
+            bool ok = false;
+            const int i =
+                inv.name.mid(int(QLatin1String("settings.color.palette.").size())).toInt(&ok);
+            if (!ok) {
+                return false;
+            }
+            colorApplyPalette(i);
+            return true;
+        });
     for (QChar d : QStringLiteral("0123456789ABCDEF")) {
         m_commands.registerBuiltin(
             QStringLiteral("settings.hex.digit.%1").arg(d), [this, d](QString*) {
@@ -461,14 +465,6 @@ void SettingsUi::registerCommands()
             }
         }
     }
-    for (int i = 0; i < MaterialPalette::kShadeCount; ++i) {
-        m_commands.registerBuiltin(QStringLiteral("settings.color.draftShade.%1").arg(i),
-                                   [this, i](QString*) {
-                                       colorApplyDraftShade(i);
-                                       return true;
-                                   });
-    }
-
     auto applyAppearance = [this](ThemeAppearance appearance, const char* status) {
         return [this, appearance, status](QString*) {
             if (m_mutate) {
@@ -526,33 +522,6 @@ void SettingsUi::registerCommands()
             if (m_mutate) {
                 m_mutate([i](AppSettings& s) { s.setThemeBrightness(i); },
                          QStringLiteral("Background shade %1").arg(i + 1));
-            }
-            return true;
-        });
-    }
-    m_commands.registerBuiltin(QStringLiteral("theme.custom"), [this](QString*) {
-        if (m_mutate) {
-            m_mutate([](AppSettings& s) { s.setThemeCustom(true); },
-                     QStringLiteral("Theme: Custom"));
-        }
-        return true;
-    });
-    for (int i = 0; i < kThemeBrandCount; ++i) {
-        m_commands.registerBuiltin(QStringLiteral("theme.primary.%1").arg(i), [this, i](QString*) {
-            if (m_mutate) {
-                m_mutate([i](AppSettings& s) { s.setThemePrimaryIndex(i); },
-                         QStringLiteral("Accent: %1")
-                             .arg(QLatin1String(ThemeScheme::brands()[i].name)));
-            }
-            return true;
-        });
-    }
-    for (int i = 0; i < kThemeBrandCount; ++i) {
-        m_commands.registerBuiltin(QStringLiteral("theme.secondary.%1").arg(i), [this, i](QString*) {
-            if (m_mutate) {
-                m_mutate([i](AppSettings& s) { s.setThemeSecondaryIndex(i); },
-                         QStringLiteral("Progress: %1")
-                             .arg(QLatin1String(ThemeScheme::brands()[i].name)));
             }
             return true;
         });

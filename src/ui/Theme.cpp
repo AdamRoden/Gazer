@@ -1,37 +1,123 @@
 #include "ui/Theme.h"
-#include "ui/ThemeScheme.h"
+#include "ui/PickerPalette.h"
 
 #include <QtGlobal>
 
 #include <cmath>
+#include <optional>
 
 namespace gazer {
+namespace {
+
+int indexOfToneWeight(int weight)
+{
+    for (int i = 0; i < kToneCount; ++i) {
+        if (kToneWeights[i] == weight) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+QString trimmedLower(const QString& s)
+{
+    return s.trimmed().toLower();
+}
+
+} // namespace
+
+int ThemeColors::toneIndex(int weight)
+{
+    const int i = indexOfToneWeight(weight);
+    return i >= 0 ? i : 0;
+}
+
+int ThemeColors::steppedWeight(int weight, int steps)
+{
+    return kToneWeights[qBound(0, toneIndex(weight) + steps, kToneCount - 1)];
+}
+
+std::optional<ToneRef> ThemeColors::parseToneToken(const QString& name)
+{
+    const QString t = trimmedLower(name);
+    auto take = [&](const QLatin1String& prefix) -> std::optional<ToneRef> {
+        if (!t.startsWith(prefix) || t.size() == prefix.size()) {
+            return std::nullopt;
+        }
+        const QString rest = t.mid(prefix.size());
+        bool ok = false;
+        const int w = rest.toInt(&ok);
+        if (!ok || indexOfToneWeight(w) < 0) {
+            return std::nullopt;
+        }
+        return ToneRef{QString(prefix), w};
+    };
+    if (const std::optional<ToneRef> bg = take(QLatin1String("bg"))) {
+        return bg;
+    }
+    if (const std::optional<ToneRef> accent = take(QLatin1String("accent"))) {
+        return accent;
+    }
+    for (int i = 0; i < kPickerFamilyCount; ++i) {
+        if (const std::optional<ToneRef> pal = take(QLatin1String(kPickerFamilies[i]))) {
+            if (pickerShadeIndexForWeight(pal->weight) < 0) {
+                return std::nullopt;
+            }
+            return pal;
+        }
+    }
+    return std::nullopt;
+}
+
+ToneRef ThemeColors::toneRef(const QString& token)
+{
+    const QString t = trimmedLower(token);
+    if (t.isEmpty() || t == QLatin1String("background")) {
+        return {QStringLiteral("bg"), kRestTone};
+    }
+    if (t == QLatin1String("accent")) {
+        return {QStringLiteral("accent"), kRestTone};
+    }
+    if (const std::optional<ToneRef> parsed = parseToneToken(t)) {
+        return *parsed;
+    }
+    return {};
+}
+
+QColor ThemeColors::mixTone(const QColor& seed, int weight)
+{
+    const QColor base = seed.isValid() ? seed : QColor(10, 10, 11);
+    const int w = indexOfToneWeight(weight) >= 0 ? weight : kRestTone;
+    const QColor toward = base.lightness() <= 140 ? QColor(255, 255, 255) : QColor(0, 0, 0);
+    QColor out = mix(base, toward, (100 - w) / 100.0);
+    out.setAlpha(base.alpha());
+    return out;
+}
+
+QColor ThemeColors::shadeTowardBlack(const QColor& fill, int steps, int fromWeight)
+{
+    const int w = indexOfToneWeight(fromWeight) >= 0 ? fromWeight : kRestTone;
+    const int darker = steppedWeight(w, qMax(0, steps));
+    return mix(fill, QColor(0, 0, 0), (w - darker) / 100.0);
+}
 
 bool ThemeColors::isNamedColor(const QString& name)
 {
-    const QString t = name.trimmed().toLower();
-    if (t == QLatin1String("background") || t == QLatin1String("surface")
-        || t == QLatin1String("accent") || t == QLatin1String("progress")
-        || t == QLatin1String("tertiary") || t == QLatin1String("foreground")
-        || t == QLatin1String("danger")) {
+    const QString t = trimmedLower(name);
+    if (t == QLatin1String("background") || t == QLatin1String("accent")
+        || t == QLatin1String("progress") || t == QLatin1String("foreground")
+        || t == QLatin1String("danger") || t == QLatin1String("border")) {
         return true;
     }
-    for (int i = 0; i < ThemeScheme::brandCount(); ++i) {
-        if (t == QLatin1String(ThemeScheme::brands()[i].key)) {
-            return true;
-        }
-    }
-    return false;
+    return parseToneToken(t).has_value();
 }
 
-std::optional<QColor> ThemeColors::namedColor(const QString& name) const
+std::optional<QColor> ThemeColors::namedColor(const QString& name, const QColor& seed) const
 {
-    const QString t = name.trimmed().toLower();
+    const QString t = trimmedLower(name);
+    const QColor canvas = seed.isValid() ? seed : bgMain;
     if (t == QLatin1String("background")) {
-        return bgMain;
-    }
-    if (t == QLatin1String("surface")) {
-        return cellBg.isValid() ? cellBg : bgSurface;
+        return canvas;
     }
     if (t == QLatin1String("accent")) {
         return accent;
@@ -39,32 +125,42 @@ std::optional<QColor> ThemeColors::namedColor(const QString& name) const
     if (t == QLatin1String("progress")) {
         return progress.isValid() ? progress : defaultProgressColor();
     }
-    if (t == QLatin1String("tertiary")) {
-        return cellActive.isValid() ? cellActive : bgSurfaceActive;
-    }
     if (t == QLatin1String("foreground")) {
         return text;
     }
     if (t == QLatin1String("danger")) {
         return danger;
     }
-    for (int i = 0; i < ThemeScheme::brandCount(); ++i) {
-        if (t == QLatin1String(ThemeScheme::brands()[i].key)) {
-            QColor c = ThemeScheme::brandAccent(i, appearance);
-            c.setAlpha(kNamedBrandFillAlpha);
+    if (t == QLatin1String("border")) {
+        return border;
+    }
+    const std::optional<ToneRef> tone = parseToneToken(t);
+    if (!tone) {
+        return std::nullopt;
+    }
+    if (tone->family == QLatin1String("accent")) {
+        return mixTone(accent.isValid() ? accent : canvas, tone->weight);
+    }
+    if (tone->family == QLatin1String("bg")) {
+        return mixTone(canvas, tone->weight);
+    }
+    const int fam = pickerFamilyIndex(tone->family);
+    if (fam >= 0) {
+        const QColor c = pickerPaletteColorAt(fam, tone->weight);
+        if (c.isValid()) {
             return c;
         }
     }
     return std::nullopt;
 }
 
-std::optional<QColor> ThemeColors::resolveToken(const QString& token) const
+std::optional<QColor> ThemeColors::resolveToken(const QString& token, const QColor& seed) const
 {
     const QString t = token.trimmed();
     if (t.isEmpty()) {
         return std::nullopt;
     }
-    if (const std::optional<QColor> named = namedColor(t)) {
+    if (const std::optional<QColor> named = namedColor(t, seed)) {
         return named;
     }
     const QColor c(t);
@@ -72,6 +168,79 @@ std::optional<QColor> ThemeColors::resolveToken(const QString& token) const
         return c;
     }
     return std::nullopt;
+}
+
+QColor ThemeColors::pageCanvas(const QString& pageBgToken) const
+{
+    const QColor fallback = bgMain.isValid() ? bgMain : QColor(10, 10, 11);
+    if (pageBgToken.trimmed().isEmpty()) {
+        return fallback;
+    }
+    return resolveToken(pageBgToken).value_or(fallback);
+}
+
+QColor ThemeColors::resolveFill(const QString& token, const QColor& seed, bool hovered,
+                                bool active) const
+{
+    const QColor canvas = seed.isValid() ? seed : (bgMain.isValid() ? bgMain : QColor(10, 10, 11));
+    const QString t = token.trimmed();
+    const QColor rest = t.isEmpty() ? canvas : resolveToken(t, canvas).value_or(canvas);
+    if (!hovered && !active) {
+        return rest;
+    }
+
+    const ToneRef tone = toneRef(t);
+    if (active) {
+        if (tone.family == QLatin1String("bg") || tone.family == QLatin1String("neutral")) {
+            const QColor shaded = shadeTowardBlack(rest, kHoverToneSteps, tone.weight);
+            const QColor acc = accent.isValid() ? accent : rest;
+            return mix(shaded, acc, kActiveAccentMix);
+        }
+        return shadeTowardBlack(canvas, kHoverToneSteps);
+    }
+    const int darker = steppedWeight(tone.weight, kHoverToneSteps);
+    if (tone.family == QLatin1String("accent")) {
+        return mixTone(accent.isValid() ? accent : canvas, darker);
+    }
+    if (tone.family == QLatin1String("bg")) {
+        return mixTone(canvas, darker);
+    }
+    const int fam = pickerFamilyIndex(tone.family);
+    if (fam >= 0) {
+        const QColor stepped = pickerPaletteColorAt(fam, darker);
+        return stepped.isValid() ? stepped : rest;
+    }
+    return mixTone(rest, darker);
+}
+
+QColor ThemeColors::readableForeground(const QColor& fill, const QString& authoredToken,
+                                       const QColor& canvas) const
+{
+    const QColor behind = canvas.isValid() ? canvas : (bgMain.isValid() ? bgMain : QColor(10, 10, 11));
+    QColor surface = fill;
+    if (!surface.isValid() || surface.alpha() == 0) {
+        surface = behind;
+    } else if (surface.alpha() < 255) {
+        QColor over = surface;
+        over.setAlpha(255);
+        surface = mix(behind, over, fill.alpha() / 255.0);
+    }
+    const QColor judged = shadeTowardBlack(surface, kFgHoldSteps, kFgHoldFromTone);
+    auto pick = [&](const QColor& preferred) {
+        if (preferred.isValid() && contrastRatio(preferred, judged) >= kReadableContrast) {
+            return preferred;
+        }
+        return contrastOn(surface);
+    };
+    const QString t = authoredToken.trimmed();
+    if (t.isEmpty() || t.compare(QLatin1String("foreground"), Qt::CaseInsensitive) == 0) {
+        return pick(text);
+    }
+    const QColor seed = canvas.isValid() ? canvas : bgMain;
+    if (const std::optional<QColor> authored = resolveToken(t, seed)) {
+        return pick(*authored);
+    }
+    return pick(text);
 }
 
 QString themeAppearanceToString(ThemeAppearance a)
@@ -175,17 +344,11 @@ ThemeColors ThemeColors::darkPreset()
 {
     ThemeColors c;
     c.bgMain = QColor(QStringLiteral("#0a0a0b"));
-    c.bgSurface = QColor(QStringLiteral("#121314"));
-    c.bgSurfaceHover = QColor(QStringLiteral("#1a1b1c"));
-    c.bgSurfaceActive = QColor(QStringLiteral("#222426"));
     c.border = QColor(QStringLiteral("#2a2c2e"));
     c.accent = QColor(QStringLiteral("#8ab4f8"));
     c.accentHover = QColor(QStringLiteral("#aecbfa"));
     c.text = QColor(QStringLiteral("#e3e3e3"));
     c.textSecondary = QColor(QStringLiteral("#7e8285"));
-    c.cellBg = QColor(QStringLiteral("#1a1b1c"));
-    c.cellHover = QColor(QStringLiteral("#222426"));
-    c.cellActive = QColor(QStringLiteral("#2c2e30"));
     c.danger = QColor(QStringLiteral("#f2b8b5"));
     c.progress = defaultProgressColor();
     c.appearance = ThemeAppearance::Dark;
@@ -196,17 +359,11 @@ ThemeColors ThemeColors::lightPreset()
 {
     ThemeColors c;
     c.bgMain = QColor(QStringLiteral("#f0f4f9"));
-    c.bgSurface = QColor(QStringLiteral("#ffffff"));
-    c.bgSurfaceHover = QColor(QStringLiteral("#e9eef6"));
-    c.bgSurfaceActive = QColor(QStringLiteral("#dde3ea"));
     c.border = QColor(QStringLiteral("#c4c7c5"));
     c.accent = QColor(QStringLiteral("#0b57d0"));
     c.accentHover = QColor(QStringLiteral("#0842a0"));
     c.text = QColor(QStringLiteral("#1f1f1f"));
     c.textSecondary = QColor(QStringLiteral("#444746"));
-    c.cellBg = QColor(QStringLiteral("#e9eef6"));
-    c.cellHover = QColor(QStringLiteral("#dde3ea"));
-    c.cellActive = QColor(QStringLiteral("#c4c7c5"));
     c.danger = QColor(QStringLiteral("#b3261e"));
     c.progress = defaultProgressColor();
     c.appearance = ThemeAppearance::Light;
@@ -224,7 +381,10 @@ QColor ThemeColors::contrastOn(const QColor& fill)
     if (!fill.isValid() || fill.alpha() == 0) {
         return darkPreset().text;
     }
-    return fill.lightness() > 140 ? lightPreset().text : darkPreset().text;
+    const QColor judged = shadeTowardBlack(fill, kFgHoldSteps, kFgHoldFromTone);
+    const QColor darkInk = lightPreset().text;
+    const QColor lightInk = darkPreset().text;
+    return contrastRatio(lightInk, judged) >= contrastRatio(darkInk, judged) ? lightInk : darkInk;
 }
 
 double ThemeColors::contrastRatio(const QColor& a, const QColor& b)
@@ -280,17 +440,11 @@ QJsonObject ThemeColors::toJson() const
 {
     QJsonObject o;
     o.insert(QStringLiteral("bgMain"), colorToHex(bgMain));
-    o.insert(QStringLiteral("bgSurface"), colorToHex(bgSurface));
-    o.insert(QStringLiteral("bgSurfaceHover"), colorToHex(bgSurfaceHover));
-    o.insert(QStringLiteral("bgSurfaceActive"), colorToHex(bgSurfaceActive));
     o.insert(QStringLiteral("border"), colorToHex(border));
     o.insert(QStringLiteral("accent"), colorToHex(accent));
     o.insert(QStringLiteral("accentHover"), colorToHex(accentHover));
     o.insert(QStringLiteral("text"), colorToHex(text));
     o.insert(QStringLiteral("textSecondary"), colorToHex(textSecondary));
-    o.insert(QStringLiteral("cellBg"), colorToHex(cellBg));
-    o.insert(QStringLiteral("cellHover"), colorToHex(cellHover));
-    o.insert(QStringLiteral("cellActive"), colorToHex(cellActive));
     o.insert(QStringLiteral("danger"), colorToHex(danger));
     return o;
 }
@@ -304,17 +458,11 @@ void ThemeColors::fromJson(const QJsonObject& o)
         dest = parseColor(o.value(QLatin1String(key)).toString(), dest);
     };
     set(bgMain, "bgMain");
-    set(bgSurface, "bgSurface");
-    set(bgSurfaceHover, "bgSurfaceHover");
-    set(bgSurfaceActive, "bgSurfaceActive");
     set(border, "border");
     set(accent, "accent");
     set(accentHover, "accentHover");
     set(text, "text");
     set(textSecondary, "textSecondary");
-    set(cellBg, "cellBg");
-    set(cellHover, "cellHover");
-    set(cellActive, "cellActive");
     set(danger, "danger");
 }
 

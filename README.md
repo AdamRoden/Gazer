@@ -170,7 +170,7 @@ Session toggles (start docked, auto-collapse drawer, layout auto-close) live on 
 
 ## Theme
 
-Surfaces use a Fluent-style palette: appearance (light / dark) × brightness (five shades) × optional tint family × Apple-system accent (Red … Pink) × progress color. Cells can also name a theme **role** (`background`, `surface`, `accent`, `progress`, `tertiary`, `foreground`, `danger`) or a brand (`red`, `orange`, …) instead of a hex color — names resolve from the live theme.
+Surfaces use a Fluent-style palette: appearance (light / dark) × brightness (five shades) × optional tint family × accent × progress color. Cells can name a theme **role** (`background`, `accent`, `progress`, `foreground`, `danger`), a tone stop (`bg100`…`bg05`, `accent100`…`accent05`), or a palette stop (`red05`…`red95` and the other picker families) instead of a hex color — names resolve from the live theme, and `bg*` stops follow the page background when one is set.
 
 Icons: set `icon` to the filename stem in `resources/icons/svg/` (`menu`, `mouseLeftClick`, `keyTab`). Matching is case-insensitive; a trailing `Icon` is ignored. Unknown names fall back to the label. Most glyphs are [Material Symbols Rounded](https://fonts.google.com/icons?icon.set=Material+Symbols&icon.style=Rounded); see [resources/icons/README.md](resources/icons/README.md).
 
@@ -337,9 +337,7 @@ Builtins first; unknown names fall through to the mapping profile. Full catalog 
 | `openPreview` | Head-pose preview |
 | `openPageEditor` | XML page designer |
 | `compose.open` | Speech composer |
-| `theme.light` / `.dark` | Light or dark surfaces |
+| `theme.light` / `.dark` | Light or dark background |
 | `theme.brightness.0`…`.4` | Background shade |
-| `theme.tint.none` / `.primary` / `.complementary` / `.analogous1` / `.analogous2` / `.tertiary1` / `.tertiary2` | Surface tint hue |
-| `theme.primary.0`…`.8` | Accent (Apple system: Red … Pink) |
-| `theme.secondary.0`…`.8` | Progress (same 9) |
+| `theme.tint.none` / `.primary` / `.complementary` / `.analogous1` / `.analogous2` / `.tertiary1` / `.tertiary2` | Background tint hue |
 | `settings.*` | Settings hub editors, nudges, presets |

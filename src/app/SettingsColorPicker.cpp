@@ -6,7 +6,7 @@
 #include "layout/PageHit.h"
 #include "layout/PageSession.h"
 #include "ui/ColorField.h"
-#include "ui/ColorSwatches.h"
+#include "ui/PickerPalette.h"
 #include "ui/MaterialPalette.h"
 #include "ui/PageHostWindow.h"
 #include "ui/SliderTrack.h"
@@ -15,6 +15,7 @@
 
 #include <QColor>
 #include <QGuiApplication>
+#include <QPoint>
 #include <QScreen>
 #include <QtGlobal>
 
@@ -161,7 +162,6 @@ void SettingsUi::persistThemeDraft(bool persist)
     }
     storeDraftPending();
     const QColor stored = m_colorPending.value(m_colorPickerKey, m_colorDraft);
-    m_settings.themeCustom = true;
     (void)m_settings.setColorKey(m_colorPickerKey, stored, false);
     m_settings.applyTheme();
     apply(persist);
@@ -288,33 +288,15 @@ void SettingsUi::themePickShade(int family, int index)
     notifyStatus(QStringLiteral("Progress = %1").arg(c.name(QColor::HexRgb).toUpper()));
 }
 
-void SettingsUi::colorApplyDraftShade(int index)
-{
-    if (!m_color.active) {
-        return;
-    }
-    const MaterialPalette::Palettes pal = MaterialPalette::generate(m_colorDraft);
-    QColor c = MaterialPalette::shade(pal, MaterialPalette::Family::Primary, index);
-    c.setAlpha(m_colorA);
-    loadColorDraft(c);
-    storeDraftPending();
-    refreshColorPicker();
-}
-
 void SettingsUi::colorApplyPalette(int index)
 {
     if (!m_color.active) {
         return;
     }
-    const auto& colors = paletteColors();
-    if (index < 0 || index >= colors.size()) {
-        return;
-    }
-    QColor c = ThemeColors::parseColor(colors.at(index), QColor());
+    QColor c = pickerPaletteColor(index, m_colorA);
     if (!c.isValid()) {
         return;
     }
-    c.setAlpha(m_colorA);
     loadColorDraft(c);
     storeDraftPending();
     refreshColorPicker();
@@ -328,7 +310,7 @@ PageDocument SettingsUi::buildGenericColorDocument() const
     initGrid(doc, 2, 1, 1080, 1080, 6, 12, m_settings.resolvedTheme());
     PageGrid& grid = doc.grids[0];
     adoptCallerBoard(grid, m_pages.pageBehind(QLatin1String(kLiveColor)));
-    grid.columnTracks = starTracks({1.0, 1.0});
+    grid.columnTracks = starTracks({1.0, 2.0});
     const EditorSwatch pal = editorSwatch();
     constexpr int kGap = 6;
 
@@ -384,29 +366,29 @@ PageDocument SettingsUi::buildGenericColorDocument() const
                               QStringLiteral("settings.color.edit.a"), pal.value, 4));
     grid.subGrids.push_back(std::move(left));
 
-    PageGrid right = makeNested(QStringLiteral("swatches"), 0, 1, 6, 10, kGap);
-    right.rowTracks = starTracks({1.0, 1.0, 1.0, 1.0, 1.0, 0.9});
-    const MaterialPalette::Palettes pals = MaterialPalette::generate(m_colorDraft);
-    for (int display = 0; display < MaterialPalette::kShadeCount; ++display) {
-        const int idx = MaterialPalette::kShadeCount - 1 - display;
-        QColor c = pals.primary[idx];
-        c.setAlpha(m_colorA);
-        right.cells.push_back(cell(QStringLiteral("draft_shade_%1").arg(idx), {}, 0, display,
-                                   QStringLiteral("settings.color.draftShade.%1").arg(idx), c, 1,
-                                   QStringLiteral("swatch")));
+    PageGrid right = makeNested(QStringLiteral("swatches"), 0, 1, 2, 1, kGap);
+    right.rowTracks = starTracks({11.0, 1.1});
+
+    PageGrid palette = makeNested(QStringLiteral("palette"), 0, 0, kPickerShadeCount,
+                                  kPickerFamilyCount, 4);
+    for (int family = 0; family < kPickerFamilyCount; ++family) {
+        for (int shade = 0; shade < kPickerShadeCount; ++shade) {
+            const int i = family * kPickerShadeCount + shade;
+            const QPoint pos = pickerPaletteRowCol(i);
+            palette.cells.push_back(cell(QStringLiteral("palette_%1").arg(i), {}, pos.y(), pos.x(),
+                                         QStringLiteral("settings.color.palette.%1").arg(i),
+                                         pickerPaletteColor(i, m_colorA), 1,
+                                         QStringLiteral("swatchrect")));
+        }
     }
-    const auto& colors = paletteColors();
-    for (int i = 0; i < colors.size(); ++i) {
-        QColor bg = ThemeColors::parseColor(colors.at(i), QColor(128, 128, 128));
-        bg.setAlpha(m_colorA);
-        right.cells.push_back(cell(QStringLiteral("palette_%1").arg(i), {}, 1 + i / 10, i % 10,
-                                   QStringLiteral("settings.color.palette.%1").arg(i), bg, 1,
-                                   QStringLiteral("swatch")));
-    }
-    right.cells.push_back(cell(QStringLiteral("save"), QStringLiteral("Save"), 5, 0,
-                               QStringLiteral("settings.color.save"), pal.save, 5));
-    right.cells.push_back(cell(QStringLiteral("cancel"), QStringLiteral("Cancel"), 5, 5,
-                               QStringLiteral("settings.color.cancel"), pal.cancel, 5));
+    right.subGrids.push_back(std::move(palette));
+
+    PageGrid actions = makeNested(QStringLiteral("actions"), 1, 0, 1, 2, kGap);
+    actions.cells.push_back(cell(QStringLiteral("save"), QStringLiteral("Save"), 0, 0,
+                                 QStringLiteral("settings.color.save"), pal.save));
+    actions.cells.push_back(cell(QStringLiteral("cancel"), QStringLiteral("Cancel"), 0, 1,
+                                 QStringLiteral("settings.color.cancel"), pal.cancel));
+    right.subGrids.push_back(std::move(actions));
     grid.subGrids.push_back(std::move(right));
     return doc;
 }
@@ -639,9 +621,7 @@ void SettingsUi::applyPickAt(const QPoint& pos)
             hue = &t;
         } else if (id == QLatin1String("track_a")) {
             alpha = &t;
-        } else if ((id.startsWith(QLatin1String("draft_shade_"))
-                    || id.startsWith(QLatin1String("palette_")))
-                   && cellOf(t).contains(gaze)) {
+        } else if (id.startsWith(QLatin1String("palette_")) && cellOf(t).contains(gaze)) {
             swatch = &t;
         }
     }
@@ -676,13 +656,6 @@ void SettingsUi::applyPickAt(const QPoint& pos)
     }
     const QString id = local(*swatch);
     bool ok = false;
-    if (id.startsWith(QLatin1String("draft_shade_"))) {
-        const int idx = id.mid(int(QStringLiteral("draft_shade_").size())).toInt(&ok);
-        if (ok) {
-            colorApplyDraftShade(idx);
-        }
-        return;
-    }
     if (id.startsWith(QLatin1String("palette_"))) {
         const int idx = id.mid(int(QStringLiteral("palette_").size())).toInt(&ok);
         if (ok) {

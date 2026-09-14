@@ -222,7 +222,7 @@ PageDocument ComposeUi::buildItemEditDocument() const
     doc.id = QString(kItemEditLiveId);
     doc.name = QStringLiteral("Edit");
     const ThemeColors theme = m_settings.resolvedTheme();
-    const QColor key = theme.bgSurface.isValid() ? theme.bgSurface : QColor(40, 40, 44);
+    const QColor key = theme.defaultCell();
     const QColor accent = theme.accent.isValid() ? theme.accent : QColor(80, 160, 220);
     const PageDim width = speakBoardWidth();
     if (m_editIcons) {

@@ -49,7 +49,7 @@
     </Cell>
   </Grid>
   <Grid id="board" desktopMode="true" rows="4" columns="160" anchor="Bottom" size="1.0,0.27" gap="0" margin="0">
-    <Cell id="esc" row="0" col="0" colSpan="9" label="Esc" background="#3d4f66" foreground="#ffffff" command="escape"/>
+    <Cell id="esc" row="0" col="0" colSpan="9" label="Esc" background="bg95" command="escape"/>
     <Cell id="n1" row="0" col="9" colSpan="10" label="1" textStyle="key" send="1"/>
     <Cell id="n2" row="0" col="19" colSpan="10" label="2" textStyle="key" send="2"/>
     <Cell id="n3" row="0" col="29" colSpan="10" label="3" textStyle="key" send="3"/>
@@ -62,10 +62,10 @@
     <Cell id="n0" row="0" col="99" colSpan="10" label="0" textStyle="key" send="0"/>
     <Cell id="minus" row="0" col="109" colSpan="10" label="-" textStyle="key" send="-"/>
     <Cell id="equals" row="0" col="119" colSpan="11" label="=" textStyle="key" send="="/>
-    <Cell id="del" row="0" col="130" colSpan="10" label="Del" background="#3d4f66" foreground="#ffffff" command="delete"/>
-    <Cell id="pgup" row="0" col="140" colSpan="10" label="Pg Up" background="#3d4f66" foreground="#ffffff" command="pageUp"/>
-    <Cell id="bksp" row="0" col="150" colSpan="10" icon="keyBackspace" background="#3d4f66" foreground="#ffffff" command="backspace"/>
-    <Cell id="tab" row="1" col="0" colSpan="11" icon="keyTab" background="#3d4f66" foreground="#ffffff" command="tab"/>
+    <Cell id="del" row="0" col="130" colSpan="10" label="Del" background="bg95" command="delete"/>
+    <Cell id="pgup" row="0" col="140" colSpan="10" label="Pg Up" background="bg95" command="pageUp"/>
+    <Cell id="bksp" row="0" col="150" colSpan="10" icon="keyBackspace" background="bg95" command="backspace"/>
+    <Cell id="tab" row="1" col="0" colSpan="11" icon="keyTab" background="bg95" command="tab"/>
     <Cell id="k_q" row="1" col="11" colSpan="10" label="q" textStyle="key" send="q"/>
     <Cell id="k_w" row="1" col="21" colSpan="10" label="w" textStyle="key" send="w"/>
     <Cell id="k_e" row="1" col="31" colSpan="10" label="e" textStyle="key" send="e"/>
@@ -78,10 +78,10 @@
     <Cell id="k_p" row="1" col="101" colSpan="10" label="p" textStyle="key" send="p"/>
     <Cell id="lbrack" row="1" col="111" colSpan="10" label="[" textStyle="key" scanGrace="300" send="["/>
     <Cell id="rbrack" row="1" col="121" colSpan="9" label="]" textStyle="key" scanGrace="300" send="]"/>
-    <Cell id="home" row="1" col="130" colSpan="10" label="Home" background="#3d4f66" foreground="#ffffff" command="home"/>
-    <Cell id="up" row="1" col="140" colSpan="10" icon="KeyUp" background="#3d4f66" foreground="#ffffff" command="arrowUp"/>
-    <Cell id="end" row="1" col="150" colSpan="10" label="End" background="#3d4f66" foreground="#ffffff" command="end"/>
-    <Cell id="shift_l" row="2" col="0" colSpan="13" icon="KeyShift" background="#3d4f66" foreground="#ffffff" activeState="mod.shift" command="leftShift"/>
+    <Cell id="home" row="1" col="130" colSpan="10" label="Home" background="bg95" command="home"/>
+    <Cell id="up" row="1" col="140" colSpan="10" icon="KeyUp" background="bg95" command="arrowUp"/>
+    <Cell id="end" row="1" col="150" colSpan="10" label="End" background="bg95" command="end"/>
+    <Cell id="shift_l" row="2" col="0" colSpan="13" icon="KeyShift" background="bg95" activeState="mod.shift" command="leftShift"/>
     <Cell id="k_a" row="2" col="13" colSpan="10" label="a" textStyle="key" send="a"/>
     <Cell id="k_s" row="2" col="23" colSpan="10" label="s" textStyle="key" send="s"/>
     <Cell id="k_d" row="2" col="33" colSpan="10" label="d" textStyle="key" send="d"/>
@@ -93,12 +93,12 @@
     <Cell id="k_l" row="2" col="93" colSpan="10" label="l" textStyle="key" send="l"/>
     <Cell id="semi" row="2" col="103" colSpan="8" label=";" textStyle="key" send=";"/>
     <Cell id="quote" row="2" col="111" colSpan="8" label="&apos;" textStyle="key" send="&apos;"/>
-    <Cell id="shift_r" row="2" col="119" colSpan="11" icon="KeyShift" background="#3d4f66" foreground="#ffffff" activeState="mod.shift" command="leftShift"/>
-    <Cell id="left" row="2" col="130" colSpan="10" icon="KeyLeft" background="#3d4f66" foreground="#ffffff" command="arrowLeft"/>
-    <Cell id="down" row="2" col="140" colSpan="10" icon="KeyDown" background="#3d4f66" foreground="#ffffff" command="arrowDown"/>
-    <Cell id="right" row="2" col="150" colSpan="10" icon="KeyRight" background="#3d4f66" foreground="#ffffff" command="arrowRight"/>
-    <Cell id="ctrl_l" row="3" col="0" colSpan="9" label="Ctrl" background="#3d4f66" foreground="#ffffff" activeState="mod.ctrl" command="leftCtrl"/>
-    <Cell id="win" row="3" col="9" colSpan="9" icon="KeyWin" background="#3d4f66" foreground="#ffffff" activeState="mod.win" command="leftWin"/>
+    <Cell id="shift_r" row="2" col="119" colSpan="11" icon="KeyShift" background="bg95" activeState="mod.shift" command="leftShift"/>
+    <Cell id="left" row="2" col="130" colSpan="10" icon="KeyLeft" background="bg95" command="arrowLeft"/>
+    <Cell id="down" row="2" col="140" colSpan="10" icon="KeyDown" background="bg95" command="arrowDown"/>
+    <Cell id="right" row="2" col="150" colSpan="10" icon="KeyRight" background="bg95" command="arrowRight"/>
+    <Cell id="ctrl_l" row="3" col="0" colSpan="9" label="Ctrl" background="bg95" activeState="mod.ctrl" command="leftCtrl"/>
+    <Cell id="win" row="3" col="9" colSpan="9" icon="KeyWin" background="bg95" activeState="mod.win" command="leftWin"/>
     <Cell id="k_z" row="3" col="18" colSpan="9" label="z" textStyle="key" send="z"/>
     <Cell id="k_x" row="3" col="27" colSpan="9" label="x" textStyle="key" send="x"/>
     <Cell id="k_c" row="3" col="36" colSpan="10" label="c" textStyle="key" send="c"/>
@@ -110,9 +110,9 @@
     <Cell id="comma" row="3" col="98" colSpan="8" label="," textStyle="key" send=","/>
     <Cell id="dot" row="3" col="106" colSpan="8" label="." textStyle="key" send="."/>
     <Cell id="slash" row="3" col="114" colSpan="8" label="/" textStyle="key" send="/"/>
-    <Cell id="ctrl_r" row="3" col="122" colSpan="9" label="Ctrl" background="#3d4f66" foreground="#ffffff" activeState="mod.ctrl" command="leftCtrl"/>
-    <Cell id="alt" row="3" col="131" colSpan="9" label="Alt" background="#3d4f66" foreground="#ffffff" activeState="mod.alt" command="leftAlt"/>
-    <Cell id="pgdn" row="3" col="140" colSpan="10" label="Pg Dn" background="#3d4f66" foreground="#ffffff" command="pageDown"/>
-    <Cell id="enter" row="3" col="150" colSpan="10" icon="keyReturn" background="#3d4f66" foreground="#ffffff" command="enter"/>
+    <Cell id="ctrl_r" row="3" col="122" colSpan="9" label="Ctrl" background="bg95" activeState="mod.ctrl" command="leftCtrl"/>
+    <Cell id="alt" row="3" col="131" colSpan="9" label="Alt" background="bg95" activeState="mod.alt" command="leftAlt"/>
+    <Cell id="pgdn" row="3" col="140" colSpan="10" label="Pg Dn" background="bg95" command="pageDown"/>
+    <Cell id="enter" row="3" col="150" colSpan="10" icon="keyReturn" background="bg95" command="enter"/>
   </Grid>
 </Page>

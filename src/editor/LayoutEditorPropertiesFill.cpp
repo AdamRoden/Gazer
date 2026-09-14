@@ -151,6 +151,7 @@ void LayoutEditorProperties::fillLeafIdentity(QFormLayout* form, const PageLeaf&
         b.combo(f, QStringLiteral("Role"),
                 {QString(), QStringLiteral("label"), QStringLiteral("value"), QStringLiteral("tab"),
                  QStringLiteral("toggle"), QStringLiteral("choice"), QStringLiteral("swatch"),
+                 QStringLiteral("swatchrect"),
                  QStringLiteral("slider"), QStringLiteral("preview"),
                  QStringLiteral("scrollbar")},
                 item.role, [this](const QString& t) {

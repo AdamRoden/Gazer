@@ -250,10 +250,10 @@ QString editorStyleSheet(const ThemeColors& t)
     )");
     const QList<QPair<QString, QString>> tokens = {
         {QStringLiteral("@textMuted"), hex(t.textSecondary)},
-        {QStringLiteral("@bgSurface"), hex(t.bgSurface)},
-        {QStringLiteral("@bgActive"), hex(t.bgSurfaceActive)},
-        {QStringLiteral("@cellActive"), hex(t.cellActive)},
-        {QStringLiteral("@bgHover"), hex(t.bgSurfaceHover)},
+        {QStringLiteral("@bgSurface"), hex(t.defaultCell())},
+        {QStringLiteral("@bgActive"), hex(t.defaultActive())},
+        {QStringLiteral("@cellActive"), hex(t.defaultActive())},
+        {QStringLiteral("@bgHover"), hex(t.defaultHover())},
         {QStringLiteral("@bgMain"), hex(t.bgMain)},
         {QStringLiteral("@border"), hex(t.border)},
         {QStringLiteral("@accent"), hex(t.accent)},

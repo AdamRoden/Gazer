@@ -363,8 +363,7 @@ void SettingsLayoutTest::choiceAndToggleRoles()
     QCOMPARE(columns->columns, 2);
     QCOMPARE(surfaces->col, 0);
     QCOMPARE(accents->col, 1);
-    QCOMPARE(doc.findCell(QStringLiteral("h_surfaces"))->label,
-             QStringLiteral("Background and Surface"));
+    QCOMPARE(doc.findCell(QStringLiteral("h_surfaces"))->label, QStringLiteral("Background"));
     QCOMPARE(doc.findCell(QStringLiteral("h_accents"))->label, QStringLiteral("Accent Colors"));
     QCOMPARE(doc.findCell(QStringLiteral("h_suggestions"))->label,
              QStringLiteral("Recommended Progress Choices"));

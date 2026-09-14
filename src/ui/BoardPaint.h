@@ -41,16 +41,19 @@ void strokeRound(QPainter& p, const QRectF& r, double radius, const QColor& colo
 void strokeRound(QPainter& p, const QRectF& r, const PageBox& radii, const QColor& color,
                  const PageBox& width);
 
-void paintLabel(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeColors& theme);
+void paintLabel(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeColors& theme,
+                const QColor& canvas);
 void paintTab(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeColors& theme,
-              bool hovered, bool selected, double progress);
+              const QColor& canvas, bool hovered, bool selected, double progress);
 void paintIconAndText(QPainter& p, const PageTarget& t, const QRectF& r, const QColor& fg,
                       const ThemeColors& theme);
 void paintSurface(QPainter& p, const QRectF& r, const PageChrome& chrome, const ThemeColors& theme,
-                  GlassBackdrop* glass, bool grid, bool hovered, bool active, bool interactive);
+                  GlassBackdrop* glass, bool grid, bool hovered, bool active, bool interactive,
+                  const QColor& canvas);
 void paintTarget(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeColors& theme,
-                 GlassBackdrop* glass, bool hovered, double progress, bool flashing, bool active,
-                 const ProgressVisuals& pv, const Live& live = {}, bool locked = false);
+                 const QColor& canvas, GlassBackdrop* glass, bool hovered, double progress,
+                 bool flashing, bool active, const ProgressVisuals& pv, const Live& live = {},
+                 bool locked = false);
 
 } // namespace BoardPaint
 } // namespace gazer

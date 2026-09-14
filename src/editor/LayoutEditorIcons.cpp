@@ -330,7 +330,7 @@ EditorGlyph glyphForLeaf(const PageLeaf& leaf, bool zone)
         return EditorGlyph::Label;
     }
     if (role == QLatin1String("toggle") || role == QLatin1String("choice")
-        || role == QLatin1String("swatch")) {
+        || role == QLatin1String("swatch") || role == QLatin1String("swatchrect")) {
         return EditorGlyph::Toggle;
     }
     if (role == QLatin1String("tab")) {

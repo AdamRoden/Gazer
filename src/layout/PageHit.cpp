@@ -116,11 +116,12 @@ void walkGrid(const PageDocument& page, const PageGrid& grid, const QRectF& boun
 
     const bool layer = shell || grid.shell;
     const bool drawer = drawerMotion || grid.drawerMotion;
+    const PageChrome gridChrome = PageResolve::gridStyle(page, grid.styleId, grid.style);
 
     if (grids && (!grid.nested || grid.style.hasAny() || !grid.styleId.isEmpty())) {
         PageGridPaint gp;
         gp.visual = bounds;
-        gp.chrome = PageResolve::gridStyle(page, grid.styleId, grid.style);
+        gp.chrome = gridChrome;
         gp.gridId = grid.id;
         gp.drawerMotion = drawer;
         gp.shell = layer;

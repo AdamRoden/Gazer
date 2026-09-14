@@ -526,7 +526,7 @@ void ComposeUi::stampComposerChrome(PageDocument& doc) const
     const ThemeColors theme = m_settings.resolvedTheme();
     const QColor ok(46, 125, 50);
     const QColor warn = theme.danger.isValid() ? theme.danger : QColor(180, 80, 80);
-    const QColor surface = theme.bgSurface.isValid() ? theme.bgSurface : QColor(40, 40, 44);
+    const QColor surface = theme.defaultCell();
     const QColor accent = theme.accent.isValid() ? theme.accent : QColor(80, 160, 220);
 
     auto setCmd = [](PageCell* c, const QString& cmd) {

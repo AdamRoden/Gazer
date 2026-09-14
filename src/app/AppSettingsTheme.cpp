@@ -24,8 +24,6 @@ void syncCustomNeutralsFromAppearance(AppSettings& s)
     const ThemePalette pal = ThemeScheme::fluent(
         s.themeAppearance, s.themeSaturation, s.themeSeeds().primary, s.themeSeeds().secondary,
         s.themeBrightness, s.surfaceTintColor());
-    s.customBgColor = AppSettings::colorToHex(pal.colors.bgMain);
-    s.customSurfaceColor = AppSettings::colorToHex(pal.colors.bgSurface);
     s.customTextColor = AppSettings::colorToHex(pal.colors.text);
 }
 
@@ -61,9 +59,7 @@ bool paletteFamilyForTint(ThemeTintFamily tint, MaterialPalette::Family* family)
 
 void commitTheme(AppSettings& s)
 {
-    if (s.themeCustom) {
-        syncCustomNeutralsFromAppearance(s);
-    }
+    syncCustomNeutralsFromAppearance(s);
     s.applyTheme();
 }
 
@@ -73,31 +69,12 @@ void writeProgress(AppSettings& s, const ThemePalette& pal)
     s.progressFillColor = AppSettings::colorToHex(pal.progressFill);
 }
 
-void seedCustomFromResolved(AppSettings& s)
-{
-    const ThemePalette pal = ThemeScheme::resolve(
-        s.themeAppearance, kThemeSaturationDefault, s.themePrimaryIndex, s.themeSecondaryIndex,
-        false, {}, s.themeBrightness, s.surfaceTintColor());
-    s.customBgColor = AppSettings::colorToHex(pal.colors.bgMain);
-    s.customSurfaceColor = AppSettings::colorToHex(pal.colors.bgSurface);
-    s.customPrimaryColor = AppSettings::colorToHex(pal.colors.accent);
-    s.customSourceColor = s.customPrimaryColor;
-    s.customSecondaryColor = AppSettings::colorToHex(pal.progress);
-    s.customTertiaryColor = AppSettings::colorToHex(pal.colors.cellActive);
-    s.customTextColor = AppSettings::colorToHex(pal.colors.text);
-    s.customDangerColor = AppSettings::colorToHex(pal.colors.danger);
-}
-
 } // namespace
 
 ThemePalette AppSettings::resolvedPalette() const
 {
-    if (themeCustom) {
-        return ThemeScheme::fluent(themeAppearance, themeSaturation, themeSeeds().primary,
-                                   themeSeeds().secondary, themeBrightness, surfaceTintColor());
-    }
-    return ThemeScheme::resolve(themeAppearance, themeSaturation, themePrimaryIndex,
-                                themeSecondaryIndex, false, {}, themeBrightness, surfaceTintColor());
+    return ThemeScheme::fluent(themeAppearance, themeSaturation, themeSeeds().primary,
+                               themeSeeds().secondary, themeBrightness, surfaceTintColor());
 }
 
 ThemeColors AppSettings::resolvedTheme() const
@@ -113,8 +90,6 @@ QColor AppSettings::resolvedHoverBorder() const
 
 void AppSettings::applyTheme()
 {
-    themePrimaryIndex = qBound(0, themePrimaryIndex, kThemeBrandCount - 1);
-    themeSecondaryIndex = qBound(0, themeSecondaryIndex, kThemeBrandCount - 1);
     themeSaturation = snapThemeSaturation(themeSaturation);
     themeBrightness = qBound(kThemeBrightnessMin, themeBrightness, kThemeBrightnessMax);
     syncAppearanceWithTint(*this);
@@ -158,33 +133,7 @@ QColor AppSettings::surfaceTintColor() const
     if (!paletteFamilyForTint(themeTintFamily, &family)) {
         return {};
     }
-    const QColor primary =
-        themeCustom ? themeSeeds().primary
-                    : ThemeScheme::brandAccent(themePrimaryIndex, themeAppearance);
-    return MaterialPalette::shade(MaterialPalette::generate(primary), family, 5);
-}
-
-void AppSettings::setThemeCustom(bool on)
-{
-    if (on && !themeCustom) {
-        seedCustomFromResolved(*this);
-    }
-    themeCustom = on;
-    applyTheme();
-}
-
-void AppSettings::setThemePrimaryIndex(int index)
-{
-    themePrimaryIndex = qBound(0, index, kThemeBrandCount - 1);
-    themeCustom = false;
-    applyTheme();
-}
-
-void AppSettings::setThemeSecondaryIndex(int index)
-{
-    themeSecondaryIndex = qBound(0, index, kThemeBrandCount - 1);
-    themeCustom = false;
-    applyTheme();
+    return MaterialPalette::shade(MaterialPalette::generate(themeSeeds().primary), family, 5);
 }
 
 void AppSettings::setThemeSaturation(int saturation)
@@ -203,21 +152,12 @@ ThemeSeeds AppSettings::themeSeeds() const
 
 QString AppSettings::themeRoleForColorKey(const QString& key)
 {
-    if (key == QLatin1String("customBgColor")) {
-        return QStringLiteral("window");
-    }
-    if (key == QLatin1String("customSurfaceColor")) {
-        return QStringLiteral("surface");
-    }
     if (key == QLatin1String("customPrimaryColor")) {
         return QStringLiteral("accent");
     }
     if (key == QLatin1String("customSecondaryColor") || key == QLatin1String("progressColor")
         || key == QLatin1String("progressFillColor")) {
         return QStringLiteral("progress");
-    }
-    if (key == QLatin1String("customTertiaryColor")) {
-        return QStringLiteral("highlight");
     }
     if (key == QLatin1String("customTextColor")) {
         return QStringLiteral("foreground");

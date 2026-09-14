@@ -196,7 +196,7 @@ void PropertyBinder::color(QFormLayout* form, const QString& label, const PageCo
     h->setContentsMargins(0, 0, 0, 0);
     h->setSpacing(6);
     auto* e = new QLineEdit(value.token);
-    e->setPlaceholderText(QStringLiteral("hex, accent, red…"));
+    e->setPlaceholderText(QStringLiteral("hex, bg80, accent50, red80…"));
     fitWidth(e);
     fitWidth(row);
     auto* swatch = new QPushButton;

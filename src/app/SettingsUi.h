@@ -136,7 +136,6 @@ private:
     void feedSliderGaze(const GazePoint& point);
     void syncSliderScrubVisuals();
     [[nodiscard]] int scrubShownValue() const;
-    void colorApplyDraftShade(int index);
     void themeSetAssignPrimary(bool primary);
     void themePickShade(int family, int index);
     [[nodiscard]] QColor liveThemeSource() const;

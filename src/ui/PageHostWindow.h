@@ -7,6 +7,7 @@
 #include "ui/Theme.h"
 
 #include <QColor>
+#include <QHash>
 #include <QImage>
 #include <QRectF>
 #include <QQuickWindow>
@@ -33,7 +34,7 @@ public:
     void setTheme(const ThemeColors& theme);
     void setProgressVisuals(const ProgressVisuals& visuals);
     void commit(QVector<PageTarget> targets, QVector<PageGridPaint> grids, double drawerScale,
-                QRectF reserved = {});
+                QRectF reserved = {}, QHash<QString, QString> pageBgTokens = {});
     void setDrawerScale(double scale);
     void setActiveIds(QSet<QString> ids);
     void setLockedIds(QSet<QString> ids);
@@ -84,6 +85,7 @@ private:
     ProgressVisuals m_progress;
     QVector<PageTarget> m_targets;
     QVector<PageGridPaint> m_gridPaints;
+    QHash<QString, QString> m_pageBgTokens;
     QRectF m_reserved;
     double m_drawerScale = 1.0;
     QTransform m_drawerXf;

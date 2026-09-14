@@ -34,7 +34,8 @@ private slots:
     void zoneProgressCoercedWhenOffScreen();
     void collectEmitsGridChrome();
     void screenExpressionSizes16by9();
-    void cellsInheritPageNotGrid();
+    void backgroundFallsBackStylePageThemeNotGrid();
+    void nestedToneTokensSharePageSeed();
     void cellRectSpan();
     void cellIndexAtMatchesCellRect();
     void cellRectRowWeights();
@@ -202,29 +203,148 @@ void PageHitTest::screenExpressionSizes16by9()
     QVERIFY(!t.isEmpty());
 }
 
-void PageHitTest::cellsInheritPageNotGrid()
+void PageHitTest::backgroundFallsBackStylePageThemeNotGrid()
 {
-    PageDocument doc;
+    PageFrame frame;
+    frame.screen = QRectF(0, 0, 1920, 1080);
+    frame.desktop = frame.screen;
     QString err;
-    const QByteArray xml = R"xml(
+
+    {
+        PageDocument doc;
+        QVERIFY2(PageLoader::loadFromXml(R"xml(
 <Page id="p" background="#FF0000" radius="4">
   <Grid id="g" background="#00FF00" radius="20" size="200,100">
     <Cell id="c" label="X"/>
   </Grid>
 </Page>
-)xml";
-    QVERIFY2(PageLoader::loadFromXml(xml, doc, &err), qPrintable(err));
+)xml",
+                                         doc, &err),
+                 qPrintable(err));
+        QVector<PageGridPaint> grids;
+        const QVector<PageTarget> t = PageHit::collect(doc, frame, {}, false, &grids);
+        QCOMPARE(grids.size(), 1);
+        QCOMPARE(grids[0].chrome.background.parsed().rgb(), QColor(QStringLiteral("#00FF00")).rgb());
+        QCOMPARE(grids[0].chrome.radius ? grids[0].chrome.radius->first() : -1.0, 20.0);
+        QVERIFY(!t.isEmpty());
+        QCOMPARE(t[0].chrome.background.parsed().rgb(), QColor(QStringLiteral("#FF0000")).rgb());
+        QCOMPARE(t[0].chrome.radius ? t[0].chrome.radius->first() : -1.0, 4.0);
+    }
+    {
+        PageDocument doc;
+        QVERIFY2(PageLoader::loadFromXml(R"xml(
+<Page id="p" background="#FF0000">
+  <Style id="chip" background="#0000FF"/>
+  <Grid id="g" background="#00FF00" size="200,100">
+    <Cell id="c" style="chip" label="X"/>
+  </Grid>
+</Page>
+)xml",
+                                         doc, &err),
+                 qPrintable(err));
+        QVector<PageGridPaint> grids;
+        const QVector<PageTarget> t = PageHit::collect(doc, frame, {}, false, &grids);
+        QCOMPARE(t[0].chrome.background.parsed().rgb(), QColor(QStringLiteral("#0000FF")).rgb());
+    }
+    {
+        PageDocument doc;
+        QVERIFY2(PageLoader::loadFromXml(R"xml(
+<Page id="p" background="#FF0000">
+  <Style id="chip" background="#0000FF"/>
+  <Grid id="g" background="#00FF00" size="200,100">
+    <Cell id="c" style="chip" background="#FFFFFF" label="X"/>
+  </Grid>
+</Page>
+)xml",
+                                         doc, &err),
+                 qPrintable(err));
+        QVector<PageGridPaint> grids;
+        const QVector<PageTarget> t = PageHit::collect(doc, frame, {}, false, &grids);
+        QCOMPARE(t[0].chrome.background.parsed().rgb(), QColor(QStringLiteral("#FFFFFF")).rgb());
+    }
+    {
+        PageDocument doc;
+        QVERIFY2(PageLoader::loadFromXml(R"xml(
+<Page id="p" background="#FF0000">
+  <Grid id="g" background="#00FF00" size="400,200" rows="1" columns="1">
+    <SubGrid id="s" row="0" col="0" rows="1" columns="1">
+      <Cell id="c" label="X"/>
+    </SubGrid>
+  </Grid>
+</Page>
+)xml",
+                                         doc, &err),
+                 qPrintable(err));
+        QVector<PageGridPaint> grids;
+        const QVector<PageTarget> t = PageHit::collect(doc, frame, {}, false, &grids);
+        const PageTarget* cell = targetById(t, QStringLiteral("c"));
+        QVERIFY(cell);
+        QCOMPARE(cell->chrome.background.parsed().rgb(), QColor(QStringLiteral("#FF0000")).rgb());
+    }
+    {
+        PageDocument doc;
+        QVERIFY2(PageLoader::loadFromXml(R"xml(
+<Page id="p">
+  <Grid id="g" size="200,100">
+    <Cell id="c" label="X"/>
+  </Grid>
+</Page>
+)xml",
+                                         doc, &err),
+                 qPrintable(err));
+        QVector<PageGridPaint> grids;
+        const QVector<PageTarget> t = PageHit::collect(doc, frame, {}, false, &grids);
+        QVERIFY(!grids[0].chrome.background.isSet());
+        QVERIFY(!t[0].chrome.background.isSet());
+    }
+    {
+        PageDocument doc;
+        QVERIFY2(PageLoader::loadFromXml(R"xml(
+<Page id="p" background="#112233">
+  <Grid id="g" size="200,100">
+    <Cell id="c" label="X"/>
+  </Grid>
+</Page>
+)xml",
+                                         doc, &err),
+                 qPrintable(err));
+        QVector<PageGridPaint> grids;
+        const QVector<PageTarget> t = PageHit::collect(doc, frame, {}, false, &grids);
+        QCOMPARE(grids[0].chrome.background.parsed().rgb(), QColor(QStringLiteral("#112233")).rgb());
+        QCOMPARE(t[0].chrome.background.parsed().rgb(), QColor(QStringLiteral("#112233")).rgb());
+    }
+}
+
+void PageHitTest::nestedToneTokensSharePageSeed()
+{
+    PageDocument doc;
+    QString err;
+    QVERIFY2(PageLoader::loadFromXml(R"xml(
+<Page id="p">
+  <Style id="g" background="bg95"/>
+  <Grid id="outer" size="400,200" rows="1" columns="1" style="g">
+    <SubGrid id="mid" row="0" col="0" rows="1" columns="1" style="g">
+      <SubGrid id="inner" row="0" col="0" rows="1" columns="1" style="g">
+        <Cell id="c" style="g" label="X"/>
+      </SubGrid>
+    </SubGrid>
+  </Grid>
+</Page>
+)xml",
+                                     doc, &err),
+             qPrintable(err));
     PageFrame frame;
     frame.screen = QRectF(0, 0, 1920, 1080);
     frame.desktop = frame.screen;
     QVector<PageGridPaint> grids;
     const QVector<PageTarget> t = PageHit::collect(doc, frame, {}, false, &grids);
-    QCOMPARE(grids.size(), 1);
-    QCOMPARE(grids[0].chrome.background.parsed().rgb(), QColor(QStringLiteral("#00FF00")).rgb());
-    QCOMPARE(grids[0].chrome.radius ? grids[0].chrome.radius->first() : -1.0, 20.0);
-    QVERIFY(!t.isEmpty());
-    QCOMPARE(t[0].chrome.background.parsed().rgb(), QColor(QStringLiteral("#FF0000")).rgb());
-    QCOMPARE(t[0].chrome.radius ? t[0].chrome.radius->first() : -1.0, 4.0);
+    QVERIFY(grids.size() >= 2);
+    for (const PageGridPaint& g : grids) {
+        QCOMPARE(g.chrome.background.token, QStringLiteral("bg95"));
+    }
+    const PageTarget* cell = targetById(t, QStringLiteral("c"));
+    QVERIFY(cell);
+    QCOMPARE(cell->chrome.background.token, QStringLiteral("bg95"));
 }
 
 void PageHitTest::cellRectSpan()

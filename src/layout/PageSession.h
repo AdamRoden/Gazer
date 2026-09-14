@@ -167,7 +167,8 @@ private:
                                                    const QString& targetId) const;
     [[nodiscard]] QString xmlPathFor(const QString& id) const;
     void ingest(const PageDocument& doc, bool isMaster, QVector<PageTarget>& targets,
-                QVector<PageGridPaint>& gridPaints, bool includeDrawerMotion = false);
+                QVector<PageGridPaint>& gridPaints, QHash<QString, QString>* pageBgTokens,
+                bool includeDrawerMotion = false);
     void ensureHost();
     [[nodiscard]] QTransform hitXf() const;
     void armLeaveGate(const QString& pageId);

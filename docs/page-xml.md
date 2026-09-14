@@ -31,7 +31,7 @@ Child order is free. Grids and zones are painted and hit in document order withi
 | Rule | Behavior |
 |------|----------|
 | Dims | Integer token = pixels (`150`). Token with `.` or `/` = proportion of the bounds (`0.5`, `1/2`). Arithmetic with `A_ScreenWidth` / `A_ScreenHeight` is pixels (`A_ScreenHeight/9*16`), evaluated against the placement surface passed at resolve time (work area when `desktopMode`). `clamp(value, min, max)` bounds a pixel expression. Grid tracks add `*` / `2*` for leftover space (`rowHeights="80,*,120"`). `rowWeights` integers stay star weights, not pixels. |
-| Style / dwell | Page inherits from settings, then overrides per field. Unspecified dwell uses **rapid** for Send / modifiers / mapping keys / composer typing, and **standard** for everything else (including mouse, AHK, and composer word chips). Grids, cells, and zones inherit from the **page** (never from a parent grid). Named `style` / `dwell` plus inline attrs override individual members. Grid resolve then drops `foreground` / `progressStyle` / `progressColor`. |
+| Style / dwell | Page inherits from settings, then overrides per field. Unspecified dwell uses **rapid** for Send / modifiers / mapping keys / composer typing, and **standard** for everything else (including mouse, AHK, and composer word chips). Grids, cells, and zones inherit from the **page** (never from a parent grid). Named `style` / `dwell` plus inline attrs override individual members. Unset `background` paints as the page/theme canvas (`bg100`). Grid resolve then drops `foreground` / `progressStyle` / `progressColor`. |
 | Overlap | Topmost attached page’s grid is opaque. Shell grids/zones paint and hit above the rest. A cell on a buried grid does not come forward when dwelled; only the unoccluded part hit-tests. |
 | Drawer / quit | Layer membership. Master XML puts dock chips on layer 1, the drawer on 2, quit on 3. `ShowLayers` sets the visible set (Main chip `1,2`; Dismiss `1`; Quit `1,3`). Consecutive ShowLayers in one cell are applied together, then the drawer animates: appear when a `drawerMotion` grid is shown, dismiss when it is the last master grid hidden, snap when another master grid remains. Hidden shell grids do not reserve host space. |
 | Auto-close | Idle on an `autoClose` grid or page closes those boards (root never destroys itself). Duration and the master on/off switch are Settings (`layoutAutoClose`, `layoutAutoCloseIdleMs`). `suspendDwell` stops the idle timer; `resumeDwell` restarts it from zero. |
@@ -72,10 +72,13 @@ size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight"
 | Form | Example |
 |------|---------|
 | Hex | `#RRGGBB`, `#AARRGGBB` (`#aa000000`) |
-| Theme role | `background`, `surface`, `accent`, `progress`, `tertiary`, `foreground`, `danger` |
-| Accent brand | `red`, `orange`, `yellow`, `green`, `teal`, `blue`, `indigo`, `purple`, `pink` |
+| Theme role | `background`, `accent`, `progress`, `foreground`, `danger`, `border` |
+| Tone stop | `bg100` … `bg05`, `accent100` … `accent05` |
+| Palette stop | `red05` … `red95`, same weights on `orange`, `amber`, `yellow`, `lime`, `green`, `emerald`, `teal`, `cyan`, `sky`, `blue`, `indigo`, `violet`, `purple`, `fuchsia`, `pink`, `rose`, `neutral` |
 
-Names resolve from the live theme (Settings → Theme). Empty `progressColor` inherits settings.
+Names resolve from the live theme (Settings → Theme). `bg100` is the canvas; `accent100` is the accent. Lower `bg*` / `accent*` numbers mix toward white or black, whichever contrasts the seed. `bg*` stops mix against the page canvas (page `background`, else theme `bg100`). Palette stops are the named hexes from the color picker (`red05` is the lightest red, `red95` the darkest). Empty `progressColor` inherits settings.
+
+Unset backgrounds inherit inline → named style → page (same overlay as other chrome). Empty still paints as `bg100`. Hover steps one stop on the tone ladder (toward white or black, whichever contrasts the canvas). Active shades `bg*` / `neutral*` (and empty) toward black by one stop, then mixes with accent. Every other fill — `accent*`, `red80`, hex, … — becomes a one-stop-darker canvas (`bg100` shaded toward black). `foreground` picks light or dark ink so the fill stays readable. Light ink is judged as if the fill were two 10-weight stops darker (`80`→`60`).
 
 ---
 
@@ -153,7 +156,7 @@ Settings (standard or rapid, by action type)
         └── Cell / Zone / Grid   via style="id" / dwell="id" + inline overrides
 ```
 
-Grids never pass chrome or dwell down to their cells. Grid resolve drops `foreground`, `progressStyle`, and `progressColor` (grids paint a surface only).
+Grids never pass chrome or dwell down to their cells (including background). Grid resolve drops `foreground`, `progressStyle`, and `progressColor` (grids paint a surface only).
 
 ---
 
@@ -230,6 +233,7 @@ Nested `<SubGrid>` occupies a cell span.
 | `toggle` | yes | Independent on/off (switch chrome) |
 | `choice` | yes | One-of-a-set (radio chrome). With stamped `background` + `progressColor`, paints as a scheme preview. |
 | `swatch` | yes | Round color well |
+| `swatchrect` | yes | Rounded-rectangle color well |
 | `tab` | yes, unless no actions | No actions = current tab (selected, not a target) |
 | `slider` | yes if it has a command | Gaze-follow scrub; without actions it is passive |
 | `colorfield` | no | HSV saturation×value square (click-at-gaze on the live color picker) |

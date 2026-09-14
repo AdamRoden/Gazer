@@ -144,7 +144,7 @@ Patterns, not every generated name:
 | `settings.color.field.left` / `.right` / `.up` / `.down` | Nudge HSV handle on the saturation×value square |
 | `settings.color.pickAtGaze` | Arm move-to on the picker (no OS click) |
 | `settings.color.eyedropper` | Hide Gazer and sample a screen pixel |
-| `settings.color.palette.0`… | Composer palette swatch |
+| `settings.color.palette.0`… | Color-picker palette (red→neutral columns, 950→50 down) |
 | `settings.color.editHex` / `.save` / `.cancel` | Hex pad |
 | `settings.hex.digit.*` / `.backspace` / `.clear` / `.copy` / `.paste` / `.save` / `.cancel` | Hex keys |
 | `settings.numpad.copy` / `.paste` | Clipboard on the numeric editor |
@@ -167,14 +167,10 @@ Patterns, not every generated name:
 | `settings.theme.source` | Open the color picker for Primary |
 | `settings.theme.assign.primary` / `.secondary` | Legacy: select which color inline HSL sliders edit |
 | `settings.theme.shade.<family>.1`…`.9` | Assign that Material shade (100–900) to Progress at 60% opacity. Families: primary, complementary, analogous1/2, tertiary1/2 |
-| `settings.color.draftShade.0`…`.9` | Set the live draft to a generated primary shade |
-| `theme.light` / `.dark` | Light or dark surfaces (keeps the current tint family) |
+| `theme.light` / `.dark` | Light or dark background (keeps the current tint family) |
 | `theme.lightTinted` / `.darkTinted` | Legacy: light/dark plus primary tint |
 | `theme.brightness.0`…`.4` | Five background shades (how light or dark) |
 | `theme.tint.none` / `.primary` / `.complementary` / `.analogous1` / `.analogous2` / `.tertiary1` / `.tertiary2` | Hue washed onto the background shades |
-| `theme.primary.0`…`.8` | Accent (Apple system: Red, Orange, Yellow, Green, Teal, Blue, Indigo, Purple, Pink) |
-| `theme.secondary.0`…`.8` | Progress (same 9, light or dark from appearance) |
-| `theme.custom` | Custom palette |
 | `settings.reset` | Defaults |
 
 Numeric keys: `dwellMs` / `rapidDwellMs` plus `kIntSpecs` / `kDoubleSpecs` in `AppSettings.cpp`. Color keys: `SettingsUi::kColorKeys` (`hoverColor`, `flashColor`, progress, combo, custom primary/secondary).

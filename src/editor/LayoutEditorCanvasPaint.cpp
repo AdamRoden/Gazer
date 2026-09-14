@@ -30,15 +30,15 @@ void LayoutEditorCanvas::paintMonitor(QPainter& p, const ScreenMap& m) const
         p.setBrush(shadow);
         p.drawRoundedRect(m.bezel.adjusted(-i, -i + 3, i, i + 5), 12 + i * 0.4, 12 + i * 0.4);
     }
-    const QColor bezel = dark ? m_theme.bgSurface.darker(135) : m_theme.border;
-    const QColor glass = dark ? m_theme.bgMain.darker(110) : m_theme.bgSurfaceActive;
+    const QColor bezel = dark ? m_theme.defaultCell().darker(135) : m_theme.border;
+    const QColor glass = dark ? m_theme.bgMain.darker(110) : m_theme.defaultActive();
     p.setBrush(bezel);
     p.drawRoundedRect(m.bezel, 10, 10);
     p.setBrush(glass);
     p.drawRoundedRect(m.glass, 6, 6);
 
     QLinearGradient desk(m.screen.topLeft(), m.screen.bottomLeft());
-    QColor top = m_theme.bgSurfaceHover;
+    QColor top = m_theme.defaultHover();
     QColor bot = m_theme.bgMain;
     if (dark) {
         top = top.lighter(130);
@@ -70,7 +70,7 @@ void LayoutEditorCanvas::paintTaskbar(QPainter& p, const ScreenMap& m) const
             continue;
         }
         p.setPen(Qt::NoPen);
-        QColor barFill = m_theme.bgSurface;
+        QColor barFill = m_theme.defaultCell();
         barFill.setAlpha(230);
         p.setBrush(barFill);
         p.drawRect(bar);
@@ -155,9 +155,10 @@ void LayoutEditorCanvas::paintBoard(QPainter& p, const ScreenMap& m) const
             p.drawRoundedRect(g.visual.adjusted(0.5, 0.5, -0.5, -0.5), 6, 6);
         }
     }
+    const QColor canvas = m_theme.pageCanvas(m_session.document().style.background.token);
     for (const PageGridPaint& g : m.grids) {
         BoardPaint::paintSurface(p, g.visual, g.chrome, m_theme, nullptr, true, false, false,
-                                 false);
+                                 false, canvas);
     }
     for (const PageTarget& t : m.targets) {
         const bool hovered = t.id == m_hoverId;
@@ -185,14 +186,14 @@ void LayoutEditorCanvas::paintBoard(QPainter& p, const ScreenMap& m) const
                 }
             }
             if (!progress.isEmpty()) {
-                BoardPaint::paintTarget(p, t, progress, m_theme, nullptr, hovered,
+                BoardPaint::paintTarget(p, t, progress, m_theme, canvas, nullptr, hovered,
                                         hovered ? m_testProgress : 0.0, false, selected, {});
             }
             continue;
         }
         const QRectF r = targetRect(t);
-        BoardPaint::paintTarget(p, t, r, m_theme, nullptr, hovered, hovered ? m_testProgress : 0.0,
-                                false, selected, {});
+        BoardPaint::paintTarget(p, t, r, m_theme, canvas, nullptr, hovered,
+                                hovered ? m_testProgress : 0.0, false, selected, {});
     }
     p.restore();
 
@@ -251,7 +252,7 @@ void LayoutEditorCanvas::paintHandles(QPainter& p, const QRectF& r) const
 {
     auto handle = [&](const QPointF& c) {
         const QRectF box(c.x() - 5, c.y() - 5, 10, 10);
-        p.setBrush(m_theme.bgSurface);
+        p.setBrush(m_theme.defaultCell());
         p.setPen(QPen(m_theme.accent, 1.4));
         p.drawRoundedRect(box, 2, 2);
     };

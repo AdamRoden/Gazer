@@ -6,7 +6,6 @@
 #include "assist/LtsSpeed.h"
 #include "mapping/HeadPoseCurve.h"
 #include "ui/PickStyle.h"
-#include "ui/ThemeScheme.h"
 
 #include <QSet>
 #include <QStringList>
@@ -18,12 +17,6 @@ namespace gazer {
 AppSettings AppSettings::defaults()
 {
     AppSettings s;
-    const ThemePalette baked = ThemeScheme::fluent(
-        s.themeAppearance, s.themeSaturation, parseColor(s.customPrimaryColor),
-        parseColor(s.customSecondaryColor));
-    s.customBgColor = colorToHex(baked.colors.bgMain);
-    s.customSurfaceColor = colorToHex(baked.colors.bgSurface);
-    s.customTertiaryColor = colorToHex(baked.colors.cellActive);
     s.applyTheme();
     return s;
 }
@@ -239,13 +232,10 @@ const ColorSpec kColorSpecs[] = {
      ComboMouseHit::kDefaultInnerFill},
     {"comboOuterColor", "ComboMouse outer ring", &AppSettings::comboOuterColor,
      ComboMouseHit::kDefaultOuterFill},
-    {"customBgColor", "Background", &AppSettings::customBgColor, QColor(10, 10, 11)},
     {"customSourceColor", "Source", &AppSettings::customSourceColor, QColor(0x1E, 0x97, 0xF3)},
     {"customPrimaryColor", "Accent", &AppSettings::customPrimaryColor, QColor(96, 205, 255)},
     {"customSecondaryColor", "Progress", &AppSettings::customSecondaryColor,
      ThemeColors::defaultProgressColor()},
-    {"customTertiaryColor", "Tertiary", &AppSettings::customTertiaryColor, QColor(126, 82, 96)},
-    {"customSurfaceColor", "Surface", &AppSettings::customSurfaceColor, QColor(18, 19, 20)},
     {"customTextColor", "Foreground", &AppSettings::customTextColor, QColor(230, 225, 229)},
     {"customDangerColor", "Danger", &AppSettings::customDangerColor, QColor(255, 180, 171)},
 };
@@ -343,8 +333,6 @@ void AppSettings::clamp()
     magFollowProfile = gazeFollowProfileFromInt(int(magFollowProfile));
     ltsIndicatorStyle = ltsIndicatorFromInt(int(ltsIndicatorStyle));
     ltsScrollMode = ltsScrollModeFromInt(int(ltsScrollMode));
-    themePrimaryIndex = qBound(0, themePrimaryIndex, kThemeBrandCount - 1);
-    themeSecondaryIndex = qBound(0, themeSecondaryIndex, kThemeBrandCount - 1);
     themeSaturation = snapThemeSaturation(themeSaturation);
     themeBrightness = qBound(kThemeBrightnessMin, themeBrightness, kThemeBrightnessMax);
     magPickStyle = PickStyle::sanitizeMag(magPickStyle);
@@ -592,7 +580,6 @@ bool AppSettings::setColorKey(const QString& key, const QColor& c, bool rebuildP
     if (!rebuildPalette || themeRoleForColorKey(key).isEmpty()) {
         return true;
     }
-    themeCustom = true;
     applyTheme();
     return true;
 }
@@ -704,9 +691,6 @@ QString AppSettings::settingDescription(const QString& key)
     if (key == QLatin1String("hoverCustom")) {
         return QStringLiteral("Hover outline uses a custom color instead of progress.");
     }
-    if (key == QLatin1String("customBgColor")) {
-        return QStringLiteral("Page background. Variant, foreground, and accent suggestions come from this.");
-    }
     if (key == QLatin1String("customSourceColor")) {
         return QStringLiteral("Material palette source. Complementary, analogous, and triadic rows come from this.");
     }
@@ -715,9 +699,6 @@ QString AppSettings::settingDescription(const QString& key)
     }
     if (key == QLatin1String("customSecondaryColor")) {
         return QStringLiteral("Progress ring and fill color.");
-    }
-    if (key == QLatin1String("customTertiaryColor")) {
-        return QStringLiteral("Highlighted background (active cells).");
     }
     if (key == QLatin1String("comboInnerColor")) {
         return QStringLiteral("Fill color and opacity of the ComboMouse drift ring.");

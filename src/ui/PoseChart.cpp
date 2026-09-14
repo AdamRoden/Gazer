@@ -85,7 +85,7 @@ void paintCurve(QPainter& p, const QRectF& cell, const ThemeColors& theme,
     double inMin, inMax, outMin, outMax;
     boundsOf(points, &inMin, &inMax, &outMin, &outMax);
 
-    const QColor plotBg = theme.bgSurface.isValid() ? theme.bgSurface : bg;
+    const QColor plotBg = theme.defaultCell();
     p.setPen(Qt::NoPen);
     p.setBrush(plotBg);
     p.drawRoundedRect(r, 8, 8);

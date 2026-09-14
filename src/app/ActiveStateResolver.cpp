@@ -282,7 +282,6 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
          [](const AppSettings& s) { return s.themeAppearance == ThemeAppearance::LightTinted; }},
         {"theme.light",
          [](const AppSettings& s) { return !themeAppearanceIsDark(s.themeAppearance); }},
-        {"theme.custom", [](const AppSettings& s) { return s.themeCustom; }},
         {"theme.tint.none",
          [](const AppSettings& s) { return s.themeTintFamily == ThemeTintFamily::None; }},
         {"theme.tint.primary",
@@ -302,14 +301,6 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
         if (key == QLatin1String(e.id)) {
             return e.test(s);
         }
-    }
-    if (key.startsWith(QLatin1String("theme.primary."))) {
-        return !s.themeCustom
-               && indexKeyEquals(key, QLatin1String("theme.primary."), s.themePrimaryIndex);
-    }
-    if (key.startsWith(QLatin1String("theme.secondary."))) {
-        return !s.themeCustom
-               && indexKeyEquals(key, QLatin1String("theme.secondary."), s.themeSecondaryIndex);
     }
     if (key.startsWith(QLatin1String("theme.brightness."))) {
         return indexKeyEquals(key, QLatin1String("theme.brightness."), s.themeBrightness);

@@ -322,18 +322,11 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
         themeAppearance = themeAppearanceFromString(
             o.value(QStringLiteral("themeAppearance")).toString());
     }
-    themeCustom = o.value(QStringLiteral("themeCustom")).toBool(themeCustom);
-    themePrimaryIndex = o.value(QStringLiteral("themePrimaryIndex")).toInt(themePrimaryIndex);
-    themeSecondaryIndex = o.value(QStringLiteral("themeSecondaryIndex")).toInt(themeSecondaryIndex);
     themeSaturation = o.value(QStringLiteral("themeSaturation")).toInt(themeSaturation);
-    customBgColor = o.value(QStringLiteral("customBgColor")).toString(customBgColor);
     customPrimaryColor = o.value(QStringLiteral("customPrimaryColor")).toString(customPrimaryColor);
     customSourceColor = o.value(QStringLiteral("customSourceColor")).toString(customSourceColor);
     customSecondaryColor =
         o.value(QStringLiteral("customSecondaryColor")).toString(customSecondaryColor);
-    customTertiaryColor =
-        o.value(QStringLiteral("customTertiaryColor")).toString(customTertiaryColor);
-    customSurfaceColor = o.value(QStringLiteral("customSurfaceColor")).toString(customSurfaceColor);
     customTextColor = o.value(QStringLiteral("customTextColor")).toString(customTextColor);
     customDangerColor = o.value(QStringLiteral("customDangerColor")).toString(customDangerColor);
     themeBrightness = o.value(QStringLiteral("themeBrightness")).toInt(themeBrightness);
@@ -521,16 +514,10 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
         o.insert(QStringLiteral("savedSpeechVoices"), voices);
     }
     o.insert(QStringLiteral("themeAppearance"), themeAppearanceToString(copy.themeAppearance));
-    o.insert(QStringLiteral("themeCustom"), copy.themeCustom);
-    o.insert(QStringLiteral("themePrimaryIndex"), copy.themePrimaryIndex);
-    o.insert(QStringLiteral("themeSecondaryIndex"), copy.themeSecondaryIndex);
     o.insert(QStringLiteral("themeSaturation"), copy.themeSaturation);
-    o.insert(QStringLiteral("customBgColor"), copy.customBgColor);
     o.insert(QStringLiteral("customSourceColor"), copy.customSourceColor);
     o.insert(QStringLiteral("customPrimaryColor"), copy.customPrimaryColor);
     o.insert(QStringLiteral("customSecondaryColor"), copy.customSecondaryColor);
-    o.insert(QStringLiteral("customTertiaryColor"), copy.customTertiaryColor);
-    o.insert(QStringLiteral("customSurfaceColor"), copy.customSurfaceColor);
     o.insert(QStringLiteral("customTextColor"), copy.customTextColor);
     o.insert(QStringLiteral("customDangerColor"), copy.customDangerColor);
     o.insert(QStringLiteral("themeBrightness"), copy.themeBrightness);

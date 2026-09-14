@@ -196,7 +196,7 @@ PageDocument ComposeUi::buildVoicesDocument()
     initTopOverlay(doc, 10, 3, {1.0, 1.0, 10.0}, 8, 16, theme, QStringLiteral("A_ScreenHeight"),
                    speakBoardWidth());
     PageGrid& grid = doc.grids[0];
-    const QColor key = theme.bgSurface.isValid() ? theme.bgSurface : QColor(40, 40, 44);
+    const QColor key = theme.defaultCell();
     const QColor accent = theme.accent.isValid() ? theme.accent : QColor(80, 160, 220);
     const QColor warn = theme.danger.isValid() ? theme.danger : QColor(180, 80, 80);
     const QColor value = theme.bgMain.isValid() ? theme.bgMain : QColor(24, 24, 26);

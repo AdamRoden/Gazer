@@ -17,12 +17,12 @@ Composition root, settings, command dispatch.
 | `ComposeListScroll.cpp` | Gaze-follow scrollbar on history / voices live boards |
 | `GazeRouter` | Gaze sample → session + assist |
 | `ActiveStateResolver` | `visibleWhen` / `activeState` keys (`mod.shift`, …) |
-| `AppSettings` | Persisted prefs. Factory values on the struct; `defaults()` bakes Fluent neutrals + `applyTheme()`; spec tables + nudge/display in `.cpp`; JSON overlay in `AppSettingsIo.cpp`; Fluent appearance × Apple system accent in `AppSettingsTheme.cpp` |
+| `AppSettings` | Persisted prefs. Factory values on the struct; `defaults()` calls `applyTheme()`; spec tables + nudge/display in `.cpp`; JSON overlay in `AppSettingsIo.cpp`; Fluent appearance × accent/progress in `AppSettingsTheme.cpp` |
 | `SettingsUi.h` | Live settings boards (numpad, array, color, hex, speech key, slider) |
 | `SettingsUi.cpp` | Ctor, decorate, live attach, keyboard focus |
 | `SettingsNumpad.cpp` | Numeric editor |
 | `SettingsArrayEditor.cpp` | Standard / rapid dwell-sequence editor |
-| `SettingsColorPicker.cpp` | HSV field + hue/opacity sliders, eyedropper, Material + composer swatches |
+| `SettingsColorPicker.cpp` | HSV field + hue/opacity sliders, eyedropper, picker palette swatches |
 | `SettingsHexEditor.cpp` | Hex color pad (6–8 digits, copy/paste) |
 | `SettingsSpeechKey.cpp` | ElevenLabs API-key live board |
 | `SettingsSliderGaze.cpp` | Gaze-follow sliders |

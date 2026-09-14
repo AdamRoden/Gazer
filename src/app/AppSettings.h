@@ -18,7 +18,7 @@
 namespace gazer {
 
 /// User preferences persisted to JSON under AppData.
-/// In-class initializers are the factory. defaults() bakes Fluent neutrals and applyTheme().
+/// In-class initializers are the factory. defaults() calls applyTheme().
 struct AppSettings {
     // --- Timing ---
     /// Standard dwell steps (ms). Last step repeats while gaze holds.
@@ -184,19 +184,12 @@ struct AppSettings {
 
     // --- Theme (appearance × brightness × tint family × accent × progress) ---
     ThemeAppearance themeAppearance = ThemeAppearance::Dark;
-    bool themeCustom = true;
-    int themePrimaryIndex = kThemeDefaultBrandIndex;
-    int themeSecondaryIndex = kThemeDefaultBrandIndex;
     int themeSaturation = kThemeSaturationDefault;
     ThemeTintFamily themeTintFamily = ThemeTintFamily::None;
-    /// Custom seeds. Branded schemes ignore these until Custom is selected.
-    /// Bg / surface / tertiary are baked from Fluent in defaults().
-    QString customBgColor = QStringLiteral("#0A0A0A");
+    /// Accent / progress seeds. Neutrals bake from Fluent in defaults().
     QString customSourceColor = QStringLiteral("#1E97F3");
     QString customPrimaryColor = QStringLiteral("#1E97F3");
     QString customSecondaryColor = QStringLiteral("#99FF473D");
-    QString customTertiaryColor = QStringLiteral("#1E97F3");
-    QString customSurfaceColor = QStringLiteral("#101010");
     QString customTextColor = QStringLiteral("#FFFFFF");
     QString customDangerColor = QStringLiteral("#FC1C1C");
     int themeBrightness = kThemeBrightnessDefault;
@@ -205,9 +198,6 @@ struct AppSettings {
     void setThemeDark(bool dark);
     void setThemeTintFamily(ThemeTintFamily family);
     void setThemeBrightness(int brightness);
-    void setThemeCustom(bool on);
-    void setThemePrimaryIndex(int index);
-    void setThemeSecondaryIndex(int index);
     void setThemeSaturation(int saturation);
     [[nodiscard]] QColor surfaceTintColor() const;
     /// Rebuild derived progress colors from the live spec.

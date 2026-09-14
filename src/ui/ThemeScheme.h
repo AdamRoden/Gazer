@@ -6,7 +6,7 @@
 
 namespace gazer {
 
-/// Custom-theme accent + progress. Surfaces overlay from AppSettings seed strings.
+/// Accent + progress seeds from AppSettings color strings.
 struct ThemeSeeds {
     QColor primary;
     QColor secondary;
@@ -19,25 +19,8 @@ struct ThemePalette {
     QColor progressFill;
 };
 
-/// Apple system color for the accent / progress card rows.
-struct ThemeBrandInfo {
-    const char* key = "blue";
-    const char* name = "Blue";
-    QColor light;
-    QColor dark;
-
-    [[nodiscard]] QColor colorFor(ThemeAppearance appearance) const
-    {
-        return themeAppearanceIsDark(appearance) ? dark : light;
-    }
-};
-
 namespace ThemeScheme {
 
-[[nodiscard]] const ThemeBrandInfo* brands();
-[[nodiscard]] int brandCount();
-[[nodiscard]] QColor brandCanonical(int index);
-[[nodiscard]] QColor brandAccent(int index, ThemeAppearance appearance);
 [[nodiscard]] QColor scaleSaturation(const QColor& c, int saturationPercent);
 
 /// Light/Dark are neutral gray at that brightness. A valid @p surfaceTint washes
@@ -46,13 +29,6 @@ namespace ThemeScheme {
                                   const QColor& secondary = {},
                                   int brightness = kThemeBrightnessDefault,
                                   const QColor& surfaceTint = {});
-
-/// Apple system accent × progress × appearance. Custom uses @p customSeeds primary/progress.
-[[nodiscard]] ThemePalette resolve(ThemeAppearance appearance, int saturation, int primaryIndex,
-                                   int secondaryIndex, bool custom,
-                                   const ThemeSeeds& customSeeds = {},
-                                   int brightness = kThemeBrightnessDefault,
-                                   const QColor& surfaceTint = {});
 
 } // namespace ThemeScheme
 

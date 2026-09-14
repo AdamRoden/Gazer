@@ -6,8 +6,9 @@ namespace gazer {
 namespace PageResolve {
 
 /// Per-field: page ← named id ← inline.
+/// Unset background stays empty; paint treats it as the page/theme canvas (`bg100`).
 /// Paint/hit apply thickness/radius defaults; session globals apply dwell fallbacks.
-/// Grids never contribute style or dwell to cells, zones, or nested grids.
+/// Grids do not contribute chrome or dwell to cells, zones, or nested grids.
 [[nodiscard]] PageChrome style(const PageDocument& page, const QString& styleId,
                                const PageChrome& inlineStyle);
 /// Same inherit as `style`, then drops foreground / progress (grids never paint those).
