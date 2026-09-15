@@ -44,8 +44,8 @@ When adding a command: register it and add a row here.
 
 | Command | Role |
 |---------|------|
-| `toggleDwellSuspend` | Flip global dwell pause |
-| `suspendDwell` / `resumeDwell` | Set pause on/off |
+| `toggleDwellSuspend` | Flip global dwell pause; 500 ms before the next dwell can start |
+| `suspendDwell` / `resumeDwell` | Set pause on/off; same 500 ms start hold |
 | `toggleLookToScroll` | Gaze scroll (always place-cursor first) |
 | `lts.resume` / `lts.quit` / `lts.reset` | LTS while on |
 | `lts.speed.slower` / `lts.speed.faster` | LTS peak speed (1, 2, 5, 10, 20) |

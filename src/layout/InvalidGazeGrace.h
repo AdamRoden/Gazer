@@ -33,4 +33,43 @@ private:
     qint64 m_startMs = 0;
 };
 
+/// Block a new dwell until @p holdMs after the first sample that checks it.
+struct StartHold {
+    int holdMs = 0;
+
+    void arm(int ms)
+    {
+        holdMs = qMax(0, ms);
+        m_started = false;
+        m_startMs = 0;
+    }
+
+    [[nodiscard]] bool blocking(qint64 timestampMs)
+    {
+        if (holdMs <= 0) {
+            return false;
+        }
+        if (!m_started) {
+            m_started = true;
+            m_startMs = timestampMs;
+        }
+        if (timestampMs - m_startMs < holdMs) {
+            return true;
+        }
+        reset();
+        return false;
+    }
+
+    void reset()
+    {
+        holdMs = 0;
+        m_started = false;
+        m_startMs = 0;
+    }
+
+private:
+    bool m_started = false;
+    qint64 m_startMs = 0;
+};
+
 } // namespace gazer

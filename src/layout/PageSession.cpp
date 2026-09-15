@@ -199,6 +199,12 @@ void PageSession::setDwellSuspended(bool on)
     emit sessionChanged();
 }
 
+void PageSession::armDwellStartHold()
+{
+    m_dwellStartHold.arm(kDwellStartHoldMs);
+    leaveGaze();
+}
+
 PageFrame PageSession::frame() const
 {
     PageFrame f;

@@ -13,7 +13,7 @@ Page XML model and the live dwell session.
 | `PageHit` / `PageDetector` | Gaze pick, overlap. Each page is one layer (grids+cells together). Back-to-front: open pages oldest→newest, then master. Dwell hits only the unoccluded part of a cell. |
 | `PageCatalog` | Shipped + `%AppData%\Gazer\layouts` |
 | `PageSession*` | Live session. `PageSession.cpp` attach/rebuild; `Nav` open/close pages; `showLayers` + drawer reconcile; `Chrome` drawer motion; `Gaze` dwell/hit/auto-close. Includes `PageHit.h` paint types. Quit confirm is master XML `ShowLayers`. |
-| `DwellStateMachine` / `DwellPhase.h` / `InvalidGazeGrace.h` | Dwell timing. Unspecified cells use rapid vs standard from settings (`usesRapidDwell`). Shared blink/scan grace via `setDwellTiming`. `<Phase>` cells: first activation enters phase 0, later steps wrap last→first; leave after blink grace commits. Progress pauses during blink grace |
+| `DwellStateMachine` / `DwellPhase.h` / `InvalidGazeGrace.h` | Dwell timing. Unspecified cells use rapid vs standard from settings (`usesRapidDwell`). Shared blink/scan grace via `setDwellTiming`. `StartHold` is a post-action block (`armDwellStartHold`, 500 ms on suspend/resume). `<Phase>` cells: first activation enters phase 0, later steps wrap last→first; leave after blink grace commits. Progress pauses during blink grace |
 | `PageNav.h` | Page lookup, drawer reconcile, dropLayers |
 
 Schema: `docs/page-xml.md`. Runtime pages: `resources/layouts/*.xml`.

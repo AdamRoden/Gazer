@@ -3,6 +3,7 @@
 #include "core/GazePoint.h"
 #include "layout/DwellPhase.h"
 #include "layout/DwellStateMachine.h"
+#include "layout/InvalidGazeGrace.h"
 #include "layout/PageHit.h"
 #include "layout/PageNav.h"
 #include "layout/PageTypes.h"
@@ -94,6 +95,8 @@ public:
     void setAutoCollapseMain(bool on) { m_autoCollapseMain = on; }
     void setLayoutAutoClose(bool on, int idleMs, int fadeMs = 3000);
     void setDwellSuspended(bool on);
+    /// Clear hover and block a new dwell for 500 ms (suspend / resume commands).
+    void armDwellStartHold();
     [[nodiscard]] bool isDwellSuspended() const { return m_dwellSuspended; }
     [[nodiscard]] int openCount() const { return hasRoot() ? 1 + m_attached.size() : 0; }
     [[nodiscard]] QString topPageId() const;
@@ -238,6 +241,8 @@ private:
     QString m_leaveGatePage;
     QString m_leaveGateKey;
     QString m_aimActivator;
+    StartHold m_dwellStartHold;
+    static constexpr int kDwellStartHoldMs = 500;
 
     QTimer m_drawerTimer;
     QElapsedTimer m_drawerClock;

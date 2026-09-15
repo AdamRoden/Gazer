@@ -43,7 +43,7 @@ Two sequences share scan grace:
 
 Both live under Settings → **Speed** (Slow / Normal / Fast / Custom). Per-cell XML can override `scanGrace`, `dwellGrace`, and `activation`.
 
-**Pause dwell** / **Sleep** suspends dwell everywhere except `suspendExempt` unlock targets (the Main chip also resumes). A dim screen border leaves a gap at those targets.
+**Pause dwell** / **Sleep** suspends dwell everywhere except `suspendExempt` unlock targets (the Main chip also resumes). A dim screen border leaves a gap at those targets. Suspend and resume hold 500 ms before a new dwell can start.
 
 When pages overlap, the topmost page’s grid is opaque: gaze and paint do not fall through. Shell zones (dock chips) still win over everything.
 

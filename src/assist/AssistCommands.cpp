@@ -68,6 +68,14 @@ void registerAssistCommands(AssistCommandContext& ctx)
     auto notify = ctx.notifyStatus;
     auto setDwellSuspended = ctx.setDwellSuspended;
     auto isDwellSuspended = ctx.isDwellSuspended;
+    auto applyDwellSuspend = [pages, setDwellSuspended](bool on) {
+        if (pages) {
+            pages->armDwellStartHold();
+        }
+        if (setDwellSuspended) {
+            setDwellSuspended(on);
+        }
+    };
 
     // When leaving a mode, tear down the tool that owns it — except soft handoffs
     // within the mouse-dwell family, and LTS kept alive under Move-to / LTS place.
@@ -256,11 +264,9 @@ void registerAssistCommands(AssistCommandContext& ctx)
     });
 
     commands->registerBuiltin(QStringLiteral("toggleDwellSuspend"),
-                              [setDwellSuspended, isDwellSuspended, refresh, notify](QString*) {
+                              [applyDwellSuspend, isDwellSuspended, refresh, notify](QString*) {
                                   const bool on = !(isDwellSuspended && isDwellSuspended());
-                                  if (setDwellSuspended) {
-                                      setDwellSuspended(on);
-                                  }
+                                  applyDwellSuspend(on);
                                   refresh();
                                   notify(on ? QStringLiteral(
                                                   "Dwell SUSPENDED — only unlock cells work")
@@ -268,19 +274,15 @@ void registerAssistCommands(AssistCommandContext& ctx)
                                   return true;
                               });
     commands->registerBuiltin(QStringLiteral("suspendDwell"),
-                              [setDwellSuspended, refresh, notify](QString*) {
-                                  if (setDwellSuspended) {
-                                      setDwellSuspended(true);
-                                  }
+                              [applyDwellSuspend, refresh, notify](QString*) {
+                                  applyDwellSuspend(true);
                                   refresh();
                                   notify(QStringLiteral("Dwell SUSPENDED — only unlock cells work"));
                                   return true;
                               });
     commands->registerBuiltin(QStringLiteral("resumeDwell"),
-                              [setDwellSuspended, refresh, notify](QString*) {
-                                  if (setDwellSuspended) {
-                                      setDwellSuspended(false);
-                                  }
+                              [applyDwellSuspend, refresh, notify](QString*) {
+                                  applyDwellSuspend(false);
                                   refresh();
                                   notify(QStringLiteral("Dwell resumed"));
                                   return true;

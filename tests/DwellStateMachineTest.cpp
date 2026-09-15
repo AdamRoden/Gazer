@@ -1,6 +1,7 @@
 #include "core/GazePoint.h"
 #include "layout/DwellPhase.h"
 #include "layout/DwellStateMachine.h"
+#include "layout/InvalidGazeGrace.h"
 
 #include <QSignalSpy>
 #include <QtTest>
@@ -23,6 +24,10 @@ private slots:
     void dwellPhaseArmAdvanceCommitWrap();
     void rescanAfterStepHoldsProgressUntilNextStep();
     void rescanAfterStepLookAwayDoesNotFillNextStep();
+    void startHoldBlocksUntilElapsed();
+    void startHoldLatchesFirstSample();
+    void startHoldZeroNeverBlocks();
+    void startHoldResetClearsArm();
 };
 
 namespace {
@@ -313,6 +318,44 @@ void DwellStateMachineTest::rescanAfterStepLookAwayDoesNotFillNextStep()
     QCOMPARE(fired.size(), 1);
     QVERIFY(hover.size() >= 2);
     QCOMPARE(hover.last().at(0).toString(), QString());
+}
+
+void DwellStateMachineTest::startHoldBlocksUntilElapsed()
+{
+    StartHold hold;
+    hold.arm(500);
+    QVERIFY(hold.blocking(1000));
+    QVERIFY(hold.blocking(1499));
+    QVERIFY(!hold.blocking(1500));
+    QVERIFY(!hold.blocking(1600));
+}
+
+void DwellStateMachineTest::startHoldLatchesFirstSample()
+{
+    StartHold hold;
+    hold.arm(500);
+    QVERIFY(hold.blocking(2000));
+    QVERIFY(hold.blocking(2499));
+    QVERIFY(!hold.blocking(2500));
+}
+
+void DwellStateMachineTest::startHoldZeroNeverBlocks()
+{
+    StartHold hold;
+    hold.arm(0);
+    QVERIFY(!hold.blocking(0));
+    QVERIFY(!hold.blocking(500));
+}
+
+void DwellStateMachineTest::startHoldResetClearsArm()
+{
+    StartHold hold;
+    hold.arm(500);
+    QVERIFY(hold.blocking(0));
+    hold.reset();
+    QVERIFY(!hold.blocking(0));
+    hold.arm(500);
+    QVERIFY(hold.blocking(100));
 }
 
 QTEST_MAIN(DwellStateMachineTest)

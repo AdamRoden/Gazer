@@ -216,6 +216,13 @@ bool PageSession::feedGaze(const GazePoint& point, const GazeHit& classified, Ga
     if (!hasRoot()) {
         return false;
     }
+    if (m_dwellStartHold.blocking(point.timestampMs)) {
+        if (point.valid) {
+            m_lastGaze = point;
+        }
+        leaveGaze();
+        return classified.overBoard;
+    }
     if (!point.valid) {
         GazePoint invalid = point;
         invalid.valid = false;
