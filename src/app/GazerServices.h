@@ -31,7 +31,6 @@ class MouseAssistState;
 class MouseDwellMove;
 class PageCatalog;
 class PageSession;
-class ScriptHost;
 class SoundboardStore;
 class SettingsUi;
 class ElevenClient;
@@ -59,15 +58,12 @@ public:
 
     PageCatalog& catalog() { return *m_catalog; }
     PageSession& pages() { return *m_pages; }
-    InputService& input() { return *m_input; }
     KeyStateManager& keyState() { return *m_keyState; }
-    MappingEngine& mapping() { return *m_mapping; }
     TtsService& tts() { return *m_tts; }
     SpeechEngine& speechEngine() { return *m_speech; }
     ClipPlayer& clipPlayer() { return *m_clips; }
     CommandRegistry& commands() { return *m_commands; }
     ComposeUi& composeUi() { return *m_compose; }
-    ScriptHost& scripts() { return *m_scripts; }
     AhkLauncher& ahk() { return *m_ahk; }
     LookToScroll& lookToScroll() { return *m_lookToScroll; }
     ComboMouse& comboMouse() { return *m_comboMouse; }
@@ -84,11 +80,9 @@ public:
     AppSettings& settings() { return m_settings; }
     [[nodiscard]] const AppSettings& settings() const { return m_settings; }
     void applySettings(bool persist = true);
-    [[nodiscard]] bool reloadSettings(QString* error = nullptr);
     void resetSettingsToDefaults();
 
     void setDwellSuspended(bool on);
-    void toggleDwellSuspended();
     [[nodiscard]] bool isDwellSuspended() const;
 
 signals:
@@ -116,7 +110,6 @@ private:
     std::unique_ptr<SoundboardStore> m_board;
     std::unique_ptr<SpeechHistory> m_history;
     std::unique_ptr<ComposeUi> m_compose;
-    std::unique_ptr<ScriptHost> m_scripts;
     std::unique_ptr<AhkLauncher> m_ahk;
     std::unique_ptr<LookToScroll> m_lookToScroll;
     std::unique_ptr<ComboMouse> m_comboMouse;

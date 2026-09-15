@@ -63,15 +63,4 @@ void AssistSession::leave(Mode mode)
     GAZER_INFO << "AssistSession leave" << int(mode);
 }
 
-void AssistSession::clear()
-{
-    if (m_mode == Mode::None) {
-        return;
-    }
-    const Mode prev = m_mode;
-    m_mode = Mode::None;
-    emit leaving(prev, Mode::None);
-    emit modeChanged(m_mode);
-}
-
 } // namespace gazer

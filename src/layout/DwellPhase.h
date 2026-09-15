@@ -44,8 +44,6 @@ struct DwellPhaseBank {
 
     void clear() { m_index.clear(); }
 
-    [[nodiscard]] bool armed(const QString& key) const { return m_index.contains(key); }
-
 private:
     QHash<QString, int> m_index;
 };

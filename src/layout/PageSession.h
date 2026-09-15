@@ -94,7 +94,6 @@ public:
     void setAutoCollapseMain(bool on) { m_autoCollapseMain = on; }
     void setLayoutAutoClose(bool on, int idleMs, int fadeMs = 3000);
     void setDwellSuspended(bool on);
-    void toggleDwellSuspended() { setDwellSuspended(!m_dwellSuspended); }
     [[nodiscard]] bool isDwellSuspended() const { return m_dwellSuspended; }
     [[nodiscard]] int openCount() const { return hasRoot() ? 1 + m_attached.size() : 0; }
     [[nodiscard]] QString topPageId() const;

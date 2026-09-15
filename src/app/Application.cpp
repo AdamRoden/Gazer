@@ -12,7 +12,6 @@
 #include "assist/MouseAssistState.h"
 #include "assist/MouseDwellMove.h"
 #include "assist/ClipPlayer.h"
-#include "assist/ScriptHost.h"
 #include "assist/SpeechEngine.h"
 #include "assist/TtsService.h"
 #include "core/ITracker.h"
@@ -22,7 +21,6 @@
 #include "input/KeyStateManager.h"
 #include "layout/PageCatalog.h"
 #include "layout/PageEdit.h"
-#include "layout/PageLoader.h"
 #include "layout/PageSession.h"
 #include "layout/PageTypes.h"
 #include "ui/DwellSuspendOverlay.h"
@@ -41,11 +39,9 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QHash>
-#include <QSize>
 #include <QTimer>
 
 #include <cstdlib>
-#include <initializer_list>
 
 namespace gazer {
 
@@ -156,7 +152,6 @@ bool Application::initialize()
     });
     connect(m_actions.get(), &ActionDispatcher::statusMessage, this, statusToTray);
     connect(&m_svc->commands(), &CommandRegistry::statusMessage, this, statusToTray);
-    connect(&m_svc->scripts(), &ScriptHost::statusMessage, this, statusToTray);
 
     const QString shippedMain =
         QDir(appDir).filePath(QStringLiteral("resources/layouts/main.xml"));
@@ -316,8 +311,8 @@ void Application::wireTracker()
 
 void Application::onGaze(const gazer::GazePoint& point)
 {
-    // Commit / follow color sliders and list scrollbars before board dwell so
-    // leaving them can activate a neighbor on the same sample.
+    // Head-pose curve scrub and list scrollbars before board dwell so leaving
+    // them can activate a neighbor on the same sample.
     m_svc->settingsUi().onGaze(point);
     m_svc->composeUi().onGaze(point);
     m_gazeRouter.dispatch(point);

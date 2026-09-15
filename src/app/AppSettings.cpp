@@ -692,7 +692,7 @@ QString AppSettings::settingDescription(const QString& key)
         return QStringLiteral("Hover outline uses a custom color instead of progress.");
     }
     if (key == QLatin1String("customSourceColor")) {
-        return QStringLiteral("Material palette source. Complementary, analogous, and triadic rows come from this.");
+        return QStringLiteral("Unused. Accent is customPrimaryColor; progress is customSecondaryColor.");
     }
     if (key == QLatin1String("customPrimaryColor")) {
         return QStringLiteral("Highlighted foreground (active labels, accent).");

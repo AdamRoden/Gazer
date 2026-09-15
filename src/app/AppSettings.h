@@ -61,7 +61,7 @@ struct AppSettings {
     /// When foresight and pre-click zoom both apply: a second zoom inside the
     /// foresight region. Off = place the cursor if the pick is inside foresight.
     bool mouseMoveForesightSecondZoom = false;
-    /// Gaze follow for the live lens, gaze→mouse, reticle, dwell-move, mag-pick.
+    /// Gaze follow for the live lens, gaze→mouse, and reticle (not mag-pick or dwell-move).
     GazeFollowProfile magFollowProfile = GazeFollowProfile::Sticky;
 
     // --- Progress visuals (boards + mouse-move) ---
@@ -186,7 +186,8 @@ struct AppSettings {
     ThemeAppearance themeAppearance = ThemeAppearance::Dark;
     int themeSaturation = kThemeSaturationDefault;
     ThemeTintFamily themeTintFamily = ThemeTintFamily::None;
-    /// Accent / progress seeds. Neutrals bake from Fluent in defaults().
+    /// Accent / progress seeds (`customPrimaryColor` / `customSecondaryColor`).
+    /// `customSourceColor` is loaded/saved for old JSON; Fluent ignores it.
     QString customSourceColor = QStringLiteral("#1E97F3");
     QString customPrimaryColor = QStringLiteral("#1E97F3");
     QString customSecondaryColor = QStringLiteral("#99FF473D");

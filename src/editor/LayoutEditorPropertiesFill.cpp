@@ -175,9 +175,9 @@ void LayoutEditorProperties::fillVisibleWhen(QFormLayout* form, const PageLeaf& 
     PropertyBinder b{this, &m_loading};
     QStringList whenVals = visibleWhenChoices();
     QStringList whenLabels = {QStringLiteral("(always)"), QStringLiteral("expanded"),
-                              QStringLiteral("!expanded"), QStringLiteral("quitConfirm"),
-                              QStringLiteral("!quitConfirm"), QStringLiteral("dwellSuspend"),
-                              QStringLiteral("!dwellSuspend")};
+                              QStringLiteral("!expanded"), QStringLiteral("dwellSuspend"),
+                              QStringLiteral("!dwellSuspend"), QStringLiteral("hover_custom"),
+                              QStringLiteral("flash_custom")};
     if (!item.visibleWhen.isEmpty() && !whenVals.contains(item.visibleWhen)) {
         whenVals.prepend(item.visibleWhen);
         whenLabels.prepend(item.visibleWhen);

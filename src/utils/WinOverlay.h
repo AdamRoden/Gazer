@@ -137,9 +137,9 @@ void setOverlayStackHost(QWindow* host);
 void registerOverlayWindow(QWindow* overlay, OverlayLayer layer = OverlayLayer::Assist);
 void unregisterOverlayWindow(QWindow* overlay);
 
-/// Watches other processes (foreground, minimize, move) and polls so fullscreen
-/// / tray restacks cannot sit in front of Gazer. Debounced; skips a no-op restack.
-/// Task Manager still wins without UIAccess.
+/// Watches other processes (foreground, minimize, move) and polls so other apps
+/// cannot sit in front of Gazer. Debounced; skips a no-op restack. Exclusive-mode
+/// fullscreen can still cover until it yields. Task Manager still wins without UIAccess.
 class OverlayStackWatch final : public QObject {
 public:
     explicit OverlayStackWatch(std::function<void()> restack = {}, QObject* parent = nullptr);

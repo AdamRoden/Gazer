@@ -16,7 +16,6 @@ public:
     explicit MappingEngine(InputService& input, QObject* parent = nullptr);
 
     [[nodiscard]] bool loadProfileFile(const QString& path, QString* error = nullptr);
-    [[nodiscard]] bool hasProfile() const { return m_profile.isValid(); }
     [[nodiscard]] const MappingProfile& profile() const { return m_profile; }
 
     /// Run mapped outputs for a layout command name. Returns false if unknown or inject fail.

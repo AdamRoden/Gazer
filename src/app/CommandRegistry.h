@@ -31,10 +31,8 @@ public:
     void registerBuiltin(const QString& name, InvHandler handler);
     /// Same handler under several names (canonical first). See `src/app/Commands.md`.
     void registerBuiltin(std::initializer_list<const char*> names, Handler handler);
-    void registerBuiltin(std::initializer_list<const char*> names, InvHandler handler);
     /// Longest-prefix match after exact builtins. Prefix should end with '.'.
     void registerPrefix(const QString& prefix, InvHandler handler);
-    [[nodiscard]] bool isBuiltin(const QString& name) const;
     [[nodiscard]] QStringList names() const;
 
     /// Builtin if registered, else mapping profile injectors.

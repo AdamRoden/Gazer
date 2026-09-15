@@ -96,9 +96,6 @@ void SettingsUi::colorNudge(const QString& channel, int dir)
     if (!m_color.active) {
         return;
     }
-    if (m_scrub.active) {
-        endSliderScrub(true);
-    }
     applyColorShownValue(channel, colorShownValue(channel) + dir);
     refreshColorPicker();
 }
@@ -146,7 +143,6 @@ bool SettingsUi::ensureInlineThemeEditor()
 
 void SettingsUi::stopInlineThemeEditor()
 {
-    abortSliderScrub();
     m_color.reset();
     m_colorPending.clear();
     m_colorPickerKey.clear();
@@ -240,9 +236,6 @@ void SettingsUi::loadActiveThemeColor()
 
 void SettingsUi::themeSetAssignPrimary(bool primary)
 {
-    if (m_scrub.active) {
-        endSliderScrub(true);
-    }
     const bool switched = m_themeAssignPrimary != primary;
     if (isInlineThemeEditor() && switched) {
         persistThemeDraft(true);
@@ -399,11 +392,6 @@ void SettingsUi::refreshColorPicker()
         return;
     }
     if (isInlineThemeEditor()) {
-        if (m_scrub.active) {
-            applyPreviewColor();
-            m_pages.refreshDecorated();
-            return;
-        }
         persistThemeDraft(true);
         return;
     }
@@ -424,7 +412,6 @@ void SettingsUi::closeColorPicker()
         m_mouseDwell->setArmed(false);
     }
     cancelEyedropper();
-    abortSliderScrub();
     m_colorPending.clear();
     m_colorPickerKey.clear();
     m_hexBuffer.clear();
@@ -468,9 +455,6 @@ bool SettingsUi::colorEditChannel(const QString& channel, QString* error)
             *error = QStringLiteral("Color picker is not open");
         }
         return false;
-    }
-    if (m_scrub.active) {
-        endSliderScrub(true);
     }
     const ColorAxis* axis = findColorAxis(channel);
     if (!axis) {
@@ -543,9 +527,6 @@ bool SettingsUi::beginColorPick()
     if (!m_color.active || !m_mouseDwell) {
         return false;
     }
-    if (m_scrub.active) {
-        endSliderScrub(true);
-    }
     m_mouseDwell->toggleArmed(MouseDwellMove::ArmPurpose::ColorPick);
     if (m_mouseDwell->isColorPick()) {
         m_mouseDwell->ensureSelectDeadline(8000);
@@ -561,9 +542,6 @@ bool SettingsUi::beginEyedropper()
     }
     if (!m_color.active) {
         return false;
-    }
-    if (m_scrub.active) {
-        endSliderScrub(true);
     }
     const QRect gate = m_pages.targetScreenRect(m_color.pageId, QStringLiteral("eyedrop"));
     m_eyedropActive = true;

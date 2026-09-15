@@ -18,7 +18,6 @@
 #include "assist/MouseDwellMove.h"
 #include "assist/ClipPlayer.h"
 #include "assist/ElevenClient.h"
-#include "assist/ScriptHost.h"
 #include "assist/SoundboardStore.h"
 #include "assist/SpeechEngine.h"
 #include "assist/SpeechHistory.h"
@@ -29,7 +28,6 @@
 #include "input/KeyboardInjector.h"
 #include "input/KeyStateManager.h"
 #include "layout/PageCatalog.h"
-#include "layout/PageHit.h"
 #include "layout/PageSession.h"
 #include "layout/PageTypes.h"
 #include "mapping/MappingEngine.h"
@@ -138,7 +136,6 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
     m_headPose->setInput(m_input.get());
     m_assistSession = std::make_unique<AssistSession>();
     m_actionLoops = std::make_unique<ActionLoopService>();
-    m_scripts = std::make_unique<ScriptHost>(*m_speech, *m_commands, *m_input, *m_pages);
     m_ahk = std::make_unique<AhkLauncher>();
 
     m_catalog->setDirectory(layoutsDir);
@@ -350,11 +347,6 @@ void GazerServices::setDwellSuspended(bool on)
     }
 }
 
-void GazerServices::toggleDwellSuspended()
-{
-    setDwellSuspended(!isDwellSuspended());
-}
-
 bool GazerServices::isDwellSuspended() const
 {
     return m_pages && m_pages->isDwellSuspended();
@@ -498,17 +490,6 @@ void GazerServices::applySettings(bool persist)
         }
     }
     emit settingsChanged();
-}
-
-bool GazerServices::reloadSettings(QString* error)
-{
-    AppSettings loaded = AppSettings::defaults();
-    if (!loaded.loadFromFile(AppSettings::defaultFilePath(), error)) {
-        return false;
-    }
-    m_settings = loaded;
-    applySettings(false);
-    return true;
 }
 
 void GazerServices::resetSettingsToDefaults()

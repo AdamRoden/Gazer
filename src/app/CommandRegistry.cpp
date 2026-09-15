@@ -32,29 +32,9 @@ void CommandRegistry::registerBuiltin(std::initializer_list<const char*> names, 
     }
 }
 
-void CommandRegistry::registerBuiltin(std::initializer_list<const char*> names, InvHandler handler)
-{
-    for (const char* n : names) {
-        registerBuiltin(QLatin1String(n), handler);
-    }
-}
-
 void CommandRegistry::registerPrefix(const QString& prefix, InvHandler handler)
 {
     m_prefixes.push_back(PrefixHandler{prefix, std::move(handler)});
-}
-
-bool CommandRegistry::isBuiltin(const QString& name) const
-{
-    if (m_builtins.contains(name)) {
-        return true;
-    }
-    for (const PrefixHandler& p : m_prefixes) {
-        if (name.startsWith(p.prefix)) {
-            return true;
-        }
-    }
-    return false;
 }
 
 QStringList CommandRegistry::names() const

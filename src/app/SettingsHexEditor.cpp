@@ -29,9 +29,6 @@ bool SettingsUi::openHexEditor(QString* error)
         }
         return false;
     }
-    if (m_scrub.active) {
-        endSliderScrub(true);
-    }
     m_hexActive = true;
     m_hexBuffer = hexSeedFromColor(m_colorDraft);
     LiveBoard hexBoard;

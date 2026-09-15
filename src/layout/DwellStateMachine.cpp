@@ -169,7 +169,7 @@ void DwellStateMachine::onGazeSample(const gazer::GazePoint& point,
         m_elapsedMs = 0;
         m_progress = 0.0;
         emit dwellProgress(m_currentId, 0.0);
-        // Fall through. A 0-ms step fires on this sample (PageNotes leading 0).
+        // Fall through. A 0-ms step fires on this sample.
     }
 
     while (true) {

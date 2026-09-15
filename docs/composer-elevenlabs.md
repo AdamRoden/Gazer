@@ -1,8 +1,10 @@
 # Gaze-first speech composer, ElevenLabs, and soundboard
 
+Historical v1 spec (2026-09-03). Live behavior is `src/app/Commands.md`, `src/app/ComposeUi.h`, `src/assist/SpeechEngine.h`, and shipped `resources/layouts/compose.xml`. Several claims below are stale (`TtsService::finished`, prefix `CommandRegistry`, settings hub, CMake Network/Multimedia).
+
 | Field | Value |
 |-------|--------|
-| **Status** | Accepted (Open Questions resolved 2026-09-03) |
+| **Status** | Historical (implemented; do not treat as current API) |
 | **Author** | Gazer design |
 | **Date** | 2026-09-03 |
 | **Audience** | Gazer engineers (C++20 / Qt 6) |

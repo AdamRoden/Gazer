@@ -535,32 +535,6 @@ void PageHostWindow::setCurve(QVector<HeadPoseCurvePoint> points, int selected, 
     }
 }
 
-void PageHostWindow::setSliderScrub(const QString& itemId, double t, const QString& valueText,
-                                    double dwellProgress)
-{
-    m_live.sliderScrubId = itemId;
-    m_live.sliderScrubT = qBound(0.0, t, 1.0);
-    m_live.sliderScrubValue = valueText;
-    m_live.sliderScrubProgress = qBound(0.0, dwellProgress, 1.0);
-    if (m_board) {
-        m_board->update();
-    }
-}
-
-void PageHostWindow::clearSliderScrub()
-{
-    if (m_live.sliderScrubId.isEmpty()) {
-        return;
-    }
-    m_live.sliderScrubId.clear();
-    m_live.sliderScrubT = 0.0;
-    m_live.sliderScrubValue.clear();
-    m_live.sliderScrubProgress = 0.0;
-    if (m_board) {
-        m_board->update();
-    }
-}
-
 void PageHostWindow::setTargetPhase(const QString& targetKey, int phaseIndex)
 {
     if (targetKey.isEmpty()) {

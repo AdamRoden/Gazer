@@ -130,7 +130,7 @@ Opened from the drawer **Assist** page (`example_assist`) or the mouse pad.
 | ComboMouse | `toggleComboMouse` | Inner drift ring + outer command pie. |
 | Edit page | `openPageEditor` | Opens the XML designer. |
 
-Look-to-scroll peak speeds: 1, 5, 10, 20, 40 notches/sec (`lts.speed.slower` / `.faster`). Overlay z-order (front → back): reticle, live lens, mag-pick, other assist overlays, then the page host.
+Look-to-scroll peak speeds: 1, 2, 5, 10, 20 notches/sec (`lts.speed.slower` / `.faster`). Overlay z-order (front → back): reticle, live lens, mag-pick, other assist overlays, then the page host.
 
 ---
 
@@ -140,7 +140,7 @@ Drawer **Speak** (`compose.open`) opens `compose.xml`. This is an internal phras
 
 - Type on the composer keyboard into a buffer. Word chips: first dwell jumps the caret; later dwells delete the word (`<Phase>`).
 - **Speak** synthesizes the buffer. Engine is **ElevenLabs** when a model, DPAPI-stored API key, and voice id are set; otherwise **Windows SAPI**. Three Eleven failures latch SAPI until model, voice, or key changes.
-- XML `<Speak value="Hello"/>` and `gazer.speak()` are always SAPI (no cloud quota on canned cells).
+- XML `<Speak value="Hello"/>` is always SAPI (no cloud quota on canned cells).
 - **Soundboard**: pin baked MPEG clips onto topic cells; replay without re-synthesis. Store: `%AppData%\Gazer\` (`boards.json`, `clips/`).
 - **Freestyle**: saved voices + ElevenLabs v3 audio tags (`[laugh]`, accents, …).
 - **History**: last 50 composed utterances; replay, restore, or delete.
@@ -303,7 +303,6 @@ Tobii / Mouse ──► ITracker ──► GazePoint (+ HeadPose)
         ▼
   ActionDispatcher
   CommandRegistry ──► InputService
-                  └──► ScriptHost (gazer.*)
 ```
 
 - Live UI is one frameless topmost `QQuickWindow` + `QQuickPaintedItem` (software scene graph, alpha buffer) sized to painted chrome.
@@ -311,9 +310,7 @@ Tobii / Mouse ──► ITracker ──► GazePoint (+ HeadPose)
 - Mapping profiles (`resources/mappings/default.json`) turn leftover command names into key / mouse / gamepad output.
 - Builtins run first; unknown names fall through to the mapping profile.
 
-Boards are XML only (`resources/layouts/*.xml`). `gazer.openPage` / `loadPage` open those pages on the live host. Editor F5 previews attach XML copies under `__editor_preview_*` ids so they do not replace the live page.
-
-Script API (`gazer` in QJS): `log`, `speak` (SAPI), `typeText`, `runCommand`, `openPage`, `loadPage` (closes the current attached page first), `focusedPageId`.
+Boards are XML only (`resources/layouts/*.xml`). `openPage` / catalog ids open those pages on the live host. Editor F5 previews attach XML copies under `__editor_preview_*` ids so they do not replace the live page.
 
 ---
 

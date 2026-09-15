@@ -7,7 +7,6 @@
 #include "layout/PageTypes.h"
 
 #include <QColor>
-#include <QElapsedTimer>
 #include <QHash>
 #include <QMetaObject>
 #include <QPoint>
@@ -54,11 +53,10 @@ public:
     void decoratePage(PageDocument& doc);
     /// Store the validated key, or surface the HTTP/DPAPI error. Returns true if stored.
     [[nodiscard]] bool onSpeechKeyValidated(bool ok, const QString& error);
-    /// Gaze-follow color slider after the track is activated.
+    /// Head-pose curve gaze-scrub while that editor is open.
     void onGaze(const GazePoint& point);
     void onColorAimMoved(const QPoint& pos);
     void cancelEyedropper();
-    [[nodiscard]] bool isSliderScrubbing() const { return m_scrub.active; }
     [[nodiscard]] QString colorPickerKey() const { return m_colorPickerKey; }
 
     [[nodiscard]] bool isNumpadActive() const { return m_numpad.active; }
@@ -130,12 +128,6 @@ private:
     void applyPickAt(const QPoint& pos);
     [[nodiscard]] int colorShownValue(const QString& channel) const;
     bool applyColorShownValue(const QString& channel, int value);
-    bool beginSliderScrub(const QString& channel);
-    void endSliderScrub(bool commit);
-    void abortSliderScrub();
-    void feedSliderGaze(const GazePoint& point);
-    void syncSliderScrubVisuals();
-    [[nodiscard]] int scrubShownValue() const;
     void themeSetAssignPrimary(bool primary);
     void themePickShade(int family, int index);
     [[nodiscard]] QColor liveThemeSource() const;
@@ -262,25 +254,6 @@ private:
     bool m_keyChecking = false;
     QString m_keyBuffer;
     QMetaObject::Connection m_editorKeyConn;
-
-    struct SliderScrub {
-        bool active = false;
-        QString channel;
-        QString itemId;
-        void reset()
-        {
-            active = false;
-            channel.clear();
-            itemId.clear();
-        }
-    };
-    SliderScrub m_scrub;
-    QColor m_scrubRevert;
-    GazeDwellTracker m_scrubDwell;
-    InvalidGazeGrace m_scrubGrace;
-    QElapsedTimer m_scrubClock;
-    qint64 m_scrubDeadlineMs = -1;
-    qint64 m_scrubLastSampleMs = -1;
 };
 
 } // namespace gazer

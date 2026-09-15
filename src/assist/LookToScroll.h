@@ -30,8 +30,8 @@ inline constexpr double kLtsHubDwellDiameterFrac = 0.08;
 inline constexpr double kLtsPlusDismissGraceSec = 0.18;
 
 /// Circular deadzone around the cursor. Gaze outside scrolls (linear falloff +
-/// per-axis accel). Vertical accel resets when |dy| is ~0, horizontal when |dx|
-/// is ~0 — not when gaze re-enters the ring. Once engaged, speed is at least
+/// per-axis accel). Accel time on an axis resets when that offset is inside
+/// deadzone hysteresis (16–40 px), not when gaze re-enters the ring. Once engaged, speed is at least
 /// `kLtsMinEngagedPxPerSec` until gaze is clearly back inside the ring (hysteresis).
 /// Dwell the hub (`kLtsHubDwellDiameterFrac` of screen height) to pause and open a
 /// ComboMouse-style pie (speed, axis mode, reset, quit). Reset re-places the origin

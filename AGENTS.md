@@ -39,7 +39,7 @@ Do not `raise()` / `HWND_TOP` an overlay on every gaze sample. `showOverlay()` i
 | Settings keys, JSON, editors | `src/app/README.md`, `AppSettings.h`, spec tables in `AppSettings.cpp`. Speed: standard `dwellSequence` vs rapid `rapidDwellSequence`; shared `scanGraceMs`. Head-pose maps: `headPoseMaps` + `SettingsHeadPose.cpp` |
 | Builtins / mapping fallthrough | `src/app/Commands.md`, then the file listed in that table |
 | Assist (LTS, mag, dwell-move) | `src/assist/README.md` |
-| Composer / speech | `src/app/ComposeUi.h`, `src/assist/SpeechEngine.h`, `docs/composer-elevenlabs.md` |
+| Composer / speech | `src/app/ComposeUi.h`, `src/assist/SpeechEngine.h`, `src/app/Commands.md`. `docs/composer-elevenlabs.md` is a frozen 2026-09-03 spec — live behavior is Commands.md / shipped XML. |
 | Page designer | `src/editor/README.md` |
 | Paint / host window / theme | `src/ui/README.md` |
 | Material palettes (theme) | `src/ui/MaterialPalette.h`, `resources/layouts/main_settings_theme.xml` |
@@ -52,7 +52,7 @@ Do not `raise()` / `HWND_TOP` an overlay on every gaze sample. `showOverlay()` i
 |------|------|
 | `src/app/` | Shell wiring, settings, command registry, gaze router |
 | `src/layout/` | Page AST, XML load/write, dwell, live session |
-| `src/assist/` | Magnifier, LTS, combo mouse, scripts, TTS, head-pose analog maps |
+| `src/assist/` | Magnifier, LTS, combo mouse, TTS, head-pose analog maps |
 | `src/editor/` | Qt Widgets page designer |
 | `src/ui/` | Host window, board paint, overlays, theme |
 | `src/input/` | Keyboard / mouse / scroll / gamepad inject |
@@ -60,7 +60,7 @@ Do not `raise()` / `HWND_TOP` an overlay on every gaze sample. `showOverlay()` i
 | `src/mapping/` | JSON command → input profiles; `HeadPoseCurve` analog eval |
 | `resources/layouts/` | Shipped Page XML (filename stem = catalog id) |
 | `packaging/` | MSI (`Gazer.wxs`), `Gazer.exe.manifest.in` (uiAccess), cert-trust cmd |
-| `tests/` | Qt Test binaries (`GazerPageTests`, `GazerDwellTests`) |
+| `tests/` | Qt Test binaries (`GazerPageTests`, `GazerDwellTests`, `GazerSpeechTests`) |
 
 ## Naming traps
 
@@ -69,7 +69,7 @@ Do not `raise()` / `HWND_TOP` an overlay on every gaze sample. `showOverlay()` i
 - `SettingsUi` methods are split by board: `SettingsUi.cpp` (shared), `SettingsNumpad.cpp`, `SettingsArrayEditor.cpp`, `SettingsColorPicker.cpp`, `SettingsHexEditor.cpp`, `SettingsSpeechKey.cpp`, `SettingsSliderGaze.cpp`, `SettingsCommands.cpp`, `SettingsHeadPose.cpp`. Helpers: `SettingsPageBuild.h`, `SettingsUiInternal.h`.
 - `ComposeUi` methods are split by board: `ComposeUi.cpp` (capture + chrome stamp/decorate), `ComposeSoundboard.cpp`, `ComposeFreestyle.cpp`, `ComposeItemEdit.cpp`, `ComposeVoices.cpp`, `ComposeHistory.cpp`. Helpers: `ComposeUiInternal.h`.
 - `AppSettings` JSON is `AppSettingsIo.cpp`; theme palette is `AppSettingsTheme.cpp`.
-- `PageSession` drawer/quit is `PageSessionChrome.cpp`; gaze/dwell is `PageSessionGaze.cpp`.
+- Drawer motion: `PageSessionChrome.cpp`. Quit is master XML `ShowLayers`. Gaze/dwell/auto-close: `PageSessionGaze.cpp`.
 - Head-preview math/shaders: `ui/PreviewGeometry.*`. GL draw is `ui/HeadPreviewRenderer` (tray `PreviewWindow` and the Head settings cell). Page XML action tests: `tests/PageLoaderActionTest.cpp`. Live hit tests: `tests/PageHitLiveTest.cpp`.
 - Editor inspector forms: `LayoutEditorPropertiesFill.cpp`, `LayoutEditorFieldsGroups.cpp`. File dialogs: `LayoutEditorWindowFile.cpp`.
 - Keyboard XML cell ids like `ch_113_0_1` are codepoints, not key names.
@@ -90,6 +90,8 @@ These dump context and almost never help a code change:
 cmake -S . -B build -G Ninja -DCMAKE_PREFIX_PATH="C:/Qt/6.11.1/mingw_64" -DCMAKE_BUILD_TYPE=Release
 cmake --build build --target Gazer
 cmake --build build --target GazerPageTests
+cmake --build build --target GazerDwellTests
+cmake --build build --target GazerSpeechTests
 ```
 
 MinGW `bin` on `PATH`. One Ninja version per tree. Includes are `"layout/PageLoader.h"` from `src/`.

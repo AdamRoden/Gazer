@@ -1,9 +1,7 @@
 #pragma once
 
 #include <QColor>
-#include <QJsonObject>
 #include <QString>
-#include <QVector>
 #include <QtGlobal>
 #include <optional>
 
@@ -73,8 +71,8 @@ struct ToneRef {
     int weight = kRestTone;
 };
 
-/// Chrome palette. JSON ownership lives here (toJson/fromJson).
-/// AppSettings derives a live palette from appearance × accent × progress × saturation.
+/// Chrome palette. AppSettings derives a live palette from appearance × accent ×
+/// progress × saturation (not this struct).
 struct ThemeColors {
     QColor bgMain;
     QColor border;
@@ -83,15 +81,12 @@ struct ThemeColors {
     QColor text;
     QColor textSecondary;
     QColor danger;
-    /// Settings Progress swatch. Not persisted in toJson.
+    /// Settings Progress swatch.
     QColor progress;
     ThemeAppearance appearance = ThemeAppearance::Dark;
 
     [[nodiscard]] static ThemeColors darkPreset();
     [[nodiscard]] static ThemeColors lightPreset();
-
-    [[nodiscard]] QJsonObject toJson() const;
-    void fromJson(const QJsonObject& o);
 
     /// Hex helpers used by settings persistence and UI.
     [[nodiscard]] static QColor parseColor(const QString& hex, const QColor& fallback = Qt::cyan);
@@ -173,8 +168,5 @@ constexpr int kThemeBrightnessDefault = 2;
 [[nodiscard]] ThemeAppearance themeAppearanceFromString(const QString& s);
 [[nodiscard]] QString themeTintFamilyToString(ThemeTintFamily f);
 [[nodiscard]] ThemeTintFamily themeTintFamilyFromString(const QString& s);
-
-/// Voice sample palette (from Voice/js/app.js COLOR_PALETTE).
-[[nodiscard]] QVector<QString> voiceColorPalette();
 
 } // namespace gazer

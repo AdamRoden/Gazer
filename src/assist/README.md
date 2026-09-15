@@ -13,7 +13,6 @@ Gaze tools on top of the page session.
 | `GazeReticle` / `GazeMouseFollow` | Marker / cursor-follows-gaze |
 | `GazeDwellTracker.h` / `GazeFollowProfile.h` / `GazeFollowStickiness.h` / `ForesightMemory.h` / `MagLayout.h` | Shared helpers |
 | `ActionLoopService` | Sticky command series |
-| `ScriptHost` | `gazer.*` QJS |
 | `AhkLauncher` | Temp `.ahk` + local AutoHotkey |
 | `TtsService` | SAPI voice |
 | `SpeechEngine` | Canned = SAPI. Composed = Eleven when model+key+voiceId, else SAPI. Abort + generation + ClipPlayer. Three Eleven failures latch SAPI until model, voice, or API key changes. Speak never types. |

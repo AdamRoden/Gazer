@@ -475,13 +475,13 @@ void LayoutEditorSession::packGrid()
     edit(QStringLiteral("Pack grid"), [](PageDocument& d) { PageEdit::ensureGridFits(d); });
 }
 
-void LayoutEditorSession::equalizeSelectedWidths()
+void LayoutEditorSession::resetSelectedColSpans()
 {
     if (m_sel.itemIds.size() < 2) {
         return;
     }
     const QStringList ids = m_sel.itemIds;
-    edit(QStringLiteral("Equalize widths"), [&](PageDocument& d) {
+    edit(QStringLiteral("Reset column spans"), [&](PageDocument& d) {
         int n = 0;
         for (const QString& id : ids) {
             if (PageEdit::findCell(d, id)) {

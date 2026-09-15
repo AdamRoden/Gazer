@@ -15,7 +15,7 @@ set(CMAKE_AUTOUIC ON)
 
 option(GAZER_USE_TOBII "Build Tobii Stream Engine integration (runtime DLL load)" ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets OpenGL OpenGLWidgets Qml Quick Svg Test Multimedia Network)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets OpenGL Quick Svg Test Multimedia Network)
 
 # AUTOMOC may invoke the compiler by basename. Keep MinGW on PATH even when
 # the parent shell did not export it (`cmake --build` / ninja autogen).
@@ -82,7 +82,6 @@ set(GAZER_SOURCES
     src/layout/PageWriter.cpp
     src/layout/PageEdit.cpp
     src/layout/PageCatalog.cpp
-    src/layout/DwellRegionSpace.cpp
     src/layout/DwellStateMachine.cpp
     src/input/KeyboardInjector.cpp
     src/input/KeyStateManager.cpp
@@ -106,7 +105,6 @@ set(GAZER_SOURCES
     src/assist/ComposeBuffer.cpp
     src/assist/SpeechSecrets.cpp
     src/assist/ElevenClient.cpp
-    src/assist/ScriptHost.cpp
     src/assist/AhkLauncher.cpp
     src/assist/LookToScroll.cpp
     src/assist/HeadPoseMapper.cpp
@@ -183,7 +181,6 @@ set(GAZER_HEADERS
     src/core/TrackerMouse.h
     src/core/TrackerTobii.h
     src/core/StreamEngineLib.h
-    src/layout/DwellRegionSpace.h
     src/layout/PageTypes.h
     src/layout/PageBox.h
     src/layout/RoundBox.h
@@ -225,7 +222,6 @@ set(GAZER_HEADERS
     src/assist/ComposeBuffer.h
     src/assist/SpeechSecrets.h
     src/assist/ElevenClient.h
-    src/assist/ScriptHost.h
     src/assist/AhkLauncher.h
     src/assist/LookToScroll.h
     src/assist/HeadPoseMapper.h
@@ -338,8 +334,6 @@ target_link_libraries(Gazer PRIVATE
     Qt6::Gui
     Qt6::Widgets
     Qt6::OpenGL
-    Qt6::OpenGLWidgets
-    Qt6::Qml
     Qt6::Quick
     Qt6::Svg
     Qt6::Multimedia
@@ -372,7 +366,7 @@ foreach(_dll IN LISTS _tobii_dll_candidates)
 endforeach()
 
 if(WIN32)
-    # Keep runtime deps next to Gazer.exe (Qt6Qml is required for QJSEngine / ScriptHost).
+    # Keep runtime deps next to Gazer.exe (Qt6Quick pulls Qml).
     # Without this, a fresh build silently fails at process start with STATUS_DLL_NOT_FOUND.
     find_program(WINDEPLOYQT_EXECUTABLE NAMES windeployqt HINTS "${Qt6_DIR}/../../../bin")
     if(WINDEPLOYQT_EXECUTABLE)
@@ -422,7 +416,6 @@ set(GAZER_PAGE_TEST_LIB
     src/layout/PageWriter.cpp
     src/layout/PageEdit.cpp
     src/layout/PageCatalog.cpp
-    src/layout/DwellRegionSpace.cpp
     src/assist/AhkLauncher.cpp
 )
 add_executable(GazerPageTests

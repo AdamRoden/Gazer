@@ -6,7 +6,7 @@
 
 namespace gazer {
 
-/// DwellDetector geometry: gaze maps in dwellZone; chrome draws in progressZone.
+/// Gaze maps in dwellZone; chrome draws in progressZone.
 struct PageDetectorGeom {
     /// Authored progress box (Zone size at the zone anchor). May sit off-screen.
     QRectF visual;
@@ -14,14 +14,10 @@ struct PageDetectorGeom {
     QRectF dwellZone;
     /// Unrounded progress box used for accumulation hit-test (same as visual for zones).
     QRectF progressZone;
-    bool progressCoerced = false;
 
     /// Persistent content to paint (keys, on-screen Zone chips). Empty if fully off-screen.
     [[nodiscard]] QRectF contentOnScreen() const
     {
-        if (progressCoerced) {
-            return {};
-        }
         return visual.isEmpty() ? progressZone : visual;
     }
 
@@ -35,10 +31,10 @@ struct PageDetectorGeom {
 
 namespace PageDetector {
 
-/// CellDetector: both zones centered on the visual cell. Progress is clipped to screen.
+/// Both zones centered on the visual cell. Progress is clipped to screen.
 [[nodiscard]] PageDetectorGeom cell(const QRectF& visualCell, const QRectF& screen);
 
-/// ZoneDetector: progress from the visual rect (clipped to screen); dwell unrestricted.
+/// Progress from the visual rect (clipped to screen); dwell unrestricted.
 [[nodiscard]] PageDetectorGeom zone(const QRectF& visual, const QRectF& dwell, const QRectF& screen);
 
 /// Resolve a Zone against a desktop/screen bounds rect (anchor/offset/size + dwellOffset/size).

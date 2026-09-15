@@ -1,7 +1,6 @@
 #include "input/KeyboardInjector.h"
 
 #include "input/KeyGlyphs.h"
-#include "utils/Log.h"
 
 #ifdef Q_OS_WIN
 #  ifndef WIN32_LEAN_AND_MEAN
@@ -147,11 +146,6 @@ bool sendNamed(const QString& keyName, bool up, QString* error)
 
 } // namespace
 
-bool KeyboardInjector::tapKey(const QString& keyName, QString* error)
-{
-    return keyDown(keyName, error) && keyUp(keyName, error);
-}
-
 bool KeyboardInjector::keyDown(const QString& keyName, QString* error)
 {
 #ifdef Q_OS_WIN
@@ -193,53 +187,6 @@ bool KeyboardInjector::keyUp(const QString& keyName, QString* error)
     return sendNamed(keyName, true, error);
 #else
     return sendNamed(keyName, true, error);
-#endif
-}
-
-bool KeyboardInjector::combo(const QStringList& keys, QString* error)
-{
-#ifdef Q_OS_WIN
-    if (keys.isEmpty()) {
-        if (error) {
-            *error = QStringLiteral("Empty key combo");
-        }
-        return false;
-    }
-    QVector<VkStroke> strokes;
-    strokes.reserve(keys.size());
-    for (const QString& k : keys) {
-        const VkStroke stroke = namedStroke(k);
-        if (stroke.vk == 0) {
-            if (error) {
-                *error = QStringLiteral("Unknown key in combo: %1").arg(k);
-            }
-            return false;
-        }
-        strokes.push_back(stroke);
-    }
-    for (const VkStroke& stroke : strokes) {
-        if (!sendVk(stroke, false)) {
-            if (error) {
-                *error = QStringLiteral("SendInput key-down failed");
-            }
-            return false;
-        }
-    }
-    for (int i = strokes.size() - 1; i >= 0; --i) {
-        if (!sendVk(strokes[i], true)) {
-            if (error) {
-                *error = QStringLiteral("SendInput key-up failed");
-            }
-            return false;
-        }
-    }
-    return true;
-#else
-    Q_UNUSED(keys);
-    if (error) {
-        *error = QStringLiteral("Keyboard injection only supported on Windows");
-    }
-    return false;
 #endif
 }
 

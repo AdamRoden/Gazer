@@ -37,8 +37,9 @@ struct HeadPoseOutputs {
     QStringList commands;
 };
 
-/// Pure analog eval. @p paused zeros outputs (still updates hysteresis so unpause
-/// does not dump a burst). @p dtMs used for mouse/scroll integration.
+/// Pure analog eval. @p paused zeros outputs, still updates command arming, and
+/// clears mouse/scroll remainders so unpause does not dump a step. @p dtMs used
+/// for mouse/scroll integration.
 [[nodiscard]] HeadPoseOutputs evalHeadPoseMaps(const QVector<HeadPoseMap>& maps, bool enabled,
                                                const HeadPose& pose, const HeadPose& origin,
                                                bool originSet, bool paused, qint64 dtMs,

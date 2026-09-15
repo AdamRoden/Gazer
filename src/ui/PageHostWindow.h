@@ -44,9 +44,6 @@ public:
     void setPreviewColor(const QColor& color);
     void setHeadPreviewImage(QImage image);
     void setCurve(QVector<HeadPoseCurvePoint> points, int selected, double liveIn, bool liveOn);
-    void setSliderScrub(const QString& itemId, double t, const QString& valueText,
-                        double dwellProgress);
-    void clearSliderScrub();
     void setTargetPhase(const QString& targetKey, int phaseIndex);
     void setInputFocusEnabled(bool on);
     void showHost();

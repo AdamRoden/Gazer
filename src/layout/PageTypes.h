@@ -113,7 +113,7 @@ struct PageTrackSize {
     }
 };
 
-/// PageNotes anchors. Top pins top-center to top-center of the reference.
+/// Top pins top-center to top-center of the reference.
 enum class PageAnchor {
     TopLeft,
     Top,
@@ -175,13 +175,6 @@ struct PageChrome {
 
     static constexpr double kDefaultThickness = 1.0;
     static constexpr double kDefaultRadius = 8.0;
-
-    [[nodiscard]] static PageChrome defaults()
-    {
-        PageChrome c;
-        c.thickness = PageBox::all(kDefaultThickness);
-        return c;
-    }
 
     [[nodiscard]] PageBox resolvedRadius() const
     {

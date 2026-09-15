@@ -2,7 +2,6 @@
 
 #include "utils/WinOverlay.h"
 
-#include <QHideEvent>
 #include <QWidget>
 
 namespace gazer {
@@ -46,24 +45,13 @@ public:
         }
         show();
         restackGazerBand();
-        emit stackChanged();
     }
-
-signals:
-    /// Overlay HWND shown, raised, or hidden — chrome boards may need a restack.
-    void stackChanged();
 
 protected:
     void showEvent(QShowEvent* event) override
     {
         QWidget::showEvent(event);
         applyToolChrome();
-    }
-
-    void hideEvent(QHideEvent* event) override
-    {
-        QWidget::hideEvent(event);
-        emit stackChanged();
     }
 
 private:

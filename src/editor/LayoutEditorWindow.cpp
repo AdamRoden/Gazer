@@ -304,8 +304,8 @@ void LayoutEditorWindow::buildUi()
                               [this]() { m_session->addGridColumn(); });
     auto* pack = makeAction(QStringLiteral("&Pack grid"), QKeySequence(),
                             [this]() { m_session->packGrid(); });
-    auto* eq = makeAction(QStringLiteral("E&qualize widths"), QKeySequence(),
-                          [this]() { m_session->equalizeSelectedWidths(); });
+    auto* eq = makeAction(QStringLiteral("Reset column &spans"), QKeySequence(),
+                          [this]() { m_session->resetSelectedColSpans(); });
     auto* align = makeAction(QStringLiteral("A&lign to row"), QKeySequence(),
                              [this]() { m_session->alignSelectedRow(); });
     auto* raise = makeAction(QStringLiteral("Bring &forward"),

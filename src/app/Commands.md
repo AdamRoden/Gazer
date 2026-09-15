@@ -32,8 +32,6 @@ When adding a command: register it and add a row here.
 
 `toggleDwellSuspend` / `suspendDwell` / `resumeDwell` are different handlers, not aliases.
 
-Script: `gazer.openPage` / `loadPage` / `focusedPageId` (`ScriptHost`, not CommandRegistry). `loadPage` closes the current attached page first.
-
 ## Shell (`Application.cpp`)
 
 | Command | Role |
@@ -50,7 +48,7 @@ Script: `gazer.openPage` / `loadPage` / `focusedPageId` (`ScriptHost`, not Comma
 | `suspendDwell` / `resumeDwell` | Set pause on/off |
 | `toggleLookToScroll` | Gaze scroll (always place-cursor first) |
 | `lts.resume` / `lts.quit` / `lts.reset` | LTS while on |
-| `lts.speed.slower` / `lts.speed.faster` | LTS peak speed (1, 5, 10, 20, 40) |
+| `lts.speed.slower` / `lts.speed.faster` | LTS peak speed (1, 2, 5, 10, 20) |
 | `lts.cycleMode` | LTS axes: vertical → horizontal → both |
 | `toggleMagnifier` | Live lens (exclusive with reticle) |
 | `toggleGazeReticle` | Gaze marker (exclusive with magnifier) |
@@ -164,8 +162,7 @@ Patterns, not every generated name:
 | `settings.pickWindow.round` / `.square` | Zoom window shape |
 | `settings.pickCenter.gaze` / `.screen` | Zoom window at gaze point or screen center |
 | `settings.nudge.themeSaturation.dec` / `.inc` | Saturation 20–100 in five steps (surfaces keep brightness) |
-| `settings.theme.source` | Open the color picker for Primary |
-| `settings.theme.assign.primary` / `.secondary` | Legacy: select which color inline HSL sliders edit |
+| `settings.theme.assign.primary` / `.secondary` | Which accent the theme shade chips write (Primary vs Progress) |
 | `settings.theme.shade.<family>.1`…`.9` | Assign that Material shade (100–900) to Progress at 60% opacity. Families: primary, complementary, analogous1/2, tertiary1/2 |
 | `theme.light` / `.dark` | Light or dark background (keeps the current tint family) |
 | `theme.lightTinted` / `.darkTinted` | Legacy: light/dark plus primary tint |
@@ -179,4 +176,4 @@ Numeric keys: `dwellMs` / `rapidDwellMs` plus `kIntSpecs` / `kDoubleSpecs` in `A
 
 ## Mapping-only (`default.json`)
 
-Not builtins. Examples: `backspace`, `tab`, `enter`, `space`, `escape`, `arrow*`, `clearPhrase`, `speakPhrase`, `windowMid` / `windowMax`.
+Not builtins. Examples: `backspace`, `tab`, `enter`, `space`, `escape`, `arrow*`, `clearPhrase`, `speakPhrase`. Shipped Mid/Max window cells are AHK (`icon="WindowMid"` / `WindowMax`), not mapping names.

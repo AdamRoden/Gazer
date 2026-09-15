@@ -177,8 +177,7 @@ namespace {
 
 void stampSettingVisuals(QString& label, bool interactive, const QString& settingKey,
                          const QString& id, const QString& colorKey, PageColor& background,
-                         PageColor& foreground, const AppSettings& settings,
-                         const ThemeColors& theme)
+                         PageColor& foreground, const AppSettings& settings)
 {
     if (!settingKey.isEmpty() && !interactive) {
         label = settings.displayValue(settingKey);
@@ -187,11 +186,7 @@ void stampSettingVisuals(QString& label, bool interactive, const QString& settin
         label = AppSettings::settingDescription(settingKey);
     }
     QColor sw;
-    if (settingKey == QLatin1String("themeVariant")) {
-        sw = theme.defaultCell();
-    } else if (settingKey == QLatin1String("themeForeground")) {
-        sw = theme.text;
-    } else if (!colorKey.isEmpty()) {
+    if (!colorKey.isEmpty()) {
         sw = settings.colorKey(colorKey);
     }
     if (sw.isValid()) {
@@ -331,7 +326,7 @@ void stampPageCell(PageCell& cell, const AppSettings& settings, const ThemeColor
     stampSelectedWells(cell, source, primary, secondary);
     stampSettingVisuals(cell.label, cell.isInteractive(), cell.settingKey, cell.id,
                         colorKeyFromPageCell(cell), cell.style.background, cell.style.foreground,
-                        settings, swatchTheme);
+                        settings);
     if (cell.role.compare(QLatin1String("value"), Qt::CaseInsensitive) != 0) {
         return;
     }

@@ -21,8 +21,6 @@ void SettingsUi::registerCommands()
         m_commands.registerBuiltin(QStringLiteral("settings.edit.%1").arg(key), editCmd(key));
     }
 
-    m_commands.registerBuiltin(QStringLiteral("settings.numpad.noop"),
-                               [](QString*) { return true; });
     for (int d = 0; d <= 9; ++d) {
         m_commands.registerBuiltin(
             QStringLiteral("settings.numpad.digit.%1").arg(d), [this, d](QString*) {
@@ -429,9 +427,6 @@ void SettingsUi::registerCommands()
 
     registerHeadPoseCommands();
 
-    m_commands.registerBuiltin(QStringLiteral("settings.theme.source"), [this](QString* error) {
-        return openColorPicker(QStringLiteral("customPrimaryColor"), error);
-    });
     m_commands.registerBuiltin(QStringLiteral("settings.theme.assign.primary"), [this](QString*) {
         themeSetAssignPrimary(true);
         return true;

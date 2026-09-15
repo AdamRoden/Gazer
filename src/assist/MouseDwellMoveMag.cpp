@@ -118,8 +118,6 @@ bool MouseDwellMove::beginMagPick(const MagPresentation& spec, bool outsideSelec
         } else {
             hint = QStringLiteral("Foresight — dwell inside to place");
         }
-    } else if (spec.zoom == m_pickZoom) {
-        hint = QStringLiteral("Foresight — dwell to pick point");
     }
 
     if (m_cursor) {

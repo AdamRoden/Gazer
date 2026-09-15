@@ -360,7 +360,6 @@ void addActionFields(PropertyBinder& b, QFormLayout* form, const PageAction& act
 QStringList visibleWhenChoices()
 {
     return {QString(), QStringLiteral("expanded"), QStringLiteral("!expanded"),
-            QStringLiteral("quitConfirm"), QStringLiteral("!quitConfirm"),
             QStringLiteral("dwellSuspend"), QStringLiteral("!dwellSuspend"),
             QStringLiteral("hover_custom"), QStringLiteral("flash_custom")};
 }

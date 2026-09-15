@@ -46,7 +46,7 @@ private slots:
     void valueLabelKeepsKey();
     void ltsHasNoMaxSpeedOrPlaceCursor();
     void overlayIdsAreUnique();
-    void hubOpensSixBoards();
+    void hubOpensEightBoards();
     void presetsComeFirst();
     void zoomLivesOnPointerNotLook();
     void choiceAndToggleRoles();
@@ -225,7 +225,7 @@ void SettingsLayoutTest::overlayIdsAreUnique()
     QVERIFY(seen.contains(QStringLiteral("page_title")));
 }
 
-void SettingsLayoutTest::hubOpensSixBoards()
+void SettingsLayoutTest::hubOpensEightBoards()
 {
     PageDocument doc;
     QString err;

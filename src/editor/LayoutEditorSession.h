@@ -142,7 +142,7 @@ public:
     void addGridRow();
     void addGridColumn();
     void packGrid();
-    void equalizeSelectedWidths();
+    void resetSelectedColSpans();
     void alignSelectedRow();
     void applyChromeToSelected(const std::function<void(PageChrome&)>& mut, const QString& undoLabel);
     void setActions(const QString& itemId, QVector<PageAction> acts);

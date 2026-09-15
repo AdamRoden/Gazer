@@ -27,8 +27,6 @@ public:
 
     /// Full-screen aim: leave boards, free dock, pause background assist (LTS/follow).
     [[nodiscard]] bool freesScreenForAim() const;
-    /// Alias used by older call sites — same as freesScreenForAim().
-    [[nodiscard]] bool blocksBoards() const { return freesScreenForAim(); }
     /// Pause gaze→mouse follow (aim modes plus ComboMouse while the wheel is up).
     [[nodiscard]] bool pausesGazeFollow() const;
     /// ComboMouse wheel, mag-pick window, or LTS pie owns the sample; boards must not dwell it.
@@ -40,7 +38,6 @@ public:
 
     void enter(Mode mode);
     void leave(Mode mode);
-    void clear();
 
 signals:
     void modeChanged(Mode mode);

@@ -31,7 +31,7 @@ private slots:
     void roundedBoxHitIgnoresSquareCorners();
     void cellDetectorClipsProgress();
     void zoneDetectorUnrestrictedDwell();
-    void zoneProgressCoercedWhenOffScreen();
+    void zoneProgressEmptyWhenOffScreen();
     void collectEmitsGridChrome();
     void screenExpressionSizes16by9();
     void backgroundFallsBackStylePageThemeNotGrid();
@@ -99,14 +99,12 @@ void PageHitTest::cellDetectorClipsProgress()
     QCOMPARE(g.dwellZone, cell);
     QCOMPARE(g.visual, cell);
     QCOMPARE(g.progressZone, cell);
-    QVERIFY(!g.progressCoerced);
     QCOMPARE(g.contentOnScreen(), cell);
 
     const QRectF hanging(1900, 100, 80, 80);
     const PageDetectorGeom h = PageDetector::cell(hanging, screen);
     QCOMPARE(h.dwellZone, hanging);
     QCOMPARE(h.progressZone, QRectF(1900, 100, 20, 80));
-    QVERIFY(!h.progressCoerced);
 }
 
 void PageHitTest::zoneDetectorUnrestrictedDwell()
@@ -139,13 +137,12 @@ void PageHitTest::zoneDetectorUnrestrictedDwell()
     QCOMPARE(g.dwellZone.height(), 200.0);
 }
 
-void PageHitTest::zoneProgressCoercedWhenOffScreen()
+void PageHitTest::zoneProgressEmptyWhenOffScreen()
 {
     const QRectF screen(0, 0, 1920, 1080);
     const QRectF visual(810, 1200, 300, 150);
     const QRectF dwell(810, 1300, 300, 200);
     const PageDetectorGeom g = PageDetector::zone(visual, dwell, screen);
-    QVERIFY(!g.progressCoerced);
     QCOMPARE(g.progressZone, visual.intersected(screen));
     QVERIFY(g.progressZone.isEmpty());
     QCOMPARE(g.dwellZone, dwell);

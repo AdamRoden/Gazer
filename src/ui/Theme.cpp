@@ -321,25 +321,6 @@ ThemeTintFamily themeTintFamilyFromString(const QString& s)
     return ThemeTintFamily::None;
 }
 
-QVector<QString> voiceColorPalette()
-{
-    return {
-        QStringLiteral("#a0a0a0"), QStringLiteral("#cc0000"), QStringLiteral("#e69138"),
-        QStringLiteral("#f1c232"), QStringLiteral("#6aa84f"), QStringLiteral("#45818e"),
-        QStringLiteral("#3c78d8"), QStringLiteral("#3d85c6"), QStringLiteral("#674ea7"),
-        QStringLiteral("#a64d79"), QStringLiteral("#808080"), QStringLiteral("#990000"),
-        QStringLiteral("#b45f06"), QStringLiteral("#bf9000"), QStringLiteral("#38761d"),
-        QStringLiteral("#134f5c"), QStringLiteral("#1155cc"), QStringLiteral("#0b5394"),
-        QStringLiteral("#351c75"), QStringLiteral("#741b47"), QStringLiteral("#606060"),
-        QStringLiteral("#660000"), QStringLiteral("#783f04"), QStringLiteral("#7f6000"),
-        QStringLiteral("#274e13"), QStringLiteral("#0c343d"), QStringLiteral("#1c4587"),
-        QStringLiteral("#073763"), QStringLiteral("#20124d"), QStringLiteral("#4c1130"),
-        QStringLiteral("#000000"), QStringLiteral("#ffffff"), QStringLiteral("#dddddd"),
-        QStringLiteral("#bbbbbb"), QStringLiteral("#999999"), QStringLiteral("#777777"),
-        QStringLiteral("#555555"), QStringLiteral("#333333"), QStringLiteral("#111111"),
-    };
-}
-
 ThemeColors ThemeColors::darkPreset()
 {
     ThemeColors c;
@@ -434,36 +415,6 @@ QString ThemeColors::colorToHex(const QColor& c)
         .arg(c.green(), 2, 16, QLatin1Char('0'))
         .arg(c.blue(), 2, 16, QLatin1Char('0'))
         .toUpper();
-}
-
-QJsonObject ThemeColors::toJson() const
-{
-    QJsonObject o;
-    o.insert(QStringLiteral("bgMain"), colorToHex(bgMain));
-    o.insert(QStringLiteral("border"), colorToHex(border));
-    o.insert(QStringLiteral("accent"), colorToHex(accent));
-    o.insert(QStringLiteral("accentHover"), colorToHex(accentHover));
-    o.insert(QStringLiteral("text"), colorToHex(text));
-    o.insert(QStringLiteral("textSecondary"), colorToHex(textSecondary));
-    o.insert(QStringLiteral("danger"), colorToHex(danger));
-    return o;
-}
-
-void ThemeColors::fromJson(const QJsonObject& o)
-{
-    auto set = [&](QColor& dest, const char* key) {
-        if (!o.contains(QLatin1String(key))) {
-            return;
-        }
-        dest = parseColor(o.value(QLatin1String(key)).toString(), dest);
-    };
-    set(bgMain, "bgMain");
-    set(border, "border");
-    set(accent, "accent");
-    set(accentHover, "accentHover");
-    set(text, "text");
-    set(textSecondary, "textSecondary");
-    set(danger, "danger");
 }
 
 } // namespace gazer
