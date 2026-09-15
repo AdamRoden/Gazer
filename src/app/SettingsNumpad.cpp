@@ -52,6 +52,7 @@ PageDocument SettingsUi::buildNumpadDocument() const
     PageGrid& grid = doc.grids[0];
     grid.rowTracks = starTracks({0.7, 1.0, 4.0, 1.0, 1.0});
     const EditorSwatch sw = editorSwatch();
+    const QColor keyBg = m_settings.resolvedTheme().bgAt(90);
     PageCell title = cell(QStringLiteral("title"), m_numpadTitle, 0, 0, {}, QColor(), 4,
                           QStringLiteral("label"));
     title.textStyle = QStringLiteral("title");
@@ -75,9 +76,10 @@ PageDocument SettingsUi::buildNumpadDocument() const
     keys.rows = 4;
     keys.columns = 3;
     keys.gapPx = 10;
-    auto key = [&](const QString& id, const QString& label, int row, int col, const QString& cmd,
-                   const QColor& bg = QColor()) {
-        keys.cells.push_back(cell(id, label, row, col, cmd, bg.isValid() ? bg : sw.key));
+    auto key = [&](const QString& id, const QString& label, int row, int col, const QString& cmd) {
+        PageCell c = cell(id, label, row, col, cmd, keyBg);
+        c.style.background.token = QStringLiteral("bg90");
+        keys.cells.push_back(std::move(c));
     };
     key(QStringLiteral("d7"), QStringLiteral("7"), 0, 0, QStringLiteral("settings.numpad.digit.7"));
     key(QStringLiteral("d8"), QStringLiteral("8"), 0, 1, QStringLiteral("settings.numpad.digit.8"));
@@ -88,11 +90,9 @@ PageDocument SettingsUi::buildNumpadDocument() const
     key(QStringLiteral("d1"), QStringLiteral("1"), 2, 0, QStringLiteral("settings.numpad.digit.1"));
     key(QStringLiteral("d2"), QStringLiteral("2"), 2, 1, QStringLiteral("settings.numpad.digit.2"));
     key(QStringLiteral("d3"), QStringLiteral("3"), 2, 2, QStringLiteral("settings.numpad.digit.3"));
-    key(QStringLiteral("minus"), QStringLiteral("−"), 3, 0, QStringLiteral("settings.numpad.minus"),
-        sw.nudge);
+    key(QStringLiteral("minus"), QStringLiteral("−"), 3, 0, QStringLiteral("settings.numpad.minus"));
     key(QStringLiteral("d0"), QStringLiteral("0"), 3, 1, QStringLiteral("settings.numpad.digit.0"));
-    key(QStringLiteral("period"), QStringLiteral("."), 3, 2, QStringLiteral("settings.numpad.period"),
-        sw.nudge);
+    key(QStringLiteral("period"), QStringLiteral("."), 3, 2, QStringLiteral("settings.numpad.period"));
     grid.subGrids.push_back(std::move(keys));
 
     grid.cells.push_back(cell(QStringLiteral("copy"), QStringLiteral("Copy"), 3, 0,

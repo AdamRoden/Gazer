@@ -53,6 +53,7 @@ PageDocument SettingsUi::buildHexDocument() const
     PageGrid& grid = doc.grids[0];
     grid.rowTracks = starTracks({1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0});
     const EditorSwatch pal = editorSwatch();
+    const QColor keyBg = m_settings.resolvedTheme().bgAt(90);
     const QString shown =
         m_hexBuffer.isEmpty() ? QStringLiteral("#") : QStringLiteral("#%1").arg(m_hexBuffer);
     grid.cells.push_back(cell(QStringLiteral("clear"), QStringLiteral("Clear"), 0, 0,
@@ -69,8 +70,10 @@ PageDocument SettingsUi::buildHexDocument() const
         const int row = 1 + i / 4;
         const int col = i % 4;
         const QString k = QLatin1String(keys[i]);
-        grid.cells.push_back(cell(QStringLiteral("h_%1").arg(k), k, row, col,
-                                  QStringLiteral("settings.hex.digit.%1").arg(k), pal.key));
+        PageCell key = cell(QStringLiteral("h_%1").arg(k), k, row, col,
+                            QStringLiteral("settings.hex.digit.%1").arg(k), keyBg);
+        key.style.background.token = QStringLiteral("bg90");
+        grid.cells.push_back(std::move(key));
     }
     grid.cells.push_back(cell(QStringLiteral("copy"), QStringLiteral("Copy"), 5, 0,
                               QStringLiteral("settings.hex.copy"), pal.nudge, 2));
