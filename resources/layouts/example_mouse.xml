@@ -10,7 +10,7 @@
   <Style id="pink" background="pink70" foreground="foreground"/>
 
   <Grid id="board" desktopMode="true" rows="3" columns="10" anchor="Bottom" offset="0,0"
-        size="A_ScreenHeight, 0.27" gap="8" margin="8">
+        size="A_ScreenHeight, 0.28" gap="8" margin="8">
 
     <Cell id="movestep" row="0" col="0" icon="LookToScrollSpeedMedium" label="Step 40 px" style="teal" command="cycleMouseMoveAmount"/>
     <Cell id="nudge_up" row="0" col="1" icon="ArrowPointingToTop" label="Up" style="teal" mouseMoveByDirection="n"/>
