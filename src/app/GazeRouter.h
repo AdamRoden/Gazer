@@ -13,6 +13,7 @@ class ComboMouse;
 class LookToScroll;
 class MagnifierOverlay;
 class MouseDwellMove;
+class SplashOverlay;
 
 /// Ordered gaze consumers. Board/aim policy comes only from AssistSession.
 class GazeRouter {
@@ -26,6 +27,7 @@ public:
     void setGazeReticle(GazeReticle* r) { m_gazeReticle = r; }
     void setGazeMouseFollow(GazeMouseFollow* f) { m_gazeFollow = f; }
     void setHeadPoseMapper(HeadPoseMapper* m) { m_headPose = m; }
+    void setSplash(SplashOverlay* s) { m_splash = s; }
 
     void dispatch(const GazePoint& point);
 
@@ -39,6 +41,7 @@ private:
     GazeReticle* m_gazeReticle = nullptr;
     GazeMouseFollow* m_gazeFollow = nullptr;
     HeadPoseMapper* m_headPose = nullptr;
+    SplashOverlay* m_splash = nullptr;
 };
 
 } // namespace gazer

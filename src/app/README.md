@@ -4,7 +4,7 @@ Composition root, settings, command dispatch.
 
 | File | Role |
 |------|------|
-| `Application` | Tracker, tray, preview, editor, overlays over `GazerServices` |
+| `Application` | Tracker, tray, preview, editor, overlays over `GazerServices`. Owns `SplashOverlay` and starts it when `showSplash` is on. |
 | `GazerServices` | Owns domain services. Header is a façade — include the domain header at the call site |
 | `ActionDispatcher` | `PageAction` → commands / clicks / speak |
 | `CommandRegistry` | Builtin names, then mapping profile. Prefix handlers. `compose.*` / `speech.*` / `soundboard.*` / `history.*` / `settings.*` / `headPose.*` skip the Cmd toast. Catalog: `Commands.md` |

@@ -24,6 +24,8 @@
 #include "layout/PageSession.h"
 #include "layout/PageTypes.h"
 #include "ui/DwellSuspendOverlay.h"
+#include "ui/ProgressVisuals.h"
+#include "ui/SplashOverlay.h"
 #include "ui/Theme.h"
 #include "ui/MagnifierOverlay.h"
 #include "ui/HeadPreviewRenderer.h"
@@ -75,6 +77,7 @@ bool Application::initialize()
     m_preview->setRenderer(m_headPreviewGl.get());
     m_headPaintClock.start();
     m_tray = std::make_unique<TrayIcon>();
+    m_splash = std::make_unique<SplashOverlay>();
     m_dwellSuspendOverlay = std::make_unique<DwellSuspendOverlay>();
     m_stackWatch = std::make_unique<OverlayStackWatch>();
 
@@ -95,6 +98,7 @@ bool Application::initialize()
     m_gazeRouter.setGazeReticle(&m_svc->gazeReticle());
     m_gazeRouter.setGazeMouseFollow(&m_svc->gazeMouseFollow());
     m_gazeRouter.setHeadPoseMapper(&m_svc->headPoseMapper());
+    m_gazeRouter.setSplash(m_splash.get());
 
     m_preview->setTheme(m_svc->settings().resolvedTheme());
     m_headPreviewGl->setTheme(m_svc->settings().resolvedTheme());
@@ -125,6 +129,11 @@ bool Application::initialize()
         }
         return true;
     });
+    m_svc->commands().registerBuiltin(QStringLiteral("settings.session.showSplash.play"),
+                                      [this](QString*) {
+                                          startSplash();
+                                          return true;
+                                      });
     connect(&m_svc->pages(), &PageSession::dwellSuspendChanged, this,
             [this](bool) { syncDwellSuspendOverlay(); });
     connect(&m_svc->pages(), &PageSession::sessionChanged, this, [this]() {
@@ -149,6 +158,9 @@ bool Application::initialize()
         if (m_editor) {
             m_editor->setTheme(m_svc->settings().resolvedTheme());
         }
+        if (m_splash) {
+            syncSplashChrome();
+        }
     });
     connect(m_actions.get(), &ActionDispatcher::statusMessage, this, statusToTray);
     connect(&m_svc->commands(), &CommandRegistry::statusMessage, this, statusToTray);
@@ -170,13 +182,21 @@ bool Application::initialize()
         return false;
     }
     m_svc->applySettings(false);
-    if (!m_svc->settings().startDocked) {
+    const bool runSplash = m_svc->settings().showSplash
+                           && !QCoreApplication::arguments().contains(QStringLiteral("--editor"));
+    if (!m_svc->settings().startDocked && !runSplash) {
         QString expandErr;
         if (const PageAction* show = PageEdit::firstShowLayers(m_svc->pages().root())) {
             if (!m_svc->pages().showLayers({*show}, QStringLiteral("main"), {}, &expandErr)) {
                 GAZER_WARN << "Initial expand drawer failed:" << expandErr;
             }
         }
+    }
+
+    if (m_splash) {
+        m_splash->setSession(&m_svc->pages());
+        connect(m_splash.get(), &SplashOverlay::finished, this, &Application::onSplashFinished);
+        syncSplashChrome();
     }
 
     if (!startTracker()) {
@@ -191,6 +211,9 @@ bool Application::initialize()
 
     if (QCoreApplication::arguments().contains(QStringLiteral("--editor"))) {
         openPageEditor();
+    }
+    if (runSplash) {
+        QTimer::singleShot(400, this, &Application::startSplash);
     }
     return true;
 }
@@ -255,6 +278,12 @@ void Application::onTobiiStreamFailed(const QString& reason)
 void Application::syncDwellSuspendOverlay()
 {
     if (!m_dwellSuspendOverlay || !m_svc) {
+        return;
+    }
+    // Splash paints the amber frame on the mini-screen; the desktop overlay
+    // would sit on the physical bezel and hide that lesson.
+    if (m_splash && m_splash->isActive()) {
+        m_dwellSuspendOverlay->setSuspended(false);
         return;
     }
     const bool susp = m_svc->isDwellSuspended();
@@ -425,8 +454,83 @@ bool Application::testEditedLayout(const PageDocument& source, QString* error)
     return true;
 }
 
+void Application::showMasterLayers(const QVector<int>& layers)
+{
+    if (!m_svc) {
+        return;
+    }
+    PageAction a;
+    a.type = PageActionType::ShowLayers;
+    a.layers = layers;
+    QString err;
+    if (!m_svc->pages().showLayers({a}, QStringLiteral("main"), {}, &err)) {
+        GAZER_WARN << "ShowLayers failed:" << err;
+    }
+}
+
+void Application::startSplash()
+{
+    if (!m_svc || !m_splash) {
+        return;
+    }
+    const bool restart = m_splash->isActive();
+    m_svc->pages().closeAttached();
+    showMasterLayers({1});
+    m_svc->pages().setAutoCollapseMain(false);
+    m_svc->pages().setLayoutAutoClose(false, m_svc->settings().layoutAutoCloseIdleMs,
+                                      m_svc->settings().layoutAutoCloseFadeMs);
+    m_svc->pages().leaveGaze();
+    if (!restart) {
+        m_splashSavedMag = m_svc->magnifier().isEnabledLens();
+        if (m_splashSavedMag) {
+            m_svc->magnifier().setEnabledLens(false);
+        }
+    }
+    syncSplashChrome();
+    m_splash->start();
+}
+
+void Application::syncSplashChrome()
+{
+    if (!m_splash || !m_svc) {
+        return;
+    }
+    const AppSettings& s = m_svc->settings();
+    m_splash->setTheme(s.resolvedTheme());
+    m_splash->setAccent(s.colorKey(QStringLiteral("progressColor")));
+    ProgressVisuals pv;
+    pv.style = s.progress;
+    pv.progressColor = s.colorKey(QStringLiteral("progressColor"));
+    pv.fillColor = s.colorKey(QStringLiteral("progressFillColor"));
+    pv.hoverBorder = s.resolvedHoverBorder();
+    pv.hoverBorderWidth = double(s.hoverBorderWeight);
+    m_splash->setProgressVisuals(pv);
+}
+
+void Application::onSplashFinished()
+{
+    if (!m_svc) {
+        return;
+    }
+    if (m_svc->isDwellSuspended()) {
+        m_svc->setDwellSuspended(false);
+    }
+    m_svc->pages().setAutoCollapseMain(m_svc->settings().autoCollapseMain);
+    m_svc->pages().setLayoutAutoClose(m_svc->settings().layoutAutoClose,
+                                      m_svc->settings().layoutAutoCloseIdleMs,
+                                      m_svc->settings().layoutAutoCloseFadeMs);
+    showMasterLayers(m_svc->settings().startDocked ? QVector<int>{1} : QVector<int>{2});
+    if (m_splashSavedMag) {
+        m_svc->magnifier().setEnabledLens(true);
+        m_splashSavedMag = false;
+    }
+}
+
 void Application::shutdownUi()
 {
+    if (m_splash) {
+        m_splash->cancel();
+    }
     if (m_svc) {
         m_svc->magnifier().setEnabledLens(false);
         m_svc->lookToScroll().setEnabled(false);

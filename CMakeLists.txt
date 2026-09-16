@@ -132,6 +132,8 @@ set(GAZER_SOURCES
     src/ui/TrayIcon.cpp
     src/ui/MagnifierOverlay.cpp
     src/ui/DwellSuspendOverlay.cpp
+    src/ui/SplashOverlay.cpp
+    src/ui/SplashOverlayPaint.cpp
     src/ui/Theme.cpp
     src/ui/ThemeScheme.cpp
     src/ui/MaterialPalette.cpp
@@ -260,6 +262,7 @@ set(GAZER_HEADERS
     src/ui/TrayIcon.h
     src/ui/MagnifierOverlay.h
     src/ui/DwellSuspendOverlay.h
+    src/ui/SplashOverlay.h
     src/ui/OverlaySurface.h
     src/ui/AppIcon.h
     src/ui/KeySymbols.h

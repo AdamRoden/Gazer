@@ -266,16 +266,38 @@ bool PageSession::hitsChrome(const GazePoint& point) const
     return classifyGaze(point).overBoard;
 }
 
+QRect PageSession::mapLiveRect(const PageTarget* t, QRectF r) const
+{
+    if (!t) {
+        return {};
+    }
+    r = PageHit::mapDrawer(*t, r, hitXf(), m_drawerScale);
+    return r.toAlignedRect();
+}
+
 QRect PageSession::targetScreenRect(const QString& pageId, const QString& targetId) const
+{
+    const PageTarget* t = findLiveTarget(pageId, targetId);
+    return t ? mapLiveRect(t, PageHit::gazeHitRect(*t, {})) : QRect{};
+}
+
+QRect PageSession::targetVisualRect(const QString& pageId, const QString& targetId) const
 {
     const PageTarget* t = findLiveTarget(pageId, targetId);
     if (!t) {
         return {};
     }
-    const QTransform xf = hitXf();
-    QRectF r = PageHit::gazeHitRect(*t, {});
-    r = PageHit::mapDrawer(*t, r, xf, m_drawerScale);
-    return r.toAlignedRect();
+    QRectF r = t->geom.contentOnScreen();
+    if (r.isEmpty()) {
+        r = t->geom.visual;
+    }
+    return mapLiveRect(t, r);
+}
+
+QRect PageSession::targetDwellRect(const QString& pageId, const QString& targetId) const
+{
+    const PageTarget* t = findLiveTarget(pageId, targetId);
+    return t ? mapLiveRect(t, t->geom.dwellZone) : QRect{};
 }
 
 void PageSession::setAimActivator(const QString& pageId, const QString& targetId)

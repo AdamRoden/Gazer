@@ -192,6 +192,7 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
     comboOuterColor = o.value(QStringLiteral("comboOuterColor")).toString(comboOuterColor);
     autoCollapseMain = o.value(QStringLiteral("autoCollapseMain")).toBool(autoCollapseMain);
     startDocked = o.value(QStringLiteral("startDocked")).toBool(startDocked);
+    showSplash = o.value(QStringLiteral("showSplash")).toBool(showSplash);
     layoutAutoClose = o.value(QStringLiteral("layoutAutoClose")).toBool(layoutAutoClose);
     layoutAutoCloseIdleMs =
         o.value(QStringLiteral("layoutAutoCloseIdleMs")).toInt(layoutAutoCloseIdleMs);
@@ -432,6 +433,7 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     o.insert(QStringLiteral("comboOuterColor"), copy.comboOuterColor);
     o.insert(QStringLiteral("autoCollapseMain"), copy.autoCollapseMain);
     o.insert(QStringLiteral("startDocked"), copy.startDocked);
+    o.insert(QStringLiteral("showSplash"), copy.showSplash);
     o.insert(QStringLiteral("layoutAutoClose"), copy.layoutAutoClose);
     o.insert(QStringLiteral("layoutAutoCloseIdleMs"), copy.layoutAutoCloseIdleMs);
     o.insert(QStringLiteral("layoutAutoCloseFadeMs"), copy.layoutAutoCloseFadeMs);

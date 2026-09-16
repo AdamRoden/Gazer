@@ -10,30 +10,35 @@
 #include "layout/PageSession.h"
 #include "ui/MagnifierOverlay.h"
 #include "ui/PageHostWindow.h"
+#include "ui/SplashOverlay.h"
 
 namespace gazer {
 
 void GazeRouter::dispatch(const GazePoint& point)
 {
-    // One page hit-test per sample. Master page stays dwellable during aim;
-    // attached layouts yield so mag-pick / place-cursor can run over them.
     const bool hostVisible =
         m_pages && m_pages->window() && m_pages->window()->isVisible();
 
+    const bool overSplash = m_splash && m_splash->isActive();
+    if (overSplash) {
+        m_splash->onGaze(point);
+    }
+
     PageSession::GazeHit hit;
-    if (m_pages && hostVisible) {
+    if (m_pages && hostVisible && !overSplash) {
         hit = m_pages->classifyGaze(point);
     }
 
     const bool freeAim = m_session && m_session->freesScreenForAim();
-    // Combo / mag-pick / LTS pie HWNDs sit in front of PageHostWindow; gaze on
-    // them still geometrically hits the dock. The overlay owns the sample.
+    // Combo / mag-pick / LTS / splash sit in front of PageHostWindow; the
+    // overlay owns the sample even when gaze geometrically hits the dock.
     const bool overCombo = m_comboMouse && m_comboMouse->containsGaze(point);
     const bool overMagPick = m_mouseDwell && m_mouseDwell->containsGaze(point);
     const bool overLts = m_lookToScroll && m_lookToScroll->containsGaze(point);
     const bool overFrontOverlay =
-        m_session && m_session->overlayHasGazePriority()
-        && (overCombo || overMagPick || overLts);
+        overSplash
+        || (m_session && m_session->overlayHasGazePriority()
+            && (overCombo || overMagPick || overLts));
 
     bool overBoard = false;
     if (overFrontOverlay) {
@@ -47,10 +52,11 @@ void GazeRouter::dispatch(const GazePoint& point)
     }
 
     const bool dwellOff = m_pages && m_pages->isDwellSuspended();
-    const bool pauseBackgroundAssist = overBoard || hit.overMaster || freeAim || dwellOff;
+    const bool pauseBackgroundAssist =
+        overBoard || hit.overMaster || freeAim || dwellOff || overSplash;
 
     if (m_headPose) {
-        m_headPose->setPaused(overBoard || hit.overMaster || dwellOff
+        m_headPose->setPaused(overBoard || hit.overMaster || dwellOff || overSplash
                               || (m_lookToScroll && m_lookToScroll->isEnabled()));
     }
     GazePoint assist = point;
@@ -61,10 +67,15 @@ void GazeRouter::dispatch(const GazePoint& point)
     }
 
     if (m_gazeReticle) {
-        m_gazeReticle->onGaze(assist);
+        if (overSplash) {
+            m_gazeReticle->onGaze(GazePoint{});
+        } else {
+            m_gazeReticle->onGaze(assist);
+        }
     }
     if (m_gazeFollow) {
-        const bool pauseFollow = dwellOff || (m_session && m_session->pausesGazeFollow());
+        const bool pauseFollow =
+            dwellOff || overSplash || (m_session && m_session->pausesGazeFollow());
         m_gazeFollow->onGaze(assist, /*pauseInput=*/pauseFollow);
     }
     if (m_lookToScroll) {
@@ -74,14 +85,15 @@ void GazeRouter::dispatch(const GazePoint& point)
         m_comboMouse->onGaze(assist, dwellOff || (pauseBackgroundAssist && !overCombo));
     }
     if (m_mouseDwell) {
-        m_mouseDwell->onBackgroundGaze(assist, overBoard || hit.overMaster);
-        const bool pauseAim = dwellOff || (hit.overMaster && !overFrontOverlay);
+        m_mouseDwell->onBackgroundGaze(assist, overBoard || hit.overMaster || overSplash);
+        const bool pauseAim =
+            dwellOff || overSplash || (hit.overMaster && !overFrontOverlay);
         m_mouseDwell->setPaused(pauseAim);
         if (!pauseAim) {
             m_mouseDwell->onGaze(assist);
         }
     }
-    if (m_magnifier) {
+    if (m_magnifier && !overSplash) {
         m_magnifier->onGaze(assist);
     }
 }

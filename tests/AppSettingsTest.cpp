@@ -44,6 +44,7 @@ private slots:
     void speechSettingsRoundTrip();
     void headPoseMapsRoundTrip();
     void hoverBorderFollowsProgressAndRoundTrips();
+    void showSplashRoundTrip();
 };
 
 void AppSettingsTest::defaultConstructIsFactory()
@@ -73,6 +74,7 @@ void AppSettingsTest::factoryUsesDomainConstants()
     QCOMPARE(s.magPickDwellMs, pack.magPickDwellMs);
     QCOMPARE(s.dwellGraceMs, pack.blinkGraceMs);
     QCOMPARE(s.scanGraceMs, 100);
+    QVERIFY(s.showSplash);
     QCOMPARE(s.magPickStyle, PickStyle::kDefaultMagPick);
     QCOMPARE(s.mousePickStyle, PickStyle::kDefaultMousePick);
     QCOMPARE(s.comboInnerRadiusPx, ComboMouseHit::kDefaultInnerRadiusPx);
@@ -594,6 +596,30 @@ void AppSettingsTest::hoverBorderFollowsProgressAndRoundTrips()
     QCOMPARE(migrated.hoverColor, QStringLiteral("#80AABBCC"));
     QVERIFY(migrated.hoverCustom);
     QVERIFY(migrated.flashCustom);
+}
+
+void AppSettingsTest::showSplashRoundTrip()
+{
+    AppSettings s = AppSettings::defaults();
+    QVERIFY(s.showSplash);
+    s.showSplash = false;
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("settings.json"));
+    QVERIFY(s.saveToFile(path));
+    AppSettings loaded;
+    QVERIFY(loaded.loadFromFile(path));
+    QVERIFY(!loaded.showSplash);
+
+    const QString legacy = dir.filePath(QStringLiteral("legacy-splash.json"));
+    QFile f(legacy);
+    QVERIFY(f.open(QIODevice::WriteOnly | QIODevice::Truncate));
+    f.write(R"({"startDocked":true})");
+    f.close();
+    AppSettings migrated = AppSettings::defaults();
+    QVERIFY(migrated.loadFromFile(legacy));
+    QVERIFY(migrated.showSplash);
+    QVERIFY(migrated.startDocked);
 }
 
 QObject* createAppSettingsTest()

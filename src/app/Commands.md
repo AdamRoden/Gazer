@@ -1,10 +1,10 @@
 # Commands
 
-`CommandRegistry` runs a **builtin** first; unknown names fall through to `resources/mappings/default.json`.
+`CommandRegistry` runs a **builtin** first; unknown names fall through to `resources/mappings/default.json`. `compose.*` / `speech.*` / `soundboard.*` / `history.*` / `settings.*` / `headPose.*` skip the Cmd toast.
 
 | Registered in | What |
 |---------------|------|
-| `Application.cpp` | Shell: quit, editor, preview |
+| `Application.cpp` | Shell: quit, editor, preview, splash play |
 | `AssistCommands.cpp` | Dwell pause, LTS, mag, reticle, dwell-move, click-at-gaze |
 | `GazerServices.cpp` | Modifier cycle, click-at-cursor, stop loops |
 | `MouseAssistState.cpp` | Mouse pad: nudge, scroll, edge, holds |
@@ -39,6 +39,7 @@ When adding a command: register it and add a row here.
 | `quitApp` | Exit |
 | `openPageEditor` | Page designer (`Invocation.pageId` optional) |
 | `openPreview` | Head-pose preview |
+| `settings.session.showSplash.play` | Run the startup dock tour now |
 
 ## Assist (`AssistCommands.cpp`)
 
@@ -149,7 +150,7 @@ Patterns, not every generated name:
 | `settings.flash.custom.toggle` | Custom flash color (off = item foreground) |
 | `settings.hover.custom.toggle` | Custom hover outline (off = progress color) |
 | `settings.progress.*.toggle` / `settings.mouseProgress.*.toggle` | Progress bits (radial / pie / fill) |
-| `settings.session.autoCollapse.toggle` / `.startDocked.toggle` / `.layoutAutoClose.toggle` | Session |
+| `settings.session.autoCollapse.toggle` / `.startDocked.toggle` / `.showSplash.toggle` / `.showSplash.play` / `.layoutAutoClose.toggle` | Session |
 | `settings.speech.editKey` / `.clearKey` | Paste-from-clipboard API-key board / wipe DPAPI |
 | `settings.speech.key.paste` / `.save` / `.cancel` / `.clear` | Key board |
 | `settings.speech.model.sapi` / `.eleven_flash_v2_5` / `.eleven_v3` | Same handlers as `speech.model.*` (ComposeCommands) |

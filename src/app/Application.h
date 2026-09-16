@@ -18,6 +18,7 @@ class LayoutEditorWindow;
 class OverlayStackWatch;
 class HeadPreviewRenderer;
 class PreviewWindow;
+class SplashOverlay;
 class TrayIcon;
 
 /// Shell: tracker + tray/preview/overlays over GazerServices.
@@ -37,6 +38,10 @@ private:
     void syncDwellSuspendOverlay();
 
     void onQuitRequested();
+    void startSplash();
+    void onSplashFinished();
+    void syncSplashChrome();
+    void showMasterLayers(const QVector<int>& layers);
     void openPageEditor(const QString& pageId = {});
     [[nodiscard]] bool testEditedLayout(const PageDocument& doc, QString* error);
     void onGaze(const gazer::GazePoint& point);
@@ -49,6 +54,8 @@ private:
     std::unique_ptr<ActionDispatcher> m_actions;
     std::unique_ptr<ITracker> m_tracker;
     GazeRouter m_gazeRouter;
+    std::unique_ptr<SplashOverlay> m_splash;
+    bool m_splashSavedMag = false;
     std::unique_ptr<DwellSuspendOverlay> m_dwellSuspendOverlay;
     std::unique_ptr<PreviewWindow> m_preview;
     std::unique_ptr<HeadPreviewRenderer> m_headPreviewGl;

@@ -240,6 +240,7 @@ const ColorSpec kColorSpecs[] = {
 constexpr BoolSpec kBoolSpecs[] = {
     {"autoCollapseMain", &AppSettings::autoCollapseMain},
     {"startDocked", &AppSettings::startDocked},
+    {"showSplash", &AppSettings::showSplash},
     {"layoutAutoClose", &AppSettings::layoutAutoClose},
     {"flashCustom", &AppSettings::flashCustom},
     {"hoverCustom", &AppSettings::hoverCustom},

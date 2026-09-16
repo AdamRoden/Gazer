@@ -15,21 +15,6 @@
 
 namespace gazer {
 
-namespace {
-
-QPixmap downscaleBlur(const QPixmap& src, double radius)
-{
-    if (src.isNull() || radius < 1.0) {
-        return src;
-    }
-    const int factor = qBound(2, qRound(radius / 2.0), 12);
-    const QSize small(qMax(1, src.width() / factor), qMax(1, src.height() / factor));
-    return src.scaled(small, Qt::IgnoreAspectRatio, Qt::SmoothTransformation)
-        .scaled(src.size(), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
-}
-
-} // namespace
-
 GlassBackdrop::GlassBackdrop(QWindow* host)
     : m_host(host)
 {

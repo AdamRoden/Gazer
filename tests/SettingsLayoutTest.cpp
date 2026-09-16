@@ -54,6 +54,7 @@ private slots:
     void themeHasHoverRow();
     void moreOpensAdvanced();
     void advancedHasHoldAndAutoclose();
+    void assistHasSplashToggle();
 };
 
 void SettingsLayoutTest::pagesAnchorTop()
@@ -560,6 +561,30 @@ void SettingsLayoutTest::advancedHasHoldAndAutoclose()
     QCOMPARE(tabs->columns, 9);
     QVERIFY(doc.findCell(QStringLiteral("tab_speech")));
     QVERIFY(doc.findCell(QStringLiteral("tab_head")));
+}
+
+void SettingsLayoutTest::assistHasSplashToggle()
+{
+    PageDocument doc;
+    QString err;
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_assist"), doc, &err), qPrintable(err));
+    const PageGrid* board = doc.findGrid(QStringLiteral("board"));
+    QVERIFY(board);
+    QCOMPARE(board->rows, 11);
+    const PageGrid* help = doc.findGrid(QStringLiteral("sec_help"));
+    QVERIFY(help);
+    QCOMPARE(help->rows, 4);
+    QCOMPARE(help->rowSpan, 4);
+    QCOMPARE(doc.findGrid(QStringLiteral("sec_lens"))->row, 8);
+    const PageCell* on = doc.findCell(QStringLiteral("splash_on"));
+    const PageCell* play = doc.findCell(QStringLiteral("splash_play"));
+    QVERIFY(on);
+    QVERIFY(play);
+    QCOMPARE(on->role, QStringLiteral("toggle"));
+    QCOMPARE(on->activeState, QStringLiteral("settings.session.showSplash.toggle"));
+    QCOMPARE(on->actions[0].command, QStringLiteral("settings.session.showSplash.toggle"));
+    QCOMPARE(play->actions[0].command, QStringLiteral("settings.session.showSplash.play"));
+    QVERIFY(play->isInteractive());
 }
 
 QObject* createSettingsLayoutTest()

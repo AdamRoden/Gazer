@@ -128,6 +128,10 @@ public:
     [[nodiscard]] bool hitsChrome(const GazePoint& point) const;
     /// Screen rect of a live target (page id + cell/zone id, or a session key).
     [[nodiscard]] QRect targetScreenRect(const QString& pageId, const QString& targetId) const;
+    /// Painted chip/cell box (on-screen visual), not the off-screen dwell union.
+    [[nodiscard]] QRect targetVisualRect(const QString& pageId, const QString& targetId) const;
+    /// Authored dwell box (may sit off-screen under a bottom chip).
+    [[nodiscard]] QRect targetDwellRect(const QString& pageId, const QString& targetId) const;
     /// Cell that armed mouse-dwell-move; still dwellable so the action can be cancelled.
     void setAimActivator(const QString& pageId, const QString& targetId);
     void clearAimActivator();
@@ -202,6 +206,7 @@ private:
     [[nodiscard]] PageDocument* navPage(const QString& sourcePageId);
     void closePagesExcept(const QString& keepId);
     void emitShowChanged();
+    [[nodiscard]] QRect mapLiveRect(const PageTarget* t, QRectF r) const;
 
     PageDocument m_root;
     QVector<PageBreadcrumb> m_crumbs;

@@ -41,7 +41,7 @@ Do not `raise()` / `HWND_TOP` an overlay on every gaze sample. `showOverlay()` i
 | Assist (LTS, mag, dwell-move) | `src/assist/README.md` |
 | Composer / speech | `src/app/ComposeUi.h`, `src/assist/SpeechEngine.h`, `src/app/Commands.md`. `docs/composer-elevenlabs.md` is a frozen 2026-09-03 spec — live behavior is Commands.md / shipped XML. |
 | Page designer | `src/editor/README.md` |
-| Paint / host window / theme | `src/ui/README.md` |
+| Paint / host window / theme | `src/ui/README.md`. Startup dock tour: `ui/SplashOverlay` (`showSplash` setting, Assist overlay) |
 | Material palettes (theme) | `src/ui/MaterialPalette.h`, `resources/layouts/main_settings_theme.xml` |
 | OS injectors | `src/input/README.md` |
 | Mapping profiles | `src/mapping/README.md` (command JSON). Analog head maps: `HeadPoseCurve` / `assist/HeadPoseMapper` |

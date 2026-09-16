@@ -6,6 +6,7 @@
 #include <QRect>
 #include <QScreen>
 #include <QVector>
+#include <QtMath>
 
 namespace gazer {
 
@@ -77,6 +78,18 @@ namespace gazer {
         out.push_back(QRect(workRight, w.y(), screenRight - workRight, w.height()));
     }
     return out;
+}
+
+/// Cheap frost: downscale then upscale. Radius < 1 returns @p src.
+[[nodiscard]] inline QPixmap downscaleBlur(const QPixmap& src, double radius)
+{
+    if (src.isNull() || radius < 1.0) {
+        return src;
+    }
+    const int factor = qBound(2, qRound(radius / 2.0), 12);
+    const QSize small(qMax(1, src.width() / factor), qMax(1, src.height() / factor));
+    return src.scaled(small, Qt::IgnoreAspectRatio, Qt::SmoothTransformation)
+        .scaled(src.size(), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
 }
 
 /// Logical-pixel screenshot of `globalRect` on `screen`. Off-screen pixels stay `fill`.

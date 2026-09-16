@@ -13,6 +13,6 @@ Host surface, board paint, overlays, theme.
 | `Theme` / `ThemeScheme` / `MaterialPalette` / `ColorSwatches` / `PickerPalette` / `PickStyle` | Palettes, `bg*`/`accent*` tone stops, `red05`…`neutral95` picker tokens, Material shade generator, composer chips, picker swatches, pick-window flags |
 | `KeySymbols` | Cell/zone icons from `resources/icons/svg/*.svg` (stem = `icon` name). Catalog source: Material Symbols Rounded (`resources/icons/README.md`) |
 | `GlassBackdrop` | Frosted blur (no WDA toggle on the live host; recapture on geometry/underlay only) |
-| `MagnifierOverlay` / `DwellSuspendOverlay` / `OverlaySurface.h` | Overlay HWNDs (owned by the board; click-through). Layered in `OverlayLayer`. SendInput: `OverlayInputPassThrough` punches the board host for the gesture. |
+| `MagnifierOverlay` / `DwellSuspendOverlay` / `SplashOverlay` / `OverlaySurface.h` | Overlay HWNDs (owned by the board; click-through). Layered in `OverlayLayer`. Splash tour: phase table in `SplashOverlay_p.h`, paint in `SplashOverlayPaint.cpp`. SendInput: `OverlayInputPassThrough` punches the board host for the gesture. |
 | `PreviewWindow` / `PreviewGeometry` / `StlMesh` / `HeadPreviewRenderer` | One GL path (`HeadPreviewRenderer`). Tray window paints HUD over it; Head settings cell blits the same renderer. |
 | `TrayIcon` / `AppIcon.h` | Tray + brand |
