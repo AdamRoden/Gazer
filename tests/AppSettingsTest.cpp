@@ -3,6 +3,7 @@
 #include "assist/GazeFollowProfile.h"
 #include "assist/LtsIndicator.h"
 #include "assist/LtsScrollMode.h"
+#include "assist/LtsSpeed.h"
 #include "ui/PickStyle.h"
 #include "ui/ThemeScheme.h"
 
@@ -108,7 +109,8 @@ void AppSettingsTest::factoryUsesDomainConstants()
     QCOMPARE(s.pickWindowRound, false);
     QCOMPARE(s.ltsDeadzonePx, 80);
     QCOMPARE(s.ltsFalloffPx, 300);
-    QCOMPARE(s.ltsAccelPerSec, 5.0);
+    QCOMPARE(s.ltsAccelPerSec, kLtsAccelDefault);
+    QCOMPARE(s.ltsMaxNotchesPerSec, kLtsSpeedDefault);
     QVERIFY(!s.hoverCustom);
     QVERIFY(!s.flashCustom);
     QCOMPARE(s.resolvedHoverBorder(), s.colorKey(QStringLiteral("progressColor")));

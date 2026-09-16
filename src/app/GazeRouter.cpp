@@ -50,7 +50,8 @@ void GazeRouter::dispatch(const GazePoint& point)
     const bool pauseBackgroundAssist = overBoard || hit.overMaster || freeAim || dwellOff;
 
     if (m_headPose) {
-        m_headPose->setPaused(overBoard || hit.overMaster || dwellOff);
+        m_headPose->setPaused(overBoard || hit.overMaster || dwellOff
+                              || (m_lookToScroll && m_lookToScroll->isEnabled()));
     }
     GazePoint assist = point;
     if (m_headPose && !m_headPose->isPaused()) {

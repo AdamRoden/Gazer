@@ -19,22 +19,25 @@ private slots:
     void pieActionsFromHit();
     void ltsRegionOrders();
     void wheelLeftoverQuantize();
+    void highResWheelClassNames();
 };
 
 void LookToScrollTest::speedLadder()
 {
-    QCOMPARE(snapLtsSpeed(4.4), 5.0);
-    QCOMPARE(snapLtsSpeed(1.4), 1.0);
-    QCOMPARE(snapLtsSpeed(1.6), 2.0);
+    QCOMPARE(snapLtsSpeed(3.2), 4.0);
+    QCOMPARE(snapLtsSpeed(0.7), 0.5);
+    QCOMPARE(snapLtsSpeed(0.8), 1.0);
     QCOMPARE(snapLtsSpeed(2.0), 2.0);
     QCOMPARE(snapLtsSpeed(1.0), 1.0);
-    QCOMPARE(nudgeLtsSpeed(5.0, +1), 10.0);
-    QCOMPARE(nudgeLtsSpeed(5.0, -1), 2.0);
+    QCOMPARE(snapLtsSpeed(0.5), 0.5);
+    QCOMPARE(nudgeLtsSpeed(4.0, +1), 8.0);
+    QCOMPARE(nudgeLtsSpeed(4.0, -1), 2.0);
     QCOMPARE(nudgeLtsSpeed(2.0, -1), 1.0);
-    QCOMPARE(nudgeLtsSpeed(1.0, -1), 1.0);
-    QCOMPARE(nudgeLtsSpeed(20.0, +1), 20.0);
-    QCOMPARE(nudgeLtsSpeed(10.0, +1), 20.0);
-    QCOMPARE(snapLtsSpeed(50.0), 20.0);
+    QCOMPARE(nudgeLtsSpeed(1.0, -1), 0.5);
+    QCOMPARE(nudgeLtsSpeed(0.5, -1), 0.5);
+    QCOMPARE(nudgeLtsSpeed(8.0, +1), 8.0);
+    QCOMPARE(snapLtsSpeed(50.0), 8.0);
+    QCOMPARE(snapLtsSpeed(20.0), 8.0);
 }
 
 void LookToScrollTest::falloffEaseAndHysteresis()
@@ -271,6 +274,26 @@ void LookToScrollTest::wheelLeftoverQuantize()
     rem = -0.8;
     QCOMPARE(takeWheelUnits(rem, 1), -1);
     QVERIFY(qAbs(rem - (-0.2 / 1.5)) < 1e-9);
+}
+
+void LookToScrollTest::highResWheelClassNames()
+{
+    const QString yes[] = {QStringLiteral("Chrome_WidgetWin_1"),
+                           QStringLiteral("Chrome_RenderWidgetHostHWND"),
+                           QStringLiteral("chrome_widgetwin_0"),
+                           QStringLiteral("MozillaWindowClass"),
+                           QStringLiteral("MozillaCompositorWindowClass"),
+                           QStringLiteral("IEFrame"),
+                           QStringLiteral("Internet Explorer_Server")};
+    const QString no[] = {QStringLiteral("Intermediate D3D Window"), QStringLiteral("Scintilla"),
+                          QStringLiteral("SysListView32"), QStringLiteral("ScrollBar"),
+                          QStringLiteral("ApplicationFrameWindow")};
+    for (const QString& c : yes) {
+        QVERIFY2(classLooksLikeHighResWheel(c), qPrintable(c));
+    }
+    for (const QString& c : no) {
+        QVERIFY2(!classLooksLikeHighResWheel(c), qPrintable(c));
+    }
 }
 
 QObject* createLookToScrollTest()

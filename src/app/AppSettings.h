@@ -4,6 +4,7 @@
 #include "assist/GazeFollowProfile.h"
 #include "assist/LtsIndicator.h"
 #include "assist/LtsScrollMode.h"
+#include "assist/LtsSpeed.h"
 #include "core/HeadPose.h"
 #include "layout/ProgressStyle.h"
 #include "mapping/HeadPoseTypes.h"
@@ -93,9 +94,9 @@ struct AppSettings {
     // --- Look-to-Scroll ---
     int ltsDeadzonePx = 80;
     int ltsFalloffPx = 300;
-    double ltsMaxNotchesPerSec = 2.0;
+    double ltsMaxNotchesPerSec = kLtsSpeedDefault;
     /// Scroll rate grows by this factor each second gaze stays outside deadzone.
-    double ltsAccelPerSec = 5.0;
+    double ltsAccelPerSec = kLtsAccelDefault;
     int ltsCenterDwellMs = 700;
     LtsIndicator ltsIndicatorStyle = LtsIndicator::Filled;
     /// Gaze-scroll axes: vertical, horizontal, or both.

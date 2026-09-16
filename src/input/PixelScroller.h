@@ -9,11 +9,10 @@ namespace gazer {
 /// Pixel-level scroll of the window under the cursor (LTS origin).
 ///
 /// Classifies the HWND once, then drains a single logical-pixel remainder:
-///   HighResWheel — Chromium / Firefox / IE (SendInput leftover wheel units)
+///   HighResWheel — Chromium / Firefox / IE / WebView2 (ancestor walk)
 ///   Scintilla    — SCI_LINESCROLL / SCI_SETXOFFSET (Notepad++)
 ///   ListView     — LVM_SCROLL
-///   Fallback     — pixel scrollbar, then UIA if 1 px is ≥ 0.5% of range,
-///                  then wheel
+///   Fallback     — pixel scrollbar, then UIA if 1 px is ≥ 0.5% of range, then wheel
 class PixelScroller {
 public:
     PixelScroller();
@@ -42,6 +41,15 @@ private:
 /// Logical px → WM_MOUSEWHEEL units (WHEEL_DELTA = 120 / notch). High-res path
 /// emits whole leftover units (OptiKey-style); remainder stays in @p remPx.
 inline constexpr int kWheelUnitsPerNotch = 120;
+
+/// Chromium / Firefox / IE class names. `Intermediate D3D Window` is not a match.
+[[nodiscard]] inline bool classLooksLikeHighResWheel(QStringView cls)
+{
+    return cls.startsWith(QLatin1String("Chrome_"), Qt::CaseInsensitive)
+        || cls.startsWith(QLatin1String("Mozilla"), Qt::CaseInsensitive)
+        || cls.compare(QLatin1String("IEFrame"), Qt::CaseInsensitive) == 0
+        || cls.compare(QLatin1String("Internet Explorer_Server"), Qt::CaseInsensitive) == 0;
+}
 
 [[nodiscard]] inline int takeWheelUnits(double& remPx, int minAbsUnits = 1)
 {

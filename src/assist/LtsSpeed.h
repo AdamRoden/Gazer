@@ -4,8 +4,12 @@
 
 namespace gazer {
 
-inline constexpr double kLtsSpeedStops[] = {1.0, 2.0, 5.0, 10.0, 20.0};
-inline constexpr int kLtsSpeedStopCount = 5;
+inline constexpr double kLtsSpeedStops[] = {0.5, 1.0, 2.0, 4.0, 8.0};
+inline constexpr int kLtsSpeedStopCount = int(sizeof(kLtsSpeedStops) / sizeof(kLtsSpeedStops[0]));
+inline constexpr double kLtsSpeedDefault = 1.0;
+inline constexpr double kLtsAccelMin = 1.0;
+inline constexpr double kLtsAccelDefault = 2.0;
+inline constexpr double kLtsAccelMax = 4.0;
 
 /// Once engaged, never stream slower than this (post-accel rate). Targets that
 /// latch a gesture (Win32 thumb-track) treat long gaps as end/start and bounce.

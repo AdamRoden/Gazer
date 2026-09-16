@@ -4,6 +4,7 @@
 #include "assist/LtsIndicator.h"
 #include "assist/LtsMenu.h"
 #include "assist/LtsScrollMode.h"
+#include "assist/LtsSpeed.h"
 #include "core/GazePoint.h"
 #include "input/PixelScroller.h"
 #include "layout/DwellStateMachine.h"
@@ -88,7 +89,7 @@ public:
     /// True while the command pie is up and gaze is on it.
     [[nodiscard]] bool containsGaze(const GazePoint& point) const;
 
-    /// @p pauseInput when true: hide overlay and ignore scroll (over board / full-screen aim).
+    /// @p pauseInput: over board / full-screen aim. Invalid-gaze grace before lift.
     void onGaze(const GazePoint& point, bool pauseInput);
 
 signals:
@@ -137,8 +138,8 @@ private:
     QPoint m_origin;
     int m_deadzonePx = 80;
     int m_falloffPx = 300;
-    double m_maxNotchesPerSec = 2.0;
-    double m_accelPerSec = 5.0; // +500%/s while that axis is contributing
+    double m_maxNotchesPerSec = kLtsSpeedDefault;
+    double m_accelPerSec = kLtsAccelDefault;
     int m_centerDwellMs = 650;
     LtsIndicator m_indicatorStyle = LtsIndicator::Filled;
     LtsScrollMode m_scrollMode = LtsScrollMode::Both;

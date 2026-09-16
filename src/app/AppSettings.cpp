@@ -1,9 +1,6 @@
 #include "app/AppSettings.h"
 
 #include "assist/GazeFollowProfile.h"
-#include "assist/LtsIndicator.h"
-#include "assist/LtsScrollMode.h"
-#include "assist/LtsSpeed.h"
 #include "mapping/HeadPoseCurve.h"
 #include "ui/PickStyle.h"
 
@@ -214,7 +211,7 @@ constexpr DoubleSpec kDoubleSpecs[] = {
      &AppSettings::pickZoom, 1.25, 8.0, 0.25, 2},
     {"ltsAccelPerSec", "LTS accel/s",
      "Speed growth per second while that axis is contributing. Resets when the axis is ~0.", " /s",
-     &AppSettings::ltsAccelPerSec, 1.0, 10.0, 0.5, 1},
+     &AppSettings::ltsAccelPerSec, kLtsAccelMin, kLtsAccelMax, 0.5, 1},
     {"speechSpeed", "Speech speed", "ElevenLabs and SAPI speed (0.5–2).", "",
      &AppSettings::speechSpeed, 0.5, 2.0, 0.1, 2},
     {"speechVolume", "Speech boost", "Make composer voices louder (1–5×). Applies to ElevenLabs clips.",

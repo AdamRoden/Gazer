@@ -189,35 +189,6 @@ int maxScrollPos(const SCROLLINFO& si)
     return maxPos;
 }
 
-bool usesHighResWheel(HWND hwnd)
-{
-    HWND root = hwnd ? GetAncestor(hwnd, GA_ROOT) : nullptr;
-    if (!root) {
-        root = hwnd;
-    }
-    if (classStartsWith(root, L"Chrome_") || classStartsWith(hwnd, L"Chrome_")) {
-        return true;
-    }
-    if (classIs(root, L"MozillaWindowClass") || classStartsWith(hwnd, L"Mozilla")) {
-        return true;
-    }
-    if (classIs(root, L"IEFrame") || classIs(hwnd, L"Internet Explorer_Server")) {
-        return true;
-    }
-    return false;
-}
-
-HWND skipScrollbar(HWND hwnd)
-{
-    if (classIs(hwnd, L"ScrollBar")) {
-        HWND parent = GetAncestor(hwnd, GA_PARENT);
-        if (parent) {
-            return parent;
-        }
-    }
-    return hwnd;
-}
-
 HWND parentWindow(HWND hwnd)
 {
     HWND parent = GetAncestor(hwnd, GA_PARENT);
@@ -225,6 +196,28 @@ HWND parentWindow(HWND hwnd)
         return nullptr;
     }
     return parent;
+}
+
+bool usesHighResWheel(HWND hwnd)
+{
+    wchar_t cls[256]{};
+    for (HWND h = hwnd; h; h = parentWindow(h)) {
+        if (GetClassNameW(h, cls, 256) > 0
+            && classLooksLikeHighResWheel(QString::fromWCharArray(cls))) {
+            return true;
+        }
+    }
+    return false;
+}
+
+HWND skipScrollbar(HWND hwnd)
+{
+    if (classIs(hwnd, L"ScrollBar")) {
+        if (HWND parent = parentWindow(hwnd)) {
+            return parent;
+        }
+    }
+    return hwnd;
 }
 
 Target resolveTarget(HWND start)
@@ -610,6 +603,9 @@ struct PixelScroller::Impl {
         }
         if (next > 100.0) {
             next = 100.0;
+        }
+        if (next == pct) {
+            return false;
         }
         *percentOut = next;
         return true;

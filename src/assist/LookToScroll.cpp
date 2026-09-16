@@ -1,6 +1,5 @@
 #include "assist/LookToScroll.h"
 
-#include "assist/LtsSpeed.h"
 #include "assist/PieOverlay.h"
 #include "input/MouseInjector.h"
 #include "ui/KeySymbols.h"
@@ -482,7 +481,7 @@ void LookToScroll::setDwellSequence(const QVector<int>& ms)
 
 void LookToScroll::setAccelPerSec(double a)
 {
-    m_accelPerSec = qBound(1.0, a, 10.0);
+    m_accelPerSec = qBound(kLtsAccelMin, a, kLtsAccelMax);
 }
 
 void LookToScroll::setCenterDwellMs(int ms)
@@ -577,7 +576,7 @@ void LookToScroll::pushPlusOverlay(const ComboMouseHit::Layout& L, ComboMouseHit
     a.innerColor = m_innerColor;
     a.outerColor = m_outerColor;
     fillLtsSliceIcons(m_scrollMode, a.sliceIcons);
-    a.hubLabel = QString::number(int(qRound(m_maxNotchesPerSec)));
+    a.hubLabel = QString::number(m_maxNotchesPerSec);
     m_plus->setAppearance(a);
     m_plus->place(originPoint(), plusScreenRect());
 }
@@ -728,25 +727,18 @@ void LookToScroll::onGaze(const GazePoint& point, bool pauseInput)
 
     const qint64 now = m_clock.elapsed();
     const qint64 sampleTs = point.timestampMs > 0 ? point.timestampMs : now;
-
-    if (!point.valid) {
+    if ((pauseInput && !m_allowOverBoard) || !point.valid) {
+        pinCursorToOrigin();
         if (m_invalidGrace.onInvalid(sampleTs) == InvalidGazeGrace::Result::Holding) {
             return;
         }
         m_scrollEngaged = false;
         m_scroller.lift();
         hideOverlay();
-        return;
-    }
-    m_invalidGrace.onValid();
-
-    if (pauseInput && !m_allowOverBoard) {
-        m_scrollEngaged = false;
-        m_scroller.lift();
-        hideOverlay();
         m_centerProgress = 0.0;
         return;
     }
+    m_invalidGrace.onValid();
 
     const QPoint origin = originPoint();
     pinCursorToOrigin();
