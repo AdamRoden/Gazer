@@ -4,7 +4,6 @@
 #include "layout/PageHit.h"
 #include "layout/PageLoader.h"
 
-#include <QVariantMap>
 #include <QtTest>
 
 using namespace gazer;
@@ -27,11 +26,11 @@ class PageHitLiveTest final : public QObject {
     Q_OBJECT
 
 private slots:
-    void mainChipProgressOverlapsTaskbar();
-    void hitMainChipOffScreen();
+    void showChipProgressOverlapsTaskbar();
+    void hitShowChipOffScreen();
     void engagedZoneIncludesProgress();
     void hitDrawerCell();
-    void visibleWhenHidesMainChip();
+    void visibleWhenDrawerOpenHidesShow();
     void sleepKeepsContentWhenSuspended();
     void edgeChipHidesUntilProgress();
     void qwertyClosedGridHidden();
@@ -43,14 +42,14 @@ private slots:
     void remapPageActionTargetsIncludesPhases();
 };
 
-void PageHitLiveTest::mainChipProgressOverlapsTaskbar()
+void PageHitLiveTest::showChipProgressOverlapsTaskbar()
 {
     PageDocument doc;
     QString err;
     const QString path =
         QStringLiteral(GAZER_SOURCE_DIR) + QStringLiteral("/resources/layouts/main.xml");
     QVERIFY2(PageLoader::loadFromFile(path, doc, &err), qPrintable(err));
-    const PageZone* chip = doc.findZone(QStringLiteral("mainChip"));
+    const PageZone* chip = doc.findZone(QStringLiteral("show"));
     const PageZone* sleep = doc.findZone(QStringLiteral("sleep"));
     QVERIFY(chip);
     QVERIFY(sleep);
@@ -58,7 +57,7 @@ void PageHitLiveTest::mainChipProgressOverlapsTaskbar()
     frame.screen = QRectF(0, 0, 1920, 1080);
     frame.desktop = QRectF(0, 0, 1920, 1040);
     const QVector<PageTarget> t = PageHit::collect(doc, frame);
-    const PageTarget* vis = targetById(t, QStringLiteral("mainChip"));
+    const PageTarget* vis = targetById(t, QStringLiteral("show"));
     const PageTarget* sleepT = targetById(t, QStringLiteral("sleep"));
     QVERIFY(vis);
     QVERIFY(sleepT);
@@ -69,7 +68,7 @@ void PageHitLiveTest::mainChipProgressOverlapsTaskbar()
         QRectF(QPointF(frame.desktop.left(), frame.desktop.bottom()), frame.screen.bottomRight())));
 }
 
-void PageHitLiveTest::hitMainChipOffScreen()
+void PageHitLiveTest::hitShowChipOffScreen()
 {
     PageDocument doc;
     QString err;
@@ -80,12 +79,12 @@ void PageHitLiveTest::hitMainChipOffScreen()
     frame.screen = QRectF(0, 0, 1920, 1080);
     frame.desktop = frame.screen;
     const QVector<PageTarget> t = PageHit::collect(doc, frame);
-    const PageTarget* chip = targetById(t, QStringLiteral("mainChip"));
+    const PageTarget* chip = targetById(t, QStringLiteral("show"));
     QVERIFY(chip);
     const PageTarget* hit = PageHit::at(t, chip->geom.dwellZone.center());
     QVERIFY(hit);
     QCOMPARE(hit->kind, PageTarget::Kind::Zone);
-    QCOMPARE(hit->id, QStringLiteral("mainChip"));
+    QCOMPARE(hit->id, QStringLiteral("show"));
     QVERIFY(hit->geom.progressZone.intersects(frame.screen));
     QVERIFY(!frame.screen.contains(hit->geom.dwellZone.center()));
 }
@@ -101,7 +100,7 @@ void PageHitLiveTest::engagedZoneIncludesProgress()
     frame.screen = QRectF(0, 0, 1920, 1080);
     frame.desktop = frame.screen;
     const QVector<PageTarget> t = PageHit::collect(doc, frame);
-    const PageTarget* chip = targetById(t, QStringLiteral("mainChip"));
+    const PageTarget* chip = targetById(t, QStringLiteral("show"));
     QVERIFY(chip);
     QVERIFY(PageHit::at(t, chip->geom.dwellZone.center()) == chip);
     const QPointF onStrip = chip->geom.progressZone.center();
@@ -144,7 +143,7 @@ void PageHitLiveTest::hitDrawerCell()
     QVERIFY(t.last().shell);
 }
 
-void PageHitLiveTest::visibleWhenHidesMainChip()
+void PageHitLiveTest::visibleWhenDrawerOpenHidesShow()
 {
     PageDocument doc;
     QString err;
@@ -154,10 +153,10 @@ void PageHitLiveTest::visibleWhenHidesMainChip()
     PageFrame frame;
     frame.screen = QRectF(0, 0, 1920, 1080);
     frame.desktop = frame.screen;
-    QVariantMap expanded;
-    expanded.insert(QStringLiteral("expanded"), true);
-    const QVector<PageTarget> t = PageHit::collect(doc, frame, expanded);
-    QVERIFY(targetById(t, QStringLiteral("mainChip")) == nullptr);
+    doc.showLayers = {2};
+    const QVector<PageTarget> t = PageHit::collect(doc, frame);
+    QVERIFY(targetById(t, QStringLiteral("show")) == nullptr);
+    QVERIFY(targetById(t, QStringLiteral("hide")));
     const PageTarget* sleep = targetById(t, QStringLiteral("sleep"));
     QVERIFY(sleep);
     QVERIFY(PageHit::at(t, sleep->geom.dwellZone.center()) == sleep);
@@ -179,7 +178,7 @@ void PageHitLiveTest::sleepKeepsContentWhenSuspended()
     for (const PageTarget& x : t) {
         if (x.id == QLatin1String("sleep")) {
             sleep = &x;
-        } else if (x.id == QLatin1String("mainChip")) {
+        } else if (x.id == QLatin1String("show")) {
             main = &x;
         }
     }
@@ -302,7 +301,7 @@ void PageHitLiveTest::edgeChipGazeHitsOnScreenChrome()
     frame.screen = QRectF(0, 0, 1920, 1080);
     frame.desktop = frame.screen;
     const QVector<PageTarget> t = PageHit::collect(doc, frame);
-    const PageTarget* chip = targetById(t, QStringLiteral("mainChip"));
+    const PageTarget* chip = targetById(t, QStringLiteral("show"));
     QVERIFY(chip);
     QVERIFY(chip->suspendExempt);
     QVERIFY(chip->geom.hidesUntilProgress());

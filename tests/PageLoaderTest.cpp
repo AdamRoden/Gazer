@@ -796,20 +796,24 @@ void PageLoaderTest::loadMainPage()
     QVERIFY2(PageLoader::loadFromFile(path, doc, &err), qPrintable(err));
     QCOMPARE(doc.id, QStringLiteral("main"));
     QCOMPARE(doc.master, true);
-    QCOMPARE(doc.zones.size(), 2);
+    QCOMPARE(doc.zones.size(), 3);
     QCOMPARE(doc.grids.size(), 2);
+    QVERIFY(doc.findZone(QStringLiteral("show")));
+    QVERIFY(doc.findZone(QStringLiteral("hide")));
+    QVERIFY(doc.findZone(QStringLiteral("sleep")));
     QVERIFY(doc.findGrid(QStringLiteral("drawer")));
     QVERIFY(doc.findGrid(QStringLiteral("quit")));
     QCOMPARE(doc.findGrid(QStringLiteral("drawer"))->layers, QVector<int>({2}));
     QCOMPARE(doc.findGrid(QStringLiteral("quit"))->layers, QVector<int>({3}));
     QCOMPARE(doc.showLayers, QVector<int>({1}));
-    QCOMPARE(doc.findGrid(QStringLiteral("drawer"))->cells.size(), 10);
+    QCOMPARE(doc.findGrid(QStringLiteral("drawer"))->cells.size(), 9);
     QCOMPARE(doc.findCell(QStringLiteral("open_compose"))->actions[0].command,
              QStringLiteral("compose.open"));
     QCOMPARE(doc.zones[0].actions[1].type, PageActionType::ShowLayers);
-    QCOMPARE(doc.zones[0].actions[1].layers, (QVector<int>{1, 2}));
+    QCOMPARE(doc.zones[0].actions[1].layers, QVector<int>({2}));
     QVERIFY(doc.zones[0].suspendExempt);
     QVERIFY(doc.zones[1].suspendExempt);
+    QVERIFY(doc.zones[2].suspendExempt);
     const PageCell* pause = nullptr;
     for (const PageCell& c : doc.findGrid(QStringLiteral("drawer"))->cells) {
         if (c.id == QLatin1String("dwell_suspend")) {
@@ -839,7 +843,7 @@ void PageLoaderTest::pageWriterRoundTripMain()
     QCOMPARE(dst.master, src.master);
     QCOMPARE(dst.grids.size(), src.grids.size());
     QCOMPARE(dst.zones.size(), src.zones.size());
-    QCOMPARE(dst.findZone(QStringLiteral("mainChip")) != nullptr, true);
+    QCOMPARE(dst.findZone(QStringLiteral("show")) != nullptr, true);
     QCOMPARE(dst.findGrid(QStringLiteral("drawer")) != nullptr, true);
     QCOMPARE(dst.findGrid(QStringLiteral("drawer"))->layers, QVector<int>({2}));
     QCOMPARE(dst.findGrid(QStringLiteral("quit"))->layers, QVector<int>({3}));
