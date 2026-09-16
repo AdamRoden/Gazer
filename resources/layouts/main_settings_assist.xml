@@ -44,7 +44,7 @@
 
     <Cell id="page_title" row="1" col="0" colSpan="16" label="Assist" caption="Tracker, helpers, and the live lens" role="label" textStyle="title" style="plain"/>
 
-    <SubGrid id="sec_tr" row="2" col="0" colSpan="16" rowSpan="2" rows="2" columns="1" rowWeights="1,2" gap="6" margin="6" style="group">
+    <SubGrid id="sec_tr" row="2" col="0" colSpan="16" rowSpan="2" rows="2" columns="1" rowHeights="*,2*" gap="6" margin="6" style="group">
       <Cell id="h_tr" row="0" col="0" label="Tracker" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_tr" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="tr_l" row="0" col="0" label="Tracker" caption="Applies on next start." role="label" style="plain"/>
@@ -56,7 +56,7 @@
       </SubGrid>
     </SubGrid>
 
-    <SubGrid id="sec_help" row="4" col="0" colSpan="16" rowSpan="3" rows="3" columns="1" rowWeights="1,2,2" gap="6" margin="6" style="group">
+    <SubGrid id="sec_help" row="4" col="0" colSpan="16" rowSpan="3" rows="3" columns="1" rowHeights="*,2*,2*" gap="6" margin="6" style="group">
       <Cell id="h_help" row="0" col="0" label="Helpers" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_follow" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="f_l" row="0" col="0" label="Gaze follow" caption="Reticle, gaze mouse, and live lens." role="label" style="plain"/>
@@ -74,7 +74,7 @@
       </SubGrid>
     </SubGrid>
 
-    <SubGrid id="sec_lens" row="7" col="0" colSpan="16" rowSpan="3" rows="3" columns="1" rowWeights="1,2,2" gap="6" margin="6" style="group">
+    <SubGrid id="sec_lens" row="7" col="0" colSpan="16" rowSpan="3" rows="3" columns="1" rowHeights="*,2*,2*" gap="6" margin="6" style="group">
       <Cell id="h_lens" row="0" col="0" label="Live lens" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_z" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="z_l" row="0" col="0" label="Lens zoom" caption="Live lens magnification." role="label" style="plain"/>

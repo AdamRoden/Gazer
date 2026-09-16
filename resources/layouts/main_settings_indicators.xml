@@ -44,7 +44,7 @@
 
     <Cell id="page_title" row="1" col="0" colSpan="16" label="Indicators" caption="Progress chrome and pick markers" role="label" textStyle="title" style="plain"/>
 
-    <SubGrid id="sec_prog" row="2" col="0" colSpan="16" rowSpan="3" rows="3" columns="1" rowWeights="1,2,2" gap="6" margin="6" style="group">
+    <SubGrid id="sec_prog" row="2" col="0" colSpan="16" rowSpan="3" rows="3" columns="1" rowHeights="*,2*,2*" gap="6" margin="6" style="group">
       <Cell id="h_prog" row="0" col="0" label="Progress" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_bp" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="bp_label" row="0" col="0" label="Button progress" caption="Dwell styles on board cells." role="label" style="plain"/>
@@ -64,7 +64,7 @@
       </SubGrid>
     </SubGrid>
 
-    <SubGrid id="sec_icons" row="5" col="0" colSpan="16" rowSpan="3" rows="3" columns="1" rowWeights="1,2,2" gap="6" margin="6" style="group">
+    <SubGrid id="sec_icons" row="5" col="0" colSpan="16" rowSpan="3" rows="3" columns="1" rowHeights="*,2*,2*" gap="6" margin="6" style="group">
       <Cell id="h_icons" row="0" col="0" label="Indicators" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_zi" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="zi_label" row="0" col="0" label="Magnify pick" caption="Markers for the zoom region." role="label" style="plain"/>
@@ -85,7 +85,7 @@
       </SubGrid>
     </SubGrid>
 
-    <SubGrid id="sec_preview" row="8" col="0" colSpan="16" rowSpan="2" rows="2" columns="1" rowWeights="1,2" gap="6" margin="6" style="group">
+    <SubGrid id="sec_preview" row="8" col="0" colSpan="16" rowSpan="2" rows="2" columns="1" rowHeights="*,2*" gap="6" margin="6" style="group">
       <Cell id="h_preview" row="0" col="0" label="Preview" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_test" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="test_label" row="0" col="0" label="Test" caption="Dwell Move to… to try pick markers." role="label" style="plain"/>

@@ -45,7 +45,7 @@
     <Cell id="page_title" row="1" col="0" colSpan="16" label="Theme" caption="Background, accent, and progress" role="label" textStyle="title" style="plain"/>
     <SubGrid id="theme_columns" row="2" col="0" rowSpan="7" colSpan="16" rows="1" columns="2" gap="16">
 
-      <SubGrid id="sec_surfaces" row="0" col="0" rows="6" columns="2" rowWeights="0.5,1.5,1.5,1.5,1.5,1.5" columnWidths="1*,3*" gap="8" margin="8" style="group">
+      <SubGrid id="sec_surfaces" row="0" col="0" rows="6" columns="2" rowHeights="0.5*,1.5*,1.5*,1.5*,1.5*,1.5*" columnWidths="1*,3*" gap="8" margin="8" style="group">
         <Cell id="h_surfaces" row="0" col="0" colSpan="2" label="Background" role="label" textStyle="section" style="plain"/>
         <Cell id="theme_l_d" row="1" col="0" label="Theme" role="label" style="plain"/>
         <SubGrid id="row_appearance" row="1" col="1" rows="1" columns="2" gap="0" style="row">
@@ -92,7 +92,7 @@
         </SubGrid>
       </SubGrid>
 
-      <SubGrid id="sec_accents" row="0" col="1" rows="10" columns="2" rowWeights="1,1.5,1,1.15,1.15,1.15,1.15,1.15,1.15,1.15" columnWidths="1*,4*" gap="8" margin="8" style="group">
+      <SubGrid id="sec_accents" row="0" col="1" rows="10" columns="2" rowHeights="*,1.5*,*,1.15*,1.15*,1.15*,1.15*,1.15*,1.15*,1.15*" columnWidths="1*,4*" gap="8" margin="8" style="group">
         <Cell id="h_accents" row="0" col="0" colSpan="2" label="Accent Colors" role="label" textStyle="section" style="plain"/>
         <SubGrid id="row_primary" row="1" col="0" colSpan="2" rows="1" columns="4" gap="8" style="row">
           <Cell id="pc" row="0" col="0" label="Highlight" role="label" style="plain"/>

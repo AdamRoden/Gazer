@@ -20,7 +20,6 @@ class PageLoaderTest final : public QObject {
 private slots:
     void expressionSizeRoundTrip();
     void clampSizeRoundTrip();
-    void parseRowWeightsCsv();
     void loadFixture();
     void ahkCdataRoundTrip();
     void inheritStyleAndDwell();
@@ -42,7 +41,7 @@ private slots:
     void loadConvertedBoards();
     void keyboardMainOpensDrawer();
     void pageWriterRoundTripMain();
-    void rowWeightsRoundTrip();
+    void starRowHeightsRoundTrip();
     void trackSizesRoundTrip();
     void sessionKeyPrefixedAfterPageId();
     void catalogUserCopyWinsPath();
@@ -88,13 +87,6 @@ void PageLoaderTest::clampSizeRoundTrip()
     QCOMPARE(PageDimParse::token(written.grids[0].size.x),
              QStringLiteral("clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth)"));
     QCOMPARE(PageDimParse::token(written.grids[0].size.y), QStringLiteral("A_ScreenHeight"));
-}
-
-void PageLoaderTest::parseRowWeightsCsv()
-{
-    QCOMPARE(parseRowWeights(QStringLiteral("1,2,2,2")), QVector<double>({1.0, 2.0, 2.0, 2.0}));
-    QCOMPARE(parseRowWeights(QStringLiteral(" 0, -1, 3 ")), QVector<double>({3.0}));
-    QVERIFY(parseRowWeights(QStringLiteral("")).isEmpty());
 }
 
 void PageLoaderTest::loadFixture()
@@ -855,7 +847,7 @@ void PageLoaderTest::pageWriterRoundTripMain()
     QVERIFY(!roundText.contains(QStringLiteral("chrome=")));
 }
 
-void PageLoaderTest::rowWeightsRoundTrip()
+void PageLoaderTest::starRowHeightsRoundTrip()
 {
     PageDocument src;
     src.id = QStringLiteral("p");
@@ -866,8 +858,7 @@ void PageLoaderTest::rowWeightsRoundTrip()
     g.rowTracks = starTracks({1.0, 2.0, 2.0});
     src.grids.push_back(g);
     const QByteArray xml = PageWriter::toBytes(src);
-    QVERIFY(QString::fromUtf8(xml).contains(QStringLiteral("rowWeights=\"1,2,2\"")));
-    QVERIFY(!QString::fromUtf8(xml).contains(QStringLiteral("rowHeights")));
+    QVERIFY(QString::fromUtf8(xml).contains(QStringLiteral("rowHeights=\"*,2*,2*\"")));
     QString err;
     PageDocument dst;
     QVERIFY2(PageLoader::loadFromXml(xml, dst, &err), qPrintable(err));

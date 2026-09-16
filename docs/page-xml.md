@@ -30,7 +30,7 @@ Child order is free. Grids and zones are painted and hit in document order withi
 
 | Rule | Behavior |
 |------|----------|
-| Dims | Integer token = pixels (`150`). Token with `.` or `/` = proportion of the bounds (`0.5`, `1/2`). Arithmetic with `A_ScreenWidth` / `A_ScreenHeight` is pixels (`A_ScreenHeight/9*16`), evaluated against the placement surface passed at resolve time (work area when `desktopMode`). `clamp(value, min, max)` bounds a pixel expression. Grid tracks add `*` / `2*` for leftover space (`rowHeights="80,*,120"`). `rowWeights` integers stay star weights, not pixels. |
+| Dims | Integer token = pixels (`150`). Token with `.` or `/` = proportion of the bounds (`0.5`, `1/2`). Arithmetic with `A_ScreenWidth` / `A_ScreenHeight` is pixels (`A_ScreenHeight/9*16`), evaluated against the placement surface passed at resolve time (work area when `desktopMode`). `clamp(value, min, max)` bounds a pixel expression. Grid tracks add `*` / `2*` for leftover space (`rowHeights="80,*,120"`). |
 | Style / dwell | Page inherits from settings, then overrides per field. Unspecified dwell uses **rapid** for Send / modifiers / mapping keys / composer typing, and **standard** for everything else (including mouse, AHK, and composer word chips). Grids, cells, and zones inherit from the **page** (never from a parent grid). Named `style` / `dwell` plus inline attrs override individual members. Unset `background` paints as the page/theme canvas (`bg100`). Grid resolve then drops `foreground` / `progressStyle` / `progressColor`. |
 | Overlap | Topmost attached page’s grid is opaque. Shell grids/zones paint and hit above the rest. A cell on a buried grid does not come forward when dwelled; only the unoccluded part hit-tests. |
 | Drawer / quit | Layer membership. Master XML puts dock chips on layer 1, the drawer on 2, quit on 3. `ShowLayers` sets the visible set (Main chip `1,2`; Dismiss `1`; Quit `1,3`). Consecutive ShowLayers in one cell are applied together, then the drawer animates: appear when a `drawerMotion` grid is shown, dismiss when it is the last master grid hidden, snap when another master grid remains. Hidden shell grids do not reserve host space. |
@@ -172,8 +172,7 @@ A Grid is a placed rectangle of rows and columns. `SubGrid` occupies a parent ce
 | `desktopMode` | `true` = virtual desktop bounds; else current screen |
 | `rows`, `columns` | Cell mesh |
 | `gap`, `margin` | Pixels between cells / inside the grid |
-| `rowWeights` | Legacy all-star row sizes (`1,2,2` = header half as tall as each content row). Integers are **star weights**, not pixels. Loaded as `*` / `2*` tracks. Writer emits this when every row is a star. |
-| `rowHeights`, `columnWidths` | Per-track sizes, XAML GridLength-style. Integer token = pixels (`80`, `80px`). `*` / `2*` share leftover space after fixed tracks. Also accepts dim tokens (`0.25`, `1/4`, `0.25h`, `A_ScreenHeight/20`, `clamp(...)`). Missing tracks are `*`. Pixel tracks that overflow the inner size scale down together. Equal columns when `columnWidths` is omitted. |
+| `rowHeights`, `columnWidths` | Per-track sizes, XAML GridLength-style. Integer token = pixels (`80`, `80px`). `*` / `2*` share leftover space after fixed tracks. Also accepts dim tokens (`0.25`, `1/4`, `0.25h`, `A_ScreenHeight/20`, `clamp(...)`). Missing tracks are `*`. Pixel tracks that overflow the inner size scale down together. Equal rows/columns when the matching attribute is omitted. |
 | `drawerMotion` | Scale animation when shown/hidden as the master drawer |
 | `shell` | Always-on-top layer (dock chrome). Cells inherit shell from their grid. |
 | `autoClose` | Idle-close this grid |
@@ -190,7 +189,7 @@ A Grid is a placed rectangle of rows and columns. `SubGrid` occupies a parent ce
 <Grid id="board" desktopMode="true" rows="4" columns="3"
       anchor="Top" offset="0,0"
       size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight"
-      gap="72" margin="90" rowWeights="1,2,2,2">
+      gap="72" margin="90" rowHeights="*,2*,2*,2*">
   …
 </Grid>
 ```
@@ -539,7 +538,7 @@ AHK cells use **standard** dwell. Discovery: local AutoHotkey v2, unless the scr
   <Grid id="board" desktopMode="true" rows="2" columns="3"
         anchor="Top" offset="0,0"
         size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight"
-        gap="72" margin="90" rowWeights="1,2">
+        gap="72" margin="90" rowHeights="*,2*">
     <Cell id="page_title" row="0" col="0" colSpan="3"
           label="Settings" role="label" textStyle="title" style="plain"/>
     <Cell id="open_speed" row="1" col="0"

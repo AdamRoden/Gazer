@@ -686,7 +686,7 @@ QVector<PageTrackSize> parseTrackList(const QString& csv, QString* error)
 QString token(const PageTrackSize& t)
 {
     if (t.kind == PageTrackSize::Kind::Star) {
-        if (qAbs(t.star - 1.0) < 1e-9) {
+        if (t.isUnitStar()) {
             return QStringLiteral("*");
         }
         if (qFuzzyCompare(t.star, static_cast<double>(qRound(t.star)))) {

@@ -45,7 +45,7 @@
     <Cell id="page_title" row="1" col="0" colSpan="16" label="Tools" caption="Look to scroll and ComboMouse" role="label" textStyle="title" style="plain"/>
     <SubGrid id="tool_columns" row="2" col="0" rowSpan="7" colSpan="16" rows="1" columns="2" gap="16">
 
-      <SubGrid id="sec_dist" row="0" col="0" rows="6" columns="1" rowWeights="1,2,2,2,2,2" gap="6" margin="6" style="group">
+      <SubGrid id="sec_dist" row="0" col="0" rows="6" columns="1" rowHeights="*,2*,2*,2*,2*,2*" gap="6" margin="6" style="group">
         <Cell id="h_dist" row="0" col="0" label="Look to scroll" role="label" textStyle="section" style="plain"/>
         <SubGrid id="row_lts_on" row="1" col="0" rows="1" columns="2" gap="6" style="row">
           <Cell id="lts_on_l" row="0" col="0" label="Enable" caption="Scroll by looking away from the cursor." role="label" style="plain"/>
@@ -88,7 +88,7 @@
         </SubGrid>
       </SubGrid>
 
-      <SubGrid id="sec_combo" row="0" col="1" rows="6" columns="1" rowWeights="1,2,2,2,2,2" gap="6" margin="6" style="group">
+      <SubGrid id="sec_combo" row="0" col="1" rows="6" columns="1" rowHeights="*,2*,2*,2*,2*,2*" gap="6" margin="6" style="group">
         <Cell id="h_combo" row="0" col="0" label="ComboMouse" role="label" textStyle="section" style="plain"/>
         <SubGrid id="row_combo_on" row="1" col="0" rows="1" columns="2" gap="6" style="row">
           <Cell id="combo_on_l" row="0" col="0" label="Enable" caption="Dwell to place, then drift and click from the pie." role="label" style="plain"/>

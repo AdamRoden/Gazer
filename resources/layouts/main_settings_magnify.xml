@@ -44,8 +44,8 @@
 
     <Cell id="page_title" row="1" col="0" colSpan="16" label="Magnify pick" caption="How Move-to zooms, and the zoom window" role="label" textStyle="title" style="plain"/>
 
-    <SubGrid id="sec_all" row="2" col="0" colSpan="16" rowSpan="8" rows="3" columns="1" rowWeights="1,3,1" gap="6" margin="6" style="group">
-      <SubGrid id="sec_mode" row="0" col="0" rows="2" columns="1" rowWeights="1,2" gap="6" margin="6" style="group">
+    <SubGrid id="sec_all" row="2" col="0" colSpan="16" rowSpan="8" rows="3" columns="1" rowHeights="*,3*,*" gap="6" margin="6" style="group">
+      <SubGrid id="sec_mode" row="0" col="0" rows="2" columns="1" rowHeights="*,2*" gap="6" margin="6" style="group">
         <Cell id="h_mode" row="0" col="0" label="Zoom" role="label" textStyle="section" style="plain"/>
         <SubGrid id="row_mode" row="1" col="0" rows="1" columns="3" gap="0" style="row">
           <Cell id="zm_pre" row="0" col="0" icon="ZoomConfirm" label="Magnify pick" role="toggle" activeState="mouseMoveMagPick" style="joinLeft" command="toggleMouseMoveMagPick"/>
@@ -54,7 +54,7 @@
         </SubGrid>
       </SubGrid>
 
-      <SubGrid id="sec_zoom" row="1" col="0" rows="5" columns="1" rowWeights="1,2,2,2,2" gap="6" margin="6" style="group">
+      <SubGrid id="sec_zoom" row="1" col="0" rows="5" columns="1" rowHeights="*,2*,2*,2*,2*" gap="6" margin="6" style="group">
         <Cell id="h_zoom" row="0" col="0" label="Window" role="label" textStyle="section" style="plain"/>
         <SubGrid id="row_zl" row="1" col="0" rows="1" columns="2" gap="6" style="row">
           <Cell id="zl_label" row="0" col="0" label="Zoom level" caption="Static magnification." role="label" style="plain"/>
@@ -90,7 +90,7 @@
         </SubGrid>
       </SubGrid>
 
-      <SubGrid id="sec_preview" row="2" col="0" rows="2" columns="1" rowWeights="1,2" gap="6" margin="6" style="group">
+      <SubGrid id="sec_preview" row="2" col="0" rows="2" columns="1" rowHeights="*,2*" gap="6" margin="6" style="group">
         <Cell id="h_preview" row="0" col="0" label="Preview" role="label" textStyle="section" style="plain"/>
         <SubGrid id="row_test" row="1" col="0" rows="1" columns="2" gap="6" style="row">
           <Cell id="test_label" row="0" col="0" label="Test" caption="Dwell Move to… to try zoom." role="label" style="plain"/>

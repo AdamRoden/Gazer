@@ -46,7 +46,7 @@
     <Cell id="page_title" row="1" col="0" colSpan="16" label="Speech" caption="ElevenLabs key and how Speak works"
           role="label" textStyle="title" style="plain"/>
 
-    <SubGrid id="sec_key" row="2" col="0" colSpan="16" rowSpan="2" rows="2" columns="1" rowWeights="1,2" gap="6" margin="6" style="group">
+    <SubGrid id="sec_key" row="2" col="0" colSpan="16" rowSpan="2" rows="2" columns="1" rowHeights="*,2*" gap="6" margin="6" style="group">
       <Cell id="h_key" row="0" col="0" label="ElevenLabs" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_key" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="key_status" row="0" col="0" label="No API key" role="value" style="plain"/>
@@ -54,7 +54,7 @@
       </SubGrid>
     </SubGrid>
 
-    <SubGrid id="sec_eng" row="4" col="0" colSpan="16" rowSpan="2" rows="2" columns="1" rowWeights="1,2" gap="6" margin="6" style="group">
+    <SubGrid id="sec_eng" row="4" col="0" colSpan="16" rowSpan="2" rows="2" columns="1" rowHeights="*,2*" gap="6" margin="6" style="group">
       <Cell id="h_eng" row="0" col="0" label="Engine" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_eng" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="eng_l" row="0" col="0" label="Composer voice" caption="Eleven when a key and voice id are set, otherwise SAPI. XML Speak stays SAPI."
@@ -70,7 +70,7 @@
       </SubGrid>
     </SubGrid>
 
-    <SubGrid id="sec_spd" row="6" col="0" colSpan="16" rowSpan="2" rows="2" columns="1" rowWeights="1,2" gap="6" margin="6" style="group">
+    <SubGrid id="sec_spd" row="6" col="0" colSpan="16" rowSpan="2" rows="2" columns="1" rowHeights="*,2*" gap="6" margin="6" style="group">
       <Cell id="h_spd" row="0" col="0" label="Playback" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_spd" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <SubGrid id="act_spd" row="0" col="0" rows="1" columns="4" gap="0" style="row">

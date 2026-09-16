@@ -202,46 +202,26 @@ void writeGrid(QXmlStreamWriter& xml, const PageGrid& grid)
     }
     attrInt(xml, QStringLiteral("gap"), grid.gapPx, 0);
     attrInt(xml, QStringLiteral("margin"), grid.marginPx, 0);
-    auto allStars = [](const QVector<PageTrackSize>& tracks) {
+    auto omitEqualStars = [](const QVector<PageTrackSize>& tracks, int count) {
+        if (tracks.isEmpty()) {
+            return true;
+        }
+        if (tracks.size() != count) {
+            return false;
+        }
         for (const PageTrackSize& t : tracks) {
-            if (!t.isStar()) {
+            if (!t.isUnitStar()) {
                 return false;
             }
         }
         return true;
     };
-    auto nontrivialStars = [&](const QVector<PageTrackSize>& tracks, int count) {
-        if (tracks.size() != count) {
-            return true;
-        }
-        for (const PageTrackSize& t : tracks) {
-            if (!qFuzzyCompare(t.star + 1.0, 2.0)) {
-                return true;
-            }
-        }
-        return false;
-    };
-    if (!grid.rowTracks.isEmpty()) {
-        if (allStars(grid.rowTracks)) {
-            if (nontrivialStars(grid.rowTracks, grid.rows)) {
-                QStringList parts;
-                parts.reserve(grid.rowTracks.size());
-                for (const PageTrackSize& t : grid.rowTracks) {
-                    parts.push_back(QString::number(t.star, 'g', 8));
-                }
-                xml.writeAttribute(QStringLiteral("rowWeights"), parts.join(QLatin1Char(',')));
-            }
-        } else {
-            xml.writeAttribute(QStringLiteral("rowHeights"),
-                               PageDimParse::tokenList(grid.rowTracks));
-        }
+    if (!omitEqualStars(grid.rowTracks, grid.rows)) {
+        xml.writeAttribute(QStringLiteral("rowHeights"), PageDimParse::tokenList(grid.rowTracks));
     }
-    if (!grid.columnTracks.isEmpty()) {
-        bool omit = allStars(grid.columnTracks) && !nontrivialStars(grid.columnTracks, grid.columns);
-        if (!omit) {
-            xml.writeAttribute(QStringLiteral("columnWidths"),
-                               PageDimParse::tokenList(grid.columnTracks));
-        }
+    if (!omitEqualStars(grid.columnTracks, grid.columns)) {
+        xml.writeAttribute(QStringLiteral("columnWidths"),
+                           PageDimParse::tokenList(grid.columnTracks));
     }
     attrBool(xml, QStringLiteral("drawerMotion"), grid.drawerMotion, false);
     attrBool(xml, QStringLiteral("autoClose"), grid.autoClose, false);

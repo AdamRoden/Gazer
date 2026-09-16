@@ -95,6 +95,7 @@ struct PageTrackSize {
     PageDim dim;
 
     [[nodiscard]] bool isStar() const { return kind == Kind::Star; }
+    [[nodiscard]] bool isUnitStar() const { return isStar() && qAbs(star - 1.0) < 1e-9; }
 
     [[nodiscard]] static PageTrackSize starWeight(double w = 1.0)
     {
@@ -450,7 +451,7 @@ struct PageGrid {
     int colSpan = 1;
     int gapPx = 0;
     int marginPx = 0;
-    /// Row sizes (`80,*,120`). Empty = all `*`. `rowWeights` in XML loads as stars.
+    /// Row sizes (`80,*,120`). Empty = all `*`.
     QVector<PageTrackSize> rowTracks;
     /// Column sizes (`200,*,*`). Empty = all `*`.
     QVector<PageTrackSize> columnTracks;
@@ -467,23 +468,6 @@ struct PageGrid {
     QVector<PageGrid> subGrids;
     QVector<PageCell> cells;
 };
-
-[[nodiscard]] inline QVector<double> parseRowWeights(QStringView csv)
-{
-    QVector<double> out;
-    for (QString part : csv.toString().split(QLatin1Char(','))) {
-        part = part.trimmed();
-        if (part.isEmpty()) {
-            continue;
-        }
-        bool ok = false;
-        const double n = part.toDouble(&ok);
-        if (ok && n > 0.0) {
-            out.push_back(n);
-        }
-    }
-    return out;
-}
 
 [[nodiscard]] inline QVector<PageTrackSize> starTracks(const QVector<double>& weights)
 {

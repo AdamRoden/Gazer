@@ -492,9 +492,6 @@ bool readGrid(QXmlStreamReader& xml, PageGrid& grid, bool nested, QString* error
         || !loadTracks(QStringLiteral("columnWidths"), grid.columnTracks)) {
         return false;
     }
-    if (grid.rowTracks.isEmpty() && a.hasAttribute(QStringLiteral("rowWeights"))) {
-        grid.rowTracks = starTracks(parseRowWeights(a.value(QStringLiteral("rowWeights"))));
-    }
     auto takeBool = [&](const QString& name, bool* dest) {
         if (!parseBoolAttr(a.value(name), false, dest, error, name)) {
             if (error && !error->isEmpty()) {

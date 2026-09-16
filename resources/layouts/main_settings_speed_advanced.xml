@@ -7,7 +7,7 @@
   <Style id="joinRight" background="transparent" thickness="0" radius="0,10,10,0"/>
   <Style id="tabbar" background="bg95" thickness="0" radius="12"/>
   <Grid id="board" desktopMode="true" rows="5" columns="16" anchor="Top" offset="0,0" size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" gap="6" margin="12" radius="16"
-  rowWeights="0.6,0.6,1.8,1.4,1.8">
+  rowHeights="0.6*,0.6*,1.8*,1.4*,1.8*">
     <SubGrid id="tabs" row="0" col="0" colSpan="16" rows="1" columns="9" gap="6" margin="4" style="tabbar">
       <Cell id="tab_speed" row="0" col="0" label="Speed" icon="timer" role="tab">
         <ClosePage/>
@@ -48,7 +48,7 @@
 
     <Cell id="page_title" row="1" col="0" colSpan="16" label="Advanced speed" caption="Scan grace, blink, pointer grace, foresight hold, and auto-close" role="label" textStyle="title" style="plain"/>
 
-    <SubGrid id="sec_grace" row="2" col="0" colSpan="16" rows="4" columns="1" rowWeights="1,2,2,2" gap="6" margin="6" style="group">
+    <SubGrid id="sec_grace" row="2" col="0" colSpan="16" rows="4" columns="1" rowHeights="*,2*,2*,2*" gap="6" margin="6" style="group">
       <Cell id="h_grace" row="0" col="0" label="Grace" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_grace" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="grace_label" row="0" col="0" label="Blink grace" caption="Blink without canceling dwell." role="label" style="plain"/>
@@ -79,7 +79,7 @@
       </SubGrid>
     </SubGrid>
 
-    <SubGrid id="sec_fs" row="3" col="0" colSpan="16" rows="3" columns="1" rowWeights="1,2,2" gap="6" margin="6" style="group">
+    <SubGrid id="sec_fs" row="3" col="0" colSpan="16" rows="3" columns="1" rowHeights="*,2*,2*" gap="6" margin="6" style="group">
       <Cell id="h_fs" row="0" col="0" label="Foresight" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_fsd" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="fsd_label" row="0" col="0" label="Foresight dwell" caption="Gaze this long to store a point." role="label" style="plain"/>
@@ -101,7 +101,7 @@
       </SubGrid>
     </SubGrid>
 
-    <SubGrid id="sec_session" row="4" col="0" colSpan="16" rows="3" columns="1" rowWeights="1,2,2" gap="6" margin="6" style="group">
+    <SubGrid id="sec_session" row="4" col="0" colSpan="16" rows="3" columns="1" rowHeights="*,2*,2*" gap="6" margin="6" style="group">
       <Cell id="h_session" row="0" col="0" label="Session" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_ac" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="ac_label" row="0" col="0" label="Auto-close boards" caption="Close idle boards that opted in." role="label" style="plain"/>
