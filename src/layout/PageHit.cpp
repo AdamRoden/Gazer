@@ -350,18 +350,13 @@ QPolygonF mapPoly(const QPolygonF& poly, bool drawerMotion, const QTransform& xf
 
 } // namespace
 
-QPolygonF gazeHitPolygon(const PageTarget& t, const QString& engagedId)
+QPolygonF accumulatePolygon(const PageTarget& t)
 {
     const QRectF dwell = t.geom.dwellZone;
     if (t.kind != PageTarget::Kind::Zone) {
         return rectPoly(dwell);
     }
-    const bool accumulate = !engagedId.isEmpty() && sessionKey(t) == engagedId;
-    if (!accumulate) {
-        return rectPoly(dwell);
-    }
-    const QRectF progress =
-        t.geom.visual.isEmpty() ? t.geom.progressZone : t.geom.visual;
+    const QRectF progress = t.geom.contentOnScreen();
     if (progress.isEmpty() || progress == dwell) {
         return rectPoly(dwell.isEmpty() ? progress : dwell);
     }
@@ -376,6 +371,13 @@ QPolygonF gazeHitPolygon(const PageTarget& t, const QString& engagedId)
     addRect(progress);
     QPolygonF hull = convexHull(pts);
     return hull.isEmpty() ? rectPoly(dwell.united(progress)) : hull;
+}
+
+QPolygonF gazeHitPolygon(const PageTarget& t, const QString& engagedId)
+{
+    const bool accumulate = t.kind == PageTarget::Kind::Zone && !engagedId.isEmpty()
+                            && sessionKey(t) == engagedId;
+    return accumulate ? accumulatePolygon(t) : rectPoly(t.geom.dwellZone);
 }
 
 QRectF gazeHitRect(const PageTarget& t, const QString& engagedId)

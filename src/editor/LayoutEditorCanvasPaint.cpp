@@ -9,6 +9,24 @@
 #include <QPen>
 
 namespace gazer {
+namespace {
+
+QColor zoneProgressBorder(const ThemeColors& theme, const PageTarget& t, const QColor& canvas)
+{
+    QColor c;
+    if (const std::optional<QColor> pc = theme.resolveToken(t.chrome.progressColor.token, canvas)) {
+        if (pc->isValid()) {
+            c = *pc;
+        }
+    }
+    if (!c.isValid()) {
+        c = theme.progress.isValid() ? theme.progress : ThemeColors::defaultProgressColor();
+    }
+    c.setAlpha(255);
+    return c;
+}
+
+} // namespace
 
 void LayoutEditorCanvas::paintPlacementPip(QPainter& p, const ScreenMap& m) const
 {
@@ -38,18 +56,8 @@ void LayoutEditorCanvas::paintMonitor(QPainter& p, const ScreenMap& m) const
     p.drawRoundedRect(m.glass, 6, 6);
 
     QLinearGradient desk(m.screen.topLeft(), m.screen.bottomLeft());
-    QColor top = m_theme.defaultHover();
-    QColor bot = m_theme.bgMain;
-    if (dark) {
-        top = top.lighter(130);
-    } else {
-        top = QColor(
-            qMin(255, top.red() + (m_theme.accent.red() - top.red()) / 14),
-            qMin(255, top.green() + (m_theme.accent.green() - top.green()) / 14),
-            qMin(255, top.blue() + (m_theme.accent.blue() - top.blue()) / 14));
-    }
-    desk.setColorAt(0, top);
-    desk.setColorAt(1, bot);
+    desk.setColorAt(0, m_theme.bgAt(90));
+    desk.setColorAt(1, m_theme.bgAt(95));
     p.setBrush(desk);
     p.drawRect(m.screen);
     paintTaskbar(p, m);
@@ -70,9 +78,7 @@ void LayoutEditorCanvas::paintTaskbar(QPainter& p, const ScreenMap& m) const
             continue;
         }
         p.setPen(Qt::NoPen);
-        QColor barFill = m_theme.defaultCell();
-        barFill.setAlpha(230);
-        p.setBrush(barFill);
+        p.setBrush(m_theme.bgAt(80));
         p.drawRect(bar);
 
         const bool horizontal = bar.width() >= bar.height();
@@ -116,6 +122,25 @@ void LayoutEditorCanvas::paintTaskbar(QPainter& p, const ScreenMap& m) const
 
 void LayoutEditorCanvas::paintBoard(QPainter& p, const ScreenMap& m) const
 {
+    const QColor canvas = m_theme.pageCanvas(m_session.document().style.background.token);
+
+    // Dwell wash in widget space, before chrome, so chips cover the overlap.
+    for (const PageTarget& t : m.targets) {
+        if (t.kind != PageTarget::Kind::Zone) {
+            continue;
+        }
+        const QRectF progress = toCanvas(targetRect(t), m);
+        const QRectF dwell = toCanvas(t.geom.dwellZone, m);
+        if (dwell.isEmpty() || dwell == progress) {
+            continue;
+        }
+        QColor fill = zoneProgressBorder(m_theme, t, canvas);
+        fill.setAlpha(36);
+        p.setPen(Qt::NoPen);
+        p.setBrush(fill);
+        p.drawRect(dwell);
+    }
+
     p.save();
     p.setRenderHint(QPainter::Antialiasing, true);
     p.setClipRect(m.screen.intersected(QRectF(rect())));
@@ -155,43 +180,17 @@ void LayoutEditorCanvas::paintBoard(QPainter& p, const ScreenMap& m) const
             p.drawRoundedRect(g.visual.adjusted(0.5, 0.5, -0.5, -0.5), 6, 6);
         }
     }
-    const QColor canvas = m_theme.pageCanvas(m_session.document().style.background.token);
     for (const PageGridPaint& g : m.grids) {
         BoardPaint::paintSurface(p, g.visual, g.chrome, m_theme, nullptr, true, false, false,
                                  false, canvas);
     }
     for (const PageTarget& t : m.targets) {
-        const bool hovered = t.id == m_hoverId;
-        const bool selected = m_session.isItemSelected(t.id);
-        if (t.kind == PageTarget::Kind::Zone) {
-            const QRectF dwell = t.geom.dwellZone;
-            const QRectF progress = t.geom.visual.isEmpty() ? t.geom.progressZone : t.geom.visual;
-            if (!dwell.isEmpty() && dwell != progress) {
-                QColor fill = m_theme.accent;
-                fill.setAlpha(28);
-                p.setBrush(fill);
-                QPen dash(m_theme.accent, 1, Qt::DashLine);
-                dash.setCosmetic(true);
-                p.setPen(dash);
-                p.drawRect(dwell);
-                const QPolygonF hull = PageHit::gazeHitPolygon(t, sessionKey(t));
-                if (hull.size() >= 3) {
-                    p.setBrush(Qt::NoBrush);
-                    QColor gap = m_theme.accent;
-                    gap.setAlpha(90);
-                    QPen dots(gap, 1, Qt::DotLine);
-                    dots.setCosmetic(true);
-                    p.setPen(dots);
-                    p.drawPolygon(hull);
-                }
-            }
-            if (!progress.isEmpty()) {
-                BoardPaint::paintTarget(p, t, progress, m_theme, canvas, nullptr, hovered,
-                                        hovered ? m_testProgress : 0.0, false, selected, {});
-            }
+        const QRectF r = targetRect(t);
+        if (r.isEmpty()) {
             continue;
         }
-        const QRectF r = targetRect(t);
+        const bool hovered = t.id == m_hoverId;
+        const bool selected = m_session.isItemSelected(t.id);
         BoardPaint::paintTarget(p, t, r, m_theme, canvas, nullptr, hovered,
                                 hovered ? m_testProgress : 0.0, false, selected, {});
     }
@@ -207,31 +206,38 @@ void LayoutEditorCanvas::paintBoard(QPainter& p, const ScreenMap& m) const
     for (const PageTarget& t : m.targets) {
         const bool hovered = t.id == m_hoverId;
         const bool selected = m_session.isItemSelected(t.id);
+        const QRectF chrome = toCanvas(targetRect(t), m);
         if (t.kind == PageTarget::Kind::Zone) {
-            const QRectF progress =
-                toCanvas(t.geom.visual.isEmpty() ? t.geom.progressZone : t.geom.visual, m);
             const QRectF dwell = toCanvas(t.geom.dwellZone, m);
-            if (hovered && !selected && !progress.isEmpty()) {
-                hoverRing(progress);
+            if (!dwell.isEmpty() && dwell != chrome) {
+                const QColor border = zoneProgressBorder(m_theme, t, canvas);
+                p.setBrush(Qt::NoBrush);
+                const QPolygonF virtHull = PageHit::accumulatePolygon(t);
+                if (virtHull.size() >= 3) {
+                    QPolygonF hull;
+                    hull.reserve(virtHull.size());
+                    for (const QPointF& pt : virtHull) {
+                        hull << m.fromVirt(pt);
+                    }
+                    p.setPen(QPen(border, 1.2, Qt::DotLine));
+                    p.drawPolygon(hull);
+                }
+                p.setPen(QPen(border, selected ? 2.2 : 1.6));
+                p.drawRect(dwell);
             }
-            if (selected) {
-                if (!progress.isEmpty()) {
-                    paintSelectionOverlay(p, progress, true);
-                }
-                if (!dwell.isEmpty() && dwell != progress) {
-                    p.setBrush(Qt::NoBrush);
-                    p.setPen(QPen(m_theme.accent, 2, Qt::DashLine));
-                    p.drawRect(dwell.adjusted(1, 1, -1, -1));
-                }
+            if (hovered && !selected && !chrome.isEmpty()) {
+                hoverRing(chrome);
+            }
+            if (selected && !chrome.isEmpty()) {
+                paintSelectionOverlay(p, chrome, true);
             }
             continue;
         }
-        const QRectF r = toCanvas(targetRect(t), m);
         if (hovered && !selected) {
-            hoverRing(r);
+            hoverRing(chrome);
         }
         if (selected) {
-            paintSelectionOverlay(p, r, true);
+            paintSelectionOverlay(p, chrome, true);
         }
     }
 }

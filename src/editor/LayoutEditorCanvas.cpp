@@ -302,7 +302,8 @@ void LayoutEditorCanvas::paintEvent(QPaintEvent*)
 {
     ensureCamera();
     QPainter p(this);
-    p.fillRect(rect(), m_theme.bgMain);
+    // Studio fill sits off bgMain so the monitor illustration reads as an object.
+    p.fillRect(rect(), m_theme.bgAt(90));
     const ScreenMap m = map();
     paintMonitor(p, m);
     paintBoard(p, m);

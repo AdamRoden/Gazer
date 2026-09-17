@@ -183,10 +183,11 @@ namespace PageHit {
 [[nodiscard]] bool shapeContains(const QRectF& r, const PageChrome& chrome,
                                  const QPointF& pos);
 
-/// Scan: dwell AABB. After scan grace (`engagedId` matches): dwell ∪ unrounded
-/// progress ∪ the straight-line gap joining closest corners.
+/// Scan: dwell AABB. After scan grace (`engagedId` matches): `accumulatePolygon`.
 [[nodiscard]] QPolygonF gazeHitPolygon(const PageTarget& t, const QString& engagedId = {});
 [[nodiscard]] QRectF gazeHitRect(const PageTarget& t, const QString& engagedId = {});
+/// Convex hull of dwell ∪ progress (zones). Cells are the dwell rect.
+[[nodiscard]] QPolygonF accumulatePolygon(const PageTarget& t);
 
 } // namespace PageHit
 } // namespace gazer

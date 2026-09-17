@@ -55,6 +55,7 @@ private slots:
     void frontPageGridOccludesBackPage();
     void visibleCellRemainderHits();
     void engagedHullDoesNotPierceCover();
+    void accumulatePolygonIsEngagedHull();
 };
 
 void PageHitTest::roundedBoxFitsSemicircle()
@@ -777,6 +778,17 @@ void PageHitTest::engagedHullDoesNotPierceCover()
                                                                       Qt::WindingFill));
     QCOMPARE(PageHit::at(layer, QPointF(100, 40), 1.0, engaged, grids)->id, QStringLiteral("row"));
     QCOMPARE(PageHit::at(layer, QPointF(20, 40), 1.0, engaged, grids)->id, QStringLiteral("more"));
+}
+
+void PageHitTest::accumulatePolygonIsEngagedHull()
+{
+    PageTarget z = hitCell(false, PageTarget::Kind::Zone, QStringLiteral("more"),
+                           QStringLiteral("kb"));
+    z.geom.dwellZone = QRectF(0, 0, 80, 80);
+    z.geom.progressZone = QRectF(0, 0, 120, 80);
+    z.geom.visual = z.geom.progressZone;
+    QCOMPARE(PageHit::accumulatePolygon(z), PageHit::gazeHitPolygon(z, sessionKey(z)));
+    QVERIFY(PageHit::accumulatePolygon(z).containsPoint(QPointF(100, 40), Qt::WindingFill));
 }
 
 QObject* createPageHitTest()
