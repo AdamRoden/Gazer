@@ -18,7 +18,7 @@ bool AssistSession::freesScreenForAim() const
 
 bool AssistSession::pausesGazeFollow() const
 {
-    return freesScreenForAim() || m_mode == Mode::ComboMouse;
+    return freesScreenForAim() || overlayHasGazePriority();
 }
 
 bool AssistSession::overlayHasGazePriority() const

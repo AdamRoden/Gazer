@@ -27,7 +27,7 @@ public:
 
     /// Full-screen aim: leave boards, free dock, pause background assist (LTS/follow).
     [[nodiscard]] bool freesScreenForAim() const;
-    /// Pause gaze→mouse follow (aim modes plus ComboMouse while the wheel is up).
+    /// Pause gaze→mouse follow while aiming or an assist overlay owns the cursor.
     [[nodiscard]] bool pausesGazeFollow() const;
     /// ComboMouse wheel, mag-pick window, or LTS pie owns the sample; boards must not dwell it.
     [[nodiscard]] bool overlayHasGazePriority() const;
