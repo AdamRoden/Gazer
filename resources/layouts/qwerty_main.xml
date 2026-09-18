@@ -11,7 +11,7 @@
     <SubGrid id="keyboard" row="3" col="0" layers="2">
       <Cell id="keyboard" row="0" col="0" icon="keyboardKeys" dwell="vert1" showLayers="1"/>
     </SubGrid>
-    <Cell id="sleep" row="4" col="0" icon="Sleep" dwell="vert1" activeState="dwellSuspend" command="toggleDwellSuspend"/>
+    <Cell id="comboMouse" row="4" col="0" icon="comboMouse" dwell="vert1" activeState="comboMouse" command="toggleComboMouse"/>
     <Cell id="lts" row="5" col="0" icon="lookToScroll" dwell="vert1" activeState="lookToScroll" command="toggleLookToScroll"/>
   </Grid>
   <Grid id="vert2" desktopMode="true" rows="2" columns="1" anchor="TopRight" offset="0,0.72" size="1/16,0.28" layers="2">
