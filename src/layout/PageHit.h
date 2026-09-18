@@ -100,7 +100,8 @@ namespace PageHit {
                                           bool dwellSuspended = false,
                                           QVector<PageGridPaint>* grids = nullptr,
                                           bool includeDrawerMotion = false,
-                                          const std::optional<QVector<int>>& shownLayers = std::nullopt);
+                                          const std::optional<QVector<int>>& shownLayers = std::nullopt,
+                                          const QHash<QString, const PageDocument*>* fragments = nullptr);
 
 /// Topmost painted grid whose visual AABB contains pos (corners occlude even
 /// when chrome is rounded). Null if none.

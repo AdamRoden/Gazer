@@ -2,6 +2,7 @@
 
 #include <QHash>
 #include <QObject>
+#include <QSet>
 #include <QString>
 #include <QStringList>
 
@@ -28,6 +29,9 @@ public:
     [[nodiscard]] int scan();
     [[nodiscard]] bool has(const QString& id) const;
     [[nodiscard]] QStringList ids() const;
+    /// Pages another layout loads via `src` or HostPage. Not shown in Open catalog.
+    [[nodiscard]] bool isInlined(const QString& id) const { return m_inlined.contains(id); }
+    [[nodiscard]] const QSet<QString>& inlinedIds() const { return m_inlined; }
     [[nodiscard]] QString nameFor(const QString& id) const;
     /// User file if it exists, else shipped. Does not require scan().
     [[nodiscard]] QString pathFor(const QString& id) const;
@@ -39,6 +43,7 @@ private:
     QString m_dir;
     QString m_userDir;
     QHash<QString, PageCatalogEntry> m_pages;
+    QSet<QString> m_inlined;
 };
 
 } // namespace gazer

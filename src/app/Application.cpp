@@ -357,7 +357,7 @@ void Application::updateHeadPosePaint()
     if (!host) {
         return;
     }
-    const bool show = pages.hasPage(QStringLiteral("main_settings_head_pose"))
+    const bool show = pages.showsPage(QStringLiteral("main_settings_head_pose"))
                       || pages.topPageId() == QLatin1String("headpose_map_live");
     if (!show) {
         return;

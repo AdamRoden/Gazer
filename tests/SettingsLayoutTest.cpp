@@ -1,12 +1,15 @@
+#include "layout/PageCompose.h"
 #include "layout/PageDim.h"
 #include "layout/PageEdit.h"
 #include "layout/PageHit.h"
 #include "layout/PageLoader.h"
 
 #include <QFile>
+#include <QHash>
 #include <QSet>
 #include <QStringList>
 #include <QtTest>
+#include <optional>
 
 using namespace gazer;
 
@@ -55,6 +58,7 @@ private slots:
     void moreOpensAdvanced();
     void advancedHasHoldAndAutoclose();
     void assistHasSplashToggle();
+    void hostInlinesSpeedBody();
 };
 
 void SettingsLayoutTest::pagesAnchorTop()
@@ -81,7 +85,7 @@ void SettingsLayoutTest::pagesAnchorTop()
         QVERIFY(doc.styles.contains(QStringLiteral("plain")));
         QVERIFY(doc.styles.contains(QStringLiteral("join")));
         QVERIFY(doc.styles.contains(QStringLiteral("group")));
-        QVERIFY(doc.styles.contains(QStringLiteral("tabbar")));
+        QVERIFY(!doc.findGrid(QStringLiteral("tabs")));
         QCOMPARE(doc.styles.value(QStringLiteral("group")).resolvedRadius().first(), 16.0);
         QCOMPARE(doc.styles.value(QStringLiteral("row")).resolvedThickness().first(), 0.0);
     }
@@ -91,8 +95,10 @@ void SettingsLayoutTest::tabsEqualWidth()
 {
     PageDocument doc;
     QString err;
-    QVERIFY2(loadLayout(QStringLiteral("main_settings_speed"), doc, &err), qPrintable(err));
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_host"), doc, &err), qPrintable(err));
     const PageGrid* tabs = doc.findGrid(QStringLiteral("tabs"));
+    QVERIFY(doc.findGrid(QStringLiteral("body")));
+    QCOMPARE(doc.findGrid(QStringLiteral("body"))->src, QStringLiteral("main_settings_speed"));
     QVERIFY(tabs);
     QCOMPARE(tabs->columns, 9);
     QCOMPARE(tabs->cells.size(), 9);
@@ -251,8 +257,9 @@ void SettingsLayoutTest::hubOpensEightBoards()
     for (const PageGrid& g : doc.grids) {
         for (const PageCell& c : g.cells) {
             for (const PageAction& a : c.actions) {
-                if (a.type == PageActionType::Nav && a.verb == PageVerb::Open) {
+                if (a.type == PageActionType::HostPage) {
                     opened.insert(a.targetId);
+                    QCOMPARE(a.hostId, QStringLiteral("main_settings_host"));
                 }
             }
         }
@@ -267,7 +274,10 @@ void SettingsLayoutTest::hubOpensEightBoards()
              QStringLiteral("speechSpeed"));
     QCOMPARE(speech.findCell(QStringLiteral("volume_value"))->settingKey,
              QStringLiteral("speechVolume"));
-    QVERIFY(speech.findCell(QStringLiteral("tab_speech")));
+    QVERIFY(!speech.findCell(QStringLiteral("tab_speech")));
+    PageDocument host;
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_host"), host, &err), qPrintable(err));
+    QVERIFY(host.findCell(QStringLiteral("tab_speech")));
     PageDocument head;
     QVERIFY2(loadLayout(QStringLiteral("main_settings_head_pose"), head, &err), qPrintable(err));
     QVERIFY(head.findCell(QStringLiteral("head_preview")));
@@ -516,9 +526,10 @@ void SettingsLayoutTest::moreOpensAdvanced()
     QVERIFY(more->isInteractive());
     bool opens = false;
     for (const PageAction& a : more->actions) {
-        if (a.type == PageActionType::Nav && a.verb == PageVerb::Open
+        if (a.type == PageActionType::HostPage
             && a.targetId == QLatin1String("main_settings_speed_advanced")) {
             opens = true;
+            QVERIFY(a.hostId.isEmpty());
         }
     }
     QVERIFY(opens);
@@ -540,11 +551,11 @@ void SettingsLayoutTest::advancedHasHoldAndAutoclose()
     QVERIFY(!doc.findCell(QStringLiteral("fl_custom")));
     const PageGrid* board = doc.findGrid(QStringLiteral("board"));
     QVERIFY(board);
-    QCOMPARE(board->rows, 5);
+    QCOMPARE(board->rows, 4);
     const PageGrid* session = doc.findGrid(QStringLiteral("sec_session"));
     QVERIFY(session);
     QCOMPARE(session->rows, 3);
-    QCOMPARE(session->row, 4);
+    QCOMPARE(session->row, 3);
     QCOMPARE(session->rowSpan, 1);
     QCOMPARE(doc.findCell(QStringLiteral("grace_val"))->settingKey, QStringLiteral("dwellGraceMs"));
     QCOMPARE(doc.findCell(QStringLiteral("scan_val"))->settingKey, QStringLiteral("scanGraceMs"));
@@ -553,14 +564,10 @@ void SettingsLayoutTest::advancedHasHoldAndAutoclose()
     const PageGrid* grace = doc.findGrid(QStringLiteral("sec_grace"));
     QVERIFY(grace);
     QCOMPARE(grace->rows, 4);
-    QCOMPARE(grace->row, 2);
+    QCOMPARE(grace->row, 1);
     QCOMPARE(grace->rowSpan, 1);
-    QCOMPARE(doc.findGrid(QStringLiteral("sec_fs"))->row, 3);
-    const PageGrid* tabs = doc.findGrid(QStringLiteral("tabs"));
-    QVERIFY(tabs);
-    QCOMPARE(tabs->columns, 9);
-    QVERIFY(doc.findCell(QStringLiteral("tab_speech")));
-    QVERIFY(doc.findCell(QStringLiteral("tab_head")));
+    QCOMPARE(doc.findGrid(QStringLiteral("sec_fs"))->row, 2);
+    QVERIFY(!doc.findGrid(QStringLiteral("tabs")));
 }
 
 void SettingsLayoutTest::assistHasSplashToggle()
@@ -570,12 +577,12 @@ void SettingsLayoutTest::assistHasSplashToggle()
     QVERIFY2(loadLayout(QStringLiteral("main_settings_assist"), doc, &err), qPrintable(err));
     const PageGrid* board = doc.findGrid(QStringLiteral("board"));
     QVERIFY(board);
-    QCOMPARE(board->rows, 11);
+    QCOMPARE(board->rows, 10);
     const PageGrid* help = doc.findGrid(QStringLiteral("sec_help"));
     QVERIFY(help);
     QCOMPARE(help->rows, 4);
     QCOMPARE(help->rowSpan, 4);
-    QCOMPARE(doc.findGrid(QStringLiteral("sec_lens"))->row, 8);
+    QCOMPARE(doc.findGrid(QStringLiteral("sec_lens"))->row, 7);
     const PageCell* on = doc.findCell(QStringLiteral("splash_on"));
     const PageCell* play = doc.findCell(QStringLiteral("splash_play"));
     QVERIFY(on);
@@ -585,6 +592,45 @@ void SettingsLayoutTest::assistHasSplashToggle()
     QCOMPARE(on->actions[0].command, QStringLiteral("settings.session.showSplash.toggle"));
     QCOMPARE(play->actions[0].command, QStringLiteral("settings.session.showSplash.play"));
     QVERIFY(play->isInteractive());
+}
+
+void SettingsLayoutTest::hostInlinesSpeedBody()
+{
+    PageDocument host;
+    PageDocument speed;
+    QString err;
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_host"), host, &err), qPrintable(err));
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_speed"), speed, &err), qPrintable(err));
+    QHash<QString, PageDocument> hosted;
+    hosted.insert(speed.id, speed);
+    const auto ptrs = PageCompose::pointers(hosted);
+    PageFrame frame;
+    frame.screen = QRectF(0, 0, 1920, 1080);
+    frame.desktop = frame.screen;
+    QVector<PageGridPaint> grids;
+    const QVector<PageTarget> t =
+        PageHit::collect(host, frame, {}, false, &grids, false, std::nullopt, &ptrs);
+    const PageTarget* tab = targetById(t, QStringLiteral("tab_speed"));
+    const PageTarget* tabMag = targetById(t, QStringLiteral("tab_magnify"));
+    const PageTarget* dwell = targetById(t, QStringLiteral("dwell_edit"));
+    const PageTarget* more = targetById(t, QStringLiteral("open_advanced"));
+    QVERIFY(tab);
+    QVERIFY(tabMag);
+    QVERIFY(dwell);
+    QVERIFY(more);
+    QCOMPARE(tab->pageId, QStringLiteral("main_settings_host"));
+    QVERIFY(!tab->interactive);
+    QVERIFY(tabMag->interactive);
+    QCOMPARE(dwell->pageId, QStringLiteral("main_settings_speed"));
+    QVERIFY(dwell->interactive);
+    QCOMPARE(more->pageId, QStringLiteral("main_settings_speed"));
+    QVERIFY(tab->geom.visual.center().y() < dwell->geom.visual.center().y());
+    const PageTarget* hitTab = PageHit::at(t, tabMag->geom.visual.center(), 1.0, {}, grids);
+    QVERIFY(hitTab);
+    QCOMPARE(hitTab->id, QStringLiteral("tab_magnify"));
+    const PageTarget* hitBody = PageHit::at(t, dwell->geom.visual.center(), 1.0, {}, grids);
+    QVERIFY(hitBody);
+    QCOMPARE(hitBody->id, QStringLiteral("dwell_edit"));
 }
 
 QObject* createSettingsLayoutTest()

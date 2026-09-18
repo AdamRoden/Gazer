@@ -106,14 +106,14 @@ void PageHitLiveTest::engagedZoneIncludesProgress()
     const QPointF onStrip = chip->geom.progressZone.center();
     QVERIFY(!chip->geom.dwellZone.contains(onStrip));
     QVERIFY(PageHit::at(t, onStrip) == nullptr);
-    const PageTarget* held = PageHit::at(t, onStrip, 1.0, chip->id);
+    const PageTarget* held = PageHit::at(t, onStrip, 1.0, sessionKey(*chip));
     QVERIFY(held);
     QCOMPARE(held->id, chip->id);
     const QPointF gap(onStrip.x(), (chip->geom.visual.bottom() + chip->geom.dwellZone.top()) / 2.0);
     QVERIFY(!chip->geom.dwellZone.contains(gap));
     QVERIFY(!chip->geom.visual.contains(gap));
     QVERIFY(PageHit::at(t, gap) == nullptr);
-    QVERIFY(PageHit::at(t, gap, 1.0, chip->id) == chip);
+    QVERIFY(PageHit::at(t, gap, 1.0, sessionKey(*chip)) == chip);
 }
 
 void PageHitLiveTest::hitDrawerCell()
@@ -309,9 +309,9 @@ void PageHitLiveTest::edgeChipGazeHitsOnScreenChrome()
     QVERIFY(scan.contains(chip->geom.dwellZone.center()));
     QVERIFY(!scan.contains(chip->geom.progressZone.center()));
     QVERIFY(PageHit::at(t, chip->geom.progressZone.center()) == nullptr);
-    const QRectF acc = PageHit::gazeHitRect(*chip, chip->id);
+    const QRectF acc = PageHit::gazeHitRect(*chip, sessionKey(*chip));
     QVERIFY(acc.contains(chip->geom.progressZone.center()));
-    QVERIFY(PageHit::at(t, chip->geom.progressZone.center(), 1.0, chip->id) == chip);
+    QVERIFY(PageHit::at(t, chip->geom.progressZone.center(), 1.0, sessionKey(*chip)) == chip);
 }
 
 void PageHitLiveTest::liveEditorGridHasOpaqueChrome()

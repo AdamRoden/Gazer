@@ -13,7 +13,9 @@
 #include <QAction>
 #include <QCloseEvent>
 #include <QComboBox>
+#include <QDir>
 #include <QFileInfo>
+#include <QStringList>
 #include <QGuiApplication>
 #include <QKeySequence>
 #include <QLabel>
@@ -79,12 +81,32 @@ LayoutEditorWindow::~LayoutEditorWindow() = default;
 void LayoutEditorWindow::setLayoutsDirectory(const QString& dir)
 {
     m_layoutsDir = dir;
+    syncCanvasLayoutDirs();
 }
 
 void LayoutEditorWindow::setUserLayoutsDirectory(const QString& dir)
 {
     m_userDir = dir;
     QDir().mkpath(dir);
+    syncCanvasLayoutDirs();
+}
+
+void LayoutEditorWindow::syncCanvasLayoutDirs()
+{
+    if (!m_canvas) {
+        return;
+    }
+    QStringList dirs;
+    if (!m_session->filePath().isEmpty()) {
+        dirs.push_back(QFileInfo(m_session->filePath()).absolutePath());
+    }
+    if (!m_userDir.isEmpty()) {
+        dirs.push_back(m_userDir);
+    }
+    if (!m_layoutsDir.isEmpty()) {
+        dirs.push_back(m_layoutsDir);
+    }
+    m_canvas->setLayoutSearchDirs(dirs);
 }
 
 void LayoutEditorWindow::syncActionCatalog()
@@ -733,6 +755,7 @@ void LayoutEditorWindow::selectIssue(const EditorIssue& issue)
 
 void LayoutEditorWindow::frameLoadedPage()
 {
+    syncCanvasLayoutDirs();
     if (m_canvas) {
         m_canvas->fitGrid();
         updateZoomLabel();

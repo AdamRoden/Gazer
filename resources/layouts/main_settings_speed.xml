@@ -5,47 +5,11 @@
   <Style id="join" background="transparent" thickness="0" radius="0"/>
   <Style id="joinLeft" background="transparent" thickness="0" radius="10,0,0,10"/>
   <Style id="joinRight" background="transparent" thickness="0" radius="0,10,10,0"/>
-  <Style id="tabbar" background="bg95" thickness="0" radius="12"/>
-  <Grid id="board" desktopMode="true" rows="6" columns="16" anchor="Top" offset="0,0" size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" gap="6" margin="12" radius="16"
-  rowHeights="0.6*,0.6*,1.4*,1.4*,1.4*,0.6*">
-    <SubGrid id="tabs" row="0" col="0" colSpan="16" rows="1" columns="9" gap="6" margin="4" style="tabbar">
-      <Cell id="tab_speed" row="0" col="0" label="Speed" icon="timer" role="tab"/>
-      <Cell id="tab_magnify" row="0" col="1" label="Magnify" icon="ZoomSettings" role="tab">
-        <ClosePage/>
-        <OpenPage value="main_settings_magnify"/>
-      </Cell>
-      <Cell id="tab_indicators" row="0" col="2" label="Indicators" icon="cycle" role="tab">
-        <ClosePage/>
-        <OpenPage value="main_settings_indicators"/>
-      </Cell>
-      <Cell id="tab_assist" row="0" col="3" label="Assist" icon="ideas" role="tab">
-        <ClosePage/>
-        <OpenPage value="main_settings_assist"/>
-      </Cell>
-      <Cell id="tab_tools" row="0" col="4" label="Tools" icon="lookToScroll" role="tab">
-        <ClosePage/>
-        <OpenPage value="main_settings_tools"/>
-      </Cell>
-      <Cell id="tab_theme" row="0" col="5" label="Theme" icon="palette" role="tab">
-        <ClosePage/>
-        <OpenPage value="main_settings_theme"/>
-      </Cell>
-      <Cell id="tab_speech" row="0" col="6" label="Speech" icon="Speak" role="tab">
-        <ClosePage/>
-        <OpenPage value="main_settings_speech"/>
-      </Cell>
-      <Cell id="tab_head" row="0" col="7" label="Head" icon="HeadPreview" role="tab">
-        <ClosePage/>
-        <OpenPage value="main_settings_head_pose"/>
-      </Cell>
-      <Cell id="tab_done" row="0" col="8" label="Done" icon="keyboardHide">
-        <CloseAllPages/>
-      </Cell>
-    </SubGrid>
+  <Grid id="board" desktopMode="true" rows="5" columns="16" anchor="Top" offset="0,0" size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" gap="6" margin="12" radius="16"
+  rowHeights="0.6*,1.4*,1.4*,1.4*,0.6*">
+    <Cell id="page_title" row="0" col="0" colSpan="16" label="Speed" caption="Standard for settings, navigation, mouse, and AHK; rapid for keys" role="label" textStyle="title" style="plain"/>
 
-    <Cell id="page_title" row="1" col="0" colSpan="16" label="Speed" caption="Standard for settings, navigation, mouse, and AHK; rapid for keys" role="label" textStyle="title" style="plain"/>
-
-    <SubGrid id="sec_presets" row="2" col="0" colSpan="16" rows="3" columns="1" rowHeights="*,2*,2*" gap="6" margin="6" style="group">
+    <SubGrid id="sec_presets" row="1" col="0" colSpan="16" rows="3" columns="1" rowHeights="*,2*,2*" gap="6" margin="6" style="group">
       <Cell id="h_presets" row="0" col="0" label="Presets" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_preset" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="p_label" row="0" col="0" label="Quick packages" caption="Slow, Normal, Fast, or Custom." role="label" style="plain"/>
@@ -65,7 +29,7 @@
       </SubGrid>
     </SubGrid>
 
-    <SubGrid id="sec_dwell" row="3" col="0" colSpan="16" rows="3" columns="1" rowHeights="*,2*,2*" gap="6" margin="6" style="group">
+    <SubGrid id="sec_dwell" row="2" col="0" colSpan="16" rows="3" columns="1" rowHeights="*,2*,2*" gap="6" margin="6" style="group">
       <Cell id="h_dwell" row="0" col="0" label="Dwell" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_dwell" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="dwell_label" row="0" col="0" label="Standard" caption="Settings, navigation, mouse, AHK, and composer word chips. Last step repeats." role="label" style="plain"/>
@@ -83,7 +47,7 @@
       </SubGrid>
     </SubGrid>
 
-    <SubGrid id="sec_pointer" row="4" col="0" colSpan="16" rows="3" columns="1" rowHeights="*,2*,2*" gap="6" margin="6" style="group">
+    <SubGrid id="sec_pointer" row="3" col="0" colSpan="16" rows="3" columns="1" rowHeights="*,2*,2*" gap="6" margin="6" style="group">
       <Cell id="h_pointer" row="0" col="0" label="Pointer" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_zd" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="zd_label" row="0" col="0" label="Zoom dwell" caption="Dwell to choose the zoom region." role="label" style="plain"/>
@@ -105,9 +69,6 @@
       </SubGrid>
     </SubGrid>
 
-    <Cell id="open_advanced" row="5" col="0" colSpan="16" label="More…" caption="Scan grace, blink grace, pointer grace, foresight hold, auto-close." icon="moreHoriz">
-      <ClosePage/>
-      <OpenPage value="main_settings_speed_advanced"/>
-    </Cell>
+    <Cell id="open_advanced" row="4" col="0" colSpan="16" label="More…" caption="Scan grace, blink grace, pointer grace, foresight hold, auto-close." icon="moreHoriz" hostPage="main_settings_speed_advanced"/>
   </Grid>
 </Page>

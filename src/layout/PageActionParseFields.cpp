@@ -333,6 +333,19 @@ bool parseNavValue(const QString& value, PageAction& out, QString* error)
     return noExtra(parts, 2, error);
 }
 
+bool parseHostPageValue(const QString& value, PageAction& out, QString* error)
+{
+    const QStringList parts = splitCsv(value);
+    if (parts.size() >= 2) {
+        out.hostId = parts[0];
+        out.targetId = parts[1];
+        return noExtra(parts, 2, error);
+    }
+    out.hostId.clear();
+    out.targetId = parts.isEmpty() ? QString() : parts[0];
+    return noExtra(parts, 1, error);
+}
+
 bool parseLayersValue(const QString& value, PageAction& out, QString* error)
 {
     const QString t = value.trimmed();

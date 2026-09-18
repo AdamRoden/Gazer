@@ -10,6 +10,7 @@
 #include <QRect>
 #include <QRectF>
 #include <QString>
+#include <QStringList>
 #include <QVector>
 #include <QWidget>
 
@@ -23,6 +24,7 @@ public:
     explicit LayoutEditorCanvas(LayoutEditorSession& session, QWidget* parent = nullptr);
 
     void setTheme(const ThemeColors& theme);
+    void setLayoutSearchDirs(const QStringList& dirs);
     void setShowGrid(bool on);
     /// 0 = page showLayers. Otherwise only that layer.
     void setLayerFilter(int layer);
@@ -123,6 +125,7 @@ private:
     void ensureCamera();
 
     LayoutEditorSession& m_session;
+    QStringList m_layoutSearchDirs;
     ThemeColors m_theme = ThemeColors::darkPreset();
     bool m_showGrid = true;
     int m_layerFilter = 0;

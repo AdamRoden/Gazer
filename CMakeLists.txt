@@ -74,6 +74,7 @@ set(GAZER_SOURCES
     src/layout/PageResolve.cpp
     src/layout/PageDetector.cpp
     src/layout/PageHit.cpp
+    src/layout/PageCompose.cpp
     src/layout/PageSession.cpp
     src/layout/PageSessionAttach.cpp
     src/layout/PageSessionNav.cpp
@@ -348,6 +349,8 @@ if(WIN32)
 endif()
 
 add_custom_command(TARGET Gazer POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E rm -rf
+        "$<TARGET_FILE_DIR:Gazer>/resources/layouts"
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_SOURCE_DIR}/resources"
         "$<TARGET_FILE_DIR:Gazer>/resources"
@@ -416,6 +419,7 @@ set(GAZER_PAGE_TEST_LIB
     src/layout/PageResolve.cpp
     src/layout/PageDetector.cpp
     src/layout/PageHit.cpp
+    src/layout/PageCompose.cpp
     src/layout/PageWriter.cpp
     src/layout/PageEdit.cpp
     src/layout/PageCatalog.cpp
@@ -429,6 +433,7 @@ add_executable(GazerPageTests
     tests/PageNavTest.cpp
     tests/PageHitTest.cpp
     tests/PageHitLiveTest.cpp
+    tests/PageComposeTest.cpp
     tests/SettingsLayoutTest.cpp
     tests/AppSettingsTest.cpp
     tests/MaterialPaletteTest.cpp

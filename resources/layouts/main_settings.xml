@@ -5,21 +5,21 @@
         rowHeights="*,2*,2*,2*">
     <Cell id="page_title" row="0" col="0" colSpan="3" label="Settings" role="label" textStyle="title" style="plain"/>
     <Cell id="open_speed" row="1" col="0" label="Speed" caption="Presets, dwell, and pointer time"
-          icon="timer" openPage="main_settings_speed"/>
+          icon="timer" hostPage="main_settings_host, main_settings_speed"/>
     <Cell id="open_magnify" row="1" col="1" label="Magnify" caption="Magnify pick, foresight, and zoom window"
-          icon="ZoomSettings" openPage="main_settings_magnify"/>
+          icon="ZoomSettings" hostPage="main_settings_host, main_settings_magnify"/>
     <Cell id="open_indicators" row="1" col="2" label="Indicators" caption="Progress and pick markers"
-          icon="cycle" openPage="main_settings_indicators"/>
+          icon="cycle" hostPage="main_settings_host, main_settings_indicators"/>
     <Cell id="open_assist" row="2" col="0" label="Assist" caption="Tracker, lens, and helpers"
-          icon="ideas" openPage="main_settings_assist"/>
+          icon="ideas" hostPage="main_settings_host, main_settings_assist"/>
     <Cell id="open_tools" row="2" col="1" label="Tools" caption="Look to scroll and ComboMouse"
-          icon="lookToScroll" openPage="main_settings_tools"/>
+          icon="lookToScroll" hostPage="main_settings_host, main_settings_tools"/>
     <Cell id="open_theme" row="2" col="2" label="Theme" caption="Appearance and Material palettes"
-          icon="palette" openPage="main_settings_theme"/>
+          icon="palette" hostPage="main_settings_host, main_settings_theme"/>
     <Cell id="open_speech" row="3" col="0" label="Speech" caption="ElevenLabs key, voice engine, and speed"
-          icon="Speak" openPage="main_settings_speech"/>
+          icon="Speak" hostPage="main_settings_host, main_settings_speech"/>
     <Cell id="open_head" row="3" col="1" label="Head" caption="Preview pose and map yaw, pitch, and axes"
-          icon="HeadPreview" openPage="main_settings_head_pose"/>
+          icon="HeadPreview" hostPage="main_settings_host, main_settings_head_pose"/>
     <Cell id="done" row="3" col="2" colSpan="1" label="Done" icon="keyboardHide" closePage="true"/>
   </Grid>
 </Page>

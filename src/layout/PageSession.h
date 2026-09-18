@@ -56,7 +56,10 @@ public:
     void closePage(const QString& id);
     int closeAttached();
     [[nodiscard]] bool hasRoot() const { return m_root.isValid(); }
+    /// Root or an attached document (the session stack).
     [[nodiscard]] bool hasPage(const QString& id) const;
+    /// Stack, or a `src` fragment currently inlined into an open page.
+    [[nodiscard]] bool showsPage(const QString& id) const;
     [[nodiscard]] const PageDocument& root() const { return m_root; }
     [[nodiscard]] PageHostWindow* window() const { return m_host.get(); }
     [[nodiscard]] const QVector<PageTarget>& targets() const { return m_targets; }
@@ -174,7 +177,15 @@ private:
     [[nodiscard]] QString xmlPathFor(const QString& id) const;
     void ingest(const PageDocument& doc, bool isMaster, QVector<PageTarget>& targets,
                 QVector<PageGridPaint>& gridPaints, QHash<QString, QString>* pageBgTokens,
-                bool includeDrawerMotion = false);
+                bool includeDrawerMotion = false,
+                const QHash<QString, const PageDocument*>* fragments = nullptr);
+    [[nodiscard]] bool loadCatalogDoc(const QString& id, PageDocument& out, QString* error) const;
+    [[nodiscard]] bool applyHostPage(const PageAction& action, const QString& sourcePageId,
+                                     QString* error);
+    [[nodiscard]] QString hostIdForFragment(const QString& fragmentId) const;
+    [[nodiscard]] PageDocument* mutablePage(const QString& id);
+    [[nodiscard]] bool gatherHosted(QString* error = nullptr);
+    bool bringAttachedToFront(const QString& id);
     void ensureHost();
     [[nodiscard]] QTransform hitXf() const;
     void armLeaveGate(const QString& pageId);
@@ -203,6 +214,8 @@ private:
     [[nodiscard]] bool applyShowLayers(const QVector<int>& layers, const QString& sourcePageId,
                                        QString* error);
     [[nodiscard]] PageNav::Docs navDocs();
+    /// Stack document, or the host that currently inlines @p id.
+    [[nodiscard]] PageDocument* stackOrHost(const QString& id);
     [[nodiscard]] PageDocument* navPage(const QString& sourcePageId);
     void closePagesExcept(const QString& keepId);
     void emitShowChanged();
@@ -212,6 +225,7 @@ private:
     QVector<PageBreadcrumb> m_crumbs;
     QString m_layoutsDir;
     QHash<QString, PageDocument> m_memory;
+    QHash<QString, PageDocument> m_hosted;
     QVector<AttachedPage> m_attached;
     QVariantMap m_props;
     bool m_dwellSuspended = false;

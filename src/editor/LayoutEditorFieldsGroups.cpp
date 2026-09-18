@@ -261,6 +261,37 @@ void addActionFields(PropertyBinder& b, QFormLayout* form, const PageAction& act
                    });
                });
     }
+    if (action.type == PageActionType::HostPage) {
+        QStringList ids = catalog.layoutIds;
+        QStringList labels = catalog.layoutLabels;
+        if (labels.size() != ids.size()) {
+            labels = ids;
+        }
+        QStringList hostIds = ids;
+        QStringList hostLabels = labels;
+        hostIds.prepend(QString());
+        hostLabels.prepend(QStringLiteral("(this page)"));
+        const QString hostCur = action.hostId;
+        if (!hostCur.isEmpty() && !hostIds.contains(hostCur)) {
+            hostIds.insert(1, hostCur);
+            hostLabels.insert(1, hostCur);
+        }
+        b.comboValues(form, QStringLiteral("Host page"), hostLabels, hostIds, hostCur,
+                      [apply](const QString& t) {
+                          apply(QStringLiteral("Host page"),
+                                [&](PageAction& a) { a.hostId = t.trimmed(); });
+                      });
+        const QString bodyCur = action.targetId;
+        if (!bodyCur.isEmpty() && !ids.contains(bodyCur)) {
+            ids.prepend(bodyCur);
+            labels.prepend(bodyCur);
+        }
+        b.comboValues(form, QStringLiteral("Body page"), labels, ids, bodyCur,
+                      [apply](const QString& t) {
+                          apply(QStringLiteral("Host body"),
+                                [&](PageAction& a) { a.targetId = t.trimmed(); });
+                      });
+    }
     if (action.type == PageActionType::Nav) {
         if (action.verb != PageVerb::Close) {
             QStringList ids = catalog.layoutIds;

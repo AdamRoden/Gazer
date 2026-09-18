@@ -61,6 +61,21 @@ void LayoutEditorProperties::fillGrid(QFormLayout* form)
             applyGrid([&](PageGrid& grid) { grid.id = next; }, QStringLiteral("Grid id"));
             m_session.selectGrid(next);
         });
+        b.text(f, QStringLiteral("Source page"), g->src, [this](const QString& t) {
+            applyGrid(
+                [&](PageGrid& grid) {
+                    grid.src = t.trimmed();
+                    if (!grid.src.isEmpty()) {
+                        grid.cells.clear();
+                        grid.subGrids.clear();
+                    }
+                },
+                QStringLiteral("Source page"));
+        });
+        b.text(f, QStringLiteral("Source grid"), g->srcGrid, [this](const QString& t) {
+            applyGrid([&](PageGrid& grid) { grid.srcGrid = t.trimmed(); },
+                      QStringLiteral("Source grid"));
+        });
         b.check(f, QStringLiteral("Shell (always on top)"), g->shell, [this](bool on) {
             applyGrid([&](PageGrid& grid) { grid.shell = on; }, QStringLiteral("Shell"));
         });

@@ -229,8 +229,14 @@ void writeGrid(QXmlStreamWriter& xml, const PageGrid& grid)
     attrBool(xml, QStringLiteral("shell"), grid.shell, false);
     attr(xml, QStringLiteral("style"), grid.styleId);
     attr(xml, QStringLiteral("dwell"), grid.dwellId);
+    attr(xml, QStringLiteral("src"), grid.src);
+    attr(xml, QStringLiteral("grid"), grid.srcGrid);
     writeChrome(xml, grid.style, false);
     writeDwell(xml, grid.dwell);
+    if (!grid.src.isEmpty()) {
+        xml.writeEndElement();
+        return;
+    }
     for (const PageCell& cell : grid.cells) {
         xml.writeStartElement(QStringLiteral("Cell"));
         writeLeafAttrs(xml, cell, false);

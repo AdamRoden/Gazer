@@ -12,15 +12,73 @@
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QFormLayout>
+#include <QHash>
 #include <QLabel>
+#include <QList>
+#include <QPair>
 #include <QLineEdit>
 #include <QListWidget>
 #include <QMessageBox>
+#include <QPushButton>
+#include <QSet>
 #include <QStatusBar>
 #include <QStringList>
 #include <QVBoxLayout>
 
 namespace gazer {
+
+namespace {
+
+constexpr int kBrowseResult = QDialog::Accepted + 1;
+constexpr int kOpenListRows = 12;
+
+bool isLayerSplitStem(const QString& stem, const QSet<QString>& stems)
+{
+    static const QStringList kSuffixes = {QStringLiteral("_sym_shift"), QStringLiteral("_shift"),
+                                          QStringLiteral("_sym")};
+    for (const QString& suffix : kSuffixes) {
+        if (stem.size() > suffix.size() && stem.endsWith(suffix)
+            && stems.contains(stem.left(stem.size() - suffix.size()))) {
+            return true;
+        }
+    }
+    return false;
+}
+
+QList<QPair<QString, QString>> openableLayoutFiles(const QString& userDir, const QString& layoutsDir)
+{
+    QHash<QString, QString> nameToPath;
+    auto addDir = [&](const QString& dir) {
+        if (dir.isEmpty()) {
+            return;
+        }
+        const QFileInfoList files =
+            QDir(dir).entryInfoList({QStringLiteral("*.xml")}, QDir::Files, QDir::Name);
+        for (const QFileInfo& fi : files) {
+            const QString key = fi.fileName().toLower();
+            if (!nameToPath.contains(key)) {
+                nameToPath.insert(key, fi.absoluteFilePath());
+            }
+        }
+    };
+    addDir(userDir);
+    addDir(layoutsDir);
+    QSet<QString> stems;
+    for (auto it = nameToPath.cbegin(); it != nameToPath.cend(); ++it) {
+        stems.insert(QFileInfo(it.value()).completeBaseName());
+    }
+    QList<QPair<QString, QString>> out;
+    for (auto it = nameToPath.cbegin(); it != nameToPath.cend(); ++it) {
+        const QFileInfo fi(it.value());
+        if (isLayerSplitStem(fi.completeBaseName(), stems)) {
+            continue;
+        }
+        out.append({fi.fileName(), it.value()});
+    }
+    return out;
+}
+
+} // namespace
 
 bool LayoutEditorWindow::openFile(const QString& path, QString* error)
 {
@@ -98,51 +156,55 @@ bool LayoutEditorWindow::promptNewPage()
     return true;
 }
 
-bool LayoutEditorWindow::promptOpenCatalog()
+LayoutEditorWindow::CatalogChoice LayoutEditorWindow::promptOpenCatalog()
 {
-    if (m_catalogIds.isEmpty() && m_userDir.isEmpty()) {
-        return false;
+    if (m_layoutsDir.isEmpty() && m_userDir.isEmpty()) {
+        return CatalogChoice::Browse;
     }
     QDialog dlg(this);
     dlg.setWindowTitle(QStringLiteral("Open page"));
     auto* lay = new QVBoxLayout(&dlg);
     auto* list = new QListWidget;
-    QSet<QString> seen;
-    auto addPath = [&](const QString& label, const QString& path) {
-        if (path.isEmpty() || seen.contains(path) || !QFileInfo::exists(path)) {
-            return;
-        }
-        seen.insert(path);
-        auto* item = new QListWidgetItem(label);
-        item->setData(Qt::UserRole, path);
+    for (const auto& file : openableLayoutFiles(m_userDir, m_layoutsDir)) {
+        auto* item = new QListWidgetItem(file.first);
+        item->setData(Qt::UserRole, file.second);
         list->addItem(item);
-    };
-    for (int i = 0; i < m_catalogIds.size(); ++i) {
-        const QString id = m_catalogIds[i];
-        const QString label = i < m_catalogLabels.size() ? m_catalogLabels[i] : id;
-        const QString user = QDir(m_userDir).filePath(id + QStringLiteral(".xml"));
-        const QString shipped = QDir(m_layoutsDir).filePath(id + QStringLiteral(".xml"));
-        addPath(label + (QFileInfo::exists(user) ? QStringLiteral("  (user)") : QString()),
-                QFileInfo::exists(user) ? user : shipped);
     }
-    if (!m_userDir.isEmpty()) {
-        const QFileInfoList extra =
-            QDir(m_userDir).entryInfoList({QStringLiteral("*.xml")}, QDir::Files, QDir::Name);
-        for (const QFileInfo& fi : extra) {
-            addPath(fi.completeBaseName() + QStringLiteral("  (user)"), fi.absoluteFilePath());
-        }
-    }
+    list->sortItems();
     list->setCurrentRow(0);
+    const int rowH = list->count() > 0 ? qMax(list->sizeHintForRow(0), 20) : 22;
+    list->setMinimumHeight(rowH * kOpenListRows);
     lay->addWidget(list);
     auto* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+    auto* browse = buttons->addButton(QStringLiteral("Browse…"), QDialogButtonBox::ActionRole);
     lay->addWidget(buttons);
     connect(buttons, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
     connect(buttons, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
+    connect(browse, &QPushButton::clicked, &dlg, [&dlg]() { dlg.done(kBrowseResult); });
     connect(list, &QListWidget::itemDoubleClicked, &dlg, &QDialog::accept);
-    if (dlg.exec() != QDialog::Accepted || !list->currentItem()) {
-        return false;
+    const int result = dlg.exec();
+    if (result == kBrowseResult) {
+        return CatalogChoice::Browse;
+    }
+    if (result != QDialog::Accepted || !list->currentItem()) {
+        return CatalogChoice::Cancel;
     }
     const QString path = list->currentItem()->data(Qt::UserRole).toString();
+    QString err;
+    if (!m_session->loadFromFile(path, &err)) {
+        QMessageBox::warning(this, QStringLiteral("Open failed"), err);
+        return CatalogChoice::Cancel;
+    }
+    return CatalogChoice::Loaded;
+}
+
+bool LayoutEditorWindow::openFromFileDialog()
+{
+    const QString path =
+        QFileDialog::getOpenFileName(this, QStringLiteral("Open page"), defaultDir(), xmlFilter());
+    if (path.isEmpty()) {
+        return false;
+    }
     QString err;
     if (!m_session->loadFromFile(path, &err)) {
         QMessageBox::warning(this, QStringLiteral("Open failed"), err);
@@ -166,21 +228,18 @@ void LayoutEditorWindow::open()
     if (!maybeSave()) {
         return;
     }
-    if (promptOpenCatalog()) {
+    switch (promptOpenCatalog()) {
+    case CatalogChoice::Loaded:
         frameLoadedPage();
         return;
-    }
-    const QString path =
-        QFileDialog::getOpenFileName(this, QStringLiteral("Open page"), defaultDir(), xmlFilter());
-    if (path.isEmpty()) {
+    case CatalogChoice::Cancel:
         return;
+    case CatalogChoice::Browse:
+        break;
     }
-    QString err;
-    if (!m_session->loadFromFile(path, &err)) {
-        QMessageBox::warning(this, QStringLiteral("Open failed"), err);
-        return;
+    if (openFromFileDialog()) {
+        frameLoadedPage();
     }
-    frameLoadedPage();
 }
 
 void LayoutEditorWindow::save()

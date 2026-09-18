@@ -122,6 +122,7 @@ void ActionDispatcher::dispatchPage(const QVector<PageAction>& actions, const QS
             break;
         }
         case PageActionType::Nav:
+        case PageActionType::HostPage:
         case PageActionType::GoBack: {
             if (a.type == PageActionType::Nav && a.verb == PageVerb::Close
                 && (a.targetScope == PageNavScope::All

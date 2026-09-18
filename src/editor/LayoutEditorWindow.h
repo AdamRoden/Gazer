@@ -71,7 +71,9 @@ private:
     void bindGlyph(QAction* action, EditorGlyph glyph);
 
     [[nodiscard]] bool promptNewPage();
-    [[nodiscard]] bool promptOpenCatalog();
+    enum class CatalogChoice { Cancel, Loaded, Browse };
+    [[nodiscard]] CatalogChoice promptOpenCatalog();
+    [[nodiscard]] bool openFromFileDialog();
     void newFile();
     void open();
     void save();
@@ -81,6 +83,7 @@ private:
     void exportFile();
     void testLive();
 
+    void syncCanvasLayoutDirs();
     [[nodiscard]] QString defaultDir() const;
     [[nodiscard]] QString xmlFilter() const;
     [[nodiscard]] bool isShippedPath(const QString& path) const;

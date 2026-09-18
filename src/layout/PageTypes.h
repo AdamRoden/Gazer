@@ -261,6 +261,7 @@ enum class PageActionType {
     MoveAndClick,
     Command,
     Nav,
+    HostPage,
     ShowLayers,
     GoBack,
     Speak,
@@ -287,6 +288,8 @@ struct PageAction {
     PageVerb verb = PageVerb::Open;
     PageNavScope targetScope = PageNavScope::Id;
     QString targetId;
+    /// HostPage: optional host catalog id. Empty = source page (or the host that embeds it).
+    QString hostId;
     bool breadcrumb = false;
 
     QString button;
@@ -461,6 +464,10 @@ struct PageGrid {
     QVector<int> layers{1};
     /// Root chrome: painted and hit above every non-shell Grid/Zone.
     bool shell = false;
+    /// Catalog page id whose named grid fills this slot (nested placement).
+    QString src;
+    /// Grid id inside `src` (`grid="board"`). Empty = the fragment's first top-level grid.
+    QString srcGrid;
     QString styleId;
     QString dwellId;
     PageChrome style;

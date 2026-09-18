@@ -1,10 +1,12 @@
 #include "layout/PageCatalog.h"
 
+#include "layout/PageCompose.h"
 #include "layout/PageLoader.h"
 #include "utils/Log.h"
 
 #include <QDir>
 #include <QFileInfo>
+#include <utility>
 
 namespace gazer {
 
@@ -46,7 +48,9 @@ QString PageCatalog::resolvePath(const QString& id, const QString& userDir, cons
 int PageCatalog::scan()
 {
     m_pages.clear();
-    auto ingest = [this](const QString& dir) {
+    m_inlined.clear();
+    QHash<QString, PageDocument> docs;
+    auto ingest = [&](const QString& dir) {
         if (dir.isEmpty()) {
             return;
         }
@@ -67,10 +71,14 @@ int PageCatalog::scan()
             e.name = doc.name;
             e.path = fi.absoluteFilePath();
             m_pages.insert(e.id, e);
+            docs.insert(doc.id, std::move(doc));
         }
     };
     ingest(m_dir);
     ingest(m_userDir);
+    for (auto it = docs.cbegin(); it != docs.cend(); ++it) {
+        PageCompose::collectSlotTargets(it.value(), m_inlined);
+    }
     GAZER_INFO << "Scanned pages directory:" << m_dir << "user:" << m_userDir
                << "loaded:" << m_pages.size();
     return m_pages.size();

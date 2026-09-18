@@ -45,6 +45,7 @@ private slots:
     void trackSizesRoundTrip();
     void sessionKeyPrefixedAfterPageId();
     void catalogUserCopyWinsPath();
+    void catalogMarksInlinedHostPages();
 };
 
 void PageLoaderTest::expressionSizeRoundTrip()
@@ -426,19 +427,10 @@ void PageLoaderTest::loadConvertedBoards()
         QCOMPARE(doc.id, id);
         QVERIFY(!doc.grids.isEmpty());
         QVERIFY(!doc.grids[0].cells.isEmpty());
-        if (id.startsWith(QLatin1String("main_settings"))) {
+        if (id == QLatin1String("main_settings_speed")) {
             QCOMPARE(doc.grids[0].anchor, PageAnchor::Top);
             QVERIFY(!doc.grids[0].style.background.isSet());
-            const PageGrid* tabs = doc.findGrid(QStringLiteral("tabs"));
-            QVERIFY(tabs);
-            bool hasTabs = false;
-            for (const PageCell& c : tabs->cells) {
-                if (c.id == QLatin1String("tab_speed")) {
-                    hasTabs = true;
-                    QCOMPARE(c.isInteractive(), id != QLatin1String("main_settings_speed"));
-                }
-            }
-            QVERIFY(hasTabs);
+            QVERIFY(!doc.findGrid(QStringLiteral("tabs")));
         }
     }
 }
@@ -930,6 +922,39 @@ void PageLoaderTest::catalogUserCopyWinsPath()
                   QStringLiteral("<Page id=\"kb\" name=\"User\"><Grid id=\"g\"/></Page>")));
     QCOMPARE(PageCatalog::resolvePath(QStringLiteral("kb"), user, shipped),
              QDir(user).filePath(QStringLiteral("kb.xml")));
+}
+
+void PageLoaderTest::catalogMarksInlinedHostPages()
+{
+    QTemporaryDir tmp;
+    QVERIFY(tmp.isValid());
+    const QString dir = tmp.path();
+    auto write = [](const QString& path, const QString& body) {
+        QFile f(path);
+        if (!f.open(QIODevice::WriteOnly | QIODevice::Text)) {
+            return false;
+        }
+        return f.write(body.toUtf8()) > 0;
+    };
+    QVERIFY(write(dir + QStringLiteral("/host.xml"), QStringLiteral(
+        "<Page id=\"host\" name=\"Host\">"
+        "<Grid id=\"board\" size=\"100,100\">"
+        "<SubGrid id=\"body\" src=\"speed\"/>"
+        "<Cell id=\"t\" hostPage=\"theme\"/>"
+        "</Grid></Page>")));
+    QVERIFY(write(dir + QStringLiteral("/speed.xml"),
+                  QStringLiteral("<Page id=\"speed\" name=\"Speed\"><Grid id=\"g\"/></Page>")));
+    QVERIFY(write(dir + QStringLiteral("/theme.xml"),
+                  QStringLiteral("<Page id=\"theme\" name=\"Theme\"><Grid id=\"g\"/></Page>")));
+    QVERIFY(write(dir + QStringLiteral("/hub.xml"),
+                  QStringLiteral("<Page id=\"hub\" name=\"Hub\"><Grid id=\"g\"/></Page>")));
+    PageCatalog cat;
+    cat.setDirectory(dir);
+    QCOMPARE(cat.scan(), 4);
+    QVERIFY(cat.isInlined(QStringLiteral("speed")));
+    QVERIFY(cat.isInlined(QStringLiteral("theme")));
+    QVERIFY(!cat.isInlined(QStringLiteral("host")));
+    QVERIFY(!cat.isInlined(QStringLiteral("hub")));
 }
 
 QObject* createPageLoaderTest()

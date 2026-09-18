@@ -1,10 +1,12 @@
 #include "layout/PageHit.h"
 
+#include "layout/PageCompose.h"
 #include "layout/PageDim.h"
 #include "layout/PageResolve.h"
 #include "layout/RoundBox.h"
 
 #include <QHash>
+#include <QStringList>
 #include <QPolygonF>
 #include <QSizeF>
 #include <QTransform>
@@ -104,13 +106,53 @@ QPoint cellIndexAt(const PageGrid& grid, const QRectF& gridRect, const QPointF& 
 
 namespace {
 
-void walkGrid(const PageDocument& page, const PageGrid& grid, const QRectF& bounds,
-              const QRectF& screen, const QVariantMap& props, bool dwellSuspended, bool shell,
-              bool drawerMotion, bool includeDrawerMotion, const QVector<int>& shownLayers,
-              QVector<PageTarget>& out, QVector<PageGridPaint>* grids)
+bool tabTargetsSrc(const PageCell& cell, const QString& src)
+{
+    if (src.isEmpty()
+        || cell.role.compare(QLatin1String("tab"), Qt::CaseInsensitive) != 0) {
+        return false;
+    }
+    for (const PageAction& a : cell.actions) {
+        if (a.type == PageActionType::HostPage && a.targetId == src) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void pushGridPaint(QVector<PageGridPaint>* grids, const QRectF& bounds, const PageChrome& chrome,
+                   const QString& pageId, const QString& gridId, bool drawer, bool shell)
+{
+    if (!grids) {
+        return;
+    }
+    PageGridPaint gp;
+    gp.visual = bounds;
+    gp.chrome = chrome;
+    gp.pageId = pageId;
+    gp.gridId = gridId;
+    gp.drawerMotion = drawer;
+    gp.shell = shell;
+    grids->push_back(std::move(gp));
+}
+
+struct WalkEnv {
+    const QRectF& screen;
+    const QVariantMap& props;
+    bool dwellSuspended = false;
+    bool includeDrawerMotion = false;
+    QVector<PageTarget>& out;
+    QVector<PageGridPaint>* grids = nullptr;
+    const QHash<QString, const PageDocument*>* fragments = nullptr;
+    QStringList* chain = nullptr;
+};
+
+void walkGrid(const PageDocument& page, const PageGrid& grid, const QRectF& bounds, WalkEnv& env,
+              const QVector<int>& shownLayers, bool shell, bool drawerMotion, bool asNested,
+              const QString& currentSrc)
 {
     if (!layersVisible(grid.layers, shownLayers)
-        && !(includeDrawerMotion && grid.drawerMotion)) {
+        && !(env.includeDrawerMotion && grid.drawerMotion)) {
         return;
     }
 
@@ -118,24 +160,42 @@ void walkGrid(const PageDocument& page, const PageGrid& grid, const QRectF& boun
     const bool drawer = drawerMotion || grid.drawerMotion;
     const PageChrome gridChrome = PageResolve::gridStyle(page, grid.styleId, grid.style);
 
-    if (grids && (!grid.nested || grid.style.hasAny() || !grid.styleId.isEmpty())) {
-        PageGridPaint gp;
-        gp.visual = bounds;
-        gp.chrome = gridChrome;
-        gp.gridId = grid.id;
-        gp.drawerMotion = drawer;
-        gp.shell = layer;
-        grids->push_back(std::move(gp));
+    if (!grid.src.isEmpty()) {
+        if (grid.style.hasAny() || !grid.styleId.isEmpty()) {
+            pushGridPaint(env.grids, bounds, gridChrome, page.id, grid.id, drawer, layer);
+        }
+        if (!env.fragments || !env.chain || env.chain->contains(grid.src)) {
+            return;
+        }
+        const PageDocument* frag = env.fragments->value(grid.src, nullptr);
+        const PageGrid* sourced = frag ? PageCompose::sourcedGrid(*frag, grid.srcGrid) : nullptr;
+        if (!frag || !sourced) {
+            return;
+        }
+        pushGridPaint(env.grids, bounds,
+                      PageResolve::gridStyle(*frag, sourced->styleId, sourced->style), frag->id,
+                      sourced->id, drawer, layer);
+        env.chain->push_back(grid.src);
+        walkGrid(*frag, *sourced, bounds, env, normalizedLayers(frag->showLayers), layer, drawer,
+                 true, PageCompose::firstSrc(*frag));
+        env.chain->pop_back();
+        return;
+    }
+
+    if (env.grids && (!asNested || grid.style.hasAny() || !grid.styleId.isEmpty())) {
+        pushGridPaint(env.grids, bounds, gridChrome, page.id, grid.id, drawer, layer);
     }
 
     for (const PageCell& cell : grid.cells) {
-        if (!evalVisibleWhen(cell.visibleWhen, props)) {
+        if (!evalVisibleWhen(cell.visibleWhen, env.props)) {
             continue;
         }
         const QRectF visual = cellRect(grid, bounds, cell.row, cell.col, cell.rowSpan,
-                                       cell.colSpan, screen.size());
+                                       cell.colSpan, env.screen.size());
+        const bool currentTab = tabTargetsSrc(cell, currentSrc);
         PageTarget t;
         t.kind = PageTarget::Kind::Cell;
+        t.pageId = page.id;
         t.gridId = grid.id;
         t.id = cell.id;
         t.label = cell.label;
@@ -146,28 +206,30 @@ void walkGrid(const PageDocument& page, const PageGrid& grid, const QRectF& boun
         t.caretIndex = cell.caretIndex;
         t.settingKey = cell.settingKey;
         t.suspendExempt = cell.suspendExempt;
-        t.interactive = cell.isInteractive() && !(dwellSuspended && !cell.suspendExempt);
+        t.interactive = cell.isInteractive() && !currentTab
+                        && !(env.dwellSuspended && !cell.suspendExempt);
         t.shell = layer;
         t.drawerMotion = drawer;
         t.activeState = cell.activeState;
         t.chrome = PageResolve::style(page, cell.styleId, cell.style);
         t.dwell = PageResolve::dwell(page, cell.dwellId, cell.dwell);
-        t.actions = cell.actions;
-        t.phases = cell.phases;
+        if (!currentTab) {
+            t.actions = cell.actions;
+            t.phases = cell.phases;
+        }
         t.actionLoop = cell.actionLoop;
-        t.geom = PageDetector::cell(visual, screen);
-        out.push_back(t);
+        t.geom = PageDetector::cell(visual, env.screen);
+        env.out.push_back(t);
     }
 
     for (const PageGrid& sub : grid.subGrids) {
         if (!layersVisible(sub.layers, shownLayers)
-            && !(includeDrawerMotion && sub.drawerMotion)) {
+            && !(env.includeDrawerMotion && sub.drawerMotion)) {
             continue;
         }
         const QRectF slot = cellRect(grid, bounds, sub.row, sub.col, sub.rowSpan, sub.colSpan,
-                                     screen.size());
-        walkGrid(page, sub, slot, screen, props, dwellSuspended, layer, drawer,
-                 includeDrawerMotion, shownLayers, out, grids);
+                                     env.screen.size());
+        walkGrid(page, sub, slot, env, shownLayers, layer, drawer, true, currentSrc);
     }
 }
 
@@ -175,17 +237,21 @@ void walkGrid(const PageDocument& page, const PageGrid& grid, const QRectF& boun
 
 QVector<PageTarget> collect(const PageDocument& page, const PageFrame& frame,
                             const QVariantMap& props, bool dwellSuspended, QVector<PageGridPaint>* grids,
-                            bool includeDrawerMotion, const std::optional<QVector<int>>& shownLayers)
+                            bool includeDrawerMotion, const std::optional<QVector<int>>& shownLayers,
+                            const QHash<QString, const PageDocument*>* fragments)
 {
     QVector<PageTarget> rest;
     QVector<PageTarget> shell;
     const QRectF screen = frame.screen.isEmpty() ? frame.desktop : frame.screen;
     const QVector<int>& shown = shownLayers ? *shownLayers : page.showLayers;
+    QStringList chain{page.id};
 
     for (const PageGrid& g : page.grids) {
         QVector<PageTarget> piece;
-        walkGrid(page, g, gridBounds(g, frame), screen, props, dwellSuspended, g.shell,
-                 g.drawerMotion, includeDrawerMotion, shown, piece, grids);
+        WalkEnv env{screen, props, dwellSuspended, includeDrawerMotion, piece, grids, fragments,
+                    &chain};
+        walkGrid(page, g, gridBounds(g, frame), env, shown, g.shell, g.drawerMotion, false,
+                 PageCompose::firstSrc(page));
         for (PageTarget& t : piece) {
             (t.shell ? shell : rest).push_back(std::move(t));
         }
@@ -201,6 +267,7 @@ QVector<PageTarget> collect(const PageDocument& page, const PageFrame& frame,
         const QRectF bounds = z.desktopMode ? frame.desktop : frame.screen;
         PageTarget t;
         t.kind = PageTarget::Kind::Zone;
+        t.pageId = page.id;
         t.id = z.id;
         t.label = z.label;
         t.icon = z.icon;

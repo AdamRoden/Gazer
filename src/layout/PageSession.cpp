@@ -1,6 +1,7 @@
 #include "layout/PageSession.h"
 
 #include "layout/PageCatalog.h"
+#include "layout/PageCompose.h"
 #include "layout/PageHit.h"
 #include "layout/PageLoader.h"
 #include "ui/PageHostWindow.h"
@@ -15,6 +16,7 @@
 #include <QScreen>
 #include <QSet>
 #include <QStringList>
+#include <optional>
 #include <QTimer>
 #include <QTransform>
 #include <utility>
@@ -254,6 +256,109 @@ bool PageSession::hasPage(const QString& id) const
     return false;
 }
 
+bool PageSession::showsPage(const QString& id) const
+{
+    return hasPage(id) || m_hosted.contains(id);
+}
+
+PageDocument* PageSession::mutablePage(const QString& id)
+{
+    if (m_root.id == id) {
+        return &m_root;
+    }
+    for (AttachedPage& a : m_attached) {
+        if (a.doc.id == id) {
+            return &a.doc;
+        }
+    }
+    return nullptr;
+}
+
+QString PageSession::hostIdForFragment(const QString& fragmentId) const
+{
+    if (fragmentId.isEmpty()) {
+        return {};
+    }
+    auto owns = [&](const PageDocument& d) {
+        bool found = false;
+        PageCompose::forEachSrc(d, [&](const PageGrid& g) {
+            if (g.src == fragmentId) {
+                found = true;
+            }
+        });
+        return found;
+    };
+    if (owns(m_root)) {
+        return m_root.id;
+    }
+    for (const AttachedPage& a : m_attached) {
+        if (owns(a.doc)) {
+            return a.doc.id;
+        }
+    }
+    return {};
+}
+
+bool PageSession::loadCatalogDoc(const QString& id, PageDocument& out, QString* error) const
+{
+    if (m_memory.contains(id)) {
+        out = m_memory.value(id);
+        return true;
+    }
+    const QString path = xmlPathFor(id);
+    if (path.isEmpty() || !QFileInfo::exists(path)) {
+        if (error) {
+            *error = QStringLiteral("No XML page %1").arg(id);
+        }
+        return false;
+    }
+    if (!PageLoader::loadFromFile(path, out, error)) {
+        return false;
+    }
+    if (out.id != id) {
+        if (error) {
+            *error = QStringLiteral("Page id '%1' does not match file '%2'").arg(out.id, id);
+        }
+        return false;
+    }
+    return true;
+}
+
+bool PageSession::gatherHosted(QString* error)
+{
+    m_hosted.clear();
+    const auto load = [this](const QString& id, PageDocument& out, QString* err) {
+        return loadCatalogDoc(id, out, err);
+    };
+    if (!PageCompose::resolveAll(m_root, load, m_hosted, error)) {
+        return false;
+    }
+    for (const AttachedPage& a : m_attached) {
+        if (!PageCompose::resolveAll(a.doc, load, m_hosted, error)) {
+            return false;
+        }
+    }
+    if (m_decorate) {
+        for (auto it = m_hosted.begin(); it != m_hosted.end(); ++it) {
+            m_decorate(it.value());
+        }
+    }
+    return true;
+}
+
+bool PageSession::bringAttachedToFront(const QString& id)
+{
+    for (int i = 0; i < m_attached.size(); ++i) {
+        if (m_attached[i].doc.id == id) {
+            if (i != m_attached.size() - 1) {
+                m_attached.move(i, m_attached.size() - 1);
+            }
+            return true;
+        }
+    }
+    return false;
+}
+
 void PageSession::registerMemoryPage(PageDocument doc)
 {
     if (!doc.isValid()) {
@@ -278,7 +383,7 @@ void PageSession::closePreviewPages()
     }
     leaveGaze();
     rebuild();
-    if (!m_leaveGatePage.isEmpty() && !hasPage(m_leaveGatePage)) {
+    if (!m_leaveGatePage.isEmpty() && !showsPage(m_leaveGatePage)) {
         clearLeaveGate();
     }
     emit sessionChanged();
@@ -328,10 +433,16 @@ bool PageSession::attachDocument(PageDocument doc, QString* error, bool decorate
 
 PageDocument PageSession::attachedCopy(const QString& id) const
 {
+    if (m_root.id == id) {
+        return m_root;
+    }
     for (const AttachedPage& a : m_attached) {
         if (a.doc.id == id) {
             return a.doc;
         }
+    }
+    if (m_hosted.contains(id)) {
+        return m_hosted.value(id);
     }
     return {};
 }
@@ -374,29 +485,18 @@ bool PageSession::openPage(const QString& id, QString* error)
             return true;
         }
     }
-    if (m_memory.contains(id)) {
-        PageDocument doc = m_memory.value(id);
-        return attachDocument(std::move(doc), error, true);
-    }
-    const QString path = xmlPathFor(id);
-    if (path.isEmpty() || !QFileInfo::exists(path)) {
-        if (error) {
-            *error = QStringLiteral("No XML page %1").arg(id);
-        }
-        return false;
-    }
     PageDocument doc;
-    if (!PageLoader::loadFromFile(path, doc, error)) {
-        return false;
-    }
-    if (doc.id != id) {
-        if (error) {
-            *error = QStringLiteral("Page id '%1' does not match file '%2'").arg(doc.id, id);
-        }
+    if (!loadCatalogDoc(id, doc, error)) {
         return false;
     }
     if (m_decorate) {
         m_decorate(doc);
+    }
+    QHash<QString, PageDocument> hosted;
+    if (!PageCompose::resolveAll(doc, [this](const QString& fid, PageDocument& out, QString* err) {
+            return loadCatalogDoc(fid, out, err);
+        }, hosted, error)) {
+        return false;
     }
     AttachedPage att;
     att.doc = std::move(doc);
@@ -452,21 +552,26 @@ int PageSession::closeAttached()
 
 void PageSession::ingest(const PageDocument& doc, bool isMaster, QVector<PageTarget>& targets,
                          QVector<PageGridPaint>& gridPaints, QHash<QString, QString>* pageBgTokens,
-                         bool includeDrawerMotion)
+                         bool includeDrawerMotion,
+                         const QHash<QString, const PageDocument*>* fragments)
 {
     if (pageBgTokens) {
         pageBgTokens->insert(doc.id, doc.style.background.token);
     }
     QVector<PageGridPaint> g;
-    QVector<PageTarget> piece =
-        PageHit::collect(doc, frame(), m_props, m_dwellSuspended, &g, includeDrawerMotion);
+    QVector<PageTarget> piece = PageHit::collect(doc, frame(), m_props, m_dwellSuspended, &g,
+                                                 includeDrawerMotion, std::nullopt, fragments);
     for (PageGridPaint& gp : g) {
-        gp.pageId = doc.id;
+        if (gp.pageId.isEmpty()) {
+            gp.pageId = doc.id;
+        }
         gp.master = isMaster;
         gridPaints.push_back(std::move(gp));
     }
     for (PageTarget& t : piece) {
-        t.pageId = doc.id;
+        if (t.pageId.isEmpty()) {
+            t.pageId = doc.id;
+        }
         t.master = isMaster;
         targets.push_back(std::move(t));
     }
@@ -475,14 +580,19 @@ void PageSession::ingest(const PageDocument& doc, bool isMaster, QVector<PageTar
 void PageSession::rebuild()
 {
     syncExpanded();
+    QString hostedErr;
+    if (!gatherHosted(&hostedErr)) {
+        GAZER_WARN << hostedErr;
+    }
     m_targets.clear();
     m_gridPaints.clear();
     QHash<QString, QString> pageBgTokens;
+    const QHash<QString, const PageDocument*> fragments = PageCompose::pointers(m_hosted);
     const bool keepDrawer = m_drawerPhase == DrawerPhase::Dismiss;
     for (const AttachedPage& a : m_attached) {
-        ingest(a.doc, false, m_targets, m_gridPaints, &pageBgTokens);
+        ingest(a.doc, false, m_targets, m_gridPaints, &pageBgTokens, false, &fragments);
     }
-    ingest(m_root, true, m_targets, m_gridPaints, &pageBgTokens, keepDrawer);
+    ingest(m_root, true, m_targets, m_gridPaints, &pageBgTokens, keepDrawer, &fragments);
 
     if (m_host) {
         const PageFrame fr = frame();

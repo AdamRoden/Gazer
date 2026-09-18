@@ -513,6 +513,8 @@ bool readGrid(QXmlStreamReader& xml, PageGrid& grid, bool nested, QString* error
     }
     grid.styleId = a.value(QStringLiteral("style")).toString();
     grid.dwellId = a.value(QStringLiteral("dwell")).toString();
+    grid.src = a.value(QStringLiteral("src")).toString().trimmed();
+    grid.srcGrid = a.value(QStringLiteral("grid")).toString().trimmed();
     applyChromeAttrs(a, grid.style);
     applyDwellAttrs(a, grid.dwell, error);
     if (error && !error->isEmpty()) {
@@ -541,6 +543,14 @@ bool readGrid(QXmlStreamReader& xml, PageGrid& grid, bool nested, QString* error
             continue;
         }
         const QString name = xml.name().toString();
+        if (name == QLatin1String("Cell") || name == QLatin1String("SubGrid")) {
+            if (!grid.src.isEmpty()) {
+                if (error) {
+                    *error = xmlError(xml, QStringLiteral("src grid cannot have children"));
+                }
+                return false;
+            }
+        }
         if (name == QLatin1String("Cell")) {
             PageCell cell;
             if (!readCell(xml, cell, error)) {

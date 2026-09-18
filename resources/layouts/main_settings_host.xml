@@ -1,0 +1,18 @@
+<Page id="main_settings_host" name="Settings" radius="16">
+  <Style id="tabbar" background="bg95" thickness="0" radius="12"/>
+  <Grid id="board" desktopMode="true" rows="2" columns="16" anchor="Top" offset="0,0" 
+        size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" rowHeights="0.1*,*">
+    <SubGrid id="tabs" row="0" col="0" colSpan="16" rows="1" columns="9" gap="6" margin="4" style="tabbar">
+      <Cell id="tab_speed" row="0" col="0" label="Speed" icon="timer" role="tab" hostPage="main_settings_speed"/>
+      <Cell id="tab_magnify" row="0" col="1" label="Magnify" icon="ZoomSettings" role="tab" hostPage="main_settings_magnify"/>
+      <Cell id="tab_indicators" row="0" col="2" label="Indicators" icon="cycle" role="tab" hostPage="main_settings_indicators"/>
+      <Cell id="tab_assist" row="0" col="3" label="Assist" icon="ideas" role="tab" hostPage="main_settings_assist"/>
+      <Cell id="tab_tools" row="0" col="4" label="Tools" icon="lookToScroll" role="tab" hostPage="main_settings_tools"/>
+      <Cell id="tab_theme" row="0" col="5" label="Theme" icon="palette" role="tab" hostPage="main_settings_theme"/>
+      <Cell id="tab_speech" row="0" col="6" label="Speech" icon="Speak" role="tab" hostPage="main_settings_speech"/>
+      <Cell id="tab_head" row="0" col="7" label="Head" icon="HeadPreview" role="tab" hostPage="main_settings_head_pose"/>
+      <Cell id="tab_done" row="0" col="8" label="Done" icon="keyboardHide" closeAllPages="true"/>
+    </SubGrid>
+    <SubGrid id="body" row="1" col="0" colSpan="16" src="main_settings_speed" grid="board"/>
+  </Grid>
+</Page>

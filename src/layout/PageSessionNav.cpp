@@ -1,7 +1,9 @@
 #include "layout/PageSession.h"
 
+#include "layout/PageCompose.h"
 #include "layout/PageNav.h"
 
+#include <QHash>
 #include <QStringList>
 #include <utility>
 
@@ -92,6 +94,19 @@ bool PageSession::applyNav(const PageAction& action, const QString& sourcePageId
     if (action.type == PageActionType::GoBack) {
         return goBack(error);
     }
+    if (action.type == PageActionType::HostPage) {
+        PageBreadcrumb snap;
+        if (action.breadcrumb) {
+            snap = captureBreadcrumb();
+        }
+        if (!applyHostPage(action, sourcePageId, error)) {
+            return false;
+        }
+        if (action.breadcrumb) {
+            m_crumbs.push_back(std::move(snap));
+        }
+        return true;
+    }
     if (action.type != PageActionType::Nav) {
         if (error) {
             *error = QStringLiteral("Not a page navigation action");
@@ -165,7 +180,10 @@ bool PageSession::showLayers(const QVector<PageAction>& actions, const QString& 
 bool PageSession::applyNavPage(PageVerb verb, PageNavScope scope, const QString& id,
                                const QString& sourcePageId, QString* error)
 {
-    const QString self = sourcePage(*this, sourcePageId);
+    QString self = sourcePage(*this, sourcePageId);
+    if (PageDocument* from = stackOrHost(self)) {
+        self = from->id;
+    }
 
     if (scope == PageNavScope::All) {
         if (verb == PageVerb::Close || verb == PageVerb::Toggle) {
@@ -205,9 +223,9 @@ bool PageSession::applyNavPage(PageVerb verb, PageNavScope scope, const QString&
         raise();
         return true;
     }
-    const bool attached = hasPage(tid);
-    if (verb == PageVerb::Close || (verb == PageVerb::Toggle && attached)) {
-        if (attached) {
+    const bool onStack = hasPage(tid);
+    if (verb == PageVerb::Close || (verb == PageVerb::Toggle && onStack)) {
+        if (onStack) {
             closePage(tid);
             return true;
         }
@@ -236,13 +254,101 @@ PageNav::Docs PageSession::navDocs()
     return d;
 }
 
+PageDocument* PageSession::stackOrHost(const QString& id)
+{
+    if (PageDocument* d = PageNav::page(navDocs(), id)) {
+        return d;
+    }
+    return mutablePage(hostIdForFragment(id));
+}
+
 PageDocument* PageSession::navPage(const QString& sourcePageId)
 {
-    if (PageDocument* d = PageNav::page(navDocs(), sourcePageId)) {
+    if (PageDocument* d = stackOrHost(sourcePageId)) {
         return d;
     }
     // Source page already closed in this activation (ClosePage then ShowLayers).
     return hasRoot() ? &m_root : nullptr;
+}
+
+bool PageSession::applyHostPage(const PageAction& action, const QString& sourcePageId,
+                                QString* error)
+{
+    const QString fragmentId = action.targetId.trimmed();
+    if (fragmentId.isEmpty()) {
+        if (error) {
+            *error = QStringLiteral("HostPage target is empty");
+        }
+        return false;
+    }
+    PageDocument probe;
+    if (!loadCatalogDoc(fragmentId, probe, error)) {
+        return false;
+    }
+
+    PageDocument owned;
+    PageDocument* host = nullptr;
+    bool attachNew = false;
+    const QString hostId = action.hostId.trimmed();
+    if (hostId.isEmpty()) {
+        host = navPage(sourcePage(*this, sourcePageId));
+    } else if (hostId == m_root.id) {
+        host = &m_root;
+    } else if (hasPage(hostId)) {
+        bringAttachedToFront(hostId);
+        host = mutablePage(hostId);
+    } else {
+        if (!loadCatalogDoc(hostId, owned, error)) {
+            return false;
+        }
+        if (m_decorate) {
+            m_decorate(owned);
+        }
+        host = &owned;
+        attachNew = true;
+    }
+    if (!host) {
+        if (error) {
+            *error = QStringLiteral("No host page for HostPage '%1'").arg(fragmentId);
+        }
+        return false;
+    }
+
+    PageGrid* slot = PageCompose::findSrcSlot(*host);
+    if (!slot) {
+        if (error) {
+            *error = QStringLiteral("Page '%1' has no src slot").arg(host->id);
+        }
+        return false;
+    }
+    if (!PageCompose::sourcedGrid(probe, slot->srcGrid, error)) {
+        return false;
+    }
+    const QString previous = slot->src;
+    slot->src = fragmentId;
+    QHash<QString, PageDocument> hosted;
+    const auto load = [this](const QString& id, PageDocument& out, QString* err) {
+        return loadCatalogDoc(id, out, err);
+    };
+    if (!PageCompose::resolveAll(*host, load, hosted, error)) {
+        slot->src = previous;
+        return false;
+    }
+
+    const QString hid = host->id;
+    if (attachNew) {
+        if (!attachDocument(std::move(owned), error, false)) {
+            return false;
+        }
+    } else {
+        leaveGaze();
+        rebuild();
+        raise();
+        emit sessionChanged();
+    }
+    const QString self = sourcePage(*this, sourcePageId);
+    armLeaveGate(self == hid ? hid : fragmentId);
+    return true;
 }
 
 bool PageSession::applyShowLayers(const QVector<int>& layers, const QString& sourcePageId,

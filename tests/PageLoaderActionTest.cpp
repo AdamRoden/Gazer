@@ -20,6 +20,7 @@ private slots:
     void parseSpecificActionElements();
     void parseMoveVariants();
     void parseOpenPageBreadcrumb();
+    void parseHostPage();
     void rejectInvalidShowLayers();
     void parseCloseSpecialsAndGoBack();
     void genericActionAttribute();
@@ -330,6 +331,25 @@ void PageLoaderActionTest::parseMoveVariants()
     QCOMPARE(a.moveMode, PageMoveMode::Absolute);
     QCOMPARE(int(a.moveX.value), 100);
     QCOMPARE(int(a.moveY.value), 200);
+}
+
+void PageLoaderActionTest::parseHostPage()
+{
+    PageAction a;
+    QString err;
+    QVERIFY2(loadOneAction(QByteArray("<HostPage value=\"main_settings_speed\"/>"), a, &err),
+             qPrintable(err));
+    QCOMPARE(a.type, PageActionType::HostPage);
+    QCOMPARE(a.targetId, QStringLiteral("main_settings_speed"));
+    QVERIFY(a.hostId.isEmpty());
+    QVERIFY2(loadOneAction(QByteArray("<HostPage value=\"main_settings_host, main_settings_theme\"/>"),
+                           a, &err),
+             qPrintable(err));
+    QCOMPARE(a.hostId, QStringLiteral("main_settings_host"));
+    QCOMPARE(a.targetId, QStringLiteral("main_settings_theme"));
+    QVERIFY2(loadOneAction(QByteArray("<Action hostPage=\"frag\"/>"), a, &err), qPrintable(err));
+    QCOMPARE(a.type, PageActionType::HostPage);
+    QCOMPARE(a.targetId, QStringLiteral("frag"));
 }
 
 void PageLoaderActionTest::parseOpenPageBreadcrumb()

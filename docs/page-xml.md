@@ -178,6 +178,8 @@ A Grid is a placed rectangle of rows and columns. `SubGrid` occupies a parent ce
 | `autoClose` | Idle-close this grid |
 | `layers` | Comma-separated layer membership (`1,2`). Default `1`. Visible when any listed layer is in the page's current `showLayers`. Nested subgrids are skipped when the parent is off-layer, so a parent that hosts children on several layers should list all of them (`layers="1,2"`). |
 | `style`, `dwell` | Named style/dwell ids, plus inline chrome/dwell attrs |
+| `src` | Catalog page id. This grid is a slot: the named grid from that page is laid out in this cell span (nested placement; the fragment's `anchor` / `offset` / `size` / `desktopMode` are ignored). A `src` grid cannot have `Cell` or `SubGrid` children. |
+| `grid` | With `src`: grid id inside that page (`grid="board"`). Empty = the fragment's first top-level grid. |
 
 ```xml
 <Grid id="board" desktopMode="true" rows="3" columns="12"
@@ -192,7 +194,11 @@ A Grid is a placed rectangle of rows and columns. `SubGrid` occupies a parent ce
       gap="72" margin="90" rowHeights="*,2*,2*,2*">
   …
 </Grid>
+
+<SubGrid id="body" row="1" col="0" colSpan="16" src="main_settings_speed" grid="board"/>
 ```
+
+`src` is resolved at collect/rebuild, not flattened into the host AST. Style and dwell on the inlined cells still come from the fragment page. Live targets keep the fragment's page id (`main_settings_speed/dwell_edit`). `HostPage` changes `src` on the live host; `OpenPage` of the fragment still attaches it as a full board (editor F5).
 
 ---
 
@@ -363,6 +369,7 @@ A cell or zone may have **one** action attribute. Multiple actions use child ele
 <MouseMoveToPoint value="100,200"/>
 <Command value="toggleLookToScroll"/>
 <OpenPage value="uw_qwerty, true"/>
+<HostPage value="main_settings_host, main_settings_speed"/>
 <ShowLayers value="1,2"/>
 <ClosePage/>
 <CloseAllPages/>
@@ -384,9 +391,10 @@ A cell or zone may have **one** action attribute. Multiple actions use child ele
 | `MouseMoveToPoint` | `x,y` screen coords (dim tokens allowed) |
 | `Command` | builtin or mapping-profile name (`toggleLookToScroll`, `backspace`, `settings.dwell.fast`, …) |
 | `OpenPage` | `targetId[, true]` — `true` saves a breadcrumb of the current page state |
+| `HostPage` | `fragmentId` or `hostId, fragmentId` — set a `src` slot on the host (the source page, or the attached page that embeds the source). Two ids attach/reuse `hostId` and load `fragmentId` into its slot. Does not stack a second opaque page. |
 | `TogglePage` | `targetId[, true]` — open if closed, close if this page is already attached |
 | `ShowLayers` | `layer[, layer…]` — replace the source page's visible set (or the root if that page just closed). Not a Page nav action. |
-| `ClosePage` | (none) — close the page that owns the cell |
+| `ClosePage` | (none) — close the page that owns the cell. If that page is hosted in a `src` slot, the host board closes instead. |
 | `CloseAllPages` | (none) — close every attached page; the master root stays. Also disables ComboMouse. |
 | `CloseOtherPages` | (none) — close every attached page except the source page. Also disables ComboMouse. |
 | `GoBack` | (none) — restore the last breadcrumb |

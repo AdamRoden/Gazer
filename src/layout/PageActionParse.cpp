@@ -29,6 +29,7 @@ using pageaction::parseLegacyPageParts;
 using pageaction::parseMoveDir;
 using pageaction::parseMovePoint;
 using pageaction::parseNavValue;
+using pageaction::parseHostPageValue;
 using pageaction::parseLayersValue;
 using pageaction::parseSendValue;
 using pageaction::parseSpeakValue;
@@ -129,6 +130,8 @@ const ActionName kNames[] = {
      nullptr, matchNavScope, PageNavScope::Others},
     {"togglePage", "TogglePage", PageActionType::Nav, PageVerb::Toggle, nullptr, true,
      parseNavValue},
+    {"hostPage", "HostPage", PageActionType::HostPage, PageVerb::Open, nullptr, true,
+     parseHostPageValue},
     {"showLayers", "ShowLayers", PageActionType::ShowLayers, PageVerb::Open, nullptr, true,
      parseLayersValue},
     {"goBack", "GoBack", PageActionType::GoBack},
@@ -374,6 +377,11 @@ QString pageActionValueText(const PageAction& a)
         }
         return id;
     }
+    case PageActionType::HostPage:
+        if (!a.hostId.isEmpty()) {
+            return csvJoin({a.hostId, a.targetId});
+        }
+        return a.targetId;
     case PageActionType::ShowLayers:
         return layerListCsv(normalizedLayers(a.layers));
     case PageActionType::GoBack:

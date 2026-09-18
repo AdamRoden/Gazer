@@ -1,9 +1,13 @@
 #include "editor/LayoutEditorCanvas.h"
 
+#include "layout/PageCompose.h"
 #include "layout/PageEdit.h"
 #include "layout/PageHit.h"
+#include "layout/PageLoader.h"
 #include "utils/ScreenGrab.h"
 
+#include <QDir>
+#include <QFileInfo>
 #include <QGuiApplication>
 #include <QPainter>
 #include <QResizeEvent>
@@ -11,6 +15,7 @@
 #include <QShowEvent>
 #include <QTimer>
 #include <QWheelEvent>
+#include <optional>
 
 namespace gazer {
 
@@ -47,6 +52,15 @@ LayoutEditorCanvas::LayoutEditorCanvas(LayoutEditorSession& session, QWidget* pa
 void LayoutEditorCanvas::setTheme(const ThemeColors& theme)
 {
     m_theme = theme;
+    update();
+}
+
+void LayoutEditorCanvas::setLayoutSearchDirs(const QStringList& dirs)
+{
+    if (m_layoutSearchDirs == dirs) {
+        return;
+    }
+    m_layoutSearchDirs = dirs;
     update();
 }
 
@@ -223,12 +237,42 @@ LayoutEditorCanvas::ScreenMap LayoutEditorCanvas::map() const
     m.taskbars = reservedStrips(QRect(QPoint(0, 0), m.virtualScreen), m.virtualDesktop);
 
     const PageFrame frame = m.pageFrame();
-    if (m_layerFilter <= 0) {
-        m.targets = PageHit::collect(m_session.document(), frame, {}, false, &m.grids);
-    } else {
-        m.targets = PageHit::collect(m_session.document(), frame, {}, false, &m.grids, false,
-                                     QVector<int>{m_layerFilter});
+    QHash<QString, PageDocument> hosted;
+    QStringList dirs = m_layoutSearchDirs;
+    if (!m_session.filePath().isEmpty()) {
+        dirs.prepend(QFileInfo(m_session.filePath()).absolutePath());
     }
+    const auto load = [&](const QString& id, PageDocument& out, QString* error) {
+        QString lastErr;
+        for (const QString& dir : dirs) {
+            if (dir.isEmpty()) {
+                continue;
+            }
+            const QString path = QDir(dir).filePath(id + QStringLiteral(".xml"));
+            if (!QFileInfo::exists(path)) {
+                continue;
+            }
+            if (PageLoader::loadFromFile(path, out, error)) {
+                return true;
+            }
+            if (error) {
+                lastErr = *error;
+            }
+        }
+        if (error) {
+            *error = lastErr.isEmpty() ? QStringLiteral("No XML page %1").arg(id) : lastErr;
+        }
+        return false;
+    };
+    QString err;
+    (void)PageCompose::resolveAll(m_session.document(), load, hosted, &err);
+    const QHash<QString, const PageDocument*> fragments = PageCompose::pointers(hosted);
+    std::optional<QVector<int>> shown;
+    if (m_layerFilter > 0) {
+        shown = QVector<int>{m_layerFilter};
+    }
+    m.targets = PageHit::collect(m_session.document(), frame, {}, false, &m.grids, false, shown,
+                                 &fragments);
 
     double s = m_scale;
     QPointF lookAt = m_lookAt;

@@ -2,6 +2,7 @@
 
 #include "app/CommandRegistry.h"
 #include "assist/SpeechSecrets.h"
+#include "layout/PageCompose.h"
 #include "layout/PageEdit.h"
 #include "layout/PageSession.h"
 #include "layout/PageTypes.h"
@@ -360,8 +361,9 @@ void SettingsUi::decoratePage(PageDocument& doc)
     if (!doc.id.startsWith(QLatin1String("main_settings"))) {
         return;
     }
-    if (doc.id != QLatin1String("main_settings_theme")
-        && doc.id.startsWith(QLatin1String("main_settings_")) && isInlineThemeEditor()) {
+    if (doc.id.startsWith(QLatin1String("main_settings_"))
+        && doc.id != QLatin1String("main_settings_theme") && !PageCompose::findSrcSlot(doc)
+        && isInlineThemeEditor()) {
         stopInlineThemeEditor();
     }
     const ThemeColors live = m_settings.resolvedTheme();

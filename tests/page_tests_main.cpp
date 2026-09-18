@@ -13,6 +13,7 @@ QObject* createPageDimTest();
 QObject* createPageNavTest();
 QObject* createPageHitTest();
 QObject* createPageHitLiveTest();
+QObject* createPageComposeTest();
 QObject* createSettingsLayoutTest();
 QObject* createAppSettingsTest();
 QObject* createMaterialPaletteTest();
@@ -64,6 +65,8 @@ int main(int argc, char** argv)
     status |= QTest::qExec(hits.get(), rest);
     std::unique_ptr<QObject> hitLive(createPageHitLiveTest());
     status |= QTest::qExec(hitLive.get(), rest);
+    std::unique_ptr<QObject> compose(createPageComposeTest());
+    status |= QTest::qExec(compose.get(), rest);
     std::unique_ptr<QObject> settings(createSettingsLayoutTest());
     status |= QTest::qExec(settings.get(), rest);
     std::unique_ptr<QObject> appSettings(createAppSettingsTest());

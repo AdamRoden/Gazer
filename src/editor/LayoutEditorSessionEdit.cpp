@@ -739,6 +739,17 @@ QVector<EditorIssue> LayoutEditorSession::validate(const QStringList& catalogIds
             && a.targetId != doc.id) {
             add(QStringLiteral("%1: unknown page '%2'").arg(where, a.targetId), where, t);
         }
+        if (a.type == PageActionType::HostPage && a.targetId.trimmed().isEmpty()) {
+            add(QStringLiteral("%1: host body page is empty").arg(where), where, t);
+        }
+        if (a.type == PageActionType::HostPage && !a.targetId.isEmpty() && !catalogIds.isEmpty()
+            && !catalogIds.contains(a.targetId) && a.targetId != doc.id) {
+            add(QStringLiteral("%1: unknown page '%2'").arg(where, a.targetId), where, t);
+        }
+        if (a.type == PageActionType::HostPage && !a.hostId.isEmpty() && !catalogIds.isEmpty()
+            && !catalogIds.contains(a.hostId) && a.hostId != doc.id) {
+            add(QStringLiteral("%1: unknown host page '%2'").arg(where, a.hostId), where, t);
+        }
         if (a.type == PageActionType::Speak && a.speakText.trimmed().isEmpty()) {
             add(QStringLiteral("%1: speak text is empty").arg(where), where, t);
         }
@@ -769,6 +780,10 @@ QVector<EditorIssue> LayoutEditorSession::validate(const QStringList& catalogIds
                 add(QStringLiteral("Duplicate id '%1'").arg(g.id), g.id, EditorTarget::Grid);
             }
             seen.insert(g.id);
+        }
+        if (!g.src.isEmpty() && !catalogIds.isEmpty() && !catalogIds.contains(g.src)
+            && g.src != doc.id) {
+            add(QStringLiteral("Unknown source page '%1'").arg(g.src), g.id, EditorTarget::Grid);
         }
         for (const PageCell& c : g.cells) {
             checkLeaf(c, QStringLiteral("Cell"));
