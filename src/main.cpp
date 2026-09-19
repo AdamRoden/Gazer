@@ -1,4 +1,6 @@
+#include "app/ActionChannel.h"
 #include "app/Application.h"
+#include "app/InboundActions.h"
 #include "ui/AppIcon.h"
 #include "utils/Log.h"
 
@@ -9,6 +11,8 @@
 #include <QQuickWindow>
 #include <QSGRendererInterface>
 #include <QTextStream>
+
+#include <memory>
 
 // Define the logging category declared in Log.h (for GAZER_* macros).
 Q_LOGGING_CATEGORY(lcGazer, "gazer")
@@ -51,9 +55,6 @@ void gazerMessageHandler(QtMsgType type, const QMessageLogContext& ctx, const QS
 
 int main(int argc, char* argv[])
 {
-    // File + stderr logging so expand/activate failures are visible without a debugger.
-    g_logFile.setFileName(QStringLiteral("gazer.log"));
-    g_logFile.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text);
     qInstallMessageHandler(gazerMessageHandler);
     qputenv("QT_LOGGING_RULES", "gazer.*=true");
 
@@ -77,10 +78,34 @@ int main(int argc, char* argv[])
         QApplication::setWindowIcon(appIcon);
     }
 
+    const QStringList args = QCoreApplication::arguments();
+    auto inbound = std::make_unique<gazer::ActionChannel>();
+    if (!inbound->listen()) {
+        QString err;
+        if (!gazer::ActionChannel::sendToPeer(gazer::inboundForwardPayload(args), &err)) {
+            fprintf(stderr, "%s\n", qPrintable(err));
+            return 1;
+        }
+        return 0;
+    }
+
+    // File + stderr logging so expand/activate failures are visible without a debugger.
+    // Open only as the live instance so a --action client does not truncate gazer.log.
+    g_logFile.setFileName(QStringLiteral("gazer.log"));
+    if (!g_logFile.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
+        fprintf(stderr, "Could not open gazer.log\n");
+    }
+
     gazer::Application app;
     if (!app.initialize()) {
         GAZER_ERROR << "Failed to initialize Gazer";
         return 1;
+    }
+    app.takeInbound(std::move(inbound));
+
+    const QString startup = gazer::inboundPayloadFromArgs(args);
+    if (!startup.isEmpty()) {
+        app.runInbound(startup);
     }
 
     return qapp.exec();

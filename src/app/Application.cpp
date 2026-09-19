@@ -1,7 +1,9 @@
 #include "app/Application.h"
 
+#include "app/ActionChannel.h"
 #include "app/ActionDispatcher.h"
 #include "app/AppSettings.h"
+#include "app/InboundActions.h"
 #include "app/CommandRegistry.h"
 #include "app/ComposeUi.h"
 #include "app/GazerServices.h"
@@ -552,6 +554,37 @@ void Application::shutdownUi()
     if (m_tray) {
         m_tray->hideIcon();
     }
+}
+
+void Application::takeInbound(std::unique_ptr<ActionChannel> channel)
+{
+    m_inbound = std::move(channel);
+    if (!m_inbound) {
+        return;
+    }
+    m_inbound->setParent(this);
+    m_inbound->setDispatch([this](const QString& text) { runInbound(text); });
+}
+
+void Application::runInbound(const QString& text)
+{
+    if (!m_actions || !m_svc) {
+        return;
+    }
+    if (isInboundRaise(text)) {
+        m_svc->pages().raise();
+        return;
+    }
+    QVector<PageAction> acts;
+    QString err;
+    if (!parseInboundActions(text, acts, &err)) {
+        GAZER_WARN << "Inbound action:" << err;
+        if (m_tray) {
+            m_tray->setStatus(err);
+        }
+        return;
+    }
+    m_actions->dispatchInbound(acts);
 }
 
 void Application::onQuitRequested()

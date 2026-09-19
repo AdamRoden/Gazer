@@ -221,4 +221,30 @@ void ActionDispatcher::dispatchPage(const QVector<PageAction>& actions, const QS
     flushShowNav();
 }
 
+void ActionDispatcher::dispatchInbound(const QVector<PageAction>& actions)
+{
+    if (actions.isEmpty()) {
+        return;
+    }
+    QString source = m_svc.pages().topPageId();
+    QVector<PageAction> show;
+    auto flushShow = [&]() {
+        if (show.isEmpty()) {
+            return;
+        }
+        dispatchPage(show, source);
+        show.clear();
+    };
+    for (const PageAction& a : actions) {
+        if (a.type == PageActionType::ShowLayers) {
+            show.push_back(a);
+            continue;
+        }
+        flushShow();
+        dispatchPage({a}, source);
+        source = m_svc.pages().topPageId();
+    }
+    flushShow();
+}
+
 } // namespace gazer

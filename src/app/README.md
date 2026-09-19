@@ -6,7 +6,9 @@ Composition root, settings, command dispatch.
 |------|------|
 | `Application` | Tracker, tray, preview, editor, overlays over `GazerServices`. Owns `SplashOverlay` and starts it when `showSplash` is on. |
 | `GazerServices` | Owns domain services. Header is a façade — include the domain header at the call site |
-| `ActionDispatcher` | `PageAction` → commands / clicks / speak |
+| `ActionDispatcher` | `PageAction` → commands / clicks / speak. `dispatchInbound` follows the top page after OpenPage so ShowLayers hits the opened board |
+| `InboundActions` | Parse `--action` / pipe payload (attribute lines or action elements) |
+| `ActionChannel` | Same-user named pipe (`Gazer`). Claimed in `main`; empty reads are ignored |
 | `CommandRegistry` | Builtin names, then mapping profile. Prefix handlers. `compose.*` / `speech.*` / `soundboard.*` / `history.*` / `settings.*` / `headPose.*` skip the Cmd toast. Catalog: `Commands.md` |
 | `ComposeUi` | Gaze composer capture (`tryHandle`), decorate live values, stamp chrome, system-volume title slider. Composer Speak is `SpeakKind::Composed` (Eleven when configured). Helpers: `ComposeUiInternal.h` |
 | `ComposeVoices.cpp` | Voice catalog (model + speed + boost) |

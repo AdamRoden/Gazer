@@ -56,6 +56,8 @@ set(GAZER_SOURCES
     src/app/SettingsCommands.cpp
     src/app/SettingsHeadPose.cpp
     src/app/CommandRegistry.cpp
+    src/app/InboundActions.cpp
+    src/app/ActionChannel.cpp
     src/app/ComposeUi.cpp
     src/app/ComposeVoices.cpp
     src/app/ComposeSoundboard.cpp
@@ -173,6 +175,8 @@ set(GAZER_HEADERS
     src/app/SettingsPageBuild.h
     src/app/SettingsUiInternal.h
     src/app/CommandRegistry.h
+    src/app/InboundActions.h
+    src/app/ActionChannel.h
     src/app/ComposeUi.h
     src/assist/ComposeCommands.h
     src/assist/VoiceCatalog.h
@@ -451,6 +455,8 @@ add_executable(GazerPageTests
     tests/ComboMouseTest.cpp
     tests/LookToScrollTest.cpp
     tests/AhkLauncherTest.cpp
+    tests/InboundActionsTest.cpp
+    src/app/InboundActions.cpp
     tests/KeyStateManagerTest.cpp
     tests/ColorPickerHexTest.cpp
     tests/HeadPoseMapperTest.cpp

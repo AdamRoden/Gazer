@@ -19,6 +19,9 @@ public:
 
     void dispatchPage(const QVector<PageAction>& actions, const QString& sourcePageId,
                       const QString& targetId = {});
+    /// Same handlers as `dispatchPage`. After OpenPage / HostPage, later ShowLayers use
+    /// the new top page (cell ShowLayers still retargets the source page).
+    void dispatchInbound(const QVector<PageAction>& actions);
 
 signals:
     void statusMessage(const QString& message);

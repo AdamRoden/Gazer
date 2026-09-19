@@ -405,6 +405,20 @@ A cell or zone may have **one** action attribute. Multiple actions use child ele
 
 Builtins vs mapping fallthrough: [src/app/Commands.md](../src/app/Commands.md).
 
+### Inbound (AHK / CLI)
+
+The live process listens on a same-user named pipe `Gazer` (`\\.\pipe\Gazer` on Windows; override with `GAZER_ACTION_PIPE`). A second `Gazer.exe` with `--action` forwards to that pipe and exits. Payload is this same action language: attribute lines (`openPage=qwerty_main`, `command=toggleLookToScroll`, `showLayers=2`) or elements (`<OpenPage value="qwerty_main"/><ShowLayers value="2"/>`). Several `--action` flags run in order.
+
+Unlike a cell on Main (where `ShowLayers` would change Main), inbound `ShowLayers` after `OpenPage` in the same payload applies to the page that just opened.
+
+```
+Gazer.exe --action openPage=qwerty_main --action showLayers=2
+Gazer.exe --action command=toggleLookToScroll
+Gazer.exe --action "<Speak value=\"Hello\"/>"
+```
+
+AHK should `Run` that `--action` line (the pipe is Qt duplex; `FileOpen` write-only is unreliable). A second `Gazer.exe` with no `--action` sends `raise` (host to front). Empty pipe reads are ignored so a liveness probe is not a command.
+
 ### Composer capture
 
 While `compose` is top, or the action’s source page is `compose` or a compose live board (`compose_voices_live`, `compose_history_live`, `compose_item_edit_live`), `Send` and mapping/modifier commands never inject into the OS. Letters go into the internal phrase. `backspace` / `space` / `enter` / `escape` edit or speak; `leftShift` / `Ctrl` / `tab` / arrows are no-ops. `qwerty_main` is unchanged. `compose.*` and `settings.speech.*` still run as builtins.

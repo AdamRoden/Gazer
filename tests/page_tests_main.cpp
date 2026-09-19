@@ -23,6 +23,7 @@ QObject* createScrollBarTest();
 QObject* createComboMouseTest();
 QObject* createLookToScrollTest();
 QObject* createAhkLauncherTest();
+QObject* createInboundActionsTest();
 QObject* createKeyStateManagerTest();
 QObject* createColorPickerHexTest();
 QObject* createHeadPoseMapperTest();
@@ -85,6 +86,8 @@ int main(int argc, char** argv)
     status |= QTest::qExec(lts.get(), rest);
     std::unique_ptr<QObject> ahk(createAhkLauncherTest());
     status |= QTest::qExec(ahk.get(), rest);
+    std::unique_ptr<QObject> inbound(createInboundActionsTest());
+    status |= QTest::qExec(inbound.get(), rest);
     std::unique_ptr<QObject> keys(createKeyStateManagerTest());
     status |= QTest::qExec(keys.get(), rest);
     std::unique_ptr<QObject> colorHex(createColorPickerHexTest());

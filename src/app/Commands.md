@@ -2,6 +2,8 @@
 
 `CommandRegistry` runs a **builtin** first; unknown names fall through to `resources/mappings/default.json`. `compose.*` / `speech.*` / `soundboard.*` / `history.*` / `settings.*` / `headPose.*` skip the Cmd toast.
 
+AHK / CLI is not this table. `Gazer.exe --action …` (and the `Gazer` named pipe) parse the same action language as page XML. Several `--action` flags run in order. After `OpenPage` in one payload, `ShowLayers` applies to the opened page (`ActionDispatcher::dispatchInbound`). A second instance with no `--action` sends `raise`. Empty pipe reads are ignored.
+
 | Registered in | What |
 |---------------|------|
 | `Application.cpp` | Shell: quit, editor, preview, splash play |

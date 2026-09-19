@@ -180,6 +180,8 @@ Icons: set `icon` to the filename stem in `resources/icons/svg/` (`menu`, `mouse
 
 Tray → **Page editor**, command `openPageEditor`, or launch with `--editor`.
 
+AHK and other programs fire the same cell/zone actions on a running instance: `Gazer.exe --action openPage=qwerty_main --action showLayers=2` or `--action command=toggleLookToScroll`. The live process owns a local pipe named `Gazer`; a second `Gazer.exe` forwards `--action` and exits. Action language: [docs/page-xml.md](docs/page-xml.md) (Inbound).
+
 The designer edits **Page XML** (the same files the runtime loads). Three panes:
 
 | Pane | Contents |

@@ -10,6 +10,7 @@
 
 namespace gazer {
 
+class ActionChannel;
 class ActionDispatcher;
 class DwellSuspendOverlay;
 class GazerServices;
@@ -30,6 +31,8 @@ public:
     ~Application() override;
 
     [[nodiscard]] bool initialize();
+    void takeInbound(std::unique_ptr<ActionChannel> channel);
+    void runInbound(const QString& text);
 
 private:
     [[nodiscard]] bool startTracker();
@@ -52,6 +55,7 @@ private:
 
     std::unique_ptr<GazerServices> m_svc;
     std::unique_ptr<ActionDispatcher> m_actions;
+    std::unique_ptr<ActionChannel> m_inbound;
     std::unique_ptr<ITracker> m_tracker;
     GazeRouter m_gazeRouter;
     std::unique_ptr<SplashOverlay> m_splash;
