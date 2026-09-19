@@ -1,11 +1,13 @@
 #include "app/GazerServices.h"
 
+#include "app/ActionChannel.h"
 #include "app/ActiveStateResolver.h"
 #include "app/CommandRegistry.h"
 #include "app/ComposeUi.h"
 #include "app/SettingsUi.h"
 #include "assist/ActionLoopService.h"
 #include "assist/AhkLauncher.h"
+#include "assist/SidecarHost.h"
 #include "assist/AssistCommands.h"
 #include "assist/ComposeCommands.h"
 #include "assist/AssistSession.h"
@@ -137,6 +139,9 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
     m_assistSession = std::make_unique<AssistSession>();
     m_actionLoops = std::make_unique<ActionLoopService>();
     m_ahk = std::make_unique<AhkLauncher>();
+    m_sidecars = std::make_unique<SidecarHost>();
+    m_sidecars->setAhk(m_ahk.get());
+    m_sidecars->setActionPipe(ActionChannel::pipeName());
 
     m_catalog->setDirectory(layoutsDir);
     const QString userLayouts =

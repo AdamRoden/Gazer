@@ -1,5 +1,6 @@
 #include "assist/AhkLauncher.h"
 
+#include "assist/ChildProcess.h"
 #include "utils/Log.h"
 
 #include <QCoreApplication>
@@ -134,11 +135,7 @@ AhkLauncher::AhkLauncher(QObject* parent)
 
 AhkLauncher::~AhkLauncher()
 {
-    const auto procs = findChildren<QProcess*>();
-    for (QProcess* p : procs) {
-        p->kill();
-        p->waitForFinished(500);
-    }
+    ChildProcess::killChildren(this);
 }
 
 bool AhkLauncher::wantsV1(const QString& source)
@@ -211,6 +208,17 @@ QStringList AhkLauncher::systemCandidates()
 
 QString AhkLauncher::findExecutable(const QString& source, QString* error)
 {
+    if (m_overrideExe.has_value()) {
+        const QString path = m_overrideExe->trimmed();
+        if (path.isEmpty() || !QFileInfo::exists(path) || !QFileInfo(path).isFile()) {
+            if (error) {
+                *error = QStringLiteral("AutoHotkey is not installed");
+            }
+            return {};
+        }
+        return QDir::cleanPath(path);
+    }
+
     const bool v1 = wantsV1(source);
     if (m_haveCache && m_cachedWantV1 == v1 && QFileInfo::exists(m_cachedExe)) {
         return m_cachedExe;
@@ -252,38 +260,13 @@ void AhkLauncher::setOverrideExecutable(const std::optional<QString>& path)
     m_cachedExe.clear();
 }
 
-QString AhkLauncher::resolveExecutable(const QString& source, QString* error)
-{
-    if (m_overrideExe.has_value()) {
-        const QString path = m_overrideExe->trimmed();
-        if (path.isEmpty() || !QFileInfo::exists(path) || !QFileInfo(path).isFile()) {
-            if (error) {
-                *error = QStringLiteral("AutoHotkey is not installed");
-            }
-            return {};
-        }
-        return QDir::cleanPath(path);
-    }
-    return findExecutable(source, error);
-}
-
-void AhkLauncher::forgetProcess(QProcess* proc, const QString& scriptPath)
-{
-    if (!scriptPath.isEmpty()) {
-        QFile::remove(scriptPath);
-    }
-    if (proc) {
-        proc->deleteLater();
-    }
-}
-
 bool AhkLauncher::run(const QString& source, QString* error)
 {
     if (source.trimmed().isEmpty()) {
         return true;
     }
 
-    const QString exe = resolveExecutable(source, error);
+    const QString exe = findExecutable(source, error);
     if (exe.isEmpty()) {
         return false;
     }
@@ -321,38 +304,9 @@ bool AhkLauncher::run(const QString& source, QString* error)
         return true;
     }
 
-    auto* proc = new QProcess(this);
-    proc->setProgram(exe);
-    proc->setArguments({scriptPath});
-    proc->setWorkingDirectory(dirPath);
-    proc->setProcessChannelMode(QProcess::MergedChannels);
-
-    connect(proc, &QProcess::finished, this,
-            [this, proc, scriptPath](int code, QProcess::ExitStatus) {
-                if (code != 0) {
-                    const QByteArray err = proc->readAll();
-                    GAZER_WARN << "AHK exited" << code << QString::fromLocal8Bit(err);
-                }
-                forgetProcess(proc, scriptPath);
-            });
-    connect(proc, &QProcess::errorOccurred, this,
-            [this, proc, scriptPath](QProcess::ProcessError e) {
-                if (e == QProcess::FailedToStart) {
-                    GAZER_WARN << "AHK failed to start" << proc->errorString();
-                    forgetProcess(proc, scriptPath);
-                }
-            });
-
-    proc->start();
-    if (!proc->waitForStarted(3000)) {
-        if (error) {
-            *error = proc->errorString().isEmpty() ? QStringLiteral("AHK failed to start")
-                                                   : proc->errorString();
-        }
-        forgetProcess(proc, scriptPath);
-        return false;
-    }
-    return true;
+    return ChildProcess::start(this, exe, {scriptPath}, dirPath, {}, QStringLiteral("AHK"),
+                               [scriptPath](QProcess*) { QFile::remove(scriptPath); }, error)
+           != nullptr;
 }
 
 } // namespace gazer

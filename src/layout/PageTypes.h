@@ -266,6 +266,7 @@ enum class PageActionType {
     GoBack,
     Speak,
     Ahk,
+    Run,
     Unknown
 };
 
@@ -274,12 +275,17 @@ enum class PageNavScope { Id, All, Self, Others };
 enum class PageZoomMode { Off, Settings, Level, Foresight, ForesightBonus };
 enum class PageMoveMode { Gaze, Absolute, Relative, Direction };
 enum class PageClickKind { Default, Double, Down, Up, Toggle };
+enum class PageRunKind { Python, Ahk };
 
 struct PageAction {
     PageActionType type = PageActionType::Unknown;
     QString value;
     QString args;
     QString ahkSource;
+    PageRunKind runKind = PageRunKind::Python;
+    QString runFile;
+    QString runKey;
+    bool runPersist = false;
 
     QString sendKey;
     QString sendEdge; // Down / Up / empty = tap
@@ -311,7 +317,7 @@ struct PageAction {
 };
 
 /// Rapid dwell for keys, composer typing, modifiers, and mapping key commands.
-/// Settings / nav / assist toggles / mouse / AHK / composer word chips use standard dwell.
+/// Settings / nav / assist toggles / mouse / AHK / Run / composer word chips use standard dwell.
 [[nodiscard]] inline bool isRapidDwellCommand(QStringView name)
 {
     const QString n = name.toString();

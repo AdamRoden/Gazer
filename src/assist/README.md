@@ -14,6 +14,8 @@ Gaze tools on top of the page session.
 | `GazeDwellTracker.h` / `GazeFollowProfile.h` / `GazeFollowStickiness.h` / `ForesightMemory.h` / `MagLayout.h` | Shared helpers |
 | `ActionLoopService` | Sticky command series |
 | `AhkLauncher` | Temp `.ahk` + local AutoHotkey |
+| `SidecarHost` | `<Run>` Python / AHK files (one-shot or persist). Path jail: page dir, AppData, app `resources`. |
+| `ChildProcess` | Shared spawn/kill for AHK and `<Run>` children. `killChildren` disconnects first so parent dtors are safe. |
 | `TtsService` | SAPI voice |
 | `SpeechEngine` | Canned = SAPI. Composed = Eleven when model+key+voiceId, else SAPI. Abort + generation + ClipPlayer. Three Eleven failures latch SAPI until model, voice, or API key changes. Speak never types. |
 | `ClipPlayer` | GUI-thread `QMediaPlayer` for baked MPEG. `play()` true means the engine owns the clip; `failed()` is the SAPI fallback; `stopped()` always means finished. Gain > 1× is a `ClipBoost` preprocess, then the same play path. Manual: `tests/fixtures/speech/beep.mp3` |

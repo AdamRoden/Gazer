@@ -306,6 +306,68 @@ bool parseCommandValue(const QString& value, PageAction& out, QString* error)
     return true;
 }
 
+QString runKindText(PageRunKind k)
+{
+    return k == PageRunKind::Ahk ? QStringLiteral("ahk") : QStringLiteral("python");
+}
+
+bool parseRunKindToken(const QString& tok, PageAction& out, QString* error)
+{
+    const QString t = tok.trimmed().toLower();
+    if (t.isEmpty() || t == QLatin1String("python") || t == QLatin1String("py")) {
+        out.runKind = PageRunKind::Python;
+        return true;
+    }
+    if (t == QLatin1String("ahk") || t == QLatin1String("autohotkey")) {
+        out.runKind = PageRunKind::Ahk;
+        return true;
+    }
+    if (error) {
+        *error = QStringLiteral("Unknown Run kind '%1' (python/ahk)").arg(tok);
+    }
+    return false;
+}
+
+bool parseRunValue(const QString& value, PageAction& out, QString* error)
+{
+    out.type = PageActionType::Run;
+    const QString s = value.trimmed();
+    if (s.isEmpty()) {
+        return true;
+    }
+    const QStringList parts = splitCsv(s);
+    if (parts.isEmpty()) {
+        return true;
+    }
+    if (!parseRunKindToken(parts[0], out, error)) {
+        return false;
+    }
+    if (parts.size() < 2 || parts[1].trimmed().isEmpty()) {
+        if (error) {
+            *error = QStringLiteral("Run needs kind,file");
+        }
+        return false;
+    }
+    out.runFile = parts[1].trimmed();
+    if (parts.size() >= 3 && !parts[2].isEmpty()) {
+        const QString t = parts[2].trimmed().toLower();
+        if (t == QLatin1String("persist")) {
+            out.runPersist = true;
+        } else {
+            bool flag = false;
+            if (PageDimParse::strictBool(parts[2], &flag)) {
+                out.runPersist = flag;
+            } else {
+                out.runKey = parts[2].trimmed();
+            }
+        }
+    }
+    if (parts.size() >= 4 && !parts[3].isEmpty()) {
+        out.runKey = parts[3].trimmed();
+    }
+    return noExtra(parts, 4, error);
+}
+
 bool parseSpeakValue(const QString& value, PageAction& out, QString* error)
 {
     Q_UNUSED(error);

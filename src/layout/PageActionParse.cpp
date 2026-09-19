@@ -33,6 +33,9 @@ using pageaction::parseHostPageValue;
 using pageaction::parseLayersValue;
 using pageaction::parseSendValue;
 using pageaction::parseSpeakValue;
+using pageaction::parseRunValue;
+using pageaction::parseRunKindToken;
+using pageaction::runKindText;
 using pageaction::parseZoomSpec;
 using pageaction::splitCsv;
 using pageaction::zoomSpecText;
@@ -136,6 +139,7 @@ const ActionName kNames[] = {
      parseLayersValue},
     {"goBack", "GoBack", PageActionType::GoBack},
     {"speak", "Speak", PageActionType::Speak, PageVerb::Open, nullptr, true, parseSpeakValue},
+    {"run", "Run", PageActionType::Run, PageVerb::Open, nullptr, true, parseRunValue},
 };
 
 const ActionName* findName(QStringView raw)
@@ -331,6 +335,22 @@ QString pageActionCompassToken(PageAnchor a)
     return compassToken(a);
 }
 
+QString pageRunKindText(PageRunKind k)
+{
+    return runKindText(k);
+}
+
+QStringList pageRunKindChoices()
+{
+    return {QStringLiteral("python"), QStringLiteral("ahk")};
+}
+
+bool applyPageRunKind(PageAction& a, const QString& token, QString* error)
+{
+    a.type = PageActionType::Run;
+    return parseRunKindToken(token, a, error);
+}
+
 QString pageActionValueText(const PageAction& a)
 {
     switch (a.type) {
@@ -388,6 +408,19 @@ QString pageActionValueText(const PageAction& a)
         return {};
     case PageActionType::Speak:
         return a.speakText;
+    case PageActionType::Run: {
+        QStringList parts{runKindText(a.runKind), a.runFile};
+        if (a.runPersist) {
+            parts.push_back(QStringLiteral("persist"));
+        }
+        if (!a.runKey.isEmpty()) {
+            if (!a.runPersist) {
+                parts.push_back(QStringLiteral("false"));
+            }
+            parts.push_back(a.runKey);
+        }
+        return csvJoin(parts);
+    }
     case PageActionType::Ahk:
     case PageActionType::Unknown:
         return a.value;
@@ -400,7 +433,7 @@ bool pageActionCanInline(const PageAction& a)
     if (a.type == PageActionType::Ahk || a.type == PageActionType::Unknown) {
         return false;
     }
-    if (a.type == PageActionType::Command && !a.args.isEmpty()) {
+    if ((a.type == PageActionType::Command || a.type == PageActionType::Run) && !a.args.isEmpty()) {
         return false;
     }
     return !pageActionAttributeName(a).isEmpty();
@@ -528,6 +561,12 @@ bool parsePageActionElement(QStringView elementName, const QXmlStreamAttributes&
         if (n->type == PageActionType::Command && out.command.isEmpty()) {
             out.command = out.args.trimmed();
         }
+    }
+    if (n->type == PageActionType::Run && out.runFile.isEmpty()) {
+        if (error) {
+            *error = QStringLiteral("Run needs a file");
+        }
+        return false;
     }
     return true;
 }

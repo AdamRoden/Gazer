@@ -13,6 +13,7 @@ namespace gazer {
 
 class ActionLoopService;
 class AhkLauncher;
+class SidecarHost;
 class AssistSession;
 struct AssistCommandContext;
 class ClipPlayer;
@@ -65,6 +66,7 @@ public:
     CommandRegistry& commands() { return *m_commands; }
     ComposeUi& composeUi() { return *m_compose; }
     AhkLauncher& ahk() { return *m_ahk; }
+    SidecarHost& sidecars() { return *m_sidecars; }
     LookToScroll& lookToScroll() { return *m_lookToScroll; }
     ComboMouse& comboMouse() { return *m_comboMouse; }
     MagnifierOverlay& magnifier() { return *m_magnifier; }
@@ -111,6 +113,7 @@ private:
     std::unique_ptr<SpeechHistory> m_history;
     std::unique_ptr<ComposeUi> m_compose;
     std::unique_ptr<AhkLauncher> m_ahk;
+    std::unique_ptr<SidecarHost> m_sidecars;
     std::unique_ptr<LookToScroll> m_lookToScroll;
     std::unique_ptr<ComboMouse> m_comboMouse;
     std::unique_ptr<MagnifierOverlay> m_magnifier;

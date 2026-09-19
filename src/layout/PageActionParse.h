@@ -42,4 +42,8 @@ namespace gazer {
 
 [[nodiscard]] QString pageActionCompassToken(PageAnchor a);
 
+[[nodiscard]] QString pageRunKindText(PageRunKind k);
+[[nodiscard]] QStringList pageRunKindChoices();
+[[nodiscard]] bool applyPageRunKind(PageAction& a, const QString& token, QString* error = nullptr);
+
 } // namespace gazer

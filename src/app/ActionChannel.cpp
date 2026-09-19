@@ -4,6 +4,7 @@
 
 #include <QLocalServer>
 #include <QLocalSocket>
+#include <QtGlobal>
 #include <utility>
 
 namespace gazer {

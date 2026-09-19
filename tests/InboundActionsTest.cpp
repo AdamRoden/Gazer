@@ -13,6 +13,7 @@ private slots:
     void parseOpenPageAndShowLayersLines();
     void parseXmlFragment();
     void parseAhkElement();
+    void parseRunLineAndElement();
     void parseClosePageBareName();
     void parseSpaceSeparated();
     void rejectUnknown();
@@ -80,6 +81,25 @@ void InboundActionsTest::parseAhkElement()
     QCOMPARE(a.size(), 1);
     QCOMPARE(a[0].type, PageActionType::Ahk);
     QCOMPARE(a[0].ahkSource, QStringLiteral("MsgBox"));
+}
+
+void InboundActionsTest::parseRunLineAndElement()
+{
+    QVector<PageAction> a;
+    QString err;
+    QVERIFY2(parseInboundActions(QStringLiteral("run=python,scripts/t.py"), a, &err),
+             qPrintable(err));
+    QCOMPARE(a.size(), 1);
+    QCOMPARE(a[0].type, PageActionType::Run);
+    QCOMPARE(a[0].runKind, PageRunKind::Python);
+    QCOMPARE(a[0].runFile, QStringLiteral("scripts/t.py"));
+
+    QVERIFY2(parseInboundActions(QStringLiteral("<Run value=\"ahk,snap.ahk,persist\"/>"), a, &err),
+             qPrintable(err));
+    QCOMPARE(a.size(), 1);
+    QCOMPARE(a[0].runKind, PageRunKind::Ahk);
+    QCOMPARE(a[0].runFile, QStringLiteral("snap.ahk"));
+    QVERIFY(a[0].runPersist);
 }
 
 void InboundActionsTest::parseClosePageBareName()

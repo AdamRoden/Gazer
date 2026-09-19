@@ -92,6 +92,7 @@ set(GAZER_SOURCES
     src/input/MouseInjector.cpp
     src/input/PixelScroller.cpp
     src/input/VirtualGamepad.cpp
+    src/input/VigemLib.cpp
     src/input/InputService.cpp
     src/mapping/MappingLoader.cpp
     src/mapping/MappingEngine.cpp
@@ -109,6 +110,8 @@ set(GAZER_SOURCES
     src/assist/SpeechSecrets.cpp
     src/assist/ElevenClient.cpp
     src/assist/AhkLauncher.cpp
+    src/assist/ChildProcess.cpp
+    src/assist/SidecarHost.cpp
     src/assist/LookToScroll.cpp
     src/assist/HeadPoseMapper.cpp
     src/assist/ComboMouse.cpp
@@ -213,6 +216,7 @@ set(GAZER_HEADERS
     src/input/MouseInjector.h
     src/input/PixelScroller.h
     src/input/VirtualGamepad.h
+    src/input/VigemLib.h
     src/input/InputService.h
     src/mapping/MappingTypes.h
     src/mapping/MappingLoader.h
@@ -230,6 +234,8 @@ set(GAZER_HEADERS
     src/assist/SpeechSecrets.h
     src/assist/ElevenClient.h
     src/assist/AhkLauncher.h
+    src/assist/ChildProcess.h
+    src/assist/SidecarHost.h
     src/assist/LookToScroll.h
     src/assist/HeadPoseMapper.h
     src/assist/ComboMouse.h
@@ -375,6 +381,22 @@ foreach(_dll IN LISTS _tobii_dll_candidates)
     endif()
 endforeach()
 
+set(_vigem_dll_candidates
+    "$ENV{GAZER_VIGEM_DLL}"
+    "${CMAKE_SOURCE_DIR}/third_party/ViGEmClient.dll"
+    "$ENV{ProgramFiles}/Nefarius Software Solutions/ViGEm Client/ViGEmClient.dll"
+)
+foreach(_dll IN LISTS _vigem_dll_candidates)
+    if(_dll AND EXISTS "${_dll}")
+        add_custom_command(TARGET Gazer POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${_dll}"
+                "$<TARGET_FILE_DIR:Gazer>/ViGEmClient.dll"
+        )
+        break()
+    endif()
+endforeach()
+
 if(WIN32)
     # Keep runtime deps next to Gazer.exe (Qt6Quick pulls Qml).
     # Without this, a fresh build silently fails at process start with STATUS_DLL_NOT_FOUND.
@@ -428,6 +450,10 @@ set(GAZER_PAGE_TEST_LIB
     src/layout/PageEdit.cpp
     src/layout/PageCatalog.cpp
     src/assist/AhkLauncher.cpp
+    src/assist/ChildProcess.cpp
+    src/assist/SidecarHost.cpp
+    src/input/VirtualGamepad.cpp
+    src/input/VigemLib.cpp
 )
 add_executable(GazerPageTests
     tests/page_tests_main.cpp
@@ -455,6 +481,8 @@ add_executable(GazerPageTests
     tests/ComboMouseTest.cpp
     tests/LookToScrollTest.cpp
     tests/AhkLauncherTest.cpp
+    tests/SidecarHostTest.cpp
+    tests/VirtualGamepadTest.cpp
     tests/InboundActionsTest.cpp
     src/app/InboundActions.cpp
     tests/KeyStateManagerTest.cpp

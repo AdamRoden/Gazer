@@ -5,8 +5,6 @@
 #include <QStringList>
 #include <optional>
 
-class QProcess;
-
 namespace gazer {
 
 /// Finds a local AutoHotkey install and runs embedded page-script source in a new process.
@@ -34,10 +32,8 @@ public:
     [[nodiscard]] QString lastScriptPath() const { return m_lastScriptPath; }
 
 private:
-    [[nodiscard]] QString resolveExecutable(const QString& source, QString* error);
     [[nodiscard]] static QStringList systemCandidates();
     [[nodiscard]] static bool wantsV1(const QString& source);
-    void forgetProcess(QProcess* proc, const QString& scriptPath);
 
     std::optional<QString> m_overrideExe;
     QString m_cachedExe;

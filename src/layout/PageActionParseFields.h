@@ -22,6 +22,9 @@ bool parseZoomSpec(const QString& tok, PageAction& out, QString* error);
 
 bool parseSendValue(const QString& value, PageAction& out, QString* error);
 bool parseCommandValue(const QString& value, PageAction& out, QString* error);
+bool parseRunKindToken(const QString& tok, PageAction& out, QString* error);
+bool parseRunValue(const QString& value, PageAction& out, QString* error);
+[[nodiscard]] QString runKindText(PageRunKind k);
 bool parseSpeakValue(const QString& value, PageAction& out, QString* error);
 bool parseNavValue(const QString& value, PageAction& out, QString* error);
 bool parseHostPageValue(const QString& value, PageAction& out, QString* error);

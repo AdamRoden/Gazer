@@ -400,6 +400,7 @@ A cell or zone may have **one** action attribute. Multiple actions use child ele
 | `GoBack` | (none) — restore the last breadcrumb |
 | `Speak` | TTS text (always Windows SAPI; not the composer / ElevenLabs path) |
 | `AHK` | element body / CDATA — written to a temp `.ahk` and started with a local AutoHotkey install (v2 preferred; `#Requires AutoHotkey v1` selects v1). AutoHotkey is not bundled; set `GAZER_AHK` to an exe to override discovery. |
+| `Run` | `kind,file[,persist][,key]` — spawn a **file** with local Python (`.py`) or AutoHotkey (`.ahk`). `persist` starts once (keyed by `key` or the file path) until Gazer quits. `args` is extra argv (`<Run value="…" args="…"/>`). Relative file is the page directory, then `%AppData%\Gazer`, then the app `resources` folder. Absolute paths must stay under those roots. `GAZER_PYTHON` overrides Python; scripts see `GAZER_EXE` and `GAZER_ACTION_PIPE`. |
 
 `Command` may take `args` (`<Command value="…" args="…"/>`).
 
@@ -415,6 +416,7 @@ Unlike a cell on Main (where `ShowLayers` would change Main), inbound `ShowLayer
 Gazer.exe --action openPage=qwerty_main --action showLayers=2
 Gazer.exe --action command=toggleLookToScroll
 Gazer.exe --action "<Speak value=\"Hello\"/>"
+Gazer.exe --action run=python,scripts/predict.py
 ```
 
 AHK should `Run` that `--action` line (the pipe is Qt duplex; `FileOpen` write-only is unreliable). A second `Gazer.exe` with no `--action` sends `raise` (host to front). Empty pipe reads are ignored so a liveness probe is not a command.
@@ -466,6 +468,21 @@ Composer word chips use this: first dwell moves the caret to the word; a later d
 ```
 
 AHK cells use **standard** dwell. Discovery: local AutoHotkey v2, unless the script starts with `#Requires AutoHotkey v1`, or `GAZER_AHK` points at an exe.
+
+---
+
+## Run (Python / AHK files)
+
+Inline snippets stay `<AHK>`. `<Run>` starts a real file next to the page (or under `%AppData%\Gazer`).
+
+```xml
+<Cell id="predict" row="0" col="0" label="Predict">
+  <Run value="python,scripts/predict.py,persist,predict"/>
+</Cell>
+<Cell id="snap" row="0" col="1" label="Snap" run="ahk,scripts/snap.ahk"/>
+```
+
+Python is not bundled (`python` / `python3` / `py -3` on PATH, or `GAZER_PYTHON`). The child working directory is the script folder. Talk back with `Gazer.exe --action …` (same inbound language as AHK). Do not `FileOpen` the named pipe write-only.
 
 ---
 

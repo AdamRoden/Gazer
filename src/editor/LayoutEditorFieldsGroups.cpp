@@ -386,6 +386,30 @@ void addActionFields(PropertyBinder& b, QFormLayout* form, const PageAction& act
             });
         });
     }
+    if (action.type == PageActionType::Run) {
+        b.combo(form, QStringLiteral("Kind"), pageRunKindChoices(), pageRunKindText(action.runKind),
+                [apply](const QString& t) {
+                    apply(QStringLiteral("Run kind"),
+                          [&](PageAction& a) { (void)applyPageRunKind(a, t); });
+                });
+        b.text(form, QStringLiteral("File"), action.runFile, [apply](const QString& t) {
+            apply(QStringLiteral("Run file"), [&](PageAction& a) {
+                a.type = PageActionType::Run;
+                a.runFile = t.trimmed();
+            });
+        });
+        b.check(form, QStringLiteral("Keep running"), action.runPersist, [apply](bool on) {
+            apply(QStringLiteral("Run persist"), [&](PageAction& a) { a.runPersist = on; });
+        });
+        b.text(form, QStringLiteral("Key"), action.runKey, [apply](const QString& t) {
+            apply(QStringLiteral("Run key"), [&](PageAction& a) { a.runKey = t.trimmed(); });
+        });
+        b.text(form, QStringLiteral("Args"), action.args, [apply](const QString& t) {
+            apply(QStringLiteral("Run args"), [&](PageAction& a) { a.args = t; });
+        });
+        b.note(form, QStringLiteral("Relative to the page file. Python (.py) or AutoHotkey (.ahk). "
+                                    "Keep running starts once until Gazer quits."));
+    }
 }
 
 QStringList visibleWhenChoices()

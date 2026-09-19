@@ -4,6 +4,8 @@
 #include "app/ComposeUi.h"
 #include "app/GazerServices.h"
 #include "assist/AhkLauncher.h"
+#include "assist/SidecarHost.h"
+#include "layout/PageCatalog.h"
 #include "assist/ComboMouse.h"
 #include "assist/MouseAssistState.h"
 #include "assist/MouseDwellMove.h"
@@ -15,6 +17,7 @@
 #include "utils/Log.h"
 #include "utils/ScreenGrab.h"
 
+#include <QFileInfo>
 #include <QtGlobal>
 
 namespace gazer {
@@ -208,6 +211,26 @@ void ActionDispatcher::dispatchPage(const QVector<PageAction>& actions, const QS
             QString err;
             if (!m_svc.ahk().run(a.ahkSource, &err)) {
                 notify(err.isEmpty() ? QStringLiteral("AHK failed") : err);
+            }
+            break;
+        }
+        case PageActionType::Run: {
+            SidecarRequest req;
+            req.kind = a.runKind == PageRunKind::Ahk ? SidecarKind::Ahk : SidecarKind::Python;
+            req.file = a.runFile;
+            req.args = a.args;
+            req.key = a.runKey;
+            req.persist = a.runPersist;
+            QStringList extra;
+            if (!sourcePageId.isEmpty()) {
+                const QString pagePath = m_svc.catalog().pathFor(sourcePageId);
+                if (!pagePath.isEmpty()) {
+                    extra.push_back(QFileInfo(pagePath).absolutePath());
+                }
+            }
+            QString err;
+            if (!m_svc.sidecars().run(req, extra, &err)) {
+                notify(err.isEmpty() ? QStringLiteral("Run failed") : err);
             }
             break;
         }

@@ -2,6 +2,7 @@
 
 JSON **profiles** map layout `command` names to
 `InputService` outputs. Builtins win; see `src/app/Commands.md`.
+`gamepadButton` / `gamepadAxis` need ViGEm (`VirtualGamepad`).
 
 - Profile: `resources/mappings/default.json`
 - Loader: `MappingLoader`

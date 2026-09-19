@@ -25,6 +25,7 @@ private slots:
     void parseCloseSpecialsAndGoBack();
     void genericActionAttribute();
     void rapidDwellClassification();
+    void parseRunAction();
     void parseDwellPhases();
     void rejectDwellPhaseMixedActions();
     void rejectEmptyPhase();
@@ -452,6 +453,11 @@ void PageLoaderActionTest::rapidDwellClassification()
     ahk.type = PageActionType::Ahk;
     QVERIFY(!usesRapidDwell({ahk}));
 
+    PageAction run;
+    run.type = PageActionType::Run;
+    run.runFile = QStringLiteral("scripts/t.py");
+    QVERIFY(!usesRapidDwell({run}));
+
     QVERIFY(usesRapidDwell({cmd(QStringLiteral("leftShift"))}));
     QVERIFY(usesRapidDwell({cmd(QStringLiteral("leftCtrl"))}));
     QVERIFY(usesRapidDwell({cmd(QStringLiteral("backspace"))}));
@@ -479,6 +485,48 @@ void PageLoaderActionTest::rapidDwellClassification()
     QVERIFY(!usesRapidDwell({cmd(QStringLiteral("headPose.enabled.toggle"))}));
     QVERIFY(!usesRapidDwell({cmd(QStringLiteral("headPose.chart.axis.yaw"))}));
     QVERIFY(!usesRapidDwell({cmd(QStringLiteral("headPose.addMap"))}));
+}
+
+void PageLoaderActionTest::parseRunAction()
+{
+    PageAction a;
+    QString err;
+    QVERIFY2(loadOneAction(QByteArray("<Run value=\"python,scripts/t.py\"/>"), a, &err),
+             qPrintable(err));
+    QCOMPARE(a.type, PageActionType::Run);
+    QCOMPARE(a.runKind, PageRunKind::Python);
+    QCOMPARE(a.runFile, QStringLiteral("scripts/t.py"));
+    QVERIFY(!a.runPersist);
+
+    QVERIFY2(loadOneAction(QByteArray("<Run value=\"ahk,snap.ahk,persist,win\" args=\"--once\"/>"),
+                           a, &err),
+             qPrintable(err));
+    QCOMPARE(a.runKind, PageRunKind::Ahk);
+    QCOMPARE(a.runFile, QStringLiteral("snap.ahk"));
+    QVERIFY(a.runPersist);
+    QCOMPARE(a.runKey, QStringLiteral("win"));
+    QCOMPARE(a.args, QStringLiteral("--once"));
+
+    PageDocument attr;
+    QVERIFY2(PageLoader::loadFromXml(
+                 QByteArray("<Page id=\"p\"><Grid id=\"g\"><Cell id=\"c\" "
+                            "run=\"python,scripts/t.py,persist,pred\"/></Grid></Page>"),
+                 attr, &err),
+             qPrintable(err));
+    QCOMPARE(attr.grids[0].cells[0].actions[0].type, PageActionType::Run);
+    QCOMPARE(attr.grids[0].cells[0].actions[0].runFile, QStringLiteral("scripts/t.py"));
+    QVERIFY(attr.grids[0].cells[0].actions[0].runPersist);
+    QCOMPARE(attr.grids[0].cells[0].actions[0].runKey, QStringLiteral("pred"));
+
+    QVERIFY(!loadOneAction(QByteArray("<Run/>"), a, &err));
+    QVERIFY(err.contains(QStringLiteral("file")));
+
+    PageDocument round;
+    err.clear();
+    QVERIFY2(PageLoader::loadFromXml(PageWriter::toBytes(attr), round, &err), qPrintable(err));
+    QCOMPARE(round.grids[0].cells[0].actions[0].runFile, QStringLiteral("scripts/t.py"));
+    QVERIFY(round.grids[0].cells[0].actions[0].runPersist);
+    QCOMPARE(round.grids[0].cells[0].actions[0].runKey, QStringLiteral("pred"));
 }
 
 void PageLoaderActionTest::parseDwellPhases()

@@ -23,7 +23,7 @@ Contributors and coding agents: start at [AGENTS.md](AGENTS.md). Page XML schema
 | **Settings** | Gaze-operated boards for Speed, Magnify, Indicators, Assist, Tools, Theme, Speech, Head. No desktop dialogs for live prefs. |
 | **Page editor** | Qt Widgets designer for the same XML the runtime loads. Save of a shipped page writes a user copy. |
 | **Always on top** | Overlay stays above the taskbar and other apps. The installed MSI can sit above Task Manager (`uiAccess`). |
-| **Scripts / AHK** | Cells can run AutoHotkey from a local install, or `gazer.*` from scripts. |
+| **Scripts / AHK** | Cells can run AutoHotkey from a local install (`<AHK>` snippets), or `<Run>` a Python / AHK **file**. |
 
 ---
 
@@ -309,7 +309,7 @@ Tobii / Mouse ──► ITracker ──► GazePoint (+ HeadPose)
 
 - Live UI is one frameless topmost `QQuickWindow` + `QQuickPaintedItem` (software scene graph, alpha buffer) sized to painted chrome.
 - Root chrome is Docked / Drawer / Quit (`PageSession`).
-- Mapping profiles (`resources/mappings/default.json`) turn leftover command names into key / mouse / gamepad output.
+- Mapping profiles (`resources/mappings/default.json`) turn leftover command names into key / mouse / gamepad output. Gamepad needs ViGEmBus plus `ViGEmClient.dll` next to `Gazer.exe` (`GAZER_VIGEM_DLL` to override).
 - Builtins run first; unknown names fall through to the mapping profile.
 
 Boards are XML only (`resources/layouts/*.xml`). `openPage` / catalog ids open those pages on the live host. Editor F5 previews attach XML copies under `__editor_preview_*` ids so they do not replace the live page.
