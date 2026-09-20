@@ -3,7 +3,6 @@
 # --- Gazer project (Qt/CMake) ---
 website/site/
 website/.venv/
-website/docs/assets/gazer.png
 website/docs/assets/favicon.png
 __pycache__/
 *.pyc

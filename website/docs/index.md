@@ -1,4 +1,6 @@
-# Gazer
+# Gazer {: .visually-hidden }
+
+![Gazer](assets/wordmark.png){ .wordmark }
 
 Gaze-driven AAC and system input for Windows.
 

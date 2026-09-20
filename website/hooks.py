@@ -1,4 +1,4 @@
-"""Copy shipped icons into docs/assets so the site does not store a second tree."""
+"""Copy the app favicon into docs/assets so the site does not store a second copy."""
 
 from __future__ import annotations
 
@@ -11,5 +11,4 @@ def on_pre_build(config, **kwargs) -> None:
     icons = website.parent / "resources" / "icons"
     dest = website / "docs" / "assets"
     dest.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(icons / "gazer-128.png", dest / "gazer.png")
     shutil.copy2(icons / "gazer-32.png", dest / "favicon.png")

@@ -13,7 +13,7 @@ use_directory_urls: true
 
 theme:
   name: material
-  logo: assets/gazer.png
+  logo: assets/wordmark.png
   favicon: assets/favicon.png
   palette:
     - scheme: slate
