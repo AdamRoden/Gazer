@@ -15,7 +15,7 @@
   %LOCALAPPDATA%\Gazer\signing\ and the MSI trusts it at install time.
 
 .PARAMETER Version
-  MSI ProductVersion (major.minor.patch, each 0-65535). Default: from CMakeLists or 0.6.2
+  MSI ProductVersion (major.minor.patch, each 0-65535). Default: from CMakeLists or 0.6.3
 
 .PARAMETER Configuration
   CMake build type. Default: Release
@@ -28,7 +28,7 @@
 
 .EXAMPLE
   .\scripts\build-msi.ps1
-  .\scripts\build-msi.ps1 -Version 0.6.2 -SkipBuild
+  .\scripts\build-msi.ps1 -Version 0.6.3 -SkipBuild
 #>
 [CmdletBinding()]
 param(
@@ -94,7 +94,7 @@ if (-not $Version) {
     if ($cm -match 'project\s*\(\s*Gazer\s+VERSION\s+([0-9]+\.[0-9]+\.[0-9]+)') {
         $Version = $Matches[1]
     } else {
-        $Version = "0.6.2"
+        $Version = "0.6.3"
     }
 }
 if ($Version -notmatch '^\d+\.\d+\.\d+(\.\d+)?$') {
