@@ -2,7 +2,7 @@
 
 Pages live in `resources/layouts/*.xml`. **Catalog id = filename stem** (`qwerty_main.xml` → id `qwerty_main`). User copies in `%AppData%\Gazer\layouts` override the same id. Parsed by `PageLoader` into `PageDocument` (`src/layout/`). The page editor reads and writes this format.
 
-Runtime notes for the live session: [src/layout/README.md](../src/layout/README.md). User overview: [README.md](../README.md).
+Runtime notes for the live session: [src/layout/README.md](../src/layout/README.md). User overview: [website/docs/](../website/docs/).
 
 ---
 

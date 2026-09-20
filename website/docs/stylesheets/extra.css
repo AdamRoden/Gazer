@@ -1,0 +1,8 @@
+.md-typeset .overlay-shot {
+  border-radius: 12px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+}
+
+.md-typeset .hero-actions {
+  margin: 1.2em 0 1.6em;
+}

@@ -1,0 +1,43 @@
+name: Deploy docs
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - website/**
+      - resources/icons/gazer-128.png
+      - resources/icons/gazer-32.png
+      - .github/workflows/pages.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install MkDocs
+        run: pip install -r website/requirements.txt
+      - name: Build
+        run: mkdocs build --strict
+        working-directory: website
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: website/site
+      - id: deploy
+        uses: actions/deploy-pages@v4

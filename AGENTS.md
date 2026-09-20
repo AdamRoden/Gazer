@@ -2,7 +2,7 @@
 
 Gaze-driven AAC and system input for Windows. C++20 / Qt 6. Live UI is one frameless `QQuickWindow`; boards are XML in `resources/layouts/`.
 
-Do **not** start with `README.md` (user manual). Use this file, then the folder map for the task.
+Do **not** start with `README.md` or `website/docs/` (user manual). Use this file, then the folder map for the task.
 
 ## Live z-order (front → back)
 
@@ -34,6 +34,7 @@ Do not `raise()` / `HWND_TOP` an overlay on every gaze sample. `showOverlay()` i
 
 | Task | Open |
 |------|------|
+| User docs (GitHub Pages) | `website/docs/` (`mkdocs.yml`, workflow `.github/workflows/pages.yml`) |
 | Page XML schema / actions | `docs/page-xml.md`, then `src/layout/README.md` |
 | Parser / hit / session | `src/layout/` — `PageLoader`, `PageHit`, `PageSession*` |
 | Settings keys, JSON, editors | `src/app/README.md`, `AppSettings.h`, spec tables in `AppSettings.cpp`. Speed: standard `dwellSequence` vs rapid `rapidDwellSequence`; shared `scanGraceMs`. Head-pose maps: `headPoseMaps` + `SettingsHeadPose.cpp` |
@@ -96,4 +97,4 @@ cmake --build build --target GazerSpeechTests
 
 MinGW `bin` on `PATH`. One Ninja version per tree. Includes are `"layout/PageLoader.h"` from `src/`.
 
-User-facing install / MSI / tray: `README.md`.
+User-facing install / MSI / tray: `website/docs/`. Contributor build / architecture: `README.md`.
