@@ -2,6 +2,8 @@
 
 Tray → **Page editor**, command `openPageEditor`, or launch with `--editor`.
 
+![The page editor with the compact keyboard open: Add palette and element tree on the left, canvas in the center, Properties on the right](assets/page-editor.png){ .overlay-shot }
+
 The designer edits **Page XML** (the same files the runtime loads). Three panes:
 
 | Pane | Contents |
