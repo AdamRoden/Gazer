@@ -269,9 +269,16 @@ void SplashOverlay::tick()
     }
     m_gaze = gazePos();
     m_gazeValid = true;
+    const int autoHold = qEnvironmentVariableIntValue("GAZER_SPLASH_AUTO");
+    if (autoHold > 0 && nextEnabled()) {
+        const auto& s = splash::spec(int(m_phase));
+        if (m_phaseElapsedMs >= s.introMs + autoHold) {
+            goNext();
+        }
+    }
     update();
     static qint64 lastBucket = -1;
-    const qint64 bucket = m_clock.elapsed() / 50;
+    const qint64 bucket = m_clock.elapsed() / 100;
     if (bucket != lastBucket) {
         lastBucket = bucket;
         dumpSplashRecordFrame(this);

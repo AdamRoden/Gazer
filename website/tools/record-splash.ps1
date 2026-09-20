@@ -29,7 +29,7 @@ $nextY = [int]($h / 2)
 function Park { [SplashNative]::SetCursorPos(80, 80) | Out-Null }
 function Dwell-Next {
     [SplashNative]::SetCursorPos($nextX, $nextY) | Out-Null
-    Start-Sleep -Milliseconds 950
+    Start-Sleep -Milliseconds 2500
     Park
 }
 
@@ -39,23 +39,12 @@ if (Test-Path $env:GAZER_SPLASH_RECORD) {
 
 Park
 & $gazer --action command=settings.session.showSplash.play | Out-Null
-Start-Sleep -Milliseconds 2500
-Dwell-Next
-Start-Sleep -Milliseconds 2800
-Dwell-Next
-Start-Sleep -Milliseconds 2200
-Dwell-Next
-Start-Sleep -Milliseconds 2800
-Dwell-Next
-Start-Sleep -Milliseconds 2200
-Dwell-Next
-Start-Sleep -Milliseconds 3500
-Dwell-Next
-Start-Sleep -Milliseconds 1400
+# GAZER_SPLASH_AUTO holds each step; 6 steps * ~2.2s + intros + fade.
+Start-Sleep -Milliseconds 22000
 
 $n = @(Get-ChildItem $env:GAZER_SPLASH_RECORD -Filter "f-*.jpg").Count
 if ($n -lt 20) { throw "Too few splash frames: $n in $($env:GAZER_SPLASH_RECORD)" }
-& $ff -y -hide_banner -loglevel error -framerate 20 -i (Join-Path $env:GAZER_SPLASH_RECORD "f-%05d.jpg") `
+& $ff -y -hide_banner -loglevel error -framerate 10 -i (Join-Path $env:GAZER_SPLASH_RECORD "f-%05d.jpg") `
     -vf "crop=1920:1080:(iw-1920)/2:(ih-1080)/2,format=yuv420p" -an -c:v libx264 -profile:v high -pix_fmt yuv420p -crf 20 -movflags +faststart $out
 if ($LASTEXITCODE -ne 0) { throw "ffmpeg encode failed" }
 Write-Host "Wrote $out frames=$n size=$([math]::Round((Get-Item $out).Length/1MB, 2)) MB"
