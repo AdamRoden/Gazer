@@ -14,9 +14,9 @@ Gazer turns live gaze (Tobii Eye Tracker 5, or the mouse as a fallback) into on-
 
 </div>
 
-![Illustration of the Gazer dock drawer, with Keyboard showing dwell progress](assets/overlay.png){ .overlay-shot }
+![The Gazer dock drawer: Keyboard, Speak, Mouse, Assist, More, Settings, Close All, Pause dwell, Quit](assets/overlay.png){ .overlay-shot }
 
-Illustration of the dock drawer. Look at a cell until progress fills; that cell fires when you look away.
+The dock drawer. Look at a cell until progress fills; that cell fires when you look away.
 
 Version **0.6.2**. License: [GPL-3.0](https://github.com/AdamRoden/Gazer/blob/master/LICENSE).
 
