@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<!-- Compositor for website/docs/assets/overlay.png. Drawer source is tools/drawer.png (live capture). -->
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>Gazer overlay scene</title>
+  <style>
+    html, body {
+      margin: 0;
+      width: 1600px;
+      height: 900px;
+      overflow: hidden;
+      font-family: "Segoe UI", system-ui, sans-serif;
+    }
+    .desk {
+      width: 1600px;
+      height: 900px;
+      background:
+        radial-gradient(900px 400px at 50% 100%, #3a322c 0%, transparent 55%),
+        linear-gradient(180deg, #1a1d24 0%, #12141a 55%, #0c0d10 100%);
+      position: relative;
+    }
+    .monitor {
+      position: absolute;
+      left: 70px;
+      top: 18px;
+      width: 1460px;
+      height: 830px;
+      background: linear-gradient(180deg, #3a3d42 0%, #1c1e22 40%, #141618 100%);
+      border-radius: 18px;
+      box-shadow:
+        0 40px 80px rgba(0, 0, 0, 0.55),
+        inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    }
+    .webcam {
+      position: absolute;
+      left: 50%;
+      top: 8px;
+      transform: translateX(-50%);
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #0a0a0a;
+      box-shadow: inset 0 0 0 1px #2a2a2a;
+    }
+    .lcd {
+      position: absolute;
+      left: 18px;
+      top: 22px;
+      width: 1424px;
+      height: 700px;
+      border-radius: 4px;
+      overflow: hidden;
+      background:
+        radial-gradient(1000px 480px at 18% 8%, #2a3548 0%, transparent 50%),
+        radial-gradient(800px 400px at 92% 88%, #1b1528 0%, transparent 48%),
+        linear-gradient(165deg, #1c2430 0%, #0e1218 55%, #121018 100%);
+    }
+    .win {
+      position: absolute;
+      background: #252526;
+      border: 1px solid #3c3c3c;
+      border-radius: 8px;
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.4);
+      color: #d4d4d4;
+      overflow: hidden;
+    }
+    .win header {
+      height: 30px;
+      background: #2d2d2d;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      font-size: 12px;
+      color: #bbb;
+      border-bottom: 1px solid #3c3c3c;
+    }
+    .win .body { padding: 16px 18px; font-size: 13px; line-height: 1.5; color: #c8c8c8; }
+    .notes { left: 72px; top: 48px; width: 460px; height: 340px; }
+    .browser { left: 480px; top: 110px; width: 820px; height: 430px; }
+    .browser .body { font-size: 22px; color: #e8e8e8; padding: 40px 36px; }
+    .taskbar {
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      height: 44px;
+      background: rgba(28, 28, 28, 0.92);
+      border-top: 1px solid #3a3a3a;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px;
+      box-sizing: border-box;
+    }
+    .taskbar .left, .taskbar .right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .start {
+      width: 20px; height: 20px;
+      border-radius: 4px;
+      background: linear-gradient(135deg, #4cc2ff, #0078d4);
+    }
+    .pill { width: 110px; height: 7px; border-radius: 4px; background: #3a3a3a; }
+    .clock { font-size: 12px; color: #ddd; }
+    .tray-icon { width: 18px; height: 18px; }
+    .drawer {
+      position: absolute;
+      left: 50%;
+      bottom: 48px;
+      transform: translateX(-50%);
+      width: 1320px;
+      height: auto;
+      display: block;
+      filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.45));
+    }
+    .chin {
+      position: absolute;
+      left: 18px;
+      right: 18px;
+      top: 728px;
+      height: 90px;
+    }
+    .zone {
+      position: absolute;
+      top: 8px;
+      width: 300px;
+      height: 74px;
+      border-radius: 14px;
+      background: rgba(0, 0, 0, 0.22);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+    }
+    .zone.hide { left: 50%; transform: translateX(-50%); }
+    .zone.sleep { left: 50%; transform: translateX(calc(-50% + 400px)); }
+    .chip {
+      position: absolute;
+      left: 50%;
+      top: 10px;
+      transform: translateX(-50%);
+      width: 200px;
+      height: 56px;
+      background: rgba(12, 12, 12, 0.92);
+      border-radius: 28px 28px 8px 8px;
+      color: #f2f2f2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+    }
+    .chip img { width: 26px; height: 26px; }
+    .zone.sleep .chip img { width: 28px; height: 24px; object-fit: contain; }
+    .stand {
+      position: absolute;
+      left: 50%;
+      top: 848px;
+      transform: translateX(-50%);
+      width: 180px;
+      height: 28px;
+      background: linear-gradient(180deg, #2a2c30, #15171a);
+      clip-path: polygon(18% 0, 82% 0, 100% 100%, 0 100%);
+    }
+    .base {
+      position: absolute;
+      left: 50%;
+      top: 872px;
+      transform: translateX(-50%);
+      width: 280px;
+      height: 14px;
+      border-radius: 40%;
+      background: #1a1c1f;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    }
+  </style>
+</head>
+<body>
+  <div class="desk">
+    <div class="monitor">
+      <div class="webcam"></div>
+      <div class="lcd">
+        <div class="win notes">
+          <header>Notes</header>
+          <div class="body">
+            Shopping<br/>
+            - milk<br/>
+            - bread<br/>
+            - coffee
+          </div>
+        </div>
+        <div class="win browser">
+          <header>Browser</header>
+          <div class="body">Today</div>
+        </div>
+        <img class="drawer" src="drawer.png" alt=""/>
+        <div class="taskbar">
+          <div class="left">
+            <div class="start"></div>
+            <div class="pill"></div>
+          </div>
+          <div class="right">
+            <img class="tray-icon" src="../../resources/icons/gazer-32.png" alt=""/>
+            <div class="clock">3:41 PM</div>
+          </div>
+        </div>
+      </div>
+      <div class="chin">
+        <div class="zone hide">
+          <div class="chip">
+            <img src="../../resources/icons/svg/AlignBottom.svg" alt=""/>
+            Hide
+          </div>
+        </div>
+        <div class="zone sleep">
+          <div class="chip">
+            <img src="sleep-chip.png" alt=""/>
+            Sleep
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="stand"></div>
+    <div class="base"></div>
+  </div>
+</body>
+</html>

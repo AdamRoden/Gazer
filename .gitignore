@@ -4,6 +4,8 @@
 website/site/
 website/.venv/
 website/docs/assets/favicon.png
+website/tools/.edge-profile/
+website/tools/debug-*.png
 __pycache__/
 *.pyc
 build/
