@@ -17,7 +17,7 @@ Drawer (layer 2) and quit (layer 3) start hidden; the page opens on layer 1. **M
 
 ## First session
 
-1. Start Gazer. Unless **start docked** is on, the drawer opens.
+1. Start Gazer. A splash tour walks the dock (Assist → **Play tour** to replay). Unless **start docked** is on, the drawer opens after the tour.
 2. Dwell a cell until progress completes.
 3. Open Keyboard, Speak, Mouse, Assist, or Settings as extra pages. They stay up after the drawer collapses.
 4. **Hide** hides the drawer. **Close All** closes other pages and then collapses.

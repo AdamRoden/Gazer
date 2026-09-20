@@ -7,9 +7,11 @@
 #include "ui/SplashOverlay_p.h"
 #include "utils/ScreenGrab.h"
 
+#include <QDir>
 #include <QEasingCurve>
 #include <QGuiApplication>
 #include <QIcon>
+#include <QImage>
 #include <QPainter>
 #include <QScreen>
 #include <QVector>
@@ -69,6 +71,32 @@ QPointF rectCenter(const QRect& r, const QPointF& fallback)
 double scaleValue(splash::Scale s, double fitted)
 {
     return s == splash::Scale::One ? 1.0 : fitted;
+}
+
+int g_splashRecordFrame = 0;
+
+void resetSplashRecordFrame()
+{
+    g_splashRecordFrame = 0;
+}
+
+void dumpSplashRecordFrame(SplashOverlay* w)
+{
+    const QString dir = qEnvironmentVariable("GAZER_SPLASH_RECORD");
+    if (dir.isEmpty() || !w) {
+        return;
+    }
+    QDir().mkpath(dir);
+    QImage img(w->size(), QImage::Format_RGB32);
+    img.fill(Qt::black);
+    QPainter p(&img);
+    p.setRenderHint(QPainter::Antialiasing, true);
+    p.setRenderHint(QPainter::SmoothPixmapTransform, true);
+    w->render(&p);
+    p.end();
+    img.save(QStringLiteral("%1/f-%2.jpg").arg(dir).arg(g_splashRecordFrame, 5, 10, QChar('0')),
+             "JPG", 82);
+    ++g_splashRecordFrame;
 }
 
 } // namespace
@@ -160,6 +188,7 @@ void SplashOverlay::start()
     m_clock.restart();
     m_lastMs = 0;
     m_navLastMs = -1;
+    resetSplashRecordFrame();
     enter(Phase::Welcome);
     m_gaze = gazePos();
     m_gazeValid = true;
@@ -241,6 +270,12 @@ void SplashOverlay::tick()
     m_gaze = gazePos();
     m_gazeValid = true;
     update();
+    static qint64 lastBucket = -1;
+    const qint64 bucket = m_clock.elapsed() / 50;
+    if (bucket != lastBucket) {
+        lastBucket = bucket;
+        dumpSplashRecordFrame(this);
+    }
 }
 
 void SplashOverlay::enter(Phase phase)

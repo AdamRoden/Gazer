@@ -36,8 +36,12 @@
 }
 
 .md-typeset .overlay-shot {
+  display: block;
+  width: 100%;
+  height: auto;
   border-radius: 12px;
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+  background: #0c0d10;
 }
 
 .md-typeset .hero-actions {

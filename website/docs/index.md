@@ -14,9 +14,11 @@ Gazer turns live gaze (Tobii Eye Tracker 5, or the mouse as a fallback) into on-
 
 </div>
 
-![The Gazer dock drawer on a desktop, with Hide and Sleep in the monitor bezel](assets/overlay.png){ .overlay-shot }
+<video class="overlay-shot" controls playsinline muted loop autoplay preload="metadata" poster="assets/overlay.png" title="Startup splash tour of the dock">
+  <source src="assets/splash.mp4" type="video/mp4">
+</video>
 
-The dock drawer sits on the desktop. Hide and Sleep hang in the bezel below the screen — dwell targets off the glass. Look at a cell until progress fills; that cell fires when you look away.
+The dock drawer sits on the desktop. Hide and Sleep hang in the bezel below the screen — dwell targets off the glass. Look at a cell until progress fills; that cell fires when you look away. A splash tour walks this on first launch (Assist → **Play tour** to replay).
 
 Version **0.6.3**. License: [GPL-3.0](https://github.com/AdamRoden/Gazer/blob/master/LICENSE).
 
