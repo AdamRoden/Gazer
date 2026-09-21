@@ -6,6 +6,9 @@ Dwell is how you activate a cell or zone: look at it until progress completes, t
 2. **Scan grace** waits until you are stably on-target (default 100 ms; Settings → Speed → Advanced).
 3. **Activation** is a sequence of step times in milliseconds. Progress fills through each step. The **last** step repeats while gaze holds.
 4. The cell fires when dwell **ends** and blink grace expires (look away, or look at another cell). Blink grace **pauses** progress; look-away does not start another fill until grace expires.
+5. The cell’s **actions** then run in order (`Send`, `Command`, mouse, page nav, …). See [Actions](reference/actions.md).
+
+`<Phase>` cells: the first dwell **activation** enters phase 0; each later activation advances (last wraps to first). The **current** phase’s actions run when dwell **ends**. `actionLoop="true"` keeps dispatching until you dwell the cell again (`stopAllActionLoops` stops every loop).
 
 ## Rapid vs standard
 
@@ -13,8 +16,8 @@ Two sequences share scan grace:
 
 | Sequence | Used for |
 |----------|----------|
-| **Rapid** | `Send`, composer typing, modifiers, mapping keys (`backspace`, `space`, `enter`, …) |
-| **Standard** | Settings, navigation, mouse, AHK, assist toggles, composer word chips |
+| **Rapid** | `Send`, composer typing, modifiers, mapping keys (`backspace`, `space`, `enter`, …), `compose.backspace` / `compose.deleteWord` |
+| **Standard** | Settings, navigation, mouse, AHK, Run, assist toggles, composer word chips, `quitApp`, editor / preview |
 
 Both live under Settings → **Speed** (Slow / Normal / Fast / Custom). Per-cell XML can override `scanGrace`, `dwellGrace`, and `activation`.
 

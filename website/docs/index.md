@@ -75,4 +75,4 @@ The overlay stays above the taskbar and other apps. The installed MSI can sit ab
 3. Open Keyboard, Speak, Mouse, Gamepad, Assist, or Settings.
 4. Read [How dwell works](dwell.md) if progress feels too fast or too slow.
 
-To make your own boards, use the [page editor](editor.md) or [author Page XML](authoring.md).
+To make your own boards, use the [page editor](editor.md) or [author Page XML](authoring.md). Cell `send` / `command` / mouse / page actions: [Actions](reference/actions.md). Command names: [Commands](reference/commands.md).

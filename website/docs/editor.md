@@ -16,4 +16,6 @@ File → New asks for id, name, and a template (blank, full keyboard, keyboard r
 
 Editor F5 previews attach XML copies under `__editor_preview_*` ids so they do not replace the live page.
 
-Schema and action language: [Authoring pages](authoring.md). Full attribute list: [docs/page-xml.md](https://github.com/AdamRoden/Gazer/blob/master/docs/page-xml.md) in the repo.
+The Action tab **Type** combo is the action catalog (`Send`, `Command`, `MouseLeftClick`, `OpenPage`, …). Fields under it are that type’s `value` (Send key / edge / hold ms; Command name; click kind; zoom; compass; catalog id; layers; AHK body; Run kind/file/persist). **Loop until activated again** is `actionLoop`. Every token: [Actions](reference/actions.md). Command names: [Commands](reference/commands.md).
+
+Schema: [Authoring pages](authoring.md). Full attribute list: [docs/page-xml.md](https://github.com/AdamRoden/Gazer/blob/master/docs/page-xml.md) in the repo.

@@ -91,4 +91,28 @@ Tobii / Mouse ──► ITracker ──► GazePoint (+ HeadPose)
 
 Boards are XML only (`resources/layouts/*.xml`). `openPage` / catalog ids open those pages on the live host. Editor F5 previews attach XML copies under `__editor_preview_*` ids so they do not replace the live page.
 
-Command catalog: [src/app/Commands.md](src/app/Commands.md). Page XML: [docs/page-xml.md](docs/page-xml.md).
+User-facing action and command catalogs: [Actions](https://adamroden.github.io/Gazer/reference/actions/) and [Commands](https://adamroden.github.io/Gazer/reference/commands/). Schema: [docs/page-xml.md](docs/page-xml.md). Contributor command list: [src/app/Commands.md](src/app/Commands.md).
+
+---
+
+## Actions and commands
+
+When dwell **ends** (look away after blink grace), `PageSession` flashes the cell and `ActionDispatcher::dispatchPage` runs its `PageAction` list in order. Consecutive `ShowLayers` are batched, then applied together. `Gazer.exe --action …` and the `Gazer` named pipe parse the **same** language (`InboundActions` → `dispatchInbound`). After `OpenPage` in one inbound payload, later `ShowLayers` apply to the opened page.
+
+A cell may have one action **attribute** (`send="q"`) or several **child elements** (`<Send value="q"/>`). `actionLoop` repeats until the cell is activated again. `<Phase>` children replace the single-shot list (first activation enters phase 0; leave commits that phase).
+
+| Action | Runtime |
+|--------|---------|
+| `Send` | `KeyStateManager`: tap (`activate`), `Down` / `Up`, or timed `hold`. Modifiers cycle Up → Down → LockedDown. US punctuation maps through `KeyGlyphs` (transient Shift). Named keys in `KeyboardInjector`. |
+| `Command` | `CommandRegistry`: exact builtin, longest prefix, then `resources/mappings/default.json` (`keyTap`, `keyCombo`, `gamepadButton`, …). |
+| `MouseLeftClick` / Middle / Right | Click / double / down / up / toggle at the current cursor. |
+| `MouseMoveToGaze` / `Mouse*ClickAtGaze` | Arm `MouseDwellMove` (zoom: Settings / `0` / `N` / `-1` / `-2`). |
+| `MouseMoveByDirection` / `MouseMoveToPoint` | Nudge or warp now. |
+| `OpenPage` / `TogglePage` / `ClosePage` / `CloseAllPages` / `CloseOtherPages` / `HostPage` / `GoBack` | `PageSession::applyNav`. Close All / Close Other also disable ComboMouse. |
+| `ShowLayers` | Replace the source page’s visible layer set (root if that page just closed). |
+| `Speak` | Windows SAPI canned utterance. |
+| `AHK` / `Run` | Local AutoHotkey snippet, or a Python/AHK **file** via `SidecarHost` (path jail: page dir, `%AppData%\Gazer`, `resources/`). |
+
+Composer capture: if the source page is `compose` or a compose live board, `Send` and mapping/modifier `Command`s are consumed by `ComposeUi` (letters into the phrase; `backspace` / `space` / `enter` / `escape` edit or speak). `qwerty_main` still injects into Windows.
+
+Parse: `src/layout/PageActionParse*.cpp`. Dispatch: `src/app/ActionDispatcher.cpp`. Inbound: `src/app/InboundActions.cpp`. Mapping types: `src/input/InputTypes.h`.

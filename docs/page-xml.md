@@ -2,7 +2,7 @@
 
 Pages live in `resources/layouts/*.xml`. **Catalog id = filename stem** (`qwerty_main.xml` → id `qwerty_main`). User copies in `%AppData%\Gazer\layouts` override the same id. Parsed by `PageLoader` into `PageDocument` (`src/layout/`). The page editor reads and writes this format.
 
-Runtime notes for the live session: [src/layout/README.md](../src/layout/README.md). User overview: [website/docs/](../website/docs/).
+Runtime notes for the live session: [src/layout/README.md](../src/layout/README.md). User-facing action catalog (every type, value token, and what runs): [website/docs/reference/actions.md](../website/docs/reference/actions.md). Command names: [website/docs/reference/commands.md](../website/docs/reference/commands.md) and [src/app/Commands.md](../src/app/Commands.md).
 
 ---
 
@@ -346,9 +346,11 @@ A parent grid that hosts children on several layers must list all of them so the
 
 ## Actions
 
+When dwell **ends**, `ActionDispatcher` runs the cell’s actions **in document order**. Consecutive `ShowLayers` are applied together. `actionLoop` repeats until the cell is activated again. `<Phase>` children replace the single-shot list (first activation enters phase 0; leave commits that phase).
+
 Action is generic: the specific thing to do is named as an **attribute** (on `<Action>`, or on the cell/zone when there is only one) or as a **child element**.
 
-A cell or zone may have **one** action attribute. Multiple actions use child elements.
+A cell or zone may have **one** action attribute. Multiple actions use child elements. User-facing write-up of every token and runtime path: [website/docs/reference/actions.md](../website/docs/reference/actions.md).
 
 ```xml
 <Cell row="0" col="9" colSpan="10" label="1" send="1"/>
@@ -383,13 +385,13 @@ A cell or zone may have **one** action attribute. Multiple actions use child ele
 
 | Name | `value` |
 |------|---------|
-| `Send` | `key[, Down\|Up[, durationMs]]` — tap if edge omitted. A comma key is `send=","` (a leading comma is the key, not a separator). |
+| `Send` | `key[, Down\|Up[, durationMs]]` — tap if edge omitted; duration (ms) is a timed hold and is used only when Edge is omitted. A comma key is `send=","` (a leading comma is the key, not a separator). Named virtual-keys (`Enter`, `Tab`, `F1`…`F12`, arrows, modifiers, OEM) and US punctuation mapping: [website Actions — Send](../website/docs/reference/actions.md#send). |
 | `MouseLeftClick` / `MouseMiddleClick` / `MouseRightClick` | type: `default` / `double` / `down` / `up` / `toggle` (omit for a default click) |
 | `MouseLeftClickAtGaze` / `MouseMiddleClickAtGaze` / `MouseRightClickAtGaze` | zoom: omit/`default` = Settings mag-pick; `0` = dwell-move, no magnify; `N` = N× zoom; `-1` = foresight; `-2` = foresight with bonus zoom |
 | `MouseMoveToGaze` | same zoom tokens as click-at-gaze |
 | `MouseMoveByDirection` | `n`/`s`/`e`/`w`/`ne`/`nw`/`se`/`sw`[, amount px] — amount omitted uses the mouse-assist step |
 | `MouseMoveToPoint` | `x,y` screen coords (dim tokens allowed) |
-| `Command` | builtin or mapping-profile name (`toggleLookToScroll`, `backspace`, `settings.dwell.fast`, …) |
+| `Command` | builtin or mapping-profile name (`toggleLookToScroll`, `backspace`, `settings.dwell.fast`, `gamepad.a`, …). Exact builtin, then longest prefix, then `default.json`. Catalog: [website Commands](../website/docs/reference/commands.md) / [src/app/Commands.md](../src/app/Commands.md). |
 | `OpenPage` | `targetId[, true]` — `true` saves a breadcrumb of the current page state |
 | `HostPage` | `fragmentId` or `hostId, fragmentId` — set a `src` slot on the host (the source page, or the attached page that embeds the source). Two ids attach/reuse `hostId` and load `fragmentId` into its slot. Does not stack a second opaque page. |
 | `TogglePage` | `targetId[, true]` — open if closed, close if this page is already attached |

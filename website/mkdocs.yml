@@ -88,4 +88,5 @@ nav:
   - Page editor: editor.md
   - Authoring pages: authoring.md
   - Reference:
+      - Actions: reference/actions.md
       - Commands: reference/commands.md

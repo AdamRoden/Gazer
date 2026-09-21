@@ -17,4 +17,4 @@ Page XML model and the live dwell session.
 | `DwellStateMachine` / `DwellPhase.h` / `InvalidGazeGrace.h` | Dwell timing. Unspecified cells use rapid vs standard from settings (`usesRapidDwell`). Shared blink/scan grace via `setDwellTiming`. `StartHold` is a post-action block (`armDwellStartHold`, 500 ms on suspend/resume). `<Phase>` cells: first activation enters phase 0, later steps wrap last→first; leave after blink grace commits. Progress pauses during blink grace |
 | `PageNav.h` | Page lookup, drawer reconcile, dropLayers |
 
-Schema: `docs/page-xml.md`. Runtime pages: `resources/layouts/*.xml`.
+Schema: `docs/page-xml.md`. Action runtime catalog: `website/docs/reference/actions.md`. Command names: `website/docs/reference/commands.md` and `src/app/Commands.md`. Runtime pages: `resources/layouts/*.xml`.

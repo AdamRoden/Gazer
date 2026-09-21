@@ -15,6 +15,8 @@ Drawer **Settings** (`main_settings`) is a hub of live pages. There are no deskt
 
 Session toggles (start docked, auto-collapse drawer, layout auto-close, startup dock tour) live on these boards as well.
 
+Live boards fire `settings.*` / `theme.*` / `headPose.*` commands (numpad, color picker, speed presets, ViGEm install, …). Patterns: [Commands — Settings](reference/commands.md#settings).
+
 Prefs are `%AppData%\Gazer\settings.json`. The ElevenLabs key is **not** in that file; it is DPAPI-protected under `secrets\`. Each MSI install deletes `settings.json` so the next launch writes factory defaults.
 
 ## Theme
