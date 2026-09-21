@@ -1,4 +1,5 @@
 #include "assist/ComboMouseHit.h"
+#include "assist/LookToMap.h"
 #include "assist/LtsMenu.h"
 #include "assist/LtsScrollMode.h"
 #include "assist/LtsSpeed.h"
@@ -20,6 +21,7 @@ private slots:
     void ltsRegionOrders();
     void wheelLeftoverQuantize();
     void highResWheelClassNames();
+    void analogGainRings();
 };
 
 void LookToScrollTest::speedLadder()
@@ -294,6 +296,48 @@ void LookToScrollTest::highResWheelClassNames()
     for (const QString& c : no) {
         QVERIFY2(!classLooksLikeHighResWheel(c), qPrintable(c));
     }
+}
+
+void LookToScrollTest::analogGainRings()
+{
+    LookToMapSettings c = defaultLookToMapSettings(LookToDest::Scroll);
+    c.deadzonePx = 80;
+    c.rampEndPx = 180;
+    c.fullOuterPx = 260;
+    c.outerDeadzonePx = 340;
+    c.outerDeadzoneEnabled = false;
+    QCOMPARE(lookToGain(0.0, c), 0.0);
+    QCOMPARE(lookToGain(80.0, c), 0.0);
+    QVERIFY(lookToGain(130.0, c) > 0.4 && lookToGain(130.0, c) < 0.6);
+    QCOMPARE(lookToGain(180.0, c), 1.0);
+    QCOMPARE(lookToGain(220.0, c), 1.0);
+    QCOMPARE(lookToGain(260.0, c), 1.0);
+    QCOMPARE(lookToGain(400.0, c), 1.0);
+    c.outerDeadzoneEnabled = true;
+    QCOMPARE(lookToGain(261.0, c), 0.0);
+    QCOMPARE(lookToGain(400.0, c), 0.0);
+    QVERIFY(lookToKeepEngaged(true, 90.0, c));
+    QVERIFY(!lookToKeepEngaged(true, 261.0, c));
+    QCOMPARE(ltsDeadzoneHysteresisPx(80), 20);
+    QVERIFY(lookToKeepEngaged(true, 70.0, c));
+    QCOMPARE(lookToGain(70.0, c), 0.0);
+    QVERIFY(lookToKeepEngaged(true, 61.0, c));
+    QVERIFY(!lookToKeepEngaged(true, 59.0, c));
+    const double hystRate =
+        qMax(kLtsMinEngagedPxPerSec,
+             c.maxSpeed * PixelScroller::kPixelsPerNotch * lookToGain(70.0, c));
+    QCOMPARE(hystRate, kLtsMinEngagedPxPerSec);
+    c.showInnerDeadzone = true;
+    c.showMax = true;
+    c.showOuterDeadzone = true;
+    c.outerDeadzoneEnabled = false;
+    QCOMPARE(lookToOverlayRadiusPx(c), 260);
+    c.outerDeadzoneEnabled = true;
+    QCOMPARE(lookToOverlayRadiusPx(c), 340);
+    QCOMPARE(QLatin1String(lookToDestCommand(LookToDest::Mouse)), QLatin1String("lookToMouse"));
+    QCOMPARE(snapLookToSpeed(LookToDest::Mouse, 900.0), 800.0);
+    QCOMPARE(nudgeLookToSpeed(LookToDest::Mouse, 800.0, +1), 1600.0);
+    QCOMPARE(snapLookToSpeed(LookToDest::LeftStick, 0.6), 0.5);
 }
 
 QObject* createLookToScrollTest()

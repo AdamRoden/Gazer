@@ -3,6 +3,7 @@
 #include "assist/GazeFollowProfile.h"
 #include "assist/LtsIndicator.h"
 #include "assist/LtsScrollMode.h"
+#include "assist/LookToMap.h"
 #include "assist/LtsSpeed.h"
 #include "ui/PickStyle.h"
 #include "ui/ThemeScheme.h"
@@ -43,6 +44,7 @@ private slots:
     void backgroundShadeAndTintFamily();
     void speechSettingsRoundTrip();
     void headPoseMapsRoundTrip();
+    void lookToMapsRoundTripAndLegacyMigrate();
     void hoverBorderFollowsProgressAndRoundTrips();
     void showSplashRoundTrip();
 };
@@ -85,8 +87,12 @@ void AppSettingsTest::factoryUsesDomainConstants()
     QCOMPARE(ComboMouseHit::kDefaultInnerFill.alpha(), qRound(0.20 * 255));
     QCOMPARE(ComboMouseHit::kDefaultOuterFill.alpha(), qRound(0.60 * 255));
     QCOMPARE(s.magFollowProfile, GazeFollowProfile::Sticky);
-    QCOMPARE(s.ltsIndicatorStyle, LtsIndicator::Filled);
-    QCOMPARE(s.ltsScrollMode, LtsScrollMode::Both);
+    QVERIFY(s.lookToScroll.showFill);
+    QVERIFY(s.lookToScroll.showBorder);
+    QVERIFY(s.lookToScroll.showPause);
+    QVERIFY(s.lookToScroll.showInnerDeadzone);
+    QVERIFY(s.lookToScroll.showMax);
+    QCOMPARE(s.lookToScroll.axisMode, LtsScrollMode::Both);
     QCOMPARE(s.themeAppearance, ThemeAppearance::Dark);
     QCOMPARE(s.themeSaturation, kThemeSaturationDefault);
     QCOMPARE(s.themeBrightness, kThemeBrightnessDefault);
@@ -109,10 +115,16 @@ void AppSettingsTest::factoryUsesDomainConstants()
     QCOMPARE(s.hoverBorderWeight, 4);
     QCOMPARE(s.flashMs, 60);
     QCOMPARE(s.pickWindowRound, false);
-    QCOMPARE(s.ltsDeadzonePx, 80);
-    QCOMPARE(s.ltsFalloffPx, 300);
-    QCOMPARE(s.ltsAccelPerSec, kLtsAccelDefault);
-    QCOMPARE(s.ltsMaxNotchesPerSec, kLtsSpeedDefault);
+    QCOMPARE(s.lookToScroll.deadzonePx, 80);
+    QCOMPARE(s.lookToScroll.rampEndPx, 380);
+    QCOMPARE(s.lookToScroll.fullOuterPx, 460);
+    QVERIFY(s.lookToScroll.hubEnabled);
+    QVERIFY(!s.lookToScroll.outerDeadzoneEnabled);
+    QCOMPARE(s.lookToScroll.accelPerSec, kLtsAccelDefault);
+    QCOMPARE(s.lookToScroll.maxSpeed, kLtsSpeedDefault);
+    QCOMPARE(s.lookToMouse.maxSpeed, kLookToMouseSpeedDefault);
+    QCOMPARE(s.lookToLeftStick.maxSpeed, kLookToStickSpeedDefault);
+    QCOMPARE(s.lookToRightStick.maxSpeed, kLookToStickSpeedDefault);
     QVERIFY(!s.hoverCustom);
     QVERIFY(!s.flashCustom);
     QCOMPARE(s.resolvedHoverBorder(), s.colorKey(QStringLiteral("progressColor")));
@@ -563,6 +575,66 @@ void AppSettingsTest::headPoseMapsRoundTrip()
     QCOMPARE(b.headPoseMaps.front().source, HeadPoseAxis::Pitch);
     QCOMPARE(b.headPoseMaps.front().dest, HeadPoseDest::ScrollV);
     QCOMPARE(b.headPoseMaps.front().points.size(), 3);
+}
+
+void AppSettingsTest::lookToMapsRoundTripAndLegacyMigrate()
+{
+    AppSettings s = AppSettings::defaults();
+    s.lookToMouse.deadzonePx = 120;
+    s.lookToMouse.rampEndPx = 400;
+    s.lookToMouse.fullOuterPx = 520;
+    s.lookToMouse.outerDeadzoneEnabled = true;
+    s.lookToMouse.outerDeadzonePx = 600;
+    s.lookToMouse.hubEnabled = false;
+    s.lookToMouse.maxSpeed = 1600.0;
+    s.lookToLeftStick.axisMode = LtsScrollMode::Horizontal;
+    s.lookToRightStick.showFill = false;
+    s.lookToRightStick.showBorder = true;
+
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("settings.json"));
+    QString err;
+    QVERIFY2(s.saveToFile(path, &err), qPrintable(err));
+    AppSettings b;
+    QVERIFY2(b.loadFromFile(path, &err), qPrintable(err));
+    QCOMPARE(b.lookToMouse.deadzonePx, 120);
+    QCOMPARE(b.lookToMouse.rampEndPx, 400);
+    QCOMPARE(b.lookToMouse.fullOuterPx, 520);
+    QVERIFY(b.lookToMouse.outerDeadzoneEnabled);
+    QCOMPARE(b.lookToMouse.outerDeadzonePx, 600);
+    QVERIFY(!b.lookToMouse.hubEnabled);
+    QCOMPARE(b.lookToMouse.maxSpeed, 1600.0);
+    QCOMPARE(b.lookToLeftStick.axisMode, LtsScrollMode::Horizontal);
+    QVERIFY(!b.lookToRightStick.showFill);
+    QVERIFY(b.lookToRightStick.showBorder);
+    QCOMPARE(b.lookToScroll.deadzonePx, 80);
+
+    const QString legacy = dir.filePath(QStringLiteral("legacy.json"));
+    {
+        QFile f(legacy);
+        QVERIFY(f.open(QIODevice::WriteOnly | QIODevice::Text));
+        f.write(R"({
+            "ltsDeadzonePx": 90,
+            "ltsFalloffPx": 200,
+            "ltsMaxNotchesPerSec": 2,
+            "ltsAccelPerSec": 2,
+            "ltsCenterDwellMs": 800,
+            "ltsIndicatorStyle": 1,
+            "ltsScrollMode": 0
+        })");
+    }
+    AppSettings migrated;
+    QVERIFY2(migrated.loadFromFile(legacy, &err), qPrintable(err));
+    QCOMPARE(migrated.lookToScroll.deadzonePx, 90);
+    QCOMPARE(migrated.lookToScroll.rampEndPx, 290);
+    QCOMPARE(migrated.lookToScroll.maxSpeed, 2.0);
+    QCOMPARE(migrated.lookToScroll.centerDwellMs, 800);
+    QVERIFY(!migrated.lookToScroll.showFill);
+    QVERIFY(migrated.lookToScroll.showBorder);
+    QVERIFY(migrated.lookToScroll.showInnerDeadzone);
+    QCOMPARE(migrated.lookToScroll.axisMode, LtsScrollMode::Vertical);
+    QCOMPARE(migrated.lookToMouse.maxSpeed, kLookToMouseSpeedDefault);
 }
 
 void AppSettingsTest::hoverBorderFollowsProgressAndRoundTrips()

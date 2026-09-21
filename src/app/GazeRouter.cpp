@@ -5,7 +5,7 @@
 #include "assist/GazeReticle.h"
 #include "assist/ComboMouse.h"
 #include "assist/HeadPoseMapper.h"
-#include "assist/LookToScroll.h"
+#include "assist/LookToMaps.h"
 #include "assist/MouseDwellMove.h"
 #include "layout/PageSession.h"
 #include "ui/MagnifierOverlay.h"
@@ -30,15 +30,14 @@ void GazeRouter::dispatch(const GazePoint& point)
     }
 
     const bool freeAim = m_session && m_session->freesScreenForAim();
-    // Combo / mag-pick / LTS / splash sit in front of PageHostWindow; the
+    // Combo / mag-pick / look-to pie / splash sit in front of PageHostWindow; the
     // overlay owns the sample even when gaze geometrically hits the dock.
     const bool overCombo = m_comboMouse && m_comboMouse->containsGaze(point);
     const bool overMagPick = m_mouseDwell && m_mouseDwell->containsGaze(point);
-    const bool overLts = m_lookToScroll && m_lookToScroll->containsGaze(point);
+    const bool overLts = m_lookToMaps && m_lookToMaps->containsGaze(point);
     const bool overFrontOverlay =
-        overSplash
-        || (m_session && m_session->overlayHasGazePriority()
-            && (overCombo || overMagPick || overLts));
+        overSplash || overLts
+        || (m_session && m_session->overlayHasGazePriority() && (overCombo || overMagPick));
 
     bool overBoard = false;
     if (overFrontOverlay) {
@@ -57,7 +56,7 @@ void GazeRouter::dispatch(const GazePoint& point)
 
     if (m_headPose) {
         m_headPose->setPaused(overBoard || hit.overMaster || dwellOff || overSplash
-                              || (m_lookToScroll && m_lookToScroll->isEnabled()));
+                              || (m_lookToMaps && m_lookToMaps->anyEnabled()));
     }
     GazePoint assist = point;
     if (m_headPose && !m_headPose->isPaused()) {
@@ -75,11 +74,12 @@ void GazeRouter::dispatch(const GazePoint& point)
     }
     if (m_gazeFollow) {
         const bool pauseFollow =
-            dwellOff || overSplash || (m_session && m_session->pausesGazeFollow());
+            dwellOff || overSplash || (m_session && m_session->pausesGazeFollow())
+            || (m_lookToMaps && m_lookToMaps->anyEnabled());
         m_gazeFollow->onGaze(assist, /*pauseInput=*/pauseFollow);
     }
-    if (m_lookToScroll) {
-        m_lookToScroll->onGaze(assist, pauseBackgroundAssist && !overLts);
+    if (m_lookToMaps) {
+        m_lookToMaps->onGaze(assist, pauseBackgroundAssist && !overLts);
     }
     if (m_comboMouse) {
         m_comboMouse->onGaze(assist, dwellOff || (pauseBackgroundAssist && !overCombo));

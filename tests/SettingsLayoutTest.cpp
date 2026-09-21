@@ -225,10 +225,11 @@ void SettingsLayoutTest::overlayIdsAreUnique()
         QVERIFY2(!seen.contains(id), qPrintable(id));
         seen.insert(id);
     }
-    QVERIFY(seen.contains(QStringLiteral("row_ind")));
+    QVERIFY(seen.contains(QStringLiteral("row_mouse")));
     QVERIFY(seen.contains(QStringLiteral("row_combo_style")));
     QVERIFY(seen.contains(QStringLiteral("combo_on")));
     QVERIFY(seen.contains(QStringLiteral("lts_on")));
+    QVERIFY(seen.contains(QStringLiteral("mouse_on")));
     QVERIFY(seen.contains(QStringLiteral("page_title")));
 }
 

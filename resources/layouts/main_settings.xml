@@ -12,7 +12,7 @@
           icon="cycle" hostPage="main_settings_host, main_settings_indicators"/>
     <Cell id="open_assist" row="2" col="0" label="Assist" caption="Tracker, lens, and helpers"
           icon="ideas" hostPage="main_settings_host, main_settings_assist"/>
-    <Cell id="open_tools" row="2" col="1" label="Tools" caption="Look to scroll and ComboMouse"
+    <Cell id="open_tools" row="2" col="1" label="Tools" caption="Look-to maps and ComboMouse"
           icon="lookToScroll" hostPage="main_settings_host, main_settings_tools"/>
     <Cell id="open_theme" row="2" col="2" label="Theme" caption="Appearance and Material palettes"
           icon="palette" hostPage="main_settings_host, main_settings_theme"/>

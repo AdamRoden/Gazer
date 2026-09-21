@@ -1,6 +1,7 @@
 #pragma once
 
 #include "app/AppSettings.h"
+#include "assist/LookToMap.h"
 #include "assist/GazeDwellTracker.h"
 #include "core/GazePoint.h"
 #include "layout/InvalidGazeGrace.h"
@@ -19,6 +20,7 @@ namespace gazer {
 class CommandRegistry;
 class ElevenClient;
 class HeadPoseMapper;
+class LookToMaps;
 class MouseDwellMove;
 class PageSession;
 class SpeechSecrets;
@@ -43,6 +45,10 @@ public:
     void setResetFn(ResetFn fn) { m_reset = std::move(fn); }
     void setMouseDwellMove(MouseDwellMove* move) { m_mouseDwell = move; }
     void setHeadPoseMapper(HeadPoseMapper* mapper) { m_headPose = mapper; }
+    void setLookToMaps(LookToMaps* maps) { m_lookTo = maps; }
+    [[nodiscard]] LookToDest lookToEditorDest() const { return m_lookToDest; }
+    [[nodiscard]] bool lookToEditorOpen() const { return m_lookToMap.active; }
+    [[nodiscard]] bool lookToPreviewOn() const { return m_lookToMap.active && m_lookToPreview; }
     [[nodiscard]] HeadPoseAxis headChartAxis() const { return m_headChartAxis; }
     [[nodiscard]] QString headMapSourceId() const;
     [[nodiscard]] QString headMapDestId() const;
@@ -169,6 +175,22 @@ private:
     void feedCurveGaze(const GazePoint& point);
     QStringList headPoseCommandCatalog() const;
 
+    void registerLookToCommands();
+    [[nodiscard]] bool openLookToEditor(LookToDest dest, QString* error = nullptr);
+    void refreshLookToEditor();
+    [[nodiscard]] PageDocument buildLookToEditor() const;
+    void closeLookToEditor();
+    LookToMapSettings* lookToDraft();
+    const LookToMapSettings* lookToDraft() const;
+    void commitLookToDraft(const LookToMapSettings& c, bool persist = true);
+    void lookToNudge(LookToRing ring, int dir);
+    void lookToNudgeSpeed(int dir);
+    void lookToNudgeAccel(int dir);
+    void lookToNudgeCenterDwell(int dir);
+    [[nodiscard]] bool lookToEditField(const QString& field, QString* error = nullptr);
+    void applyLookToNumpad(double v);
+    void syncLookToPreview();
+
     [[nodiscard]] bool openSpeechKeyBoard(QString* error = nullptr);
     void refreshSpeechKeyBoard();
     [[nodiscard]] PageDocument buildSpeechKeyDocument() const;
@@ -211,7 +233,13 @@ private:
     ResetFn m_reset;
     MouseDwellMove* m_mouseDwell = nullptr;
     HeadPoseMapper* m_headPose = nullptr;
+    LookToMaps* m_lookTo = nullptr;
     HeadPoseAxis m_headChartAxis = HeadPoseAxis::Yaw;
+    LiveBoard m_lookToMap;
+    LookToDest m_lookToDest = LookToDest::Scroll;
+    LookToRing m_lookToRing = LookToRing::Deadzone;
+    bool m_lookToPreview = false;
+    QString m_lookToNumpadField;
 
     LiveBoard m_headMap;
     QString m_headMapId;
@@ -230,7 +258,7 @@ private:
     QString m_numpadHint;
     QString m_numpadResetSeed;
     QString m_numpadBuffer;
-    enum class NumpadReturn { Catalog, Array, Color, HeadPose };
+    enum class NumpadReturn { Catalog, Array, Color, HeadPose, LookTo };
     NumpadReturn m_numpadReturn = NumpadReturn::Catalog;
     QString m_numpadColorChannel;
     int m_numpadArrayIndex = -1;

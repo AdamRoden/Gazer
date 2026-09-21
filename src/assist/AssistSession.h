@@ -11,7 +11,6 @@ class AssistSession final : public QObject {
 public:
     enum class Mode {
         None,
-        LookToScroll,
         LookToScrollPlaceCursor,
         MouseDwell,
         MagPickPoint,
@@ -29,7 +28,7 @@ public:
     [[nodiscard]] bool freesScreenForAim() const;
     /// Pause gaze→mouse follow while aiming or an assist overlay owns the cursor.
     [[nodiscard]] bool pausesGazeFollow() const;
-    /// ComboMouse wheel, mag-pick window, or LTS pie owns the sample; boards must not dwell it.
+    /// ComboMouse wheel or mag-pick window owns the sample; boards must not dwell it.
     [[nodiscard]] bool overlayHasGazePriority() const;
 
     /// Modes that share MouseDwellMove (direct / place-cursor / mag-pick).

@@ -10,7 +10,7 @@ class GazeReticle;
 class HeadPoseMapper;
 class PageSession;
 class ComboMouse;
-class LookToScroll;
+class LookToMaps;
 class MagnifierOverlay;
 class MouseDwellMove;
 class SplashOverlay;
@@ -20,7 +20,7 @@ class GazeRouter {
 public:
     void setPages(PageSession* pages) { m_pages = pages; }
     void setAssistSession(AssistSession* session) { m_session = session; }
-    void setLookToScroll(LookToScroll* lts) { m_lookToScroll = lts; }
+    void setLookToMaps(LookToMaps* maps) { m_lookToMaps = maps; }
     void setComboMouse(ComboMouse* c) { m_comboMouse = c; }
     void setMouseDwellMove(MouseDwellMove* move) { m_mouseDwell = move; }
     void setMagnifier(MagnifierOverlay* mag) { m_magnifier = mag; }
@@ -34,7 +34,7 @@ public:
 private:
     PageSession* m_pages = nullptr;
     AssistSession* m_session = nullptr;
-    LookToScroll* m_lookToScroll = nullptr;
+    LookToMaps* m_lookToMaps = nullptr;
     ComboMouse* m_comboMouse = nullptr;
     MouseDwellMove* m_mouseDwell = nullptr;
     MagnifierOverlay* m_magnifier = nullptr;

@@ -303,6 +303,21 @@ bool SettingsUi::numpadSave(QString* error)
         refreshHeadPoseEditor();
         return true;
     }
+    if (ret == NumpadReturn::LookTo) {
+        bool ok = false;
+        const double v = buf.toDouble(&ok);
+        if (!ok) {
+            const QString msg = QStringLiteral("Enter a number");
+            notifyStatus(msg);
+            if (error) {
+                *error = msg;
+            }
+            return false;
+        }
+        resetNumpad();
+        applyLookToNumpad(v);
+        return true;
+    }
     if (ret == NumpadReturn::Color) {
         bool ok = false;
         const int v = buf.toInt(&ok);
@@ -365,6 +380,13 @@ bool SettingsUi::numpadCancel(QString* error)
         closeLive(m_numpad);
         resetNumpad();
         refreshHeadPoseEditor();
+        notifyStatus(QStringLiteral("Edit cancelled"));
+        return true;
+    }
+    if (ret == NumpadReturn::LookTo && m_lookToMap.active) {
+        closeLive(m_numpad);
+        resetNumpad();
+        refreshLookToEditor();
         notifyStatus(QStringLiteral("Edit cancelled"));
         return true;
     }

@@ -331,7 +331,8 @@ struct PageAction {
         || n.startsWith(QLatin1String("speech.")) || n.startsWith(QLatin1String("history."))
         || n.startsWith(QLatin1String("soundboard.")) || n.startsWith(QLatin1String("compose."))
         || n.startsWith(QLatin1String("headPose.")) || n.startsWith(QLatin1String("lts."))
-        || n.startsWith(QLatin1String("gazer.")) || n.startsWith(QLatin1String("toggle"))
+        || n.startsWith(QLatin1String("lookTo")) || n.startsWith(QLatin1String("gazer."))
+        || n.startsWith(QLatin1String("toggle"))
         || n.startsWith(QLatin1String("mouse")) || n.startsWith(QLatin1String("cycleMouse"))) {
         return false;
     }

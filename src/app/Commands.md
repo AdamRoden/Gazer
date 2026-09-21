@@ -1,17 +1,18 @@
 # Commands
 
-`CommandRegistry` runs a **builtin** first; unknown names fall through to `resources/mappings/default.json`. `compose.*` / `speech.*` / `soundboard.*` / `history.*` / `settings.*` / `headPose.*` skip the Cmd toast.
+`CommandRegistry` runs a **builtin** first; unknown names fall through to `resources/mappings/default.json`. `compose.*` / `speech.*` / `soundboard.*` / `history.*` / `settings.*` / `headPose.*` / `lookTo.*` skip the Cmd toast.
 
 AHK / CLI / Python is not this table. `Gazer.exe --action …` (and the `Gazer` named pipe) parse the same action language as page XML. `<Run>` spawns a script file; the script talks back with `--action`. Several `--action` flags run in order. After `OpenPage` in one payload, `ShowLayers` applies to the opened page (`ActionDispatcher::dispatchInbound`). A second instance with no `--action` sends `raise`. Empty pipe reads are ignored.
 
 | Registered in | What |
 |---------------|------|
 | `Application.cpp` | Shell: quit, editor, preview, splash play |
-| `AssistCommands.cpp` | Dwell pause, LTS, mag, reticle, dwell-move, click-at-gaze |
+| `AssistCommands.cpp` | Dwell pause, look-to maps, mag, reticle, dwell-move, click-at-gaze |
 | `GazerServices.cpp` | Modifier cycle, click-at-cursor, stop loops |
 | `MouseAssistState.cpp` | Mouse pad: nudge, scroll, edge, holds |
 | `SettingsCommands.cpp` | `settings.*` live boards, including `settings.speech.*` |
 | `SettingsHeadPose.cpp` | `headPose.*` analog maps |
+| `SettingsLookTo.cpp` | `lookTo.edit.*` / `lookTo.map.*` ring editors |
 | `ComposeCommands.cpp` | `compose.*` (prefix `compose.removeWord.`) |
 
 When adding a command: register it and add a row here.
@@ -49,10 +50,15 @@ When adding a command: register it and add a row here.
 |---------|------|
 | `toggleDwellSuspend` | Flip global dwell pause; 500 ms before the next dwell can start |
 | `suspendDwell` / `resumeDwell` | Set pause on/off; same 500 ms start hold |
-| `toggleLookToScroll` | Gaze scroll (always place-cursor first) |
-| `lts.resume` / `lts.quit` / `lts.reset` | LTS while on |
-| `lts.speed.slower` / `lts.speed.faster` | LTS peak speed (1, 2, 5, 10, 20) |
-| `lts.cycleMode` | LTS axes: vertical → horizontal → both |
+| `lookToScroll` / `toggleLookToScroll` | Gaze analog scroll (place origin first). Four maps can run at once. |
+| `lookToMouse` | Gaze analog mouse move (place origin first) |
+| `lookToLeftStick` / `lookToRightStick` | Gaze analog left / right stick (place origin first) |
+| `lts.resume` / `lts.quit` / `lts.reset` | Scroll map while on (`lookTo.scroll.*` aliases) |
+| `lts.speed.slower` / `lts.speed.faster` | Scroll map peak speed |
+| `lts.cycleMode` | Scroll map axes: vertical → horizontal → both |
+| `lookTo.mouse.*` / `lookTo.leftStick.*` / `lookTo.rightStick.*` | Same pie actions for the other maps (`.resume` / `.quit` / `.reset` / `.speed.*` / `.cycleMode`) |
+| `lookTo.edit.scroll` / `.mouse` / `.leftStick` / `.rightStick` | Open that map’s ring editor |
+| `lookTo.map.*` | Ring editor: preview, hub, radii, speed, direction, overlay show/fill/border |
 | `toggleMagnifier` | Live lens (exclusive with reticle) |
 | `toggleGazeReticle` | Gaze marker (exclusive with magnifier) |
 | `toggleGazeMouseFollow` | Cursor follows gaze |
@@ -159,7 +165,6 @@ Patterns, not every generated name:
 | `settings.dwell.slow` / `.normal` / `.fast` / `.custom` | Speed presets (standard + rapid dwells together) |
 | `settings.dwell.custom.save` / `.restore` | Save or restore Custom timings |
 | `settings.mag.follow.slow` / `.sticky` / `.smooth` / `.snappy` | Gaze follow (indicator, gaze mouse, live lens) |
-| `settings.lts.indicator.filled` / `.hollow` / `.pause` | LTS HUD (`fan`/`orb` aliases) |
 | `settings.tracker.auto` / `.mouse` | Tracker pref (restart) |
 | `settings.magPickStyle.*.toggle` / `settings.mousePickStyle.*.toggle` | Pick visuals |
 | `settings.pickWindow.round` / `.square` | Zoom window shape |
@@ -175,7 +180,7 @@ Patterns, not every generated name:
 
 Numeric keys: `dwellMs` / `rapidDwellMs` plus `kIntSpecs` / `kDoubleSpecs` in `AppSettings.cpp`. Color keys: `SettingsUi::kColorKeys` (`hoverColor`, `flashColor`, progress, combo, custom primary/secondary).
 
-`activeState` is the command name (`settings.progress.radial.toggle`, `theme.light`). Live assist uses the feature stem (`lookToScroll`, `dwellSuspend`). `CloseAllPages` / `CloseOtherPages` also disable ComboMouse.
+`activeState` is the command name (`settings.progress.radial.toggle`, `theme.light`). Live assist uses the feature stem (`lookToScroll`, `lookToMouse`, `dwellSuspend`). `CloseAllPages` / `CloseOtherPages` also disable ComboMouse.
 
 ## Mapping-only (`default.json`)
 

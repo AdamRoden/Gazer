@@ -15,7 +15,8 @@
 #include "assist/GazeMouseFollow.h"
 #include "assist/GazeReticle.h"
 #include "assist/HeadPoseMapper.h"
-#include "assist/LookToScroll.h"
+#include "assist/LookToMap.h"
+#include "assist/LookToMaps.h"
 #include "assist/MouseAssistState.h"
 #include "assist/MouseDwellMove.h"
 #include "assist/ClipPlayer.h"
@@ -127,7 +128,8 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
     }
     m_compose = std::make_unique<ComposeUi>(*m_pages, *m_speech, m_settings, *m_secrets, *m_eleven,
                                            *m_tts, *m_board, *m_history);
-    m_lookToScroll = std::make_unique<LookToScroll>();
+    m_lookToMaps = std::make_unique<LookToMaps>();
+    m_lookToMaps->setInput(m_input.get());
     m_comboMouse = std::make_unique<ComboMouse>();
     m_magnifier = std::make_unique<MagnifierOverlay>();
     m_mouseDwellMove = std::make_unique<MouseDwellMove>();
@@ -182,9 +184,11 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
     m_settingsUi->setResetFn([this]() { resetSettingsToDefaults(); });
     m_settingsUi->setMouseDwellMove(m_mouseDwellMove.get());
     m_settingsUi->setHeadPoseMapper(m_headPose.get());
+    m_settingsUi->setLookToMaps(m_lookToMaps.get());
     m_headPose->setRunCommand(
         [this](const QString& name, QString* error) { return m_commands->run(name, error); });
     m_headPose->setNotifyFn([this](const QString& msg) { notifyStatus(msg); });
+    m_lookToMaps->setNotifyFn([this](const QString& msg) { notifyStatus(msg); });
     connect(m_mouseDwellMove.get(), &MouseDwellMove::movedTo, this,
             [this](QPoint pos) { m_settingsUi->onColorAimMoved(pos); });
     connect(m_mouseDwellMove.get(), &MouseDwellMove::armedChanged, this, [this](bool armed) {
@@ -248,26 +252,24 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
                 }
             });
 
-    connect(m_lookToScroll.get(), &LookToScroll::enabledChanged, this,
-            [this](bool) { refreshActiveIndicators(); });
+    connect(m_lookToMaps.get(), &LookToMaps::enabledChanged, this,
+            [this](LookToDest, bool) { refreshActiveIndicators(); });
     connect(m_comboMouse.get(), &ComboMouse::enabledChanged, this,
             [this](bool) { refreshActiveIndicators(); });
-    connect(m_lookToScroll.get(), &LookToScroll::scrollSuspendedChanged, this,
-            [this](bool) { refreshActiveIndicators(); });
-    connect(m_lookToScroll.get(), &LookToScroll::maxNotchesPerSecChanged, this,
-            [this](double n) {
-                m_settings.ltsMaxNotchesPerSec = n;
+    connect(m_lookToMaps.get(), &LookToMaps::outputSuspendedChanged, this,
+            [this](LookToDest, bool) { refreshActiveIndicators(); });
+    connect(m_lookToMaps.get(), &LookToMaps::maxSpeedChanged, this,
+            [this](LookToDest dest, double n) {
+                m_settings.lookToMap(dest).maxSpeed = n;
                 applySettings(true);
             });
-    connect(m_lookToScroll.get(), &LookToScroll::scrollModeChanged, this,
-            [this](LtsScrollMode mode) {
-                if (m_settings.ltsScrollMode == mode) {
+    connect(m_lookToMaps.get(), &LookToMaps::axisModeChanged, this,
+            [this](LookToDest dest, LtsScrollMode mode) {
+                if (m_settings.lookToMap(dest).axisMode == mode) {
                     return;
                 }
-                m_settings.ltsScrollMode = mode;
+                m_settings.lookToMap(dest).axisMode = mode;
                 applySettings(true);
-                notifyStatus(QStringLiteral("Look↕Scroll: %1")
-                                 .arg(QLatin1String(ltsScrollModeName(mode))));
             });
     connect(m_mouseDwellMove.get(), &MouseDwellMove::armedChanged, this,
             [this](bool) { refreshActiveIndicators(); });
@@ -316,7 +318,7 @@ ActiveStateContext GazerServices::activeStateContext() const
 {
     ActiveStateContext ctx;
     ctx.settings = &m_settings;
-    ctx.lookToScroll = m_lookToScroll.get();
+    ctx.lookToMaps = m_lookToMaps.get();
     ctx.comboMouse = m_comboMouse.get();
     ctx.mouseDwellMove = m_mouseDwellMove.get();
     ctx.magnifier = m_magnifier.get();
@@ -443,31 +445,30 @@ void GazerServices::applySettings(bool persist)
     m_mouseDwellMove->setProgressVisuals(mousePv);
     m_gazeReticle->setColor(boardPv.progressColor);
     m_magnifier->setAccent(boardPv.progressColor);
-    m_lookToScroll->setAccent(boardPv.progressColor);
-
-    m_lookToScroll->setDeadzonePx(m_settings.ltsDeadzonePx);
-    m_lookToScroll->setFalloffPx(m_settings.ltsFalloffPx);
-    m_lookToScroll->setMaxNotchesPerSec(m_settings.ltsMaxNotchesPerSec);
-    m_lookToScroll->setAccelPerSec(m_settings.ltsAccelPerSec);
-    m_lookToScroll->setCenterDwellMs(m_settings.ltsCenterDwellMs);
-    m_lookToScroll->setIndicatorStyle(m_settings.ltsIndicatorStyle);
-    m_lookToScroll->setScrollMode(m_settings.ltsScrollMode);
+    m_lookToMaps->setAccent(boardPv.progressColor);
+    for (int i = 0; i < kLookToDestCount; ++i) {
+        const auto dest = LookToDest(i);
+        m_lookToMaps->applyConfig(dest, m_settings.lookToMap(dest));
+    }
 
     m_comboMouse->setAccent(boardPv.progressColor);
     const ThemeColors theme = m_settings.resolvedTheme();
     const QColor comboInner = m_settings.colorKey(QStringLiteral("comboInnerColor"));
     const QColor comboOuter = m_settings.colorKey(QStringLiteral("comboOuterColor"));
-    auto applyPieChrome = [&](auto* pie) {
-        pie->setTheme(theme);
-        pie->setRadii(m_settings.comboInnerRadiusPx, m_settings.comboSharedRadiusPx,
-                      m_settings.comboOuterRadiusPx);
-        pie->setAnnulusColors(comboInner, comboOuter);
-        pie->setScanGraceMs(m_settings.scanGraceMs);
-        pie->setDwellGraceMs(m_settings.dwellGraceMs);
-        pie->setDwellSequence(m_settings.dwellSequence);
-    };
-    applyPieChrome(m_lookToScroll.get());
-    applyPieChrome(m_comboMouse.get());
+    m_lookToMaps->setTheme(theme);
+    m_lookToMaps->setPieRadii(m_settings.comboInnerRadiusPx, m_settings.comboSharedRadiusPx,
+                             m_settings.comboOuterRadiusPx);
+    m_lookToMaps->setAnnulusColors(comboInner, comboOuter);
+    m_lookToMaps->setScanGraceMs(m_settings.scanGraceMs);
+    m_lookToMaps->setDwellGraceMs(m_settings.dwellGraceMs);
+    m_lookToMaps->setDwellSequence(m_settings.dwellSequence);
+    m_comboMouse->setTheme(theme);
+    m_comboMouse->setRadii(m_settings.comboInnerRadiusPx, m_settings.comboSharedRadiusPx,
+                          m_settings.comboOuterRadiusPx);
+    m_comboMouse->setAnnulusColors(comboInner, comboOuter);
+    m_comboMouse->setScanGraceMs(m_settings.scanGraceMs);
+    m_comboMouse->setDwellGraceMs(m_settings.dwellGraceMs);
+    m_comboMouse->setDwellSequence(m_settings.dwellSequence);
 
     m_magnifier->setZoom(m_settings.magZoom);
     m_magnifier->setLensSize(m_settings.magLensSize);
@@ -510,7 +511,7 @@ void GazerServices::registerDomainCommands()
     m_assistCmdCtx->commands = m_commands.get();
     m_assistCmdCtx->session = m_assistSession.get();
     m_assistCmdCtx->pages = m_pages.get();
-    m_assistCmdCtx->lookToScroll = m_lookToScroll.get();
+    m_assistCmdCtx->lookToMaps = m_lookToMaps.get();
     m_assistCmdCtx->comboMouse = m_comboMouse.get();
     m_assistCmdCtx->mouseDwellMove = m_mouseDwellMove.get();
     m_assistCmdCtx->magnifier = m_magnifier.get();

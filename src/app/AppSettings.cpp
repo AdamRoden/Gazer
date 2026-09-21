@@ -1,6 +1,7 @@
 #include "app/AppSettings.h"
 
 #include "assist/GazeFollowProfile.h"
+#include "assist/LookToMap.h"
 #include "mapping/HeadPoseCurve.h"
 #include "ui/PickStyle.h"
 
@@ -23,6 +24,36 @@ HeadPoseMap AppSettings::makeDefaultHeadPoseMap()
     HeadPoseMap m = defaultHeadPoseMap();
     m.id = QUuid::createUuid().toString(QUuid::WithoutBraces).left(8);
     return m;
+}
+
+LookToMapSettings& AppSettings::lookToMap(LookToDest dest)
+{
+    switch (dest) {
+    case LookToDest::Mouse:
+        return lookToMouse;
+    case LookToDest::LeftStick:
+        return lookToLeftStick;
+    case LookToDest::RightStick:
+        return lookToRightStick;
+    case LookToDest::Scroll:
+        return lookToScroll;
+    }
+    return lookToScroll;
+}
+
+const LookToMapSettings& AppSettings::lookToMap(LookToDest dest) const
+{
+    switch (dest) {
+    case LookToDest::Mouse:
+        return lookToMouse;
+    case LookToDest::LeftStick:
+        return lookToLeftStick;
+    case LookToDest::RightStick:
+        return lookToRightStick;
+    case LookToDest::Scroll:
+        return lookToScroll;
+    }
+    return lookToScroll;
 }
 
 namespace {
@@ -168,13 +199,7 @@ constexpr IntSpec kIntSpecs[] = {
     {"pickWindowPx", "Zoom size",
      "Static zoom window size for magnify and foresight (px).", " px",
      &AppSettings::pickWindowPx, 200, 1600, 40},
-    {"ltsDeadzonePx", "LTS deadzone", "No-scroll radius around cursor (px).", " px",
-     &AppSettings::ltsDeadzonePx, 30, 400, 10},
-    {"ltsFalloffPx", "LTS falloff", "Distance to full scroll speed past deadzone (px).", " px",
-     &AppSettings::ltsFalloffPx, 80, 800, 20},
-    {"ltsCenterDwellMs", "LTS center dwell",
-     "Dwell the hub to pause and open the Look-to-scroll pie (ms).",
-     " ms", &AppSettings::ltsCenterDwellMs, 200, 2500, 50},
+
     {"comboInnerRadiusPx", "ComboMouse inner radius",
      "Inner edge of the drift ring (px). Hole / deadzone.", " px",
      &AppSettings::comboInnerRadiusPx, ComboMouseHit::kMinInnerRadiusPx,
@@ -209,9 +234,7 @@ constexpr DoubleSpec kDoubleSpecs[] = {
     {"pickZoom", "Zoom level",
      "Static magnification for magnify and foresight (1.25–8).", "",
      &AppSettings::pickZoom, 1.25, 8.0, 0.25, 2},
-    {"ltsAccelPerSec", "LTS accel/s",
-     "Speed growth per second while that axis is contributing. Resets when the axis is ~0.", " /s",
-     &AppSettings::ltsAccelPerSec, kLtsAccelMin, kLtsAccelMax, 0.5, 1},
+
     {"speechSpeed", "Speech speed", "ElevenLabs and SAPI speed (0.5–2).", "",
      &AppSettings::speechSpeed, 0.5, 2.0, 0.1, 2},
     {"speechVolume", "Speech boost", "Make composer voices louder (1–5×). Applies to ElevenLabs clips.",
@@ -329,8 +352,10 @@ void AppSettings::clamp()
         this->*s.member = s.snap ? s.snap(v) : v;
     }
     magFollowProfile = gazeFollowProfileFromInt(int(magFollowProfile));
-    ltsIndicatorStyle = ltsIndicatorFromInt(int(ltsIndicatorStyle));
-    ltsScrollMode = ltsScrollModeFromInt(int(ltsScrollMode));
+    clampLookToMapSettings(LookToDest::Scroll, lookToScroll);
+    clampLookToMapSettings(LookToDest::Mouse, lookToMouse);
+    clampLookToMapSettings(LookToDest::LeftStick, lookToLeftStick);
+    clampLookToMapSettings(LookToDest::RightStick, lookToRightStick);
     themeSaturation = snapThemeSaturation(themeSaturation);
     themeBrightness = qBound(kThemeBrightnessMin, themeBrightness, kThemeBrightnessMax);
     magPickStyle = PickStyle::sanitizeMag(magPickStyle);
@@ -424,9 +449,6 @@ void AppSettings::clamp()
     layoutAutoCloseFadeMs = qBound(50, layoutAutoCloseFadeMs, 60000);
     progress.ensureDefault();
     mouseProgress.ensureDefault();
-    ltsMaxNotchesPerSec = snapLtsSpeed(
-        qBound(kLtsSpeedStops[0], ltsMaxNotchesPerSec, kLtsSpeedStops[kLtsSpeedStopCount - 1]));
-
     double inner = comboInnerRadiusPx;
     double shared = comboSharedRadiusPx;
     double outer = comboOuterRadiusPx;
@@ -520,7 +542,7 @@ void AppSettings::setMagFollowProfile(int profile)
 
 void AppSettings::setLtsIndicatorStyle(int style)
 {
-    ltsIndicatorStyle = ltsIndicatorFromInt(style);
+    applyLegacyLookToIndicator(lookToScroll, ltsIndicatorFromInt(style));
 }
 
 bool AppSettings::isColorKey(const QString& key)
@@ -605,10 +627,17 @@ QString AppSettings::displayValue(const QString& key) const
         return QLatin1String(gazeFollowProfileName(magFollowProfile));
     }
     if (key == QLatin1String("ltsIndicatorStyle")) {
-        return QLatin1String(ltsIndicatorName(ltsIndicatorStyle));
+        if (!lookToScroll.showInnerDeadzone && !lookToScroll.showMax
+            && !lookToScroll.showOuterDeadzone) {
+            return QLatin1String("Pause");
+        }
+        if (!lookToScroll.showFill && lookToScroll.showBorder) {
+            return QLatin1String("Hollow");
+        }
+        return QLatin1String("Filled");
     }
     if (key == QLatin1String("ltsScrollMode")) {
-        return QLatin1String(ltsScrollModeName(ltsScrollMode));
+        return QLatin1String(ltsScrollModeName(lookToScroll.axisMode));
     }
     if (key == QLatin1String("magPickStyle")) {
         return PickStyle::label(magPickStyle);
@@ -709,8 +738,8 @@ QString AppSettings::settingDescription(const QString& key)
     }
     if (key == QLatin1String("ltsIndicatorStyle")) {
         return QStringLiteral(
-            "Look-to-scroll overlay: Filled (soft stretched disk), Hollow (glass ring "
-            "that stretches in the scroll direction), or Pause (center pause/resume only).");
+            "Look-to overlay: Filled (disk and rings), Hollow (ring outlines), or Pause "
+            "(hub only while running).");
     }
     if (key == QLatin1String("magFollowProfile")) {
         return QStringLiteral(

@@ -10,7 +10,7 @@
 #include "app/SettingsUi.h"
 #include "assist/ComboMouse.h"
 #include "assist/HeadPoseMapper.h"
-#include "assist/LookToScroll.h"
+#include "assist/LookToMaps.h"
 #include "assist/MouseAssistState.h"
 #include "assist/MouseDwellMove.h"
 #include "assist/ClipPlayer.h"
@@ -93,7 +93,7 @@ bool Application::initialize()
 
     m_gazeRouter.setPages(&m_svc->pages());
     m_gazeRouter.setAssistSession(&m_svc->assistSession());
-    m_gazeRouter.setLookToScroll(&m_svc->lookToScroll());
+    m_gazeRouter.setLookToMaps(&m_svc->lookToMaps());
     m_gazeRouter.setComboMouse(&m_svc->comboMouse());
     m_gazeRouter.setMouseDwellMove(&m_svc->mouseDwellMove());
     m_gazeRouter.setMagnifier(&m_svc->magnifier());
@@ -535,7 +535,7 @@ void Application::shutdownUi()
     }
     if (m_svc) {
         m_svc->magnifier().setEnabledLens(false);
-        m_svc->lookToScroll().setEnabled(false);
+        m_svc->lookToMaps().disableAll();
         m_svc->comboMouse().setEnabled(false);
         m_svc->mouseDwellMove().setArmed(false);
         m_svc->mouseAssist().releaseAllHolds();

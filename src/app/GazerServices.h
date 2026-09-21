@@ -25,7 +25,7 @@ class GazeReticle;
 class HeadPoseMapper;
 class InputService;
 class KeyStateManager;
-class LookToScroll;
+class LookToMaps;
 class MagnifierOverlay;
 class MappingEngine;
 class MouseAssistState;
@@ -67,7 +67,7 @@ public:
     ComposeUi& composeUi() { return *m_compose; }
     AhkLauncher& ahk() { return *m_ahk; }
     SidecarHost& sidecars() { return *m_sidecars; }
-    LookToScroll& lookToScroll() { return *m_lookToScroll; }
+    LookToMaps& lookToMaps() { return *m_lookToMaps; }
     ComboMouse& comboMouse() { return *m_comboMouse; }
     MagnifierOverlay& magnifier() { return *m_magnifier; }
     MouseDwellMove& mouseDwellMove() { return *m_mouseDwellMove; }
@@ -114,7 +114,7 @@ private:
     std::unique_ptr<ComposeUi> m_compose;
     std::unique_ptr<AhkLauncher> m_ahk;
     std::unique_ptr<SidecarHost> m_sidecars;
-    std::unique_ptr<LookToScroll> m_lookToScroll;
+    std::unique_ptr<LookToMaps> m_lookToMaps;
     std::unique_ptr<ComboMouse> m_comboMouse;
     std::unique_ptr<MagnifierOverlay> m_magnifier;
     std::unique_ptr<MouseDwellMove> m_mouseDwellMove;

@@ -1,6 +1,7 @@
 #include "app/AppSettings.h"
 
 #include "assist/GazeFollowProfile.h"
+#include "assist/LookToMap.h"
 #include "assist/LtsIndicator.h"
 #include "assist/LtsScrollMode.h"
 #include "mapping/HeadPoseCurve.h"
@@ -175,16 +176,69 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
     pickWindowRound = o.value(QStringLiteral("pickWindowRound")).toBool(pickWindowRound);
     magFollowProfile = gazeFollowProfileFromInt(
         o.value(QStringLiteral("magFollowProfile")).toInt(int(magFollowProfile)));
-    ltsDeadzonePx = o.value(QStringLiteral("ltsDeadzonePx")).toInt(ltsDeadzonePx);
-    ltsFalloffPx = o.value(QStringLiteral("ltsFalloffPx")).toInt(ltsFalloffPx);
-    ltsMaxNotchesPerSec =
-        o.value(QStringLiteral("ltsMaxNotchesPerSec")).toDouble(ltsMaxNotchesPerSec);
-    ltsAccelPerSec = o.value(QStringLiteral("ltsAccelPerSec")).toDouble(ltsAccelPerSec);
-    ltsCenterDwellMs = o.value(QStringLiteral("ltsCenterDwellMs")).toInt(ltsCenterDwellMs);
-    ltsIndicatorStyle =
-        ltsIndicatorFromInt(o.value(QStringLiteral("ltsIndicatorStyle")).toInt(int(ltsIndicatorStyle)));
-    ltsScrollMode =
-        ltsScrollModeFromInt(o.value(QStringLiteral("ltsScrollMode")).toInt(int(ltsScrollMode)));
+    auto readLookToMap = [](const QJsonObject& mo, LookToDest dest) {
+        LookToMapSettings c = defaultLookToMapSettings(dest);
+        c.deadzonePx = mo.value(QStringLiteral("deadzonePx")).toInt(c.deadzonePx);
+        c.rampEndPx = mo.value(QStringLiteral("rampEndPx")).toInt(c.rampEndPx);
+        c.fullOuterPx = mo.value(QStringLiteral("fullOuterPx")).toInt(c.fullOuterPx);
+        c.outerDeadzonePx = mo.value(QStringLiteral("outerDeadzonePx")).toInt(c.outerDeadzonePx);
+        c.outerDeadzoneEnabled =
+            mo.value(QStringLiteral("outerDeadzoneEnabled")).toBool(c.outerDeadzoneEnabled);
+        c.hubEnabled = mo.value(QStringLiteral("hubEnabled")).toBool(c.hubEnabled);
+        c.maxSpeed = mo.value(QStringLiteral("maxSpeed")).toDouble(c.maxSpeed);
+        c.accelPerSec = mo.value(QStringLiteral("accelPerSec")).toDouble(c.accelPerSec);
+        c.centerDwellMs = mo.value(QStringLiteral("centerDwellMs")).toInt(c.centerDwellMs);
+        c.axisMode =
+            ltsScrollModeFromInt(mo.value(QStringLiteral("axisMode")).toInt(int(c.axisMode)));
+        if (mo.contains(QStringLiteral("showPause")) || mo.contains(QStringLiteral("showFill"))
+            || mo.contains(QStringLiteral("showBorder"))) {
+            c.showPause = mo.value(QStringLiteral("showPause")).toBool(c.showPause);
+            c.showInnerDeadzone =
+                mo.value(QStringLiteral("showInnerDeadzone")).toBool(c.showInnerDeadzone);
+            c.showMax = mo.value(QStringLiteral("showMax")).toBool(c.showMax);
+            c.showOuterDeadzone =
+                mo.value(QStringLiteral("showOuterDeadzone")).toBool(c.showOuterDeadzone);
+            c.showBorder = mo.value(QStringLiteral("showBorder")).toBool(c.showBorder);
+            c.showFill = mo.value(QStringLiteral("showFill")).toBool(c.showFill);
+        } else if (mo.contains(QStringLiteral("indicatorStyle"))) {
+            applyLegacyLookToIndicator(
+                c, ltsIndicatorFromInt(mo.value(QStringLiteral("indicatorStyle")).toInt(0)));
+        }
+        clampLookToMapSettings(dest, c);
+        return c;
+    };
+    if (o.value(QStringLiteral("lookToMaps")).isObject()) {
+        const QJsonObject maps = o.value(QStringLiteral("lookToMaps")).toObject();
+        if (maps.value(QStringLiteral("scroll")).isObject()) {
+            lookToScroll = readLookToMap(maps.value(QStringLiteral("scroll")).toObject(),
+                                         LookToDest::Scroll);
+        }
+        if (maps.value(QStringLiteral("mouse")).isObject()) {
+            lookToMouse =
+                readLookToMap(maps.value(QStringLiteral("mouse")).toObject(), LookToDest::Mouse);
+        }
+        if (maps.value(QStringLiteral("leftStick")).isObject()) {
+            lookToLeftStick = readLookToMap(maps.value(QStringLiteral("leftStick")).toObject(),
+                                            LookToDest::LeftStick);
+        }
+        if (maps.value(QStringLiteral("rightStick")).isObject()) {
+            lookToRightStick = readLookToMap(maps.value(QStringLiteral("rightStick")).toObject(),
+                                             LookToDest::RightStick);
+        }
+    } else if (o.contains(QStringLiteral("ltsDeadzonePx"))
+               || o.contains(QStringLiteral("ltsFalloffPx"))) {
+        lookToScroll = lookToMapFromLegacyLts(
+            o.value(QStringLiteral("ltsDeadzonePx")).toInt(80),
+            o.value(QStringLiteral("ltsFalloffPx")).toInt(300),
+            o.value(QStringLiteral("ltsMaxNotchesPerSec")).toDouble(kLtsSpeedDefault),
+            o.value(QStringLiteral("ltsAccelPerSec")).toDouble(kLtsAccelDefault),
+            o.value(QStringLiteral("ltsCenterDwellMs")).toInt(700),
+            ltsIndicatorFromInt(o.value(QStringLiteral("ltsIndicatorStyle")).toInt(0)),
+            ltsScrollModeFromInt(o.value(QStringLiteral("ltsScrollMode")).toInt(2)));
+        lookToMouse = defaultLookToMapSettings(LookToDest::Mouse);
+        lookToLeftStick = defaultLookToMapSettings(LookToDest::LeftStick);
+        lookToRightStick = defaultLookToMapSettings(LookToDest::RightStick);
+    }
     comboInnerRadiusPx = o.value(QStringLiteral("comboInnerRadiusPx")).toInt(comboInnerRadiusPx);
     comboSharedRadiusPx = o.value(QStringLiteral("comboSharedRadiusPx")).toInt(comboSharedRadiusPx);
     comboOuterRadiusPx = o.value(QStringLiteral("comboOuterRadiusPx")).toInt(comboOuterRadiusPx);
@@ -419,13 +473,32 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     o.insert(QStringLiteral("pickWindowPx"), copy.pickWindowPx);
     o.insert(QStringLiteral("pickWindowRound"), copy.pickWindowRound);
     o.insert(QStringLiteral("magFollowProfile"), int(copy.magFollowProfile));
-    o.insert(QStringLiteral("ltsDeadzonePx"), copy.ltsDeadzonePx);
-    o.insert(QStringLiteral("ltsFalloffPx"), copy.ltsFalloffPx);
-    o.insert(QStringLiteral("ltsMaxNotchesPerSec"), copy.ltsMaxNotchesPerSec);
-    o.insert(QStringLiteral("ltsAccelPerSec"), copy.ltsAccelPerSec);
-    o.insert(QStringLiteral("ltsCenterDwellMs"), copy.ltsCenterDwellMs);
-    o.insert(QStringLiteral("ltsIndicatorStyle"), int(copy.ltsIndicatorStyle));
-    o.insert(QStringLiteral("ltsScrollMode"), int(copy.ltsScrollMode));
+    auto writeLookToMap = [](const LookToMapSettings& c) {
+        QJsonObject mo;
+        mo.insert(QStringLiteral("deadzonePx"), c.deadzonePx);
+        mo.insert(QStringLiteral("rampEndPx"), c.rampEndPx);
+        mo.insert(QStringLiteral("fullOuterPx"), c.fullOuterPx);
+        mo.insert(QStringLiteral("outerDeadzonePx"), c.outerDeadzonePx);
+        mo.insert(QStringLiteral("outerDeadzoneEnabled"), c.outerDeadzoneEnabled);
+        mo.insert(QStringLiteral("hubEnabled"), c.hubEnabled);
+        mo.insert(QStringLiteral("maxSpeed"), c.maxSpeed);
+        mo.insert(QStringLiteral("accelPerSec"), c.accelPerSec);
+        mo.insert(QStringLiteral("centerDwellMs"), c.centerDwellMs);
+        mo.insert(QStringLiteral("axisMode"), int(c.axisMode));
+        mo.insert(QStringLiteral("showPause"), c.showPause);
+        mo.insert(QStringLiteral("showInnerDeadzone"), c.showInnerDeadzone);
+        mo.insert(QStringLiteral("showMax"), c.showMax);
+        mo.insert(QStringLiteral("showOuterDeadzone"), c.showOuterDeadzone);
+        mo.insert(QStringLiteral("showBorder"), c.showBorder);
+        mo.insert(QStringLiteral("showFill"), c.showFill);
+        return mo;
+    };
+    QJsonObject lookToMaps;
+    lookToMaps.insert(QStringLiteral("scroll"), writeLookToMap(copy.lookToScroll));
+    lookToMaps.insert(QStringLiteral("mouse"), writeLookToMap(copy.lookToMouse));
+    lookToMaps.insert(QStringLiteral("leftStick"), writeLookToMap(copy.lookToLeftStick));
+    lookToMaps.insert(QStringLiteral("rightStick"), writeLookToMap(copy.lookToRightStick));
+    o.insert(QStringLiteral("lookToMaps"), lookToMaps);
     o.insert(QStringLiteral("comboInnerRadiusPx"), copy.comboInnerRadiusPx);
     o.insert(QStringLiteral("comboSharedRadiusPx"), copy.comboSharedRadiusPx);
     o.insert(QStringLiteral("comboOuterRadiusPx"), copy.comboOuterRadiusPx);

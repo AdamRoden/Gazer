@@ -1,6 +1,6 @@
 # Commands
 
-`CommandRegistry` runs a **builtin** first; unknown names fall through to `resources/mappings/default.json`. `compose.*` / `speech.*` / `soundboard.*` / `history.*` / `settings.*` / `headPose.*` skip the Cmd toast.
+`CommandRegistry` runs a **builtin** first; unknown names fall through to `resources/mappings/default.json`. `compose.*` / `speech.*` / `soundboard.*` / `history.*` / `settings.*` / `headPose.*` / `lookTo.*` skip the Cmd toast.
 
 AHK / CLI / Python is not this table. `Gazer.exe --action …` (and the `Gazer` named pipe) parse the same action language as [page XML](../authoring.md). After `OpenPage` in one payload, `ShowLayers` applies to the opened page.
 
@@ -9,7 +9,9 @@ AHK / CLI / Python is not this table. `Gazer.exe --action …` (and the `Gazer` 
 | `quitApp` | Exit |
 | `toggleDwellSuspend` / `suspendDwell` / `resumeDwell` | Global dwell pause (not aliases of each other) |
 | `toggleMagnifier` | Lens (exclusive with gaze reticle) |
-| `toggleLookToScroll` | Gaze-driven scroll |
+| `lookToScroll` / `toggleLookToScroll` | Gaze analog scroll |
+| `lookToMouse` | Gaze analog mouse move |
+| `lookToLeftStick` / `lookToRightStick` | Gaze analog left / right stick |
 | `toggleGazeReticle` | Gaze marker (exclusive with magnifier) |
 | `toggleGazeMouseFollow` | Cursor follows gaze |
 | `mouseMoveToGaze` | Dwell to place the cursor |

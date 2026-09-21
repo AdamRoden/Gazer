@@ -5,6 +5,7 @@
 #include "assist/GazeMouseFollow.h"
 #include "assist/GazeReticle.h"
 #include "assist/ComboMouse.h"
+#include "assist/LookToMaps.h"
 #include "assist/LookToScroll.h"
 #include "assist/MouseAssistState.h"
 #include "assist/MouseDwellMove.h"
@@ -109,11 +110,61 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
                && ctx.composeUi->activeTopicId()
                       == key.mid(int(QLatin1String("soundboard.topic.").size()));
     }
-    if (key == QLatin1String("lookToScroll")) {
-        return ctx.lookToScroll && ctx.lookToScroll->isEnabled();
+    if (ctx.lookToMaps) {
+        if (key == QLatin1String("lookToScroll") || key == QLatin1String("toggleLookToScroll")) {
+            return ctx.lookToMaps->map(LookToDest::Scroll).isEnabled();
+        }
+        if (key == QLatin1String("lookToMouse")) {
+            return ctx.lookToMaps->map(LookToDest::Mouse).isEnabled();
+        }
+        if (key == QLatin1String("lookToLeftStick")) {
+            return ctx.lookToMaps->map(LookToDest::LeftStick).isEnabled();
+        }
+        if (key == QLatin1String("lookToRightStick")) {
+            return ctx.lookToMaps->map(LookToDest::RightStick).isEnabled();
+        }
+        if (key == QLatin1String("lookToScroll.suspended")) {
+            return ctx.lookToMaps->map(LookToDest::Scroll).isScrollSuspended();
+        }
     }
-    if (key == QLatin1String("lookToScroll.suspended")) {
-        return ctx.lookToScroll && ctx.lookToScroll->isScrollSuspended();
+    if (ctx.settings && ctx.settingsUi && ctx.settingsUi->lookToEditorOpen()) {
+        const LookToMapSettings& draft = ctx.settings->lookToMap(ctx.settingsUi->lookToEditorDest());
+        if (key == QLatin1String("lookTo.map.preview")) {
+            return ctx.settingsUi->lookToPreviewOn();
+        }
+        if (key == QLatin1String("lookTo.map.hub")) {
+            return draft.hubEnabled;
+        }
+        if (key == QLatin1String("lookTo.map.outerDeadzone")) {
+            return draft.outerDeadzoneEnabled;
+        }
+        if (key == QLatin1String("lookTo.map.mode.vertical")) {
+            return draft.axisMode == LtsScrollMode::Vertical;
+        }
+        if (key == QLatin1String("lookTo.map.mode.horizontal")) {
+            return draft.axisMode == LtsScrollMode::Horizontal;
+        }
+        if (key == QLatin1String("lookTo.map.mode.both")) {
+            return draft.axisMode == LtsScrollMode::Both;
+        }
+        if (key == QLatin1String("lookTo.map.show.pause")) {
+            return draft.showPause;
+        }
+        if (key == QLatin1String("lookTo.map.show.inner")) {
+            return draft.showInnerDeadzone;
+        }
+        if (key == QLatin1String("lookTo.map.show.max")) {
+            return draft.showMax;
+        }
+        if (key == QLatin1String("lookTo.map.show.outer")) {
+            return draft.showOuterDeadzone;
+        }
+        if (key == QLatin1String("lookTo.map.show.border")) {
+            return draft.showBorder;
+        }
+        if (key == QLatin1String("lookTo.map.show.fill")) {
+            return draft.showFill;
+        }
     }
     if (key == QLatin1String("comboMouse")) {
         return ctx.comboMouse && ctx.comboMouse->isEnabled();
@@ -203,11 +254,6 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
         return false;
     }
     const AppSettings& s = *ctx.settings;
-    for (const auto& c : kLtsIndicatorCommands) {
-        if (key == QLatin1String(c.cmd)) {
-            return s.ltsIndicatorStyle == c.style;
-        }
-    }
     for (const AppSettings::StyleToggle& t : AppSettings::kStyleToggles) {
         if (key == QLatin1String(t.command)) {
             return s.styleFlag(t);

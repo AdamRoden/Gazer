@@ -55,6 +55,7 @@ set(GAZER_SOURCES
     src/app/SettingsSliderGaze.cpp
     src/app/SettingsCommands.cpp
     src/app/SettingsHeadPose.cpp
+    src/app/SettingsLookTo.cpp
     src/app/CommandRegistry.cpp
     src/app/InboundActions.cpp
     src/app/ActionChannel.cpp
@@ -113,6 +114,8 @@ set(GAZER_SOURCES
     src/assist/ChildProcess.cpp
     src/assist/SidecarHost.cpp
     src/assist/LookToScroll.cpp
+    src/assist/LookToOverlay.cpp
+    src/assist/LookToMaps.cpp
     src/assist/HeadPoseMapper.cpp
     src/assist/ComboMouse.cpp
     src/assist/PieOverlay.cpp
@@ -237,6 +240,9 @@ set(GAZER_HEADERS
     src/assist/ChildProcess.h
     src/assist/SidecarHost.h
     src/assist/LookToScroll.h
+    src/assist/LookToOverlay.h
+    src/assist/LookToMap.h
+    src/assist/LookToMaps.h
     src/assist/HeadPoseMapper.h
     src/assist/ComboMouse.h
     src/assist/ComboMouseHit.h

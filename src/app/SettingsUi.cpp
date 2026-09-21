@@ -1,6 +1,7 @@
 #include "app/SettingsUi.h"
 
 #include "app/CommandRegistry.h"
+#include "assist/LookToMaps.h"
 #include "assist/SpeechSecrets.h"
 #include "layout/PageCompose.h"
 #include "layout/PageEdit.h"
@@ -55,6 +56,9 @@ void SettingsUi::closeLive(LiveBoard& board)
 {
     if (&board == &m_headMap) {
         endCurveScrub();
+    }
+    if (&board == &m_lookToMap && m_lookTo) {
+        m_lookTo->clearPreview();
     }
     unbindEditorKeyboard();
     if (!board.pageId.isEmpty()) {

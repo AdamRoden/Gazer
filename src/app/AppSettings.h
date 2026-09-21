@@ -2,6 +2,7 @@
 
 #include "assist/ComboMouseHit.h"
 #include "assist/GazeFollowProfile.h"
+#include "assist/LookToMap.h"
 #include "assist/LtsIndicator.h"
 #include "assist/LtsScrollMode.h"
 #include "assist/LtsSpeed.h"
@@ -91,16 +92,13 @@ struct AppSettings {
     double pickZoom = 4.0;
     int pickWindowPx = 600;
 
-    // --- Look-to-Scroll ---
-    int ltsDeadzonePx = 80;
-    int ltsFalloffPx = 300;
-    double ltsMaxNotchesPerSec = kLtsSpeedDefault;
-    /// Scroll rate grows by this factor each second gaze stays outside deadzone.
-    double ltsAccelPerSec = kLtsAccelDefault;
-    int ltsCenterDwellMs = 700;
-    LtsIndicator ltsIndicatorStyle = LtsIndicator::Filled;
-    /// Gaze-scroll axes: vertical, horizontal, or both.
-    LtsScrollMode ltsScrollMode = LtsScrollMode::Both;
+    // --- Look-to maps (scroll, mouse, left stick, right stick) ---
+    LookToMapSettings lookToScroll = defaultLookToMapSettings(LookToDest::Scroll);
+    LookToMapSettings lookToMouse = defaultLookToMapSettings(LookToDest::Mouse);
+    LookToMapSettings lookToLeftStick = defaultLookToMapSettings(LookToDest::LeftStick);
+    LookToMapSettings lookToRightStick = defaultLookToMapSettings(LookToDest::RightStick);
+    [[nodiscard]] LookToMapSettings& lookToMap(LookToDest dest);
+    [[nodiscard]] const LookToMapSettings& lookToMap(LookToDest dest) const;
 
     // --- ComboMouse (inner drift annulus + outer command annulus) ---
     /// Inner radius of the drift ring (px). Hole / deadzone.

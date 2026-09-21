@@ -6,50 +6,33 @@
   <Style id="joinLeft" background="transparent" thickness="0" radius="10,0,0,10"/>
   <Style id="joinRight" background="transparent" thickness="0" radius="0,10,10,0"/>
   <Grid id="board" desktopMode="true" rows="9" columns="16" anchor="Top" offset="0,0" size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" gap="6" margin="12" radius="16">
-    <Cell id="page_title" row="0" col="0" colSpan="16" label="Tools" caption="Look to scroll and ComboMouse" role="label" textStyle="title" style="plain"/>
+    <Cell id="page_title" row="0" col="0" colSpan="16" label="Tools" caption="Look-to maps and ComboMouse" role="label" textStyle="title" style="plain"/>
     <SubGrid id="tool_columns" row="1" col="0" rowSpan="7" colSpan="16" rows="1" columns="2" gap="16">
 
-      <SubGrid id="sec_dist" row="0" col="0" rows="6" columns="1" rowHeights="*,2*,2*,2*,2*,2*" gap="6" margin="6" style="group">
-        <Cell id="h_dist" row="0" col="0" label="Look to scroll" role="label" textStyle="section" style="plain"/>
-        <SubGrid id="row_lts_on" row="1" col="0" rows="1" columns="2" gap="6" style="row">
-          <Cell id="lts_on_l" row="0" col="0" label="Enable" caption="Scroll by looking away from the cursor." role="label" style="plain"/>
-          <Cell id="lts_on" row="0" col="1" label="Look to scroll" icon="lookToScroll" role="toggle" activeState="lookToScroll" style="join" command="toggleLookToScroll"/>
+      <SubGrid id="sec_look" row="0" col="0" rows="6" columns="1" rowHeights="*,2*,2*,2*,2*,2*" gap="6" margin="6" style="group">
+        <Cell id="h_look" row="0" col="0" label="Look-to maps" role="label" textStyle="section" style="plain"/>
+
+        <SubGrid id="row_scroll" row="1" col="0" rows="1" columns="3" gap="6" style="row">
+          <Cell id="scroll_l" row="0" col="0" label="Scroll" caption="Wheel from gaze vs the origin." icon="lookToScroll" role="label" style="plain"/>
+          <Cell id="lts_on" row="0" col="1" label="Enable" icon="lookToScroll" role="toggle" activeState="lookToScroll" style="joinLeft" command="lookToScroll"/>
+          <Cell id="scroll_edit" row="0" col="2" icon="editSquare" label="Edit" style="joinRight" command="lookTo.edit.scroll"/>
         </SubGrid>
-        <SubGrid id="row_dz" row="2" col="0" rows="1" columns="2" gap="6" style="row">
-          <Cell id="dz_l" row="0" col="0" label="Deadzone" caption="No-scroll radius around the cursor." role="label" style="plain"/>
-          <SubGrid id="act_dz" row="0" col="1" rows="1" columns="9" gap="0" style="row">
-            <Cell id="dz_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.ltsDeadzonePx.dec"/>
-            <Cell id="dz_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="ltsDeadzonePx" style="join"/>
-            <Cell id="dz_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.ltsDeadzonePx.inc"/>
-            <Cell id="dz_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.ltsDeadzonePx"/>
-          </SubGrid>
+        <SubGrid id="row_mouse" row="2" col="0" rows="1" columns="3" gap="6" style="row">
+          <Cell id="mouse_l" row="0" col="0" label="Mouse" caption="Move the pointer from gaze vs the origin." icon="mouseMove" role="label" style="plain"/>
+          <Cell id="mouse_on" row="0" col="1" label="Enable" icon="mouseMove" role="toggle" activeState="lookToMouse" style="joinLeft" command="lookToMouse"/>
+          <Cell id="mouse_edit" row="0" col="2" icon="editSquare" label="Edit" style="joinRight" command="lookTo.edit.mouse"/>
         </SubGrid>
-        <SubGrid id="row_fo" row="3" col="0" rows="1" columns="2" gap="6" style="row">
-          <Cell id="fo_l" row="0" col="0" label="Falloff" caption="Distance to full speed past the deadzone." role="label" style="plain"/>
-          <SubGrid id="act_fo" row="0" col="1" rows="1" columns="9" gap="0" style="row">
-            <Cell id="fo_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.ltsFalloffPx.dec"/>
-            <Cell id="fo_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="ltsFalloffPx" style="join"/>
-            <Cell id="fo_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.ltsFalloffPx.inc"/>
-            <Cell id="fo_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.ltsFalloffPx"/>
-          </SubGrid>
+        <SubGrid id="row_lstick" row="3" col="0" rows="1" columns="3" gap="6" style="row">
+          <Cell id="lstick_l" row="0" col="0" label="Left stick" caption="Left analog stick from gaze vs the origin." icon="sportsEsports" role="label" style="plain"/>
+          <Cell id="lstick_on" row="0" col="1" label="Enable" icon="sportsEsports" role="toggle" activeState="lookToLeftStick" style="joinLeft" command="lookToLeftStick"/>
+          <Cell id="lstick_edit" row="0" col="2" icon="editSquare" label="Edit" style="joinRight" command="lookTo.edit.leftStick"/>
         </SubGrid>
-        <SubGrid id="row_accel" row="4" col="0" rows="1" columns="2" gap="6" style="row">
-          <Cell id="accel_label" row="0" col="0" label="Accel / s" caption="Speed growth outside the deadzone." role="label" style="plain"/>
-          <SubGrid id="act_accel" row="0" col="1" rows="1" columns="9" gap="0" style="row">
-            <Cell id="accel_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.ltsAccelPerSec.dec"/>
-            <Cell id="accel_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="ltsAccelPerSec" style="join"/>
-            <Cell id="accel_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.ltsAccelPerSec.inc"/>
-            <Cell id="accel_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.ltsAccelPerSec"/>
-          </SubGrid>
+        <SubGrid id="row_rstick" row="4" col="0" rows="1" columns="3" gap="6" style="row">
+          <Cell id="rstick_l" row="0" col="0" label="Right stick" caption="Right analog stick from gaze vs the origin." icon="sportsEsports" role="label" style="plain"/>
+          <Cell id="rstick_on" row="0" col="1" label="Enable" icon="sportsEsports" role="toggle" activeState="lookToRightStick" style="joinLeft" command="lookToRightStick"/>
+          <Cell id="rstick_edit" row="0" col="2" icon="editSquare" label="Edit" style="joinRight" command="lookTo.edit.rightStick"/>
         </SubGrid>
-        <SubGrid id="row_ind" row="5" col="0" rows="1" columns="2" gap="6" style="row">
-          <Cell id="ind_l" row="0" col="0" label="Scroll style" caption="Filled orb, hollow orb, or hub only." role="label" style="plain"/>
-          <SubGrid id="act_ind" row="0" col="1" rows="1" columns="3" gap="0" style="row">
-            <Cell id="ind_filled" row="0" col="0" label="Filled" role="choice" activeState="settings.lts.indicator.filled" style="joinLeft" command="settings.lts.indicator.filled"/>
-            <Cell id="ind_hollow" row="0" col="1" label="Hollow" role="choice" activeState="settings.lts.indicator.hollow" style="join" command="settings.lts.indicator.hollow"/>
-            <Cell id="ind_pause" row="0" col="2" label="Pause" role="choice" activeState="settings.lts.indicator.pause" style="joinRight" command="settings.lts.indicator.pause"/>
-          </SubGrid>
-        </SubGrid>
+        <Cell id="look_hint" row="5" col="0" label="Each map has its own origin and rings. All four can run at once." role="label" style="plain"/>
       </SubGrid>
 
       <SubGrid id="sec_combo" row="0" col="1" rows="6" columns="1" rowHeights="*,2*,2*,2*,2*,2*" gap="6" margin="6" style="group">

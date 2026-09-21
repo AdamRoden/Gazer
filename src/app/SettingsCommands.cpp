@@ -2,7 +2,6 @@
 
 #include "app/CommandRegistry.h"
 #include "assist/GazeFollowProfile.h"
-#include "assist/LtsIndicator.h"
 #include "ui/MaterialPalette.h"
 #include "ui/PickStyle.h"
 
@@ -329,15 +328,6 @@ void SettingsUi::registerCommands()
             {"settings.mag.follow.snappy", int(GazeFollowProfile::Snappy), "Gaze follow: Snappy"},
         },
         &AppSettings::setMagFollowProfile);
-    for (const auto& c : kLtsIndicatorCommands) {
-        m_commands.registerBuiltin(QLatin1String(c.cmd), [this, c](QString*) {
-            if (m_mutate) {
-                m_mutate([v = int(c.style)](AppSettings& s) { s.setLtsIndicatorStyle(v); },
-                         QLatin1String(c.status));
-            }
-            return true;
-        });
-    }
 
     m_commands.registerBuiltin(QStringLiteral("settings.tracker.auto"), [this](QString*) {
         if (m_mutate) {
@@ -427,6 +417,7 @@ void SettingsUi::registerCommands()
     });
 
     registerHeadPoseCommands();
+    registerLookToCommands();
 
     m_commands.registerBuiltin(QStringLiteral("settings.theme.assign.primary"), [this](QString*) {
         themeSetAssignPrimary(true);

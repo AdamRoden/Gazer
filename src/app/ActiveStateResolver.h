@@ -9,7 +9,7 @@ class AppSettings;
 class GazeMouseFollow;
 class GazeReticle;
 class ComboMouse;
-class LookToScroll;
+class LookToMaps;
 class MagnifierOverlay;
 class KeyStateManager;
 class MouseAssistState;
@@ -21,7 +21,7 @@ class SpeechEngine;
 /// Inputs for resolving layout item `activeState` accent keys.
 struct ActiveStateContext {
     const AppSettings* settings = nullptr;
-    const LookToScroll* lookToScroll = nullptr;
+    const LookToMaps* lookToMaps = nullptr;
     const ComboMouse* comboMouse = nullptr;
     const MouseDwellMove* mouseDwellMove = nullptr;
     const MagnifierOverlay* magnifier = nullptr;

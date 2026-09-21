@@ -6,7 +6,10 @@
 #include "assist/GazeMouseFollow.h"
 #include "assist/GazeReticle.h"
 #include "assist/ComboMouse.h"
+#include "assist/LookToMap.h"
+#include "assist/LookToMaps.h"
 #include "assist/LookToScroll.h"
+#include "assist/LtsScrollMode.h"
 #include "assist/MouseAssistState.h"
 #include "assist/MouseDwellMove.h"
 #include "layout/PageSession.h"
@@ -54,7 +57,7 @@ void registerAssistCommands(AssistCommandContext& ctx)
 
     auto* session = ctx.session;
     auto* pages = ctx.pages;
-    auto* lts = ctx.lookToScroll;
+    auto* lookTo = ctx.lookToMaps;
     auto* combo = ctx.comboMouse;
     auto* mouseDwell = ctx.mouseDwellMove;
     auto* follow = ctx.gazeMouseFollow;
@@ -78,24 +81,15 @@ void registerAssistCommands(AssistCommandContext& ctx)
     };
 
     // When leaving a mode, tear down the tool that owns it — except soft handoffs
-    // within the mouse-dwell family, and LTS kept alive under Move-to / LTS place.
+    // within the mouse-dwell family.
     QObject::connect(session, &AssistSession::leaving, session,
-                     [lts, combo, mouseDwell, follow](Mode left, Mode next) {
+                     [combo, mouseDwell, follow](Mode left, Mode next) {
                          switch (left) {
-                         case Mode::LookToScroll:
-                             // Soft: Move-to / LTS place / mag-pick while LTS stays on.
-                             // ComboMouse place is exclusive — drop LTS.
-                             if (AssistSession::isMouseDwellFamily(next)
-                                 && next != Mode::ComboMousePlaceCursor) {
-                                 break;
-                             }
-                             lts->setEnabled(false);
-                             break;
                          case Mode::LookToScrollPlaceCursor:
                          case Mode::MouseDwell:
                          case Mode::MagPickPoint:
                              if (AssistSession::sameMouseDwellFamily(left, next)
-                                 || next == Mode::LookToScroll || next == Mode::ComboMouse) {
+                                 || next == Mode::ComboMouse) {
                                  break;
                              }
                              mouseDwell->setArmed(false);
@@ -129,7 +123,7 @@ void registerAssistCommands(AssistCommandContext& ctx)
 
     // Mouse dwell drives session mode from its arm purpose + phase.
     QObject::connect(mouseDwell, &MouseDwellMove::armedChanged, session,
-                     [session, mouseDwell, lts, pages](bool armed) {
+                     [session, mouseDwell, lookTo, pages](bool armed) {
                          if (!armed) {
                              if (pages) {
                                  pages->clearAimActivator();
@@ -138,9 +132,8 @@ void registerAssistCommands(AssistCommandContext& ctx)
                              if (AssistSession::isMouseDwellFamily(m)) {
                                  session->leave(m);
                              }
-                             lts->cancelOriginPlace();
-                             if (lts->isEnabled() && session->isNone()) {
-                                 session->enter(Mode::LookToScroll);
+                             if (lookTo) {
+                                 lookTo->cancelPlace();
                              }
                              return;
                          }
@@ -169,36 +162,36 @@ void registerAssistCommands(AssistCommandContext& ctx)
                          }
                      });
 
-    QObject::connect(lts, &LookToScroll::enabledChanged, session, [session, notify](bool on) {
-        if (on) {
-            if (session->mode() != Mode::LookToScrollPlaceCursor) {
-                session->enter(Mode::LookToScroll);
-            }
-            return;
-        }
-        if (session->mode() == Mode::LookToScroll) {
-            session->leave(Mode::LookToScroll);
-        }
-        notify(QStringLiteral("Look↕Scroll OFF"));
-    });
+    if (lookTo) {
+        QObject::connect(lookTo, &LookToMaps::enabledChanged, session,
+                         [notify](LookToDest dest, bool on) {
+                             notify(QStringLiteral("%1 %2")
+                                        .arg(QLatin1String(lookToDestLabel(dest)),
+                                             on ? QStringLiteral("ON") : QStringLiteral("OFF")));
+                         });
+        QObject::connect(lookTo, &LookToMaps::placeOriginRequested, session,
+                         [lookTo, mouseDwell, notify](LookToDest dest) {
+                             LookToScroll& m = lookTo->map(dest);
+                             mouseDwell->setArmed(true, ArmPurpose::LookToScrollPlace);
+                             if (m.hasScrollOrigin()) {
+                                 const int r = qMax(40, m.deadzonePx());
+                                 const QPoint c = m.scrollOrigin();
+                                 mouseDwell->gateUntilGazeLeaves(
+                                     QRect(c.x() - r, c.y() - r, r * 2, r * 2));
+                             }
+                             notify(QStringLiteral("%1: dwell to place origin")
+                                        .arg(QLatin1String(lookToDestLabel(dest))));
+                         });
+        QObject::connect(lookTo, &LookToMaps::axisModeChanged, session,
+                         [notify](LookToDest dest, LtsScrollMode mode) {
+                             notify(QStringLiteral("%1: %2")
+                                        .arg(QLatin1String(lookToDestLabel(dest)),
+                                             QLatin1String(ltsScrollModeName(mode))));
+                         });
+    }
 
-    // Resume / re-place: arm direct Move-to for LTS (never mag-pick).
-    QObject::connect(lts, &LookToScroll::placeScrollPointRequested, session,
-                     [lts, mouseDwell, notify]() {
-                         mouseDwell->setArmed(true, ArmPurpose::LookToScrollPlace);
-                         if (lts->hasScrollOrigin()) {
-                             const int r = qMax(40, lts->deadzonePx());
-                             const QPoint c = lts->scrollOrigin();
-                             mouseDwell->gateUntilGazeLeaves(
-                                 QRect(c.x() - r, c.y() - r, r * 2, r * 2));
-                         }
-                         notify(QStringLiteral(
-                             "Look↕Scroll: dwell to place scroll point, then look to scroll"));
-                     });
-
-    // After a successful place, enable or unsuspend LTS (purpose lives on the tool).
     QObject::connect(mouseDwell, &MouseDwellMove::movedTo, session,
-                     [mouseDwell, lts, combo, session, notify](QPoint pos) {
+                     [mouseDwell, lookTo, combo, session, notify](QPoint pos) {
                          if (mouseDwell->armPurpose() == ArmPurpose::ComboMousePlace) {
                              if (combo) {
                                  combo->setEnabled(true);
@@ -211,14 +204,13 @@ void registerAssistCommands(AssistCommandContext& ctx)
                          if (mouseDwell->armPurpose() != ArmPurpose::LookToScrollPlace) {
                              return;
                          }
-                         lts->setScrollOrigin(pos);
-                         if (!lts->isEnabled()) {
-                             lts->setEnabled(true);
-                             notify(QStringLiteral("Look↕Scroll ON (cursor placed)"));
-                         } else {
-                             lts->setScrollSuspended(false);
-                             notify(QStringLiteral("Look↕Scroll resumed (cursor placed)"));
+                         if (!lookTo) {
+                             return;
                          }
+                         const LookToDest dest = lookTo->placingDest();
+                         lookTo->onPlaced(pos);
+                         notify(QStringLiteral("%1 ON (origin placed)")
+                                    .arg(QLatin1String(lookToDestLabel(dest))));
                      });
 
     if (combo) {
@@ -232,9 +224,12 @@ void registerAssistCommands(AssistCommandContext& ctx)
             return mouseAssist && mouseAssist->isLeftHeld();
         });
         QObject::connect(combo, &ComboMouse::placeRequested, session,
-                         [mouseDwell, combo, notify]() {
+                         [mouseDwell, combo, lookTo, notify]() {
                              if (!combo || !combo->isEnabled() || !mouseDwell) {
                                  return;
+                             }
+                             if (lookTo) {
+                                 lookTo->disableAll();
                              }
                              mouseDwell->setArmed(true, ArmPurpose::ComboMousePlace);
                              mouseDwell->gateUntilGazeLeaves(combo->originGateRect());
@@ -288,49 +283,76 @@ void registerAssistCommands(AssistCommandContext& ctx)
                                   return true;
                               });
 
-    commands->registerBuiltin(QStringLiteral("lts.resume"), [lts](QString*) {
-        lts->resumeScroll();
-        return true;
-    });
-    commands->registerBuiltin(QStringLiteral("lts.speed.slower"), [lts](QString*) {
-        lts->nudgeMaxSpeed(-1);
-        return true;
-    });
-    commands->registerBuiltin(QStringLiteral("lts.speed.faster"), [lts](QString*) {
-        lts->nudgeMaxSpeed(+1);
-        return true;
-    });
-    commands->registerBuiltin(QStringLiteral("lts.quit"), [lts](QString*) {
-        lts->setEnabled(false);
-        return true;
-    });
-    commands->registerBuiltin(QStringLiteral("lts.reset"), [lts](QString*) {
-        lts->requestReset();
-        return true;
-    });
-    commands->registerBuiltin(QStringLiteral("lts.cycleMode"), [lts](QString*) {
-        lts->cycleScrollMode();
-        return true;
-    });
-    commands->registerBuiltin(
-        QStringLiteral("toggleLookToScroll"),
-        [lts, mouseDwell, notify](QString*) {
-            if (lts->isEnabled()) {
-                lts->setEnabled(false);
-                if (mouseDwell->isLookToScrollPlace()) {
+    auto mapAction = [lookTo](LookToDest dest, auto fn) {
+        return [lookTo, dest, fn](QString*) {
+            if (!lookTo) {
+                return false;
+            }
+            fn(lookTo->map(dest));
+            return true;
+        };
+    };
+    auto registerMapActions = [&](LookToDest dest, const QString& prefix) {
+        commands->registerBuiltin(prefix + QStringLiteral("resume"),
+                                  mapAction(dest, [](LookToScroll& m) { m.resumeScroll(); }));
+        commands->registerBuiltin(prefix + QStringLiteral("speed.slower"),
+                                  mapAction(dest, [](LookToScroll& m) { m.nudgeMaxSpeed(-1); }));
+        commands->registerBuiltin(prefix + QStringLiteral("speed.faster"),
+                                  mapAction(dest, [](LookToScroll& m) { m.nudgeMaxSpeed(+1); }));
+        commands->registerBuiltin(prefix + QStringLiteral("quit"),
+                                  mapAction(dest, [](LookToScroll& m) { m.setEnabled(false); }));
+        commands->registerBuiltin(prefix + QStringLiteral("reset"),
+                                  mapAction(dest, [](LookToScroll& m) { m.requestReset(); }));
+        commands->registerBuiltin(prefix + QStringLiteral("cycleMode"),
+                                  mapAction(dest, [](LookToScroll& m) { m.cycleScrollMode(); }));
+    };
+    registerMapActions(LookToDest::Scroll, QStringLiteral("lts."));
+    registerMapActions(LookToDest::Scroll, QStringLiteral("lookTo.scroll."));
+    registerMapActions(LookToDest::Mouse, QStringLiteral("lookTo.mouse."));
+    registerMapActions(LookToDest::LeftStick, QStringLiteral("lookTo.leftStick."));
+    registerMapActions(LookToDest::RightStick, QStringLiteral("lookTo.rightStick."));
+
+    auto toggleLookTo = [lookTo, mouseDwell, combo, notify](LookToDest dest) {
+        return [lookTo, mouseDwell, combo, notify, dest](QString*) {
+            if (!lookTo || !mouseDwell) {
+                return false;
+            }
+            LookToScroll& m = lookTo->map(dest);
+            if (m.isEnabled()) {
+                m.setEnabled(false);
+                if (mouseDwell->isLookToScrollPlace() && lookTo->placingDest() == dest) {
                     mouseDwell->setArmed(false);
                 }
                 return true;
             }
-            if (mouseDwell->isLookToScrollPlace()) {
+            if (mouseDwell->isLookToScrollPlace() && lookTo->isPlacing()
+                && lookTo->placingDest() == dest) {
                 mouseDwell->setArmed(false);
-                notify(QStringLiteral("Look↕Scroll cancelled"));
+                notify(QStringLiteral("%1 cancelled").arg(QLatin1String(lookToDestLabel(dest))));
                 return true;
             }
+            if (combo && combo->isEnabled()) {
+                combo->setEnabled(false);
+            }
+            if (mouseDwell->isComboMousePlace()) {
+                mouseDwell->setArmed(false);
+            }
+            if (mouseDwell->isLookToScrollPlace()) {
+                mouseDwell->setArmed(false);
+            }
+            lookTo->beginPlace(dest);
             mouseDwell->setArmed(true, ArmPurpose::LookToScrollPlace);
-            notify(QStringLiteral("Look↕Scroll: dwell to place cursor, then look to scroll"));
+            notify(QStringLiteral("%1: dwell to place origin")
+                       .arg(QLatin1String(lookToDestLabel(dest))));
             return true;
-        });
+        };
+    };
+    commands->registerBuiltin(QStringLiteral("lookToScroll"), toggleLookTo(LookToDest::Scroll));
+    commands->registerBuiltin(QStringLiteral("toggleLookToScroll"), toggleLookTo(LookToDest::Scroll));
+    commands->registerBuiltin(QStringLiteral("lookToMouse"), toggleLookTo(LookToDest::Mouse));
+    commands->registerBuiltin(QStringLiteral("lookToLeftStick"), toggleLookTo(LookToDest::LeftStick));
+    commands->registerBuiltin(QStringLiteral("lookToRightStick"),
+                              toggleLookTo(LookToDest::RightStick));
 
     commands->registerBuiltin(QStringLiteral("toggleMagnifier"), [mag, reticle, refresh](QString*) {
         const bool turningOn = !mag->isEnabledLens();
@@ -343,7 +365,7 @@ void registerAssistCommands(AssistCommandContext& ctx)
     });
 
     commands->registerBuiltin(QStringLiteral("toggleComboMouse"),
-                              [combo, mouseDwell, notify](QString*) {
+                              [combo, mouseDwell, lookTo, notify](QString*) {
                                   if (!combo || !mouseDwell) {
                                       return false;
                                   }
@@ -355,6 +377,9 @@ void registerAssistCommands(AssistCommandContext& ctx)
                                       mouseDwell->setArmed(false);
                                       notify(QStringLiteral("ComboMouse cancelled"));
                                       return true;
+                                  }
+                                  if (lookTo) {
+                                      lookTo->disableAll();
                                   }
                                   mouseDwell->setArmed(true, ArmPurpose::ComboMousePlace);
                                   notify(QStringLiteral("ComboMouse: dwell to place"));

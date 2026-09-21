@@ -32,19 +32,4 @@ enum class LtsIndicator {
     return "Filled";
 }
 
-/// Canonical commands plus `fan`/`orb` aliases (old JSON 0/1 already map via the enum).
-struct LtsIndicatorCommand {
-    const char* cmd;
-    LtsIndicator style;
-    const char* status;
-};
-
-inline constexpr LtsIndicatorCommand kLtsIndicatorCommands[] = {
-    {"settings.lts.indicator.filled", LtsIndicator::Filled, "LTS indicator: Filled"},
-    {"settings.lts.indicator.hollow", LtsIndicator::Hollow, "LTS indicator: Hollow"},
-    {"settings.lts.indicator.pause", LtsIndicator::PauseOnly, "LTS indicator: Pause only"},
-    {"settings.lts.indicator.fan", LtsIndicator::Filled, "LTS indicator: Filled"},
-    {"settings.lts.indicator.orb", LtsIndicator::Hollow, "LTS indicator: Hollow"},
-};
-
 } // namespace gazer
