@@ -11,4 +11,7 @@ OS / virtual device injection used by mapping profiles.
 | `MouseInjector` | Windows click / relative move / scroll (button/wheel: board HTTRANSPARENT for the gesture) |
 | `PixelScroller` | Pixel scroll for look-to-scroll (classify HWND, leftover wheel; no board punch) |
 | `VirtualGamepad` | Xbox 360 pad via ViGEmClient.dll + ViGEmBus (`LoadLibrary`, same pattern as Tobii). Mapping `gamepadButton` / `gamepadAxis` and head-pose joy dests. Fails closed if the DLL or bus is missing. |
+| `VigemLib` | LoadLibrary + export bind for `ViGEmClient.dll`. |
+| `VigemDiscovery` | Client DLL: `GAZER_VIGEM_DLL`, next to Gazer.exe, `%AppData%\Gazer`, Nefarius "ViGEm Client" folder. Bus: `ViGEmBus` service key. |
+| `VigemInstaller` | Settings Assist: download latest Nefarius ViGEmBus setup from GitHub and `runas` it (UAC). The bus setup does not ship the client DLL; Gazer ships `third_party/ViGEmClient.dll` (MIT, from Nefarius.ViGEm.Client 1.21.256) next to `Gazer.exe`. |
 | `InputService` | Keyboard / mouse / gamepad inject (`KeyStateManager`, `MouseInjector`, `VirtualGamepad`). Pixel scroll is LTS-only. |

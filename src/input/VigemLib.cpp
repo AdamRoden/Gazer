@@ -1,10 +1,10 @@
 #include "input/VigemLib.h"
 
+#include "input/VigemDiscovery.h"
 #include "utils/Log.h"
 
-#include <QCoreApplication>
-#include <QDir>
 #include <QFileInfo>
+#include <QStringList>
 
 #ifdef Q_OS_WIN
 #    ifndef WIN32_LEAN_AND_MEAN
@@ -51,29 +51,19 @@ bool VigemLib::load(QString* error)
         if (forced.isEmpty() || !QFileInfo::exists(forced) || !QFileInfo(forced).isFile()) {
             if (error) {
                 *error = QStringLiteral(
-                    "ViGEmClient.dll not found. Place it next to Gazer.exe or set GAZER_VIGEM_DLL, "
-                    "and install ViGEmBus.");
+                    "ViGEmClient.dll not found. It ships next to Gazer.exe; install the "
+                    "ViGEmBus driver from Settings → Assist.");
             }
             return false;
         }
         candidates << forced;
     } else {
-        const QString envDll = qEnvironmentVariable("GAZER_VIGEM_DLL").trimmed();
-        if (!envDll.isEmpty()) {
-            candidates << envDll;
-        }
-        if (!QCoreApplication::applicationDirPath().isEmpty()) {
-            candidates << QDir(QCoreApplication::applicationDirPath())
-                              .filePath(QStringLiteral("ViGEmClient.dll"));
-        }
-        const QString pf = qEnvironmentVariable("ProgramFiles", QStringLiteral("C:/Program Files"));
-        candidates << QDir(pf).filePath(
-            QStringLiteral("Nefarius Software Solutions/ViGEm Client/ViGEmClient.dll"));
+        candidates = VigemDiscovery::clientDllCandidates();
     }
 
     HMODULE mod = nullptr;
     for (const QString& path : candidates) {
-        if (!QFileInfo::exists(path)) {
+        if (!QFileInfo::exists(path) || !QFileInfo(path).isFile()) {
             continue;
         }
         mod = LoadLibraryW(reinterpret_cast<LPCWSTR>(path.utf16()));
@@ -83,7 +73,7 @@ bool VigemLib::load(QString* error)
             break;
         }
     }
-    if (!mod) {
+    if (!mod && !m_overridePath.has_value()) {
         mod = LoadLibraryW(L"ViGEmClient.dll");
         if (mod) {
             m_path = QStringLiteral("ViGEmClient.dll (PATH)");
@@ -93,8 +83,8 @@ bool VigemLib::load(QString* error)
     if (!mod) {
         if (error) {
             *error = QStringLiteral(
-                "ViGEmClient.dll not found. Place it next to Gazer.exe or set GAZER_VIGEM_DLL, "
-                "and install ViGEmBus.");
+                "ViGEmClient.dll not found. It ships next to Gazer.exe; install the "
+                "ViGEmBus driver from Settings → Assist.");
         }
         return false;
     }

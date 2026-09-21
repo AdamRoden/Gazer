@@ -5,10 +5,10 @@
 | Piece | XML | Role |
 |-------|-----|------|
 | Root page | `main` (`master="true"`) | Dock **Main** / **Hide** and **Sleep** zones, plus drawer and quit grids |
-| Drawer grid | `drawer` | Keyboard, Speak, Mouse, Assist, More, Settings, Close All, Pause dwell, Quit |
+| Drawer grid | `drawer` | Keyboard, Speak, Mouse, Gamepad, Assist, More, Settings, Close All, Pause dwell, Quit |
 | Quit grid | `quit` | Yes exits; No returns to the drawer |
 
-Drawer (layer 2) and quit (layer 3) start hidden; the page opens on layer 1. **Main** shows the drawer (`ShowLayers` `2`); **Hide** returns to layer 1; **Quit** switches to layers `1,3`. Opening Keyboard / Speak / Mouse / Assist / Settings / More attaches that page on the same host, then the drawer auto-collapses (unless you turned that off).
+Drawer (layer 2) and quit (layer 3) start hidden; the page opens on layer 1. **Main** shows the drawer (`ShowLayers` `2`); **Hide** returns to layer 1; **Quit** switches to layers `1,3`. Opening Keyboard / Speak / Mouse / Gamepad / Assist / Settings / More attaches that page on the same host, then the drawer auto-collapses (unless you turned that off).
 
 - **Main** is shown only while no master grid is up. Dwell it to grow the drawer from the bottom.
 - **Sleep** stays available while the drawer is open. Shell zones and grids paint and hit above other boards.
@@ -19,7 +19,7 @@ Drawer (layer 2) and quit (layer 3) start hidden; the page opens on layer 1. **M
 
 1. Start Gazer. A splash tour walks the dock (Assist → **Play tour** to replay). Unless **start docked** is on, the drawer opens after the tour.
 2. Dwell a cell until progress completes.
-3. Open Keyboard, Speak, Mouse, Assist, or Settings as extra pages. They stay up after the drawer collapses.
+3. Open Keyboard, Speak, Mouse, Gamepad, Assist, or Settings as extra pages. They stay up after the drawer collapses.
 4. **Hide** hides the drawer. **Close All** closes other pages and then collapses.
 5. Tray: show layout (raise host), show head-pose preview, quit.
 
@@ -45,6 +45,7 @@ Catalog id = filename stem under `resources/layouts/`. User copies in `%AppData%
 | `compose` | Gaze composer (phrase, chips, soundboard, keyboard) |
 | `example_keyboard` | Compact keyboard (layers: letters, shift, symbols, symbols+shift) |
 | `example_mouse` | Mouse pad |
+| `example_gamepad` | Xbox-layout virtual pad (ViGEm) |
 | `example_assist` | Assist tools |
 | `qwerty_main` | Full QWERTY + edge strips |
 | `uw_qwerty` | Wide QWERTY |

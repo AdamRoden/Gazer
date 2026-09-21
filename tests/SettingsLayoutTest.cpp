@@ -578,12 +578,20 @@ void SettingsLayoutTest::assistHasSplashToggle()
     QVERIFY2(loadLayout(QStringLiteral("main_settings_assist"), doc, &err), qPrintable(err));
     const PageGrid* board = doc.findGrid(QStringLiteral("board"));
     QVERIFY(board);
-    QCOMPARE(board->rows, 10);
+    QCOMPARE(board->rows, 12);
+    const PageGrid* vigem = doc.findGrid(QStringLiteral("sec_vigem"));
+    QVERIFY(vigem);
+    QCOMPARE(vigem->row, 3);
+    QCOMPARE(doc.findCell(QStringLiteral("vigem_install"))->actions[0].command,
+             QStringLiteral("settings.vigem.install"));
+    QCOMPARE(doc.findCell(QStringLiteral("vigem_refresh"))->actions[0].command,
+             QStringLiteral("settings.vigem.refresh"));
     const PageGrid* help = doc.findGrid(QStringLiteral("sec_help"));
     QVERIFY(help);
     QCOMPARE(help->rows, 4);
     QCOMPARE(help->rowSpan, 4);
-    QCOMPARE(doc.findGrid(QStringLiteral("sec_lens"))->row, 7);
+    QCOMPARE(help->row, 5);
+    QCOMPARE(doc.findGrid(QStringLiteral("sec_lens"))->row, 9);
     const PageCell* on = doc.findCell(QStringLiteral("splash_on"));
     const PageCell* play = doc.findCell(QStringLiteral("splash_play"));
     QVERIFY(on);

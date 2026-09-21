@@ -86,7 +86,7 @@ Tobii / Mouse ──► ITracker ──► GazePoint (+ HeadPose)
 
 - Live UI is one frameless topmost `QQuickWindow` + `QQuickPaintedItem` (software scene graph, alpha buffer) sized to painted chrome.
 - Root chrome is Docked / Drawer / Quit (`PageSession`).
-- Mapping profiles (`resources/mappings/default.json`) turn leftover command names into key / mouse / gamepad output. Gamepad needs ViGEmBus plus `ViGEmClient.dll` next to `Gazer.exe` (`GAZER_VIGEM_DLL` to override).
+- Mapping profiles (`resources/mappings/default.json`) turn leftover command names into key / mouse / gamepad output. Gamepad needs ViGEmBus (Settings → Assist can download the official setup). `ViGEmClient.dll` ships next to `Gazer.exe`.
 - Builtins run first; unknown names fall through to the mapping profile.
 
 Boards are XML only (`resources/layouts/*.xml`). `openPage` / catalog ids open those pages on the live host. Editor F5 previews attach XML copies under `__editor_preview_*` ids so they do not replace the live page.

@@ -26,5 +26,6 @@ AHK / CLI / Python is not this table. `Gazer.exe --action …` (and the `Gazer` 
 | `theme.brightness.0`…`.4` | Background shade |
 | `theme.tint.none` / `.primary` / `.complementary` / `.analogous1` / `.analogous2` / `.tertiary1` / `.tertiary2` | Background tint hue |
 | `settings.*` | Settings hub editors, nudges, presets |
+| `settings.vigem.install` / `.refresh` | Download/launch ViGEmBus setup; rescan |
 
-Mapping-only names (not builtins) include `backspace`, `tab`, `enter`, `space`, `escape`. Full catalog, including settings patterns and head-pose maps: [`src/app/Commands.md`](https://github.com/AdamRoden/Gazer/blob/master/src/app/Commands.md).
+Mapping-only names (not builtins) include `backspace`, `tab`, `enter`, `space`, `escape`, and `gamepad.*` (Xbox buttons and axes on the Gamepad board). Full catalog, including settings patterns and head-pose maps: [`src/app/Commands.md`](https://github.com/AdamRoden/Gazer/blob/master/src/app/Commands.md).

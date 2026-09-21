@@ -460,6 +460,8 @@ QString friendlyCommandLabel(const QString& commandId)
         {QStringLiteral("toggleComboMouse"), QStringLiteral("ComboMouse")},
         {QStringLiteral("toggleGazeReticle"), QStringLiteral("Gaze reticle")},
         {QStringLiteral("toggleGazeMouseFollow"), QStringLiteral("Cursor follows gaze")},
+        {QStringLiteral("settings.vigem.install"), QStringLiteral("Install ViGEmBus")},
+        {QStringLiteral("settings.vigem.refresh"), QStringLiteral("Recheck ViGEm")},
     };
     return k.value(commandId, commandId);
 }

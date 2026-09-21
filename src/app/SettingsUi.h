@@ -14,6 +14,7 @@
 #include <QString>
 #include <QVector>
 #include <functional>
+#include <memory>
 
 namespace gazer {
 
@@ -24,6 +25,7 @@ class LookToMaps;
 class MouseDwellMove;
 class PageSession;
 class SpeechSecrets;
+class VigemInstaller;
 
 /// Settings boards: live value decoration, numeric editor, color picker, settings commands.
 /// Implementations: SettingsUi.cpp (shared), SettingsNumpad, SettingsArrayEditor,
@@ -38,6 +40,7 @@ public:
 
     SettingsUi(AppSettings& settings, CommandRegistry& commands, PageSession& pages,
                SpeechSecrets& secrets, ElevenClient& eleven);
+    ~SettingsUi();
 
     void setApplyFn(ApplyFn fn) { m_apply = std::move(fn); }
     void setNotifyFn(NotifyFn fn) { m_notify = std::move(fn); }
@@ -227,6 +230,7 @@ private:
     PageSession& m_pages;
     SpeechSecrets& m_secrets;
     ElevenClient& m_eleven;
+    std::unique_ptr<VigemInstaller> m_vigem;
     ApplyFn m_apply;
     NotifyFn m_notify;
     MutateFn m_mutate;

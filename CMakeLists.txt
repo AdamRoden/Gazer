@@ -94,6 +94,9 @@ set(GAZER_SOURCES
     src/input/PixelScroller.cpp
     src/input/VirtualGamepad.cpp
     src/input/VigemLib.cpp
+    src/input/VigemDiscovery.cpp
+    src/input/VigemRelease.cpp
+    src/input/VigemInstaller.cpp
     src/input/InputService.cpp
     src/mapping/MappingLoader.cpp
     src/mapping/MappingEngine.cpp
@@ -361,7 +364,7 @@ target_link_libraries(Gazer PRIVATE
 )
 
 if(WIN32)
-    target_link_libraries(Gazer PRIVATE user32 advapi32 ole32 oleaut32 uuid sapi crypt32)
+    target_link_libraries(Gazer PRIVATE user32 advapi32 ole32 oleaut32 uuid sapi crypt32 shell32)
 endif()
 
 add_custom_command(TARGET Gazer POST_BUILD
@@ -447,6 +450,8 @@ set(GAZER_PAGE_TEST_LIB
     src/assist/SidecarHost.cpp
     src/input/VirtualGamepad.cpp
     src/input/VigemLib.cpp
+    src/input/VigemDiscovery.cpp
+    src/input/VigemRelease.cpp
 )
 add_executable(GazerPageTests
     tests/page_tests_main.cpp

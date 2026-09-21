@@ -81,6 +81,7 @@ nav:
       - Shell: shell.md
       - Typing: typing.md
       - Mouse: mouse.md
+      - Gamepad: gamepad.md
       - Assist: assist.md
       - Speech: speech.md
       - Settings: settings.md

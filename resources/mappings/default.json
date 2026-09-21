@@ -51,6 +51,129 @@
     ],
     "speakPhrase": [
       { "type": "keyCombo", "keys": ["Control", "Enter"] }
+    ],
+    "gamepad.a": [
+      { "type": "gamepadButton", "button": "a" }
+    ],
+    "gamepad.b": [
+      { "type": "gamepadButton", "button": "b" }
+    ],
+    "gamepad.x": [
+      { "type": "gamepadButton", "button": "x" }
+    ],
+    "gamepad.y": [
+      { "type": "gamepadButton", "button": "y" }
+    ],
+    "gamepad.lb": [
+      { "type": "gamepadButton", "button": "lb" }
+    ],
+    "gamepad.rb": [
+      { "type": "gamepadButton", "button": "rb" }
+    ],
+    "gamepad.back": [
+      { "type": "gamepadButton", "button": "back" }
+    ],
+    "gamepad.start": [
+      { "type": "gamepadButton", "button": "start" }
+    ],
+    "gamepad.guide": [
+      { "type": "gamepadButton", "button": "guide" }
+    ],
+    "gamepad.l3": [
+      { "type": "gamepadButton", "button": "l3" }
+    ],
+    "gamepad.r3": [
+      { "type": "gamepadButton", "button": "r3" }
+    ],
+    "gamepad.dpad.up": [
+      { "type": "gamepadButton", "button": "dpadUp" }
+    ],
+    "gamepad.dpad.down": [
+      { "type": "gamepadButton", "button": "dpadDown" }
+    ],
+    "gamepad.dpad.left": [
+      { "type": "gamepadButton", "button": "dpadLeft" }
+    ],
+    "gamepad.dpad.right": [
+      { "type": "gamepadButton", "button": "dpadRight" }
+    ],
+    "gamepad.lt": [
+      { "type": "gamepadAxis", "axis": "lt", "axisValue": 1.0 }
+    ],
+    "gamepad.rt": [
+      { "type": "gamepadAxis", "axis": "rt", "axisValue": 1.0 }
+    ],
+    "gamepad.ls.n": [
+      { "type": "gamepadAxis", "axis": "lx", "axisValue": 0.0 },
+      { "type": "gamepadAxis", "axis": "ly", "axisValue": 1.0 }
+    ],
+    "gamepad.ls.s": [
+      { "type": "gamepadAxis", "axis": "lx", "axisValue": 0.0 },
+      { "type": "gamepadAxis", "axis": "ly", "axisValue": -1.0 }
+    ],
+    "gamepad.ls.w": [
+      { "type": "gamepadAxis", "axis": "lx", "axisValue": -1.0 },
+      { "type": "gamepadAxis", "axis": "ly", "axisValue": 0.0 }
+    ],
+    "gamepad.ls.e": [
+      { "type": "gamepadAxis", "axis": "lx", "axisValue": 1.0 },
+      { "type": "gamepadAxis", "axis": "ly", "axisValue": 0.0 }
+    ],
+    "gamepad.ls.ne": [
+      { "type": "gamepadAxis", "axis": "lx", "axisValue": 0.707 },
+      { "type": "gamepadAxis", "axis": "ly", "axisValue": 0.707 }
+    ],
+    "gamepad.ls.nw": [
+      { "type": "gamepadAxis", "axis": "lx", "axisValue": -0.707 },
+      { "type": "gamepadAxis", "axis": "ly", "axisValue": 0.707 }
+    ],
+    "gamepad.ls.se": [
+      { "type": "gamepadAxis", "axis": "lx", "axisValue": 0.707 },
+      { "type": "gamepadAxis", "axis": "ly", "axisValue": -0.707 }
+    ],
+    "gamepad.ls.sw": [
+      { "type": "gamepadAxis", "axis": "lx", "axisValue": -0.707 },
+      { "type": "gamepadAxis", "axis": "ly", "axisValue": -0.707 }
+    ],
+    "gamepad.rs.n": [
+      { "type": "gamepadAxis", "axis": "rx", "axisValue": 0.0 },
+      { "type": "gamepadAxis", "axis": "ry", "axisValue": 1.0 }
+    ],
+    "gamepad.rs.s": [
+      { "type": "gamepadAxis", "axis": "rx", "axisValue": 0.0 },
+      { "type": "gamepadAxis", "axis": "ry", "axisValue": -1.0 }
+    ],
+    "gamepad.rs.w": [
+      { "type": "gamepadAxis", "axis": "rx", "axisValue": -1.0 },
+      { "type": "gamepadAxis", "axis": "ry", "axisValue": 0.0 }
+    ],
+    "gamepad.rs.e": [
+      { "type": "gamepadAxis", "axis": "rx", "axisValue": 1.0 },
+      { "type": "gamepadAxis", "axis": "ry", "axisValue": 0.0 }
+    ],
+    "gamepad.rs.ne": [
+      { "type": "gamepadAxis", "axis": "rx", "axisValue": 0.707 },
+      { "type": "gamepadAxis", "axis": "ry", "axisValue": 0.707 }
+    ],
+    "gamepad.rs.nw": [
+      { "type": "gamepadAxis", "axis": "rx", "axisValue": -0.707 },
+      { "type": "gamepadAxis", "axis": "ry", "axisValue": 0.707 }
+    ],
+    "gamepad.rs.se": [
+      { "type": "gamepadAxis", "axis": "rx", "axisValue": 0.707 },
+      { "type": "gamepadAxis", "axis": "ry", "axisValue": -0.707 }
+    ],
+    "gamepad.rs.sw": [
+      { "type": "gamepadAxis", "axis": "rx", "axisValue": -0.707 },
+      { "type": "gamepadAxis", "axis": "ry", "axisValue": -0.707 }
+    ],
+    "gamepad.analog.center": [
+      { "type": "gamepadAxis", "axis": "lx", "axisValue": 0.0 },
+      { "type": "gamepadAxis", "axis": "ly", "axisValue": 0.0 },
+      { "type": "gamepadAxis", "axis": "rx", "axisValue": 0.0 },
+      { "type": "gamepadAxis", "axis": "ry", "axisValue": 0.0 },
+      { "type": "gamepadAxis", "axis": "lt", "axisValue": 0.0 },
+      { "type": "gamepadAxis", "axis": "rt", "axisValue": 0.0 }
     ]
   }
 }

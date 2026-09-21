@@ -1,3 +1,5 @@
+#include "input/VigemDiscovery.h"
+#include "input/VigemRelease.h"
 #include "input/VirtualGamepad.h"
 
 #include <QtTest>
@@ -13,6 +15,8 @@ private slots:
     void dryRunAxes();
     void unknownAxisFails();
     void missingDllFails();
+    void clientDllCandidatesIncludeAppAndNefarius();
+    void setupUrlFromReleaseJson();
 };
 
 void VirtualGamepadTest::lookupButtons()
@@ -76,6 +80,28 @@ void VirtualGamepadTest::missingDllFails()
     QVERIFY(!pad.ensureConnected(&err));
     QVERIFY(err.contains(QStringLiteral("ViGEmClient.dll not found")));
     QVERIFY(!pad.isConnected());
+}
+
+void VirtualGamepadTest::clientDllCandidatesIncludeAppAndNefarius()
+{
+    const QStringList c = VigemDiscovery::clientDllCandidates();
+    QVERIFY(!c.filter(QStringLiteral("ViGEmClient.dll"), Qt::CaseInsensitive).isEmpty());
+}
+
+void VirtualGamepadTest::setupUrlFromReleaseJson()
+{
+    const QByteArray json = R"json({
+      "assets": [
+        {"name": "notes.txt", "browser_download_url": "https://example/notes.txt"},
+        {"name": "ViGEmBus_1.22.0_x64_x86_arm64.exe",
+         "browser_download_url": "https://github.com/nefarius/ViGEmBus/releases/download/v1.22.0/ViGEmBus_1.22.0_x64_x86_arm64.exe"}
+      ]
+    })json";
+    QString err;
+    const QString url = vigemBusSetupUrlFromReleaseJson(json, &err);
+    QVERIFY2(!url.isEmpty(), qPrintable(err));
+    QVERIFY(url.contains(QStringLiteral("ViGEmBus_1.22.0_x64_x86_arm64.exe")));
+    QVERIFY(vigemBusSetupUrlFromReleaseJson(QByteArrayLiteral("{}"), &err).isEmpty());
 }
 
 QObject* createVirtualGamepadTest()

@@ -589,4 +589,4 @@ Python is not bundled (`python` / `python3` / `py -3` on PATH, or `GAZER_PYTHON`
 </Page>
 ```
 
-Shipped boards to read next: `resources/layouts/main.xml`, `example_keyboard.xml`, `example_mouse.xml`, `compose.xml`.
+Shipped boards to read next: `resources/layouts/main.xml`, `example_keyboard.xml`, `example_mouse.xml`, `example_gamepad.xml`, `compose.xml`.

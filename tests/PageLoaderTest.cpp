@@ -8,11 +8,33 @@
 
 #include <QDir>
 #include <QFile>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QSet>
 #include <QStringList>
 #include <QTemporaryDir>
 #include <QtTest>
 
 using namespace gazer;
+
+namespace {
+
+void collectGamepadCommands(const PageGrid& g, QSet<QString>* names)
+{
+    for (const PageCell& c : g.cells) {
+        for (const PageAction& a : c.actions) {
+            if (a.type == PageActionType::Command
+                && a.command.startsWith(QLatin1String("gamepad."))) {
+                names->insert(a.command);
+            }
+        }
+    }
+    for (const PageGrid& sg : g.subGrids) {
+        collectGamepadCommands(sg, names);
+    }
+}
+
+} // namespace
 
 class PageLoaderTest final : public QObject {
     Q_OBJECT
@@ -39,6 +61,7 @@ private slots:
     void rejectInvalidIntAndBoolAttrs();
     void cellDropsShellAndInteractive();
     void loadConvertedBoards();
+    void gamepadBoardWiresInjection();
     void keyboardMainOpensDrawer();
     void pageWriterRoundTripMain();
     void starRowHeightsRoundTrip();
@@ -416,7 +439,7 @@ void PageLoaderTest::rejectRemovedActionAliases()
 void PageLoaderTest::loadConvertedBoards()
 {
     const QStringList ids = {QStringLiteral("example_mouse"), QStringLiteral("example_assist"),
-                             QStringLiteral("uw_qwerty"),
+                             QStringLiteral("example_gamepad"), QStringLiteral("uw_qwerty"),
                              QStringLiteral("main_settings_speed")};
     for (const QString& id : ids) {
         PageDocument doc;
@@ -432,6 +455,56 @@ void PageLoaderTest::loadConvertedBoards()
             QVERIFY(!doc.grids[0].style.background.isSet());
             QVERIFY(!doc.findGrid(QStringLiteral("tabs")));
         }
+    }
+}
+
+void PageLoaderTest::gamepadBoardWiresInjection()
+{
+    PageDocument doc;
+    QString err;
+    const QString path = QStringLiteral(GAZER_SOURCE_DIR)
+                         + QStringLiteral("/resources/layouts/example_gamepad.xml");
+    QVERIFY2(PageLoader::loadFromFile(path, doc, &err), qPrintable(err));
+    QCOMPARE(doc.id, QStringLiteral("example_gamepad"));
+    QVERIFY(doc.findGrid(QStringLiteral("board")));
+    QVERIFY(doc.findGrid(QStringLiteral("left_stick")));
+    QVERIFY(doc.findGrid(QStringLiteral("right_stick")));
+    QVERIFY(doc.findGrid(QStringLiteral("face")));
+    QVERIFY(doc.findGrid(QStringLiteral("dpad")));
+
+    const PageCell* a = doc.findCell(QStringLiteral("btn_a"));
+    const PageCell* ls = doc.findCell(QStringLiteral("ls_hub"));
+    const PageCell* rs = doc.findCell(QStringLiteral("rs_hub"));
+    const PageCell* center = doc.findCell(QStringLiteral("analog_center"));
+    QVERIFY(a);
+    QVERIFY(ls);
+    QVERIFY(rs);
+    QVERIFY(center);
+    QCOMPARE(a->actions.size(), 1);
+    QCOMPARE(a->actions[0].command, QStringLiteral("gamepad.a"));
+    QCOMPARE(ls->actions[0].command, QStringLiteral("lookToLeftStick"));
+    QCOMPARE(rs->actions[0].command, QStringLiteral("lookToRightStick"));
+    QCOMPARE(center->actions.size(), 3);
+    QCOMPARE(center->actions[0].command, QStringLiteral("lookTo.leftStick.quit"));
+    QCOMPARE(center->actions[1].command, QStringLiteral("lookTo.rightStick.quit"));
+    QCOMPARE(center->actions[2].command, QStringLiteral("gamepad.analog.center"));
+    QCOMPARE(doc.findCell(QStringLiteral("dpad_up"))->actions[0].command,
+             QStringLiteral("gamepad.dpad.up"));
+    QCOMPARE(doc.findCell(QStringLiteral("lt"))->actions[0].command, QStringLiteral("gamepad.lt"));
+
+    QSet<QString> names;
+    for (const PageGrid& g : doc.grids) {
+        collectGamepadCommands(g, &names);
+    }
+    QVERIFY(names.size() >= 20);
+
+    QFile mapFile(QStringLiteral(GAZER_SOURCE_DIR)
+                  + QStringLiteral("/resources/mappings/default.json"));
+    QVERIFY(mapFile.open(QIODevice::ReadOnly));
+    const QJsonObject commands =
+        QJsonDocument::fromJson(mapFile.readAll()).object().value(QStringLiteral("commands")).toObject();
+    for (const QString& name : names) {
+        QVERIFY2(commands.contains(name), qPrintable(name));
     }
 }
 
@@ -798,7 +871,9 @@ void PageLoaderTest::loadMainPage()
     QCOMPARE(doc.findGrid(QStringLiteral("drawer"))->layers, QVector<int>({2}));
     QCOMPARE(doc.findGrid(QStringLiteral("quit"))->layers, QVector<int>({3}));
     QCOMPARE(doc.showLayers, QVector<int>({1}));
-    QCOMPARE(doc.findGrid(QStringLiteral("drawer"))->cells.size(), 9);
+    QCOMPARE(doc.findGrid(QStringLiteral("drawer"))->cells.size(), 10);
+    QCOMPARE(doc.findCell(QStringLiteral("open_gamepad"))->actions[0].targetId,
+             QStringLiteral("example_gamepad"));
     QCOMPARE(doc.findCell(QStringLiteral("open_compose"))->actions[0].command,
              QStringLiteral("compose.open"));
     QCOMPARE(doc.zones[0].actions[1].type, PageActionType::ShowLayers);

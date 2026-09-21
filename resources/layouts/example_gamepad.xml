@@ -1,0 +1,87 @@
+<Page id="example_gamepad" name="Gamepad" progressStyle="radial" radius="16">
+  <Style id="pad" background="transparent" thickness="0" radius="0"/>
+  <Style id="stickWell" background="bg80" thickness="0" radius="900"/>
+  <Style id="faceA" background="green70" radius="900"/>
+  <Style id="faceB" background="red80" radius="900"/>
+  <Style id="faceX" background="blue70" radius="900"/>
+  <Style id="faceY" background="yellow80" radius="900"/>
+  <Style id="dpad" background="indigo60" radius="14"/>
+  <Style id="shoulder" background="neutral70" radius="14"/>
+  <Style id="trigger" background="orange70" radius="14"/>
+  <Style id="stickDir" background="teal70" radius="900"/>
+  <Style id="stickHub" background="teal50" radius="900"/>
+  <Style id="meta" background="neutral60" radius="16"/>
+  <Style id="guide" background="green60" radius="900"/>
+  <Style id="close" background="indigo60" radius="16"/>
+
+  <Grid id="board" desktopMode="false" rows="9" columns="15"
+        anchor="Center" offset="0,0" size="1.28h, 0.76"
+        gap="8" margin="16" radius="64" background="transparent" thickness="0"
+        rowHeights="2*,2*,3*,3*,3*,2*,3*,3*,3*"
+        columnWidths="2*,3*,3*,3*,2*,2*,2*,3*,2*,2*,2*,3*,3*,3*,2*">
+
+    <Cell id="lt" row="0" col="1" colSpan="3" label="LT" caption="Hold" style="trigger" command="gamepad.lt"/>
+    <Cell id="guide" row="0" col="7" label="Xbox" style="guide" command="gamepad.guide"/>
+    <Cell id="rt" row="0" col="11" colSpan="3" label="RT" caption="Hold" style="trigger" command="gamepad.rt"/>
+    <Cell id="close" row="0" col="14" icon="AlignBottom" label="Close" style="close">
+      <ClosePage/>
+    </Cell>
+
+    <Cell id="lb" row="1" col="1" colSpan="3" label="LB" style="shoulder" command="gamepad.lb"/>
+    <Cell id="view" row="1" col="5" label="View" style="meta" command="gamepad.back"/>
+    <Cell id="menu" row="1" col="9" label="Menu" style="meta" command="gamepad.start"/>
+    <Cell id="rb" row="1" col="11" colSpan="3" label="RB" style="shoulder" command="gamepad.rb"/>
+
+    <SubGrid id="left_stick" row="2" col="1" rowSpan="3" colSpan="3" rows="3" columns="3"
+             gap="6" margin="4" style="stickWell">
+      <Cell id="ls_nw" row="0" col="0" icon="ArrowPointingToTopLeft" style="stickDir" command="gamepad.ls.nw"/>
+      <Cell id="ls_n" row="0" col="1" icon="ArrowPointingToTop" style="stickDir" command="gamepad.ls.n"/>
+      <Cell id="ls_ne" row="0" col="2" icon="ArrowPointingToTopRight" style="stickDir" command="gamepad.ls.ne"/>
+      <Cell id="ls_w" row="1" col="0" icon="ArrowPointingToLeft" style="stickDir" command="gamepad.ls.w"/>
+      <Cell id="ls_hub" row="1" col="1" icon="sportsEsports" label="LS" caption="Look-to" style="stickHub"
+            activeState="lookToLeftStick" command="lookToLeftStick"/>
+      <Cell id="ls_e" row="1" col="2" icon="ArrowPointingToRight" style="stickDir" command="gamepad.ls.e"/>
+      <Cell id="ls_sw" row="2" col="0" icon="ArrowPointingToBottomLeft" style="stickDir" command="gamepad.ls.sw"/>
+      <Cell id="ls_s" row="2" col="1" icon="ArrowPointingToBottom" style="stickDir" command="gamepad.ls.s"/>
+      <Cell id="ls_se" row="2" col="2" icon="ArrowPointingToBottomRight" style="stickDir" command="gamepad.ls.se"/>
+    </SubGrid>
+
+    <SubGrid id="face" row="2" col="11" rowSpan="3" colSpan="3" rows="3" columns="3" gap="10" margin="4" style="pad">
+      <Cell id="btn_y" row="0" col="1" label="Y" textStyle="key" style="faceY" command="gamepad.y"/>
+      <Cell id="btn_x" row="1" col="0" label="X" textStyle="key" style="faceX" command="gamepad.x"/>
+      <Cell id="btn_b" row="1" col="2" label="B" textStyle="key" style="faceB" command="gamepad.b"/>
+      <Cell id="btn_a" row="2" col="1" label="A" textStyle="key" style="faceA" command="gamepad.a"/>
+    </SubGrid>
+
+    <Cell id="l3" row="5" col="2" label="L3" style="meta" command="gamepad.l3"/>
+    <Cell id="analog_center" row="5" col="7" label="Release
+analog" style="meta">
+      <Command value="lookTo.leftStick.quit"/>
+      <Command value="lookTo.rightStick.quit"/>
+      <Command value="gamepad.analog.center"/>
+    </Cell>
+    <Cell id="r3" row="5" col="12" label="R3" style="meta" command="gamepad.r3"/>
+
+    <SubGrid id="dpad" row="6" col="1" rowSpan="3" colSpan="3" rows="3" columns="3" gap="8" margin="4" style="pad">
+      <Cell id="dpad_up" row="0" col="1" icon="ArrowPointingToTop" style="dpad" command="gamepad.dpad.up"/>
+      <Cell id="dpad_left" row="1" col="0" icon="ArrowPointingToLeft" style="dpad" command="gamepad.dpad.left"/>
+      <Cell id="dpad_label" row="1" col="1" label="D-pad" role="label" style="pad"/>
+      <Cell id="dpad_right" row="1" col="2" icon="ArrowPointingToRight" style="dpad" command="gamepad.dpad.right"/>
+      <Cell id="dpad_down" row="2" col="1" icon="ArrowPointingToBottom" style="dpad" command="gamepad.dpad.down"/>
+    </SubGrid>
+
+    <SubGrid id="right_stick" row="6" col="11" rowSpan="3" colSpan="3" rows="3" columns="3"
+             gap="6" margin="4" style="stickWell">
+      <Cell id="rs_nw" row="0" col="0" icon="ArrowPointingToTopLeft" style="stickDir" command="gamepad.rs.nw"/>
+      <Cell id="rs_n" row="0" col="1" icon="ArrowPointingToTop" style="stickDir" command="gamepad.rs.n"/>
+      <Cell id="rs_ne" row="0" col="2" icon="ArrowPointingToTopRight" style="stickDir" command="gamepad.rs.ne"/>
+      <Cell id="rs_w" row="1" col="0" icon="ArrowPointingToLeft" style="stickDir" command="gamepad.rs.w"/>
+      <Cell id="rs_hub" row="1" col="1" icon="sportsEsports" label="RS" caption="Look-to" style="stickHub"
+            activeState="lookToRightStick" command="lookToRightStick"/>
+      <Cell id="rs_e" row="1" col="2" icon="ArrowPointingToRight" style="stickDir" command="gamepad.rs.e"/>
+      <Cell id="rs_sw" row="2" col="0" icon="ArrowPointingToBottomLeft" style="stickDir" command="gamepad.rs.sw"/>
+      <Cell id="rs_s" row="2" col="1" icon="ArrowPointingToBottom" style="stickDir" command="gamepad.rs.s"/>
+      <Cell id="rs_se" row="2" col="2" icon="ArrowPointingToBottomRight" style="stickDir" command="gamepad.rs.se"/>
+    </SubGrid>
+  </Grid>
+</Page>

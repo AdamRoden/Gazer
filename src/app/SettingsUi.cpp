@@ -3,6 +3,8 @@
 #include "app/CommandRegistry.h"
 #include "assist/LookToMaps.h"
 #include "assist/SpeechSecrets.h"
+#include "input/VigemDiscovery.h"
+#include "input/VigemInstaller.h"
 #include "layout/PageCompose.h"
 #include "layout/PageEdit.h"
 #include "layout/PageSession.h"
@@ -17,6 +19,7 @@
 #include <QObject>
 #include <QtGlobal>
 #include <QVector>
+#include <memory>
 
 namespace gazer {
 
@@ -27,8 +30,19 @@ SettingsUi::SettingsUi(AppSettings& settings, CommandRegistry& commands, PageSes
     , m_pages(pages)
     , m_secrets(secrets)
     , m_eleven(eleven)
+    , m_vigem(std::make_unique<VigemInstaller>())
 {
+    QObject::connect(m_vigem.get(), &VigemInstaller::statusChanged, &m_pages, [this]() {
+        m_pages.refreshDecorated();
+    });
+    QObject::connect(m_vigem.get(), &VigemInstaller::finished, &m_pages,
+                     [this](bool, const QString& msg) {
+                         notifyStatus(msg);
+                         m_pages.refreshDecorated();
+                     });
 }
+
+SettingsUi::~SettingsUi() = default;
 
 void SettingsUi::notifyStatus(const QString& msg)
 {
@@ -391,6 +405,18 @@ void SettingsUi::decoratePage(PageDocument& doc)
                               ? QStringLiteral("Key set (\u2022\u2022\u2022\u2022%1)")
                                     .arg(m_secrets.lastFour())
                               : QStringLiteral("No API key");
+            }
+        });
+    }
+    if (doc.id == QLatin1String("main_settings_assist")) {
+        PageEdit::forEachCell(doc, [this](PageGrid&, PageCell& c) {
+            if (c.id != QLatin1String("vigem_status")) {
+                return;
+            }
+            if (m_vigem && m_vigem->isBusy() && !m_vigem->statusLine().isEmpty()) {
+                c.caption = m_vigem->statusLine();
+            } else {
+                c.caption = VigemDiscovery::describeInstall();
             }
         });
     }

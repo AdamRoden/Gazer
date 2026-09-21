@@ -34,7 +34,7 @@ Version **0.6.3**. License: [GPL-3.0](https://github.com/AdamRoden/Gazer/blob/ma
 
 -   :material-dock-bottom: __Shell__
 
-    Process-lifetime dock: **Main** (drawer), **Sleep** (pause dwell), Keyboard / Speak / Mouse / Assist / Settings, Close All, Quit.
+    Process-lifetime dock: **Main** (drawer), **Sleep** (pause dwell), Keyboard / Speak / Mouse / Gamepad / Assist / Settings, Close All, Quit.
 
 -   :material-keyboard: __Keyboards__
 
@@ -43,6 +43,10 @@ Version **0.6.3**. License: [GPL-3.0](https://github.com/AdamRoden/Gazer/blob/ma
 -   :material-mouse: __Mouse pad__
 
     Nudge, click, hold, scroll, dwell-move, click-at-gaze, ComboMouse.
+
+-   :material-gamepad-variant: __Gamepad__
+
+    Xbox-shaped board: face buttons, bumpers, triggers, d-pad, stick hats, look-to analog sticks.
 
 -   :material-magnify: __Assist__
 
@@ -68,7 +72,7 @@ The overlay stays above the taskbar and other apps. The installed MSI can sit ab
 
 1. [Install](install.md) the MSI, or build from source.
 2. Start Gazer. Dwell **Main** if the drawer is hidden.
-3. Open Keyboard, Speak, Mouse, Assist, or Settings.
+3. Open Keyboard, Speak, Mouse, Gamepad, Assist, or Settings.
 4. Read [How dwell works](dwell.md) if progress feels too fast or too slow.
 
 To make your own boards, use the [page editor](editor.md) or [author Page XML](authoring.md).

@@ -118,4 +118,4 @@ A second `Gazer.exe` with no `--action` sends `raise` (host to front). After `Op
 
 ## Full schema
 
-Dimensions, colors, roles, visibility, phases, `HostPage` slots, and every action field: [docs/page-xml.md](https://github.com/AdamRoden/Gazer/blob/master/docs/page-xml.md). Shipped examples: `resources/layouts/main.xml`, `example_keyboard.xml`, `example_mouse.xml`, `compose.xml`.
+Dimensions, colors, roles, visibility, phases, `HostPage` slots, and every action field: [docs/page-xml.md](https://github.com/AdamRoden/Gazer/blob/master/docs/page-xml.md). Shipped examples: `resources/layouts/main.xml`, `example_keyboard.xml`, `example_mouse.xml`, `example_gamepad.xml`, `compose.xml`.

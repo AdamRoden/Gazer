@@ -2,6 +2,9 @@
 
 #include "app/CommandRegistry.h"
 #include "assist/GazeFollowProfile.h"
+#include "input/VigemDiscovery.h"
+#include "input/VigemInstaller.h"
+#include "layout/PageSession.h"
 #include "ui/MaterialPalette.h"
 #include "ui/PickStyle.h"
 
@@ -329,6 +332,15 @@ void SettingsUi::registerCommands()
         },
         &AppSettings::setMagFollowProfile);
 
+    m_commands.registerBuiltin(QStringLiteral("settings.vigem.install"), [this](QString*) {
+        m_vigem->start();
+        return true;
+    });
+    m_commands.registerBuiltin(QStringLiteral("settings.vigem.refresh"), [this](QString*) {
+        notifyStatus(VigemDiscovery::describeInstall());
+        m_pages.refreshDecorated();
+        return true;
+    });
     m_commands.registerBuiltin(QStringLiteral("settings.tracker.auto"), [this](QString*) {
         if (m_mutate) {
             m_mutate([](AppSettings& s) { s.trackerPref = 0; },

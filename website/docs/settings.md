@@ -7,7 +7,7 @@ Drawer **Settings** (`main_settings`) is a hub of live pages. There are no deskt
 | **Speed** | Slow / Normal / Fast / Custom. Standard vs rapid sequences, mouse-move dwell, mag-pick dwell. Advanced: scan grace. |
 | **Magnify** | Mag-pick, foresight, zoom window size/shape, follow profile (slow / sticky / smooth / snappy). |
 | **Indicators** | Dwell progress shape (radial, pie, fill directions), pick markers, flash. |
-| **Assist** | Tracker (auto Tobii / mouse), live lens, gaze helpers. |
+| **Assist** | Tracker (auto Tobii / mouse), ViGEm virtual Xbox pad (install / recheck), live lens, gaze helpers. |
 | **Tools** | Four look-to maps (scroll, mouse, left stick, right stick) with per-map ring editors, ComboMouse radii and colors. |
 | **Theme** | Light / dark, brightness, tint family, accent, progress color, saturation, custom palette. |
 | **Speech** | ElevenLabs key, engine, speed, volume. |

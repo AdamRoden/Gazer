@@ -166,6 +166,7 @@ Patterns, not every generated name:
 | `settings.dwell.custom.save` / `.restore` | Save or restore Custom timings |
 | `settings.mag.follow.slow` / `.sticky` / `.smooth` / `.snappy` | Gaze follow (indicator, gaze mouse, live lens) |
 | `settings.tracker.auto` / `.mouse` | Tracker pref (restart) |
+| `settings.vigem.install` / `.refresh` | Download/launch official ViGEmBus setup; re-read bus + client status |
 | `settings.magPickStyle.*.toggle` / `settings.mousePickStyle.*.toggle` | Pick visuals |
 | `settings.pickWindow.round` / `.square` | Zoom window shape |
 | `settings.pickCenter.gaze` / `.screen` | Zoom window at gaze point or screen center |
@@ -184,4 +185,4 @@ Numeric keys: `dwellMs` / `rapidDwellMs` plus `kIntSpecs` / `kDoubleSpecs` in `A
 
 ## Mapping-only (`default.json`)
 
-Not builtins. Examples: `backspace`, `tab`, `enter`, `space`, `escape`, `arrow*`, `clearPhrase`, `speakPhrase`. Shipped Mid/Max window cells are AHK (`icon="WindowMid"` / `WindowMax`), not mapping names.
+Not builtins. Examples: `backspace`, `tab`, `enter`, `space`, `escape`, `arrow*`, `clearPhrase`, `speakPhrase`, `gamepad.a` / `.b` / `.x` / `.y` / `.lb` / `.rb` / `.lt` / `.rt` / `.l3` / `.r3` / `.back` / `.start` / `.guide` / `.dpad.*` / `.ls.*` / `.rs.*` / `.analog.center`. Shipped Mid/Max window cells are AHK (`icon="WindowMid"` / `WindowMax`), not mapping names. The Gamepad board (`example_gamepad`) uses the `gamepad.*` names.
