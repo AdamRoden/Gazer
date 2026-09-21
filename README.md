@@ -1,6 +1,6 @@
 # Gazer
 
-Gaze-driven AAC and system input for Windows. C++20 / Qt 6.
+Gaze-driven system input for Windows. C++20 / Qt 6.
 
 Gazer turns live gaze (Tobii Eye Tracker 5, or the mouse as a fallback) into on-screen pages you **dwell** to activate. Pages can type, click, move the pointer, speak, and run assist tools. The long-term aim is one stack for accessible gaming in place of OptiKey + OpenTrack + UCR + AutoHotkey.
 
@@ -24,7 +24,7 @@ mkdocs serve -f website/mkdocs.yml
 - Windows
 - CMake ≥ 3.21
 - Qt 6 (Core, Gui, Widgets, Qml, Quick) — tested with 6.11.1 MinGW
-- Optional: [Tobii Stream Engine](https://developer.tobii.com/) headers under `third_party/` (`tobii.h`, `tobii_streams.h`) and `tobii_stream_engine.dll` on the machine. Without hardware, Gazer uses the mouse tracker.
+- Optional: [Tobii Stream Engine](https://developer.tobii.com/) headers under `third_party/` (`tobii.h`, `tobii_streams.h`). At runtime Gazer loads `tobii_stream_engine.dll` from the Tobii Experience / Eye Tracking Core install (not copied next to the exe). Without hardware, Gazer uses the mouse tracker.
 - Optional: a local [AutoHotkey](https://www.autohotkey.com/) install for `<AHK>` cells (v2 preferred; `#Requires AutoHotkey v1` selects v1). Set `GAZER_AHK` to an exe to override discovery. AutoHotkey is not bundled.
 
 ---
@@ -43,7 +43,7 @@ Use one Ninja binary for this tree. Qt Tools 1.12.1 cannot read the `.ninja_log`
 
 MinGW `bin` must be on `PATH` when configuring (otherwise AUTOMOC / g++ predefs fail silently).
 
-The post-build step copies `resources/` next to `Gazer.exe` and runs `windeployqt`. If Tobii’s DLL is installed in the usual EyeX folder, it is copied beside the exe as well.
+The post-build step copies `resources/` next to `Gazer.exe` and runs `windeployqt`. Stream Engine is not copied (a leftover next to the exe is deleted). Gazer loads it from the Tobii install, or `TOBII_STREAM_ENGINE_DLL` / `TOBII_STREAM_ENGINE_DIR`.
 
 Tests: `cmake --build build --target GazerPageTests` (and `GazerDwellTests`, `GazerSpeechTests`).
 

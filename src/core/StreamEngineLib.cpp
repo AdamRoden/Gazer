@@ -2,7 +2,6 @@
 
 #include "utils/Log.h"
 
-#include <QCoreApplication>
 #include <QDir>
 #include <QFileInfo>
 
@@ -41,25 +40,19 @@ bool StreamEngineLib::load(QString* error)
 #ifdef Q_OS_WIN
     QStringList candidates;
 
-    if (!QCoreApplication::applicationDirPath().isEmpty()) {
-        candidates << QDir(QCoreApplication::applicationDirPath())
-                          .filePath(QStringLiteral("tobii_stream_engine.dll"));
+    const QString envDll = qEnvironmentVariable("TOBII_STREAM_ENGINE_DLL");
+    if (!envDll.isEmpty()) {
+        candidates << envDll;
+    }
+    const QString envDir = qEnvironmentVariable("TOBII_STREAM_ENGINE_DIR");
+    if (!envDir.isEmpty()) {
+        candidates << QDir(envDir).filePath(QStringLiteral("tobii_stream_engine.dll"));
+        candidates << QDir(envDir).filePath(QStringLiteral("lib/tobii/tobii_stream_engine.dll"));
     }
 
     const QString pf = qEnvironmentVariable("ProgramFiles", QStringLiteral("C:/Program Files"));
     candidates << QDir(pf).filePath(QStringLiteral("Tobii/Tobii EyeX/tobii_stream_engine.dll"));
     candidates << QDir(pf).filePath(QStringLiteral("Tobii/web_host/tobii_stream_engine.dll"));
-
-    const QString envDll = qEnvironmentVariable("TOBII_STREAM_ENGINE_DLL");
-    if (!envDll.isEmpty()) {
-        candidates.prepend(envDll);
-    }
-    const QString envDir = qEnvironmentVariable("TOBII_STREAM_ENGINE_DIR");
-    if (!envDir.isEmpty()) {
-        candidates.prepend(QDir(envDir).filePath(QStringLiteral("tobii_stream_engine.dll")));
-        candidates.prepend(
-            QDir(envDir).filePath(QStringLiteral("lib/tobii/tobii_stream_engine.dll")));
-    }
 
     HMODULE mod = nullptr;
     for (const QString& path : candidates) {
@@ -71,14 +64,6 @@ bool StreamEngineLib::load(QString* error)
             m_path = path;
             GAZER_INFO << "Loaded Stream Engine:" << path;
             break;
-        }
-    }
-
-    if (!mod) {
-        mod = LoadLibraryW(L"tobii_stream_engine.dll");
-        if (mod) {
-            m_path = QStringLiteral("tobii_stream_engine.dll (PATH)");
-            GAZER_INFO << "Loaded Stream Engine from PATH";
         }
     }
 

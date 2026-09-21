@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.21)
 
 project(Gazer
     VERSION 0.6.3
-    DESCRIPTION "Gaze input mapper: Tobii Eye Tracker 5 → AAC layouts + virtual controllers"
+    DESCRIPTION "Gaze input mapper: Tobii Eye Tracker 5 → dwell pages + virtual controllers"
     LANGUAGES CXX
 )
 
@@ -364,22 +364,9 @@ add_custom_command(TARGET Gazer POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_SOURCE_DIR}/resources"
         "$<TARGET_FILE_DIR:Gazer>/resources"
+    COMMAND ${CMAKE_COMMAND} -E rm -f
+        "$<TARGET_FILE_DIR:Gazer>/tobii_stream_engine.dll"
 )
-
-set(_tobii_dll_candidates
-    "$ENV{ProgramFiles}/Tobii/Tobii EyeX/tobii_stream_engine.dll"
-    "C:/Program Files/Tobii/Tobii EyeX/tobii_stream_engine.dll"
-)
-foreach(_dll IN LISTS _tobii_dll_candidates)
-    if(EXISTS "${_dll}")
-        add_custom_command(TARGET Gazer POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "${_dll}"
-                "$<TARGET_FILE_DIR:Gazer>/tobii_stream_engine.dll"
-        )
-        break()
-    endif()
-endforeach()
 
 set(_vigem_dll_candidates
     "$ENV{GAZER_VIGEM_DLL}"

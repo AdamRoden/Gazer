@@ -5,7 +5,7 @@ Gazer is a Windows desktop app. There is no web client.
 ## What you need
 
 - Windows
-- Optional: a [Tobii Eye Tracker 5](https://www.tobii.com/) with its drivers. Without hardware, Gazer uses the **mouse** as the gaze point (tray / Settings → Assist → tracker).
+- Optional: a [Tobii Eye Tracker 5](https://www.tobii.com/) with its drivers (Tobii Experience / Eye Tracking Core). Gazer loads Stream Engine from that install; the DLL is not in the MSI. Without hardware, Gazer uses the **mouse** as the gaze point (tray / Settings → Assist → tracker).
 - Optional: a local [AutoHotkey](https://www.autohotkey.com/) install for `<AHK>` cells (v2 preferred). AutoHotkey is not bundled.
 - Optional: [ViGEmBus](https://github.com/nefarius/ViGEmBus) plus `ViGEmClient.dll` next to `Gazer.exe` if you want the virtual Xbox pad.
 

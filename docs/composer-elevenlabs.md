@@ -47,7 +47,7 @@ Keyboard pages (`resources/layouts/qwerty_main.xml`, `uw_qwerty.xml`) `Send` key
 
 ### Pain points
 
-1. AAC users who speak with their eyes need a **message they can edit before speaking**, not only canned `Speak` cells or OS-focused typing.
+1. Users who speak with their eyes need a **message they can edit before speaking**, not only canned `Speak` cells or OS-focused typing.
 2. SAPI voices are limited; ElevenLabs v3 audio tags (`[laugh]`, `[english accent]`) are the style system users already know from Voice.
 3. Re-synthesizing a frequent phrase on every dwell is slow (hundreds of ms to seconds) and costs quota. Voice’s soundboard stores **baked MPEG** and plays it locally.
 4. API key, voice catalog, and last-used voice must be gaze-editable and local. Gazer settings are already gaze boards (`SettingsUi*`), not desktop dialogs.
@@ -108,12 +108,12 @@ Product choices below that say **User confirmed 2026-09-03** match this document
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
 | Soundboard persistence | **JSON store + on-disk clips + template page, live-rebuilt grid** | Pages are XML; cells have static actions. `SettingsUi::presentLive` / `PageSession::attachDocument` already rebuild in-memory documents. Rewriting XML fights `PageCatalog`, the editor, and user copies under `%AppData%\Gazer\layouts`. |
-| Composer keyboard | **Stripped keyboard on `compose.xml`** (letters, digits, space, backspace, enter, local `compose.shift`, `[` `]`, `'` `,` `.`). **While `isCapturing(sourcePageId)`, intercept every `Send` and every mapping/modifier command. Unlisted keys are no-ops, never OS fallthrough.** | Cloning `qwerty_main` would still fire `leftShift` (OS modifier cycle), `escape`, `tab`, arrows, etc. AAC cannot leak injectors into the focused app. |
+| Composer keyboard | **Stripped keyboard on `compose.xml`** (letters, digits, space, backspace, enter, local `compose.shift`, `[` `]`, `'` `,` `.`). **While `isCapturing(sourcePageId)`, intercept every `Send` and every mapping/modifier command. Unlisted keys are no-ops, never OS fallthrough.** | Cloning `qwerty_main` would still fire `leftShift` (OS modifier cycle), `escape`, `tab`, arrows, etc. The composer cannot leak injectors into the focused app. |
 | Live-board text entry | **Each live board that needs text owns its own keys** (hex-pad pattern). Capture includes `settings_eleven_key_live`. Hardware `keyPressed` is extra, not a substitute. | Newest attached page is opaque; buried `compose` keys are not hittable. |
 | Voice catalog UX | **Favorites (max 12) + language/gender chips + paginated remainder (12/page, `speech.voiceList.next` / `.prev`).** No free-text search in v1. Pagination names must **not** be a string prefix of `speech.voice.`. | Boards do not scroll. `/v1/voices` is tens to 100+ entries. `speech.voices.next` would be eaten by prefix `speech.voice.` if the exact builtin were missing. |
 | Parameterized commands | **`CommandRegistry::registerPrefix`**. Exact match first, then longest registered prefix, then mapping. | Voice ids and button ids are unbounded. Today’s `QHash` exact lookup would fall through to mapping and no-op. |
 | Canned vs composer engine | **XML `<Speak>` and `gazer.speak` always SAPI in v1.** Composer Speak (and soundboard live `utteranceText`) use Eleven when model+key+voiceId are set. | Avoids quota and latency on every existing board cell the moment a key is saved. |
-| Speak typing | **Never.** Speak is audio only. | AAC must not inject the utterance into the focused app. |
+| Speak typing | **Never.** Speak is audio only. | Speak must not inject the utterance into the focused app. |
 | Offline | **Do not pre-resolve “offline”.** Attempt Eleven when configured; on network/timeout error, SAPI-fallback **that utterance**. Latch three consecutive failures → SAPI for the session (notify once). | No reachability API in-tree; airplane vs DNS vs 401 are different. |
 | Speak vs Stop chrome | **One Speak cell.** `ComposeUi::decoratePage` stamps label/icon from `SpeechEngine::status()`. Do not use dotted `visibleWhen`. | `evalVisibleWhen` only accepts `[A-Za-z0-9_]`; dotted keys are invalid → always visible. |
 | SAPI completion | **`TtsService` gains `finished()`** in the SpeechEngine PR, before compose chrome. Prefer `SetNotifySink` / `SetNotifyWindowMessage` on the GUI thread; poll fallback is `SPVOICESTATUS.dwRunningState == SPRS_DONE`. Purge/`stop()` emits `finished()` immediately. `Application::shutdownUi` calls `SpeechEngine::stop()`. | Today only `started`/`failed`. Without `finished`, `compose.speaking` never clears on SAPI. |
@@ -898,7 +898,7 @@ Persist the soundboard as `%AppData%/Gazer/layouts/compose.xml` cells with `Spea
 ### 4. Clone `qwerty_main` and intercept only `Send` + `backspace`/`space`/`enter`/`delete`
 
 - **Pros:** Familiar full keyboard.
-- **Cons:** `leftShift` still cycles OS Shift; `escape`/`tab`/arrows still inject. Data loss for AAC.
+- **Cons:** `leftShift` still cycles OS Shift; `escape`/`tab`/arrows still inject. Data loss for the composer.
 - **Rejected.** Stripped keyboard + consume-all while capturing.
 
 ### 5. Per-id `registerBuiltin` whenever the catalog changes
@@ -963,7 +963,7 @@ Persist the soundboard as `%AppData%/Gazer/layouts/compose.xml` cells with `Spea
 | OS injector leak while composing | Capture consumes **all** Send + mapping/modifier commands |
 | Clipboard paste of key | Optional; if implemented, read once and clear display masking |
 
-Threat model is **local AAC user + cloud TTS vendor**. No multi-user auth in-process.
+Threat model is **local user + cloud TTS vendor**. No multi-user auth in-process.
 
 ---
 

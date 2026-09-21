@@ -29,7 +29,7 @@ namespace gazer {
 /// SetLayeredWindowAttributes makes opaque Qt widgets invisible.
 ///
 /// @param excludeFromCapture  true for tool overlays (magnifier self-exclude);
-///                            false for AAC boards so magnifier can show keys.
+///                            false for page boards so magnifier can show keys.
 inline void applyOverlayWindowChrome(QWindow* w, bool excludeFromCapture = true)
 {
     if (!w) {

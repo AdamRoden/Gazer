@@ -1,6 +1,6 @@
 # Gazer — agent notes
 
-Gaze-driven AAC and system input for Windows. C++20 / Qt 6. Live UI is one frameless `QQuickWindow`; boards are XML in `resources/layouts/`.
+Gaze-driven system input for Windows. C++20 / Qt 6. Live UI is one frameless `QQuickWindow`; boards are XML in `resources/layouts/`.
 
 Do **not** start with `README.md` or `website/docs/` (user manual). Use this file, then the folder map for the task.
 

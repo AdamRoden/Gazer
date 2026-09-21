@@ -5,7 +5,7 @@
 
 .DESCRIPTION
   1. Configures/builds the CMake project (MinGW + Ninja by default).
-  2. Stages a clean runtime tree (exe + windeployqt + resources + MinGW runtime + Tobii DLL).
+  2. Stages a clean runtime tree (exe + windeployqt + resources + MinGW runtime).
   3. Stamps uiAccess=true on the staged exe and Authenticode-signs it (Task Manager /
      elevated windows). Local build\Gazer.exe is left unsigned so it still starts.
   4. Builds an MSI with WiX Toolset CLI v7.
@@ -177,25 +177,6 @@ if ($MingwBin) {
     }
 }
 
-# Tobii Stream Engine (optional - mouse tracker still works without it)
-$TobiiCandidates = @(
-    (Join-Path $BuildDir "tobii_stream_engine.dll"),
-    "$env:ProgramFiles\Tobii\Tobii EyeX\tobii_stream_engine.dll",
-    "C:\Program Files\Tobii\Tobii EyeX\tobii_stream_engine.dll"
-)
-$TobiiFound = $false
-foreach ($t in $TobiiCandidates) {
-    if ($t -and (Test-Path $t)) {
-        Copy-Item $t (Join-Path $StageDir "tobii_stream_engine.dll") -Force
-        Write-Host "    Included tobii_stream_engine.dll from $t"
-        $TobiiFound = $true
-        break
-    }
-}
-if (-not $TobiiFound) {
-    Write-Warning "tobii_stream_engine.dll not found - MSI will use mouse tracker only until Tobii is present."
-}
-
 # Strip build artifacts only. Do NOT remove resources/models/*.obj — those are
 # Wavefront mesh assets (head preview), not compiler objects.
 Get-ChildItem $StageDir -Recurse -Include *.pdb,*.ilk,*.exp,*.lib,gazer.log,gazer_*.log -ErrorAction SilentlyContinue |
@@ -261,8 +242,6 @@ Write-Host ("    MSI : {0} ({1:N1} MB)" -f $MsiPath, ($msiSize / 1MB))
 Write-Host "    Install: msiexec /i `"$MsiPath`""
 Write-Host "    Quiet  : msiexec /i `"$MsiPath`" /qn"
 Write-Host "    UIAccess works only for the Program Files copy (not .\build\Gazer.exe)."
-if (-not $TobiiFound) {
-    Write-Host "    Note  : Tobii DLL was not bundled; testers need Tobii drivers + DLL for eye tracking." -ForegroundColor Yellow
-}
+Write-Host "    Note  : Stream Engine is not bundled; testers need Tobii Experience / drivers for eye tracking." -ForegroundColor Yellow
 
 return $MsiPath

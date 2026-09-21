@@ -5,7 +5,7 @@
       processorArchitecture="amd64"
       name="Gazer.Gazer"
       type="win32"/>
-  <description>Gazer gaze-driven AAC and system input</description>
+  <description>Gazer gaze-driven system input</description>
   <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
     <security>
       <requestedPrivileges>

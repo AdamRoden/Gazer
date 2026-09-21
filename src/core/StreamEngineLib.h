@@ -16,7 +16,7 @@ public:
     StreamEngineLib(const StreamEngineLib&) = delete;
     StreamEngineLib& operator=(const StreamEngineLib&) = delete;
 
-    /// Try known install paths + app dir. Returns false if DLL/symbols missing.
+    /// Load from env override, then the Tobii Experience / EyeX install. No app-dir or PATH search.
     [[nodiscard]] bool load(QString* error = nullptr);
     void unload();
     [[nodiscard]] bool isLoaded() const { return m_loaded; }
