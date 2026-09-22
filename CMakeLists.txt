@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.21)
 
 project(Gazer
-    VERSION 0.6.3
+    VERSION 0.6.4
     DESCRIPTION "Gaze input mapper: Tobii Eye Tracker 5 → dwell pages + virtual controllers"
     LANGUAGES CXX
 )

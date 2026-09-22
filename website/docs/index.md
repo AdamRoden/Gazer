@@ -24,7 +24,7 @@ The dock drawer sits on the desktop. Hide and Sleep hang in the bezel below the 
 
 [Settings](settings.md) → **Head** maps yaw, pitch, roll, and position to pointer, scroll, a virtual pad, or a command.
 
-Version **0.6.3**. License: [GPL-3.0](https://github.com/AdamRoden/Gazer/blob/master/LICENSE).
+Version **0.6.4**. License: [GPL-3.0](https://github.com/AdamRoden/Gazer/blob/master/LICENSE).
 
 <div class="grid cards" markdown>
 
