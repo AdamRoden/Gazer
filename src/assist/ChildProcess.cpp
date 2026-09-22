@@ -56,7 +56,7 @@ QProcess* start(QObject* parent, const QString& program, const QStringList& argu
                      });
 
     proc->start();
-    if (!proc->waitForStarted(3000)) {
+    if (proc->error() == QProcess::FailedToStart) {
         if (error) {
             *error = proc->errorString().isEmpty()
                          ? QStringLiteral("%1 failed to start").arg(logLabel)
@@ -77,7 +77,6 @@ void killChildren(QObject* parent)
     for (QProcess* p : procs) {
         p->disconnect();
         p->kill();
-        p->waitForFinished(500);
     }
 }
 

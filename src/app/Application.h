@@ -5,6 +5,7 @@
 
 #include <QElapsedTimer>
 #include <QObject>
+#include <QTimer>
 #include <QVector>
 #include <memory>
 
@@ -14,11 +15,13 @@ class ActionChannel;
 class ActionDispatcher;
 class DwellSuspendOverlay;
 class GazerServices;
+class Heartbeat;
 class ITracker;
 class LayoutEditorWindow;
 class OverlayStackWatch;
 class HeadPreviewRenderer;
 class PreviewWindow;
+class SessionWatch;
 class SplashOverlay;
 class TrayIcon;
 
@@ -52,6 +55,10 @@ private:
     void onTobiiStreamFailed(const QString& reason);
     void fallbackToMouse();
     void shutdownUi();
+    void rescueReset();
+    void pulseHeartbeat();
+    void onInjectPaused(bool paused);
+    void onTrackerLostFallback();
 
     std::unique_ptr<GazerServices> m_svc;
     std::unique_ptr<ActionDispatcher> m_actions;
@@ -67,6 +74,11 @@ private:
     std::unique_ptr<LayoutEditorWindow> m_editor;
     std::unique_ptr<TrayIcon> m_tray;
     std::unique_ptr<OverlayStackWatch> m_stackWatch;
+    std::unique_ptr<Heartbeat> m_heartbeat;
+    std::unique_ptr<SessionWatch> m_sessionWatch;
+    QTimer m_pulse;
+    QTimer m_lostFallback;
+    bool m_safeMode = false;
 };
 
 } // namespace gazer

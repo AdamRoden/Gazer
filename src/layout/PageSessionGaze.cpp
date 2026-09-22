@@ -361,6 +361,19 @@ void PageSession::showHost()
     }
 }
 
+void PageSession::setProp(const QString& key, bool value)
+{
+    if (key.isEmpty()) {
+        return;
+    }
+    const QVariant v(value);
+    if (m_props.value(key) == v) {
+        return;
+    }
+    m_props.insert(key, v);
+    rebuild();
+}
+
 QVector<QRect> PageSession::unpauseGapRects() const
 {
     QVector<QRect> gaps;

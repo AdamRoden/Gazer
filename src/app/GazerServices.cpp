@@ -26,10 +26,12 @@
 #include "assist/SpeechHistory.h"
 #include "assist/SpeechSecrets.h"
 #include "assist/TtsService.h"
+#include "input/InjectGate.h"
 #include "input/InputService.h"
 #include "input/InputTypes.h"
 #include "input/KeyboardInjector.h"
 #include "input/KeyStateManager.h"
+#include "input/VirtualGamepad.h"
 #include "layout/PageCatalog.h"
 #include "layout/PageSession.h"
 #include "layout/PageTypes.h"
@@ -95,7 +97,7 @@ GazerServices::~GazerServices()
 }
 
 bool GazerServices::initialize(const QString& layoutsDir, const QString& mappingPath,
-                               QString* error)
+                               QString* error, bool includeUserLayouts)
 {
     Q_UNUSED(error);
 
@@ -147,11 +149,13 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
     m_sidecars->setActionPipe(ActionChannel::pipeName());
 
     m_catalog->setDirectory(layoutsDir);
-    const QString userLayouts =
-        QDir(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation))
-            .filePath(QStringLiteral("layouts"));
-    QDir().mkpath(userLayouts);
-    m_catalog->setUserDirectory(userLayouts);
+    if (includeUserLayouts) {
+        const QString userLayouts =
+            QDir(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation))
+                .filePath(QStringLiteral("layouts"));
+        QDir().mkpath(userLayouts);
+        m_catalog->setUserDirectory(userLayouts);
+    }
     m_pages->setCatalog(m_catalog.get());
     GAZER_INFO << "Pages available:" << m_catalog->scan();
 
@@ -332,7 +336,20 @@ ActiveStateContext GazerServices::activeStateContext() const
     ctx.speechEngine = m_speech.get();
     ctx.composeUi = m_compose.get();
     ctx.dwellSuspended = isDwellSuspended();
+    ctx.trackerLostMouse = m_trackerLostMouse;
     return ctx;
+}
+
+void GazerServices::setTrackerLostMouse(bool on)
+{
+    if (m_trackerLostMouse == on) {
+        return;
+    }
+    m_trackerLostMouse = on;
+    if (m_pages) {
+        m_pages->setProp(QStringLiteral("trackerLostMouse"), on);
+    }
+    refreshActiveIndicators();
 }
 
 void GazerServices::setDwellSuspended(bool on)
@@ -358,6 +375,70 @@ void GazerServices::setDwellSuspended(bool on)
 bool GazerServices::isDwellSuspended() const
 {
     return m_pages && m_pages->isDwellSuspended();
+}
+
+void GazerServices::stopAssistOutput()
+{
+    if (m_actionLoops) {
+        m_actionLoops->stopAll();
+    }
+    QString ignored;
+    if (m_keyState) {
+        (void)m_keyState->releaseAll(&ignored);
+    }
+    if (m_mouseAssist) {
+        m_mouseAssist->releaseAllHolds();
+    }
+    if (m_lookToMaps) {
+        m_lookToMaps->disableAll();
+    }
+    if (m_comboMouse) {
+        m_comboMouse->setEnabled(false);
+    }
+    if (m_mouseDwellMove) {
+        m_mouseDwellMove->setArmed(false);
+    }
+    if (m_magnifier) {
+        m_magnifier->setEnabledLens(false);
+    }
+    if (m_gazeMouseFollow) {
+        m_gazeMouseFollow->setEnabled(false);
+    }
+    if (m_input) {
+        (void)m_input->gamepad().resetNeutral(&ignored);
+    }
+}
+
+void GazerServices::panicReset()
+{
+    stopAssistOutput();
+    if (m_pages) {
+        m_pages->closeAttached();
+    }
+    setDwellSuspended(false);
+}
+
+void GazerServices::setInjectPaused(bool on)
+{
+    if (on) {
+        QString ignored;
+        if (m_input) {
+            (void)m_input->gamepad().resetNeutral(&ignored);
+        }
+        if (m_keyState) {
+            (void)m_keyState->releaseAll(&ignored);
+        }
+        if (m_mouseAssist) {
+            m_mouseAssist->releaseAllHolds();
+        }
+    }
+    InjectGate::setPaused(on);
+    if (m_lookToMaps) {
+        m_lookToMaps->setOutputPaused(on);
+    }
+    if (m_headPose) {
+        m_headPose->setPaused(on);
+    }
 }
 
 void GazerServices::refreshActiveIndicators()

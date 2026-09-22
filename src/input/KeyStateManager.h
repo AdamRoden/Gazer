@@ -1,9 +1,11 @@
 #pragma once
 
+#include <QElapsedTimer>
 #include <QHash>
 #include <QObject>
 #include <QString>
 #include <QStringList>
+#include <QTimer>
 #include <functional>
 
 namespace gazer {
@@ -59,7 +61,10 @@ private:
     struct Slot {
         KeyHoldState state = KeyHoldState::Up;
         QString injectName;
+        QElapsedTimer held;
     };
+
+    void tickHolds();
 
     [[nodiscard]] bool inject(const QString& keyName, bool down, QString* error) const;
     [[nodiscard]] bool injectStroke(const QString& keyName, bool down, QString* error);
@@ -73,6 +78,7 @@ private:
 
     InjectFn m_inject;
     QHash<QString, Slot> m_slots;
+    QTimer m_holdWatch;
     int m_transientShiftRefs = 0;
 };
 

@@ -26,7 +26,7 @@
         <Cell id="vigem_status" row="0" col="0" label="ViGEm" caption="Not installed. Dwell Install to download the official setup." role="label" style="plain"/>
         <SubGrid id="act_vigem" row="0" col="1" rows="1" columns="2" gap="0" style="row">
           <Cell id="vigem_refresh" row="0" col="0" label="Recheck" icon="restart" style="joinLeft" command="settings.vigem.refresh"/>
-          <Cell id="vigem_install" row="0" col="1" label="Install ViGEm" icon="sportsEsports" style="joinRight" command="settings.vigem.install"/>
+          <Cell id="vigem_install" row="0" col="1" label="Download / UAC" icon="sportsEsports" style="joinRight" command="settings.vigem.install"/>
         </SubGrid>
       </SubGrid>
     </SubGrid>

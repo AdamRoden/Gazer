@@ -7,11 +7,12 @@
 #include "app/CommandRegistry.h"
 #include "app/ComposeUi.h"
 #include "app/GazerServices.h"
+#include "app/GuardApp.h"
 #include "app/SettingsUi.h"
 #include "assist/ComboMouse.h"
+#include "assist/GazeMouseFollow.h"
 #include "assist/HeadPoseMapper.h"
 #include "assist/LookToMaps.h"
-#include "assist/MouseAssistState.h"
 #include "assist/MouseDwellMove.h"
 #include "assist/ClipPlayer.h"
 #include "assist/SpeechEngine.h"
@@ -20,7 +21,7 @@
 #include "core/TrackerMouse.h"
 #include "core/TrackerTobii.h"
 #include "editor/LayoutEditorWindow.h"
-#include "input/KeyStateManager.h"
+
 #include "layout/PageCatalog.h"
 #include "layout/PageEdit.h"
 #include "layout/PageSession.h"
@@ -34,7 +35,10 @@
 #include "ui/PageHostWindow.h"
 #include "ui/PreviewWindow.h"
 #include "ui/TrayIcon.h"
+#include "utils/CrashDump.h"
+#include "utils/Heartbeat.h"
 #include "utils/Log.h"
+#include "utils/SessionWatch.h"
 #include "utils/WinOverlay.h"
 
 #include <QApplication>
@@ -65,10 +69,11 @@ bool Application::initialize()
 {
     m_svc = std::make_unique<GazerServices>();
     const QString appDir = QCoreApplication::applicationDirPath();
+    m_safeMode = QCoreApplication::arguments().contains(QStringLiteral("--safe"));
     QString err;
     if (!m_svc->initialize(QDir(appDir).filePath(QStringLiteral("resources/layouts")),
                            QDir(appDir).filePath(QStringLiteral("resources/mappings/default.json")),
-                           &err)) {
+                           &err, !m_safeMode)) {
         GAZER_ERROR << "Services init failed:" << err;
         return false;
     }
@@ -123,6 +128,10 @@ bool Application::initialize()
 
     m_svc->commands().registerBuiltin(QStringLiteral("quitApp"), [this](QString*) {
         QTimer::singleShot(0, this, &Application::onQuitRequested);
+        return true;
+    });
+    m_svc->commands().registerBuiltin(QStringLiteral("rescue.reset"), [this](QString*) {
+        rescueReset();
         return true;
     });
     m_svc->commands().registerBuiltin(QStringLiteral("openPreview"), [this](QString*) {
@@ -184,9 +193,12 @@ bool Application::initialize()
         return false;
     }
     m_svc->applySettings(false);
-    const bool runSplash = m_svc->settings().showSplash
+    const bool runSplash = m_svc->settings().showSplash && !m_safeMode
                            && !QCoreApplication::arguments().contains(QStringLiteral("--editor"));
-    if (!m_svc->settings().startDocked && !runSplash) {
+    if (m_safeMode) {
+        GAZER_INFO << "Safe mode: shipped layouts, docked, mouse tracker";
+    }
+    if (!m_svc->settings().startDocked && !runSplash && !m_safeMode) {
         QString expandErr;
         if (const PageAction* show = PageEdit::firstShowLayers(m_svc->pages().root())) {
             if (!m_svc->pages().showLayers({*show}, QStringLiteral("main"), {}, &expandErr)) {
@@ -201,9 +213,25 @@ bool Application::initialize()
         syncSplashChrome();
     }
 
+    m_heartbeat = std::make_unique<Heartbeat>();
+    if (!m_heartbeat->openAsHost()) {
+        GAZER_WARN << "Heartbeat mapping failed";
+    }
+    m_sessionWatch = std::make_unique<SessionWatch>();
+    connect(m_sessionWatch.get(), &SessionWatch::injectPausedChanged, this,
+            &Application::onInjectPaused);
+    m_pulse.setInterval(250);
+    connect(&m_pulse, &QTimer::timeout, this, &Application::pulseHeartbeat);
+    m_pulse.start();
+    m_lostFallback.setSingleShot(true);
+    m_lostFallback.setInterval(8000);
+    connect(&m_lostFallback, &QTimer::timeout, this, &Application::onTrackerLostFallback);
+
     if (!startTracker()) {
         return false;
     }
+
+    (void)spawnGuardDetached();
 
     updateTrayStatus();
     GAZER_INFO << "Gazer running. Tracker:" << m_tracker->name()
@@ -232,7 +260,7 @@ void Application::updateTrayStatus()
 bool Application::startTracker()
 {
     const int pref = m_svc ? m_svc->settings().trackerPref : 0;
-    if (pref == 1) {
+    if (m_safeMode || pref == 1) {
         GAZER_INFO << "Tracker preference: mouse only";
         fallbackToMouse();
         return m_tracker && m_tracker->isRunning();
@@ -328,8 +356,12 @@ void Application::wireTracker()
         }
         m_svc->headPoseMapper().onTrackingLost();
         updateHeadPosePaint();
+        if (qobject_cast<TrackerTobii*>(m_tracker.get())) {
+            m_lostFallback.start();
+        }
     });
     connect(m_tracker.get(), &ITracker::trackingRestored, m_preview.get(), [this]() {
+        m_lostFallback.stop();
         if (m_tracker) {
             m_preview->setTrackerName(m_tracker->name());
         }
@@ -534,13 +566,7 @@ void Application::shutdownUi()
         m_splash->cancel();
     }
     if (m_svc) {
-        m_svc->magnifier().setEnabledLens(false);
-        m_svc->lookToMaps().disableAll();
-        m_svc->comboMouse().setEnabled(false);
-        m_svc->mouseDwellMove().setArmed(false);
-        m_svc->mouseAssist().releaseAllHolds();
-        QString ignored;
-        (void)m_svc->keyState().releaseAll(&ignored);
+        m_svc->stopAssistOutput();
         m_svc->clipPlayer().stop();
         m_svc->speechEngine().stop();
         m_svc->pages().hideHost();
@@ -587,8 +613,58 @@ void Application::runInbound(const QString& text)
     m_actions->dispatchInbound(acts);
 }
 
+void Application::pulseHeartbeat()
+{
+    if (!m_heartbeat) {
+        return;
+    }
+    m_heartbeat->pulseGui();
+    m_heartbeat->setExclusiveOccluded(gazerBandExclusiveOccluded());
+}
+
+void Application::onInjectPaused(bool paused)
+{
+    if (m_svc) {
+        m_svc->setInjectPaused(paused);
+    }
+}
+
+void Application::onTrackerLostFallback()
+{
+    if (!m_tracker || qobject_cast<TrackerMouse*>(m_tracker.get())) {
+        return;
+    }
+    GAZER_WARN << "Tracker lost — switching to mouse";
+    fallbackToMouse();
+    if (m_svc) {
+        m_svc->setTrackerLostMouse(true);
+    }
+    updateTrayStatus();
+    if (m_tray) {
+        m_tray->setStatus(QStringLiteral("Tracker lost — using mouse"));
+    }
+}
+
+void Application::rescueReset()
+{
+    if (!m_svc) {
+        return;
+    }
+    m_svc->panicReset();
+    showMasterLayers({1});
+    restackGazerBand();
+    if (m_tray) {
+        m_tray->setStatus(QStringLiteral("Rescue reset"));
+    }
+    GAZER_INFO << "rescue.reset";
+}
+
 void Application::onQuitRequested()
 {
+    if (m_heartbeat) {
+        m_heartbeat->setCleanShutdown();
+    }
+    CrashDump::unregisterRestart();
     shutdownUi();
     if (m_tracker) {
         m_tracker->stop();

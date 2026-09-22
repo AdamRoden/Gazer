@@ -144,6 +144,18 @@ void setOverlayStackHost(QWindow* host);
 void registerOverlayWindow(QWindow* overlay, OverlayLayer layer = OverlayLayer::Assist);
 void unregisterOverlayWindow(QWindow* overlay);
 
+/// What is sitting in front of a Gazer HWND (first foreign occluder).
+enum class OccluderKind {
+    None = 0,
+    ExclusiveFullscreen,
+    TaskManager,
+    TopmostForeign,
+    Other
+};
+
+[[nodiscard]] OccluderKind gazerBandOccluderKind();
+[[nodiscard]] bool gazerBandExclusiveOccluded();
+
 /// Watches other processes (foreground, minimize, move) and polls so other apps
 /// cannot sit in front of Gazer. Debounced; skips a no-op restack. Exclusive-mode
 /// fullscreen can still cover until it yields. Task Manager still wins without UIAccess.

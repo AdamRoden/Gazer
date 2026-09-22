@@ -72,6 +72,7 @@ bool ActionLoopService::start(const QString& pageId, const QString& targetId,
     e.stepIndex = 0;
     e.timer = new QTimer(this);
     e.timer->setSingleShot(true);
+    e.started.start();
     connect(e.timer, &QTimer::timeout, this, [this, k]() { runStep(k); });
     m_loops.insert(k, e);
     GAZER_INFO << "ActionLoop START" << pageId << targetId << "steps" << actions.size();
@@ -186,6 +187,12 @@ void ActionLoopService::runStep(const QString& key)
 {
     auto it = m_loops.find(key);
     if (it == m_loops.end()) {
+        return;
+    }
+    constexpr qint64 kMaxLoopMs = 60000;
+    if (it->started.isValid() && it->started.elapsed() >= kMaxLoopMs) {
+        GAZER_WARN << "ActionLoop timeout" << it->pageId << it->targetId;
+        eraseKey(key);
         return;
     }
     if (!m_dispatch || it->actions.isEmpty()) {

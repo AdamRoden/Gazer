@@ -59,6 +59,7 @@ set(GAZER_SOURCES
     src/app/CommandRegistry.cpp
     src/app/InboundActions.cpp
     src/app/ActionChannel.cpp
+    src/app/GuardApp.cpp
     src/app/ComposeUi.cpp
     src/app/ComposeVoices.cpp
     src/app/ComposeSoundboard.cpp
@@ -89,6 +90,7 @@ set(GAZER_SOURCES
     src/layout/DwellStateMachine.cpp
     src/input/KeyboardInjector.cpp
     src/input/KeyStateManager.cpp
+    src/input/InjectGate.cpp
     src/input/KeyGlyphs.cpp
     src/input/MouseInjector.cpp
     src/input/PixelScroller.cpp
@@ -144,6 +146,7 @@ set(GAZER_SOURCES
     src/ui/TrayIcon.cpp
     src/ui/MagnifierOverlay.cpp
     src/ui/DwellSuspendOverlay.cpp
+    src/ui/RescueOverlay.cpp
     src/ui/SplashOverlay.cpp
     src/ui/SplashOverlayPaint.cpp
     src/ui/Theme.cpp
@@ -171,6 +174,11 @@ set(GAZER_SOURCES
     src/editor/LayoutEditorWindowFile.cpp
     src/editor/LayoutEditorXmlHighlight.cpp
     src/utils/WinOverlay.cpp
+    src/utils/AppDirs.cpp
+    src/utils/CrashDump.cpp
+    src/utils/Heartbeat.cpp
+    src/utils/SessionWatch.cpp
+    src/utils/WinProcess.cpp
 )
 
 set(GAZER_HEADERS
@@ -186,6 +194,7 @@ set(GAZER_HEADERS
     src/app/CommandRegistry.h
     src/app/InboundActions.h
     src/app/ActionChannel.h
+    src/app/GuardApp.h
     src/app/ComposeUi.h
     src/assist/ComposeCommands.h
     src/assist/VoiceCatalog.h
@@ -307,6 +316,13 @@ set(GAZER_HEADERS
     src/utils/ScreenCaptureMode.h
     src/utils/WinOverlay.h
     src/utils/ScreenGrab.h
+    src/utils/AppDirs.h
+    src/utils/CrashDump.h
+    src/utils/Heartbeat.h
+    src/utils/SessionWatch.h
+    src/utils/WinProcess.h
+    src/input/InjectGate.h
+    src/ui/RescueOverlay.h
 )
 
 add_executable(Gazer WIN32
@@ -365,7 +381,7 @@ target_link_libraries(Gazer PRIVATE
 )
 
 if(WIN32)
-    target_link_libraries(Gazer PRIVATE user32 advapi32 ole32 oleaut32 uuid sapi crypt32 shell32)
+    target_link_libraries(Gazer PRIVATE user32 advapi32 ole32 oleaut32 uuid sapi crypt32 shell32 wtsapi32)
 endif()
 
 add_custom_command(TARGET Gazer POST_BUILD
@@ -453,6 +469,13 @@ set(GAZER_PAGE_TEST_LIB
     src/input/VigemLib.cpp
     src/input/VigemDiscovery.cpp
     src/input/VigemRelease.cpp
+    src/input/InjectGate.cpp
+    src/assist/ActionLoopService.cpp
+    src/app/ActionChannel.cpp
+    src/utils/AppDirs.cpp
+    src/utils/CrashDump.cpp
+    src/utils/Heartbeat.cpp
+    src/utils/WinProcess.cpp
 )
 add_executable(GazerPageTests
     tests/page_tests_main.cpp
@@ -483,6 +506,11 @@ add_executable(GazerPageTests
     tests/SidecarHostTest.cpp
     tests/VirtualGamepadTest.cpp
     tests/InboundActionsTest.cpp
+    tests/ActionChannelTest.cpp
+    tests/HeartbeatTest.cpp
+    tests/InjectGateTest.cpp
+    tests/WinProcessTest.cpp
+    tests/ActionLoopServiceTest.cpp
     src/app/InboundActions.cpp
     tests/KeyStateManagerTest.cpp
     tests/ColorPickerHexTest.cpp
@@ -493,7 +521,10 @@ add_executable(GazerPageTests
     ${GAZER_PAGE_TEST_LIB}
 )
 target_include_directories(GazerPageTests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_link_libraries(GazerPageTests PRIVATE Qt6::Core Qt6::Gui Qt6::Test)
+target_link_libraries(GazerPageTests PRIVATE Qt6::Core Qt6::Gui Qt6::Network Qt6::Test)
+if(WIN32)
+    target_link_libraries(GazerPageTests PRIVATE user32 shell32)
+endif()
 target_compile_definitions(GazerPageTests PRIVATE
     "GAZER_TEST_FIXTURES=\"${CMAKE_SOURCE_DIR}/tests/fixtures\""
     "GAZER_SOURCE_DIR=\"${CMAKE_SOURCE_DIR}\""

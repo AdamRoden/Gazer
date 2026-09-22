@@ -13,7 +13,7 @@ Gazer is a Windows desktop app. There is no web client.
 
 Published builds go on [GitHub Releases](https://github.com/AdamRoden/Gazer/releases).
 
-The MSI installs to `Program Files\Gazer\` with Start Menu and desktop shortcuts. That copy is stamped `uiAccess=true` and signed so it can sit above Task Manager and type/click into elevated windows. A `Gazer.exe` built in the source tree is left without UIAccess so it still launches from the build directory.
+The MSI installs to `Program Files\Gazer\` with Start Menu and desktop shortcuts, and a logon entry for `Gazer.exe --guard` (watchdog). That copy is stamped `uiAccess=true` and signed so it can sit above Task Manager and type/click into elevated windows. A `Gazer.exe` built in the source tree is left without UIAccess so it still launches from the build directory.
 
 If no release is up yet, build an MSI from the tree: [README — Beta MSI](https://github.com/AdamRoden/Gazer/blob/master/README.md#beta-msi).
 
@@ -29,7 +29,8 @@ Closing overlay pages does not quit. **Quit → Yes** on the dock, or tray **Qui
 
 | Path | Contents |
 |------|----------|
-| `gazer.log` | Log in the working directory |
+| `gazer.log` | Log in the working directory (rotated copies under `%LOCALAPPDATA%\Gazer\logs`) |
+| `%LOCALAPPDATA%\Gazer\crashes\` | Minidumps after a crash or hung-peer takeover |
 | `%AppData%\Gazer\settings.json` | Prefs (theme, dwell, assist, …). Not the ElevenLabs key. |
 | `%AppData%\Gazer\layouts\` | User Page XML (overrides shipped ids) |
 | `%AppData%\Gazer\secrets\eleven.dpapi` | DPAPI-protected ElevenLabs API key |

@@ -8,7 +8,8 @@ Composition root, settings, command dispatch.
 | `GazerServices` | Owns domain services. Header is a façade — include the domain header at the call site |
 | `ActionDispatcher` | `PageAction` → commands / clicks / speak. `dispatchInbound` follows the top page after OpenPage so ShowLayers hits the opened board |
 | `InboundActions` | Parse `--action` / pipe payload (attribute lines or action elements) |
-| `ActionChannel` | Same-user named pipe (`Gazer`). Claimed in `main`; empty reads are ignored |
+| `ActionChannel` | Same-user named pipe (`Gazer`). Framed write + `ok` ACK. Hung peer: second instance terminates and takes over. `ping` is ACK-only |
+| `GuardApp` | `Gazer.exe --guard`: heartbeat watchdog, crash-loop rescue board, Pause hotkey |
 | `CommandRegistry` | Builtin names, then mapping profile. Prefix handlers. `compose.*` / `speech.*` / `soundboard.*` / `history.*` / `settings.*` / `headPose.*` skip the Cmd toast. Catalog: `Commands.md` |
 | `ComposeUi` | Gaze composer capture (`tryHandle`), decorate live values, stamp chrome, system-volume title slider. Composer Speak is `SpeakKind::Composed` (Eleven when configured). Helpers: `ComposeUiInternal.h` |
 | `ComposeVoices.cpp` | Voice catalog (model + speed + boost) |

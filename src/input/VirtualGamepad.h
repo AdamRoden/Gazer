@@ -33,6 +33,8 @@ public:
     [[nodiscard]] bool releaseButton(const QString& button, QString* error = nullptr);
     /// axis: lx ly rx ry lt rt — sticks [-1, 1], triggers 0..1 (clamped).
     [[nodiscard]] bool setAxis(const QString& axis, double value, QString* error = nullptr);
+    /// Zero sticks, triggers, and buttons and push (for session lock / rescue).
+    [[nodiscard]] bool resetNeutral(QString* error = nullptr);
 
     [[nodiscard]] bool isConnected() const;
     [[nodiscard]] QString backendName() const;

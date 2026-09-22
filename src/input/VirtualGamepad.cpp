@@ -1,5 +1,6 @@
 #include "input/VirtualGamepad.h"
 
+#include "input/InjectGate.h"
 #include "input/VigemLib.h"
 #include "utils/Log.h"
 
@@ -168,8 +169,27 @@ void VirtualGamepad::teardown()
     }
 }
 
+bool VirtualGamepad::resetNeutral(QString* error)
+{
+    m->report = {};
+    if (!m->connected && !m->dryRun) {
+        return true;
+    }
+    return pushReport(error);
+}
+
 bool VirtualGamepad::pushReport(QString* error)
 {
+    const bool neutral = m->report.buttons == 0 && m->report.leftTrigger == 0
+                         && m->report.rightTrigger == 0 && m->report.leftX == 0
+                         && m->report.leftY == 0 && m->report.rightX == 0
+                         && m->report.rightY == 0;
+    if (InjectGate::paused() && !neutral) {
+        if (error) {
+            *error = QStringLiteral("Input paused");
+        }
+        return false;
+    }
     if (m->dryRun) {
         return true;
     }

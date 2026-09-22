@@ -12,6 +12,7 @@ Drawer (layer 2) and quit (layer 3) start hidden; the page opens on layer 1. **M
 
 - **Main** is shown only while no master grid is up. Dwell it to grow the drawer from the bottom.
 - **Sleep** stays available while the drawer is open. Shell zones and grids paint and hit above other boards.
+- **Rescue** (next to Sleep) stops loops, releases keys, turns off assist tools, closes pages, and docks. Use it when a board or sticky input has you stuck.
 - Gaze on the drawer or the dock chips counts as using the shell, so the drawer idle timer does not fire while you look at Sleep.
 - The host window stays above the Windows taskbar.
 
@@ -33,6 +34,14 @@ The tray icon owns the process:
 - **Quit**
 
 Closing overlay pages does not exit. `quitApp` (Quit → Yes) does.
+
+## If Gazer freezes
+
+The installed copy starts a tiny **guard** (`Gazer.exe --guard`) at logon. If the host hangs, launching Gazer again (or the Pause key) kills the hung process and brings a new one up. After three crashes in two minutes the guard shows **Restart** / **Mouse pointer** / **Quit**. A second `Gazer.exe --action` waits for an ACK; if the host does not answer, that second process takes over.
+
+UAC, the lock screen, and Ctrl+Alt+Del sit on a Secure Desktop Gazer cannot draw on. Inject pauses until you return. Exclusive-mode fullscreen games can cover Gazer until they yield (borderless windowed is the reliable setting); the guard can offer **Show desktop**.
+
+Hardware backups: a USB switch or Xbox Adaptive Controller mapped to launch `Gazer.exe`, or Windows Eye Control.
 
 ## Shipped pages
 

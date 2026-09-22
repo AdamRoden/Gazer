@@ -1,6 +1,7 @@
 #include "assist/LookToMaps.h"
 
 #include "assist/LookToOverlay.h"
+#include "utils/Log.h"
 #include "utils/ScreenGrab.h"
 
 #include <QGuiApplication>
@@ -220,7 +221,16 @@ void LookToMaps::cancelPlace()
 void LookToMaps::disableAll()
 {
     cancelPlace();
+    m_idlePause.invalidate();
     forEachMap([](LookToScroll& m) { m.setEnabled(false); });
+}
+
+void LookToMaps::setOutputPaused(bool on)
+{
+    m_outputPaused = on;
+    if (on) {
+        m_idlePause.invalidate();
+    }
 }
 
 bool LookToMaps::anyEnabled() const
@@ -264,13 +274,23 @@ void LookToMaps::onGaze(const GazePoint& point, bool pauseInput)
     m_lastGaze = point;
     updatePinCursor();
     const bool overPie = containsGaze(point);
+    if (anyEnabled() && pauseInput && !overPie) {
+        if (!m_idlePause.isValid()) {
+            m_idlePause.start();
+        } else if (m_idlePause.elapsed() >= 90000) {
+            GAZER_INFO << "Look-to idle timeout — disabling maps";
+            disableAll();
+        }
+    } else if (anyEnabled()) {
+        m_idlePause.invalidate();
+    }
     for (int i = 0; i < kLookToDestCount; ++i) {
         LookToScroll* m = m_maps[i].get();
-        bool pause = pauseInput;
+        bool pause = pauseInput || m_outputPaused;
         if (overPie && !m->isPieOpen()) {
             pause = true;
         }
-        if (overPie && m->isPieOpen()) {
+        if (overPie && m->isPieOpen() && !m_outputPaused) {
             pause = false;
         }
         m->onGaze(point, pause);

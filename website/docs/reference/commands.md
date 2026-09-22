@@ -61,6 +61,7 @@ Shipped Mid/Max window cells are `<AHK>` (`icon="WindowMid"` / `WindowMax`), not
 | Command | What happens |
 |---------|----------------|
 | `quitApp` | Exit the process (drawer Quit → Yes). |
+| `rescue.reset` | Panic reset: stop loops, release modifiers, turn off look-to / ComboMouse / mag / follow, close pages, dock, restack. Dock **Rescue** chip. Pause key on the guard process. |
 | `openPageEditor` | Open the XML page designer. Optional `Invocation.pageId`. |
 | `openPreview` | Head-pose 3D preview window. |
 | `settings.session.showSplash.play` | Run the startup dock tour now (Assist → Play tour). |

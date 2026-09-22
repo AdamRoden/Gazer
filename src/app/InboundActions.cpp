@@ -9,6 +9,7 @@ namespace gazer {
 namespace {
 
 constexpr auto kRaise = "raise";
+constexpr auto kPing = "ping";
 
 QString stripBom(QString s)
 {
@@ -133,11 +134,16 @@ bool isInboundRaise(const QString& text)
     return stripBom(text).trimmed().compare(QLatin1String(kRaise), Qt::CaseInsensitive) == 0;
 }
 
+bool isInboundPing(const QString& text)
+{
+    return stripBom(text).trimmed().compare(QLatin1String(kPing), Qt::CaseInsensitive) == 0;
+}
+
 bool parseInboundActions(const QString& text, QVector<PageAction>& out, QString* error)
 {
     out.clear();
     const QString t = stripBom(text).trimmed();
-    if (t.isEmpty() || isInboundRaise(t)) {
+    if (t.isEmpty() || isInboundRaise(t) || isInboundPing(t)) {
         return true;
     }
     if (looksLikeXml(t)) {

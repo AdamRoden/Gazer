@@ -861,11 +861,15 @@ void PageLoaderTest::loadMainPage()
     QVERIFY2(PageLoader::loadFromFile(path, doc, &err), qPrintable(err));
     QCOMPARE(doc.id, QStringLiteral("main"));
     QCOMPARE(doc.master, true);
-    QCOMPARE(doc.zones.size(), 3);
+    QCOMPARE(doc.zones.size(), 5);
     QCOMPARE(doc.grids.size(), 2);
     QVERIFY(doc.findZone(QStringLiteral("show")));
     QVERIFY(doc.findZone(QStringLiteral("hide")));
     QVERIFY(doc.findZone(QStringLiteral("sleep")));
+    QVERIFY(doc.findZone(QStringLiteral("rescue")));
+    QCOMPARE(doc.findZone(QStringLiteral("rescue"))->actions[0].command,
+             QStringLiteral("rescue.reset"));
+    QVERIFY(doc.findZone(QStringLiteral("tracker_lost")));
     QVERIFY(doc.findGrid(QStringLiteral("drawer")));
     QVERIFY(doc.findGrid(QStringLiteral("quit")));
     QCOMPARE(doc.findGrid(QStringLiteral("drawer"))->layers, QVector<int>({2}));

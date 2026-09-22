@@ -2,6 +2,7 @@
 
 #include "layout/PageTypes.h"
 
+#include <QElapsedTimer>
 #include <QHash>
 #include <QObject>
 #include <QSet>
@@ -55,6 +56,7 @@ private:
         QVector<PageAction> actions;
         int stepIndex = 0;
         QTimer* timer = nullptr;
+        QElapsedTimer started;
     };
 
     [[nodiscard]] static QString keyFor(const QString& pageId, const QString& targetId);

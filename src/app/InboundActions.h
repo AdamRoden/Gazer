@@ -17,6 +17,9 @@ namespace gazer {
 
 [[nodiscard]] bool isInboundRaise(const QString& text);
 
+/// Liveness probe. Host ACKs and does not dispatch.
+[[nodiscard]] bool isInboundPing(const QString& text);
+
 /// Page XML action language: attribute lines (`openPage=qwerty_main`) and/or action
 /// elements (`<ShowLayers value="2"/>`). Empty text is zero actions.
 [[nodiscard]] bool parseInboundActions(const QString& text, QVector<PageAction>& out,

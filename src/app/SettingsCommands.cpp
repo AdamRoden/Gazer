@@ -336,6 +336,10 @@ void SettingsUi::registerCommands()
         m_vigem->start();
         return true;
     });
+    m_commands.registerBuiltin(QStringLiteral("settings.vigem.launchSetup"), [this](QString*) {
+        m_vigem->launchPendingSetup();
+        return true;
+    });
     m_commands.registerBuiltin(QStringLiteral("settings.vigem.refresh"), [this](QString*) {
         notifyStatus(VigemDiscovery::describeInstall());
         m_pages.refreshDecorated();

@@ -10,7 +10,7 @@ This is load-bearing. Wrong HWND stacking or paint order looks like “missing�
 
 **HWND band** (always `WS_EX_TOPMOST`, above the taskbar and other apps, including fullscreen). Never `HWND_NOTOPMOST` — that hop flashes the desktop. Restack only when a foreign window occludes Gazer or Gazer-internal order is wrong (`WinOverlay::restackGazerBand`). `OverlayStackWatch` hooks other-process foreground/move/minimize and polls so other apps cannot sit in front of Gazer. Exclusive-mode fullscreen can still win until it yields; we reassert TOPMOST then.
 
-Task Manager (and other system-tools windows) sit in an OS band above ordinary TOPMOST. The installed MSI restamps `Gazer.exe` with `uiAccess="true"` and Authenticode-signs it so `HWND_TOPMOST` lands in the UIAccess band. `.\build\Gazer.exe` stays `uiAccess="false"` so it still starts from the build dir. `WinOverlay::processHasUiAccess` is the runtime check. Signing: `scripts/GazerSign.ps1`, called from `scripts/build-msi.ps1`.
+Task Manager (and other system-tools windows) sit in an OS band above ordinary TOPMOST. The installed MSI restamps `Gazer.exe` with `uiAccess="true"` and Authenticode-signs it so `HWND_TOPMOST` lands in the UIAccess band. `.\build\Gazer.exe` stays `uiAccess="false"` so it still starts from the build dir. `WinOverlay::processHasUiAccess` is the runtime check. Signing: `scripts/GazerSign.ps1`, called from `scripts/build-msi.ps1`. `Gazer.exe --guard` is a same-image watchdog (heartbeat, hung-peer kill, crash-loop board). Other `Gazer.exe` HWNDs are skipped as occluders.
 
 | Front | HWND |
 |-------|------|

@@ -20,6 +20,15 @@
         dwellOffset="0,300" dwellSize="300,200"
         style="chip" label="Sleep" icon="Sleep"
         activeState="dwellSuspend" shell="true" command="toggleDwellSuspend"/>
+  <Zone id="rescue" anchor="Bottom" offset="800,0" size="200,100" layers="1,2"
+        dwellOffset="0,300" dwellSize="300,200"
+        style="chip" label="Rescue" icon="restart" suspendExempt="true" shell="true"
+        command="rescue.reset"/>
+  <Zone id="tracker_lost" anchor="Bottom" offset="1200,0" size="240,100" layers="1,2"
+        dwellOffset="0,300" dwellSize="300,200"
+        style="chip" label="Tracker lost — mouse" icon="emergency"
+        visibleWhen="trackerLostMouse" suspendExempt="true" shell="true"
+        command="rescue.reset"/>
 
   <Grid id="drawer" desktopMode="false" rows="1" columns="10"
         anchor="Bottom" offset="0,0" size="1440,150" style="drawer" gap="10" margin="10"

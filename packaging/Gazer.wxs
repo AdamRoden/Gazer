@@ -41,6 +41,7 @@
       <ComponentRef Id="StartMenuShortcut" />
       <ComponentRef Id="DesktopShortcut" />
       <ComponentRef Id="ResetUserSettings" />
+      <ComponentRef Id="GuardAutostart" />
     </Feature>
 
     <StandardDirectory Id="ProgramFiles64Folder">
@@ -111,6 +112,15 @@
     <InstallExecuteSequence>
       <Custom Action="TrustGazerCert" After="InstallFiles" Condition="NOT REMOVE" />
     </InstallExecuteSequence>
+
+    <Component Id="GuardAutostart" Directory="INSTALLFOLDER" Guid="A7B9C1D3-4E5F-6071-8293-A4B5C6D7E8F0">
+      <RegistryValue Root="HKLM"
+                     Key="Software\Microsoft\Windows\CurrentVersion\Run"
+                     Name="GazerGuard"
+                     Type="string"
+                     Value="&quot;[INSTALLFOLDER]Gazer.exe&quot; --guard"
+                     KeyPath="yes" />
+    </Component>
 
     <Component Id="DesktopShortcut" Directory="DesktopFolder" Guid="C3D5F7A9-2E4B-6C8D-0A1F-3E5B7C9D1A2F">
       <Shortcut Id="GazerDesktop"

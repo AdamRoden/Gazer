@@ -50,7 +50,7 @@ public:
     ~GazerServices() override;
 
     [[nodiscard]] bool initialize(const QString& layoutsDir, const QString& mappingPath,
-                                  QString* error = nullptr);
+                                  QString* error = nullptr, bool includeUserLayouts = true);
 
     using ActionDispatchFn =
         std::function<void(const QVector<PageAction>& actions, const QString& pageId,
@@ -77,6 +77,9 @@ public:
     HeadPoseMapper& headPoseMapper() { return *m_headPose; }
     AssistSession& assistSession() { return *m_assistSession; }
     ActionLoopService& actionLoops() { return *m_actionLoops; }
+    InputService& input() { return *m_input; }
+    void setTrackerLostMouse(bool on);
+    [[nodiscard]] bool trackerLostMouse() const { return m_trackerLostMouse; }
 
     SettingsUi& settingsUi() { return *m_settingsUi; }
     AppSettings& settings() { return m_settings; }
@@ -86,6 +89,11 @@ public:
 
     void setDwellSuspended(bool on);
     [[nodiscard]] bool isDwellSuspended() const;
+    /// Stop loops, holds, look-to, combo, mag, follow, gamepad.
+    void stopAssistOutput();
+    /// stopAssistOutput, close attached pages, resume dwell.
+    void panicReset();
+    void setInjectPaused(bool on);
 
 signals:
     void settingsChanged();
@@ -127,6 +135,7 @@ private:
     std::unique_ptr<AssistCommandContext> m_assistCmdCtx;
     std::unique_ptr<SettingsUi> m_settingsUi;
     AppSettings m_settings;
+    bool m_trackerLostMouse = false;
 };
 
 } // namespace gazer

@@ -1,8 +1,11 @@
 #include "app/ActionChannel.h"
 #include "app/Application.h"
+#include "app/GuardApp.h"
 #include "app/InboundActions.h"
 #include "ui/AppIcon.h"
+#include "utils/CrashDump.h"
 #include "utils/Log.h"
+#include "utils/WinProcess.h"
 
 #include <QApplication>
 #include <QDateTime>
@@ -11,7 +14,9 @@
 #include <QQuickWindow>
 #include <QSGRendererInterface>
 #include <QTextStream>
+#include <QThread>
 
+#include <cstring>
 #include <memory>
 
 // Define the logging category declared in Log.h (for GAZER_* macros).
@@ -58,6 +63,12 @@ int main(int argc, char* argv[])
     qInstallMessageHandler(gazerMessageHandler);
     qputenv("QT_LOGGING_RULES", "gazer.*=true");
 
+    for (int i = 1; i < argc; ++i) {
+        if (std::strcmp(argv[i], "--guard") == 0) {
+            return gazer::runGuard(argc, argv);
+        }
+    }
+
     // Overlay boards need an alpha buffer; software is the reliable path for
     // frameless translucent QQuickWindows on Windows.
     QQuickWindow::setGraphicsApi(QSGRendererInterface::Software);
@@ -82,25 +93,45 @@ int main(int argc, char* argv[])
     auto inbound = std::make_unique<gazer::ActionChannel>();
     if (!inbound->listen()) {
         QString err;
-        if (!gazer::ActionChannel::sendToPeer(gazer::inboundForwardPayload(args), &err)) {
+        quint32 pid = 0;
+        const gazer::PeerResult rc = gazer::ActionChannel::sendToPeer(
+            gazer::inboundForwardPayload(args), &err, &pid);
+        if (rc == gazer::PeerResult::Ok) {
+            return 0;
+        }
+        if (rc == gazer::PeerResult::Timeout) {
+            fprintf(stderr, "%s — taking over hung Gazer\n", qPrintable(err));
+            if (!gazer::WinProcess::terminate(pid, &err)) {
+                fprintf(stderr, "%s\n", qPrintable(err));
+                return 1;
+            }
+            QThread::msleep(300);
+        } else if (rc != gazer::PeerResult::ConnectFailed) {
             fprintf(stderr, "%s\n", qPrintable(err));
             return 1;
         }
-        return 0;
+        if (!inbound->listen()) {
+            fprintf(stderr, "Could not become the live Gazer instance\n");
+            return 1;
+        }
     }
 
     // File + stderr logging so expand/activate failures are visible without a debugger.
     // Open only as the live instance so a --action client does not truncate gazer.log.
+    gazer::CrashDump::rotateLiveLog(QStringLiteral("gazer.log"));
     g_logFile.setFileName(QStringLiteral("gazer.log"));
     if (!g_logFile.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
         fprintf(stderr, "Could not open gazer.log\n");
     }
+    gazer::CrashDump::installHandlers();
 
     gazer::Application app;
     if (!app.initialize()) {
         GAZER_ERROR << "Failed to initialize Gazer";
         return 1;
     }
+    gazer::CrashDump::registerRestart(QString());
+    gazer::CrashDump::capCrashDir();
     app.takeInbound(std::move(inbound));
 
     const QString startup = gazer::inboundPayloadFromArgs(args);

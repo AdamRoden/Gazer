@@ -2,7 +2,7 @@
 
 `example_gamepad` is the dwell Xbox pad (drawer **Gamepad**). It injects a virtual Xbox 360 controller through ViGEm.
 
-You need the [ViGEmBus](https://github.com/nefarius/ViGEmBus) kernel driver. Settings → **Assist** can download the official setup and launch it (UAC). Gazer ships the user-mode `ViGEmClient.dll` next to `Gazer.exe` (the bus installer does not). Without the driver, button cells fail closed and toast.
+You need the [ViGEmBus](https://github.com/nefarius/ViGEmBus) kernel driver. Settings → **Assist** downloads the official setup first; a second dwell on **Download / UAC** starts the installer (UAC). A helper must click Yes — Gazer cannot sit on the Secure Desktop. Gazer ships the user-mode `ViGEmClient.dll` next to `Gazer.exe` (the bus installer does not). Without the driver, button cells fail closed and toast.
 
 Cells are `command="gamepad.…"` names in `resources/mappings/default.json`. Those names are **not** builtins: `CommandRegistry` falls through to mapping inject (`gamepadButton` press-then-release, or `gamepadAxis` that **stays**). Catalog: [Commands](reference/commands.md#mapping-only-names-in-defaultjson).
 

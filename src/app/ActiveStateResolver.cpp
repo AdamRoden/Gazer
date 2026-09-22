@@ -40,6 +40,9 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
     if (key == QLatin1String("dwellSuspend")) {
         return ctx.dwellSuspended;
     }
+    if (key == QLatin1String("trackerLostMouse")) {
+        return ctx.trackerLostMouse;
+    }
     if (key == QLatin1String("headPose.enabled")) {
         return ctx.settings && ctx.settings->headPoseEnabled;
     }

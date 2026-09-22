@@ -76,6 +76,10 @@ void VigemInstaller::start()
         emit finished(true, QStringLiteral("ViGEmBus is already installed. Recheck if the status is stale."));
         return;
     }
+    if (hasPendingSetup()) {
+        launchPendingSetup();
+        return;
+    }
     m_busy = true;
     setStatus(QStringLiteral("Looking up latest ViGEmBus setup…"));
     fetchLatestRelease();
@@ -184,7 +188,26 @@ void VigemInstaller::onDownloadFinished()
             m_setupPath = msi;
         }
     }
-    setStatus(QStringLiteral("Starting ViGEmBus setup (UAC)…"));
+    m_busy = false;
+    setStatus(QStringLiteral("Downloaded. A helper must dwell Launch setup (UAC)."));
+    emit finished(true, QStringLiteral(
+                            "ViGEmBus setup downloaded. A helper is needed for the UAC prompt."));
+}
+
+bool VigemInstaller::hasPendingSetup() const
+{
+    return !m_setupPath.isEmpty() && QFileInfo::exists(m_setupPath);
+}
+
+void VigemInstaller::launchPendingSetup()
+{
+    if (!hasPendingSetup()) {
+        fail(QStringLiteral("Download the ViGEmBus setup first."));
+        return;
+    }
+    if (m_busy) {
+        return;
+    }
     launchSetup(m_setupPath);
 }
 

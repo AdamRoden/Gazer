@@ -409,6 +409,9 @@ void SettingsUi::decoratePage(PageDocument& doc)
             if (c.id == QLatin1String("vigem_status")) {
                 if (m_vigem && m_vigem->isBusy() && !m_vigem->statusLine().isEmpty()) {
                     c.caption = m_vigem->statusLine();
+                } else if (m_vigem && m_vigem->hasPendingSetup()) {
+                    c.caption = QStringLiteral(
+                        "Setup downloaded. Dwell Install again — a helper must click UAC.");
                 } else {
                     c.caption = VigemDiscovery::describeInstall();
                 }

@@ -1,5 +1,6 @@
 #include "input/MouseInjector.h"
 
+#include "input/InjectGate.h"
 #include "utils/Log.h"
 #include "utils/WinOverlay.h"
 
@@ -60,7 +61,7 @@ bool buttonFlags(const QString& button, DWORD* down, DWORD* up, QString* error)
 
 bool sendMouseInputs(INPUT* inputs, UINT count)
 {
-    return SendInput(count, inputs, sizeof(INPUT)) == count;
+    return InjectGate::send(inputs, count);
 }
 
 bool sendMouseFlag(DWORD flag, DWORD data = 0)

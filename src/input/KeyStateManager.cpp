@@ -10,6 +10,8 @@ namespace gazer {
 KeyStateManager::KeyStateManager(QObject* parent)
     : QObject(parent)
 {
+    m_holdWatch.setInterval(1000);
+    connect(&m_holdWatch, &QTimer::timeout, this, &KeyStateManager::tickHolds);
 }
 
 void KeyStateManager::setInjector(InjectFn fn)
@@ -186,7 +188,47 @@ bool KeyStateManager::setSlot(const QString& canonical, KeyHoldState next, const
 
     slot.state = next;
     slot.injectName = willHold ? name : QString();
+    if (willHold) {
+        slot.held.start();
+        if (!m_holdWatch.isActive()) {
+            m_holdWatch.start();
+        }
+    } else {
+        slot.held.invalidate();
+        bool any = false;
+        for (auto it = m_slots.cbegin(); it != m_slots.cend(); ++it) {
+            if (it.value().state != KeyHoldState::Up) {
+                any = true;
+                break;
+            }
+        }
+        if (!any) {
+            m_holdWatch.stop();
+        }
+    }
     return true;
+}
+
+void KeyStateManager::tickHolds()
+{
+    constexpr qint64 kDownMs = 120000;
+    constexpr qint64 kLockedMs = 300000;
+    QStringList drop;
+    for (auto it = m_slots.cbegin(); it != m_slots.cend(); ++it) {
+        if (it.value().state == KeyHoldState::Up || !it.value().held.isValid()) {
+            continue;
+        }
+        const qint64 lim =
+            it.value().state == KeyHoldState::LockedDown ? kLockedMs : kDownMs;
+        if (it.value().held.elapsed() >= lim) {
+            drop.push_back(it.key());
+        }
+    }
+    for (const QString& id : drop) {
+        QString ignored;
+        (void)setSlot(id, KeyHoldState::Up, {}, &ignored);
+        emitIfChanged(true);
+    }
 }
 
 bool KeyStateManager::reassertLocked(QString* error)

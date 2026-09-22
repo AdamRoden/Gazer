@@ -22,6 +22,9 @@ public:
     [[nodiscard]] QString statusLine() const { return m_status; }
 
     void start();
+    /// After a successful download, dwell again to ShellExecute runas (UAC).
+    void launchPendingSetup();
+    [[nodiscard]] bool hasPendingSetup() const;
 
 signals:
     void statusChanged();

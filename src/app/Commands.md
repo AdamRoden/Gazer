@@ -4,7 +4,7 @@
 
 User-facing catalogs (what happens, every value token): [website Actions](../../website/docs/reference/actions.md), [website Commands](../../website/docs/reference/commands.md). Action language: [docs/page-xml.md](../../docs/page-xml.md).
 
-AHK / CLI / Python is not this table. `Gazer.exe --action …` (and the `Gazer` named pipe) parse the same action language as page XML. `<Run>` spawns a script file; the script talks back with `--action`. Several `--action` flags run in order. After `OpenPage` in one payload, `ShowLayers` applies to the opened page (`ActionDispatcher::dispatchInbound`). A second instance with no `--action` sends `raise`. Empty pipe reads are ignored.
+AHK / CLI / Python is not this table. `Gazer.exe --action …` (and the `Gazer` named pipe) parse the same action language as page XML. Frames are length-prefixed; the host ACKs before dispatch. A hung host fails the ACK and the second process takes over. `<Run>` spawns a script file; the script talks back with `--action`. Several `--action` flags run in order. After `OpenPage` in one payload, `ShowLayers` applies to the opened page (`ActionDispatcher::dispatchInbound`). A second instance with no `--action` sends `raise`. `ping` is ACK-only. `Gazer.exe --guard` is the watchdog (not a client).
 
 | Registered in | What |
 |---------------|------|
@@ -42,6 +42,7 @@ When adding a command: register it and add a row here.
 | Command | Role |
 |---------|------|
 | `quitApp` | Exit |
+| `rescue.reset` | Panic: stop loops, release keys, disable assist, close pages, dock, restack |
 | `openPageEditor` | Page designer (`Invocation.pageId` optional) |
 | `openPreview` | Head-pose preview |
 | `settings.session.showSplash.play` | Run the startup dock tour now |

@@ -410,7 +410,7 @@ Builtins vs mapping fallthrough: [src/app/Commands.md](../src/app/Commands.md).
 
 ### Inbound (AHK / CLI)
 
-The live process listens on a same-user named pipe `Gazer` (`\\.\pipe\Gazer` on Windows; override with `GAZER_ACTION_PIPE`). A second `Gazer.exe` with `--action` forwards to that pipe and exits. Payload is this same action language: attribute lines (`openPage=qwerty_main`, `command=toggleLookToScroll`, `showLayers=2`) or elements (`<OpenPage value="qwerty_main"/><ShowLayers value="2"/>`). Several `--action` flags run in order.
+The live process listens on a same-user named pipe `Gazer` (`\\.\pipe\Gazer` on Windows; override with `GAZER_ACTION_PIPE`). A second `Gazer.exe` with `--action` forwards a length-prefixed frame and waits for `ok`. If the host does not ACK (~1 s), that second process dumps, terminates the hung peer, and becomes the live instance. Payload is this same action language: attribute lines (`openPage=qwerty_main`, `command=toggleLookToScroll`, `showLayers=2`) or elements (`<OpenPage value="qwerty_main"/><ShowLayers value="2"/>`). Several `--action` flags run in order. `ping` is ACK-only (no dispatch).
 
 Unlike a cell on Main (where `ShowLayers` would change Main), inbound `ShowLayers` after `OpenPage` in the same payload applies to the page that just opened.
 

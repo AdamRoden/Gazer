@@ -1,5 +1,6 @@
 #include "input/KeyboardInjector.h"
 
+#include "input/InjectGate.h"
 #include "input/KeyGlyphs.h"
 
 #ifdef Q_OS_WIN
@@ -99,7 +100,7 @@ bool sendVk(VkStroke stroke, bool keyUp)
     in.ki.wScan = static_cast<WORD>(MapVirtualKeyW(stroke.vk, MAPVK_VK_TO_VSC));
     in.ki.dwFlags = (stroke.extended ? KEYEVENTF_EXTENDEDKEY : 0)
                     | (keyUp ? KEYEVENTF_KEYUP : 0);
-    return SendInput(1, &in, sizeof(INPUT)) == 1;
+    return InjectGate::send(&in, 1);
 }
 
 bool sendUnicode(wchar_t ch, bool keyUp)
@@ -109,7 +110,7 @@ bool sendUnicode(wchar_t ch, bool keyUp)
     in.ki.wVk = 0;
     in.ki.wScan = ch;
     in.ki.dwFlags = KEYEVENTF_UNICODE | (keyUp ? KEYEVENTF_KEYUP : 0);
-    return SendInput(1, &in, sizeof(INPUT)) == 1;
+    return InjectGate::send(&in, 1);
 }
 
 #endif

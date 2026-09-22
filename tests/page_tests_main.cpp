@@ -1,8 +1,11 @@
 #include "utils/Log.h"
 
 #include <QCoreApplication>
+#include <QDir>
+#include <QFile>
 #include <QStringList>
 #include <QTest>
+#include <QTextStream>
 #include <memory>
 
 Q_LOGGING_CATEGORY(lcGazer, "gazer")
@@ -26,6 +29,11 @@ QObject* createAhkLauncherTest();
 QObject* createSidecarHostTest();
 QObject* createVirtualGamepadTest();
 QObject* createInboundActionsTest();
+QObject* createActionChannelTest();
+QObject* createHeartbeatTest();
+QObject* createInjectGateTest();
+QObject* createWinProcessTest();
+QObject* createActionLoopServiceTest();
 QObject* createKeyStateManagerTest();
 QObject* createColorPickerHexTest();
 QObject* createHeadPoseMapperTest();
@@ -56,49 +64,67 @@ int main(int argc, char** argv)
     QCoreApplication app(argc, argv);
     int status = 0;
     const QStringList rest = argsWithoutDashO(argc, argv);
+    QFile suiteLog(QDir::temp().filePath(QStringLiteral("GazerPageTests-suites.txt")));
+    (void)suiteLog.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text);
+    auto runSuite = [&](const char* name, QObject* obj, bool first) {
+        const int s = first ? QTest::qExec(obj, argc, argv) : QTest::qExec(obj, rest);
+        QTextStream(&suiteLog) << name << ' ' << s << '\n';
+        suiteLog.flush();
+        status |= s;
+    };
     std::unique_ptr<QObject> pages(createPageLoaderTest());
-    status |= QTest::qExec(pages.get(), argc, argv);
+    runSuite("PageLoaderTest", pages.get(), true);
     std::unique_ptr<QObject> pageActions(createPageLoaderActionTest());
-    status |= QTest::qExec(pageActions.get(), rest);
+    runSuite("PageLoaderActionTest", pageActions.get(), false);
     std::unique_ptr<QObject> dims(createPageDimTest());
-    status |= QTest::qExec(dims.get(), rest);
+    runSuite("PageDimTest", dims.get(), false);
     std::unique_ptr<QObject> nav(createPageNavTest());
-    status |= QTest::qExec(nav.get(), rest);
+    runSuite("PageNavTest", nav.get(), false);
     std::unique_ptr<QObject> hits(createPageHitTest());
-    status |= QTest::qExec(hits.get(), rest);
+    runSuite("PageHitTest", hits.get(), false);
     std::unique_ptr<QObject> hitLive(createPageHitLiveTest());
-    status |= QTest::qExec(hitLive.get(), rest);
+    runSuite("PageHitLiveTest", hitLive.get(), false);
     std::unique_ptr<QObject> compose(createPageComposeTest());
-    status |= QTest::qExec(compose.get(), rest);
+    runSuite("PageComposeTest", compose.get(), false);
     std::unique_ptr<QObject> settings(createSettingsLayoutTest());
-    status |= QTest::qExec(settings.get(), rest);
+    runSuite("SettingsLayoutTest", settings.get(), false);
     std::unique_ptr<QObject> appSettings(createAppSettingsTest());
-    status |= QTest::qExec(appSettings.get(), rest);
+    runSuite("AppSettingsTest", appSettings.get(), false);
     std::unique_ptr<QObject> materialPal(createMaterialPaletteTest());
-    status |= QTest::qExec(materialPal.get(), rest);
+    runSuite("MaterialPaletteTest", materialPal.get(), false);
     std::unique_ptr<QObject> mouseDwell(createMouseDwellMoveTest());
-    status |= QTest::qExec(mouseDwell.get(), rest);
+    runSuite("MouseDwellMoveTest", mouseDwell.get(), false);
     std::unique_ptr<QObject> progress(createProgressPaintTest());
-    status |= QTest::qExec(progress.get(), rest);
+    runSuite("ProgressPaintTest", progress.get(), false);
     std::unique_ptr<QObject> scroll(createScrollBarTest());
-    status |= QTest::qExec(scroll.get(), rest);
+    runSuite("ScrollBarTest", scroll.get(), false);
     std::unique_ptr<QObject> combo(createComboMouseTest());
-    status |= QTest::qExec(combo.get(), rest);
+    runSuite("ComboMouseTest", combo.get(), false);
     std::unique_ptr<QObject> lts(createLookToScrollTest());
-    status |= QTest::qExec(lts.get(), rest);
+    runSuite("LookToScrollTest", lts.get(), false);
     std::unique_ptr<QObject> ahk(createAhkLauncherTest());
-    status |= QTest::qExec(ahk.get(), rest);
+    runSuite("AhkLauncherTest", ahk.get(), false);
     std::unique_ptr<QObject> sidecar(createSidecarHostTest());
-    status |= QTest::qExec(sidecar.get(), rest);
+    runSuite("SidecarHostTest", sidecar.get(), false);
     std::unique_ptr<QObject> gamepad(createVirtualGamepadTest());
-    status |= QTest::qExec(gamepad.get(), rest);
+    runSuite("VirtualGamepadTest", gamepad.get(), false);
     std::unique_ptr<QObject> inbound(createInboundActionsTest());
-    status |= QTest::qExec(inbound.get(), rest);
+    runSuite("InboundActionsTest", inbound.get(), false);
+    std::unique_ptr<QObject> channel(createActionChannelTest());
+    runSuite("ActionChannelTest", channel.get(), false);
+    std::unique_ptr<QObject> heartbeat(createHeartbeatTest());
+    runSuite("HeartbeatTest", heartbeat.get(), false);
+    std::unique_ptr<QObject> injectGate(createInjectGateTest());
+    runSuite("InjectGateTest", injectGate.get(), false);
+    std::unique_ptr<QObject> winProc(createWinProcessTest());
+    runSuite("WinProcessTest", winProc.get(), false);
+    std::unique_ptr<QObject> loops(createActionLoopServiceTest());
+    runSuite("ActionLoopServiceTest", loops.get(), false);
     std::unique_ptr<QObject> keys(createKeyStateManagerTest());
-    status |= QTest::qExec(keys.get(), rest);
+    runSuite("KeyStateManagerTest", keys.get(), false);
     std::unique_ptr<QObject> colorHex(createColorPickerHexTest());
-    status |= QTest::qExec(colorHex.get(), rest);
+    runSuite("ColorPickerHexTest", colorHex.get(), false);
     std::unique_ptr<QObject> headPose(createHeadPoseMapperTest());
-    status |= QTest::qExec(headPose.get(), rest);
+    runSuite("HeadPoseMapperTest", headPose.get(), false);
     return status;
 }

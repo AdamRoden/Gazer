@@ -6,6 +6,7 @@
 #include "ui/Theme.h"
 
 #include <QColor>
+#include <QElapsedTimer>
 #include <QObject>
 #include <QPoint>
 #include <QVector>
@@ -51,6 +52,8 @@ public:
     [[nodiscard]] LookToDest placingDest() const { return m_placingDest; }
 
     void disableAll();
+    void setOutputPaused(bool on);
+    [[nodiscard]] bool outputPaused() const { return m_outputPaused; }
     [[nodiscard]] bool anyEnabled() const;
     [[nodiscard]] bool containsGaze(const GazePoint& point) const;
     [[nodiscard]] bool anyPieOpen() const;
@@ -85,6 +88,8 @@ private:
     LookToRing m_highlight = LookToRing::None;
     GazePoint m_lastGaze;
     QColor m_accent;
+    bool m_outputPaused = false;
+    QElapsedTimer m_idlePause;
 };
 
 } // namespace gazer

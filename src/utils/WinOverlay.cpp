@@ -1,7 +1,11 @@
 #include "utils/WinOverlay.h"
 
+#include "input/InjectGate.h"
+#include "utils/WinProcess.h"
+
 #include <QPointer>
 #include <QSet>
+#include <QString>
 #include <QVector>
 #include <QtMath>
 
@@ -15,6 +19,7 @@ QWindow* g_stackHost = nullptr;
 int g_passDepth = 0;
 bool g_restacking = false;
 ScreenCaptureMode g_captureMode = ScreenCaptureMode::Pages;
+OccluderKind g_occluder = OccluderKind::None;
 
 struct OverlayEntry {
     QPointer<QWindow> window;
@@ -64,7 +69,7 @@ bool isOwnZWindow(HWND self, HWND other)
     }
     DWORD pid = 0;
     GetWindowThreadProcessId(other, &pid);
-    if (pid == GetCurrentProcessId()) {
+    if (pid == GetCurrentProcessId() || WinProcess::isGazerImage(pid)) {
         return true;
     }
     for (HWND owner = GetWindow(other, GW_OWNER); owner; owner = GetWindow(owner, GW_OWNER)) {
@@ -75,11 +80,11 @@ bool isOwnZWindow(HWND self, HWND other)
     return false;
 }
 
-bool foreignWindowOccludes(HWND hwnd)
+HWND firstForeignOccluder(HWND hwnd)
 {
     RECT wr{};
     if (!GetWindowRect(hwnd, &wr) || wr.right <= wr.left || wr.bottom <= wr.top) {
-        return false;
+        return nullptr;
     }
     for (HWND cur = GetWindow(hwnd, GW_HWNDPREV); cur; cur = GetWindow(cur, GW_HWNDPREV)) {
         if (!IsWindowVisible(cur) || isOwnZWindow(hwnd, cur)) {
@@ -91,10 +96,64 @@ bool foreignWindowOccludes(HWND hwnd)
         }
         RECT hit{};
         if (IntersectRect(&hit, &wr, &orc)) {
-            return true;
+            return cur;
         }
     }
-    return false;
+    return nullptr;
+}
+
+bool coversMonitor(HWND hwnd)
+{
+    RECT wr{};
+    if (!GetWindowRect(hwnd, &wr)) {
+        return false;
+    }
+    HMONITOR mon = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+    MONITORINFO mi{};
+    mi.cbSize = sizeof(mi);
+    if (!GetMonitorInfoW(mon, &mi)) {
+        return false;
+    }
+    const RECT& m = mi.rcMonitor;
+    const int slop = 4;
+    return wr.left <= m.left + slop && wr.top <= m.top + slop && wr.right >= m.right - slop
+           && wr.bottom >= m.bottom - slop;
+}
+
+QString windowImageBase(HWND hwnd)
+{
+    DWORD pid = 0;
+    GetWindowThreadProcessId(hwnd, &pid);
+    return WinProcess::imageBase(pid);
+}
+
+OccluderKind classifyHwnd(HWND hwnd)
+{
+    if (!hwnd) {
+        return OccluderKind::None;
+    }
+    wchar_t cls[256]{};
+    GetClassNameW(hwnd, cls, 256);
+    const QString image = windowImageBase(hwnd);
+    if (_wcsicmp(cls, L"TaskManagerWindow") == 0
+        || image.compare(QLatin1String("Taskmgr.exe"), Qt::CaseInsensitive) == 0) {
+        return OccluderKind::TaskManager;
+    }
+    const LONG style = GetWindowLongW(hwnd, GWL_STYLE);
+    const bool noCaption = (style & WS_CAPTION) == 0;
+    if (coversMonitor(hwnd) && noCaption && GetForegroundWindow() == hwnd) {
+        return OccluderKind::ExclusiveFullscreen;
+    }
+    const LONG ex = GetWindowLongW(hwnd, GWL_EXSTYLE);
+    if (ex & WS_EX_TOPMOST) {
+        return OccluderKind::TopmostForeign;
+    }
+    return OccluderKind::Other;
+}
+
+bool foreignWindowOccludes(HWND hwnd)
+{
+    return firstForeignOccluder(hwnd) != nullptr;
 }
 
 void flushHitTestCache()
@@ -102,7 +161,7 @@ void flushHitTestCache()
     INPUT move{};
     move.type = INPUT_MOUSE;
     move.mi.dwFlags = MOUSEEVENTF_MOVE;
-    SendInput(1, &move, sizeof(INPUT));
+    (void)InjectGate::send(&move, 1);
 }
 
 HWND hwndOf(QWindow* w)
@@ -393,12 +452,34 @@ void applyGazerBandOrder()
 }
 #endif
 
+void refreshOccluderCache()
+{
+#ifdef Q_OS_WIN
+    const QVector<HWND> band = gazerBandBackToFront();
+    OccluderKind worst = OccluderKind::None;
+    for (HWND hwnd : band) {
+        const OccluderKind k = classifyHwnd(firstForeignOccluder(hwnd));
+        if (k == OccluderKind::ExclusiveFullscreen) {
+            g_occluder = k;
+            return;
+        }
+        if (int(k) > int(worst)) {
+            worst = k;
+        }
+    }
+    g_occluder = worst;
+#else
+    g_occluder = OccluderKind::None;
+#endif
+}
+
 void restackGazerBand()
 {
     if (g_restacking) {
         return;
     }
     pruneOverlays();
+    refreshOccluderCache();
 #ifdef Q_OS_WIN
     if (!gazerBandNeedsRestack()) {
         return;
@@ -414,6 +495,16 @@ void restackGazerBand()
         raiseInTopmostBand(e.window.data());
     }
 #endif
+}
+
+OccluderKind gazerBandOccluderKind()
+{
+    return g_occluder;
+}
+
+bool gazerBandExclusiveOccluded()
+{
+    return g_occluder == OccluderKind::ExclusiveFullscreen;
 }
 
 void setOverlayStackHost(QWindow* host)

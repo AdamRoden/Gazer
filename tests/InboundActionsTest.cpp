@@ -33,6 +33,9 @@ void InboundActionsTest::parseEmptyIsOk()
     QVERIFY2(parseInboundActions(QStringLiteral("raise"), a, &err), qPrintable(err));
     QCOMPARE(a.size(), 0);
     QVERIFY(isInboundRaise(QStringLiteral(" raise ")));
+    QVERIFY(isInboundPing(QStringLiteral("ping")));
+    QVERIFY2(parseInboundActions(QStringLiteral("ping"), a, &err), qPrintable(err));
+    QCOMPARE(a.size(), 0);
 }
 
 void InboundActionsTest::parseCommandLine()
