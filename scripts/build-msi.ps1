@@ -152,6 +152,14 @@ New-Item -ItemType Directory -Force -Path $StageDir | Out-Null
 
 Copy-Item $Exe $StageDir
 
+$vigem = Join-Path $BuildDir "ViGEmClient.dll"
+if (-not (Test-Path $vigem)) {
+    $vigem = Join-Path $RepoRoot "third_party\ViGEmClient.dll"
+}
+if (Test-Path $vigem) {
+    Copy-Item $vigem $StageDir -Force
+}
+
 $ResSrc = Join-Path $RepoRoot "resources"
 if (-not (Test-Path $ResSrc)) { throw "resources/ missing" }
 Copy-Item -Recurse $ResSrc (Join-Path $StageDir "resources")
