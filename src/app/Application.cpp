@@ -223,9 +223,6 @@ bool Application::initialize()
     m_pulse.setInterval(250);
     connect(&m_pulse, &QTimer::timeout, this, &Application::pulseHeartbeat);
     m_pulse.start();
-    m_lostFallback.setSingleShot(true);
-    m_lostFallback.setInterval(8000);
-    connect(&m_lostFallback, &QTimer::timeout, this, &Application::onTrackerLostFallback);
 
     if (!startTracker()) {
         return false;
@@ -302,6 +299,9 @@ void Application::onTobiiStreamFailed(const QString& reason)
 {
     GAZER_WARN << "Tobii stream failed:" << reason << "— switching to mouse";
     fallbackToMouse();
+    if (m_svc) {
+        m_svc->setTrackerLostMouse(true);
+    }
     updateTrayStatus();
 }
 
@@ -356,12 +356,8 @@ void Application::wireTracker()
         }
         m_svc->headPoseMapper().onTrackingLost();
         updateHeadPosePaint();
-        if (qobject_cast<TrackerTobii*>(m_tracker.get())) {
-            m_lostFallback.start();
-        }
     });
     connect(m_tracker.get(), &ITracker::trackingRestored, m_preview.get(), [this]() {
-        m_lostFallback.stop();
         if (m_tracker) {
             m_preview->setTrackerName(m_tracker->name());
         }
@@ -626,22 +622,6 @@ void Application::onInjectPaused(bool paused)
 {
     if (m_svc) {
         m_svc->setInjectPaused(paused);
-    }
-}
-
-void Application::onTrackerLostFallback()
-{
-    if (!m_tracker || qobject_cast<TrackerMouse*>(m_tracker.get())) {
-        return;
-    }
-    GAZER_WARN << "Tracker lost — switching to mouse";
-    fallbackToMouse();
-    if (m_svc) {
-        m_svc->setTrackerLostMouse(true);
-    }
-    updateTrayStatus();
-    if (m_tray) {
-        m_tray->setStatus(QStringLiteral("Tracker lost — using mouse"));
     }
 }
 

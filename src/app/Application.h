@@ -58,7 +58,6 @@ private:
     void rescueReset();
     void pulseHeartbeat();
     void onInjectPaused(bool paused);
-    void onTrackerLostFallback();
 
     std::unique_ptr<GazerServices> m_svc;
     std::unique_ptr<ActionDispatcher> m_actions;
@@ -77,7 +76,6 @@ private:
     std::unique_ptr<Heartbeat> m_heartbeat;
     std::unique_ptr<SessionWatch> m_sessionWatch;
     QTimer m_pulse;
-    QTimer m_lostFallback;
     bool m_safeMode = false;
 };
 

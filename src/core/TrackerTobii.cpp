@@ -16,6 +16,7 @@ TrackerTobii::TrackerTobii(QObject* parent)
     : ITracker(parent)
 {
     m_flushTimer.setInterval(16);
+    m_flushTimer.setTimerType(Qt::PreciseTimer);
     connect(&m_flushTimer, &QTimer::timeout, this, &TrackerTobii::flushPendingGaze);
 
     if (auto* app = qGuiApp) {
