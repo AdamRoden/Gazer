@@ -41,7 +41,7 @@ Catalog id = filename stem under `resources/layouts/`. User copies in `%AppData%
 | Id | Kind |
 |----|------|
 | `main` | Root dock + drawer + quit |
-| `main_settings` / `main_settings_*` | Settings hub, then Speed / Magnify / Indicators / Assist / Tools / Theme / Speech |
+| `main_settings` / `main_settings_*` | Settings hub, then basic tabs (Speed / Magnify / Assist / Theme / Head) and an Advanced layer (Adv. speed / Indicators / Tools / Admin) |
 | `compose` | Gaze composer (phrase, chips, soundboard, keyboard) |
 | `example_keyboard` | Compact keyboard (layers: letters, shift, symbols, symbols+shift) |
 | `example_mouse` | Mouse pad |

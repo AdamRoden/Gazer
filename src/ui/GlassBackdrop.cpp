@@ -108,12 +108,12 @@ void GlassBackdrop::rebuild()
         return;
     }
 
-    // Do not toggle WDA_EXCLUDEFROMCAPTURE on the live host. That affinity is
-    // per-HWND, so a settings-sized board would cloak the whole monitor on some
-    // GPU / Windows builds. Underlay stamps this window's non-frosted chrome
-    // (so a drawer still frosts the board beneath it). Recapture only on
-    // geometry / underlay change — a periodic grab would blur the previous
-    // frost into itself.
+    // Do not change WDA_EXCLUDEFROMCAPTURE here. Admin Capture None is the
+    // only path that sets that affinity on the page host; on some GPUs it
+    // hides the board on the monitor as well as in screenshots. This grab
+    // leaves affinity alone and stamps non-frosted chrome so a drawer still
+    // frosts the board beneath it. Recapture only on geometry / underlay
+    // change — a periodic grab would blur the previous frost into itself.
     QPixmap raw = grabScreenRect(screen, grabGlobal);
     if (!m_underlay.isNull() && !raw.isNull()) {
         QPainter up(&raw);

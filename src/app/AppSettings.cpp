@@ -656,6 +656,17 @@ QString AppSettings::displayValue(const QString& key) const
     if (key == QLatin1String("trackerPref")) {
         return trackerPref == 1 ? QStringLiteral("Mouse only") : QStringLiteral("Auto Tobii");
     }
+    if (key == QLatin1String("screenCapture")) {
+        switch (screenCapture) {
+        case ScreenCaptureMode::All:
+            return QStringLiteral("All");
+        case ScreenCaptureMode::None:
+            return QStringLiteral("None");
+        case ScreenCaptureMode::Pages:
+            return QStringLiteral("Pages");
+        }
+        return QStringLiteral("Pages");
+    }
     if (isColorKey(key)) {
         return colorKey(key).name(QColor::HexArgb).toUpper();
     }

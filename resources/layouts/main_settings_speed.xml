@@ -69,6 +69,6 @@
       </SubGrid>
     </SubGrid>
 
-    <Cell id="open_advanced" row="4" col="0" colSpan="16" label="More…" caption="Scan grace, blink grace, pointer grace, foresight hold, auto-close." icon="moreHoriz" hostPage="main_settings_speed_advanced"/>
+    <Cell id="open_advanced" row="4" col="0" colSpan="16" label="More…" caption="Scan grace, blink grace, pointer grace, foresight hold, auto-close." icon="moreHoriz" hostPage="main_settings_advanced_host, main_settings_speed_advanced"/>
   </Grid>
 </Page>

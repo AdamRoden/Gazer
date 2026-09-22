@@ -37,6 +37,7 @@
 #include "ui/MagnifierOverlay.h"
 #include "ui/ProgressVisuals.h"
 #include "utils/Log.h"
+#include "utils/WinOverlay.h"
 
 #include <QColor>
 #include <QDir>
@@ -392,6 +393,8 @@ void GazerServices::mutateAndApply(const std::function<void(AppSettings&)>& muta
 void GazerServices::applySettings(bool persist)
 {
     m_settings.clamp();
+    setScreenCaptureMode(m_settings.screenCapture);
+    applyScreenCapturePolicy();
     if (m_secrets) {
         m_settings.elevenApiKeySet = m_secrets->hasKey();
     }

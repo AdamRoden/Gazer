@@ -398,7 +398,7 @@ void SettingsUi::decoratePage(PageDocument& doc)
     for (PageGrid& g : doc.grids) {
         stampGrid(g, m_settings, swatch, live, source, primary, secondary);
     }
-    if (doc.id == QLatin1String("main_settings_speech")) {
+    if (doc.id == QLatin1String("main_settings_admin")) {
         PageEdit::forEachCell(doc, [this](PageGrid&, PageCell& c) {
             if (c.id == QLatin1String("key_status")) {
                 c.label = m_settings.elevenApiKeySet
@@ -406,17 +406,12 @@ void SettingsUi::decoratePage(PageDocument& doc)
                                     .arg(m_secrets.lastFour())
                               : QStringLiteral("No API key");
             }
-        });
-    }
-    if (doc.id == QLatin1String("main_settings_assist")) {
-        PageEdit::forEachCell(doc, [this](PageGrid&, PageCell& c) {
-            if (c.id != QLatin1String("vigem_status")) {
-                return;
-            }
-            if (m_vigem && m_vigem->isBusy() && !m_vigem->statusLine().isEmpty()) {
-                c.caption = m_vigem->statusLine();
-            } else {
-                c.caption = VigemDiscovery::describeInstall();
+            if (c.id == QLatin1String("vigem_status")) {
+                if (m_vigem && m_vigem->isBusy() && !m_vigem->statusLine().isEmpty()) {
+                    c.caption = m_vigem->statusLine();
+                } else {
+                    c.caption = VigemDiscovery::describeInstall();
+                }
             }
         });
     }

@@ -168,6 +168,7 @@ Patterns, not every generated name:
 | `settings.dwell.custom.save` / `.restore` | Save or restore Custom timings |
 | `settings.mag.follow.slow` / `.sticky` / `.smooth` / `.snappy` | Gaze follow (indicator, gaze mouse, live lens) |
 | `settings.tracker.auto` / `.mouse` | Tracker pref (restart) |
+| `settings.capture.all` / `.pages` / `.none` | Screen capture: all (documentation), boards only, or boards and overlays omitted |
 | `settings.vigem.install` / `.refresh` | Download/launch official ViGEmBus setup; re-read bus + client status |
 | `settings.magPickStyle.*.toggle` / `settings.mousePickStyle.*.toggle` | Pick visuals |
 | `settings.pickWindow.round` / `.square` | Zoom window shape |

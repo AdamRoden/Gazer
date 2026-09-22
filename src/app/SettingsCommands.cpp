@@ -355,6 +355,22 @@ void SettingsUi::registerCommands()
         }
         return true;
     });
+    auto setCapture = [this](ScreenCaptureMode mode, const char* status) {
+        return [this, mode, status](QString*) {
+            if (m_mutate) {
+                m_mutate([mode](AppSettings& s) { s.screenCapture = mode; },
+                         QLatin1String(status));
+            }
+            return true;
+        };
+    };
+    m_commands.registerBuiltin(QStringLiteral("settings.capture.all"),
+                               setCapture(ScreenCaptureMode::All,
+                                          "Screen capture: all (for documentation)"));
+    m_commands.registerBuiltin(QStringLiteral("settings.capture.pages"),
+                               setCapture(ScreenCaptureMode::Pages, "Screen capture: pages"));
+    m_commands.registerBuiltin(QStringLiteral("settings.capture.none"),
+                               setCapture(ScreenCaptureMode::None, "Screen capture: none"));
     auto togglePick = [this](int AppSettings::*member, int flag, int mask, int fallback,
                              const char* status) {
         return [this, member, flag, mask, fallback, status](QString*) {

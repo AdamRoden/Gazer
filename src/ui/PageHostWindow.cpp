@@ -608,7 +608,7 @@ void PageHostWindow::keyPressEvent(QKeyEvent* event)
 
 void PageHostWindow::applyChrome()
 {
-    applyOverlayWindowChrome(this, /*excludeFromCapture=*/false);
+    applyOverlayWindowChrome(this, /*overlay=*/false);
     applyInputFocusChrome();
     setOverlayStackHost(this);
     restackGazerBand();

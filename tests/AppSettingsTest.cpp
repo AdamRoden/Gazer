@@ -47,6 +47,7 @@ private slots:
     void lookToMapsRoundTripAndLegacyMigrate();
     void hoverBorderFollowsProgressAndRoundTrips();
     void showSplashRoundTrip();
+    void screenCaptureDefaultsToPages();
 };
 
 void AppSettingsTest::defaultConstructIsFactory()
@@ -692,6 +693,44 @@ void AppSettingsTest::showSplashRoundTrip()
     QVERIFY(migrated.loadFromFile(legacy));
     QVERIFY(migrated.showSplash);
     QVERIFY(migrated.startDocked);
+}
+
+void AppSettingsTest::screenCaptureDefaultsToPages()
+{
+    AppSettings s = AppSettings::defaults();
+    QCOMPARE(s.screenCapture, ScreenCaptureMode::Pages);
+    QCOMPARE(s.displayValue(QStringLiteral("screenCapture")), QStringLiteral("Pages"));
+    QVERIFY(!excludeFromScreenCapture(ScreenCaptureMode::All, true));
+    QVERIFY(!excludeFromScreenCapture(ScreenCaptureMode::All, false));
+    QVERIFY(excludeFromScreenCapture(ScreenCaptureMode::Pages, true));
+    QVERIFY(!excludeFromScreenCapture(ScreenCaptureMode::Pages, false));
+    QVERIFY(excludeFromScreenCapture(ScreenCaptureMode::None, true));
+    QVERIFY(excludeFromScreenCapture(ScreenCaptureMode::None, false));
+
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString garbage = dir.filePath(QStringLiteral("garbage.json"));
+    QFile badFile(garbage);
+    QVERIFY(badFile.open(QIODevice::WriteOnly | QIODevice::Truncate));
+    badFile.write(R"({"screenCapture":9})");
+    badFile.close();
+    AppSettings bad;
+    QVERIFY(bad.loadFromFile(garbage));
+    QCOMPARE(bad.screenCapture, ScreenCaptureMode::Pages);
+
+    s.screenCapture = ScreenCaptureMode::None;
+    QCOMPARE(s.displayValue(QStringLiteral("screenCapture")), QStringLiteral("None"));
+    const QString path = dir.filePath(QStringLiteral("settings.json"));
+    QVERIFY(s.saveToFile(path));
+    AppSettings loaded;
+    QVERIFY(loaded.loadFromFile(path));
+    QCOMPARE(loaded.screenCapture, ScreenCaptureMode::None);
+
+    s.screenCapture = ScreenCaptureMode::All;
+    QCOMPARE(s.displayValue(QStringLiteral("screenCapture")), QStringLiteral("All"));
+    QVERIFY(s.saveToFile(path));
+    QVERIFY(loaded.loadFromFile(path));
+    QCOMPARE(loaded.screenCapture, ScreenCaptureMode::All);
 }
 
 QObject* createAppSettingsTest()

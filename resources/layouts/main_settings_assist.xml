@@ -5,35 +5,19 @@
   <Style id="join" background="transparent" thickness="0" radius="0"/>
   <Style id="joinLeft" background="transparent" thickness="0" radius="10,0,0,10"/>
   <Style id="joinRight" background="transparent" thickness="0" radius="0,10,10,0"/>
-  <Grid id="board" desktopMode="true" rows="12" columns="16" anchor="Top" offset="0,0" size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" gap="6" margin="12" radius="16">
-    <Cell id="page_title" row="0" col="0" colSpan="16" label="Assist" caption="Tracker, helpers, live lens, and the virtual Xbox pad" role="label" textStyle="title" style="plain"/>
+  <Grid id="board" desktopMode="true" rows="8" columns="16" anchor="Top" offset="0,0" size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" gap="6" margin="12" radius="16">
+    <Cell id="page_title" row="0" col="0" colSpan="16" label="Assist" caption="Helpers and the live lens" role="label" textStyle="title" style="plain"/>
 
-    <SubGrid id="sec_tr" row="1" col="0" colSpan="16" rowSpan="2" rows="2" columns="1" rowHeights="*,2*" gap="6" margin="6" style="group">
-      <Cell id="h_tr" row="0" col="0" label="Tracker" role="label" textStyle="section" style="plain"/>
-      <SubGrid id="row_tr" row="1" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="tr_l" row="0" col="0" label="Tracker" caption="Applies on next start." role="label" style="plain"/>
-        <SubGrid id="act_tr" row="0" col="1" rows="1" columns="3" gap="0" style="row">
-          <Cell id="tr_a" row="0" col="0" label="Auto Tobii" role="choice" activeState="settings.tracker.auto" style="joinLeft" command="settings.tracker.auto"/>
-          <Cell id="tr_m" row="0" col="1" label="Mouse" role="choice" activeState="settings.tracker.mouse" style="join" command="settings.tracker.mouse"/>
-          <Cell id="preview" row="0" col="2" label="Head preview" icon="HeadPreview" style="joinRight" command="openPreview"/>
-        </SubGrid>
-      </SubGrid>
-    </SubGrid>
-
-    <SubGrid id="sec_vigem" row="3" col="0" colSpan="16" rowSpan="2" rows="2" columns="1" rowHeights="*,2*" gap="6" margin="6" style="group">
-      <Cell id="h_vigem" row="0" col="0" label="Virtual Xbox pad" role="label" textStyle="section" style="plain"/>
-      <SubGrid id="row_vigem" row="1" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="vigem_status" row="0" col="0" label="ViGEm" caption="Not installed. Dwell Install to download the official setup." role="label" style="plain"/>
-        <SubGrid id="act_vigem" row="0" col="1" rows="1" columns="2" gap="0" style="row">
-          <Cell id="vigem_refresh" row="0" col="0" label="Recheck" icon="restart" style="joinLeft" command="settings.vigem.refresh"/>
-          <Cell id="vigem_install" row="0" col="1" label="Install ViGEm" icon="sportsEsports" style="joinRight" command="settings.vigem.install"/>
-        </SubGrid>
-      </SubGrid>
-    </SubGrid>
-
-    <SubGrid id="sec_help" row="5" col="0" colSpan="16" rowSpan="4" rows="4" columns="1" rowHeights="*,2*,2*,2*" gap="6" margin="6" style="group">
+    <SubGrid id="sec_help" row="1" col="0" colSpan="16" rowSpan="4" rows="4" columns="1" rowHeights="*,2*,2*,2*" gap="6" margin="6" style="group">
       <Cell id="h_help" row="0" col="0" label="Helpers" role="label" textStyle="section" style="plain"/>
-      <SubGrid id="row_follow" row="1" col="0" rows="1" columns="2" gap="6" style="row">
+      <SubGrid id="row_splash" row="1" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="splash_l" row="0" col="0" label="Startup splash" caption="Tour the dock when Gazer starts." role="label" style="plain"/>
+        <SubGrid id="act_splash" row="0" col="1" rows="1" columns="2" gap="0" style="row">
+          <Cell id="splash_on" row="0" col="0" label="Show on start" icon="visibility" role="toggle" activeState="settings.session.showSplash.toggle" style="joinLeft" command="settings.session.showSplash.toggle"/>
+          <Cell id="splash_play" row="0" col="1" label="Play tour" icon="restart" style="joinRight" command="settings.session.showSplash.play"/>
+        </SubGrid>
+      </SubGrid>
+      <SubGrid id="row_follow" row="2" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="f_l" row="0" col="0" label="Gaze follow" caption="Reticle, gaze mouse, and live lens." role="label" style="plain"/>
         <SubGrid id="act_follow" row="0" col="1" rows="1" columns="4" gap="0" style="row">
           <Cell id="f_slow" row="0" col="0" label="Slow" role="choice" activeState="settings.mag.follow.slow" style="joinLeft" command="settings.mag.follow.slow"/>
@@ -42,21 +26,14 @@
           <Cell id="f_snappy" row="0" col="3" label="Snappy" role="choice" activeState="settings.mag.follow.snappy" style="joinRight" command="settings.mag.follow.snappy"/>
         </SubGrid>
       </SubGrid>
-      <SubGrid id="row_help1" row="2" col="0" rows="1" columns="3" gap="0" style="row">
+      <SubGrid id="row_help1" row="3" col="0" rows="1" columns="3" gap="0" style="row">
         <Cell id="reticle" row="0" col="0" label="Show gaze" icon="eye" role="toggle" activeState="gazeReticle" style="joinLeft" command="toggleGazeReticle"/>
         <Cell id="follow" row="0" col="1" label="Gaze mouse" icon="MouseMagneticCursor" role="toggle" activeState="gazeMouseFollow" style="join" command="toggleGazeMouseFollow"/>
         <Cell id="magnifier" row="0" col="2" label="Gaze Magnifier" icon="MagnifyTool" role="toggle" activeState="magnifier" style="joinRight" command="toggleMagnifier"/>
       </SubGrid>
-      <SubGrid id="row_splash" row="3" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="splash_l" row="0" col="0" label="Startup splash" caption="Tour the dock when Gazer starts." role="label" style="plain"/>
-        <SubGrid id="act_splash" row="0" col="1" rows="1" columns="2" gap="0" style="row">
-          <Cell id="splash_on" row="0" col="0" label="Show on start" icon="visibility" role="toggle" activeState="settings.session.showSplash.toggle" style="joinLeft" command="settings.session.showSplash.toggle"/>
-          <Cell id="splash_play" row="0" col="1" label="Play tour" icon="restart" style="joinRight" command="settings.session.showSplash.play"/>
-        </SubGrid>
-      </SubGrid>
     </SubGrid>
 
-    <SubGrid id="sec_lens" row="9" col="0" colSpan="16" rowSpan="3" rows="3" columns="1" rowHeights="*,2*,2*" gap="6" margin="6" style="group">
+    <SubGrid id="sec_lens" row="5" col="0" colSpan="16" rowSpan="3" rows="3" columns="1" rowHeights="*,2*,2*" gap="6" margin="6" style="group">
       <Cell id="h_lens" row="0" col="0" label="Live lens" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_z" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="z_l" row="0" col="0" label="Lens zoom" caption="Live lens magnification." role="label" style="plain"/>

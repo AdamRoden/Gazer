@@ -1,5 +1,7 @@
 #pragma once
 
+#include "utils/ScreenCaptureMode.h"
+
 #include <QObject>
 #include <QPoint>
 #include <QTimer>
@@ -27,10 +29,14 @@ namespace gazer {
 ///
 /// IMPORTANT: Do NOT force WS_EX_LAYERED. Setting LAYERED without
 /// SetLayeredWindowAttributes makes opaque Qt widgets invisible.
-///
-/// @param excludeFromCapture  true for tool overlays (magnifier self-exclude);
-///                            false for page boards so magnifier can show keys.
-inline void applyOverlayWindowChrome(QWindow* w, bool excludeFromCapture = true)
+
+/// Set capture affinity for a window that already has an HWND.
+/// @p overlay is true for assist tool windows and false for the page host.
+void applyWindowCaptureAffinity(QWindow* w, bool overlay);
+
+/// @param overlay  true for assist tool windows. Exclusion follows the live
+///                 ScreenCaptureMode (Pages omits overlays and keeps boards).
+inline void applyOverlayWindowChrome(QWindow* w, bool overlay)
 {
     if (!w) {
         return;
@@ -49,18 +55,14 @@ inline void applyOverlayWindowChrome(QWindow* w, bool excludeFromCapture = true)
     SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0,
                  SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
 
-    if (excludeFromCapture) {
-        SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMCAPTURE);
-    } else {
-        SetWindowDisplayAffinity(hwnd, WDA_NONE);
-    }
+    applyWindowCaptureAffinity(w, overlay);
 #else
     Q_UNUSED(w);
-    Q_UNUSED(excludeFromCapture);
+    Q_UNUSED(overlay);
 #endif
 }
 
-inline void applyOverlayWindowChrome(QWidget* w, bool excludeFromCapture = true)
+inline void applyOverlayWindowChrome(QWidget* w, bool overlay)
 {
     if (!w) {
         return;
@@ -69,8 +71,13 @@ inline void applyOverlayWindowChrome(QWidget* w, bool excludeFromCapture = true)
     // winId() creates the HWND; windowHandle() is then valid.
     (void)w->winId();
 #endif
-    applyOverlayWindowChrome(w->windowHandle(), excludeFromCapture);
+    applyOverlayWindowChrome(w->windowHandle(), overlay);
 }
+
+/// Live capture mode. Defaults to Pages until settings apply.
+/// applyScreenCapturePolicy updates windows that are already showing.
+void setScreenCaptureMode(ScreenCaptureMode mode);
+void applyScreenCapturePolicy();
 
 /// WS_EX_TRANSPARENT so hit-testing (and SendInput) skips this HWND.
 /// Tool overlays always want this; the board does not (WM_NCHITTEST hits cells).

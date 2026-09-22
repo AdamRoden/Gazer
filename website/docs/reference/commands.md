@@ -211,6 +211,7 @@ Patterns — boards generate many concrete names from these:
 | `settings.dwell.custom.save` / `.restore` | Save or restore Custom timings. |
 | `settings.mag.follow.slow` / `.sticky` / `.smooth` / `.snappy` | Gaze follow (indicator, gaze mouse, live lens). |
 | `settings.tracker.auto` / `.mouse` | Tracker pref (restart). |
+| `settings.capture.all` / `.pages` / `.none` | Screen capture. All includes overlays (for documentation). Pages keeps boards and hides look-to, the reticle, and the lens. None hides boards and those overlays. |
 | `settings.vigem.install` / `.refresh` | Download/launch official ViGEmBus setup; re-read bus + client status. |
 | `settings.magPickStyle.*.toggle` / `settings.mousePickStyle.*.toggle` | Pick visuals. |
 | `settings.pickWindow.round` / `.square` | Zoom window shape. |

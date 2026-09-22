@@ -14,6 +14,7 @@ OverlayStackWatch* g_watch = nullptr;
 QWindow* g_stackHost = nullptr;
 int g_passDepth = 0;
 bool g_restacking = false;
+ScreenCaptureMode g_captureMode = ScreenCaptureMode::Pages;
 
 struct OverlayEntry {
     QPointer<QWindow> window;
@@ -451,6 +452,38 @@ void unregisterOverlayWindow(QWindow* overlay)
                                         return e.window.isNull() || e.window.data() == overlay;
                                     }),
                      g_overlays.end());
+}
+
+void setScreenCaptureMode(ScreenCaptureMode mode)
+{
+    g_captureMode = mode;
+}
+
+void applyWindowCaptureAffinity(QWindow* w, bool overlay)
+{
+#ifdef Q_OS_WIN
+    if (!w || !w->handle()) {
+        return;
+    }
+    const HWND hwnd = reinterpret_cast<HWND>(w->winId());
+    if (!hwnd) {
+        return;
+    }
+    const bool exclude = excludeFromScreenCapture(g_captureMode, overlay);
+    SetWindowDisplayAffinity(hwnd, exclude ? WDA_EXCLUDEFROMCAPTURE : WDA_NONE);
+#else
+    Q_UNUSED(w);
+    Q_UNUSED(overlay);
+#endif
+}
+
+void applyScreenCapturePolicy()
+{
+    pruneOverlays();
+    applyWindowCaptureAffinity(g_stackHost, /*overlay=*/false);
+    for (const OverlayEntry& e : g_overlays) {
+        applyWindowCaptureAffinity(e.window.data(), /*overlay=*/true);
+    }
 }
 
 OverlayStackWatch::OverlayStackWatch(std::function<void()> restack, QObject* parent)

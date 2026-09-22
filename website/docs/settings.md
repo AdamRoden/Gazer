@@ -2,16 +2,19 @@
 
 Drawer **Settings** (`main_settings`) is a hub of live pages. There are no desktop dialogs for these prefs.
 
-| Board | What you change |
-|-------|-----------------|
-| **Speed** | Slow / Normal / Fast / Custom. Standard vs rapid sequences, mouse-move dwell, mag-pick dwell. Advanced: scan grace. |
-| **Magnify** | Mag-pick, foresight, zoom window size/shape, follow profile (slow / sticky / smooth / snappy). |
-| **Indicators** | Dwell progress shape (radial, pie, fill directions), pick markers, flash. |
-| **Assist** | Tracker (auto Tobii / mouse), ViGEm virtual Xbox pad (install / recheck), live lens, gaze helpers. |
-| **Tools** | Four look-to maps (scroll, mouse, left stick, right stick) with per-map ring editors, ComboMouse radii and colors. |
-| **Theme** | Light / dark, brightness, tint family, accent, progress color, saturation, custom palette. |
-| **Speech** | ElevenLabs key, engine, speed, volume. |
-| **Head** | Analog head-pose maps (yaw / pitch / roll / x / y / z → commands or a virtual pad). |
+The hub opens the basic settings layer. **Advanced** on the hub, and on the basic tab bar, opens a second layer. **Basic** on the advanced layer closes it. **Done** on a tab bar closes settings.
+
+| Board | Layer | What you change |
+|-------|-------|-----------------|
+| **Speed** | Basic | Slow / Normal / Fast / Custom. Standard vs rapid sequences, mouse-move dwell, mag-pick dwell. **More…** opens Advanced speed. |
+| **Magnify** | Basic | Mag-pick, foresight, zoom window size/shape, follow profile (slow / sticky / smooth / snappy). |
+| **Assist** | Basic | Gaze helpers and the live lens. |
+| **Theme** | Basic | Light / dark, brightness, tint family, accent, progress color, saturation, custom palette. |
+| **Head** | Basic | Analog head-pose maps (yaw / pitch / roll / x / y / z → commands or a virtual pad). |
+| **Adv. speed** | Advanced | Scan grace, blink grace, pointer grace, foresight hold, auto-close. |
+| **Indicators** | Advanced | Dwell progress shape (radial, pie, fill directions), pick markers, flash. |
+| **Tools** | Advanced | Four look-to maps (scroll, mouse, left stick, right stick) with per-map ring editors, ComboMouse radii and colors. |
+| **Admin** | Advanced | Tracker, ViGEm install, speech (ElevenLabs key, engine, speed, boost), then screen capture (**All** / **Pages** / **None**). |
 
 Session toggles (start docked, auto-collapse drawer, layout auto-close, startup dock tour) live on these boards as well.
 

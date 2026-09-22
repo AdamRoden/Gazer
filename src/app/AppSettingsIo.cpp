@@ -19,6 +19,21 @@
 
 namespace gazer {
 
+namespace {
+
+[[nodiscard]] ScreenCaptureMode screenCaptureModeFromInt(int v)
+{
+    if (v == int(ScreenCaptureMode::All)) {
+        return ScreenCaptureMode::All;
+    }
+    if (v == int(ScreenCaptureMode::None)) {
+        return ScreenCaptureMode::None;
+    }
+    return ScreenCaptureMode::Pages;
+}
+
+} // namespace
+
 QString AppSettings::defaultFilePath()
 {
     const QString dir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
@@ -253,6 +268,8 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
     layoutAutoCloseFadeMs =
         o.value(QStringLiteral("layoutAutoCloseFadeMs")).toInt(layoutAutoCloseFadeMs);
     trackerPref = o.value(QStringLiteral("trackerPref")).toInt(trackerPref);
+    screenCapture = screenCaptureModeFromInt(
+        o.value(QStringLiteral("screenCapture")).toInt(int(screenCapture)));
     headPoseEnabled = o.value(QStringLiteral("headPoseEnabled")).toBool(headPoseEnabled);
     headPoseOriginSet = o.value(QStringLiteral("headPoseOriginSet")).toBool(false);
     if (o.value(QStringLiteral("headPoseOrigin")).isObject()) {
@@ -511,6 +528,7 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     o.insert(QStringLiteral("layoutAutoCloseIdleMs"), copy.layoutAutoCloseIdleMs);
     o.insert(QStringLiteral("layoutAutoCloseFadeMs"), copy.layoutAutoCloseFadeMs);
     o.insert(QStringLiteral("trackerPref"), copy.trackerPref);
+    o.insert(QStringLiteral("screenCapture"), int(copy.screenCapture));
     o.insert(QStringLiteral("headPoseEnabled"), copy.headPoseEnabled);
     o.insert(QStringLiteral("headPoseOriginSet"), copy.headPoseOriginSet);
     if (copy.headPoseOriginSet) {

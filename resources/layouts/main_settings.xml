@@ -1,25 +1,20 @@
 <Page id="main_settings" name="Settings" radius="16" background="bg95">
   <Style id="plain" background="transparent" thickness="0" radius="0"/>
-  <Grid id="board" desktopMode="true" rows="4" columns="3" anchor="Top" offset="0,0" background="bg100"
+  <Grid id="board" desktopMode="true" rows="3" columns="3" anchor="Top" offset="0,0" background="bg100"
         size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" gap="72" margin="90" radius="16"
-        rowHeights="*,2*,2*,2*">
+        rowHeights="*,2*,2*">
     <Cell id="page_title" row="0" col="0" colSpan="3" label="Settings" role="label" textStyle="title" style="plain"/>
     <Cell id="open_speed" row="1" col="0" label="Speed" caption="Presets, dwell, and pointer time"
           icon="timer" hostPage="main_settings_host, main_settings_speed"/>
     <Cell id="open_magnify" row="1" col="1" label="Magnify" caption="Magnify pick, foresight, and zoom window"
           icon="ZoomSettings" hostPage="main_settings_host, main_settings_magnify"/>
-    <Cell id="open_indicators" row="1" col="2" label="Indicators" caption="Progress and pick markers"
-          icon="cycle" hostPage="main_settings_host, main_settings_indicators"/>
-    <Cell id="open_assist" row="2" col="0" label="Assist" caption="Tracker, lens, and helpers"
+    <Cell id="open_assist" row="1" col="2" label="Assist" caption="Helpers and the live lens"
           icon="ideas" hostPage="main_settings_host, main_settings_assist"/>
-    <Cell id="open_tools" row="2" col="1" label="Tools" caption="Look-to maps and ComboMouse"
-          icon="lookToScroll" hostPage="main_settings_host, main_settings_tools"/>
-    <Cell id="open_theme" row="2" col="2" label="Theme" caption="Appearance and Material palettes"
+    <Cell id="open_theme" row="2" col="0" label="Theme" caption="Appearance and Material palettes"
           icon="palette" hostPage="main_settings_host, main_settings_theme"/>
-    <Cell id="open_speech" row="3" col="0" label="Speech" caption="ElevenLabs key, voice engine, and speed"
-          icon="Speak" hostPage="main_settings_host, main_settings_speech"/>
-    <Cell id="open_head" row="3" col="1" label="Head" caption="Preview pose and map yaw, pitch, and axes"
+    <Cell id="open_head" row="2" col="1" label="Head" caption="Preview pose and map yaw, pitch, and axes"
           icon="HeadPreview" hostPage="main_settings_host, main_settings_head_pose"/>
-    <Cell id="done" row="3" col="2" colSpan="1" label="Done" icon="keyboardHide" closePage="true"/>
+    <Cell id="open_advanced" row="2" col="2" label="Advanced" caption="Speed details, indicators, tools, and admin"
+          icon="moreHoriz" openPage="main_settings_advanced_host"/>
   </Grid>
 </Page>

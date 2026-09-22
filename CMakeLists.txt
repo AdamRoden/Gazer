@@ -304,6 +304,7 @@ set(GAZER_HEADERS
     src/editor/LayoutEditorXmlHighlight.h
     src/utils/Log.h
     src/utils/AtomicFile.h
+    src/utils/ScreenCaptureMode.h
     src/utils/WinOverlay.h
     src/utils/ScreenGrab.h
 )

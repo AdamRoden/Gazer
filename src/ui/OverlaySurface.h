@@ -61,7 +61,7 @@ private:
         if (QWindow* wh = windowHandle()) {
             registerOverlayWindow(wh, m_layer);
         }
-        applyOverlayWindowChrome(this, /*excludeFromCapture=*/true);
+        applyOverlayWindowChrome(this, /*overlay=*/true);
         applyOverlayClickThrough(this);
     }
 

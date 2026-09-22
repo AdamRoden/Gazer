@@ -11,6 +11,7 @@
 #include "mapping/HeadPoseTypes.h"
 #include "ui/Theme.h"
 #include "ui/ThemeScheme.h"
+#include "utils/ScreenCaptureMode.h"
 
 #include <QColor>
 #include <QString>
@@ -123,6 +124,8 @@ struct AppSettings {
     int layoutAutoCloseIdleMs = 10000;
     int layoutAutoCloseFadeMs = 3000;
     int trackerPref = 0;
+    /// Pages hides assist overlays and leaves boards visible.
+    ScreenCaptureMode screenCapture = ScreenCaptureMode::Pages;
 
     // --- Head pose analog maps ---
     bool headPoseEnabled = false;
