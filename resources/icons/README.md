@@ -1,5 +1,7 @@
 # Icons
 
+Brand files sit in this folder, not in `svg/`. `gazerIcon.svg` is the app mark. `gazerWord.svg` is the wordmark. `scripts/generate-icons.ps1` rasterizes them to `gazer.ico`, `gazer-*.png` (white mark on black), and `website/docs/assets/wordmark.png` (white on transparent).
+
 Cell and zone `icon` names are filename stems in `svg/` (`menu`, `pushPin`, `keyTab`). Matching is case-insensitive; a trailing `Icon` is ignored. Unknown names fall back to the label.
 
 Most SVGs are **Material Symbols**, style **Rounded**, from:

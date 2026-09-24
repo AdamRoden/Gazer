@@ -6,6 +6,19 @@
 .md-header__button.md-logo img {
   height: 1.45rem;
   width: auto;
+  max-width: 46vw;
+}
+
+/* Material hides the header logo below 76em. The text title is hidden too,
+   so keep the wordmark in the bar or the name disappears. */
+@media screen and (max-width: 76.234375em) {
+  .md-header__button.md-logo {
+    display: inline-block;
+  }
+
+  .md-header__button.md-logo img {
+    height: 1.15rem;
+  }
 }
 
 .md-header__title .md-header__topic:first-child {
@@ -26,8 +39,11 @@
 
 .md-typeset .wordmark {
   display: block;
-  width: min(100%, 28rem);
-  height: auto;
+  /* Intrinsic pixel width ignores a plain max-width, so set the used width. */
+  width: min(28rem, calc(100vw - 3rem)) !important;
+  max-width: min(28rem, calc(100vw - 3rem)) !important;
+  min-width: 0 !important;
+  height: auto !important;
   margin: 0.2rem 0 1rem;
 }
 
