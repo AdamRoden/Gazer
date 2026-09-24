@@ -61,7 +61,7 @@ When adding a command: register it and add a row here.
 | `lts.cycleMode` | Scroll map axes: vertical → horizontal → both |
 | `lookTo.mouse.*` / `lookTo.leftStick.*` / `lookTo.rightStick.*` | Same pie actions for the other maps (`.resume` / `.quit` / `.reset` / `.speed.*` / `.cycleMode`) |
 | `lookTo.edit.scroll` / `.mouse` / `.leftStick` / `.rightStick` | Open that map’s ring editor |
-| `lookTo.map.*` | Ring editor: preview, hub, radii, speed, direction, overlay show/fill/border |
+| `lookTo.map.*` | Ring editor: preview, hub, radii, speed, direction, per-part border and fill |
 | `toggleMagnifier` | Live lens (exclusive with reticle) |
 | `toggleGazeReticle` | Gaze marker (exclusive with magnifier) |
 | `toggleGazeMouseFollow` | Cursor follows gaze |
@@ -160,7 +160,7 @@ Patterns, not every generated name:
 | `settings.numpad.copy` / `.paste` | Clipboard on the numeric editor |
 | `settings.flash.custom.toggle` | Custom flash color (off = item foreground) |
 | `settings.hover.custom.toggle` | Custom hover outline (off = progress color) |
-| `settings.progress.*.toggle` / `settings.mouseProgress.*.toggle` | Progress bits (radial / pie / fill) |
+| `settings.progress.*.toggle` / `settings.mouseProgress.*.toggle` | Progress bits (radial / pie / fill). Any subset, including none |
 | `settings.session.autoCollapse.toggle` / `.startDocked.toggle` / `.showSplash.toggle` / `.showSplash.play` / `.layoutAutoClose.toggle` | Session |
 | `settings.speech.editKey` / `.clearKey` | Paste-from-clipboard API-key board / wipe DPAPI |
 | `settings.speech.key.paste` / `.save` / `.cancel` / `.clear` | Key board |
@@ -171,7 +171,7 @@ Patterns, not every generated name:
 | `settings.tracker.auto` / `.mouse` | Tracker pref (restart) |
 | `settings.capture.all` / `.pages` / `.none` | Screen capture: all (documentation), boards only, or boards and overlays omitted |
 | `settings.vigem.install` / `.refresh` | Download/launch official ViGEmBus setup; re-read bus + client status |
-| `settings.magPickStyle.*.toggle` / `settings.mousePickStyle.*.toggle` | Pick visuals |
+| `settings.magPickStyle.*.toggle` / `settings.mousePickStyle.*.toggle` | Pick visuals. Any subset, including none |
 | `settings.pickWindow.round` / `.square` | Zoom window shape |
 | `settings.pickCenter.gaze` / `.screen` | Zoom window at gaze point or screen center |
 | `settings.nudge.themeSaturation.dec` / `.inc` | Saturation 20–100 in five steps (surfaces keep brightness) |

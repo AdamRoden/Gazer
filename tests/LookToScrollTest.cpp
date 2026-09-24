@@ -302,8 +302,7 @@ void LookToScrollTest::analogGainRings()
 {
     LookToMapSettings c = defaultLookToMapSettings(LookToDest::Scroll);
     c.deadzonePx = 80;
-    c.rampEndPx = 180;
-    c.fullOuterPx = 260;
+    c.maxPx = 180;
     c.outerDeadzonePx = 340;
     c.outerDeadzoneEnabled = false;
     QCOMPARE(lookToGain(0.0, c), 0.0);
@@ -314,10 +313,12 @@ void LookToScrollTest::analogGainRings()
     QCOMPARE(lookToGain(260.0, c), 1.0);
     QCOMPARE(lookToGain(400.0, c), 1.0);
     c.outerDeadzoneEnabled = true;
-    QCOMPARE(lookToGain(261.0, c), 0.0);
-    QCOMPARE(lookToGain(400.0, c), 0.0);
+    QCOMPARE(lookToGain(261.0, c), 1.0);
+    QCOMPARE(lookToGain(340.0, c), 1.0);
+    QCOMPARE(lookToGain(341.0, c), 0.0);
     QVERIFY(lookToKeepEngaged(true, 90.0, c));
-    QVERIFY(!lookToKeepEngaged(true, 261.0, c));
+    QVERIFY(lookToKeepEngaged(true, 261.0, c));
+    QVERIFY(!lookToKeepEngaged(true, 341.0, c));
     QCOMPARE(ltsDeadzoneHysteresisPx(80), 20);
     QVERIFY(lookToKeepEngaged(true, 70.0, c));
     QCOMPARE(lookToGain(70.0, c), 0.0);
@@ -327,11 +328,14 @@ void LookToScrollTest::analogGainRings()
         qMax(kLtsMinEngagedPxPerSec,
              c.maxSpeed * PixelScroller::kPixelsPerNotch * lookToGain(70.0, c));
     QCOMPARE(hystRate, kLtsMinEngagedPxPerSec);
-    c.showInnerDeadzone = true;
-    c.showMax = true;
-    c.showOuterDeadzone = true;
+    c.chrome(LookToPart::Inner).border = true;
+    c.chrome(LookToPart::Inner).fill = true;
+    c.chrome(LookToPart::Max).border = true;
+    c.chrome(LookToPart::Max).fill = true;
+    c.chrome(LookToPart::Outer).border = true;
+    c.chrome(LookToPart::Outer).fill = true;
     c.outerDeadzoneEnabled = false;
-    QCOMPARE(lookToOverlayRadiusPx(c), 260);
+    QCOMPARE(lookToOverlayRadiusPx(c), 180);
     c.outerDeadzoneEnabled = true;
     QCOMPARE(lookToOverlayRadiusPx(c), 340);
     QCOMPARE(QLatin1String(lookToDestCommand(LookToDest::Mouse)), QLatin1String("lookToMouse"));

@@ -194,8 +194,8 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
     auto readLookToMap = [](const QJsonObject& mo, LookToDest dest) {
         LookToMapSettings c = defaultLookToMapSettings(dest);
         c.deadzonePx = mo.value(QStringLiteral("deadzonePx")).toInt(c.deadzonePx);
-        c.rampEndPx = mo.value(QStringLiteral("rampEndPx")).toInt(c.rampEndPx);
-        c.fullOuterPx = mo.value(QStringLiteral("fullOuterPx")).toInt(c.fullOuterPx);
+        c.maxPx = mo.value(QStringLiteral("maxPx"))
+                      .toInt(mo.value(QStringLiteral("rampEndPx")).toInt(c.maxPx));
         c.outerDeadzonePx = mo.value(QStringLiteral("outerDeadzonePx")).toInt(c.outerDeadzonePx);
         c.outerDeadzoneEnabled =
             mo.value(QStringLiteral("outerDeadzoneEnabled")).toBool(c.outerDeadzoneEnabled);
@@ -205,16 +205,29 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
         c.centerDwellMs = mo.value(QStringLiteral("centerDwellMs")).toInt(c.centerDwellMs);
         c.axisMode =
             ltsScrollModeFromInt(mo.value(QStringLiteral("axisMode")).toInt(int(c.axisMode)));
-        if (mo.contains(QStringLiteral("showPause")) || mo.contains(QStringLiteral("showFill"))
-            || mo.contains(QStringLiteral("showBorder"))) {
-            c.showPause = mo.value(QStringLiteral("showPause")).toBool(c.showPause);
-            c.showInnerDeadzone =
-                mo.value(QStringLiteral("showInnerDeadzone")).toBool(c.showInnerDeadzone);
-            c.showMax = mo.value(QStringLiteral("showMax")).toBool(c.showMax);
-            c.showOuterDeadzone =
-                mo.value(QStringLiteral("showOuterDeadzone")).toBool(c.showOuterDeadzone);
-            c.showBorder = mo.value(QStringLiteral("showBorder")).toBool(c.showBorder);
-            c.showFill = mo.value(QStringLiteral("showFill")).toBool(c.showFill);
+        bool perPart = false;
+        for (const LookToPartSpec& spec : kLookToParts) {
+            if (mo.contains(QLatin1String(spec.borderJson))
+                || mo.contains(QLatin1String(spec.fillJson))) {
+                perPart = true;
+                break;
+            }
+        }
+        if (perPart) {
+            for (const LookToPartSpec& spec : kLookToParts) {
+                LookToPartChrome& ch = c.chrome(spec.part);
+                ch.border = mo.value(QLatin1String(spec.borderJson)).toBool(ch.border);
+                ch.fill = mo.value(QLatin1String(spec.fillJson)).toBool(ch.fill);
+            }
+        } else if (mo.contains(QStringLiteral("showPause")) || mo.contains(QStringLiteral("showFill"))
+                   || mo.contains(QStringLiteral("showBorder"))) {
+            applyLookToPartStyle(
+                c, mo.value(QStringLiteral("showPause")).toBool(true),
+                mo.value(QStringLiteral("showInnerDeadzone")).toBool(true),
+                mo.value(QStringLiteral("showMax")).toBool(true),
+                mo.value(QStringLiteral("showOuterDeadzone")).toBool(true),
+                mo.value(QStringLiteral("showBorder")).toBool(true),
+                mo.value(QStringLiteral("showFill")).toBool(true));
         } else if (mo.contains(QStringLiteral("indicatorStyle"))) {
             applyLegacyLookToIndicator(
                 c, ltsIndicatorFromInt(mo.value(QStringLiteral("indicatorStyle")).toInt(0)));
@@ -493,8 +506,7 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     auto writeLookToMap = [](const LookToMapSettings& c) {
         QJsonObject mo;
         mo.insert(QStringLiteral("deadzonePx"), c.deadzonePx);
-        mo.insert(QStringLiteral("rampEndPx"), c.rampEndPx);
-        mo.insert(QStringLiteral("fullOuterPx"), c.fullOuterPx);
+        mo.insert(QStringLiteral("maxPx"), c.maxPx);
         mo.insert(QStringLiteral("outerDeadzonePx"), c.outerDeadzonePx);
         mo.insert(QStringLiteral("outerDeadzoneEnabled"), c.outerDeadzoneEnabled);
         mo.insert(QStringLiteral("hubEnabled"), c.hubEnabled);
@@ -502,12 +514,11 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
         mo.insert(QStringLiteral("accelPerSec"), c.accelPerSec);
         mo.insert(QStringLiteral("centerDwellMs"), c.centerDwellMs);
         mo.insert(QStringLiteral("axisMode"), int(c.axisMode));
-        mo.insert(QStringLiteral("showPause"), c.showPause);
-        mo.insert(QStringLiteral("showInnerDeadzone"), c.showInnerDeadzone);
-        mo.insert(QStringLiteral("showMax"), c.showMax);
-        mo.insert(QStringLiteral("showOuterDeadzone"), c.showOuterDeadzone);
-        mo.insert(QStringLiteral("showBorder"), c.showBorder);
-        mo.insert(QStringLiteral("showFill"), c.showFill);
+        for (const LookToPartSpec& spec : kLookToParts) {
+            const LookToPartChrome& ch = c.chrome(spec.part);
+            mo.insert(QLatin1String(spec.borderJson), ch.border);
+            mo.insert(QLatin1String(spec.fillJson), ch.fill);
+        }
         return mo;
     };
     QJsonObject lookToMaps;

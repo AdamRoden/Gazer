@@ -11,14 +11,12 @@ namespace PickStyle {
 
 int sanitizeMag(int flags)
 {
-    flags &= kMagPickMask;
-    return flags == 0 ? kDefaultMagPick : flags;
+    return flags & kMagPickMask;
 }
 
 int sanitizeMouse(int flags)
 {
-    flags &= kMousePickMask;
-    return flags == 0 ? kDefaultMousePick : flags;
+    return flags & kMousePickMask;
 }
 
 bool has(int flags, Flag f)
@@ -41,7 +39,7 @@ QString label(int flags)
     if (has(flags, GazeIndicator)) {
         parts << QStringLiteral("Gaze");
     }
-    return parts.isEmpty() ? QStringLiteral("Cursor") : parts.join(QStringLiteral(", "));
+    return parts.isEmpty() ? QStringLiteral("None") : parts.join(QStringLiteral(", "));
 }
 
 void paint(QPainter& p, const QPointF& c, int flags, double progress, const ProgressVisuals& visuals,

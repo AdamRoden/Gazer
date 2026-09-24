@@ -33,7 +33,7 @@ inline constexpr double kLtsPlusDismissGraceSec = 0.18;
 
 /// Analog gaze disk: look away from an origin to drive scroll, mouse, or a
 /// stick. Four instances can run at once (`LookToMaps`). Circular deadzone,
-/// 0–100% ramp, 100% plateau, optional outer deadzone. Optional hub pie for
+/// 0–100% ramp, 100% outside the ramp until an optional outer deadzone. Optional hub pie for
 /// speed, place, axis, and quit.
 class LookToScroll final : public QObject {
     Q_OBJECT

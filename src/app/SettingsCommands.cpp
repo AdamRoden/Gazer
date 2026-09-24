@@ -375,14 +375,9 @@ void SettingsUi::registerCommands()
                                setCapture(ScreenCaptureMode::Pages, "Screen capture: pages"));
     m_commands.registerBuiltin(QStringLiteral("settings.capture.none"),
                                setCapture(ScreenCaptureMode::None, "Screen capture: none"));
-    auto togglePick = [this](int AppSettings::*member, int flag, int mask, int fallback,
-                             const char* status) {
-        return [this, member, flag, mask, fallback, status](QString*) {
-            int bits = (m_settings.*member ^ flag) & mask;
-            if (bits == 0) {
-                bits = fallback;
-            }
-            m_settings.*member = bits;
+    auto togglePick = [this](int AppSettings::*member, int flag, int mask, const char* status) {
+        return [this, member, flag, mask, status](QString*) {
+            m_settings.*member = (m_settings.*member ^ flag) & mask;
             apply(true);
             notifyStatus(QLatin1String(status));
             return true;
@@ -391,31 +386,31 @@ void SettingsUi::registerCommands()
     m_commands.registerBuiltin(
         QStringLiteral("settings.magPickStyle.cursor.toggle"),
         togglePick(&AppSettings::magPickStyle, PickStyle::Cursor, PickStyle::kMagPickMask,
-                   PickStyle::kDefaultMagPick, "Magnify pick: cursor"));
+                   "Magnify pick: cursor"));
     m_commands.registerBuiltin(
         QStringLiteral("settings.magPickStyle.dot.toggle"),
         togglePick(&AppSettings::magPickStyle, PickStyle::Dot, PickStyle::kMagPickMask,
-                   PickStyle::kDefaultMagPick, "Magnify pick: dot"));
+                   "Magnify pick: dot"));
     m_commands.registerBuiltin(
         QStringLiteral("settings.magPickStyle.crosshair.toggle"),
         togglePick(&AppSettings::magPickStyle, PickStyle::Crosshair, PickStyle::kMagPickMask,
-                   PickStyle::kDefaultMagPick, "Magnify pick: crosshair"));
+                   "Magnify pick: crosshair"));
     m_commands.registerBuiltin(
         QStringLiteral("settings.magPickStyle.gaze.toggle"),
         togglePick(&AppSettings::magPickStyle, PickStyle::GazeIndicator, PickStyle::kMagPickMask,
-                   PickStyle::kDefaultMagPick, "Magnify pick: gaze indicator"));
+                   "Magnify pick: gaze indicator"));
     m_commands.registerBuiltin(
         QStringLiteral("settings.mousePickStyle.cursor.toggle"),
         togglePick(&AppSettings::mousePickStyle, PickStyle::Cursor, PickStyle::kMousePickMask,
-                   PickStyle::kDefaultMousePick, "Mouse pick: cursor"));
+                   "Mouse pick: cursor"));
     m_commands.registerBuiltin(
         QStringLiteral("settings.mousePickStyle.dot.toggle"),
         togglePick(&AppSettings::mousePickStyle, PickStyle::Dot, PickStyle::kMousePickMask,
-                   PickStyle::kDefaultMousePick, "Mouse pick: dot"));
+                   "Mouse pick: dot"));
     m_commands.registerBuiltin(
         QStringLiteral("settings.mousePickStyle.crosshair.toggle"),
         togglePick(&AppSettings::mousePickStyle, PickStyle::Crosshair, PickStyle::kMousePickMask,
-                   PickStyle::kDefaultMousePick, "Mouse pick: crosshair"));
+                   "Mouse pick: crosshair"));
     m_commands.registerBuiltin(QStringLiteral("settings.pickWindow.round"), [this](QString*) {
         m_settings.pickWindowRound = true;
         apply(true);

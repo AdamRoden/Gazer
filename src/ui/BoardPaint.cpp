@@ -578,22 +578,46 @@ void paintColorSwatch(QPainter& p, const PageTarget& t, const QRectF& r, const T
     }
 }
 
-void paintToggleSwitch(QPainter& p, const QRectF& r, const ThemeColors& theme, const QColor& canvas,
-                       bool on)
+struct ToggleGeom {
+    QRectF text;
+    QRectF track;
+};
+
+/// Label on the left of the switch, switch on the right, both vertically centered.
+ToggleGeom toggleGeom(const QRectF& cell)
 {
-    const double h = qBound(16.0, qMin(r.height() * 0.42, 26.0), r.width() * 0.22);
-    const double w = h * 1.72;
-    if (w + 16.0 > r.width() || h + 8.0 > r.height()) {
+    const double pad = 10.0;
+    const double gap = 8.0;
+    double h = qBound(14.0, qMin(cell.height() * 0.42, 22.0), 22.0);
+    if (cell.height() < h + 8.0) {
+        h = qMax(8.0, cell.height() - 8.0);
+    }
+    double w = h * 1.8;
+    const double maxTrack = qMax(0.0, cell.width() - pad * 2.0 - gap);
+    if (w > maxTrack) {
+        w = maxTrack;
+        h = w / 1.8;
+    }
+    ToggleGeom g;
+    g.track = QRectF(cell.right() - pad - w, cell.center().y() - h * 0.5, qMax(0.0, w), h);
+    g.text = QRectF(cell.left() + pad, cell.top(),
+                    qMax(0.0, g.track.left() - gap - (cell.left() + pad)), cell.height());
+    return g;
+}
+
+void paintToggleSwitch(QPainter& p, const QRectF& track, const ThemeColors& theme,
+                       const QColor& canvas, bool on)
+{
+    if (track.width() < 16.0 || track.height() < 10.0) {
         return;
     }
-    const QRectF track(r.right() - w - 10.0, r.center().y() - h * 0.5, w, h);
     const QColor seed = canvas.isValid() ? canvas : theme.bgMain;
     QColor fill = on ? theme.accent : ThemeColors::mixTone(seed, 80);
     if (!fill.isValid()) {
         fill = ThemeColors::mixTone(seed, 80);
     }
-    fillRound(p, track, h * 0.5, fill);
-    const double d = qMax(10.0, h - 6.0);
+    fillRound(p, track, track.height() * 0.5, fill);
+    const double d = qMax(8.0, track.height() - 6.0);
     const double x = on ? track.right() - d - 3.0 : track.left() + 3.0;
     fillRound(p, QRectF(x, track.center().y() - d * 0.5, d, d), d * 0.5,
               ThemeColors::contrastOn(fill));
@@ -685,29 +709,45 @@ void paintTarget(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeC
                 paintProgress(p, r, progress, vis.withItemFlash(fg), ProgressShape::RoundedRect,
                               radii);
             }
-            QRectF content = r;
-            if (choice || toggle) {
-                content.adjust(0.0, 0.0, -controlMarkWidth(r), 0.0);
-            }
-            paintIconAndText(p, t, content, fg, theme);
-            if (t.phaseIndex >= 0 && t.phases.size() > 1) {
-                const int n = t.phases.size();
-                const double d = 7.0;
-                const double gap = 5.0;
-                const double w = n * d + (n - 1) * gap;
-                double x = r.center().x() - w * 0.5;
-                const double y = r.bottom() - 10.0;
-                for (int i = 0; i < n; ++i) {
-                    const QRectF pip(x, y, d, d);
-                    const bool on = i == t.phaseIndex;
-                    fillRound(p, pip, d * 0.5, on ? fg : ThemeColors::mix(fg, QColor(0, 0, 0), 0.55));
-                    x += d + gap;
+            if (toggle) {
+                const ToggleGeom geom = toggleGeom(r);
+                if (t.icon.isEmpty()) {
+                    if (!t.label.isEmpty() && geom.text.width() > 2.0) {
+                        const int flags = int(Qt::AlignRight | Qt::AlignVCenter);
+                        const QString family = segoeFamily();
+                        const int px = fontPxToFit(family, QFont::DemiBold, 13, 10, t.label,
+                                                   geom.text, flags);
+                        paintLabelText(p, geom.text, QFont(family, px, QFont::DemiBold), flags,
+                                       t.label, fg, t.caretIndex);
+                    }
+                } else {
+                    paintIconAndText(p, t, geom.text, fg, theme);
                 }
-            }
-            if (choice) {
-                paintChoiceRadio(p, r, theme, on);
-            } else if (toggle) {
-                paintToggleSwitch(p, r, theme, canvas, on);
+                paintToggleSwitch(p, geom.track, theme, canvas, on);
+            } else {
+                QRectF content = r;
+                if (choice) {
+                    content.adjust(0.0, 0.0, -controlMarkWidth(r), 0.0);
+                }
+                paintIconAndText(p, t, content, fg, theme);
+                if (t.phaseIndex >= 0 && t.phases.size() > 1) {
+                    const int n = t.phases.size();
+                    const double d = 7.0;
+                    const double gap = 5.0;
+                    const double w = n * d + (n - 1) * gap;
+                    double x = r.center().x() - w * 0.5;
+                    const double y = r.bottom() - 10.0;
+                    for (int i = 0; i < n; ++i) {
+                        const QRectF pip(x, y, d, d);
+                        const bool pipOn = i == t.phaseIndex;
+                        fillRound(p, pip, d * 0.5,
+                                  pipOn ? fg : ThemeColors::mix(fg, QColor(0, 0, 0), 0.55));
+                        x += d + gap;
+                    }
+                }
+                if (choice) {
+                    paintChoiceRadio(p, r, theme, on);
+                }
             }
         }
     }

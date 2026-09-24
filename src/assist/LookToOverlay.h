@@ -34,14 +34,13 @@ protected:
     void paintEvent(QPaintEvent*) override;
 
 private:
-    [[nodiscard]] static double orbThickness(int deadzonePx);
     [[nodiscard]] double highlightRadius() const;
     void paintOrb(QPainter& p, const QPointF& c, const QColor& cyan);
     void paintRings(QPainter& p, const QPointF& c, const QColor& cyan);
     void paintGaze(QPainter& p, const QPointF& c, const QColor& cyan);
     void paintActivator(QPainter& p, const QPointF& c, const QColor& accent);
-    [[nodiscard]] QImage renderOrbBlur(const QPointF& c, double stretch, double ang,
-                                       const QColor& cyan, int alpha, bool hollow) const;
+    [[nodiscard]] QImage renderOrbFill(const QPointF& c, double stretch, double ang,
+                                       const QColor& cyan, int fillAlpha) const;
 
     Kind m_kind = Kind::Live;
     LookToMapSettings m_cfg;
@@ -58,9 +57,8 @@ private:
         int w = 0;
         int h = 0;
         int deadzone = 0;
-        int alpha = 0;
+        int fillAlpha = 0;
         QRgb rgb = 0;
-        int style = 0;
         int stretchQ = 0;
         int angQ = 0;
         bool operator==(const OrbKey&) const = default;

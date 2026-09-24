@@ -92,10 +92,10 @@ void LookToOverlay::setState(const LookToMapSettings& cfg, const QPointF& gaze, 
         side = lookToOverlayRadiusPx(m_cfg) * 2 + 48;
         side = qMax(side, activator * 2 + 36);
         side = qMin(side, 1800);
-    } else if (!m_paused && m_cfg.showInnerDeadzone) {
-        const int falloff = qMax(40, m_cfg.rampEndPx - m_cfg.deadzonePx);
+    } else if (!m_paused && lookToPartShown(m_cfg, LookToPart::Inner)) {
+        const int falloff = qMax(40, m_cfg.maxPx - m_cfg.deadzonePx);
         const int grow = qMax(48, falloff / 3);
-        const int halo = qRound(orbThickness(m_cfg.deadzonePx) * 2.2);
+        const int halo = qRound(lookToRingStrokePx(m_cfg.deadzonePx) * 2.0);
         side = (m_cfg.deadzonePx + grow) * 2 + halo * 2 + 16;
         side = qMax(side, activator * 2 + 36);
     }
@@ -122,32 +122,27 @@ void LookToOverlay::paintEvent(QPaintEvent*)
     if (m_kind == Kind::Preview) {
         paintRings(p, c, cyan);
         paintGaze(p, c, cyan);
-        if (m_cfg.showPause) {
+        if (lookToPartShown(m_cfg, LookToPart::Pause)) {
             paintActivator(p, c, cyan);
         }
         return;
     }
-    if (!m_paused && m_cfg.showInnerDeadzone) {
+    if (!m_paused && lookToPartShown(m_cfg, LookToPart::Inner)) {
         paintOrb(p, c, cyan);
-        if (m_cfg.showPause) {
+        if (lookToPartShown(m_cfg, LookToPart::Pause)) {
             paintActivator(p, c, cyan);
         }
         return;
     }
-    if (m_cfg.showPause) {
+    if (lookToPartShown(m_cfg, LookToPart::Pause)) {
         paintActivator(p, c, cyan);
     }
 }
 
-double LookToOverlay::orbThickness(int deadzonePx)
-{
-    return qBound(16.0, double(qMax(1, deadzonePx)) * 0.24, 40.0);
-}
-
 void LookToOverlay::paintOrb(QPainter& p, const QPointF& c, const QColor& cyan)
 {
-    const bool hollow = m_cfg.showBorder && !m_cfg.showFill;
-    if (!m_cfg.showFill && !m_cfg.showBorder) {
+    const LookToPartChrome& inner = m_cfg.chrome(LookToPart::Inner);
+    if (!inner.shown()) {
         return;
     }
     double stretch = 0.0;
@@ -156,40 +151,44 @@ void LookToOverlay::paintOrb(QPainter& p, const QPointF& c, const QColor& cyan)
     const double gy = m_gaze.y();
     const double len = qSqrt(gx * gx + gy * gy);
     if (len > 0.05 && m_gain > 0.02) {
-        const int falloff = qMax(40, m_cfg.rampEndPx - m_cfg.deadzonePx);
+        const int falloff = qMax(40, m_cfg.maxPx - m_cfg.deadzonePx);
         stretch = qMax(48.0, falloff / 3.0) * m_gain;
         ang = qRadiansToDegrees(qAtan2(gy / len, gx / len));
     }
-    const int alpha = hollow ? int(40 + 32 * m_gain) : int(22 + 20 * m_gain);
-    const OrbKey key{width(),
-                     height(),
-                     m_cfg.deadzonePx,
-                     alpha,
-                     cyan.rgba(),
-                     hollow ? 1 : 0,
-                     qRound(stretch),
-                     stretch > 0.5 ? qRound(ang) : 0};
-    if (key != m_orbKey || m_orbBlur.isNull()) {
-        m_orbKey = key;
-        m_orbBlur = renderOrbBlur(c, stretch, ang, cyan, alpha, hollow);
+    const double R = double(qMax(1, m_cfg.deadzonePx));
+    const double shift = stretch * 0.5;
+    if (inner.fill) {
+        const int fillAlpha = int(22 + 20 * m_gain);
+        const OrbKey key{width(), height(), m_cfg.deadzonePx, fillAlpha, cyan.rgba(),
+                         qRound(stretch), stretch > 0.5 ? qRound(ang) : 0};
+        if (key != m_orbKey || m_orbBlur.isNull()) {
+            m_orbKey = key;
+            m_orbBlur = renderOrbFill(c, stretch, ang, cyan, fillAlpha);
+        }
+        p.drawImage(rect().topLeft(), m_orbBlur);
     }
-    p.drawImage(rect().topLeft(), m_orbBlur);
+    if (inner.border) {
+        p.save();
+        p.translate(c);
+        if (stretch > 0.5) {
+            p.rotate(ang);
+        }
+        QColor ink = cyan;
+        ink.setAlpha(200);
+        p.setBrush(Qt::NoBrush);
+        p.setPen(QPen(ink, lookToRingStrokePx(R), Qt::SolidLine, Qt::RoundCap));
+        p.drawEllipse(QPointF(shift, 0), R + shift, R);
+        p.restore();
+    }
 }
 
-QImage LookToOverlay::renderOrbBlur(const QPointF& c, double stretch, double ang, const QColor& cyan,
-                                    int alpha, bool hollow) const
+QImage LookToOverlay::renderOrbFill(const QPointF& c, double stretch, double ang, const QColor& cyan,
+                                    int fillAlpha) const
 {
     const double R = double(qMax(1, m_cfg.deadzonePx));
     const double shift = stretch * 0.5;
     QPainterPath body;
     body.addEllipse(QPointF(shift, 0), R + shift, R);
-    if (hollow) {
-        QPainterPathStroker s;
-        s.setWidth(orbThickness(m_cfg.deadzonePx));
-        s.setCapStyle(Qt::RoundCap);
-        s.setJoinStyle(Qt::RoundJoin);
-        body = s.createStroke(body);
-    }
 
     QImage src(size(), QImage::Format_ARGB32_Premultiplied);
     src.fill(Qt::transparent);
@@ -201,7 +200,9 @@ QImage LookToOverlay::renderOrbBlur(const QPointF& c, double stretch, double ang
             ip.rotate(ang);
         }
         ip.setPen(Qt::NoPen);
-        ip.setBrush(QColor(cyan.red(), cyan.green(), cyan.blue(), alpha));
+        QColor fill = cyan;
+        fill.setAlpha(fillAlpha);
+        ip.setBrush(fill);
         ip.drawPath(body);
     }
     const int factor = 5;
@@ -212,50 +213,55 @@ QImage LookToOverlay::renderOrbBlur(const QPointF& c, double stretch, double ang
 
 void LookToOverlay::paintRings(QPainter& p, const QPointF& c, const QColor& cyan)
 {
-    const bool fill = m_cfg.showFill;
-    const bool border = m_cfg.showBorder;
+    const LookToPartChrome& inner = m_cfg.chrome(LookToPart::Inner);
+    const LookToPartChrome& maxPart = m_cfg.chrome(LookToPart::Max);
+    const LookToPartChrome& outerPart = m_cfg.chrome(LookToPart::Outer);
     const double dz = double(qMax(1, m_cfg.deadzonePx));
-    const double rampEnd = double(qMax(m_cfg.deadzonePx + 1, m_cfg.rampEndPx));
-    const double full = double(qMax(m_cfg.rampEndPx, m_cfg.fullOuterPx));
-    const double outer = double(qMax(m_cfg.fullOuterPx, m_cfg.outerDeadzonePx));
+    const double maxR = double(qMax(m_cfg.deadzonePx + 1, m_cfg.maxPx));
+    const double outer = double(qMax(m_cfg.maxPx + 1, m_cfg.outerDeadzonePx));
     const int aRamp = int(28 + 36 * m_gain);
-    auto stroke = [&](double r, int alpha, qreal w) {
-        if (border) {
-            paintRingStroke(p, c, r, QColor(cyan.red(), cyan.green(), cyan.blue(), alpha), w);
+    auto stroke = [&](bool on, double r, int alpha) {
+        if (on) {
+            paintRingStroke(p, c, r, QColor(cyan.red(), cyan.green(), cyan.blue(), alpha),
+                            lookToRingStrokePx(r));
         }
     };
 
-    if (m_cfg.outerDeadzoneEnabled && m_cfg.showOuterDeadzone && outer > full + 0.5) {
-        if (fill) {
-            QColor od = cyan;
-            od.setAlpha(22);
-            paintAnnulus(p, c, full, outer, od);
+    if (m_cfg.outerDeadzoneEnabled && outerPart.shown() && outer > maxR + 0.5) {
+        if (outerPart.fill) {
+            const double windowR = qMin(width(), height()) * 0.5 - 1.0;
+            if (windowR > outer + 0.5) {
+                QColor od = cyan;
+                od.setAlpha(22);
+                paintAnnulus(p, c, outer, windowR, od);
+            }
         }
-        stroke(outer, 90, 2.0);
+        stroke(outerPart.border, outer, 90);
     }
 
-    if (m_cfg.showMax) {
-        if (fill) {
-            QColor fullC = cyan;
-            fullC.setAlpha(42);
-            paintAnnulus(p, c, rampEnd, full, fullC);
+    if (maxPart.shown()) {
+        if (maxPart.fill) {
+            if (m_cfg.outerDeadzoneEnabled && outer > maxR + 0.5) {
+                QColor hold = cyan;
+                hold.setAlpha(42);
+                paintAnnulus(p, c, maxR, outer, hold);
+            }
             QColor rampC = cyan;
             rampC.setAlpha(aRamp);
-            paintAnnulus(p, c, dz, rampEnd, rampC);
+            paintAnnulus(p, c, dz, maxR, rampC);
         }
-        stroke(full, 150, 2.4);
-        stroke(rampEnd, 170, 2.4);
+        stroke(maxPart.border, maxR, 170);
     }
 
-    if (m_cfg.showInnerDeadzone) {
-        if (fill) {
+    if (inner.shown()) {
+        if (inner.fill) {
             QColor dzC = cyan;
             dzC.setAlpha(36);
             p.setPen(Qt::NoPen);
             p.setBrush(dzC);
             p.drawEllipse(c, dz, dz);
         }
-        stroke(dz, 200, 2.6);
+        stroke(inner.border, dz, 200);
     }
 
     const double hiR = highlightRadius();
@@ -269,10 +275,8 @@ double LookToOverlay::highlightRadius() const
     switch (m_highlight) {
     case LookToRing::Deadzone:
         return double(m_cfg.deadzonePx);
-    case LookToRing::Ramp:
-        return double(m_cfg.rampEndPx);
-    case LookToRing::Full:
-        return double(m_cfg.fullOuterPx);
+    case LookToRing::Max:
+        return double(m_cfg.maxPx);
     case LookToRing::Outer:
         return m_cfg.outerDeadzoneEnabled ? double(m_cfg.outerDeadzonePx) : 0.0;
     case LookToRing::None:
@@ -304,15 +308,20 @@ void LookToOverlay::paintGaze(QPainter& p, const QPointF& c, const QColor& cyan)
 void LookToOverlay::paintActivator(QPainter& p, const QPointF& c, const QColor& accent)
 {
     const double hubR = m_hubR;
-    p.setPen(Qt::NoPen);
-    p.setBrush(QColor(0, 0, 0, 50));
-    p.drawEllipse(c, hubR, hubR);
-    p.setBrush(QColor(accent.red(), accent.green(), accent.blue(), 40));
-    p.drawEllipse(c, hubR, hubR);
-    p.setBrush(Qt::NoBrush);
-    p.setPen(QPen(QColor(accent.red(), accent.green(), accent.blue(), 150), 2.2, Qt::SolidLine,
-                  Qt::RoundCap));
-    p.drawEllipse(c, hubR, hubR);
+    const LookToPartChrome& pause = m_cfg.chrome(LookToPart::Pause);
+    if (pause.fill) {
+        p.setPen(Qt::NoPen);
+        p.setBrush(QColor(0, 0, 0, 50));
+        p.drawEllipse(c, hubR, hubR);
+        p.setBrush(QColor(accent.red(), accent.green(), accent.blue(), 40));
+        p.drawEllipse(c, hubR, hubR);
+    }
+    if (pause.border) {
+        p.setBrush(Qt::NoBrush);
+        p.setPen(QPen(QColor(accent.red(), accent.green(), accent.blue(), 150), 2.2, Qt::SolidLine,
+                      Qt::RoundCap));
+        p.drawEllipse(c, hubR, hubR);
+    }
     if (m_paused) {
         const double side = hubR * 1.2;
         const QRectF icon(c.x() - side * 0.5, c.y() - side * 0.5, side, side);

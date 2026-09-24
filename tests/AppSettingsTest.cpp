@@ -48,6 +48,7 @@ private slots:
     void hoverBorderFollowsProgressAndRoundTrips();
     void showSplashRoundTrip();
     void screenCaptureDefaultsToPages();
+    void indicatorSetsMayBeEmpty();
 };
 
 void AppSettingsTest::defaultConstructIsFactory()
@@ -88,11 +89,12 @@ void AppSettingsTest::factoryUsesDomainConstants()
     QCOMPARE(ComboMouseHit::kDefaultInnerFill.alpha(), qRound(0.20 * 255));
     QCOMPARE(ComboMouseHit::kDefaultOuterFill.alpha(), qRound(0.60 * 255));
     QCOMPARE(s.magFollowProfile, GazeFollowProfile::Sticky);
-    QVERIFY(s.lookToScroll.showFill);
-    QVERIFY(s.lookToScroll.showBorder);
-    QVERIFY(s.lookToScroll.showPause);
-    QVERIFY(s.lookToScroll.showInnerDeadzone);
-    QVERIFY(s.lookToScroll.showMax);
+    QVERIFY(s.lookToScroll.chrome(LookToPart::Pause).fill);
+    QVERIFY(s.lookToScroll.chrome(LookToPart::Pause).border);
+    QVERIFY(s.lookToScroll.chrome(LookToPart::Inner).fill);
+    QVERIFY(s.lookToScroll.chrome(LookToPart::Inner).border);
+    QVERIFY(s.lookToScroll.chrome(LookToPart::Max).fill);
+    QVERIFY(s.lookToScroll.chrome(LookToPart::Max).border);
     QCOMPARE(s.lookToScroll.axisMode, LtsScrollMode::Both);
     QCOMPARE(s.themeAppearance, ThemeAppearance::Dark);
     QCOMPARE(s.themeSaturation, kThemeSaturationDefault);
@@ -117,8 +119,8 @@ void AppSettingsTest::factoryUsesDomainConstants()
     QCOMPARE(s.flashMs, 60);
     QCOMPARE(s.pickWindowRound, false);
     QCOMPARE(s.lookToScroll.deadzonePx, 80);
-    QCOMPARE(s.lookToScroll.rampEndPx, 380);
-    QCOMPARE(s.lookToScroll.fullOuterPx, 460);
+    QCOMPARE(s.lookToScroll.maxPx, 380);
+    QCOMPARE(s.lookToScroll.outerDeadzonePx, 540);
     QVERIFY(s.lookToScroll.hubEnabled);
     QVERIFY(!s.lookToScroll.outerDeadzoneEnabled);
     QCOMPARE(s.lookToScroll.accelPerSec, kLtsAccelDefault);
@@ -582,15 +584,17 @@ void AppSettingsTest::lookToMapsRoundTripAndLegacyMigrate()
 {
     AppSettings s = AppSettings::defaults();
     s.lookToMouse.deadzonePx = 120;
-    s.lookToMouse.rampEndPx = 400;
-    s.lookToMouse.fullOuterPx = 520;
+    s.lookToMouse.maxPx = 400;
     s.lookToMouse.outerDeadzoneEnabled = true;
     s.lookToMouse.outerDeadzonePx = 600;
     s.lookToMouse.hubEnabled = false;
     s.lookToMouse.maxSpeed = 1600.0;
     s.lookToLeftStick.axisMode = LtsScrollMode::Horizontal;
-    s.lookToRightStick.showFill = false;
-    s.lookToRightStick.showBorder = true;
+    s.lookToRightStick.chrome(LookToPart::Pause).fill = false;
+    s.lookToRightStick.chrome(LookToPart::Inner).fill = false;
+    s.lookToRightStick.chrome(LookToPart::Max).fill = false;
+    s.lookToRightStick.chrome(LookToPart::Outer).fill = false;
+    s.lookToRightStick.chrome(LookToPart::Inner).border = true;
 
     QTemporaryDir dir;
     QVERIFY(dir.isValid());
@@ -600,15 +604,16 @@ void AppSettingsTest::lookToMapsRoundTripAndLegacyMigrate()
     AppSettings b;
     QVERIFY2(b.loadFromFile(path, &err), qPrintable(err));
     QCOMPARE(b.lookToMouse.deadzonePx, 120);
-    QCOMPARE(b.lookToMouse.rampEndPx, 400);
-    QCOMPARE(b.lookToMouse.fullOuterPx, 520);
+    QCOMPARE(b.lookToMouse.maxPx, 400);
     QVERIFY(b.lookToMouse.outerDeadzoneEnabled);
     QCOMPARE(b.lookToMouse.outerDeadzonePx, 600);
     QVERIFY(!b.lookToMouse.hubEnabled);
     QCOMPARE(b.lookToMouse.maxSpeed, 1600.0);
     QCOMPARE(b.lookToLeftStick.axisMode, LtsScrollMode::Horizontal);
-    QVERIFY(!b.lookToRightStick.showFill);
-    QVERIFY(b.lookToRightStick.showBorder);
+    QVERIFY(!b.lookToRightStick.chrome(LookToPart::Inner).fill);
+    QVERIFY(!b.lookToRightStick.chrome(LookToPart::Outer).fill);
+    QVERIFY(b.lookToRightStick.chrome(LookToPart::Inner).border);
+    QVERIFY(b.lookToRightStick.chrome(LookToPart::Pause).border);
     QCOMPARE(b.lookToScroll.deadzonePx, 80);
 
     const QString legacy = dir.filePath(QStringLiteral("legacy.json"));
@@ -628,14 +633,44 @@ void AppSettingsTest::lookToMapsRoundTripAndLegacyMigrate()
     AppSettings migrated;
     QVERIFY2(migrated.loadFromFile(legacy, &err), qPrintable(err));
     QCOMPARE(migrated.lookToScroll.deadzonePx, 90);
-    QCOMPARE(migrated.lookToScroll.rampEndPx, 290);
+    QCOMPARE(migrated.lookToScroll.maxPx, 290);
     QCOMPARE(migrated.lookToScroll.maxSpeed, 2.0);
     QCOMPARE(migrated.lookToScroll.centerDwellMs, 800);
-    QVERIFY(!migrated.lookToScroll.showFill);
-    QVERIFY(migrated.lookToScroll.showBorder);
-    QVERIFY(migrated.lookToScroll.showInnerDeadzone);
+    QVERIFY(!migrated.lookToScroll.chrome(LookToPart::Inner).fill);
+    QVERIFY(!migrated.lookToScroll.chrome(LookToPart::Pause).fill);
+    QVERIFY(migrated.lookToScroll.chrome(LookToPart::Inner).border);
+    QVERIFY(migrated.lookToScroll.chrome(LookToPart::Max).border);
+    QVERIFY(migrated.lookToScroll.chrome(LookToPart::Pause).border);
     QCOMPARE(migrated.lookToScroll.axisMode, LtsScrollMode::Vertical);
     QCOMPARE(migrated.lookToMouse.maxSpeed, kLookToMouseSpeedDefault);
+
+    const QString split = dir.filePath(QStringLiteral("split.json"));
+    {
+        QFile f(split);
+        QVERIFY(f.open(QIODevice::WriteOnly | QIODevice::Text));
+        f.write(R"({
+            "lookToMaps": {
+                "scroll": {
+                    "showPause": true,
+                    "showInnerDeadzone": false,
+                    "showMax": true,
+                    "showOuterDeadzone": false,
+                    "showBorder": false,
+                    "showFill": true
+                }
+            }
+        })");
+    }
+    AppSettings old;
+    QVERIFY2(old.loadFromFile(split, &err), qPrintable(err));
+    QVERIFY(old.lookToScroll.chrome(LookToPart::Pause).fill);
+    QVERIFY(!old.lookToScroll.chrome(LookToPart::Pause).border);
+    QVERIFY(!old.lookToScroll.chrome(LookToPart::Inner).fill);
+    QVERIFY(!old.lookToScroll.chrome(LookToPart::Inner).border);
+    QVERIFY(old.lookToScroll.chrome(LookToPart::Max).fill);
+    QVERIFY(!old.lookToScroll.chrome(LookToPart::Max).border);
+    QVERIFY(!old.lookToScroll.chrome(LookToPart::Outer).fill);
+    QVERIFY(!old.lookToScroll.chrome(LookToPart::Outer).border);
 }
 
 void AppSettingsTest::hoverBorderFollowsProgressAndRoundTrips()
@@ -731,6 +766,43 @@ void AppSettingsTest::screenCaptureDefaultsToPages()
     QVERIFY(s.saveToFile(path));
     QVERIFY(loaded.loadFromFile(path));
     QCOMPARE(loaded.screenCapture, ScreenCaptureMode::All);
+}
+
+void AppSettingsTest::indicatorSetsMayBeEmpty()
+{
+    AppSettings s = AppSettings::defaults();
+    s.progress.radial = false;
+    s.progress.pie = false;
+    s.progress.fillBackground = false;
+    s.mouseProgress = s.progress;
+    s.magPickStyle = 0;
+    s.mousePickStyle = 0;
+    s.clamp();
+    QVERIFY(!s.progress.any());
+    QVERIFY(!s.mouseProgress.any());
+    QCOMPARE(s.magPickStyle, 0);
+    QCOMPARE(s.mousePickStyle, 0);
+    QCOMPARE(s.displayValue(QStringLiteral("magPickStyle")), QStringLiteral("None"));
+    QCOMPARE(s.displayValue(QStringLiteral("mousePickStyle")), QStringLiteral("None"));
+
+    s.magPickStyle = int(PickStyle::GazeIndicator) | 0x100;
+    s.mousePickStyle = int(PickStyle::GazeIndicator);
+    s.clamp();
+    QCOMPARE(s.magPickStyle, int(PickStyle::GazeIndicator));
+    QCOMPARE(s.mousePickStyle, 0);
+
+    s.magPickStyle = 0;
+    s.mousePickStyle = int(PickStyle::Dot);
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("settings.json"));
+    QVERIFY(s.saveToFile(path));
+    AppSettings loaded;
+    QVERIFY(loaded.loadFromFile(path));
+    QVERIFY(!loaded.progress.any());
+    QVERIFY(!loaded.mouseProgress.any());
+    QCOMPARE(loaded.magPickStyle, 0);
+    QCOMPARE(loaded.mousePickStyle, int(PickStyle::Dot));
 }
 
 QObject* createAppSettingsTest()

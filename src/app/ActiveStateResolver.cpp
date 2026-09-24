@@ -150,23 +150,13 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
         if (key == QLatin1String("lookTo.map.mode.both")) {
             return draft.axisMode == LtsScrollMode::Both;
         }
-        if (key == QLatin1String("lookTo.map.show.pause")) {
-            return draft.showPause;
-        }
-        if (key == QLatin1String("lookTo.map.show.inner")) {
-            return draft.showInnerDeadzone;
-        }
-        if (key == QLatin1String("lookTo.map.show.max")) {
-            return draft.showMax;
-        }
-        if (key == QLatin1String("lookTo.map.show.outer")) {
-            return draft.showOuterDeadzone;
-        }
-        if (key == QLatin1String("lookTo.map.show.border")) {
-            return draft.showBorder;
-        }
-        if (key == QLatin1String("lookTo.map.show.fill")) {
-            return draft.showFill;
+        for (const LookToPartSpec& spec : kLookToParts) {
+            if (key == QLatin1String(spec.borderState)) {
+                return draft.chrome(spec.part).border;
+            }
+            if (key == QLatin1String(spec.fillState)) {
+                return draft.chrome(spec.part).fill;
+            }
         }
     }
     if (key == QLatin1String("comboMouse")) {

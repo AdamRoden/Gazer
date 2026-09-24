@@ -447,8 +447,6 @@ void AppSettings::clamp()
     headPoseMaps = std::move(maps);
 
     layoutAutoCloseFadeMs = qBound(50, layoutAutoCloseFadeMs, 60000);
-    progress.ensureDefault();
-    mouseProgress.ensureDefault();
     double inner = comboInnerRadiusPx;
     double shared = comboSharedRadiusPx;
     double outer = comboOuterRadiusPx;
@@ -627,11 +625,17 @@ QString AppSettings::displayValue(const QString& key) const
         return QLatin1String(gazeFollowProfileName(magFollowProfile));
     }
     if (key == QLatin1String("ltsIndicatorStyle")) {
-        if (!lookToScroll.showInnerDeadzone && !lookToScroll.showMax
-            && !lookToScroll.showOuterDeadzone) {
+        if (!lookToShowsAnyRing(lookToScroll)) {
             return QLatin1String("Pause");
         }
-        if (!lookToScroll.showFill && lookToScroll.showBorder) {
+        bool fill = false;
+        bool border = false;
+        for (LookToPart p : {LookToPart::Inner, LookToPart::Max, LookToPart::Outer}) {
+            const LookToPartChrome& ch = lookToScroll.chrome(p);
+            fill = fill || ch.fill;
+            border = border || ch.border;
+        }
+        if (border && !fill) {
             return QLatin1String("Hollow");
         }
         return QLatin1String("Filled");

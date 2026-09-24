@@ -20,58 +20,61 @@ using SettingsUiInternal::kLiveLookToMap;
 
 namespace {
 
-void joinEnds(PageCell& c, int index, int count)
+void addSettingsChrome(PageDocument& doc)
 {
-    c.style.thickness = PageBox::all(0.0);
-    if (count <= 1) {
-        c.style.radius = PageBox::all(10.0);
-        return;
-    }
-    if (index == 0) {
-        c.style.radius = PageBox::of(10.0, 0.0, 0.0, 10.0);
-    } else if (index == count - 1) {
-        c.style.radius = PageBox::of(0.0, 10.0, 10.0, 0.0);
-    } else {
-        c.style.radius = PageBox::all(0.0);
-    }
+    auto put = [&](const char* id, const char* bg, const PageBox& radius) {
+        PageChrome c;
+        c.background.token = QLatin1String(bg);
+        c.thickness = PageBox::all(0.0);
+        c.radius = radius;
+        doc.styles.insert(QLatin1String(id), c);
+    };
+    put("group", "bg95", PageBox::all(16.0));
+    put("row", "transparent", PageBox::all(0.0));
+    put("plain", "transparent", PageBox::all(0.0));
+    put("join", "transparent", PageBox::all(0.0));
+    put("joinLeft", "transparent", PageBox::of(10.0, 0.0, 0.0, 10.0));
+    put("joinRight", "transparent", PageBox::of(0.0, 10.0, 10.0, 0.0));
 }
 
-PageCell sectionLabel(const QString& id, const QString& text, int row, int col, int span = 1)
+const char* segmentStyle(int index, int count)
 {
-    PageCell c = cell(id, text, row, col, {}, QColor(), span, QStringLiteral("label"));
-    c.textStyle = QStringLiteral("section");
-    return c;
+    if (count > 1 && index == 0) {
+        return "joinLeft";
+    }
+    if (count > 1 && index == count - 1) {
+        return "joinRight";
+    }
+    return "join";
 }
 
 PageGrid stepper(const QString& id, const QString& value, const QString& caption,
-                 const QString& decCmd, const QString& incCmd, const QString& editCmd,
-                 const SettingsUi::EditorSwatch& sw)
+                 const QString& decCmd, const QString& incCmd, const QString& editCmd)
 {
     PageGrid g = makeNested(id, 0, 0, 1, 9, 0);
-    PageCell dec = cell(id + QStringLiteral("_dec"), QStringLiteral("−"), 0, 0, decCmd, sw.nudge, 2);
-    joinEnds(dec, 0, 4);
-    g.cells.push_back(dec);
-    PageCell val = cell(id + QStringLiteral("_val"), value, 0, 2, {}, sw.value, 3,
-                        QStringLiteral("value"), caption);
-    joinEnds(val, 1, 4);
-    g.cells.push_back(val);
-    PageCell inc = cell(id + QStringLiteral("_inc"), QStringLiteral("+"), 0, 5, incCmd, sw.nudge, 2);
-    joinEnds(inc, 2, 4);
-    g.cells.push_back(inc);
-    PageCell edit = cell(id + QStringLiteral("_edit"), QStringLiteral("Edit…"), 0, 7, editCmd, sw.edit,
-                         2, {}, {}, QStringLiteral("editSquare"));
-    joinEnds(edit, 3, 4);
-    g.cells.push_back(edit);
+    g.styleId = QStringLiteral("row");
+    auto piece = [&](const QString& suffix, const QString& lab, int col, int span,
+                     const QString& cmd, const QString& role, const QString& cap,
+                     const QString& icon, const char* style) {
+        PageCell c = cell(id + suffix, lab, 0, col, cmd, {}, span, role, cap, icon);
+        c.styleId = QLatin1String(style);
+        g.cells.push_back(c);
+    };
+    piece(QStringLiteral("_dec"), QStringLiteral("−"), 0, 2, decCmd, {}, {}, {}, "joinLeft");
+    piece(QStringLiteral("_val"), value, 2, 3, {}, QStringLiteral("value"), caption, {}, "join");
+    piece(QStringLiteral("_inc"), QStringLiteral("+"), 5, 2, incCmd, {}, {}, {}, "join");
+    piece(QStringLiteral("_edit"), QStringLiteral("Edit…"), 7, 2, editCmd, {}, {},
+          QStringLiteral("editSquare"), "joinRight");
     return g;
 }
 
-PageGrid labeled(const QString& id, int row, const QString& label, const QString& caption,
-                 PageGrid control)
+PageGrid labeled(const QString& id, const QString& label, const QString& caption, PageGrid control)
 {
-    PageGrid g = makeNested(id, row, 0, 1, 2, 6);
-    g.columnTracks = starTracks({1.2, 2.0});
-    PageCell lab = cell(id + QStringLiteral("_l"), label, 0, 0, {}, QColor(), 1,
-                        QStringLiteral("label"), caption);
+    PageGrid g = makeNested(id, 0, 0, 1, 2, 6);
+    g.styleId = QStringLiteral("row");
+    PageCell lab = cell(id + QStringLiteral("_l"), label, 0, 0, {}, {}, 1, QStringLiteral("label"),
+                        caption);
+    lab.styleId = QStringLiteral("plain");
     g.cells.push_back(lab);
     control.row = 0;
     control.col = 1;
@@ -79,16 +82,14 @@ PageGrid labeled(const QString& id, int row, const QString& label, const QString
     return g;
 }
 
-PageGrid labeledToggle(const QString& id, int row, const QString& label, const QString& caption,
-                       const QString& toggleLabel, const QString& command, const QString& active)
+PageGrid oneToggle(const QString& id, const QString& label, const QString& command,
+                   const QString& active)
 {
-    PageGrid g = makeNested(id, row, 0, 1, 2, 6);
-    g.columnTracks = starTracks({1.2, 2.0});
-    g.cells.push_back(cell(id + QStringLiteral("_l"), label, 0, 0, {}, QColor(), 1,
-                           QStringLiteral("label"), caption));
-    PageCell t = cell(id + QStringLiteral("_t"), toggleLabel, 0, 1, command, QColor(), 1,
-                      QStringLiteral("toggle"));
+    PageGrid g = makeNested(id, 0, 0, 1, 1, 0);
+    g.styleId = QStringLiteral("row");
+    PageCell t = cell(id + QStringLiteral("_t"), label, 0, 0, command, {}, 1, QStringLiteral("toggle"));
     t.activeState = active;
+    t.styleId = QStringLiteral("join");
     g.cells.push_back(t);
     return g;
 }
@@ -97,13 +98,66 @@ PageGrid choiceRow(const QString& id, const char* const* ids, const char* const*
                    const QString& cmdPrefix, const QString& activePrefix)
 {
     PageGrid g = makeNested(id, 0, 0, 1, n, 0);
+    g.styleId = QStringLiteral("row");
     for (int i = 0; i < n; ++i) {
         const QString stem = QLatin1String(ids[i]);
         PageCell c = cell(id + QStringLiteral("_") + stem, QLatin1String(labs[i]), 0, i,
-                          cmdPrefix + stem, QColor(), 1, QStringLiteral("choice"));
+                          cmdPrefix + stem, {}, 1, QStringLiteral("choice"));
         c.activeState = activePrefix + stem;
-        joinEnds(c, i, n);
+        c.styleId = QLatin1String(segmentStyle(i, n));
         g.cells.push_back(c);
+    }
+    return g;
+}
+
+PageGrid partToggles(const QString& id, bool border)
+{
+    PageGrid g = makeNested(id, 0, 0, 1, kLookToPartCount, 0);
+    g.styleId = QStringLiteral("row");
+    int i = 0;
+    for (const LookToPartSpec& spec : kLookToParts) {
+        const QString state = QLatin1String(border ? spec.borderState : spec.fillState);
+        PageCell c = cell(id + QLatin1Char('_') + QLatin1String(spec.id), QLatin1String(spec.label),
+                          0, i, state + QStringLiteral(".toggle"), {}, 1, QStringLiteral("toggle"));
+        c.activeState = state;
+        c.styleId = QLatin1String(segmentStyle(i, kLookToPartCount));
+        g.cells.push_back(c);
+        ++i;
+    }
+    return g;
+}
+
+PageGrid groupBox(const QString& id, const QString& title, QVector<PageGrid> rows)
+{
+    PageGrid g = makeNested(id, 0, 0, rows.size() + 1, 1, 6);
+    g.styleId = QStringLiteral("group");
+    g.marginPx = 6;
+    QVector<double> weights;
+    weights.push_back(1.0);
+    for (int i = 0; i < rows.size(); ++i) {
+        weights.push_back(2.0);
+    }
+    g.rowTracks = starTracks(weights);
+    PageCell h = cell(id + QStringLiteral("_h"), title, 0, 0, {}, {}, 1, QStringLiteral("label"));
+    h.textStyle = QStringLiteral("section");
+    h.styleId = QStringLiteral("plain");
+    g.cells.push_back(h);
+    for (int i = 0; i < rows.size(); ++i) {
+        rows[i].row = i + 1;
+        rows[i].col = 0;
+        g.subGrids.push_back(std::move(rows[i]));
+    }
+    return g;
+}
+
+PageGrid columnOf(const QString& id, int col, const QVector<double>& weights, QVector<PageGrid> groups)
+{
+    PageGrid g = makeNested(id, 0, col, groups.size(), 1, 6);
+    g.rowTracks = starTracks(weights);
+    for (int i = 0; i < groups.size(); ++i) {
+        groups[i].row = i;
+        groups[i].col = 0;
+        g.subGrids.push_back(std::move(groups[i]));
     }
     return g;
 }
@@ -187,11 +241,8 @@ void SettingsUi::lookToNudge(LookToRing ring, int dir)
     case LookToRing::Deadzone:
         c->deadzonePx += step;
         break;
-    case LookToRing::Ramp:
-        c->rampEndPx += step;
-        break;
-    case LookToRing::Full:
-        c->fullOuterPx += step;
+    case LookToRing::Max:
+        c->maxPx += step;
         break;
     case LookToRing::Outer:
         c->outerDeadzonePx += step;
@@ -256,16 +307,11 @@ bool SettingsUi::lookToEditField(const QString& field, QString* error)
         seed = QString::number(c->deadzonePx);
         title = QStringLiteral("Deadzone");
         hint = QStringLiteral("Inner no-output radius (px).");
-    } else if (field == QLatin1String("ramp")) {
-        m_lookToRing = LookToRing::Ramp;
-        seed = QString::number(c->rampEndPx);
-        title = QStringLiteral("Ramp end");
-        hint = QStringLiteral("Radius where speed reaches 100% (px).");
-    } else if (field == QLatin1String("full")) {
-        m_lookToRing = LookToRing::Full;
-        seed = QString::number(c->fullOuterPx);
-        title = QStringLiteral("100% outer");
-        hint = QStringLiteral("Outer edge of the 100% ring (px).");
+    } else if (field == QLatin1String("max")) {
+        m_lookToRing = LookToRing::Max;
+        seed = QString::number(c->maxPx);
+        title = QStringLiteral("Max");
+        hint = QStringLiteral("Radius where output reaches 100% (px).");
     } else if (field == QLatin1String("outer")) {
         m_lookToRing = LookToRing::Outer;
         seed = QString::number(c->outerDeadzonePx);
@@ -306,12 +352,9 @@ void SettingsUi::applyLookToNumpad(double v)
     if (f == QLatin1String("deadzone")) {
         c->deadzonePx = int(qRound(v));
         m_lookToRing = LookToRing::Deadzone;
-    } else if (f == QLatin1String("ramp")) {
-        c->rampEndPx = int(qRound(v));
-        m_lookToRing = LookToRing::Ramp;
-    } else if (f == QLatin1String("full")) {
-        c->fullOuterPx = int(qRound(v));
-        m_lookToRing = LookToRing::Full;
+    } else if (f == QLatin1String("max")) {
+        c->maxPx = int(qRound(v));
+        m_lookToRing = LookToRing::Max;
     } else if (f == QLatin1String("outer")) {
         c->outerDeadzonePx = int(qRound(v));
         m_lookToRing = LookToRing::Outer;
@@ -332,11 +375,13 @@ PageDocument SettingsUi::buildLookToEditor() const
     doc.id = QLatin1String(kLiveLookToMap);
     doc.name = QLatin1String(lookToDestLabel(m_lookToDest));
     const ThemeColors theme = m_settings.resolvedTheme();
-    initGrid(doc, 16, 16, 1080, 900, 6, 12, theme);
+    initGrid(doc, 16, 2, 1080, 900, 6, 12, theme);
+    addSettingsChrome(doc);
     PageGrid& grid = doc.grids[0];
     adoptCallerBoard(grid, m_pages.pageBehind(QLatin1String(kLiveLookToMap)));
-    grid.rows = 16;
+    grid.rows = 2;
     grid.columns = 16;
+    grid.rowTracks = starTracks({1.0, 8.0});
     const EditorSwatch sw = editorSwatch();
     const LookToMapSettings* m = lookToDraft();
     LookToMapSettings fallback = defaultLookToMapSettings(m_lookToDest);
@@ -350,6 +395,7 @@ PageDocument SettingsUi::buildLookToEditor() const
              QColor(), 14, QStringLiteral("label"),
              QStringLiteral("Preview draws rings at the origin. The live tool stretches the inner deadzone."));
     title.textStyle = QStringLiteral("title");
+    title.styleId = QStringLiteral("plain");
     grid.cells.push_back(title);
     grid.cells.push_back(cell(QStringLiteral("done"), QStringLiteral("Done"), 0, 14,
                               QStringLiteral("lookTo.map.done"), sw.save, 2, {}, {},
@@ -357,137 +403,89 @@ PageDocument SettingsUi::buildLookToEditor() const
 
     PageGrid body = makeNested(QStringLiteral("body"), 1, 0, 1, 2, 16);
     body.colSpan = 16;
-    body.rowSpan = 15;
-    body.columnTracks = starTracks({1.0, 1.0});
-
-    PageGrid left = makeNested(QStringLiteral("left"), 0, 0, 8, 1, 6);
-    left.cells.push_back(sectionLabel(QStringLiteral("h_map"), QStringLiteral("Map"), 0, 0, 1));
-    PageGrid mapToggles = makeNested(QStringLiteral("map_tog"), 1, 0, 1, 4, 6);
-    mapToggles.cells.push_back(cell(QStringLiteral("en_l"), QStringLiteral("Enable"), 0, 0, {},
-                                    QColor(), 1, QStringLiteral("label"),
-                                    QStringLiteral("Place origin, then look to drive this map.")));
-    PageCell en = cell(QStringLiteral("en_t"), QStringLiteral("On"), 0, 1, enableCmd, QColor(), 1,
-                       QStringLiteral("toggle"));
-    en.activeState = enableCmd;
-    mapToggles.cells.push_back(en);
-    mapToggles.cells.push_back(cell(QStringLiteral("prev_l"), QStringLiteral("Preview"), 0, 2, {},
-                                    QColor(), 1, QStringLiteral("label"),
-                                    QStringLiteral("Draw analog rings at the origin.")));
-    PageCell prev =
-        cell(QStringLiteral("prev_t"),
-             m_lookToPreview ? QStringLiteral("On") : QStringLiteral("Off"), 0, 3,
-             QStringLiteral("lookTo.map.preview.toggle"), QColor(), 1, QStringLiteral("toggle"));
-    prev.activeState = QStringLiteral("lookTo.map.preview");
-    mapToggles.cells.push_back(prev);
-    left.subGrids.push_back(std::move(mapToggles));
-    left.subGrids.push_back(labeledToggle(
-        QStringLiteral("hub"), 2, QStringLiteral("Hub"),
-        QStringLiteral("Center pie: speed, place, direction, close."),
-        m->hubEnabled ? QStringLiteral("On") : QStringLiteral("Off"),
-        QStringLiteral("lookTo.map.hub.toggle"), QStringLiteral("lookTo.map.hub")));
-    left.subGrids.push_back(labeled(
-        QStringLiteral("hubd"), 3, QStringLiteral("Hub dwell"),
-        QStringLiteral("Dwell the hub to open the pie."),
-        stepper(QStringLiteral("hubd_s"), QStringLiteral("%1 ms").arg(m->centerDwellMs),
-                QStringLiteral("ms"), QStringLiteral("lookTo.map.nudge.centerDwell.dec"),
-                QStringLiteral("lookTo.map.nudge.centerDwell.inc"),
-                QStringLiteral("lookTo.map.edit.centerDwell"), sw)));
-    left.cells.push_back(sectionLabel(QStringLiteral("h_out"), QStringLiteral("Output"), 4, 0, 1));
-    left.subGrids.push_back(labeled(
-        QStringLiteral("spd"), 5, QStringLiteral("Speed"), QStringLiteral("Peak at 100%."),
-        stepper(QStringLiteral("spd_s"), lookToSpeedText(m_lookToDest, m->maxSpeed), {},
-                QStringLiteral("lookTo.map.nudge.speed.dec"),
-                QStringLiteral("lookTo.map.nudge.speed.inc"),
-                QStringLiteral("lookTo.map.edit.speed"), sw)));
     const char* modeIds[] = {"vertical", "horizontal", "both"};
     const char* modeLabs[] = {"V", "H", "Both"};
-    left.subGrids.push_back(labeled(
-        QStringLiteral("dir"), 6, QStringLiteral("Direction"),
-        QStringLiteral("Lock to one axis, or both."),
-        choiceRow(QStringLiteral("mode"), modeIds, modeLabs, 3, QStringLiteral("lookTo.map.mode."),
-                  QStringLiteral("lookTo.map.mode."))));
-    left.subGrids.push_back(labeled(
-        QStringLiteral("accel"), 7, QStringLiteral("Accel / s"),
-        QStringLiteral("Grows while that axis is engaged."),
-        stepper(QStringLiteral("accel_s"), QStringLiteral("%1 /s").arg(m->accelPerSec, 0, 'f', 1),
-                QStringLiteral("/s"), QStringLiteral("lookTo.map.nudge.accel.dec"),
-                QStringLiteral("lookTo.map.nudge.accel.inc"),
-                QStringLiteral("lookTo.map.edit.accel"), sw)));
-    body.subGrids.push_back(std::move(left));
-
-    PageGrid right = makeNested(QStringLiteral("right"), 0, 1, 9, 1, 6);
-    right.cells.push_back(sectionLabel(QStringLiteral("h_rings"), QStringLiteral("Rings"), 0, 0, 1));
-    right.subGrids.push_back(labeled(
-        QStringLiteral("dz"), 1, QStringLiteral("Deadzone"),
-        QStringLiteral("Inner circle. Output is 0."),
-        stepper(QStringLiteral("dz_s"), QStringLiteral("%1 px").arg(m->deadzonePx),
-                QStringLiteral("px"), QStringLiteral("lookTo.map.nudge.deadzone.dec"),
-                QStringLiteral("lookTo.map.nudge.deadzone.inc"),
-                QStringLiteral("lookTo.map.edit.deadzone"), sw)));
-    right.subGrids.push_back(labeled(
-        QStringLiteral("ramp"), 2, QStringLiteral("Ramp 0–100%"),
-        QStringLiteral("Outer edge of the speed ramp."),
-        stepper(QStringLiteral("ramp_s"), QStringLiteral("%1 px").arg(m->rampEndPx),
-                QStringLiteral("px"), QStringLiteral("lookTo.map.nudge.ramp.dec"),
-                QStringLiteral("lookTo.map.nudge.ramp.inc"),
-                QStringLiteral("lookTo.map.edit.ramp"), sw)));
-    right.subGrids.push_back(labeled(
-        QStringLiteral("full"), 3, QStringLiteral("100% outer"),
-        QStringLiteral("Outer edge of the 100% ring."),
-        stepper(QStringLiteral("full_s"), QStringLiteral("%1 px").arg(m->fullOuterPx),
-                QStringLiteral("px"), QStringLiteral("lookTo.map.nudge.full.dec"),
-                QStringLiteral("lookTo.map.nudge.full.inc"),
-                QStringLiteral("lookTo.map.edit.full"), sw)));
-    right.subGrids.push_back(labeledToggle(
-        QStringLiteral("outer"), 4, QStringLiteral("Outer deadzone"),
-        QStringLiteral("Past 100%, output drops to 0."),
-        m->outerDeadzoneEnabled ? QStringLiteral("On") : QStringLiteral("Off"),
-        QStringLiteral("lookTo.map.outerDeadzone.toggle"),
-        QStringLiteral("lookTo.map.outerDeadzone")));
-    right.subGrids.push_back(labeled(
-        QStringLiteral("outerr"), 5, QStringLiteral("Outer radius"),
-        QStringLiteral("Outer deadzone radius."),
-        stepper(QStringLiteral("outer_s"), QStringLiteral("%1 px").arg(m->outerDeadzonePx),
-                QStringLiteral("px"), QStringLiteral("lookTo.map.nudge.outer.dec"),
-                QStringLiteral("lookTo.map.nudge.outer.inc"),
-                QStringLiteral("lookTo.map.edit.outer"), sw)));
-    right.cells.push_back(sectionLabel(QStringLiteral("h_style"), QStringLiteral("Style"), 6, 0, 1));
-    PageGrid show = makeNested(QStringLiteral("show"), 7, 0, 1, 5, 6);
-    show.cells.push_back(cell(QStringLiteral("show_l"), QStringLiteral("Show"), 0, 0, {}, QColor(), 1,
-                              QStringLiteral("label"),
-                              QStringLiteral("Which overlay parts to draw.")));
-    auto showToggle = [&](const QString& id, const QString& lab, const char* cmd, bool on) {
-        PageCell t = cell(id, lab, 0, show.cells.size(), QLatin1String(cmd), QColor(), 1,
-                          QStringLiteral("toggle"));
-        t.activeState = QString::fromLatin1(cmd).remove(QLatin1String(".toggle"));
-        t.caption = on ? QStringLiteral("On") : QStringLiteral("Off");
-        show.cells.push_back(t);
-    };
-    showToggle(QStringLiteral("show_pause"), QStringLiteral("Pause"),
-               "lookTo.map.show.pause.toggle", m->showPause);
-    showToggle(QStringLiteral("show_inner"), QStringLiteral("Inner"),
-               "lookTo.map.show.inner.toggle", m->showInnerDeadzone);
-    showToggle(QStringLiteral("show_max"), QStringLiteral("Max"), "lookTo.map.show.max.toggle",
-               m->showMax);
-    showToggle(QStringLiteral("show_outer"), QStringLiteral("Outer"),
-               "lookTo.map.show.outer.toggle", m->showOuterDeadzone);
-    right.subGrids.push_back(std::move(show));
-    PageGrid draw = makeNested(QStringLiteral("draw"), 8, 0, 1, 3, 6);
-    draw.cells.push_back(cell(QStringLiteral("draw_l"), QStringLiteral("Draw"), 0, 0, {}, QColor(), 1,
-                              QStringLiteral("label"),
-                              QStringLiteral("Ring outline and fill.")));
-    PageCell border = cell(QStringLiteral("show_border"), QStringLiteral("Border"), 0, 1,
-                           QStringLiteral("lookTo.map.show.border.toggle"), QColor(), 1,
-                           QStringLiteral("toggle"));
-    border.activeState = QStringLiteral("lookTo.map.show.border");
-    draw.cells.push_back(border);
-    PageCell fill = cell(QStringLiteral("show_fill"), QStringLiteral("Fill"), 0, 2,
-                         QStringLiteral("lookTo.map.show.fill.toggle"), QColor(), 1,
-                         QStringLiteral("toggle"));
-    fill.activeState = QStringLiteral("lookTo.map.show.fill");
-    draw.cells.push_back(fill);
-    right.subGrids.push_back(std::move(draw));
-    body.subGrids.push_back(std::move(right));
+    body.subGrids.push_back(columnOf(
+        QStringLiteral("left"), 0, {9.0, 7.0},
+        {groupBox(QStringLiteral("sec_map"), QStringLiteral("Map"),
+                  {labeled(QStringLiteral("en"), QStringLiteral("Enable"),
+                           QStringLiteral("Place origin, then look to drive this map."),
+                           oneToggle(QStringLiteral("en_t"), QStringLiteral("On"), enableCmd,
+                                     enableCmd)),
+                   labeled(QStringLiteral("prev"), QStringLiteral("Preview"),
+                           QStringLiteral("Draw analog rings at the origin."),
+                           oneToggle(QStringLiteral("prev_t"), QStringLiteral("On"),
+                                     QStringLiteral("lookTo.map.preview.toggle"),
+                                     QStringLiteral("lookTo.map.preview"))),
+                   labeled(QStringLiteral("hub"), QStringLiteral("Hub"),
+                           QStringLiteral("Center pie: speed, place, direction, close."),
+                           oneToggle(QStringLiteral("hub_t"), QStringLiteral("On"),
+                                     QStringLiteral("lookTo.map.hub.toggle"),
+                                     QStringLiteral("lookTo.map.hub"))),
+                   labeled(QStringLiteral("hubd"), QStringLiteral("Hub dwell"),
+                           QStringLiteral("Dwell the hub to open the pie."),
+                           stepper(QStringLiteral("hubd_s"),
+                                   QStringLiteral("%1 ms").arg(m->centerDwellMs),
+                                   QStringLiteral("ms"),
+                                   QStringLiteral("lookTo.map.nudge.centerDwell.dec"),
+                                   QStringLiteral("lookTo.map.nudge.centerDwell.inc"),
+                                   QStringLiteral("lookTo.map.edit.centerDwell")))}),
+         groupBox(QStringLiteral("sec_out"), QStringLiteral("Output"),
+                  {labeled(QStringLiteral("spd"), QStringLiteral("Speed"),
+                           QStringLiteral("Peak at 100%."),
+                           stepper(QStringLiteral("spd_s"),
+                                   lookToSpeedText(m_lookToDest, m->maxSpeed), {},
+                                   QStringLiteral("lookTo.map.nudge.speed.dec"),
+                                   QStringLiteral("lookTo.map.nudge.speed.inc"),
+                                   QStringLiteral("lookTo.map.edit.speed"))),
+                   labeled(QStringLiteral("dir"), QStringLiteral("Direction"),
+                           QStringLiteral("Lock to one axis, or both."),
+                           choiceRow(QStringLiteral("mode"), modeIds, modeLabs, 3,
+                                     QStringLiteral("lookTo.map.mode."),
+                                     QStringLiteral("lookTo.map.mode."))),
+                   labeled(QStringLiteral("accel"), QStringLiteral("Accel / s"),
+                           QStringLiteral("Grows while that axis is engaged."),
+                           stepper(QStringLiteral("accel_s"),
+                                   QStringLiteral("%1 /s").arg(m->accelPerSec, 0, 'f', 1),
+                                   QStringLiteral("/s"),
+                                   QStringLiteral("lookTo.map.nudge.accel.dec"),
+                                   QStringLiteral("lookTo.map.nudge.accel.inc"),
+                                   QStringLiteral("lookTo.map.edit.accel")))})}));
+    body.subGrids.push_back(columnOf(
+        QStringLiteral("right"), 1, {9.0, 5.0},
+        {groupBox(QStringLiteral("sec_rings"), QStringLiteral("Rings"),
+                  {labeled(QStringLiteral("dz"), QStringLiteral("Deadzone"),
+                           QStringLiteral("Inner circle. Output is 0."),
+                           stepper(QStringLiteral("dz_s"), QStringLiteral("%1 px").arg(m->deadzonePx),
+                                   QStringLiteral("px"),
+                                   QStringLiteral("lookTo.map.nudge.deadzone.dec"),
+                                   QStringLiteral("lookTo.map.nudge.deadzone.inc"),
+                                   QStringLiteral("lookTo.map.edit.deadzone"))),
+                   labeled(QStringLiteral("max"), QStringLiteral("Max"),
+                           QStringLiteral("Output reaches 100% here and stays there outside it."),
+                           stepper(QStringLiteral("max_s"), QStringLiteral("%1 px").arg(m->maxPx),
+                                   QStringLiteral("px"), QStringLiteral("lookTo.map.nudge.max.dec"),
+                                   QStringLiteral("lookTo.map.nudge.max.inc"),
+                                   QStringLiteral("lookTo.map.edit.max"))),
+                   labeled(QStringLiteral("outer"), QStringLiteral("Outer deadzone"),
+                           QStringLiteral("Past this edge, output drops to 0."),
+                           oneToggle(QStringLiteral("outer_t"), QStringLiteral("On"),
+                                     QStringLiteral("lookTo.map.outerDeadzone.toggle"),
+                                     QStringLiteral("lookTo.map.outerDeadzone"))),
+                   labeled(QStringLiteral("outerr"), QStringLiteral("Outer radius"),
+                           QStringLiteral("Outer deadzone radius."),
+                           stepper(QStringLiteral("outer_s"),
+                                   QStringLiteral("%1 px").arg(m->outerDeadzonePx),
+                                   QStringLiteral("px"), QStringLiteral("lookTo.map.nudge.outer.dec"),
+                                   QStringLiteral("lookTo.map.nudge.outer.inc"),
+                                   QStringLiteral("lookTo.map.edit.outer")))}),
+         groupBox(QStringLiteral("sec_style"), QStringLiteral("Style"),
+                  {labeled(QStringLiteral("border"), QStringLiteral("Draw border"),
+                           QStringLiteral("Outline pause, inner, max, and outer."),
+                           partToggles(QStringLiteral("border"), true)),
+                   labeled(QStringLiteral("fill"), QStringLiteral("Fill background"),
+                           QStringLiteral("Fill pause, inner, max, and outer."),
+                           partToggles(QStringLiteral("fill"), false))})}));
     grid.subGrids.push_back(std::move(body));
     return doc;
 }
@@ -546,14 +544,10 @@ void SettingsUi::registerLookToCommands()
                                nudgeRing(LookToRing::Deadzone, -1));
     m_commands.registerBuiltin(QStringLiteral("lookTo.map.nudge.deadzone.inc"),
                                nudgeRing(LookToRing::Deadzone, +1));
-    m_commands.registerBuiltin(QStringLiteral("lookTo.map.nudge.ramp.dec"),
-                               nudgeRing(LookToRing::Ramp, -1));
-    m_commands.registerBuiltin(QStringLiteral("lookTo.map.nudge.ramp.inc"),
-                               nudgeRing(LookToRing::Ramp, +1));
-    m_commands.registerBuiltin(QStringLiteral("lookTo.map.nudge.full.dec"),
-                               nudgeRing(LookToRing::Full, -1));
-    m_commands.registerBuiltin(QStringLiteral("lookTo.map.nudge.full.inc"),
-                               nudgeRing(LookToRing::Full, +1));
+    m_commands.registerBuiltin(QStringLiteral("lookTo.map.nudge.max.dec"),
+                               nudgeRing(LookToRing::Max, -1));
+    m_commands.registerBuiltin(QStringLiteral("lookTo.map.nudge.max.inc"),
+                               nudgeRing(LookToRing::Max, +1));
     m_commands.registerBuiltin(QStringLiteral("lookTo.map.nudge.outer.dec"),
                                nudgeRing(LookToRing::Outer, -1));
     m_commands.registerBuiltin(QStringLiteral("lookTo.map.nudge.outer.inc"),
@@ -613,28 +607,23 @@ void SettingsUi::registerLookToCommands()
         }
         return true;
     });
-    auto toggleShow = [this](bool LookToMapSettings::* field) {
-        return [this, field](QString*) {
+    auto togglePart = [this](LookToPart part, bool border) {
+        return [this, part, border](QString*) {
             if (LookToMapSettings* c = lookToDraft()) {
-                c->*field = !(c->*field);
+                bool& flag = border ? c->chrome(part).border : c->chrome(part).fill;
+                flag = !flag;
                 commitLookToDraft(*c);
                 refreshLookToEditor();
             }
             return true;
         };
     };
-    m_commands.registerBuiltin(QStringLiteral("lookTo.map.show.pause.toggle"),
-                               toggleShow(&LookToMapSettings::showPause));
-    m_commands.registerBuiltin(QStringLiteral("lookTo.map.show.inner.toggle"),
-                               toggleShow(&LookToMapSettings::showInnerDeadzone));
-    m_commands.registerBuiltin(QStringLiteral("lookTo.map.show.max.toggle"),
-                               toggleShow(&LookToMapSettings::showMax));
-    m_commands.registerBuiltin(QStringLiteral("lookTo.map.show.outer.toggle"),
-                               toggleShow(&LookToMapSettings::showOuterDeadzone));
-    m_commands.registerBuiltin(QStringLiteral("lookTo.map.show.border.toggle"),
-                               toggleShow(&LookToMapSettings::showBorder));
-    m_commands.registerBuiltin(QStringLiteral("lookTo.map.show.fill.toggle"),
-                               toggleShow(&LookToMapSettings::showFill));
+    for (const LookToPartSpec& spec : kLookToParts) {
+        m_commands.registerBuiltin(QLatin1String(spec.borderState) + QStringLiteral(".toggle"),
+                                   togglePart(spec.part, true));
+        m_commands.registerBuiltin(QLatin1String(spec.fillState) + QStringLiteral(".toggle"),
+                                   togglePart(spec.part, false));
+    }
 }
 
 } // namespace gazer

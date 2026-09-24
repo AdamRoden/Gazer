@@ -21,9 +21,38 @@ inline constexpr int kLookToDestCount = 4;
 enum class LookToRing {
     None = 0,
     Deadzone,
-    Ramp,
-    Full,
+    Max,
     Outer,
+};
+
+enum class LookToPart { Pause = 0, Inner, Max, Outer };
+inline constexpr int kLookToPartCount = 4;
+
+struct LookToPartChrome {
+    bool border = true;
+    bool fill = true;
+    [[nodiscard]] bool shown() const { return border || fill; }
+};
+
+struct LookToPartSpec {
+    LookToPart part;
+    const char* id;
+    const char* label;
+    const char* borderJson;
+    const char* fillJson;
+    const char* borderState;
+    const char* fillState;
+};
+
+inline constexpr LookToPartSpec kLookToParts[] = {
+    {LookToPart::Pause, "pause", "Pause", "borderPause", "fillPause", "lookTo.map.border.pause",
+     "lookTo.map.fill.pause"},
+    {LookToPart::Inner, "inner", "Inner", "borderInner", "fillInner", "lookTo.map.border.inner",
+     "lookTo.map.fill.inner"},
+    {LookToPart::Max, "max", "Max", "borderMax", "fillMax", "lookTo.map.border.max",
+     "lookTo.map.fill.max"},
+    {LookToPart::Outer, "outer", "Outer", "borderOuter", "fillOuter", "lookTo.map.border.outer",
+     "lookTo.map.fill.outer"},
 };
 
 inline constexpr double kLookToMouseSpeedStops[] = {200.0, 400.0, 800.0, 1600.0, 3200.0};
@@ -37,12 +66,11 @@ inline constexpr int kLookToStickSpeedStopCount =
 inline constexpr double kLookToStickSpeedDefault = 1.0;
 
 /// Pixel radii for the analog gaze disk. Output is 0 inside `deadzonePx`, ramps
-/// 0–100% until `rampEndPx`, holds 100% until `fullOuterPx`, then either stays
-/// at 100% or drops to 0 when `outerDeadzoneEnabled`.
+/// 0–100% until `maxPx`, stays at 100% outside that, and drops to 0 past
+/// `outerDeadzonePx` when `outerDeadzoneEnabled`.
 struct LookToMapSettings {
     int deadzonePx = 80;
-    int rampEndPx = 380;
-    int fullOuterPx = 460;
+    int maxPx = 380;
     int outerDeadzonePx = 540;
     bool outerDeadzoneEnabled = false;
     bool hubEnabled = true;
@@ -50,12 +78,11 @@ struct LookToMapSettings {
     double accelPerSec = kLtsAccelDefault;
     int centerDwellMs = 700;
     LtsScrollMode axisMode = LtsScrollMode::Both;
-    bool showPause = true;
-    bool showInnerDeadzone = true;
-    bool showMax = true;
-    bool showOuterDeadzone = true;
-    bool showBorder = true;
-    bool showFill = true;
+    /// Outline and fill for pause, inner, max, and outer. A part is drawn when either is on.
+    LookToPartChrome part[kLookToPartCount]{};
+
+    [[nodiscard]] LookToPartChrome& chrome(LookToPart p) { return part[int(p)]; }
+    [[nodiscard]] const LookToPartChrome& chrome(LookToPart p) const { return part[int(p)]; }
 };
 
 [[nodiscard]] inline LookToDest lookToDestFromInt(int v)
@@ -280,21 +307,6 @@ struct LookToMapSettings {
 [[nodiscard]] inline LookToMapSettings defaultLookToMapSettings(LookToDest dest)
 {
     LookToMapSettings c;
-    c.deadzonePx = 80;
-    c.rampEndPx = 380;
-    c.fullOuterPx = 460;
-    c.outerDeadzonePx = 540;
-    c.outerDeadzoneEnabled = false;
-    c.hubEnabled = true;
-    c.accelPerSec = kLtsAccelDefault;
-    c.centerDwellMs = 700;
-    c.axisMode = LtsScrollMode::Both;
-    c.showPause = true;
-    c.showInnerDeadzone = true;
-    c.showMax = true;
-    c.showOuterDeadzone = true;
-    c.showBorder = true;
-    c.showFill = true;
     switch (dest) {
     case LookToDest::Mouse:
         c.maxSpeed = kLookToMouseSpeedDefault;
@@ -313,52 +325,54 @@ struct LookToMapSettings {
 inline void clampLookToMapSettings(LookToDest dest, LookToMapSettings& c)
 {
     c.deadzonePx = qBound(20, c.deadzonePx, 400);
-    c.rampEndPx = qBound(c.deadzonePx + 40, c.rampEndPx, 900);
-    c.fullOuterPx = qBound(c.rampEndPx, c.fullOuterPx, 1200);
-    c.outerDeadzonePx = qBound(c.fullOuterPx + 20, c.outerDeadzonePx, 1600);
+    c.maxPx = qBound(c.deadzonePx + 40, c.maxPx, 900);
+    c.outerDeadzonePx = qBound(c.maxPx + 20, c.outerDeadzonePx, 1600);
     c.accelPerSec = qBound(kLtsAccelMin, c.accelPerSec, kLtsAccelMax);
     c.centerDwellMs = qBound(200, c.centerDwellMs, 2500);
     c.axisMode = ltsScrollModeFromInt(int(c.axisMode));
     c.maxSpeed = snapLookToSpeed(dest, c.maxSpeed);
 }
 
-/// 0 inside the deadzone, 0–1 across the ramp, 1 across the 100% annulus,
-/// then 0 past `fullOuterPx` when the outer deadzone is on.
+/// 0 inside the deadzone, 0–1 across the ramp, 1 outside the ramp, then 0 past
+/// the outer deadzone when that edge is on.
 [[nodiscard]] inline double lookToGain(double dist, const LookToMapSettings& c)
 {
     const double dz = double(qMax(1, c.deadzonePx));
-    const double rampEnd = double(qMax(c.deadzonePx + 1, c.rampEndPx));
-    const double fullOuter = double(qMax(c.rampEndPx, c.fullOuterPx));
+    const double maxR = double(qMax(c.deadzonePx + 1, c.maxPx));
+    const double outer = double(qMax(c.maxPx + 1, c.outerDeadzonePx));
     if (dist <= dz) {
         return 0.0;
     }
-    if (dist < rampEnd) {
-        return easeLtsFalloff((dist - dz) / (rampEnd - dz));
+    if (dist < maxR) {
+        return easeLtsFalloff((dist - dz) / (maxR - dz));
     }
-    if (dist <= fullOuter) {
-        return 1.0;
-    }
-    if (c.outerDeadzoneEnabled) {
+    if (c.outerDeadzoneEnabled && dist > outer) {
         return 0.0;
     }
     return 1.0;
 }
 
-[[nodiscard]] inline int lookToMaxRadiusPx(const LookToMapSettings& c)
+[[nodiscard]] inline bool lookToPartShown(const LookToMapSettings& c, LookToPart p)
 {
-    return c.outerDeadzoneEnabled ? qMax(c.fullOuterPx, c.outerDeadzonePx) : c.fullOuterPx;
+    return c.chrome(p).shown();
+}
+
+/// Outline width shared by the preview rings and the live orb.
+[[nodiscard]] inline double lookToRingStrokePx(double radius)
+{
+    return qBound(2.4, radius * 0.06, 6.0);
 }
 
 [[nodiscard]] inline int lookToOverlayRadiusPx(const LookToMapSettings& c)
 {
     int r = 0;
-    if (c.showInnerDeadzone) {
+    if (lookToPartShown(c, LookToPart::Inner)) {
         r = qMax(r, c.deadzonePx);
     }
-    if (c.showMax) {
-        r = qMax(r, c.fullOuterPx);
+    if (lookToPartShown(c, LookToPart::Max)) {
+        r = qMax(r, c.maxPx);
     }
-    if (c.outerDeadzoneEnabled && c.showOuterDeadzone) {
+    if (c.outerDeadzoneEnabled && lookToPartShown(c, LookToPart::Outer)) {
         r = qMax(r, c.outerDeadzonePx);
     }
     return qMax(r, 40);
@@ -366,32 +380,33 @@ inline void clampLookToMapSettings(LookToDest dest, LookToMapSettings& c)
 
 [[nodiscard]] inline bool lookToShowsAnyRing(const LookToMapSettings& c)
 {
-    return c.showInnerDeadzone || c.showMax || c.showOuterDeadzone;
+    return lookToPartShown(c, LookToPart::Inner) || lookToPartShown(c, LookToPart::Max)
+           || lookToPartShown(c, LookToPart::Outer);
+}
+
+/// Old global border/fill times which parts were visible.
+inline void applyLookToPartStyle(LookToMapSettings& c, bool pause, bool inner, bool max, bool outer,
+                                 bool border, bool fill)
+{
+    const bool shown[kLookToPartCount] = {pause, inner, max, outer};
+    for (int i = 0; i < kLookToPartCount; ++i) {
+        c.part[i].border = shown[i] && border;
+        c.part[i].fill = shown[i] && fill;
+    }
 }
 
 inline void applyLegacyLookToIndicator(LookToMapSettings& c, LtsIndicator style)
 {
     style = ltsIndicatorFromInt(int(style));
-    c.showPause = true;
-    c.showBorder = true;
     switch (style) {
     case LtsIndicator::Hollow:
-        c.showFill = false;
-        c.showInnerDeadzone = true;
-        c.showMax = true;
-        c.showOuterDeadzone = true;
+        applyLookToPartStyle(c, true, true, true, true, true, false);
         break;
     case LtsIndicator::PauseOnly:
-        c.showFill = true;
-        c.showInnerDeadzone = false;
-        c.showMax = false;
-        c.showOuterDeadzone = false;
+        applyLookToPartStyle(c, true, false, false, false, true, true);
         break;
     case LtsIndicator::Filled:
-        c.showFill = true;
-        c.showInnerDeadzone = true;
-        c.showMax = true;
-        c.showOuterDeadzone = true;
+        applyLookToPartStyle(c, true, true, true, true, true, true);
         break;
     }
 }
@@ -399,7 +414,7 @@ inline void applyLegacyLookToIndicator(LookToMapSettings& c, LtsIndicator style)
 /// Inner hysteresis uses the deadzone; the outer deadzone is a hard stop.
 [[nodiscard]] inline bool lookToKeepEngaged(bool engaged, double dist, const LookToMapSettings& c)
 {
-    if (c.outerDeadzoneEnabled && dist > double(c.fullOuterPx)) {
+    if (c.outerDeadzoneEnabled && dist > double(c.outerDeadzonePx)) {
         return false;
     }
     return ltsKeepScrolling(engaged, dist, c.deadzonePx);
@@ -412,9 +427,8 @@ inline void applyLegacyLookToIndicator(LookToMapSettings& c, LtsIndicator style)
 {
     LookToMapSettings c = defaultLookToMapSettings(LookToDest::Scroll);
     c.deadzonePx = deadzonePx;
-    c.rampEndPx = deadzonePx + qMax(40, falloffPx);
-    c.fullOuterPx = c.rampEndPx + 80;
-    c.outerDeadzonePx = c.fullOuterPx + 80;
+    c.maxPx = deadzonePx + qMax(40, falloffPx);
+    c.outerDeadzonePx = c.maxPx + 160;
     c.maxSpeed = maxNotches;
     c.accelPerSec = accel;
     c.centerDwellMs = centerDwell;
