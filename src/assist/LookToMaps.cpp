@@ -274,15 +274,15 @@ void LookToMaps::onGaze(const GazePoint& point, bool pauseInput)
     m_lastGaze = point;
     updatePinCursor();
     const bool overPie = containsGaze(point);
-    if (anyEnabled() && pauseInput && !overPie) {
-        if (!m_idlePause.isValid()) {
-            m_idlePause.start();
-        } else if (m_idlePause.elapsed() >= 90000) {
-            GAZER_INFO << "Look-to idle timeout — disabling maps";
-            disableAll();
-        }
-    } else if (anyEnabled()) {
+    // Place-cursor counts as paused. A clock left running while every map is
+    // off is already past 90s on the sample after the next place.
+    if (!(anyEnabled() && pauseInput && !overPie && !m_placing)) {
         m_idlePause.invalidate();
+    } else if (!m_idlePause.isValid()) {
+        m_idlePause.start();
+    } else if (m_idlePause.elapsed() >= 90000) {
+        GAZER_INFO << "Look-to idle timeout — disabling maps";
+        disableAll();
     }
     for (int i = 0; i < kLookToDestCount; ++i) {
         LookToScroll* m = m_maps[i].get();

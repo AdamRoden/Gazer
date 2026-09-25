@@ -111,6 +111,9 @@ void LookToScroll::setScrollOrigin(const QPoint& pos)
 {
     m_origin = pos;
     m_hasOrigin = true;
+    // A new origin must not resume a half-finished hub dwell or scroll stream.
+    m_scrollEngaged = false;
+    m_centerProgress = 0.0;
     m_accelSecV = 0.0;
     m_accelSecH = 0.0;
     m_scroller.reset();
@@ -656,6 +659,7 @@ void LookToScroll::onGaze(const GazePoint& point, bool pauseInput)
     const double dirX = dist > 1.0 ? delta.x() / dist : 0.0;
     const double dirY = dist > 1.0 ? delta.y() / dist : 0.0;
     const double hubR = hubDwellRadiusPx();
+    const bool inHub = m_cfg.hubEnabled && dist <= hubR;
     const bool vActive =
         m_cfg.axisMode != LtsScrollMode::Horizontal && ltsAxisAccelActive(delta.y(), m_cfg.deadzonePx);
     const bool hActive =
@@ -666,7 +670,6 @@ void LookToScroll::onGaze(const GazePoint& point, bool pauseInput)
                            : qBound(0.004, (now - m_lastSampleMs) / 1000.0, 0.05);
     m_lastSampleMs = now;
 
-    const bool inHub = m_cfg.hubEnabled && dist <= hubR;
     m_scrollEngaged =
         !inHub && lookToKeepEngaged(m_scrollEngaged, dist, m_cfg) && dist >= 1.0;
     const double gain = m_scrollEngaged ? lookToGain(dist, m_cfg) : 0.0;
