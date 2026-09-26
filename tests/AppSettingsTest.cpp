@@ -44,6 +44,7 @@ private slots:
     void backgroundShadeAndTintFamily();
     void speechSettingsRoundTrip();
     void headPoseMapsRoundTrip();
+    void legacyHeadPoseCurveUpgradesOnLoad();
     void lookToMapsRoundTripAndLegacyMigrate();
     void hoverBorderFollowsProgressAndRoundTrips();
     void showSplashRoundTrip();
@@ -578,6 +579,33 @@ void AppSettingsTest::headPoseMapsRoundTrip()
     QCOMPARE(b.headPoseMaps.front().source, HeadPoseAxis::Pitch);
     QCOMPARE(b.headPoseMaps.front().dest, HeadPoseDest::ScrollV);
     QCOMPARE(b.headPoseMaps.front().points.size(), 3);
+    QCOMPARE(b.headPoseMaps.front().points[0].in, -20.0);
+    QCOMPARE(b.headPoseMaps.front().points[2].out, 8.0);
+}
+
+void AppSettingsTest::legacyHeadPoseCurveUpgradesOnLoad()
+{
+    AppSettings s = AppSettings::defaults();
+    HeadPoseMap m = AppSettings::makeDefaultHeadPoseMap();
+    m.points = {{-25.0, -600.0}, {0.0, 0.0}, {25.0, 600.0}};
+    s.headPoseMaps.push_back(m);
+
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("settings.json"));
+    QString err;
+    QVERIFY2(s.saveToFile(path, &err), qPrintable(err));
+    AppSettings b;
+    QVERIFY2(b.loadFromFile(path, &err), qPrintable(err));
+    QCOMPARE(b.headPoseMaps.size(), 1);
+    const QVector<HeadPoseCurvePoint>& pts = b.headPoseMaps.front().points;
+    QCOMPARE(pts.size(), 5);
+    QCOMPARE(pts[1].in, -5.0);
+    QCOMPARE(pts[1].out, 0.0);
+    QCOMPARE(pts[2].in, 0.0);
+    QCOMPARE(pts[3].in, 5.0);
+    QCOMPARE(pts[3].out, 0.0);
+    QCOMPARE(pts[4].out, 600.0);
 }
 
 void AppSettingsTest::lookToMapsRoundTripAndLegacyMigrate()

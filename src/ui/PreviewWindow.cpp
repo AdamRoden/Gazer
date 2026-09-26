@@ -125,7 +125,6 @@ void PreviewWindow::paintEvent(QPaintEvent*)
     p.fillRect(rect(), bg);
     if (m_gl) {
         m_gl->setTheme(m_theme);
-        m_gl->setGaze(m_gaze);
         m_gl->setPose(m_head);
         const QImage img = m_gl->render(headArea.size(), devicePixelRatioF());
         if (!img.isNull()) {

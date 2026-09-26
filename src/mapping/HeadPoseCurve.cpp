@@ -116,7 +116,8 @@ HeadPoseMap defaultHeadPoseMap()
     m.enabled = true;
     m.source = HeadPoseAxis::Yaw;
     m.dest = HeadPoseDest::MouseX;
-    m.points = {{-25.0, -600.0}, {0.0, 0.0}, {25.0, 600.0}};
+    // Left end, left deadzone, center, right deadzone, right end at full output.
+    m.points = {{-25.0, -600.0}, {-5.0, 0.0}, {0.0, 0.0}, {5.0, 0.0}, {25.0, 600.0}};
     m.commandAt = 15.0;
     m.hysteresis = 2.0;
     return m;

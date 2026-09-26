@@ -32,6 +32,13 @@ namespace {
     return ScreenCaptureMode::Pages;
 }
 
+/// Factory curve before the ±5 deadzone points. Rewritten on load only.
+[[nodiscard]] bool legacyHeadPoseFactoryCurve(const QVector<HeadPoseCurvePoint>& pts)
+{
+    const QVector<HeadPoseCurvePoint> old = {{-25.0, -600.0}, {0.0, 0.0}, {25.0, 600.0}};
+    return pts == old;
+}
+
 } // namespace
 
 QString AppSettings::defaultFilePath()
@@ -335,7 +342,7 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
                     m.points.push_back(pt);
                 }
             }
-            if (m.points.size() < 2) {
+            if (m.points.size() < 2 || legacyHeadPoseFactoryCurve(m.points)) {
                 m.points = defaultHeadPoseMap().points;
             }
             if (!m.id.isEmpty()) {

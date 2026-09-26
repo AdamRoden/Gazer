@@ -51,7 +51,9 @@ private:
     void openPageEditor(const QString& pageId = {});
     [[nodiscard]] bool testEditedLayout(const PageDocument& doc, QString* error);
     void onGaze(const gazer::GazePoint& point);
+    void scheduleHeadPreviewPaint();
     void updateHeadPosePaint();
+    [[nodiscard]] bool headPreviewOnScreen() const;
     void onTobiiStreamFailed(const QString& reason);
     void fallbackToMouse();
     void shutdownUi();
@@ -70,6 +72,7 @@ private:
     std::unique_ptr<PreviewWindow> m_preview;
     std::unique_ptr<HeadPreviewRenderer> m_headPreviewGl;
     QElapsedTimer m_headPaintClock;
+    bool m_headPaintQueued = false;
     std::unique_ptr<LayoutEditorWindow> m_editor;
     std::unique_ptr<TrayIcon> m_tray;
     std::unique_ptr<OverlayStackWatch> m_stackWatch;

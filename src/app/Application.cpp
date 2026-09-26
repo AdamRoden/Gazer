@@ -150,7 +150,7 @@ bool Application::initialize()
     connect(&m_svc->pages(), &PageSession::sessionChanged, this, [this]() {
         updateTrayStatus();
         m_headPaintClock.invalidate();
-        updateHeadPosePaint();
+        scheduleHeadPreviewPaint();
     });
 
     auto statusToTray = [this](const QString& msg) {
@@ -348,14 +348,14 @@ void Application::wireTracker()
             &PreviewWindow::onHeadPoseUpdated);
     connect(m_tracker.get(), &ITracker::headPoseUpdated, this, [this](const gazer::HeadPose& pose) {
         m_svc->headPoseMapper().onPose(pose);
-        updateHeadPosePaint();
+        scheduleHeadPreviewPaint();
     });
     connect(m_tracker.get(), &ITracker::trackingLost, m_preview.get(), [this]() {
         if (m_tracker) {
             m_preview->setTrackerName(QStringLiteral("%1 (lost)").arg(m_tracker->name()));
         }
         m_svc->headPoseMapper().onTrackingLost();
-        updateHeadPosePaint();
+        scheduleHeadPreviewPaint();
     });
     connect(m_tracker.get(), &ITracker::trackingRestored, m_preview.get(), [this]() {
         if (m_tracker) {
@@ -370,6 +370,11 @@ void Application::wireTracker()
 
 void Application::onGaze(const gazer::GazePoint& point)
 {
+    if (m_headPreviewGl) {
+        m_headPreviewGl->setGaze(point);
+    }
+    scheduleHeadPreviewPaint();
+
     // Head-pose curve scrub and list scrollbars before board dwell so leaving
     // them can activate a neighbor on the same sample.
     m_svc->settingsUi().onGaze(point);
@@ -380,16 +385,38 @@ void Application::onGaze(const gazer::GazePoint& point)
     }
 }
 
+void Application::scheduleHeadPreviewPaint()
+{
+    if (m_headPaintQueued || !headPreviewOnScreen()) {
+        return;
+    }
+    m_headPaintQueued = true;
+    QTimer::singleShot(0, this, [this]() {
+        m_headPaintQueued = false;
+        if (headPreviewOnScreen()) {
+            updateHeadPosePaint();
+        }
+    });
+}
+
+bool Application::headPreviewOnScreen() const
+{
+    if (!m_svc) {
+        return false;
+    }
+    const PageSession& pages = m_svc->pages();
+    if (!pages.window()) {
+        return false;
+    }
+    return pages.showsPage(QStringLiteral("main_settings_head_pose"))
+           || pages.topPageId() == QLatin1String("headpose_map_live");
+}
+
 void Application::updateHeadPosePaint()
 {
     PageSession& pages = m_svc->pages();
     PageHostWindow* host = pages.window();
     if (!host) {
-        return;
-    }
-    const bool show = pages.showsPage(QStringLiteral("main_settings_head_pose"))
-                      || pages.topPageId() == QLatin1String("headpose_map_live");
-    if (!show) {
         return;
     }
     if (m_headPaintClock.isValid() && m_headPaintClock.elapsed() < 33) {

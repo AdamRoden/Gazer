@@ -10,6 +10,8 @@ class HeadPoseMapperTest final : public QObject {
 
 private slots:
     void curveLerp();
+    void defaultCurveDeadzone();
+    void clampKeepsAuthoredCurve();
     void curveClamps();
     void originSubtract();
     void recenterCapturesAllSixAxes();
@@ -28,6 +30,46 @@ void HeadPoseMapperTest::curveLerp()
     QCOMPARE(evalHeadPoseCurve(pts, -5.0), -50.0);
     QCOMPARE(evalHeadPoseCurve(pts, 20.0), 100.0);
     QCOMPARE(evalHeadPoseCurve(pts, -20.0), -100.0);
+}
+
+void HeadPoseMapperTest::defaultCurveDeadzone()
+{
+    const HeadPoseMap m = defaultHeadPoseMap();
+    QCOMPARE(m.points.size(), 5);
+    QCOMPARE(m.points[0].in, -25.0);
+    QCOMPARE(m.points[0].out, -600.0);
+    QCOMPARE(m.points[1].in, -5.0);
+    QCOMPARE(m.points[1].out, 0.0);
+    QCOMPARE(m.points[2].in, 0.0);
+    QCOMPARE(m.points[2].out, 0.0);
+    QCOMPARE(m.points[3].in, 5.0);
+    QCOMPARE(m.points[3].out, 0.0);
+    QCOMPARE(m.points[4].in, 25.0);
+    QCOMPARE(m.points[4].out, 600.0);
+
+    QCOMPARE(evalHeadPoseCurve(m.points, 0.0), 0.0);
+    QCOMPARE(evalHeadPoseCurve(m.points, 3.0), 0.0);
+    QCOMPARE(evalHeadPoseCurve(m.points, -4.0), 0.0);
+    QCOMPARE(evalHeadPoseCurve(m.points, 15.0), 300.0);
+    QCOMPARE(evalHeadPoseCurve(m.points, -15.0), -300.0);
+    QCOMPARE(evalHeadPoseCurve(m.points, 40.0), 600.0);
+}
+
+void HeadPoseMapperTest::clampKeepsAuthoredCurve()
+{
+    HeadPoseMap m;
+    m.points = {{-25.0, -600.0}, {0.0, 0.0}, {25.0, 600.0}};
+    clampHeadPoseMap(m);
+    QCOMPARE(m.points.size(), 3);
+    QCOMPARE(m.points[0].in, -25.0);
+    QCOMPARE(m.points[1].in, 0.0);
+    QCOMPARE(m.points[2].in, 25.0);
+
+    m.points = {{-20.0, -8.0}, {0.0, 0.0}, {20.0, 8.0}};
+    clampHeadPoseMap(m);
+    QCOMPARE(m.points.size(), 3);
+    QCOMPARE(m.points[0].out, -8.0);
+    QCOMPARE(m.points[2].out, 8.0);
 }
 
 void HeadPoseMapperTest::curveClamps()
