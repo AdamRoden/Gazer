@@ -28,6 +28,8 @@ public:
     void insert(QStringView chars);
     /// Word/tag insert: pad spaces against non-space neighbors. One undo step.
     void insertPadded(QStringView chunk);
+    /// Replace [start, end) in one undo step. Does not coalesce with letter inserts.
+    void replaceRange(int start, int end, QStringView text);
     /// Insert `[tag]` with padding. `laugh` and `[laugh]` both work.
     void insertTag(QStringView tag);
     /// Delete one character before caret. Rapid backspaces coalesce.

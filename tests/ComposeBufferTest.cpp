@@ -22,7 +22,26 @@ private slots:
     void loadReplacesAndDropsHistory();
     void setCaretDoesNotPushUndo();
     void moveCaretToTokenEdge();
+    void replaceRangeIsOneUndoStep();
 };
+
+void ComposeBufferTest::replaceRangeIsOneUndoStep()
+{
+    ComposeBuffer b;
+    b.setNowMsForTest(0);
+    b.insert(QStringLiteral("hello wrld"));
+    b.setNowMsForTest(100);
+    b.replaceRange(6, 10, QStringLiteral("world "));
+    QCOMPARE(b.text(), QStringLiteral("hello world "));
+    QCOMPARE(b.caret(), 12);
+    b.setNowMsForTest(200);
+    b.insert(QStringLiteral("!"));
+    QVERIFY(b.undo());
+    QCOMPARE(b.text(), QStringLiteral("hello world "));
+    QVERIFY(b.undo());
+    QCOMPARE(b.text(), QStringLiteral("hello wrld"));
+    QCOMPARE(b.caret(), 10);
+}
 
 void ComposeBufferTest::insertAndBackspace()
 {

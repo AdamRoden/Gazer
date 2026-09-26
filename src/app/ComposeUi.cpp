@@ -13,12 +13,20 @@
 #include "assist/TtsService.h"
 #include "layout/PageSession.h"
 #include "layout/PageTypes.h"
+#include "ui/BoardPaint.h"
 #include "ui/Theme.h"
+#include "utils/Log.h"
 
+#include <QCoreApplication>
+#include <QDir>
+#include <QFontMetrics>
 #include <QObject>
+#include <QStandardPaths>
 #include <QStringView>
 #include <QtGlobal>
 #include <QVector>
+#include <algorithm>
+#include <cmath>
 
 namespace gazer {
 
@@ -44,6 +52,7 @@ ComposeUi::ComposeUi(PageSession& pages, SpeechEngine& speech, AppSettings& sett
             refresh();
         }
     });
+    loadPredictor();
 }
 
 ComposeUi::~ComposeUi() = default;
@@ -134,6 +143,7 @@ void ComposeUi::notify(const QString& msg)
 void ComposeUi::refresh()
 {
     syncClosedOverlays();
+    updatePredictions();
     m_pages.refreshDecorated();
     m_pages.refreshActive();
 }
@@ -175,6 +185,10 @@ void ComposeUi::syncFromSettings()
     syncActiveVoicePreset();
     if (before != m_activeVoicePresetId && isOpen() && freestyleMode()) {
         rebuildBoard();
+        return;
+    }
+    if (isOpen()) {
+        refresh();
     }
 }
 
@@ -182,6 +196,15 @@ void ComposeUi::insertText(QStringView chars)
 {
     if (chars.isEmpty()) {
         return;
+    }
+    if (m_settings.composePredictions && !nameEditing() && chars == QLatin1String(" ")) {
+        const WordPredictor::Query q = WordPredictor::fromPhrase(m_buffer.text(), m_buffer.caret());
+        if (!q.typed.isEmpty() && m_predictor.isLexiconWord(q.typed)) {
+            m_predictor.observe(q.sentenceWords, q.typed);
+            if (!m_predictUserPath.isEmpty()) {
+                m_predictor.saveUser(m_predictUserPath);
+            }
+        }
     }
     m_buffer.insert(chars);
     refresh();
@@ -515,6 +538,190 @@ void ComposeUi::decoratePage(PageDocument& doc) const
     for (PageGrid& g : doc.grids) {
         paint(g, paint);
     }
+    layoutPredictRow(doc);
+}
+
+namespace {
+
+int predictionWidth(const QString& label)
+{
+    const QFont font(BoardPaint::segoeFamily(), 16, QFont::DemiBold);
+    const int adv = int(std::ceil(QFontMetricsF(font).horizontalAdvance(label)));
+    return std::clamp(adv + 32, 72, 280);
+}
+
+QString displayWord(const QString& word, const QString& typed, bool capFirst)
+{
+    if (word == QLatin1String("i")) {
+        return QStringLiteral("I");
+    }
+    bool anyLetter = false;
+    bool allCaps = true;
+    for (const QChar c : typed) {
+        if (!c.isLetter()) {
+            continue;
+        }
+        anyLetter = true;
+        if (c.isLower()) {
+            allCaps = false;
+        }
+    }
+    if (anyLetter && allCaps && typed.size() > 1) {
+        return word.toUpper();
+    }
+    if (capFirst && !word.isEmpty()) {
+        QString s = word;
+        s[0] = s[0].toUpper();
+        return s;
+    }
+    return word;
+}
+
+} // namespace
+
+void ComposeUi::loadPredictor()
+{
+    const QString path = QDir(QCoreApplication::applicationDirPath())
+                             .filePath(QStringLiteral("resources/predict/model.bin"));
+    QString err;
+    if (!m_predictor.loadFile(path, &err) && !m_predictWarned) {
+        m_predictWarned = true;
+        GAZER_WARN << "Word predictions unavailable:" << err;
+    }
+    const QString dir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    if (!dir.isEmpty()) {
+        QDir().mkpath(dir);
+        m_predictUserPath = QDir(dir).filePath(QStringLiteral("predict-user.bin"));
+        m_predictor.loadUser(m_predictUserPath);
+    }
+}
+
+void ComposeUi::updatePredictions()
+{
+    m_shown.clear();
+    if (nameEditing() || !m_settings.composePredictions || !m_predictor.isLoaded()) {
+        return;
+    }
+    const QString text = m_buffer.text();
+    const int caret = m_buffer.caret();
+    const WordPredictor::Query q = WordPredictor::fromPhrase(text, caret);
+    const QVector<WordPredictor::Hit> hits = m_predictor.suggest(q, WordPredictor::kMaxSuggestions);
+    for (const WordPredictor::Hit& hit : hits) {
+        ShownPrediction shown;
+        int start = caret;
+        int end = caret;
+        bool trailing = true;
+        bool cap = q.sentenceStart || hit.proper;
+        QString raw;
+        if (hit.replacesPrevious && q.previousStart >= 0) {
+            start = q.previousStart;
+            end = q.previousEnd;
+            trailing = false;
+            cap = q.sentenceWords.size() == 1 || hit.proper;
+            raw = text.mid(start, end - start);
+        } else if (!q.typed.isEmpty()) {
+            start = q.activeStart;
+            end = q.activeEnd;
+            trailing = end >= text.size();
+            cap = q.sentenceWords.isEmpty() || hit.proper;
+            raw = text.mid(start, end - start);
+        }
+        shown.label = displayWord(hit.word, raw, cap);
+        shown.start = start;
+        shown.end = end;
+        QString piece = shown.label;
+        if (trailing) {
+            piece.append(QLatin1Char(' '));
+        }
+        if (start > 0 && start <= text.size() && !text[start - 1].isSpace() && !piece.isEmpty()
+            && !piece.front().isSpace()) {
+            piece.prepend(QLatin1Char(' '));
+        }
+        shown.insertText = piece;
+        shown.learnWord = hit.word;
+        shown.learnLeft = q.sentenceWords;
+        if (hit.replacesPrevious && !shown.learnLeft.isEmpty()) {
+            shown.learnLeft.removeLast();
+        }
+        m_shown.push_back(std::move(shown));
+    }
+}
+
+void ComposeUi::layoutPredictRow(PageDocument& doc) const
+{
+    PageGrid* predict = doc.findGrid(QStringLiteral("predict"));
+    PageGrid* phrase = doc.findGrid(QStringLiteral("phrase"));
+    const PageGrid* authPredict = m_composeAuthored.findGrid(QStringLiteral("predict"));
+    const PageGrid* authPhrase = m_composeAuthored.findGrid(QStringLiteral("phrase"));
+    const PageGrid* authChips = m_composeAuthored.findGrid(QStringLiteral("chips"));
+    if (!predict || !phrase || !authPredict || !authPhrase) {
+        return;
+    }
+    const int pRow = authPredict->row;
+    const int phRow = authPhrase->row;
+    const int phSpan = std::max(1, authPhrase->rowSpan);
+    const bool hide = nameEditing() || !m_settings.composePredictions;
+    if (hide) {
+        predict->rowSpan = 0;
+        predict->colSpan = 0;
+        predict->cells.clear();
+        predict->columnTracks.clear();
+        phrase->row = std::min(pRow, phRow);
+        int bottom = phRow + phSpan;
+        if (nameEditing() && authChips) {
+            bottom = std::max(bottom, authChips->row + std::max(1, authChips->rowSpan));
+        }
+        phrase->rowSpan = std::max(1, bottom - phrase->row);
+        return;
+    }
+    predict->row = pRow;
+    predict->rowSpan = std::max(1, authPredict->rowSpan);
+    predict->col = authPredict->col;
+    predict->colSpan = std::max(1, authPredict->colSpan);
+    phrase->row = phRow;
+    phrase->rowSpan = phSpan;
+    predict->rows = 1;
+    predict->cells.clear();
+    predict->columnTracks.clear();
+    if (m_shown.isEmpty()) {
+        predict->columns = 1;
+        PageCell empty;
+        empty.id = QStringLiteral("pred_0");
+        empty.row = 0;
+        empty.col = 0;
+        empty.role = QStringLiteral("label");
+        predict->cells.push_back(std::move(empty));
+        return;
+    }
+    predict->columns = m_shown.size();
+    for (int i = 0; i < m_shown.size(); ++i) {
+        PageCell cell;
+        cell.id = QStringLiteral("pred_%1").arg(i);
+        cell.label = m_shown[i].label;
+        cell.row = 0;
+        cell.col = i;
+        cell.actions.push_back(
+            commandAction(QStringLiteral("compose.acceptPrediction.%1").arg(i)));
+        predict->cells.push_back(std::move(cell));
+        predict->columnTracks.push_back(
+            PageTrackSize::fromDim(PageDim::pixels(predictionWidth(m_shown[i].label))));
+    }
+}
+
+void ComposeUi::acceptPrediction(int slot)
+{
+    if (nameEditing() || slot < 0 || slot >= m_shown.size()) {
+        return;
+    }
+    const ShownPrediction shown = m_shown[slot];
+    m_buffer.replaceRange(shown.start, shown.end, shown.insertText);
+    if (m_settings.composePredictions) {
+        m_predictor.observe(shown.learnLeft, shown.learnWord);
+        if (!m_predictUserPath.isEmpty()) {
+            m_predictor.saveUser(m_predictUserPath);
+        }
+    }
+    refresh();
 }
 
 void ComposeUi::stampComposerChrome(PageDocument& doc) const

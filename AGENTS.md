@@ -41,6 +41,7 @@ Do not `raise()` / `HWND_TOP` an overlay on every gaze sample. `showOverlay()` i
 | Builtins / mapping fallthrough | `src/app/Commands.md`, then the file listed in that table |
 | Assist (look-to maps, mag, dwell-move) | `src/assist/README.md` |
 | Composer / speech | `src/app/ComposeUi.h`, `src/assist/SpeechEngine.h`, `src/app/Commands.md`. `docs/composer-elevenlabs.md` is a frozen 2026-09-03 spec — live behavior is Commands.md / shipped XML. |
+| Word prediction | `src/predict/README.md`. Sentence model for the Speak page suggestion row. |
 | Page designer | `src/editor/README.md` |
 | Paint / host window / theme | `src/ui/README.md`. Startup dock tour: `ui/SplashOverlay` (`showSplash` setting, Assist overlay) |
 | Material palettes (theme) | `src/ui/MaterialPalette.h`, `resources/layouts/main_settings_theme.xml` |
@@ -54,6 +55,7 @@ Do not `raise()` / `HWND_TOP` an overlay on every gaze sample. `showOverlay()` i
 | `src/app/` | Shell wiring, settings, command registry, gaze router |
 | `src/layout/` | Page AST, XML load/write, dwell, live session |
 | `src/assist/` | Magnifier, LTS, combo mouse, TTS, head-pose analog maps |
+| `src/predict/` | Sentence spelling and next-word model for the Speak page |
 | `src/editor/` | Qt Widgets page designer |
 | `src/ui/` | Host window, board paint, overlays, theme |
 | `src/input/` | Keyboard / mouse / scroll / gamepad inject |
@@ -61,7 +63,7 @@ Do not `raise()` / `HWND_TOP` an overlay on every gaze sample. `showOverlay()` i
 | `src/mapping/` | JSON command → input profiles; `HeadPoseCurve` analog eval |
 | `resources/layouts/` | Shipped Page XML (filename stem = catalog id) |
 | `packaging/` | MSI (`Gazer.wxs`), `Gazer.exe.manifest.in` (uiAccess), cert-trust cmd |
-| `tests/` | Qt Test binaries (`GazerPageTests`, `GazerDwellTests`, `GazerSpeechTests`) |
+| `tests/` | Qt Test binaries (`GazerPageTests`, `GazerDwellTests`, `GazerSpeechTests`, `GazerPredictTests`) |
 
 ## Naming traps
 
@@ -93,6 +95,7 @@ cmake --build build --target Gazer
 cmake --build build --target GazerPageTests
 cmake --build build --target GazerDwellTests
 cmake --build build --target GazerSpeechTests
+cmake --build build --target GazerPredictTests
 ```
 
 MinGW `bin` on `PATH`. One Ninja version per tree. Includes are `"layout/PageLoader.h"` from `src/`.

@@ -15,7 +15,7 @@ AHK / CLI / Python is not this table. `Gazer.exe --action …` (and the `Gazer` 
 | `SettingsCommands.cpp` | `settings.*` live boards, including `settings.speech.*` |
 | `SettingsHeadPose.cpp` | `headPose.*` analog maps |
 | `SettingsLookTo.cpp` | `lookTo.edit.*` / `lookTo.map.*` ring editors |
-| `ComposeCommands.cpp` | `compose.*` (prefix `compose.removeWord.`) |
+| `ComposeCommands.cpp` | `compose.*` (prefix `compose.removeWord.` / `compose.acceptPrediction.`) |
 
 When adding a command: register it and add a row here.
 
@@ -104,6 +104,7 @@ When adding a command: register it and add a row here.
 | `compose.clear` / `compose.undo` / `compose.redo` | Buffer |
 | `compose.backspace` / `compose.deleteWord` | Edit |
 | `compose.removeWord.<i>` | Prefix; `i` is visible chip 0–11 |
+| `compose.acceptPrediction.<i>` | Prefix; dwell suggestion `i` above the phrase. Replaces the word being typed, or inserts the next word |
 | `compose.moveEndOfWord.<i>` / `compose.moveStartOfWord.<i>` | Prefix; caret to that chip’s word edge |
 | `compose.openVoices` / `compose.openHistory` | Voice list (model, speed, catalog); history |
 | `compose.toggleFreestyle` | Switch Speak between topics and Freestyle (saved voices + tags) |
@@ -162,6 +163,7 @@ Patterns, not every generated name:
 | `settings.hover.custom.toggle` | Custom hover outline (off = progress color) |
 | `settings.progress.*.toggle` / `settings.mouseProgress.*.toggle` | Progress bits (radial / pie / fill). Any subset, including none |
 | `settings.session.autoCollapse.toggle` / `.startDocked.toggle` / `.showSplash.toggle` / `.showSplash.play` / `.layoutAutoClose.toggle` | Session |
+| `settings.speech.predictions.toggle` | Word suggestions on the Speak page |
 | `settings.speech.editKey` / `.clearKey` | Paste-from-clipboard API-key board / wipe DPAPI |
 | `settings.speech.key.paste` / `.save` / `.cancel` / `.clear` | Key board |
 | `settings.speech.model.sapi` / `.eleven_flash_v2_5` / `.eleven_v3` | Same handlers as `speech.model.*` (ComposeCommands) |

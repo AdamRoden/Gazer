@@ -21,16 +21,19 @@
     <SubGrid id="soundboard" row="2" col="0" rows="3" columns="4" gap="8" margin="8" style="group" layers="1,2,3,4">
       <Cell id="sb_placeholder" row="0" col="0" colSpan="4" role="label"/>
     </SubGrid>
-    <SubGrid id="compose" row="3" col="0" rows="2" columns="3" rowHeights="2*,*" columnWidths="1*,14*,1*" gap="8" margin="4" layers="1,2,3,4">
-      <SubGrid id="edit_keys" row="0" col="0" rowSpan="2" rows="3" columns="1" columnWidths="1/3h" gap="6" margin="0" layers="1,2,3,4">
+    <SubGrid id="compose" row="3" col="0" rows="3" columns="3" rowHeights="0.7*,2*,*" columnWidths="1*,14*,1*" gap="8" margin="4" layers="1,2,3,4">
+      <SubGrid id="edit_keys" row="0" col="0" rowSpan="3" rows="3" columns="1" columnWidths="1/3h" gap="6" margin="0" layers="1,2,3,4">
         <Cell id="clear" row="0" col="0" label="Clear" style="round" command="compose.clear"/>
         <Cell id="undo" row="1" col="0" icon="undo" label="Undo" style="round" command="compose.undo"/>
         <Cell id="redo" row="2" col="0" icon="redo" label="Redo" style="round" command="compose.redo"/>
       </SubGrid>
-      <SubGrid id="phrase" row="0" col="1" rows="1" columns="1" gap="0" margin="4" style="group" layers="1,2,3,4">
+      <SubGrid id="predict" row="0" col="1" rows="1" columns="1" gap="6" margin="0" layers="1,2,3,4">
+        <Cell id="pred_0" row="0" col="0" role="label"/>
+      </SubGrid>
+      <SubGrid id="phrase" row="1" col="1" rows="1" columns="1" gap="0" margin="4" style="group" layers="1,2,3,4">
         <Cell id="phrase" row="0" col="0" role="display" textStyle="body"/>
       </SubGrid>
-      <SubGrid id="chips" row="1" col="1" colSpan="1" rows="1" columns="13" gap="6" margin="4" layers="1,2,3,4">
+      <SubGrid id="chips" row="2" col="1" colSpan="1" rows="1" columns="13" gap="6" margin="4" layers="1,2,3,4">
         <Cell id="chip_0" row="0" col="0">
           <Phase command="compose.moveEndOfWord.0"/>
           <Phase command="compose.removeWord.0"/>
@@ -81,7 +84,7 @@
         </Cell>
         <Cell id="chip_more" row="0" col="12" role="label"/>
       </SubGrid>
-      <SubGrid id="speak_keys" row="0" col="2" rowSpan="2" rows="3" columns="1" columnWidths="1/3h" gap="6" margin="0" layers="1,2,3,4">
+      <SubGrid id="speak_keys" row="0" col="2" rowSpan="3" rows="3" columns="1" columnWidths="1/3h" gap="6" margin="0" layers="1,2,3,4">
         <Cell id="speak" row="0" col="0" icon="Speak" label="Speak" activeState="compose.busy" style="round" command="compose.speak"/>
         <Cell id="voices" row="1" col="0" icon="recordVoiceOver" label="Voice" style="round" command="compose.openVoices"/>
         <Cell id="history" row="2" col="0" icon="history" label="History" style="round" command="compose.openHistory"/>

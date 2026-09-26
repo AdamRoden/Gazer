@@ -80,6 +80,15 @@ void ComposeBuffer::insert(QStringView chars)
     apply(next, m_caret + int(chars.size()), Kind::Insert, coalesce);
 }
 
+void ComposeBuffer::replaceRange(int start, int end, QStringView text)
+{
+    start = std::clamp(start, 0, int(m_text.size()));
+    end = std::clamp(end, start, int(m_text.size()));
+    QString next = m_text;
+    next.replace(start, end - start, text.toString());
+    apply(next, start + int(text.size()), Kind::Other, false);
+}
+
 void ComposeBuffer::insertPadded(QStringView chunk)
 {
     if (chunk.isEmpty()) {

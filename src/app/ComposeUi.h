@@ -3,6 +3,7 @@
 #include "assist/ComposeBuffer.h"
 #include "assist/VoiceCatalog.h"
 #include "core/GazePoint.h"
+#include "predict/WordPredictor.h"
 #include "layout/InvalidGazeGrace.h"
 #include "layout/PageTypes.h"
 
@@ -69,6 +70,7 @@ public:
     void backspace();
     void deleteWord();
     void removeVisibleWord(int slot);
+    void acceptPrediction(int slot);
     void moveEndOfWord(int slot);
     void moveStartOfWord(int slot);
     void insertTagAt(int index);
@@ -148,6 +150,9 @@ private:
     void fillTopicsMode(PageDocument& doc) const;
     void fillFreestyleMode(PageDocument& doc) const;
     void stampComposerChrome(PageDocument& doc) const;
+    void updatePredictions();
+    void layoutPredictRow(PageDocument& doc) const;
+    void loadPredictor();
     void closeItemEdit();
     bool beginNameEdit(NameEditKind kind, const QString& target, const QString& initial);
     void endNameEdit(bool restorePhrase);
@@ -208,6 +213,18 @@ private:
     enum class ListScroll { None, History, Voices };
     ListScroll m_listScroll = ListScroll::None;
     mutable PageDocument m_composeAuthored;
+    struct ShownPrediction {
+        QString label;
+        QString insertText;
+        int start = 0;
+        int end = 0;
+        QString learnWord;
+        QStringList learnLeft;
+    };
+    QVector<ShownPrediction> m_shown;
+    WordPredictor m_predictor;
+    QString m_predictUserPath;
+    bool m_predictWarned = false;
     InvalidGazeGrace m_listScrollGrace;
     QElapsedTimer m_listScrollClock;
     qint64 m_listScrollEngageAtMs = -1;

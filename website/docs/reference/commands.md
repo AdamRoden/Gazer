@@ -147,6 +147,7 @@ XML `mouseMoveByDirection` is the compass form of the nudge commands.
 | `compose.clear` / `compose.undo` / `compose.redo` | Buffer. |
 | `compose.backspace` / `compose.deleteWord` | Edit (rapid dwell). |
 | `compose.removeWord.<i>` | Prefix; `i` is visible chip 0–11. |
+| `compose.acceptPrediction.<i>` | Prefix; dwell suggestion `i` above the phrase. |
 | `compose.moveEndOfWord.<i>` / `compose.moveStartOfWord.<i>` | Caret to that chip’s word edge. |
 | `compose.openVoices` / `compose.openHistory` | Voice list; history. |
 | `compose.toggleFreestyle` | Speak board: topics ↔ Freestyle. |
@@ -207,6 +208,7 @@ Patterns — boards generate many concrete names from these:
 | `settings.session.autoCollapse.toggle` / `.startDocked.toggle` / `.showSplash.toggle` / `.showSplash.play` / `.layoutAutoClose.toggle` | Session. |
 | `settings.speech.editKey` / `.clearKey` | Paste-from-clipboard API-key board / wipe DPAPI. |
 | `settings.speech.key.paste` / `.save` / `.cancel` / `.clear` | Key board. |
+| `settings.speech.predictions.toggle` | Turn word suggestions on the Speak page on or off. |
 | `settings.speech.model.sapi` / `.eleven_flash_v2_5` / `.eleven_v3` | Same handlers as `speech.model.*`. |
 | `settings.dwell.slow` / `.normal` / `.fast` / `.custom` | Speed presets (standard + rapid together). |
 | `settings.dwell.custom.save` / `.restore` | Save or restore Custom timings. |

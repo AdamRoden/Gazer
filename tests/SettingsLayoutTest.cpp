@@ -682,15 +682,19 @@ void SettingsLayoutTest::adminCaptureModes()
     const PageGrid* speech = doc.findGrid(QStringLiteral("sec_speech"));
     QVERIFY(speech);
     QCOMPARE(speech->row, 5);
-    QCOMPARE(speech->rowSpan, 4);
-    QCOMPARE(speech->rows, 4);
+    QCOMPARE(speech->rowSpan, 5);
+    QCOMPARE(speech->rows, 5);
     QCOMPARE(doc.findGrid(QStringLiteral("row_key"))->row, 1);
     QCOMPARE(doc.findGrid(QStringLiteral("row_eng"))->row, 2);
     QCOMPARE(doc.findGrid(QStringLiteral("row_spd"))->row, 3);
+    QCOMPARE(doc.findGrid(QStringLiteral("row_predict"))->row, 4);
+    QCOMPARE(doc.findCell(QStringLiteral("predict_on"))->role, QStringLiteral("toggle"));
+    QCOMPARE(doc.findCell(QStringLiteral("predict_on"))->actions[0].command,
+             QStringLiteral("settings.speech.predictions.toggle"));
     QVERIFY(!doc.findGrid(QStringLiteral("sec_key")));
     QVERIFY(!doc.findGrid(QStringLiteral("sec_eng")));
     QVERIFY(!doc.findGrid(QStringLiteral("sec_spd")));
-    QCOMPARE(doc.findGrid(QStringLiteral("sec_capture"))->row, 9);
+    QCOMPARE(doc.findGrid(QStringLiteral("sec_capture"))->row, 10);
     QVERIFY(!doc.findGrid(QStringLiteral("tabs")));
 }
 

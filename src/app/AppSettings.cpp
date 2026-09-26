@@ -264,6 +264,7 @@ constexpr BoolSpec kBoolSpecs[] = {
     {"autoCollapseMain", &AppSettings::autoCollapseMain},
     {"startDocked", &AppSettings::startDocked},
     {"showSplash", &AppSettings::showSplash},
+    {"composePredictions", &AppSettings::composePredictions},
     {"layoutAutoClose", &AppSettings::layoutAutoClose},
     {"flashCustom", &AppSettings::flashCustom},
     {"hoverCustom", &AppSettings::hoverCustom},

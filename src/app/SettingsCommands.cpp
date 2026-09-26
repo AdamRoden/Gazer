@@ -114,6 +114,8 @@ void SettingsUi::registerCommands()
          "Auto-collapse Main"},
         {"settings.session.startDocked.toggle", &AppSettings::startDocked, "Start docked"},
         {"settings.session.showSplash.toggle", &AppSettings::showSplash, "Startup splash"},
+        {"settings.speech.predictions.toggle", &AppSettings::composePredictions,
+         "Word predictions"},
         {"settings.session.layoutAutoClose.toggle", &AppSettings::layoutAutoClose,
          "Auto-close boards"},
         {"settings.hover.custom.toggle", &AppSettings::hoverCustom, "Hover custom"},

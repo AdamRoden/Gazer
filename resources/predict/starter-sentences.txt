@@ -1,0 +1,238 @@
+# Short lines for the Speak page. One sentence per line.
+I want water.
+I want food.
+I want help.
+I want more.
+I want to go home.
+I want to sit down.
+I want to lie down.
+I want a drink.
+I want a blanket.
+I need water.
+I need help.
+I need the bathroom.
+I need a rest.
+I need to stop.
+I need my medicine.
+Please help me.
+Please come here.
+Please wait.
+Please say that again.
+Please call the nurse.
+Thank you.
+Thank you for your help.
+Yes please.
+No thank you.
+Yes I do.
+No I don't.
+I am hungry.
+I am thirsty.
+I am tired.
+I am cold.
+I am hot.
+I am in pain.
+I am finished.
+I am ready.
+I am okay.
+I feel sick.
+I feel better.
+I feel dizzy.
+I feel sad.
+I feel happy.
+I hurt here.
+My head hurts.
+My back hurts.
+My stomach hurts.
+It hurts.
+Stop please.
+Go ahead.
+Slow down.
+Speak up.
+I can't hear you.
+Can you help me.
+Can you repeat that.
+Can you call someone.
+What time is it.
+Where is the bathroom.
+Where is my phone.
+How are you.
+I love you.
+I miss you.
+See you later.
+Good morning.
+Good night.
+Good afternoon.
+Hello.
+Goodbye.
+Excuse me.
+I don't understand.
+I don't know.
+That is right.
+That is wrong.
+Maybe later.
+Not now.
+Not today.
+A little bit.
+A lot.
+All done.
+One more time.
+Turn the light on.
+Turn the light off.
+Open the door.
+Close the door.
+Open the window.
+I want the TV on.
+I want the TV off.
+I want music.
+I want quiet.
+I am too hot.
+I am too cold.
+Please turn the fan on.
+Please get the nurse.
+Please get my mom.
+Please get my dad.
+The doctor is here.
+The doctor is at the hospital.
+The hospital has a doctor.
+The nurse is at the hospital.
+The doctor sees the patient at the hospital.
+The nurse helps the patient.
+I need the doctor.
+I need a nurse.
+Call the doctor.
+The hospital is on the hill.
+We are going to the hospital.
+My appointment is at the hospital.
+I want to see the doctor.
+The doctor said I can go home.
+Please take me to the hospital.
+I am going home.
+I want to go outside.
+I want to stay in bed.
+I want to get up.
+Help me sit up.
+Help me stand.
+I can do it.
+I need a minute.
+Just a minute.
+Wait a minute.
+I am thinking.
+Let me think.
+Try again.
+That is better.
+That is enough.
+I want tea.
+I want coffee.
+I want juice.
+I want soup.
+I want breakfast.
+I want lunch.
+I want dinner.
+I am full.
+I am still hungry.
+More water please.
+More food please.
+No more thank you.
+I want my glasses.
+I want my phone.
+I want my book.
+Read to me.
+Stay with me.
+Come closer.
+Sit with me.
+Hold my hand.
+I am scared.
+I am worried.
+I am lonely.
+Talk to me.
+Tell me a story.
+What is your name.
+My name is here.
+Nice to meet you.
+See you tomorrow.
+I will be okay.
+We will be okay.
+Please be careful.
+Please be quiet.
+Please be patient.
+I need pain medicine.
+The pain is better.
+The pain is worse.
+I can't breathe well.
+I feel short of breath.
+Please raise the bed.
+Please lower the bed.
+I want the head up.
+I want the head down.
+Scratch my back.
+I have an itch.
+I am uncomfortable.
+Move my pillow.
+Fix my blanket.
+I dropped it.
+Pick it up please.
+I am done eating.
+I am done drinking.
+I want to brush my teeth.
+I want to wash my face.
+I need a shower.
+Not a shower.
+Later please.
+Right now please.
+As soon as you can.
+When you have time.
+No rush.
+Hurry please.
+I am waiting.
+Are you there.
+I am here.
+Come back soon.
+Don't go.
+You can go.
+I love this.
+I don't like that.
+This one.
+That one.
+The other one.
+Left side.
+Right side.
+Higher.
+Lower.
+Softer.
+Louder.
+Again please.
+Once more.
+Last time.
+First time.
+I remember.
+I forgot.
+Remind me.
+Write it down.
+Show me.
+Look at this.
+Listen.
+I have a question.
+I have an idea.
+Let us try.
+I agree.
+I disagree.
+Sounds good.
+No way.
+Of course.
+You are welcome.
+Pardon me.
+Bless you.
+Happy birthday.
+Congratulations.
+I am proud of you.
+Well done.
+Good job.
+I miss home.
+Take me home.
+Home soon.
+The hill is quiet.
+The view from the hill is nice.
+We walked up the hill.
+The hospital sits on the hill.
+A doctor works on the hill.
+I can see the hospital from the hill.

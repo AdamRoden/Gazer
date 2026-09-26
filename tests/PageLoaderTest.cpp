@@ -729,7 +729,14 @@ void PageLoaderTest::loadComposePage()
     QCOMPARE(doc.findGrid(QStringLiteral("speak_keys"))->col, 2);
     QCOMPARE(doc.findGrid(QStringLiteral("chips"))->col, 1);
     QCOMPARE(doc.findGrid(QStringLiteral("chips"))->colSpan, 1);
+    QCOMPARE(doc.findGrid(QStringLiteral("chips"))->row, 2);
     QCOMPARE(doc.findGrid(QStringLiteral("compose"))->columns, 3);
+    QCOMPARE(doc.findGrid(QStringLiteral("compose"))->rows, 3);
+    QCOMPARE(doc.findGrid(QStringLiteral("predict"))->row, 0);
+    QCOMPARE(doc.findGrid(QStringLiteral("predict"))->col, 1);
+    QCOMPARE(doc.findGrid(QStringLiteral("phrase"))->row, 1);
+    QCOMPARE(doc.findGrid(QStringLiteral("edit_keys"))->rowSpan, 3);
+    QCOMPARE(doc.findGrid(QStringLiteral("speak_keys"))->rowSpan, 3);
     QCOMPARE(doc.findCell(QStringLiteral("clear"))->styleId, QStringLiteral("round"));
     QCOMPARE(doc.findCell(QStringLiteral("undo"))->styleId, QStringLiteral("round"));
     QCOMPARE(doc.findCell(QStringLiteral("redo"))->styleId, QStringLiteral("round"));

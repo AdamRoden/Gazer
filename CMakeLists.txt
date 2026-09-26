@@ -115,6 +115,10 @@ set(GAZER_SOURCES
     src/assist/ComposeBuffer.cpp
     src/assist/SpeechSecrets.cpp
     src/assist/ElevenClient.cpp
+    src/predict/PredictModel.cpp
+    src/predict/PredictBeam.cpp
+    src/predict/PredictScore.cpp
+    src/predict/PredictBlob.cpp
     src/assist/AhkLauncher.cpp
     src/assist/ChildProcess.cpp
     src/assist/SidecarHost.cpp
@@ -246,6 +250,7 @@ set(GAZER_HEADERS
     src/assist/AudioGain.h
     src/assist/SystemVolume.h
     src/assist/ComposeBuffer.h
+    src/predict/WordPredictor.h
     src/assist/SpeechSecrets.h
     src/assist/ElevenClient.h
     src/assist/AhkLauncher.h
@@ -557,3 +562,27 @@ add_executable(GazerSpeechTests
 target_include_directories(GazerSpeechTests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(GazerSpeechTests PRIVATE Qt6::Core Qt6::Gui Qt6::Network Qt6::Test)
 add_test(NAME GazerSpeechTests COMMAND GazerSpeechTests)
+
+add_executable(GazerPredictTests
+    tests/predict_tests_main.cpp
+    tests/PredictTest.cpp
+    src/predict/PredictModel.cpp
+    src/predict/PredictBeam.cpp
+    src/predict/PredictScore.cpp
+    src/predict/PredictBlob.cpp
+    src/predict/PredictTrain.cpp
+)
+target_include_directories(GazerPredictTests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_link_libraries(GazerPredictTests PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME GazerPredictTests COMMAND GazerPredictTests)
+
+add_executable(BuildPredictModel
+    tools/build-predict-model.cpp
+    src/predict/PredictModel.cpp
+    src/predict/PredictBeam.cpp
+    src/predict/PredictScore.cpp
+    src/predict/PredictBlob.cpp
+    src/predict/PredictTrain.cpp
+)
+target_include_directories(BuildPredictModel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_link_libraries(BuildPredictModel PRIVATE Qt6::Core)

@@ -143,6 +143,8 @@ struct AppSettings {
     double speechPitch = 1.0;
     /// Playback gain for composer clips (1–5×). SAPI cannot go above 100%.
     double speechVolume = 1.0;
+    /// Word suggestions above the Speak phrase.
+    bool composePredictions = true;
     QString speechLangFilter;
     QStringList elevenFavoriteVoiceIds;
     /// Runtime mirror of SpeechSecrets::hasKey(); not persisted.
