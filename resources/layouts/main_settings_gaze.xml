@@ -5,8 +5,10 @@
   <Style id="join" background="transparent" thickness="0" radius="0"/>
   <Style id="joinLeft" background="transparent" thickness="0" radius="10,0,0,10"/>
   <Style id="joinRight" background="transparent" thickness="0" radius="0,10,10,0"/>
-  <Grid id="board" desktopMode="true" rows="1" columns="16" anchor="Top" offset="0,0" size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" gap="16" margin="12" radius="16">
-    <SubGrid id="sec_gaze" row="0" col="0" colSpan="8" rows="5" columns="1" rowHeights="*,2*,2*,2*,2*" gap="6" margin="6" style="group">
+  <Grid id="board" desktopMode="true" rows="2" columns="16" anchor="Top" offset="0,0" size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" gap="16" margin="12" radius="16"
+        rowHeights="96,*">
+    <Cell id="page_title" row="0" col="0" colSpan="16" label="Gaze" caption="Follow, lens, and look-to maps" role="label" textStyle="title" style="plain"/>
+    <SubGrid id="sec_gaze" row="1" col="0" colSpan="8" rows="5" columns="1" rowHeights="*,2*,2*,2*,2*" gap="6" margin="6" style="group">
       <Cell id="h_gaze" row="0" col="0" label="Gaze" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_follow" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="f_l" row="0" col="0" label="Gaze follow" caption="Reticle, gaze mouse, and live lens." role="label" style="plain"/>
@@ -42,7 +44,7 @@
       </SubGrid>
     </SubGrid>
 
-    <SubGrid id="sec_look" row="0" col="8" colSpan="8" rows="6" columns="1" rowHeights="*,2*,2*,2*,2*,2*" gap="6" margin="6" style="group">
+    <SubGrid id="sec_look" row="1" col="8" colSpan="8" rows="6" columns="1" rowHeights="*,2*,2*,2*,2*,2*" gap="6" margin="6" style="group">
       <Cell id="h_look" row="0" col="0" label="Look-to maps" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_scroll" row="1" col="0" rows="1" columns="3" gap="6" style="row">
         <Cell id="scroll_l" row="0" col="0" label="Scroll" caption="Wheel from gaze vs the origin." icon="lookToScroll" role="label" style="plain"/>

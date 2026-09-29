@@ -5,9 +5,10 @@
   <Style id="join" background="transparent" thickness="0" radius="0"/>
   <Style id="joinLeft" background="transparent" thickness="0" radius="10,0,0,10"/>
   <Style id="joinRight" background="transparent" thickness="0" radius="0,10,10,0"/>
-  <Grid id="board" desktopMode="true" rows="2" columns="16" anchor="Top" offset="0,0" size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" gap="6" margin="12" radius="16"
-        rowHeights="5*,1.6*">
-    <SubGrid id="cols" row="0" col="0" colSpan="16" rows="1" columns="2" gap="16">
+  <Grid id="board" desktopMode="true" rows="3" columns="16" anchor="Top" offset="0,0" size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" gap="6" margin="12" radius="16"
+        rowHeights="96,5*,1.6*">
+    <Cell id="page_title" row="0" col="0" colSpan="16" label="Zoom" caption="Zoom window, foresight, and markers" role="label" textStyle="title" style="plain"/>
+    <SubGrid id="cols" row="1" col="0" colSpan="16" rows="1" columns="2" gap="16">
       <SubGrid id="sec_zoom" row="0" col="0" rows="5" columns="1" rowHeights="*,2*,2*,2*,2*" gap="6" margin="6" style="group">
         <Cell id="h_zoom" row="0" col="0" label="Zoom" role="label" textStyle="section" style="plain"/>
         <SubGrid id="row_mode" row="1" col="0" rows="1" columns="3" gap="0" style="row">
@@ -81,7 +82,7 @@
       </SubGrid>
     </SubGrid>
 
-    <SubGrid id="sec_bottom" row="1" col="0" colSpan="16" rows="1" columns="2" gap="16">
+    <SubGrid id="sec_bottom" row="2" col="0" colSpan="16" rows="1" columns="2" gap="16">
       <SubGrid id="sec_marks" row="0" col="0" rows="2" columns="1" rowHeights="*,2*" gap="6" margin="6" style="group">
         <Cell id="h_marks" row="0" col="0" label="Region markers" caption="What you see while choosing the zoom region." role="label" textStyle="section" style="plain"/>
         <SubGrid id="act_zi" row="1" col="0" rows="1" columns="4" gap="0" style="row">
