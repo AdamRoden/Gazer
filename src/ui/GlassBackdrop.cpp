@@ -108,7 +108,7 @@ void GlassBackdrop::rebuild()
         return;
     }
 
-    // Do not change WDA_EXCLUDEFROMCAPTURE here. Admin Capture None is the
+    // Do not change WDA_EXCLUDEFROMCAPTURE here. Setup → None is the
     // only path that sets that affinity on the page host; on some GPUs it
     // hides the board on the monitor as well as in screenshots. This grab
     // leaves affinity alone and stamps non-frosted chrome so a drawer still

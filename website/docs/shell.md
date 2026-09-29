@@ -18,7 +18,7 @@ Drawer (layer 2) and quit (layer 3) start hidden; the page opens on layer 1. **M
 
 ## First session
 
-1. Start Gazer. A splash tour walks the dock (Assist → **Play tour** to replay). Unless **start docked** is on, the drawer opens after the tour.
+1. Start Gazer. A splash tour walks the dock (Settings → **Setup** → **Play tour** to replay). Unless **start docked** is on, the drawer opens after the tour.
 2. Dwell a cell until progress completes.
 3. Open Keyboard, Speak, Mouse, Gamepad, Assist, or Settings as extra pages. They stay up after the drawer collapses.
 4. **Hide** hides the drawer. **Close All** closes other pages and then collapses.
@@ -50,7 +50,7 @@ Catalog id = filename stem under `resources/layouts/`. User copies in `%AppData%
 | Id | Kind |
 |----|------|
 | `main` | Root dock + drawer + quit |
-| `main_settings` / `main_settings_*` | Settings hub, then basic tabs (Speed / Magnify / Assist / Theme / Head) and an Advanced layer (Adv. speed / Indicators / Tools / Admin) |
+| `main_settings` / `main_settings_*` | Settings hub and tabs (Dwell, Zoom, Place, Gaze, Head, Speak, Theme, Setup). Done closes settings. |
 | `compose` | Gaze composer (phrase, chips, soundboard, keyboard) |
 | `example_keyboard` | Compact keyboard (layers: letters, shift, symbols, symbols+shift) |
 | `example_mouse` | Mouse pad |

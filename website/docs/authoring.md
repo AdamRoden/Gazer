@@ -69,13 +69,13 @@ When dwell **ends** (look away or at another cell, after blink grace), the host 
 | `Send` | `key[, Down\|Up[, durationMs]]` | Type a key into the focused window (`q`, `,`, `Enter`, `a,500`). A comma key is `send=","`. Named keys, Shifted punctuation, and composer capture: [Send](reference/actions.md#send). |
 | `Command` | builtin or mapping name | Look up `toggleLookToScroll`, `backspace`, `settings.dwell.fast`, `gamepad.a`, … Exact builtin, then prefix, then `default.json`. [Commands](reference/commands.md). |
 | `MouseLeftClick` (also Middle / Right) | `default` / `double` / `down` / `up` / `toggle` | Click or hold at the **current** cursor. Empty value is a default click. |
-| `MouseMoveToGaze` | zoom: empty / `0` / `N` / `-1` / `-2` | Arm dwell-move. Next desktop dwell warps the cursor. Empty follows Settings → Magnify. |
+| `MouseMoveToGaze` | zoom: empty / `0` / `N` / `-1` / `-2` | Arm dwell-move. Next desktop dwell warps the cursor. Empty follows Settings → Zoom. |
 | `MouseLeftClickAtGaze` (also Middle / Right) | same zoom tokens | Arm dwell-move, then one click. |
 | `MouseMoveByDirection` | `n`/`s`/`e`/`w`/`ne`/`nw`/`se`/`sw`[, px] | Nudge now. Omitted amount uses the mouse-assist step. |
 | `MouseMoveToPoint` | `[relative,]x,y` | Warp (or relative-move) now. Dim tokens allowed. |
 | `OpenPage` | `targetId[, true]` | Attach that catalog page. `true` saves a breadcrumb for **GoBack**. |
 | `TogglePage` | `targetId[, true]` | Open if that id is closed; close if it is already attached. |
-| `HostPage` | `fragmentId` or `hostId, fragmentId` | Swap a `src` slot on the host (Settings body). No second opaque page. |
+| `HostPage` | `fragmentId` or `hostId, fragmentId` | Swap a `src` slot on the source page, or the stack page that embeds it. Two ids name the host. Settings swaps Dwell, Zoom, Place, Gaze, Head, Speak, Theme, and Setup this way. |
 | `ShowLayers` | `layer[, layer…]` | Replace this page’s visible layer set (`1,2`). |
 | `ClosePage` | (empty) | Close the page that owns the cell (the host, if this cell is in a `src` slot). |
 | `CloseAllPages` / `CloseOtherPages` | (empty) | Drop attached pages (all / except the source). Also disable ComboMouse. |

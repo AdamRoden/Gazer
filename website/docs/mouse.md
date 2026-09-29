@@ -10,7 +10,7 @@
 | **Click** at the cursor | `mouseLeftClick=""` / `double` / `down` / `up` / `toggle` (also Middle / Right) | One click, double-click, hold, release, or flip hold. `activeState="mouse.leftHold"`. Commands `mouseLeftClick` and `mouseLeftDownUp` are the click / toggle-hold forms. |
 | **Scroll** | `mouseScrollUp` / `Down` / `Left` / `Right` | Wheel by `cycleMouseScrollAmount`. |
 | **Look-to-scroll** | `lookToScroll` / `toggleLookToScroll` | Place an origin, then gaze vs the ring drives wheel. |
-| **Move to gaze** | `mouseMoveToGaze=""` (zoom token optional) | **Arm**: the next desktop dwell warps the cursor. Arming again cancels. Zoom: empty = Settings mag-pick; `0` = no magnify; `N` = N×; `-1` / `-2` = foresight. |
+| **Move to gaze** | `mouseMoveToGaze=""` (zoom token optional) | **Arm**: the next desktop dwell warps the cursor. Arming again cancels. Zoom: empty = Settings → Zoom; `0` = no magnify; `N` = N×; `-1` / `-2` = foresight. |
 | **Move + click at gaze** | `mouseLeftClickAtGaze=""` (also Middle / Right) | Arm dwell-move, then one click of that button. Same zoom tokens. |
 | **Gaze click loop** | `mouseMoveToGazeClickLoop` | Sticky dwell-move then click until you stop it. |
 | **ComboMouse** | `toggleComboMouse` | Inner drift ring + outer command pie. |

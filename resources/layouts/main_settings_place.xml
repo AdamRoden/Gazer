@@ -1,0 +1,85 @@
+<Page id="main_settings_place" name="Place" radius="16">
+  <Style id="group" background="bg95" thickness="0" radius="16"/>
+  <Style id="row" background="transparent" thickness="0" radius="0"/>
+  <Style id="plain" background="transparent" thickness="0" radius="0"/>
+  <Style id="join" background="transparent" thickness="0" radius="0"/>
+  <Style id="joinLeft" background="transparent" thickness="0" radius="10,0,0,10"/>
+  <Style id="joinRight" background="transparent" thickness="0" radius="0,10,10,0"/>
+  <Grid id="board" desktopMode="true" rows="1" columns="16" anchor="Top" offset="0,0" size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" gap="16" margin="12" radius="16">
+    <SubGrid id="sec_place" row="0" col="0" colSpan="8" rows="5" columns="1" rowHeights="*,2*,2*,2*,2*" gap="6" margin="6" style="group">
+      <Cell id="h_place" row="0" col="0" label="Place" role="label" textStyle="section" style="plain"/>
+      <SubGrid id="row_pd" row="1" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="pd_label" row="0" col="0" label="Pointer dwell" caption="Dwell to place the cursor." role="label" style="plain"/>
+        <SubGrid id="act_pd" row="0" col="1" rows="1" columns="9" gap="0" style="row">
+          <Cell id="pd_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.mouseMoveDwellMs.dec"/>
+          <Cell id="pd_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="mouseMoveDwellMs" style="join"/>
+          <Cell id="pd_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.mouseMoveDwellMs.inc"/>
+          <Cell id="pd_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.mouseMoveDwellMs"/>
+        </SubGrid>
+      </SubGrid>
+      <SubGrid id="row_pg" row="2" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="pg_label" row="0" col="0" label="Pointer grace" caption="Time before an unfinished Move-to is canceled. 0 = off." role="label" style="plain"/>
+        <SubGrid id="act_pg" row="0" col="1" rows="1" columns="9" gap="0" style="row">
+          <Cell id="pg_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.mouseMoveSelectTimeoutMs.dec"/>
+          <Cell id="pg_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="mouseMoveSelectTimeoutMs" style="join"/>
+          <Cell id="pg_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.mouseMoveSelectTimeoutMs.inc"/>
+          <Cell id="pg_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.mouseMoveSelectTimeoutMs"/>
+        </SubGrid>
+      </SubGrid>
+      <SubGrid id="row_pi" row="3" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="pi_label" row="0" col="0" label="Final pick" caption="Markers at the click point." role="label" style="plain"/>
+        <SubGrid id="act_pi" row="0" col="1" rows="1" columns="3" gap="0" style="row">
+          <Cell id="pi_cur" row="0" col="0" label="Cursor" role="toggle" activeState="settings.mousePickStyle.cursor.toggle" style="joinLeft" command="settings.mousePickStyle.cursor.toggle"/>
+          <Cell id="pi_dot" row="0" col="1" label="Dot" role="toggle" activeState="settings.mousePickStyle.dot.toggle" style="join" command="settings.mousePickStyle.dot.toggle"/>
+          <Cell id="pi_xh" row="0" col="2" label="Crosshair" role="toggle" activeState="settings.mousePickStyle.crosshair.toggle" style="joinRight" command="settings.mousePickStyle.crosshair.toggle"/>
+        </SubGrid>
+      </SubGrid>
+      <SubGrid id="row_test" row="4" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="test_label" row="0" col="0" label="Try" caption="Dwell Move to… to place the cursor." role="label" style="plain"/>
+        <Cell id="test_move" row="0" col="1" icon="mouseMove" label="Move to…" activeState="mouseMoveToGaze" command="mouseMoveToGaze"/>
+      </SubGrid>
+    </SubGrid>
+
+    <SubGrid id="sec_combo" row="0" col="8" colSpan="8" rows="6" columns="1" rowHeights="*,2*,2*,2*,2*,2*" gap="6" margin="6" style="group">
+      <Cell id="h_combo" row="0" col="0" label="ComboMouse" role="label" textStyle="section" style="plain"/>
+      <SubGrid id="row_combo_on" row="1" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="combo_on_l" row="0" col="0" label="Enable" caption="Dwell to place, then drift and click from the pie." role="label" style="plain"/>
+        <Cell id="combo_on" row="0" col="1" label="ComboMouse" icon="comboMouse" role="toggle" activeState="comboMouse" style="join" command="toggleComboMouse"/>
+      </SubGrid>
+      <SubGrid id="row_combo_inner" row="2" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="ci_l" row="0" col="0" label="Inner radius" caption="Inner edge of the drift ring." role="label" style="plain"/>
+        <SubGrid id="act_ci" row="0" col="1" rows="1" columns="9" gap="0" style="row">
+          <Cell id="ci_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.comboInnerRadiusPx.dec"/>
+          <Cell id="ci_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="comboInnerRadiusPx" style="join"/>
+          <Cell id="ci_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.comboInnerRadiusPx.inc"/>
+          <Cell id="ci_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.comboInnerRadiusPx"/>
+        </SubGrid>
+      </SubGrid>
+      <SubGrid id="row_combo_shared" row="3" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="cs_l" row="0" col="0" label="Shared radius" caption="Where the drift ring meets the pie." role="label" style="plain"/>
+        <SubGrid id="act_cs" row="0" col="1" rows="1" columns="9" gap="0" style="row">
+          <Cell id="cs_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.comboSharedRadiusPx.dec"/>
+          <Cell id="cs_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="comboSharedRadiusPx" style="join"/>
+          <Cell id="cs_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.comboSharedRadiusPx.inc"/>
+          <Cell id="cs_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.comboSharedRadiusPx"/>
+        </SubGrid>
+      </SubGrid>
+      <SubGrid id="row_combo_outer" row="4" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="co_l" row="0" col="0" label="Outer radius" caption="Outer edge of the command pie." role="label" style="plain"/>
+        <SubGrid id="act_co" row="0" col="1" rows="1" columns="9" gap="0" style="row">
+          <Cell id="co_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.comboOuterRadiusPx.dec"/>
+          <Cell id="co_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="comboOuterRadiusPx" style="join"/>
+          <Cell id="co_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.comboOuterRadiusPx.inc"/>
+          <Cell id="co_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.comboOuterRadiusPx"/>
+        </SubGrid>
+      </SubGrid>
+      <SubGrid id="row_combo_style" row="5" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="combo_style_l" row="0" col="0" label="Colors" caption="Drift ring and command slices." role="label" style="plain"/>
+        <SubGrid id="row_combo_colors" row="0" col="1" rows="1" columns="2" gap="0" style="row">
+          <Cell id="cic_sw" row="0" col="0" label="Inner ring" caption="Drift ring." settingKey="comboInnerColor" style="joinLeft" command="settings.edit.color.comboInnerColor"/>
+          <Cell id="coc_sw" row="0" col="1" label="Outer ring" caption="Command slices." settingKey="comboOuterColor" style="joinRight" command="settings.edit.color.comboOuterColor"/>
+        </SubGrid>
+      </SubGrid>
+    </SubGrid>
+  </Grid>
+</Page>

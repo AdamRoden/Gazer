@@ -395,7 +395,8 @@ void SettingsUi::decoratePage(PageDocument& doc)
     for (PageGrid& g : doc.grids) {
         stampGrid(g, m_settings, swatch, live, source, primary, secondary);
     }
-    if (doc.id == QLatin1String("main_settings_admin")) {
+    if (doc.id == QLatin1String("main_settings_speak")
+        || doc.id == QLatin1String("main_settings_setup")) {
         PageEdit::forEachCell(doc, [this](PageGrid&, PageCell& c) {
             if (c.id == QLatin1String("key_status")) {
                 c.label = m_settings.elevenApiKeySet

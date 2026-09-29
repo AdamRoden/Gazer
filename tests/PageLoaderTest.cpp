@@ -440,7 +440,7 @@ void PageLoaderTest::loadConvertedBoards()
 {
     const QStringList ids = {QStringLiteral("example_mouse"), QStringLiteral("example_assist"),
                              QStringLiteral("example_gamepad"), QStringLiteral("uw_qwerty"),
-                             QStringLiteral("main_settings_speed")};
+                             QStringLiteral("main_settings_dwell")};
     for (const QString& id : ids) {
         PageDocument doc;
         QString err;
@@ -450,7 +450,7 @@ void PageLoaderTest::loadConvertedBoards()
         QCOMPARE(doc.id, id);
         QVERIFY(!doc.grids.isEmpty());
         QVERIFY(!doc.grids[0].cells.isEmpty());
-        if (id == QLatin1String("main_settings_speed")) {
+        if (id == QLatin1String("main_settings_dwell")) {
             QCOMPARE(doc.grids[0].anchor, PageAnchor::Top);
             QVERIFY(!doc.grids[0].style.background.isSet());
             QVERIFY(!doc.findGrid(QStringLiteral("tabs")));

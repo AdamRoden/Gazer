@@ -3,7 +3,7 @@
 Dwell is how you activate a cell or zone: look at it until progress completes, then look away (or at another cell). There is no click unless you ask for one.
 
 1. Gaze lands on a cell or zone.
-2. **Scan grace** waits until you are stably on-target (default 100 ms; Settings → Speed → Advanced).
+2. **Scan grace** waits until you are stably on-target (default 100 ms; Settings → **Dwell**).
 3. **Activation** is a sequence of step times in milliseconds. Progress fills through each step. The **last** step repeats while gaze holds.
 4. The cell fires when dwell **ends** and blink grace expires (look away, or look at another cell). Blink grace **pauses** progress; look-away does not start another fill until grace expires.
 5. The cell’s **actions** then run in order (`Send`, `Command`, mouse, page nav, …). See [Actions](reference/actions.md).
@@ -19,7 +19,7 @@ Two sequences share scan grace:
 | **Rapid** | `Send`, composer typing, modifiers, mapping keys (`backspace`, `space`, `enter`, …), `compose.backspace` / `compose.deleteWord` |
 | **Standard** | Settings, navigation, mouse, AHK, Run, assist toggles, composer word chips, `quitApp`, editor / preview |
 
-Both live under Settings → **Speed** (Slow / Normal / Fast / Custom). Per-cell XML can override `scanGrace`, `dwellGrace`, and `activation`.
+Both live under Settings → **Dwell** (Slow / Normal / Fast / Custom). Per-cell XML can override `scanGrace`, `dwellGrace`, and `activation`.
 
 ## Pause dwell
 
@@ -31,4 +31,4 @@ Both live under Settings → **Speed** (Slow / Normal / Fast / Custom). Per-cell
 
 When pages overlap, the topmost page’s grid is opaque: gaze and paint do not fall through. Shell zones (dock chips) still win over everything. A cell on a buried grid does not come forward when dwelled; only the unoccluded part hit-tests.
 
-Progress shape (radial, pie, fill directions) is Settings → **Indicators**.
+Progress shape (radial, pie, fill directions) is Settings → **Dwell**.

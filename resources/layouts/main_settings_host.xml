@@ -1,16 +1,18 @@
 <Page id="main_settings_host" name="Settings" radius="16">
   <Style id="tabbar" background="bg95" thickness="0" radius="12"/>
-  <Grid id="board" desktopMode="true" rows="2" columns="16" anchor="Top" offset="0,0" 
+  <Grid id="board" desktopMode="true" rows="2" columns="16" anchor="Top" offset="0,0"
         size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" rowHeights="0.1*,*">
-    <SubGrid id="tabs" row="0" col="0" colSpan="16" rows="1" columns="7" gap="6" margin="4" style="tabbar">
-      <Cell id="tab_speed" row="0" col="0" label="Speed" icon="timer" role="tab" hostPage="main_settings_speed"/>
-      <Cell id="tab_magnify" row="0" col="1" label="Magnify" icon="ZoomSettings" role="tab" hostPage="main_settings_magnify"/>
-      <Cell id="tab_assist" row="0" col="2" label="Assist" icon="ideas" role="tab" hostPage="main_settings_assist"/>
-      <Cell id="tab_theme" row="0" col="3" label="Theme" icon="palette" role="tab" hostPage="main_settings_theme"/>
+    <SubGrid id="tabs" row="0" col="0" colSpan="16" rows="1" columns="9" gap="6" margin="4" style="tabbar">
+      <Cell id="tab_dwell" row="0" col="0" label="Dwell" icon="timer" role="tab" hostPage="main_settings_dwell"/>
+      <Cell id="tab_zoom" row="0" col="1" label="Zoom" icon="ZoomSettings" role="tab" hostPage="main_settings_zoom"/>
+      <Cell id="tab_place" row="0" col="2" label="Place" icon="mouseMove" role="tab" hostPage="main_settings_place"/>
+      <Cell id="tab_gaze" row="0" col="3" label="Gaze" icon="eye" role="tab" hostPage="main_settings_gaze"/>
       <Cell id="tab_head" row="0" col="4" label="Head" icon="HeadPreview" role="tab" hostPage="main_settings_head_pose"/>
-      <Cell id="tab_advanced" row="0" col="5" label="Advanced" icon="moreHoriz" role="tab" openPage="main_settings_advanced_host"/>
-      <Cell id="tab_done" row="0" col="6" label="Done" icon="keyboardHide" closeAllPages="true"/>
+      <Cell id="tab_speak" row="0" col="5" label="Speak" icon="Speak" role="tab" hostPage="main_settings_speak"/>
+      <Cell id="tab_theme" row="0" col="6" label="Theme" icon="palette" role="tab" hostPage="main_settings_theme"/>
+      <Cell id="tab_setup" row="0" col="7" label="Setup" icon="settings" role="tab" hostPage="main_settings_setup"/>
+      <Cell id="tab_done" row="0" col="8" label="Done" icon="keyboardHide" closeAllPages="true"/>
     </SubGrid>
-    <SubGrid id="body" row="1" col="0" colSpan="16" src="main_settings_speed" grid="board"/>
+    <SubGrid id="body" row="1" col="0" colSpan="16" src="main_settings_dwell" grid="board"/>
   </Grid>
 </Page>

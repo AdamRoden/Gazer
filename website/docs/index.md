@@ -18,7 +18,7 @@ Gazer turns live gaze (Tobii Eye Tracker 5, or the mouse as a fallback) into on-
   <source src="assets/splash.mp4" type="video/mp4">
 </video>
 
-The dock drawer sits on the desktop. Hide and Sleep hang in the bezel below the screen — dwell targets off the glass. Look at a cell until progress fills; that cell fires when you look away. A splash tour walks this on first launch (Assist → **Play tour** to replay).
+The dock drawer sits on the desktop. Hide and Sleep hang in the bezel below the screen — dwell targets off the glass. Look at a cell until progress fills; that cell fires when you look away. A splash tour walks this on first launch (Settings → **Setup** → **Play tour** to replay).
 
 ![Head pose settings: 3D preview, yaw/pitch/roll maps, and an input–output curve](assets/GazerHeadPose.jpg){ .overlay-shot }
 
@@ -58,7 +58,7 @@ Version **0.6.4**. License: [GPL-3.0](https://github.com/AdamRoden/Gazer/blob/ma
 
 -   :material-cog: __Settings__
 
-    Gaze-operated boards for Speed, Magnify, Indicators, Assist, Tools, Theme, Speech, Head. No desktop dialogs for live prefs.
+    Gaze-operated boards: Dwell, Zoom, Place, Gaze, Head, Speak, Theme, and Setup. No desktop dialogs for live prefs.
 
 -   :material-pencil-ruler: __Page editor__
 

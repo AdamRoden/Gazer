@@ -59,7 +59,7 @@ Output: `dist\Gazer-<version>-beta.msi`. Installs to `Program Files\Gazer\` with
 
 The MSI stamps `uiAccess=true` on the staged exe and Authenticode-signs it so the **Program Files** copy can sit above Task Manager and type/click into elevated windows. `.\build\Gazer.exe` is left without UIAccess so it still launches from the build directory. A real code-signing PFX: `$env:GAZER_SIGN_PFX` and optional `$env:GAZER_SIGN_PFX_PASSWORD`. Without those, the script uses a local self-signed cert (`%LOCALAPPDATA%\Gazer\signing\`) and the MSI trusts it at install time.
 
-Testers still need Tobii drivers for hardware gaze. Without a tracker, use the mouse backend (tray / Settings → tracker).
+Testers still need Tobii drivers for hardware gaze. Without a tracker, use the mouse backend (tray / Settings → Setup).
 
 User-facing install notes (data paths, first launch): [Install](https://adamroden.github.io/Gazer/install/).
 
@@ -86,7 +86,7 @@ Tobii / Mouse ──► ITracker ──► GazePoint (+ HeadPose)
 
 - Live UI is one frameless topmost `QQuickWindow` + `QQuickPaintedItem` (software scene graph, alpha buffer) sized to painted chrome.
 - Root chrome is Docked / Drawer / Quit (`PageSession`).
-- Mapping profiles (`resources/mappings/default.json`) turn leftover command names into key / mouse / gamepad output. Gamepad needs ViGEmBus (Settings → Assist can download the official setup). `ViGEmClient.dll` ships next to `Gazer.exe`.
+- Mapping profiles (`resources/mappings/default.json`) turn leftover command names into key / mouse / gamepad output. Gamepad needs ViGEmBus (Settings → Setup can download the official setup). `ViGEmClient.dll` ships next to `Gazer.exe`.
 - Builtins run first; unknown names fall through to the mapping profile.
 
 Boards are XML only (`resources/layouts/*.xml`). `openPage` / catalog ids open those pages on the live host. Editor F5 previews attach XML copies under `__editor_preview_*` ids so they do not replace the live page.

@@ -90,7 +90,7 @@ void PageComposeTest::parseHostPage()
     QVERIFY2(loadXml(R"xml(
 <Page id="p">
   <Grid id="g" size="100,100">
-    <Cell id="a" hostPage="main_settings_speed"/>
+    <Cell id="a" hostPage="main_settings_dwell"/>
     <Cell id="b" hostPage="main_settings_host, main_settings_theme"/>
   </Grid>
 </Page>
@@ -102,7 +102,7 @@ void PageComposeTest::parseHostPage()
     QVERIFY(a && b);
     QCOMPARE(a->actions.size(), 1);
     QCOMPARE(a->actions[0].type, PageActionType::HostPage);
-    QCOMPARE(a->actions[0].targetId, QStringLiteral("main_settings_speed"));
+    QCOMPARE(a->actions[0].targetId, QStringLiteral("main_settings_dwell"));
     QVERIFY(a->actions[0].hostId.isEmpty());
     QCOMPARE(b->actions[0].type, PageActionType::HostPage);
     QCOMPARE(b->actions[0].hostId, QStringLiteral("main_settings_host"));

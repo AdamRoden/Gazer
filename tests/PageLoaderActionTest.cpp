@@ -338,10 +338,10 @@ void PageLoaderActionTest::parseHostPage()
 {
     PageAction a;
     QString err;
-    QVERIFY2(loadOneAction(QByteArray("<HostPage value=\"main_settings_speed\"/>"), a, &err),
+    QVERIFY2(loadOneAction(QByteArray("<HostPage value=\"main_settings_dwell\"/>"), a, &err),
              qPrintable(err));
     QCOMPARE(a.type, PageActionType::HostPage);
-    QCOMPARE(a.targetId, QStringLiteral("main_settings_speed"));
+    QCOMPARE(a.targetId, QStringLiteral("main_settings_dwell"));
     QVERIFY(a.hostId.isEmpty());
     QVERIFY2(loadOneAction(QByteArray("<HostPage value=\"main_settings_host, main_settings_theme\"/>"),
                            a, &err),

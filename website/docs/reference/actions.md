@@ -223,7 +223,7 @@ Arming again while that purpose is already armed **cancels** it.
 
 | Token | What happens |
 |-------|----------------|
-| (empty) / `default` | Follow Settings → Magnify (mag-pick on/off, foresight, zoom). |
+| (empty) / `default` | Follow Settings → Zoom (mag-pick on/off, foresight, zoom). |
 | `0` | Dwell-move with **no** magnify window. |
 | `2` … `6` (any positive integer) | Force that zoom factor for this arm. |
 | `-1` | Foresight: remember a desktop dwell, then zoom that point when Move-to arms. |
@@ -301,14 +301,15 @@ No value. Restores the last breadcrumb. Fails with a toast if the stack is empty
 
 `value`: `fragmentId` **or** `hostId, fragmentId`.
 
-- Finds a grid with `src="…"` on the host (the source page when `hostId` is omitted; or that catalog page, attaching it if needed).
-- Sets the slot to `fragmentId` and rebuilds. The fragment’s cells keep the fragment page id as their live target (`main_settings_speed/dwell_edit`).
-- This is how Settings swaps Speed / Magnify / … into one frame. It does **not** stack a second opaque page.
+- Finds a grid with `src="…"` on the host (the source page when `hostId` is omitted, or the stack page that embeds that source; or the named catalog page, attaching it if needed).
+- Sets the slot to `fragmentId` and rebuilds. The fragment’s cells keep the fragment page id as their live target (`main_settings_dwell/dwell_edit`).
+- Settings uses this to swap Dwell, Zoom, Place, Gaze, Head, Speak, Theme, and Setup into one frame. It does **not** stack a second opaque page.
 
 ```xml
 <Cell label="Keyboard" openPage="qwerty_main"/>
 <Cell label="Wide" openPage="uw_qwerty, true"/>
-<Cell label="Speed" hostPage="main_settings_host, main_settings_speed"/>
+<Cell label="Dwell" hostPage="main_settings_host, main_settings_dwell"/>
+<Cell label="Zoom" hostPage="main_settings_host, main_settings_zoom"/>
 <Cell label="Done" closePage="true"/>
 <GoBack/>
 ```
@@ -342,7 +343,7 @@ Dwell: **standard**.
 
 ## Speak
 
-`value` is the utterance. Always **Windows SAPI** (`SpeakKind::Canned`). Composer synthesis (ElevenLabs or SAPI from Settings → Speech) is `compose.speak`.
+`value` is the utterance. Always **Windows SAPI** (`SpeakKind::Canned`). Composer synthesis (ElevenLabs or SAPI from Settings → Speak) is `compose.speak`.
 
 Empty text still calls speak; non-empty text toasts `Said: …`.
 

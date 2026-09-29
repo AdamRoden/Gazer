@@ -32,7 +32,7 @@ Each mapping name is an array of objects. Types:
 | `gamepadButton` | `button`: `a` `b` `x` `y` `lb` `rb` `l3` `r3` `back` `start` `guide` `dpadUp` `dpadDown` `dpadLeft` `dpadRight` | Press then release on the virtual Xbox pad. Triggers use `gamepadAxis` (`lt` / `rt`). |
 | `gamepadAxis` | `axis` (`lx` `ly` `rx` `ry` `lt` `rt`), `axisValue` (−1…1, or 0…1 for triggers) | Set that axis; it **stays** until another axis command. |
 
-Gamepad needs [ViGEmBus](https://github.com/nefarius/ViGEmBus). Settings → Assist can install the bus. Gazer ships `ViGEmClient.dll` next to `Gazer.exe`.
+Gamepad needs [ViGEmBus](https://github.com/nefarius/ViGEmBus). Settings → Setup can install the bus. Gazer ships `ViGEmClient.dll` next to `Gazer.exe`.
 
 ### Mapping-only names in `default.json`
 
@@ -64,7 +64,7 @@ Shipped Mid/Max window cells are `<AHK>` (`icon="WindowMid"` / `WindowMax`), not
 | `rescue.reset` | Panic reset: stop loops, release modifiers, turn off look-to / ComboMouse / mag / follow, close pages, dock, restack. Dock **Rescue** chip. Pause key on the guard process. |
 | `openPageEditor` | Open the XML page designer. Optional `Invocation.pageId`. |
 | `openPreview` | Head-pose 3D preview window. |
-| `settings.session.showSplash.play` | Run the startup dock tour now (Assist → Play tour). |
+| `settings.session.showSplash.play` | Run the startup dock tour now (Settings → Setup → Play tour). |
 
 ---
 
@@ -210,7 +210,7 @@ Patterns — boards generate many concrete names from these:
 | `settings.speech.key.paste` / `.save` / `.cancel` / `.clear` | Key board. |
 | `settings.speech.predictions.toggle` | Turn word suggestions on the Speak page on or off. |
 | `settings.speech.model.sapi` / `.eleven_flash_v2_5` / `.eleven_v3` | Same handlers as `speech.model.*`. |
-| `settings.dwell.slow` / `.normal` / `.fast` / `.custom` | Speed presets (standard + rapid together). |
+| `settings.dwell.slow` / `.normal` / `.fast` / `.custom` | Dwell presets (standard + rapid together). |
 | `settings.dwell.custom.save` / `.restore` | Save or restore Custom timings. |
 | `settings.mag.follow.slow` / `.sticky` / `.smooth` / `.snappy` | Gaze follow (indicator, gaze mouse, live lens). |
 | `settings.tracker.auto` / `.mouse` | Tracker pref (restart). |

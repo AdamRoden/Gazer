@@ -52,7 +52,7 @@ bool VigemLib::load(QString* error)
             if (error) {
                 *error = QStringLiteral(
                     "ViGEmClient.dll not found. It ships next to Gazer.exe; install the "
-                    "ViGEmBus driver from Settings → Assist.");
+                    "ViGEmBus driver from Settings → Setup.");
             }
             return false;
         }
@@ -84,7 +84,7 @@ bool VigemLib::load(QString* error)
         if (error) {
             *error = QStringLiteral(
                 "ViGEmClient.dll not found. It ships next to Gazer.exe; install the "
-                "ViGEmBus driver from Settings → Assist.");
+                "ViGEmBus driver from Settings → Setup.");
         }
         return false;
     }

@@ -52,27 +52,26 @@ private slots:
     void hubOpensBasicBoards();
     void adminCaptureModes();
     void presetsComeFirst();
-    void zoomLivesOnPointerNotLook();
+    void zoomPlaceAndGazeAreBoards();
     void choiceAndToggleRoles();
     void themeHasFlashModes();
     void themeHasHoverRow();
-    void moreOpensAdvanced();
-    void advancedHasHoldAndAutoclose();
-    void assistHasSplashToggle();
-    void hostInlinesSpeedBody();
+    void dwellKeepsGraceOnPage();
+    void zoomAndSetupHoldSession();
+    void gazeOmitsSplash();
+    void hostInlinesDwellBody();
 };
 
 void SettingsLayoutTest::pagesAnchorTop()
 {
-    const QStringList ids = {QStringLiteral("main_settings_speed"),
-                             QStringLiteral("main_settings_magnify"),
-                             QStringLiteral("main_settings_indicators"),
-                             QStringLiteral("main_settings_assist"),
-                             QStringLiteral("main_settings_tools"),
+    const QStringList ids = {QStringLiteral("main_settings_dwell"),
+                             QStringLiteral("main_settings_zoom"),
+                             QStringLiteral("main_settings_place"),
+                             QStringLiteral("main_settings_gaze"),
+                             QStringLiteral("main_settings_speak"),
                              QStringLiteral("main_settings_theme"),
                              QStringLiteral("main_settings_head_pose"),
-                             QStringLiteral("main_settings_speed_advanced"),
-                             QStringLiteral("main_settings_admin")};
+                             QStringLiteral("main_settings_setup")};
     for (const QString& id : ids) {
         PageDocument doc;
         QString err;
@@ -99,14 +98,12 @@ void SettingsLayoutTest::tabsEqualWidth()
     QVERIFY2(loadLayout(QStringLiteral("main_settings_host"), doc, &err), qPrintable(err));
     const PageGrid* tabs = doc.findGrid(QStringLiteral("tabs"));
     QVERIFY(doc.findGrid(QStringLiteral("body")));
-    QCOMPARE(doc.findGrid(QStringLiteral("body"))->src, QStringLiteral("main_settings_speed"));
+    QCOMPARE(doc.findGrid(QStringLiteral("body"))->src, QStringLiteral("main_settings_dwell"));
     QVERIFY(tabs);
-    QCOMPARE(tabs->columns, 7);
-    QCOMPARE(tabs->cells.size(), 7);
+    QCOMPARE(tabs->columns, 9);
+    QCOMPARE(tabs->cells.size(), 9);
     int tabRoles = 0;
     bool hasDone = false;
-    bool hasHead = false;
-    bool hasAdvanced = false;
     for (const PageCell& c : tabs->cells) {
         if (c.role == QLatin1String("tab")) {
             ++tabRoles;
@@ -114,67 +111,39 @@ void SettingsLayoutTest::tabsEqualWidth()
         if (c.id == QLatin1String("tab_done")) {
             hasDone = true;
             QVERIFY(c.isInteractive());
-            QCOMPARE(c.col, 6);
-        }
-        if (c.id == QLatin1String("tab_head")) {
-            hasHead = true;
-        }
-        if (c.id == QLatin1String("tab_advanced")) {
-            hasAdvanced = true;
-            QCOMPARE(c.col, 5);
-            QCOMPARE(c.label, QStringLiteral("Advanced"));
-            QCOMPARE(c.actions.size(), 1);
-            QCOMPARE(c.actions[0].type, PageActionType::Nav);
-            QCOMPARE(c.actions[0].verb, PageVerb::Open);
-            QCOMPARE(c.actions[0].targetId, QStringLiteral("main_settings_advanced_host"));
+            QCOMPARE(c.col, 8);
         }
     }
-    QCOMPARE(tabRoles, 6);
+    QCOMPARE(tabRoles, 8);
     QVERIFY(hasDone);
-    QVERIFY(hasHead);
-    QVERIFY(hasAdvanced);
-    QVERIFY(doc.findCell(QStringLiteral("tab_assist")));
-    QVERIFY(!doc.findCell(QStringLiteral("tab_tools")));
-    QVERIFY(!doc.findCell(QStringLiteral("tab_indicators")));
-    QVERIFY(!doc.findCell(QStringLiteral("tab_speech")));
-
-    PageDocument advanced;
-    QVERIFY2(loadLayout(QStringLiteral("main_settings_advanced_host"), advanced, &err),
-             qPrintable(err));
-    const PageGrid* advTabs = advanced.findGrid(QStringLiteral("tabs"));
-    QVERIFY(advTabs);
-    QCOMPARE(advTabs->columns, 6);
-    QCOMPARE(advTabs->cells.size(), 6);
-    QCOMPARE(advanced.findGrid(QStringLiteral("body"))->src,
-             QStringLiteral("main_settings_speed_advanced"));
-    const PageCell* basic = advanced.findCell(QStringLiteral("tab_basic"));
-    QVERIFY(basic);
-    QCOMPARE(basic->col, 4);
-    QCOMPARE(basic->label, QStringLiteral("Basic"));
-    QCOMPARE(basic->actions.size(), 1);
-    QCOMPARE(basic->actions[0].type, PageActionType::Nav);
-    QCOMPARE(basic->actions[0].verb, PageVerb::Close);
-    QCOMPARE(basic->actions[0].targetScope, PageNavScope::Self);
-    const PageCell* advDone = advanced.findCell(QStringLiteral("tab_done"));
-    QVERIFY(advDone);
-    QCOMPARE(advDone->col, 5);
-    QCOMPARE(advanced.findCell(QStringLiteral("tab_adv_speed"))->actions[0].targetId,
-             QStringLiteral("main_settings_speed_advanced"));
-    QCOMPARE(advanced.findCell(QStringLiteral("tab_indicators"))->actions[0].targetId,
-             QStringLiteral("main_settings_indicators"));
-    QCOMPARE(advanced.findCell(QStringLiteral("tab_tools"))->actions[0].targetId,
-             QStringLiteral("main_settings_tools"));
-    QVERIFY(!advanced.findCell(QStringLiteral("tab_assist")));
-    QVERIFY(!advanced.findCell(QStringLiteral("tab_speech")));
-    QCOMPARE(advanced.findCell(QStringLiteral("tab_admin"))->actions[0].targetId,
-             QStringLiteral("main_settings_admin"));
+    QCOMPARE(doc.findCell(QStringLiteral("tab_dwell"))->actions[0].targetId,
+             QStringLiteral("main_settings_dwell"));
+    QCOMPARE(doc.findCell(QStringLiteral("tab_zoom"))->actions[0].targetId,
+             QStringLiteral("main_settings_zoom"));
+    QCOMPARE(doc.findCell(QStringLiteral("tab_place"))->actions[0].targetId,
+             QStringLiteral("main_settings_place"));
+    QCOMPARE(doc.findCell(QStringLiteral("tab_gaze"))->actions[0].targetId,
+             QStringLiteral("main_settings_gaze"));
+    QCOMPARE(doc.findCell(QStringLiteral("tab_head"))->actions[0].targetId,
+             QStringLiteral("main_settings_head_pose"));
+    QCOMPARE(doc.findCell(QStringLiteral("tab_speak"))->actions[0].targetId,
+             QStringLiteral("main_settings_speak"));
+    QCOMPARE(doc.findCell(QStringLiteral("tab_theme"))->actions[0].targetId,
+             QStringLiteral("main_settings_theme"));
+    QCOMPARE(doc.findCell(QStringLiteral("tab_setup"))->actions[0].targetId,
+             QStringLiteral("main_settings_setup"));
+    QVERIFY(!doc.findCell(QStringLiteral("tab_pointer")));
+    QVERIFY(!doc.findCell(QStringLiteral("tab_look")));
+    QVERIFY(!doc.findCell(QStringLiteral("tab_advanced")));
+    QVERIFY(!doc.findCell(QStringLiteral("tab_speed")));
+    QVERIFY(!doc.findCell(QStringLiteral("tab_assist")));
 }
 
 void SettingsLayoutTest::timingSectionUsesRowWeights()
 {
     PageDocument doc;
     QString err;
-    QVERIFY2(loadLayout(QStringLiteral("main_settings_speed"), doc, &err), qPrintable(err));
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_dwell"), doc, &err), qPrintable(err));
     const PageGrid* dwell = doc.findGrid(QStringLiteral("sec_dwell"));
     QVERIFY(dwell);
     QCOMPARE(dwell->styleId, QStringLiteral("group"));
@@ -204,8 +173,7 @@ void SettingsLayoutTest::stepperWidths()
 {
     PageDocument doc;
     QString err;
-    QVERIFY2(loadLayout(QStringLiteral("main_settings_speed_advanced"), doc, &err),
-             qPrintable(err));
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_dwell"), doc, &err), qPrintable(err));
     const PageGrid* act = doc.findGrid(QStringLiteral("act_scan"));
     QVERIFY(act);
     QCOMPARE(act->gapPx, 0);
@@ -230,7 +198,7 @@ void SettingsLayoutTest::valueLabelKeepsKey()
 {
     PageDocument doc;
     QString err;
-    QVERIFY2(loadLayout(QStringLiteral("main_settings_speed"), doc, &err), qPrintable(err));
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_dwell"), doc, &err), qPrintable(err));
     PageFrame frame;
     frame.screen = QRectF(0, 0, 1920, 1080);
     frame.desktop = frame.screen;
@@ -242,13 +210,16 @@ void SettingsLayoutTest::valueLabelKeepsKey()
     const PageTarget* rapid = targetById(t, QStringLiteral("rapid_dwell_value"));
     QVERIFY(rapid);
     QCOMPARE(rapid->settingKey, QStringLiteral("rapidDwellMs"));
-    QVERIFY(!targetById(t, QStringLiteral("scan_val")));
+    const PageTarget* scan = targetById(t, QStringLiteral("scan_val"));
+    QVERIFY(scan);
+    QCOMPARE(scan->settingKey, QStringLiteral("scanGraceMs"));
     QVERIFY(!targetById(t, QStringLiteral("dd_scan_val")));
+    QVERIFY(!targetById(t, QStringLiteral("pd_val")));
 }
 
 void SettingsLayoutTest::ltsHasNoMaxSpeedOrPlaceCursor()
 {
-    QFile f(layoutPath(QStringLiteral("main_settings_tools")));
+    QFile f(layoutPath(QStringLiteral("main_settings_gaze")));
     QVERIFY(f.open(QIODevice::ReadOnly | QIODevice::Text));
     const QByteArray xml = f.readAll();
     QVERIFY(!xml.contains("ltsMaxNotchesPerSec"));
@@ -261,19 +232,31 @@ void SettingsLayoutTest::overlayIdsAreUnique()
 {
     PageDocument doc;
     QString err;
-    QVERIFY2(loadLayout(QStringLiteral("main_settings_tools"), doc, &err), qPrintable(err));
-    const QStringList ids = PageEdit::allIds(doc);
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_gaze"), doc, &err), qPrintable(err));
+    const QStringList gazeIds = PageEdit::allIds(doc);
     QSet<QString> seen;
-    for (const QString& id : ids) {
+    for (const QString& id : gazeIds) {
         QVERIFY2(!seen.contains(id), qPrintable(id));
         seen.insert(id);
     }
     QVERIFY(seen.contains(QStringLiteral("row_mouse")));
-    QVERIFY(seen.contains(QStringLiteral("row_combo_style")));
-    QVERIFY(seen.contains(QStringLiteral("combo_on")));
     QVERIFY(seen.contains(QStringLiteral("lts_on")));
     QVERIFY(seen.contains(QStringLiteral("mouse_on")));
-    QVERIFY(seen.contains(QStringLiteral("page_title")));
+    QVERIFY(seen.contains(QStringLiteral("magnifier")));
+    QVERIFY(!seen.contains(QStringLiteral("combo_on")));
+    QVERIFY(!seen.contains(QStringLiteral("splash_on")));
+
+    PageDocument place;
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_place"), place, &err), qPrintable(err));
+    const QStringList placeIds = PageEdit::allIds(place);
+    QSet<QString> placeSeen;
+    for (const QString& id : placeIds) {
+        QVERIFY2(!placeSeen.contains(id), qPrintable(id));
+        placeSeen.insert(id);
+    }
+    QVERIFY(placeSeen.contains(QStringLiteral("row_combo_style")));
+    QVERIFY(placeSeen.contains(QStringLiteral("combo_on")));
+    QVERIFY(placeSeen.contains(QStringLiteral("pd_val")));
 }
 
 void SettingsLayoutTest::hubOpensBasicBoards()
@@ -286,19 +269,20 @@ void SettingsLayoutTest::hubOpensBasicBoards()
     QCOMPARE(PageDimParse::token(doc.grids[0].size.x),
              QStringLiteral("clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth)"));
     QCOMPARE(PageDimParse::token(doc.grids[0].size.y), QStringLiteral("A_ScreenHeight"));
-    const QStringList pages = {QStringLiteral("main_settings_speed"),
-                               QStringLiteral("main_settings_magnify"),
-                               QStringLiteral("main_settings_assist"),
+    const QStringList pages = {QStringLiteral("main_settings_dwell"),
+                               QStringLiteral("main_settings_zoom"),
+                               QStringLiteral("main_settings_place"),
+                               QStringLiteral("main_settings_gaze"),
+                               QStringLiteral("main_settings_head_pose"),
+                               QStringLiteral("main_settings_speak"),
                                QStringLiteral("main_settings_theme"),
-                               QStringLiteral("main_settings_head_pose")};
+                               QStringLiteral("main_settings_setup")};
     QSet<QString> opened;
+    QCOMPARE(doc.grids[0].columns, 4);
     QVERIFY(!doc.findCell(QStringLiteral("done")));
-    const PageCell* advancedTile = doc.findCell(QStringLiteral("open_advanced"));
-    QVERIFY(advancedTile);
-    QVERIFY(advancedTile->isInteractive());
-    QCOMPARE(advancedTile->actions[0].type, PageActionType::Nav);
-    QCOMPARE(advancedTile->actions[0].verb, PageVerb::Open);
-    QCOMPARE(advancedTile->actions[0].targetId, QStringLiteral("main_settings_advanced_host"));
+    QVERIFY(!doc.findCell(QStringLiteral("open_advanced")));
+    QVERIFY(!doc.findCell(QStringLiteral("open_pointer")));
+    QVERIFY(!doc.findCell(QStringLiteral("open_look")));
     for (const PageGrid& g : doc.grids) {
         for (const PageCell& c : g.cells) {
             for (const PageAction& a : c.actions) {
@@ -312,23 +296,21 @@ void SettingsLayoutTest::hubOpensBasicBoards()
     for (const QString& id : pages) {
         QVERIFY2(opened.contains(id), qPrintable(id));
     }
-    QCOMPARE(opened.size(), 5);
+    QCOMPARE(opened.size(), 8);
+    QVERIFY(!opened.contains(QStringLiteral("main_settings_pointer")));
+    QVERIFY(!opened.contains(QStringLiteral("main_settings_look")));
     QVERIFY(!opened.contains(QStringLiteral("main_settings_indicators")));
     QVERIFY(!opened.contains(QStringLiteral("main_settings_tools")));
-    QVERIFY(!opened.contains(QStringLiteral("main_settings_speech")));
-    PageDocument admin;
-    QVERIFY2(loadLayout(QStringLiteral("main_settings_admin"), admin, &err), qPrintable(err));
-    QCOMPARE(admin.findCell(QStringLiteral("speed_value"))->settingKey,
+    PageDocument speak;
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_speak"), speak, &err), qPrintable(err));
+    QCOMPARE(speak.findCell(QStringLiteral("speed_value"))->settingKey,
              QStringLiteral("speechSpeed"));
-    QCOMPARE(admin.findCell(QStringLiteral("volume_value"))->settingKey,
+    QCOMPARE(speak.findCell(QStringLiteral("volume_value"))->settingKey,
              QStringLiteral("speechVolume"));
     PageDocument host;
     QVERIFY2(loadLayout(QStringLiteral("main_settings_host"), host, &err), qPrintable(err));
-    QVERIFY(!host.findCell(QStringLiteral("tab_speech")));
-    PageDocument advanced;
-    QVERIFY2(loadLayout(QStringLiteral("main_settings_advanced_host"), advanced, &err),
-             qPrintable(err));
-    QVERIFY(!advanced.findCell(QStringLiteral("tab_speech")));
+    QVERIFY(host.findCell(QStringLiteral("tab_speak")));
+    QVERIFY(!host.findCell(QStringLiteral("tab_advanced")));
     PageDocument head;
     QVERIFY2(loadLayout(QStringLiteral("main_settings_head_pose"), head, &err), qPrintable(err));
     QVERIFY(head.findCell(QStringLiteral("head_preview")));
@@ -358,7 +340,7 @@ void SettingsLayoutTest::presetsComeFirst()
 {
     PageDocument doc;
     QString err;
-    QVERIFY2(loadLayout(QStringLiteral("main_settings_speed"), doc, &err), qPrintable(err));
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_dwell"), doc, &err), qPrintable(err));
     const PageGrid* presets = doc.findGrid(QStringLiteral("sec_presets"));
     const PageGrid* dwell = doc.findGrid(QStringLiteral("sec_dwell"));
     QVERIFY(presets);
@@ -378,37 +360,59 @@ void SettingsLayoutTest::presetsComeFirst()
     QVERIFY(doc.findCell(QStringLiteral("p_restore"))->isInteractive());
 }
 
-void SettingsLayoutTest::zoomLivesOnPointerNotLook()
+void SettingsLayoutTest::zoomPlaceAndGazeAreBoards()
 {
-    PageDocument pointer;
-    PageDocument look;
+    PageDocument zoom;
+    PageDocument place;
+    PageDocument gaze;
+    PageDocument dwell;
     QString err;
-    QVERIFY2(loadLayout(QStringLiteral("main_settings_magnify"), pointer, &err),
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_zoom"), zoom, &err), qPrintable(err));
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_place"), place, &err),
              qPrintable(err));
-    QVERIFY2(loadLayout(QStringLiteral("main_settings_indicators"), look, &err), qPrintable(err));
-    PageDocument speed;
-    QVERIFY2(loadLayout(QStringLiteral("main_settings_speed"), speed, &err),
-             qPrintable(err));
-    QVERIFY(pointer.findCell(QStringLiteral("zl_val")));
-    QCOMPARE(pointer.findCell(QStringLiteral("zl_val"))->settingKey, QStringLiteral("pickZoom"));
-    QVERIFY(pointer.findCell(QStringLiteral("zs_val")));
-    QVERIFY(!pointer.findCell(QStringLiteral("zd_val")));
-    QCOMPARE(speed.findCell(QStringLiteral("zd_val"))->settingKey, QStringLiteral("magPickDwellMs"));
-    QVERIFY(look.findCell(QStringLiteral("test_move")));
-    QVERIFY(pointer.findCell(QStringLiteral("test_move")));
-    QVERIFY(!pointer.findCell(QStringLiteral("zm_none")));
-    QCOMPARE(pointer.findCell(QStringLiteral("zm_pre"))->role, QStringLiteral("toggle"));
-    QCOMPARE(pointer.findCell(QStringLiteral("zm_fs"))->role, QStringLiteral("toggle"));
-    QCOMPARE(pointer.findCell(QStringLiteral("zm_fs2"))->role, QStringLiteral("toggle"));
-    QVERIFY(!look.findCell(QStringLiteral("zl_val")));
-    QVERIFY(!look.findGrid(QStringLiteral("sec_zw")));
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_gaze"), gaze, &err), qPrintable(err));
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_dwell"), dwell, &err), qPrintable(err));
+    QVERIFY(!zoom.findCell(QStringLiteral("page_title")));
+    QVERIFY(!place.findCell(QStringLiteral("page_title")));
+    QVERIFY(!gaze.findCell(QStringLiteral("page_title")));
+    QCOMPARE(zoom.findCell(QStringLiteral("zl_val"))->settingKey, QStringLiteral("pickZoom"));
+    QCOMPARE(zoom.findCell(QStringLiteral("zs_val"))->settingKey, QStringLiteral("pickWindowPx"));
+    QCOMPARE(zoom.findCell(QStringLiteral("zd_val"))->settingKey, QStringLiteral("magPickDwellMs"));
+    QCOMPARE(zoom.findCell(QStringLiteral("fsd_val"))->settingKey,
+             QStringLiteral("mouseMoveForesightDwellMs"));
+    QCOMPARE(zoom.findCell(QStringLiteral("fsh_val"))->settingKey,
+             QStringLiteral("mouseMoveForesightHoldMs"));
+    QVERIFY(zoom.findCell(QStringLiteral("zi_cur")));
+    QVERIFY(zoom.findCell(QStringLiteral("zi_dot")));
+    QVERIFY(zoom.findCell(QStringLiteral("zi_xh")));
+    QVERIFY(zoom.findCell(QStringLiteral("zi_gz")));
+    QVERIFY(zoom.findCell(QStringLiteral("test_move")));
+    QVERIFY(!zoom.findCell(QStringLiteral("zm_none")));
+    QCOMPARE(zoom.findCell(QStringLiteral("zm_pre"))->role, QStringLiteral("toggle"));
+    QCOMPARE(zoom.findCell(QStringLiteral("zm_fs"))->role, QStringLiteral("toggle"));
+    QCOMPARE(zoom.findCell(QStringLiteral("zm_fs2"))->role, QStringLiteral("toggle"));
+    QVERIFY(!dwell.findCell(QStringLiteral("zd_val")));
+    QVERIFY(!gaze.findCell(QStringLiteral("zl_val")));
+    QVERIFY(!gaze.findCell(QStringLiteral("test_move")));
+    QCOMPARE(place.findCell(QStringLiteral("pd_val"))->settingKey,
+             QStringLiteral("mouseMoveDwellMs"));
+    QCOMPARE(place.findCell(QStringLiteral("pg_val"))->settingKey,
+             QStringLiteral("mouseMoveSelectTimeoutMs"));
+    QVERIFY(place.findCell(QStringLiteral("pi_cur")));
+    QVERIFY(place.findCell(QStringLiteral("pi_dot")));
+    QVERIFY(place.findCell(QStringLiteral("pi_xh")));
+    QVERIFY(place.findCell(QStringLiteral("test_move")));
+    QVERIFY(place.findCell(QStringLiteral("combo_on")));
+    QVERIFY(!place.findCell(QStringLiteral("pp_r")));
+    QVERIFY(!place.findCell(QStringLiteral("bp_r")));
+    QVERIFY(!place.findCell(QStringLiteral("zi_gz")));
 }
 
 void SettingsLayoutTest::choiceAndToggleRoles()
 {
     PageDocument doc;
     QString err;
-    QVERIFY2(loadLayout(QStringLiteral("main_settings_indicators"), doc, &err), qPrintable(err));
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_dwell"), doc, &err), qPrintable(err));
     const PageCell* ring = doc.findCell(QStringLiteral("bp_r"));
     QVERIFY(ring);
     QCOMPARE(ring->role, QStringLiteral("toggle"));
@@ -569,88 +573,59 @@ void SettingsLayoutTest::themeHasHoverRow()
     QCOMPARE(hvCustom->col, 1);
     QCOMPARE(hvSw->col, 2);
     QCOMPARE(doc.findGrid(QStringLiteral("act_flash"))->row, actHover->row + 1);
-    QVERIFY2(loadLayout(QStringLiteral("main_settings_indicators"), doc, &err), qPrintable(err));
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_dwell"), doc, &err), qPrintable(err));
     QVERIFY(!doc.findCell(QStringLiteral("bp_b")));
     QVERIFY(!doc.findCell(QStringLiteral("pp_b")));
     QCOMPARE(doc.findGrid(QStringLiteral("act_bp"))->columns, 3);
     QCOMPARE(doc.findGrid(QStringLiteral("act_pp"))->columns, 3);
 }
 
-void SettingsLayoutTest::moreOpensAdvanced()
+void SettingsLayoutTest::dwellKeepsGraceOnPage()
 {
     PageDocument doc;
     QString err;
-    QVERIFY2(loadLayout(QStringLiteral("main_settings_speed"), doc, &err), qPrintable(err));
-    const PageCell* more = doc.findCell(QStringLiteral("open_advanced"));
-    QVERIFY(more);
-    QVERIFY(more->isInteractive());
-    bool opens = false;
-    for (const PageAction& a : more->actions) {
-        if (a.type == PageActionType::HostPage
-            && a.targetId == QLatin1String("main_settings_speed_advanced")) {
-            opens = true;
-            QCOMPARE(a.hostId, QStringLiteral("main_settings_advanced_host"));
-        }
-    }
-    QVERIFY(opens);
-}
-
-void SettingsLayoutTest::advancedHasHoldAndAutoclose()
-{
-    PageDocument doc;
-    QString err;
-    QVERIFY2(loadLayout(QStringLiteral("main_settings_speed_advanced"), doc, &err), qPrintable(err));
-    QCOMPARE(doc.findCell(QStringLiteral("fsh_val"))->settingKey,
-             QStringLiteral("mouseMoveForesightHoldMs"));
-    QCOMPARE(doc.findCell(QStringLiteral("aci_val"))->settingKey,
-             QStringLiteral("layoutAutoCloseIdleMs"));
-    QCOMPARE(doc.findCell(QStringLiteral("ac_on"))->role, QStringLiteral("toggle"));
-    QVERIFY(!doc.findCell(QStringLiteral("fd_val")));
-    QVERIFY(!doc.findCell(QStringLiteral("fl_sw")));
-    QVERIFY(!doc.findCell(QStringLiteral("fl_fg")));
-    QVERIFY(!doc.findCell(QStringLiteral("fl_custom")));
-    const PageGrid* board = doc.findGrid(QStringLiteral("board"));
-    QVERIFY(board);
-    QCOMPARE(board->rows, 4);
-    const PageGrid* session = doc.findGrid(QStringLiteral("sec_session"));
-    QVERIFY(session);
-    QCOMPARE(session->rows, 3);
-    QCOMPARE(session->row, 3);
-    QCOMPARE(session->rowSpan, 1);
-    QCOMPARE(doc.findCell(QStringLiteral("grace_val"))->settingKey, QStringLiteral("dwellGraceMs"));
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_dwell"), doc, &err), qPrintable(err));
+    QCOMPARE(doc.findGrid(QStringLiteral("board"))->rows, 4);
+    QVERIFY(!doc.findCell(QStringLiteral("open_advanced")));
+    QVERIFY(!doc.findCell(QStringLiteral("pd_val")));
+    QVERIFY(!doc.findCell(QStringLiteral("zd_val")));
     QCOMPARE(doc.findCell(QStringLiteral("scan_val"))->settingKey, QStringLiteral("scanGraceMs"));
-    QCOMPARE(doc.findGrid(QStringLiteral("row_scan"))->row, 2);
-    QCOMPARE(doc.findGrid(QStringLiteral("row_pg"))->row, 3);
-    const PageGrid* grace = doc.findGrid(QStringLiteral("sec_grace"));
-    QVERIFY(grace);
-    QCOMPARE(grace->rows, 4);
-    QCOMPARE(grace->row, 1);
-    QCOMPARE(grace->rowSpan, 1);
-    QCOMPARE(doc.findGrid(QStringLiteral("sec_fs"))->row, 2);
+    QCOMPARE(doc.findCell(QStringLiteral("grace_val"))->settingKey, QStringLiteral("dwellGraceMs"));
+    QCOMPARE(doc.findGrid(QStringLiteral("row_scan"))->row, 1);
+    QCOMPARE(doc.findGrid(QStringLiteral("row_grace"))->row, 2);
+    QCOMPARE(doc.findGrid(QStringLiteral("sec_grace"))->rows, 3);
+    QCOMPARE(doc.findGrid(QStringLiteral("row_bp"))->row, 1);
+    QCOMPARE(doc.findGrid(QStringLiteral("row_pp"))->row, 2);
+    QCOMPARE(doc.findGrid(QStringLiteral("act_bp"))->columns, 3);
+    QCOMPARE(doc.findGrid(QStringLiteral("act_pp"))->columns, 3);
+    QCOMPARE(doc.findCell(QStringLiteral("bp_r"))->role, QStringLiteral("toggle"));
+    QCOMPARE(doc.findCell(QStringLiteral("pp_r"))->role, QStringLiteral("toggle"));
+    QVERIFY(!doc.findCell(QStringLiteral("bp_b")));
+    QVERIFY(!doc.findCell(QStringLiteral("pp_b")));
     QVERIFY(!doc.findGrid(QStringLiteral("tabs")));
 }
 
-void SettingsLayoutTest::assistHasSplashToggle()
+void SettingsLayoutTest::zoomAndSetupHoldSession()
 {
-    PageDocument doc;
+    PageDocument zoom;
+    PageDocument setup;
+    PageDocument gaze;
     QString err;
-    QVERIFY2(loadLayout(QStringLiteral("main_settings_assist"), doc, &err), qPrintable(err));
-    const PageGrid* board = doc.findGrid(QStringLiteral("board"));
-    QVERIFY(board);
-    QCOMPARE(board->rows, 8);
-    QVERIFY(!doc.findGrid(QStringLiteral("sec_vigem")));
-    QVERIFY(!doc.findGrid(QStringLiteral("sec_tr")));
-    QVERIFY(!doc.findCell(QStringLiteral("vigem_install")));
-    const PageGrid* help = doc.findGrid(QStringLiteral("sec_help"));
-    QVERIFY(help);
-    QCOMPARE(help->rows, 4);
-    QCOMPARE(help->rowSpan, 4);
-    QCOMPARE(help->row, 1);
-    QCOMPARE(doc.findGrid(QStringLiteral("sec_lens"))->row, 5);
-    QCOMPARE(doc.findGrid(QStringLiteral("row_splash"))->row, 1);
-    QCOMPARE(doc.findGrid(QStringLiteral("row_follow"))->row, 2);
-    const PageCell* on = doc.findCell(QStringLiteral("splash_on"));
-    const PageCell* play = doc.findCell(QStringLiteral("splash_play"));
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_zoom"), zoom, &err), qPrintable(err));
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_setup"), setup, &err), qPrintable(err));
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_gaze"), gaze, &err), qPrintable(err));
+    QCOMPARE(zoom.findCell(QStringLiteral("fsh_val"))->settingKey,
+             QStringLiteral("mouseMoveForesightHoldMs"));
+    QVERIFY(!zoom.findCell(QStringLiteral("aci_val")));
+    QVERIFY(!zoom.findCell(QStringLiteral("splash_on")));
+    QCOMPARE(setup.findCell(QStringLiteral("aci_val"))->settingKey,
+             QStringLiteral("layoutAutoCloseIdleMs"));
+    QCOMPARE(setup.findCell(QStringLiteral("ac_on"))->role, QStringLiteral("toggle"));
+    QCOMPARE(setup.findGrid(QStringLiteral("board"))->rows, 6);
+    QCOMPARE(setup.findGrid(QStringLiteral("sec_session"))->row, 5);
+    QCOMPARE(setup.findGrid(QStringLiteral("sec_session"))->rows, 3);
+    const PageCell* on = setup.findCell(QStringLiteral("splash_on"));
+    const PageCell* play = setup.findCell(QStringLiteral("splash_play"));
     QVERIFY(on);
     QVERIFY(play);
     QCOMPARE(on->role, QStringLiteral("toggle"));
@@ -658,16 +633,47 @@ void SettingsLayoutTest::assistHasSplashToggle()
     QCOMPARE(on->actions[0].command, QStringLiteral("settings.session.showSplash.toggle"));
     QCOMPARE(play->actions[0].command, QStringLiteral("settings.session.showSplash.play"));
     QVERIFY(play->isInteractive());
+    QVERIFY(!gaze.findCell(QStringLiteral("splash_on")));
+    QVERIFY(!gaze.findCell(QStringLiteral("splash_play")));
+    QVERIFY(!setup.findCell(QStringLiteral("fl_sw")));
+    QVERIFY(!setup.findCell(QStringLiteral("key_edit")));
+}
+
+void SettingsLayoutTest::gazeOmitsSplash()
+{
+    PageDocument doc;
+    QString err;
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_gaze"), doc, &err), qPrintable(err));
+    QCOMPARE(doc.findGrid(QStringLiteral("board"))->rows, 1);
+    QVERIFY(!doc.findGrid(QStringLiteral("sec_vigem")));
+    QVERIFY(!doc.findGrid(QStringLiteral("sec_tr")));
+    QVERIFY(!doc.findCell(QStringLiteral("vigem_install")));
+    QVERIFY(!doc.findCell(QStringLiteral("splash_on")));
+    QVERIFY(!doc.findCell(QStringLiteral("tr_a")));
+    QCOMPARE(doc.findGrid(QStringLiteral("row_follow"))->row, 1);
+    QVERIFY(doc.findCell(QStringLiteral("f_slow")));
+    QVERIFY(doc.findCell(QStringLiteral("reticle")));
+    QVERIFY(doc.findCell(QStringLiteral("follow")));
+    QVERIFY(doc.findCell(QStringLiteral("magnifier")));
+    QCOMPARE(doc.findCell(QStringLiteral("z_val"))->settingKey, QStringLiteral("magZoom"));
+    QCOMPARE(doc.findCell(QStringLiteral("l_val"))->settingKey, QStringLiteral("magLensSize"));
+    QVERIFY(doc.findCell(QStringLiteral("lts_on")));
+    QVERIFY(doc.findCell(QStringLiteral("mouse_on")));
+    QVERIFY(doc.findCell(QStringLiteral("lstick_on")));
+    QVERIFY(doc.findCell(QStringLiteral("rstick_on")));
+    QVERIFY(doc.findCell(QStringLiteral("look_hint")));
+    QVERIFY(!doc.findCell(QStringLiteral("combo_on")));
 }
 
 void SettingsLayoutTest::adminCaptureModes()
 {
-    PageDocument doc;
+    PageDocument setup;
+    PageDocument speak;
     QString err;
-    QVERIFY2(loadLayout(QStringLiteral("main_settings_admin"), doc, &err), qPrintable(err));
-    const PageCell* all = doc.findCell(QStringLiteral("cap_all"));
-    const PageCell* pages = doc.findCell(QStringLiteral("cap_pages"));
-    const PageCell* none = doc.findCell(QStringLiteral("cap_none"));
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_setup"), setup, &err), qPrintable(err));
+    const PageCell* all = setup.findCell(QStringLiteral("cap_all"));
+    const PageCell* pages = setup.findCell(QStringLiteral("cap_pages"));
+    const PageCell* none = setup.findCell(QStringLiteral("cap_none"));
     QVERIFY(all && pages && none);
     QCOMPARE(all->role, QStringLiteral("choice"));
     QCOMPARE(pages->role, QStringLiteral("choice"));
@@ -678,44 +684,51 @@ void SettingsLayoutTest::adminCaptureModes()
     QCOMPARE(all->activeState, all->actions[0].command);
     QCOMPARE(pages->activeState, pages->actions[0].command);
     QCOMPARE(none->activeState, none->actions[0].command);
-    QCOMPARE(doc.findCell(QStringLiteral("tr_a"))->actions[0].command,
+    QCOMPARE(setup.findCell(QStringLiteral("tr_a"))->actions[0].command,
              QStringLiteral("settings.tracker.auto"));
-    QCOMPARE(doc.findCell(QStringLiteral("vigem_install"))->actions[0].command,
+    QCOMPARE(setup.findCell(QStringLiteral("vigem_install"))->actions[0].command,
              QStringLiteral("settings.vigem.install"));
-    QCOMPARE(doc.findCell(QStringLiteral("vigem_refresh"))->actions[0].command,
+    QCOMPARE(setup.findCell(QStringLiteral("vigem_refresh"))->actions[0].command,
              QStringLiteral("settings.vigem.refresh"));
-    QCOMPARE(doc.findCell(QStringLiteral("key_edit"))->actions[0].command,
+    QCOMPARE(setup.findGrid(QStringLiteral("sec_tr"))->row, 1);
+    QCOMPARE(setup.findGrid(QStringLiteral("sec_vigem"))->row, 2);
+    QCOMPARE(setup.findGrid(QStringLiteral("sec_capture"))->row, 3);
+    QCOMPARE(setup.findGrid(QStringLiteral("sec_splash"))->row, 4);
+    QVERIFY(!setup.findCell(QStringLiteral("key_edit")));
+    QVERIFY(!setup.findCell(QStringLiteral("head_preview")));
+    QVERIFY(!setup.findGrid(QStringLiteral("sec_speech")));
+    QVERIFY(!setup.findGrid(QStringLiteral("tabs")));
+
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_speak"), speak, &err), qPrintable(err));
+    QCOMPARE(speak.findCell(QStringLiteral("key_edit"))->actions[0].command,
              QStringLiteral("settings.speech.editKey"));
-    QCOMPARE(doc.findGrid(QStringLiteral("sec_tr"))->row, 1);
-    QCOMPARE(doc.findGrid(QStringLiteral("sec_vigem"))->row, 3);
-    const PageGrid* speech = doc.findGrid(QStringLiteral("sec_speech"));
-    QVERIFY(speech);
-    QCOMPARE(speech->row, 5);
-    QCOMPARE(speech->rowSpan, 5);
-    QCOMPARE(speech->rows, 5);
-    QCOMPARE(doc.findGrid(QStringLiteral("row_key"))->row, 1);
-    QCOMPARE(doc.findGrid(QStringLiteral("row_eng"))->row, 2);
-    QCOMPARE(doc.findGrid(QStringLiteral("row_spd"))->row, 3);
-    QCOMPARE(doc.findGrid(QStringLiteral("row_predict"))->row, 4);
-    QCOMPARE(doc.findCell(QStringLiteral("predict_on"))->role, QStringLiteral("toggle"));
-    QCOMPARE(doc.findCell(QStringLiteral("predict_on"))->actions[0].command,
+    QCOMPARE(speak.findGrid(QStringLiteral("sec_speech"))->row, 1);
+    QCOMPARE(speak.findGrid(QStringLiteral("sec_speech"))->rows, 5);
+    QCOMPARE(speak.findGrid(QStringLiteral("row_key"))->row, 1);
+    QCOMPARE(speak.findGrid(QStringLiteral("row_eng"))->row, 2);
+    QCOMPARE(speak.findGrid(QStringLiteral("row_spd"))->row, 3);
+    QCOMPARE(speak.findGrid(QStringLiteral("row_predict"))->row, 4);
+    QCOMPARE(speak.findCell(QStringLiteral("predict_on"))->role, QStringLiteral("toggle"));
+    QCOMPARE(speak.findCell(QStringLiteral("predict_on"))->actions[0].command,
              QStringLiteral("settings.speech.predictions.toggle"));
-    QVERIFY(!doc.findGrid(QStringLiteral("sec_key")));
-    QVERIFY(!doc.findGrid(QStringLiteral("sec_eng")));
-    QVERIFY(!doc.findGrid(QStringLiteral("sec_spd")));
-    QCOMPARE(doc.findGrid(QStringLiteral("sec_capture"))->row, 10);
-    QVERIFY(!doc.findGrid(QStringLiteral("tabs")));
+    QVERIFY(speak.findCell(QStringLiteral("m_sapi")));
+    QVERIFY(speak.findCell(QStringLiteral("m_flash")));
+    QVERIFY(speak.findCell(QStringLiteral("m_v3")));
+    QVERIFY(!speak.findCell(QStringLiteral("cap_all")));
+    QVERIFY(!speak.findCell(QStringLiteral("vigem_install")));
+    QVERIFY(!speak.findGrid(QStringLiteral("sec_key")));
+    QVERIFY(!speak.findGrid(QStringLiteral("tabs")));
 }
 
-void SettingsLayoutTest::hostInlinesSpeedBody()
+void SettingsLayoutTest::hostInlinesDwellBody()
 {
     PageDocument host;
-    PageDocument speed;
+    PageDocument dwellDoc;
     QString err;
     QVERIFY2(loadLayout(QStringLiteral("main_settings_host"), host, &err), qPrintable(err));
-    QVERIFY2(loadLayout(QStringLiteral("main_settings_speed"), speed, &err), qPrintable(err));
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_dwell"), dwellDoc, &err), qPrintable(err));
     QHash<QString, PageDocument> hosted;
-    hosted.insert(speed.id, speed);
+    hosted.insert(dwellDoc.id, dwellDoc);
     const auto ptrs = PageCompose::pointers(hosted);
     PageFrame frame;
     frame.screen = QRectF(0, 0, 1920, 1080);
@@ -723,27 +736,49 @@ void SettingsLayoutTest::hostInlinesSpeedBody()
     QVector<PageGridPaint> grids;
     const QVector<PageTarget> t =
         PageHit::collect(host, frame, {}, false, &grids, false, std::nullopt, &ptrs);
-    const PageTarget* tab = targetById(t, QStringLiteral("tab_speed"));
-    const PageTarget* tabMag = targetById(t, QStringLiteral("tab_magnify"));
+    const PageTarget* tab = targetById(t, QStringLiteral("tab_dwell"));
+    const PageTarget* tabZoom = targetById(t, QStringLiteral("tab_zoom"));
     const PageTarget* dwell = targetById(t, QStringLiteral("dwell_edit"));
-    const PageTarget* more = targetById(t, QStringLiteral("open_advanced"));
     QVERIFY(tab);
-    QVERIFY(tabMag);
+    QVERIFY(tabZoom);
     QVERIFY(dwell);
-    QVERIFY(more);
     QCOMPARE(tab->pageId, QStringLiteral("main_settings_host"));
     QVERIFY(!tab->interactive);
-    QVERIFY(tabMag->interactive);
-    QCOMPARE(dwell->pageId, QStringLiteral("main_settings_speed"));
+    QVERIFY(tab->actions.isEmpty());
+    QVERIFY(tabZoom->interactive);
+    QCOMPARE(dwell->pageId, QStringLiteral("main_settings_dwell"));
     QVERIFY(dwell->interactive);
-    QCOMPARE(more->pageId, QStringLiteral("main_settings_speed"));
+    QVERIFY(!targetById(t, QStringLiteral("open_advanced")));
+    QVERIFY(!targetById(t, QStringLiteral("seg_zoom")));
     QVERIFY(tab->geom.visual.center().y() < dwell->geom.visual.center().y());
-    const PageTarget* hitTab = PageHit::at(t, tabMag->geom.visual.center(), 1.0, {}, grids);
+    const PageTarget* hitTab = PageHit::at(t, tabZoom->geom.visual.center(), 1.0, {}, grids);
     QVERIFY(hitTab);
-    QCOMPARE(hitTab->id, QStringLiteral("tab_magnify"));
+    QCOMPARE(hitTab->id, QStringLiteral("tab_zoom"));
     const PageTarget* hitBody = PageHit::at(t, dwell->geom.visual.center(), 1.0, {}, grids);
     QVERIFY(hitBody);
     QCOMPARE(hitBody->id, QStringLiteral("dwell_edit"));
+
+    PageDocument zoom;
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_zoom"), zoom, &err), qPrintable(err));
+    PageGrid* body = host.findGrid(QStringLiteral("body"));
+    QVERIFY(body);
+    body->src = QStringLiteral("main_settings_zoom");
+    QHash<QString, PageDocument> zoomed;
+    zoomed.insert(zoom.id, zoom);
+    const auto zoomPtrs = PageCompose::pointers(zoomed);
+    const QVector<PageTarget> zt =
+        PageHit::collect(host, frame, {}, false, nullptr, false, std::nullopt, &zoomPtrs);
+    const PageTarget* onZoom = targetById(zt, QStringLiteral("tab_zoom"));
+    const PageTarget* onPlace = targetById(zt, QStringLiteral("tab_place"));
+    const PageTarget* zd = targetById(zt, QStringLiteral("zd_val"));
+    QVERIFY(onZoom);
+    QVERIFY(onPlace);
+    QVERIFY(zd);
+    QVERIFY(!onZoom->interactive);
+    QVERIFY(onZoom->actions.isEmpty());
+    QVERIFY(onPlace->interactive);
+    QCOMPARE(zd->pageId, QStringLiteral("main_settings_zoom"));
+    QVERIFY(onZoom->geom.visual.center().y() < zd->geom.visual.center().y());
 }
 
 QObject* createSettingsLayoutTest()

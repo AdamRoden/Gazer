@@ -2,23 +2,20 @@
 
 Drawer **Settings** (`main_settings`) is a hub of live pages. There are no desktop dialogs for these prefs.
 
-The hub opens the basic settings layer. **Advanced** on the hub, and on the basic tab bar, opens a second layer. **Basic** on the advanced layer closes it. **Done** on a tab bar closes settings.
+The hub and the tab bar are the same eight boards. **Done** on the tab bar closes settings.
 
-| Board | Layer | What you change |
-|-------|-------|-----------------|
-| **Speed** | Basic | Slow / Normal / Fast / Custom. Standard vs rapid sequences, mouse-move dwell, mag-pick dwell. **More…** opens Advanced speed. |
-| **Magnify** | Basic | Mag-pick, foresight, zoom window size/shape, follow profile (slow / sticky / smooth / snappy). |
-| **Assist** | Basic | Gaze helpers and the live lens. |
-| **Theme** | Basic | Light / dark, brightness, tint family, accent, progress color, saturation, custom palette. |
-| **Head** | Basic | Analog head-pose maps (yaw / pitch / roll / x / y / z → commands or a virtual pad). |
-| **Adv. speed** | Advanced | Scan grace, blink grace, pointer grace, foresight hold, auto-close. |
-| **Indicators** | Advanced | Dwell progress shape (radial, pie, fill directions), pick markers, flash. |
-| **Tools** | Advanced | Four look-to maps (scroll, mouse, left stick, right stick) with per-map ring editors, ComboMouse radii and colors. |
-| **Admin** | Advanced | Tracker, ViGEm install, speech (ElevenLabs key, engine, speed, boost), then screen capture (**All** / **Pages** / **None**). |
+| Board | What you change |
+|-------|-----------------|
+| **Dwell** | Slow / Normal / Fast / Custom. Standard and rapid sequences. Scan grace, blink grace, button progress, and pointer progress (ring, pie, fill). |
+| **Zoom** | Magnify pick, foresight, repeat zoom, zoom dwell, foresight dwell and hold, window level / size / fill / shape / position, region markers, and Move to…. |
+| **Place** | Pointer dwell, pointer grace, final-pick markers, Move to…, and ComboMouse radii and colors. |
+| **Gaze** | Gaze follow (slow / sticky / smooth / snappy), show gaze, gaze mouse, the live lens, and the four look-to maps. |
+| **Head** | Analog head-pose maps (yaw / pitch / roll / x / y / z → commands or a virtual pad). |
+| **Speak** | Composer voice: API key, SAPI or ElevenLabs model, speed, boost, and word predictions. The voice library stays on the Speak board. |
+| **Theme** | Light / dark, brightness, tint family, accent, progress color, saturation, custom palette, hover, and flash. |
+| **Setup** | Tracker, ViGEm install, screen capture (**All** / **Pages** / **None**), startup splash (**Play tour**), and auto-close. |
 
-Session toggles (start docked, auto-collapse drawer, layout auto-close, startup dock tour) live on these boards as well.
-
-Live boards fire `settings.*` / `theme.*` / `headPose.*` commands (numpad, color picker, speed presets, ViGEm install, …). Patterns: [Commands — Settings](reference/commands.md#settings).
+Live boards fire `settings.*` / `theme.*` / `headPose.*` commands (numpad, color picker, dwell presets, ViGEm install, …). Patterns: [Commands — Settings](reference/commands.md#settings).
 
 Prefs are `%AppData%\Gazer\settings.json`. The ElevenLabs key is **not** in that file; it is DPAPI-protected under `secrets\`. Each MSI install deletes `settings.json` so the next launch writes factory defaults.
 

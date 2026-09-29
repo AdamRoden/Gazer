@@ -15,10 +15,11 @@ Opened from the drawer **Assist** page (`example_assist`) or the mouse pad.
 | Look to mouse | `lookToMouse` | Same analog disk, driving pointer velocity. |
 | Look to left / right stick | `lookToLeftStick` / `lookToRightStick` | Same analog disk, driving a virtual Xbox stick (ViGEm). Also on the [Gamepad](gamepad.md) board. |
 
-All four look-to maps can run at once, each with its own origin and rings. Tune them on Settings → **Tools**. Edit opens a ring editor (deadzone, 0–100% ramp, optional outer deadzone, optional hub). Output stays at 100% outside the ramp until the outer deadzone. Preview draws analog rings at the origin (independent of whether the map is enabled). Overlay style is per part: draw a border and fill the background for pause, inner deadzone, max, and outer deadzone.
 | ComboMouse | `toggleComboMouse` | Inner drift ring + outer command pie. |
 | Edit page | `openPageEditor` | Opens the XML designer. |
 
+All four look-to maps can run at once, each with its own origin and rings. Tune them on Settings → **Gaze**. Edit opens a ring editor (deadzone, 0–100% ramp, optional outer deadzone, optional hub). Output stays at 100% outside the ramp until the outer deadzone. Preview draws analog rings at the origin (independent of whether the map is enabled). Overlay style is per part: draw a border and fill the background for pause, inner deadzone, max, and outer deadzone.
+
 Scroll-map peak speeds: 0.5–8 notches/sec (`lts.speed.slower` / `.faster`). Overlay z-order (front → back): reticle, live lens, mag-pick, other assist overlays, then the page host.
 
-Fine-tuning lives on Settings → **Assist**, **Magnify**, and **Tools**. Command names for these tools: [Commands](reference/commands.md#assist). Zoom tokens on XML click-at-gaze cells: [Actions](reference/actions.md#move-to-gaze-and-click-at-gaze).
+The live lens and look-to maps are Settings → **Gaze**. The zoom window, foresight, and region markers are Settings → **Zoom**. ComboMouse and placing a click are Settings → **Place**. Command names for these tools: [Commands](reference/commands.md#assist). Zoom tokens on XML click-at-gaze cells: [Actions](reference/actions.md#move-to-gaze-and-click-at-gaze).

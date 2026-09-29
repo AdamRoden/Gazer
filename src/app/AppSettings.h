@@ -35,7 +35,7 @@ struct AppSettings {
     int mouseMoveDwellMs = 800;
     /// Dwell for the first mag-pick step (choose region to magnify).
     int magPickDwellMs = 600;
-    /// Last saved Custom timing package (Speed presets). Scan grace is not part of a pack.
+    /// Last saved Custom timing package (Dwell presets). Scan grace is not part of a pack.
     struct TimingPack {
         QVector<int> sequence;
         QVector<int> rapidSequence;

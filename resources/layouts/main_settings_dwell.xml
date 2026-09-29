@@ -1,0 +1,93 @@
+<Page id="main_settings_dwell" name="Dwell" radius="16">
+  <Style id="group" background="bg95" thickness="0" radius="16"/>
+  <Style id="row" background="transparent" thickness="0" radius="0"/>
+  <Style id="plain" background="transparent" thickness="0" radius="0"/>
+  <Style id="join" background="transparent" thickness="0" radius="0"/>
+  <Style id="joinLeft" background="transparent" thickness="0" radius="10,0,0,10"/>
+  <Style id="joinRight" background="transparent" thickness="0" radius="0,10,10,0"/>
+  <Grid id="board" desktopMode="true" rows="4" columns="16" anchor="Top" offset="0,0" size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" gap="6" margin="12" radius="16"
+        rowHeights="0.55*,1.55*,1.45*,1.7*">
+    <Cell id="page_title" row="0" col="0" colSpan="16" label="Dwell" caption="Presets, sequences, grace, and progress" role="label" textStyle="title" style="plain"/>
+
+    <SubGrid id="sec_presets" row="1" col="0" colSpan="16" rows="3" columns="1" rowHeights="*,2*,2*" gap="6" margin="6" style="group">
+      <Cell id="h_presets" row="0" col="0" label="Presets" role="label" textStyle="section" style="plain"/>
+      <SubGrid id="row_preset" row="1" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="p_label" row="0" col="0" label="Quick packages" caption="Slow, Normal, Fast, or Custom." role="label" style="plain"/>
+        <SubGrid id="act_preset" row="0" col="1" rows="1" columns="4" gap="0" style="row">
+          <Cell id="p_slow" row="0" col="0" icon="speed2" label="Slow" role="choice" activeState="settings.dwell.slow" style="joinLeft" command="settings.dwell.slow"/>
+          <Cell id="p_norm" row="0" col="1" icon="speed3" label="Normal" role="choice" activeState="settings.dwell.normal" style="join" command="settings.dwell.normal"/>
+          <Cell id="p_fast" row="0" col="2" icon="speed4" label="Fast" role="choice" activeState="settings.dwell.fast" style="join" command="settings.dwell.fast"/>
+          <Cell id="p_custom" row="0" col="3" icon="toolsHandyman" label="Custom" role="choice" activeState="settings.dwell.custom" style="joinRight" command="settings.dwell.custom"/>
+        </SubGrid>
+      </SubGrid>
+      <SubGrid id="row_custom" row="2" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="p_custom_l" row="0" col="0" label="Custom" caption="Save the current timings, or restore the last save." role="label" style="plain"/>
+        <SubGrid id="act_custom" row="0" col="1" rows="1" columns="2" gap="0" style="row">
+          <Cell id="p_save" row="0" col="0" label="Save" style="joinLeft" command="settings.dwell.custom.save"/>
+          <Cell id="p_restore" row="0" col="1" label="Restore" style="joinRight" command="settings.dwell.custom.restore"/>
+        </SubGrid>
+      </SubGrid>
+    </SubGrid>
+
+    <SubGrid id="sec_dwell" row="2" col="0" colSpan="16" rows="3" columns="1" rowHeights="*,2*,2*" gap="6" margin="6" style="group">
+      <Cell id="h_dwell" row="0" col="0" label="Dwell" role="label" textStyle="section" style="plain"/>
+      <SubGrid id="row_dwell" row="1" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="dwell_label" row="0" col="0" label="Standard" caption="Settings, navigation, mouse, AHK, and composer word chips. Last step repeats." role="label" style="plain"/>
+        <SubGrid id="act_dwell" row="0" col="1" rows="1" columns="2" columnWidths="7*,2*" gap="0" style="row">
+          <Cell id="dwell_value" row="0" col="0" label="—" role="value" settingKey="dwellMs" style="joinLeft"/>
+          <Cell id="dwell_edit" row="0" col="1" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.dwellMs"/>
+        </SubGrid>
+      </SubGrid>
+      <SubGrid id="row_rapid_dwell" row="2" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="rapid_dwell_label" row="0" col="0" label="Rapid" caption="Virtual keystrokes, composer typing, and modifiers. Last step repeats." role="label" style="plain"/>
+        <SubGrid id="act_rapid_dwell" row="0" col="1" rows="1" columns="2" columnWidths="7*,2*" gap="0" style="row">
+          <Cell id="rapid_dwell_value" row="0" col="0" label="—" role="value" settingKey="rapidDwellMs" style="joinLeft"/>
+          <Cell id="rapid_dwell_edit" row="0" col="1" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.rapidDwellMs"/>
+        </SubGrid>
+      </SubGrid>
+    </SubGrid>
+
+    <SubGrid id="sec_fine" row="3" col="0" colSpan="16" rows="1" columns="2" gap="16">
+      <SubGrid id="sec_grace" row="0" col="0" rows="3" columns="1" rowHeights="*,2*,2*" gap="6" margin="6" style="group">
+        <Cell id="h_grace" row="0" col="0" label="Grace" role="label" textStyle="section" style="plain"/>
+        <SubGrid id="row_scan" row="1" col="0" rows="1" columns="2" gap="6" style="row">
+          <Cell id="scan_label" row="0" col="0" label="Scan grace" caption="Time on-target before dwell starts." role="label" style="plain"/>
+          <SubGrid id="act_scan" row="0" col="1" rows="1" columns="9" gap="0" style="row">
+            <Cell id="scan_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.scanGraceMs.dec"/>
+            <Cell id="scan_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="scanGraceMs" style="join"/>
+            <Cell id="scan_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.scanGraceMs.inc"/>
+            <Cell id="scan_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.scanGraceMs"/>
+          </SubGrid>
+        </SubGrid>
+        <SubGrid id="row_grace" row="2" col="0" rows="1" columns="2" gap="6" style="row">
+          <Cell id="grace_label" row="0" col="0" label="Blink grace" caption="Blink without canceling dwell." role="label" style="plain"/>
+          <SubGrid id="act_grace" row="0" col="1" rows="1" columns="9" gap="0" style="row">
+            <Cell id="grace_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.dwellGraceMs.dec"/>
+            <Cell id="grace_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="dwellGraceMs" style="join"/>
+            <Cell id="grace_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.dwellGraceMs.inc"/>
+            <Cell id="grace_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.dwellGraceMs"/>
+          </SubGrid>
+        </SubGrid>
+      </SubGrid>
+      <SubGrid id="sec_progress" row="0" col="1" rows="3" columns="1" rowHeights="*,2*,2*" gap="6" margin="6" style="group">
+        <Cell id="h_prog" row="0" col="0" label="Progress" role="label" textStyle="section" style="plain"/>
+        <SubGrid id="row_bp" row="1" col="0" rows="1" columns="2" gap="6" style="row">
+          <Cell id="bp_label" row="0" col="0" label="Buttons" caption="Dwell styles on board cells." role="label" style="plain"/>
+          <SubGrid id="act_bp" row="0" col="1" rows="1" columns="3" gap="0" style="row">
+            <Cell id="bp_r" row="0" col="0" label="Ring" role="toggle" activeState="settings.progress.radial.toggle" style="joinLeft" command="settings.progress.radial.toggle"/>
+            <Cell id="bp_pie" row="0" col="1" label="Pie" role="toggle" activeState="settings.progress.pie.toggle" style="join" command="settings.progress.pie.toggle"/>
+            <Cell id="bp_f" row="0" col="2" label="Fill" role="toggle" activeState="settings.progress.fill.toggle" style="joinRight" command="settings.progress.fill.toggle"/>
+          </SubGrid>
+        </SubGrid>
+        <SubGrid id="row_pp" row="2" col="0" rows="1" columns="2" gap="6" style="row">
+          <Cell id="pp_label" row="0" col="0" label="Pointer" caption="Dwell styles for pointer aim." role="label" style="plain"/>
+          <SubGrid id="act_pp" row="0" col="1" rows="1" columns="3" gap="0" style="row">
+            <Cell id="pp_r" row="0" col="0" label="Ring" role="toggle" activeState="settings.mouseProgress.radial.toggle" style="joinLeft" command="settings.mouseProgress.radial.toggle"/>
+            <Cell id="pp_pie" row="0" col="1" label="Pie" role="toggle" activeState="settings.mouseProgress.pie.toggle" style="join" command="settings.mouseProgress.pie.toggle"/>
+            <Cell id="pp_f" row="0" col="2" label="Fill" role="toggle" activeState="settings.mouseProgress.fill.toggle" style="joinRight" command="settings.mouseProgress.fill.toggle"/>
+          </SubGrid>
+        </SubGrid>
+      </SubGrid>
+    </SubGrid>
+  </Grid>
+</Page>

@@ -178,7 +178,7 @@ Patterns, not every generated name:
 | `settings.speech.editKey` / `.clearKey` | Paste-from-clipboard API-key board / wipe DPAPI |
 | `settings.speech.key.paste` / `.save` / `.cancel` / `.clear` | Key board |
 | `settings.speech.model.sapi` / `.eleven_flash_v2_5` / `.eleven_v3` | Same handlers as `speech.model.*` (ComposeCommands) |
-| `settings.dwell.slow` / `.normal` / `.fast` / `.custom` | Speed presets (standard + rapid dwells together) |
+| `settings.dwell.slow` / `.normal` / `.fast` / `.custom` | Dwell presets (standard + rapid dwells together) |
 | `settings.dwell.custom.save` / `.restore` | Save or restore Custom timings |
 | `settings.mag.follow.slow` / `.sticky` / `.smooth` / `.snappy` | Gaze follow (indicator, gaze mouse, live lens) |
 | `settings.tracker.auto` / `.mouse` | Tracker pref (restart) |

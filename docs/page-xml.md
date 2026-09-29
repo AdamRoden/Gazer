@@ -195,10 +195,10 @@ A Grid is a placed rectangle of rows and columns. `SubGrid` occupies a parent ce
   …
 </Grid>
 
-<SubGrid id="body" row="1" col="0" colSpan="16" src="main_settings_speed" grid="board"/>
+<SubGrid id="body" row="1" col="0" colSpan="16" src="main_settings_dwell" grid="board"/>
 ```
 
-`src` is resolved at collect/rebuild, not flattened into the host AST. Style and dwell on the inlined cells still come from the fragment page. Live targets keep the fragment's page id (`main_settings_speed/dwell_edit`). `HostPage` changes `src` on the live host; `OpenPage` of the fragment still attaches it as a full board (editor F5).
+`src` is resolved at collect/rebuild, not flattened into the host AST. Style and dwell on the inlined cells still come from the fragment page. Live targets keep the fragment's page id (`main_settings_dwell/dwell_edit`). `HostPage` changes `src` on the live host; `OpenPage` of the fragment still attaches it as a full board (editor F5).
 
 ---
 
@@ -371,7 +371,7 @@ A cell or zone may have **one** action attribute. Multiple actions use child ele
 <MouseMoveToPoint value="100,200"/>
 <Command value="toggleLookToScroll"/>
 <OpenPage value="uw_qwerty, true"/>
-<HostPage value="main_settings_host, main_settings_speed"/>
+<HostPage value="main_settings_host, main_settings_dwell"/>
 <ShowLayers value="1,2"/>
 <ClosePage/>
 <CloseAllPages/>
@@ -387,7 +387,7 @@ A cell or zone may have **one** action attribute. Multiple actions use child ele
 |------|---------|
 | `Send` | `key[, Down\|Up[, durationMs]]` — tap if edge omitted; duration (ms) is a timed hold and is used only when Edge is omitted. A comma key is `send=","` (a leading comma is the key, not a separator). Named virtual-keys (`Enter`, `Tab`, `F1`…`F12`, arrows, modifiers, OEM) and US punctuation mapping: [website Actions — Send](../website/docs/reference/actions.md#send). |
 | `MouseLeftClick` / `MouseMiddleClick` / `MouseRightClick` | type: `default` / `double` / `down` / `up` / `toggle` (omit for a default click) |
-| `MouseLeftClickAtGaze` / `MouseMiddleClickAtGaze` / `MouseRightClickAtGaze` | zoom: omit/`default` = Settings mag-pick; `0` = dwell-move, no magnify; `N` = N× zoom; `-1` = foresight; `-2` = foresight with bonus zoom |
+| `MouseLeftClickAtGaze` / `MouseMiddleClickAtGaze` / `MouseRightClickAtGaze` | zoom: omit/`default` = Settings → Zoom; `0` = dwell-move, no magnify; `N` = N× zoom; `-1` = foresight; `-2` = foresight with bonus zoom |
 | `MouseMoveToGaze` | same zoom tokens as click-at-gaze |
 | `MouseMoveByDirection` | `n`/`s`/`e`/`w`/`ne`/`nw`/`se`/`sw`[, amount px] — amount omitted uses the mouse-assist step |
 | `MouseMoveToPoint` | `x,y` screen coords (dim tokens allowed) |
@@ -582,9 +582,9 @@ Python is not bundled (`python` / `python3` / `py -3` on PATH, or `GAZER_PYTHON`
         gap="72" margin="90" rowHeights="*,2*">
     <Cell id="page_title" row="0" col="0" colSpan="3"
           label="Settings" role="label" textStyle="title" style="plain"/>
-    <Cell id="open_speed" row="1" col="0"
-          label="Speed" caption="Presets, dwell, and pointer time"
-          icon="timer" openPage="main_settings_speed"/>
+    <Cell id="open_dwell" row="1" col="0"
+          label="Dwell" caption="Presets, grace, and progress"
+          icon="timer" hostPage="main_settings_host, main_settings_dwell"/>
     <Cell id="done" row="1" col="1" label="Done" icon="keyboardHide"
           closePage="true"/>
   </Grid>

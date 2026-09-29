@@ -2,7 +2,7 @@
 
 JSON **profiles** map layout `command` names to
 `InputService` outputs. Builtins win; see `src/app/Commands.md`.
-`gamepadButton` / `gamepadAxis` need ViGEm (`VirtualGamepad`). Settings → Assist can install ViGEmBus. `ViGEmClient.dll` ships next to `Gazer.exe`.
+`gamepadButton` / `gamepadAxis` need ViGEm (`VirtualGamepad`). Settings → Setup can install ViGEmBus. `ViGEmClient.dll` ships next to `Gazer.exe`.
 
 - Profile: `resources/mappings/default.json`
 - Loader: `MappingLoader`
