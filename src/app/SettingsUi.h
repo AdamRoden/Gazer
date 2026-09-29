@@ -53,8 +53,10 @@ public:
     [[nodiscard]] bool lookToEditorOpen() const { return m_lookToMap.active; }
     [[nodiscard]] bool lookToPreviewOn() const { return m_lookToMap.active && m_lookToPreview; }
     [[nodiscard]] HeadPoseAxis headChartAxis() const { return m_headChartAxis; }
+    [[nodiscard]] QString headChartMapId() const { return m_headChartMapId; }
     [[nodiscard]] QString headMapSourceId() const;
     [[nodiscard]] QString headMapDestId() const;
+    [[nodiscard]] QString headMapCommand() const;
     [[nodiscard]] bool headMapEnabled() const;
     void syncHeadPosePaint();
 
@@ -64,6 +66,8 @@ public:
     [[nodiscard]] bool onSpeechKeyValidated(bool ok, const QString& error);
     /// Head-pose curve gaze-scrub while that editor is open.
     void onGaze(const GazePoint& point);
+    /// Drop a head-pose editor when that settings page is no longer showing.
+    void onSessionChanged();
     void onColorAimMoved(const QPoint& pos);
     void cancelEyedropper();
     [[nodiscard]] QString colorPickerKey() const { return m_colorPickerKey; }
@@ -157,22 +161,33 @@ private:
     [[nodiscard]] bool hexCancel(QString* error = nullptr);
 
     void decorateHeadPosePage(PageDocument& doc);
-    void fillHeadPoseMaps(PageDocument& doc);
+    void fillHeadPoseColumn(PageGrid& host);
+    void fillHeadPoseAxisList(PageGrid& host);
+    void fillHeadPoseEditorColumn(PageGrid& host);
+    void fillHeadPoseOutputList(PageGrid& host);
+    void fillHeadPoseCommandColumn(PageGrid& host);
     HeadPoseMap* mapForChartAxis();
     const HeadPoseMap* mapForChartAxis() const;
     void setHeadChartAxis(HeadPoseAxis axis);
+    [[nodiscard]] bool selectHeadChartMap(const QString& mapId);
     void registerHeadPoseCommands();
     [[nodiscard]] bool headPoseRecenter(QString* error);
     [[nodiscard]] bool headPoseAddMap(QString* error);
+    [[nodiscard]] bool headPoseAddAxis(HeadPoseAxis axis, QString* error);
+    [[nodiscard]] bool headPoseDuplicate(const QString& mapId, QString* error);
     [[nodiscard]] bool openHeadPoseEditor(const QString& mapId, QString* error = nullptr);
+    void closeHeadPoseEditor();
+    void discardHeadPoseEditor();
     void refreshHeadPoseEditor();
-    [[nodiscard]] PageDocument buildHeadPoseEditor() const;
     HeadPoseMap* headPoseDraft();
     const HeadPoseMap* headPoseDraft() const;
     void commitHeadPoseDraft(const HeadPoseMap& m, bool persist = true);
+    [[nodiscard]] bool adjustHeadPosePoint(int index, const QString& op, QString* error);
+    [[nodiscard]] bool addHeadPosePoint();
+    [[nodiscard]] bool invertHeadPoseMap();
     [[nodiscard]] bool openHeadPoseCommandList(QString* error = nullptr);
     void refreshHeadPoseCommandList();
-    [[nodiscard]] PageDocument buildHeadPoseCommandList() const;
+    [[nodiscard]] bool headPoseEditorOpen() const { return !m_headMapId.isEmpty(); }
     void beginCurveScrub();
     void endCurveScrub();
     void feedCurveGaze(const GazePoint& point);
@@ -245,11 +260,13 @@ private:
     bool m_lookToPreview = false;
     QString m_lookToNumpadField;
 
-    LiveBoard m_headMap;
+    enum class HeadPoseColumn { Axes, Edit, Outputs, Commands };
+    HeadPoseColumn m_headColumn = HeadPoseColumn::Axes;
     QString m_headMapId;
+    QString m_headChartMapId;
     int m_headPointIndex = 0;
+    bool m_headPoseSeen = false;
     bool m_headPointEditOut = false;
-    LiveBoard m_headCmd;
     int m_headCmdPage = 0;
     bool m_curveScrub = false;
     GazeDwellTracker m_curveDwell;

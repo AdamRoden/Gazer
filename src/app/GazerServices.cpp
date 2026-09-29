@@ -302,6 +302,9 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
         if (m_compose) {
             m_compose->onSessionChanged();
         }
+        if (m_settingsUi) {
+            m_settingsUi->onSessionChanged();
+        }
     });
 
     applySettings(false);

@@ -116,8 +116,8 @@ HeadPoseMap defaultHeadPoseMap()
     m.enabled = true;
     m.source = HeadPoseAxis::Yaw;
     m.dest = HeadPoseDest::MouseX;
-    // Left end, left deadzone, center, right deadzone, right end at full output.
-    m.points = {{-25.0, -600.0}, {-5.0, 0.0}, {0.0, 0.0}, {5.0, 0.0}, {25.0, 600.0}};
+    // Left end, left deadzone, right deadzone, right end. (0, 0) is the graph origin, not a handle.
+    m.points = {{-25.0, -600.0}, {-5.0, 0.0}, {5.0, 0.0}, {25.0, 600.0}};
     m.commandAt = 15.0;
     m.hysteresis = 2.0;
     return m;
@@ -129,6 +129,7 @@ void clampHeadPoseMap(HeadPoseMap& m)
     m.command = m.command.trimmed();
     m.hysteresis = qBound(0.1, m.hysteresis, 45.0);
     m.commandAt = qBound(-180.0, m.commandAt, 180.0);
+    // Unset trigger. stepHeadPoseCommandAt jumps this gap so an edit is not rewritten to 15.
     if (qAbs(m.commandAt) < 0.5) {
         m.commandAt = 15.0;
     }
@@ -156,6 +157,15 @@ void clampHeadPoseMap(HeadPoseMap& m)
         uniq = defaultHeadPoseMap().points;
     }
     m.points = std::move(uniq);
+}
+
+double stepHeadPoseCommandAt(double commandAt, int dir)
+{
+    const double stepped = commandAt + static_cast<double>(dir);
+    if (qAbs(stepped) < 0.5) {
+        return dir < 0 ? -1.0 : 1.0;
+    }
+    return stepped;
 }
 
 QString headPoseMapDestSummary(const HeadPoseMap& m)

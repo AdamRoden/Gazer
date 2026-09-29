@@ -19,6 +19,8 @@
 #include "ui/PickStyle.h"
 #include "ui/Theme.h"
 
+#include <QUrl>
+
 namespace gazer {
 
 namespace {
@@ -48,8 +50,40 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
     }
     if (key.startsWith(QLatin1String("headPose.chart.axis."))) {
         const QString id = key.mid(int(QLatin1String("headPose.chart.axis.").size()));
-        return ctx.settingsUi
-               && QLatin1String(headPoseAxisId(ctx.settingsUi->headChartAxis())) == id;
+        if (!ctx.settingsUi || !ctx.settings
+            || QLatin1String(headPoseAxisId(ctx.settingsUi->headChartAxis())) != id) {
+            return false;
+        }
+        for (const HeadPoseMap& m : ctx.settings->headPoseMaps) {
+            if (m.source == ctx.settingsUi->headChartAxis()) {
+                return false;
+            }
+        }
+        return true;
+    }
+    if (key.startsWith(QLatin1String("headPose.chart.map."))) {
+        if (!ctx.settingsUi || !ctx.settings) {
+            return false;
+        }
+        const QString id = key.mid(int(QLatin1String("headPose.chart.map.").size()));
+        if (!ctx.settingsUi->headChartMapId().isEmpty()) {
+            return ctx.settingsUi->headChartMapId() == id;
+        }
+        for (const HeadPoseMap& m : ctx.settings->headPoseMaps) {
+            if (m.source == ctx.settingsUi->headChartAxis()) {
+                return m.id == id;
+            }
+        }
+        return false;
+    }
+    if (key.startsWith(QLatin1String("headPose.map.command."))) {
+        if (!ctx.settingsUi) {
+            return false;
+        }
+        const QString enc = key.mid(int(QLatin1String("headPose.map.command.").size()));
+        const QString name = QUrl::fromPercentEncoding(enc.toLatin1());
+        return ctx.settingsUi->headMapDestId() == QLatin1String("command")
+               && ctx.settingsUi->headMapCommand() == name;
     }
     if (key.startsWith(QLatin1String("headPose.map.source."))) {
         return ctx.settingsUi

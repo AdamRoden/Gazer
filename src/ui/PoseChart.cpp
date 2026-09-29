@@ -3,6 +3,7 @@
 
 #include <QPainter>
 #include <QPainterPath>
+#include <QPolygonF>
 #include <QtMath>
 
 namespace gazer {
@@ -101,7 +102,7 @@ void paintCurve(QPainter& p, const QRectF& cell, const ThemeColors& theme,
     }
     const QPointF origin = toPlot(r, 0, 0, inMin, inMax, outMin, outMax);
     if (r.contains(origin)) {
-        p.setPen(QPen(grid, 1, Qt::DashLine));
+        p.setPen(QPen(grid, 1.25, Qt::DashLine));
         p.drawLine(QPointF(r.left(), origin.y()), QPointF(r.right(), origin.y()));
         p.drawLine(QPointF(origin.x(), r.top()), QPointF(origin.x(), r.bottom()));
     }
@@ -115,6 +116,16 @@ void paintCurve(QPainter& p, const QRectF& cell, const ThemeColors& theme,
         p.setPen(QPen(accent, 2.4, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
         p.setBrush(Qt::NoBrush);
         p.drawPath(path);
+    }
+
+    if (r.contains(origin)) {
+        constexpr double d = 6.0;
+        QPolygonF diamond;
+        diamond << QPointF(origin.x(), origin.y() - d) << QPointF(origin.x() + d, origin.y())
+                << QPointF(origin.x(), origin.y() + d) << QPointF(origin.x() - d, origin.y());
+        p.setPen(QPen(fg, 1.5));
+        p.setBrush(Qt::NoBrush);
+        p.drawPolygon(diamond);
     }
 
     for (int i = 0; i < points.size(); ++i) {

@@ -30,7 +30,7 @@ Composition root, settings, command dispatch.
 | `SettingsSpeechKey.cpp` | ElevenLabs API-key live board |
 | `SettingsSliderGaze.cpp` | Head-pose curve gaze-scrub |
 | `SettingsCommands.cpp` | `settings.*` builtins |
-| `SettingsHeadPose.cpp` | Head-pose maps live board (`headPose.*`) |
+| `SettingsHeadPose.cpp` | Head-pose axis list and in-column editor (`headPose.*`) |
 | `SettingsLookTo.cpp` | Look-to map ring editor (`lookTo.edit.*` / `lookTo.map.*`) |
 | `SettingsPageBuild.h` | Cell/grid helpers for live boards |
 | `SettingsUiInternal.h` | Shared ids / color-axis helpers (SettingsUi TUs only) |

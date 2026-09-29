@@ -67,6 +67,8 @@ struct HeadPoseMap {
 
 [[nodiscard]] HeadPoseMap defaultHeadPoseMap();
 void clampHeadPoseMap(HeadPoseMap& m);
+/// Step by `dir`. |commandAt| < 0.5 is the unset sentinel, so the step jumps across 0.
+[[nodiscard]] double stepHeadPoseCommandAt(double commandAt, int dir);
 [[nodiscard]] QString headPoseMapDestSummary(const HeadPoseMap& m);
 
 [[nodiscard]] double headPoseAxisValue(const HeadPose& pose, HeadPoseAxis axis);

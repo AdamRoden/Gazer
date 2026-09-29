@@ -25,15 +25,26 @@ When adding a command: register it and add a row here.
 |---------|------|
 | `headPose.enabled.toggle` | Master analog maps on/off |
 | `headPose.recenter` | Zero yaw, pitch, roll, x, y, and z at the current pose |
-| `headPose.chart.axis.<axis>` | Prefix; select graph input (yaw/pitch/roll/x/y/z) |
-| `headPose.map.source.<axis>` / `headPose.map.dest.<dest>` | Prefix; editor source/destination |
-| `headPose.addMap` | Append a map for the selected axis and open the editor |
-| `headPose.edit.<id>` | Prefix; open that map’s editor |
-| `headPose.map.enabled.toggle` / `.delete` / `.done` | Editor |
-| `headPose.map.point.*` | Curve points (prev/next/add/del/nudge/edit) |
-| `headPose.map.curve.scrub` | Gaze-move the selected handle |
-| `headPose.map.pickCommand` / `headPose.cmd.<name>` / `headPose.cmdList.next` / `.prev` / `.cancel` | Command dest |
-| `headPose.map.commandAt.dec` / `.inc` | Trigger input value |
+| `headPose.chart.axis.<axis>` | Prefix; select an unmapped axis on the graph (`yaw` / `pitch` / `roll` / `x` / `y` / `z`) |
+| `headPose.chart.map.<id>` | Prefix; select that map’s curve on the graph |
+| `headPose.axis.<axis>.add` | Prefix; add a map for that axis and open the editor |
+| `headPose.duplicate.<id>` | Prefix; clone that map and open the editor |
+| `headPose.addMap` | Append a map for the chart axis and open the editor |
+| `headPose.edit.<id>` | Prefix; open that map’s editor in the right column |
+| `headPose.map.source.<axis>` / `headPose.map.dest.<dest>` | Prefix; editor source / destination. Choosing a destination returns to the editor |
+| `headPose.map.pickOutput` / `headPose.map.outputs.back` | Output list, and back to the editor |
+| `headPose.map.invert` | Negate every curve output |
+| `headPose.map.enabled.toggle` / `.delete` / `.done` | Per-map enable, remove the map, or close the editor |
+| `headPose.map.point.<index>.in.dec` / `.inc` / `.edit` | Nudge or type that point’s input |
+| `headPose.map.point.<index>.out.dec` / `.inc` / `.edit` | Nudge or type that point’s output |
+| `headPose.map.point.<index>.del` | Remove that point (at least two remain) |
+| `headPose.map.point.prev` / `.next` / `.add` / `.del` | Selected point: move the halo, append, or remove |
+| `headPose.map.point.in.dec` / `.inc` / `.edit` and `.out.*` | Nudge or type the selected point |
+| `headPose.map.curve.scrub` | Gaze-move the selected handle (not wired on the settings graph) |
+| `headPose.map.pickCommand` | Open the command list in the right column |
+| `headPose.cmd.<name>` | Percent-encoded command; sets the destination to Command and returns to the editor |
+| `headPose.cmdList.next` / `.prev` / `.cancel` | Command pages. Cancel returns to the output list |
+| `headPose.map.commandAt.dec` / `.inc` | Trigger input for a command map |
 
 `toggleDwellSuspend` / `suspendDwell` / `resumeDwell` are different handlers, not aliases.
 

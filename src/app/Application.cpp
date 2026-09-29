@@ -408,8 +408,7 @@ bool Application::headPreviewOnScreen() const
     if (!pages.window()) {
         return false;
     }
-    return pages.showsPage(QStringLiteral("main_settings_head_pose"))
-           || pages.topPageId() == QLatin1String("headpose_map_live");
+    return pages.showsPage(QStringLiteral("main_settings_head_pose"));
 }
 
 void Application::updateHeadPosePaint()

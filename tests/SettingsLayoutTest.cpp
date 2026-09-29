@@ -336,13 +336,22 @@ void SettingsLayoutTest::hubOpensBasicBoards()
     QVERIFY(head.findCell(QStringLiteral("pose_curve")));
     QCOMPARE(head.findCell(QStringLiteral("pose_curve"))->role, QStringLiteral("curvefield"));
     QVERIFY(!head.findCell(QStringLiteral("pose_curve"))->isInteractive());
-    QVERIFY(head.findCell(QStringLiteral("axis_yaw")));
-    QVERIFY(head.findCell(QStringLiteral("axis_pitch")));
-    QVERIFY(head.findCell(QStringLiteral("axis_roll")));
-    QVERIFY(head.findCell(QStringLiteral("axis_x")));
-    QVERIFY(head.findCell(QStringLiteral("axis_y")));
-    QVERIFY(head.findCell(QStringLiteral("axis_z")));
-    QCOMPARE(head.findCell(QStringLiteral("axis_yaw"))->role, QStringLiteral("choice"));
+    QCOMPARE(head.findCell(QStringLiteral("pose_curve"))->row, 2);
+    QVERIFY(head.findCell(QStringLiteral("hp_enable")));
+    QVERIFY(head.findCell(QStringLiteral("hp_recenter")));
+    QVERIFY(!head.findCell(QStringLiteral("hp_add")));
+    QVERIFY(!head.findCell(QStringLiteral("axis_yaw")));
+    QVERIFY(!head.findCell(QStringLiteral("axis_pitch")));
+    QVERIFY(!head.findCell(QStringLiteral("axis_roll")));
+    QVERIFY(!head.findCell(QStringLiteral("axis_x")));
+    QVERIFY(!head.findCell(QStringLiteral("axis_y")));
+    QVERIFY(!head.findCell(QStringLiteral("axis_z")));
+    const PageGrid* preview = head.findGrid(QStringLiteral("sec_preview"));
+    const PageGrid* maps = head.findGrid(QStringLiteral("sec_maps"));
+    QVERIFY(preview);
+    QVERIFY(maps);
+    QCOMPARE(preview->rows, 3);
+    QVERIFY(head.findGrid(QStringLiteral("row_master")));
 }
 
 void SettingsLayoutTest::presetsComeFirst()

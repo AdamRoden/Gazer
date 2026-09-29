@@ -1,7 +1,6 @@
 #include "app/SettingsUi.h"
 #include "app/CommandRegistry.h"
 #include "app/SettingsPageBuild.h"
-#include "app/SettingsUiInternal.h"
 #include "assist/HeadPoseMapper.h"
 #include "layout/PageEdit.h"
 #include "layout/PageSession.h"
@@ -10,19 +9,23 @@
 #include "ui/PageHostWindow.h"
 #include "ui/PoseChart.h"
 
+#include <QStringList>
 #include <QUrl>
 #include <QtGlobal>
 
 namespace gazer {
 
-using SettingsPageBuild::adoptCallerBoard;
 using SettingsPageBuild::cell;
-using SettingsPageBuild::initGrid;
 using SettingsPageBuild::makeNested;
-using SettingsUiInternal::kLiveHeadPoseCmd;
-using SettingsUiInternal::kLiveHeadPoseMap;
 
 namespace {
+
+constexpr HeadPoseAxis kAxes[] = {HeadPoseAxis::Yaw,   HeadPoseAxis::Pitch, HeadPoseAxis::Roll,
+                                  HeadPoseAxis::X,     HeadPoseAxis::Y,     HeadPoseAxis::Z};
+constexpr HeadPoseDest kDests[] = {
+    HeadPoseDest::MouseX, HeadPoseDest::MouseY, HeadPoseDest::ScrollV, HeadPoseDest::ScrollH,
+    HeadPoseDest::GazeX,  HeadPoseDest::GazeY,  HeadPoseDest::JoyLX,   HeadPoseDest::JoyLY,
+    HeadPoseDest::JoyRX,  HeadPoseDest::JoyRY,  HeadPoseDest::Command};
 
 QString curveCaption(const QVector<HeadPoseCurvePoint>& pts)
 {
@@ -131,33 +134,71 @@ QString formatAxisValue(double v, const QString& unit)
     return unit.isEmpty() ? n : n + unit;
 }
 
-void joinEnds(PageCell& c, int index, int count)
+QString mapStatusCaption(const HeadPoseMap& m)
 {
-    c.style.thickness = PageBox::all(0.0);
-    if (count <= 1) {
-        c.style.radius = PageBox::all(10.0);
-        return;
+    QString caption = m.dest == HeadPoseDest::Command ? headPoseMapDestSummary(m)
+                                                      : destChipLabel(m.dest);
+    if (!m.enabled) {
+        caption += QStringLiteral(" · off");
     }
-    if (index == 0) {
-        c.style.radius = PageBox::of(10.0, 0.0, 0.0, 10.0);
-    } else if (index == count - 1) {
-        c.style.radius = PageBox::of(0.0, 10.0, 10.0, 0.0);
-    } else {
-        c.style.radius = PageBox::all(0.0);
-    }
+    return caption;
 }
 
-PageCell sectionLabel(const QString& id, const QString& text, int row, int col, int span = 1)
+void roundCell(PageCell& c, double radius = 8.0)
 {
-    PageCell c = cell(id, text, row, col, {}, QColor(), span, QStringLiteral("label"));
-    c.textStyle = QStringLiteral("section");
-    return c;
+    c.styleId = QStringLiteral("plain");
+    c.style.thickness = PageBox::all(0.0);
+    c.style.radius = PageBox::all(radius);
 }
+
+PageGrid rowGrid(const QString& id, int row, int cols, int gap)
+{
+    PageGrid g = makeNested(id, row, 0, 1, cols, gap);
+    g.styleId = QStringLiteral("row");
+    return g;
+}
+
+int pointIndexForInput(const QVector<HeadPoseCurvePoint>& pts, double inValue, int fallback)
+{
+    for (int i = 0; i < pts.size(); ++i) {
+        if (qAbs(pts[i].in - inValue) < 1e-4) {
+            return i;
+        }
+    }
+    if (pts.isEmpty()) {
+        return 0;
+    }
+    return qBound(0, fallback, pts.size() - 1);
+}
+
+constexpr auto kHeadPosePageId = QLatin1String("main_settings_head_pose");
 
 } // namespace
 
 void SettingsUi::decorateHeadPosePage(PageDocument& doc)
 {
+    if (!m_headPoseSeen) {
+        discardHeadPoseEditor();
+        m_headPoseSeen = true;
+    }
+    if (!m_headMapId.isEmpty() && !headPoseDraft()) {
+        m_headMapId.clear();
+        m_headColumn = HeadPoseColumn::Axes;
+        endCurveScrub();
+    }
+    if (!m_headChartMapId.isEmpty()) {
+        bool found = false;
+        for (const HeadPoseMap& m : m_settings.headPoseMaps) {
+            if (m.id == m_headChartMapId) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            m_headChartMapId.clear();
+        }
+    }
+
     PageCell* rec = PageEdit::findCell(doc, QStringLiteral("hp_recenter"));
     if (rec) {
         rec->caption = m_settings.headPoseOriginSet
@@ -166,18 +207,28 @@ void SettingsUi::decorateHeadPosePage(PageDocument& doc)
     }
     PageCell* curve = PageEdit::findCell(doc, QStringLiteral("pose_curve"));
     if (curve) {
-        const HeadPoseMap* m = mapForChartAxis();
+        const bool editing = headPoseEditorOpen();
+        const HeadPoseMap* shown = editing ? headPoseDraft() : mapForChartAxis();
         const QVector<HeadPoseCurvePoint> pts =
-            m ? m->points : defaultHeadPoseMap().points;
+            shown ? shown->points : defaultHeadPoseMap().points;
+        const HeadPoseAxis axis = shown ? shown->source : m_headChartAxis;
         curve->caption = curveCaption(pts);
-        curve->label = QStringLiteral("%1 in → out")
-                           .arg(QLatin1String(headPoseAxisLabel(m_headChartAxis)));
+        curve->label = QStringLiteral("%1 in → out").arg(QLatin1String(headPoseAxisLabel(axis)));
     }
-    fillHeadPoseMaps(doc);
+    if (PageGrid* maps = PageEdit::findGrid(doc, QStringLiteral("sec_maps"))) {
+        fillHeadPoseColumn(*maps);
+    }
 }
 
 HeadPoseMap* SettingsUi::mapForChartAxis()
 {
+    if (!m_headChartMapId.isEmpty()) {
+        for (HeadPoseMap& m : m_settings.headPoseMaps) {
+            if (m.id == m_headChartMapId) {
+                return &m;
+            }
+        }
+    }
     for (HeadPoseMap& m : m_settings.headPoseMaps) {
         if (m.source == m_headChartAxis) {
             return &m;
@@ -188,6 +239,13 @@ HeadPoseMap* SettingsUi::mapForChartAxis()
 
 const HeadPoseMap* SettingsUi::mapForChartAxis() const
 {
+    if (!m_headChartMapId.isEmpty()) {
+        for (const HeadPoseMap& m : m_settings.headPoseMaps) {
+            if (m.id == m_headChartMapId) {
+                return &m;
+            }
+        }
+    }
     for (const HeadPoseMap& m : m_settings.headPoseMaps) {
         if (m.source == m_headChartAxis) {
             return &m;
@@ -208,6 +266,12 @@ QString SettingsUi::headMapDestId() const
     return m ? QLatin1String(headPoseDestId(m->dest)) : QString();
 }
 
+QString SettingsUi::headMapCommand() const
+{
+    const HeadPoseMap* m = headPoseDraft();
+    return m ? m->command : QString();
+}
+
 bool SettingsUi::headMapEnabled() const
 {
     const HeadPoseMap* m = headPoseDraft();
@@ -216,48 +280,369 @@ bool SettingsUi::headMapEnabled() const
 
 void SettingsUi::setHeadChartAxis(HeadPoseAxis axis)
 {
+    m_headChartMapId.clear();
     m_headChartAxis = axis;
     m_pages.refreshDecorated();
     m_pages.refreshActive();
-    notifyStatus(QStringLiteral("Graph input: %1").arg(QLatin1String(headPoseAxisLabel(axis))));
+    syncHeadPosePaint();
 }
 
-void SettingsUi::fillHeadPoseMaps(PageDocument& doc)
+bool SettingsUi::selectHeadChartMap(const QString& mapId)
 {
-    PageGrid* maps = PageEdit::findGrid(doc, QStringLiteral("maps"));
-    if (!maps) {
+    for (const HeadPoseMap& m : m_settings.headPoseMaps) {
+        if (m.id != mapId) {
+            continue;
+        }
+        m_headChartAxis = m.source;
+        m_headChartMapId = m.id;
+        m_pages.refreshDecorated();
+        m_pages.refreshActive();
+        syncHeadPosePaint();
+        return true;
+    }
+    return false;
+}
+
+void SettingsUi::fillHeadPoseColumn(PageGrid& host)
+{
+    host.cells.clear();
+    host.subGrids.clear();
+    host.columns = 1;
+    host.columnTracks.clear();
+    host.gapPx = 6;
+    if (!headPoseEditorOpen() || !headPoseDraft()) {
+        fillHeadPoseAxisList(host);
         return;
     }
-    maps->cells.clear();
-    maps->subGrids.clear();
-    const QVector<HeadPoseMap>& list = m_settings.headPoseMaps;
-    if (list.isEmpty()) {
-        maps->rows = 1;
-        maps->columns = 1;
-        maps->cells.push_back(cell(QStringLiteral("maps_empty"), QStringLiteral("No maps yet"), 0, 0,
-                                   {}, QColor(), 1, QStringLiteral("label"),
-                                   QStringLiteral("Add a map to send this axis to the pointer, scroll, gaze, pad, or a command.")));
-        return;
+    switch (m_headColumn) {
+    case HeadPoseColumn::Outputs:
+        fillHeadPoseOutputList(host);
+        break;
+    case HeadPoseColumn::Commands:
+        fillHeadPoseCommandColumn(host);
+        break;
+    case HeadPoseColumn::Axes:
+    case HeadPoseColumn::Edit:
+        fillHeadPoseEditorColumn(host);
+        break;
     }
-    maps->rows = list.size();
-    maps->columns = 4;
-    maps->gapPx = 6;
+}
+
+void SettingsUi::fillHeadPoseAxisList(PageGrid& host)
+{
+    struct Row {
+        HeadPoseAxis axis = HeadPoseAxis::Yaw;
+        bool mapped = false;
+        QString id;
+        QString caption;
+    };
+    QVector<Row> rows;
+    for (const HeadPoseAxis axis : kAxes) {
+        bool any = false;
+        for (const HeadPoseMap& m : m_settings.headPoseMaps) {
+            if (m.source != axis) {
+                continue;
+            }
+            Row row;
+            row.axis = axis;
+            row.mapped = true;
+            row.id = m.id;
+            row.caption = mapStatusCaption(m);
+            rows.push_back(row);
+            any = true;
+        }
+        if (!any) {
+            Row row;
+            row.axis = axis;
+            row.id = QLatin1String(headPoseAxisId(axis));
+            row.caption = QStringLiteral("Not mapped");
+            rows.push_back(row);
+        }
+    }
+
+    host.rows = rows.size();
+    host.rowTracks.clear();
     const EditorSwatch sw = editorSwatch();
-    for (int i = 0; i < list.size(); ++i) {
-        const HeadPoseMap& m = list[i];
-        const QString summary =
-            QStringLiteral("%1  →  %2")
-                .arg(QLatin1String(headPoseAxisLabel(m.source)), destChipLabel(m.dest));
-        PageCell name =
-            cell(QStringLiteral("sum_%1").arg(m.id), summary, i, 0, {}, QColor(), 3,
-                 QStringLiteral("label"),
-                 m.enabled ? headPoseMapDestSummary(m) : QStringLiteral("Disabled"),
-                 destChipIcon(m.dest));
-        maps->cells.push_back(name);
-        maps->cells.push_back(cell(QStringLiteral("edit_%1").arg(m.id), QStringLiteral("Edit"), i, 3,
-                                   QStringLiteral("headPose.edit.%1").arg(m.id), sw.edit, 1, {}, {},
-                                   QStringLiteral("editSquare")));
+    for (int i = 0; i < rows.size(); ++i) {
+        const Row& row = rows[i];
+        PageGrid nest = rowGrid(QStringLiteral("ax_%1").arg(row.id), i, 3, 6);
+        nest.columnTracks = starTracks({4.2, 1.45, 1.45});
+        const QString axisName = QString::fromLatin1(headPoseAxisLabel(row.axis));
+        if (!row.mapped) {
+            const QString axisCmd = QStringLiteral("headPose.chart.axis.%1").arg(row.id);
+            PageCell name = cell(QStringLiteral("name_%1").arg(row.id), axisName, 0, 0, axisCmd,
+                                 QColor(), 1, QStringLiteral("choice"), row.caption);
+            name.activeState = axisCmd;
+            roundCell(name, 10.0);
+            nest.cells.push_back(name);
+            PageCell add = cell(QStringLiteral("add_%1").arg(row.id), QStringLiteral("Add"), 0, 1,
+                                QStringLiteral("headPose.axis.%1.add").arg(row.id), sw.add, 2, {},
+                                {}, QStringLiteral("add"));
+            roundCell(add, 10.0);
+            nest.cells.push_back(add);
+        } else {
+            const QString mapCmd = QStringLiteral("headPose.chart.map.%1").arg(row.id);
+            PageCell name = cell(QStringLiteral("name_%1").arg(row.id), axisName, 0, 0, mapCmd,
+                                 QColor(), 1, QStringLiteral("choice"), row.caption);
+            name.activeState = mapCmd;
+            roundCell(name, 10.0);
+            nest.cells.push_back(name);
+            PageCell edit =
+                cell(QStringLiteral("edit_%1").arg(row.id), QStringLiteral("Edit"), 0, 1,
+                     QStringLiteral("headPose.edit.%1").arg(row.id), sw.edit, 1, {}, {},
+                     QStringLiteral("editSquare"));
+            roundCell(edit, 10.0);
+            nest.cells.push_back(edit);
+            PageCell dup =
+                cell(QStringLiteral("dup_%1").arg(row.id), QStringLiteral("Duplicate"), 0, 2,
+                     QStringLiteral("headPose.duplicate.%1").arg(row.id), sw.nudge, 1, {}, {},
+                     QStringLiteral("contentCopy"));
+            roundCell(dup, 10.0);
+            nest.cells.push_back(dup);
+        }
+        host.subGrids.push_back(std::move(nest));
     }
+}
+
+void SettingsUi::fillHeadPoseEditorColumn(PageGrid& host)
+{
+    const HeadPoseMap* m = headPoseDraft();
+    if (!m) {
+        fillHeadPoseAxisList(host);
+        return;
+    }
+    if (!m->points.isEmpty()) {
+        m_headPointIndex = qBound(0, m_headPointIndex, m->points.size() - 1);
+    } else {
+        m_headPointIndex = 0;
+    }
+    const int n = m->points.size();
+    host.rows = n + 3;
+    QVector<double> weights;
+    weights.reserve(n + 3);
+    weights.push_back(1.15);
+    weights.push_back(1.25);
+    for (int i = 0; i < n; ++i) {
+        weights.push_back(1.0);
+    }
+    weights.push_back(1.05);
+    host.rowTracks = starTracks(weights);
+    const EditorSwatch sw = editorSwatch();
+
+    PageGrid act = rowGrid(QStringLiteral("act_row"), 0, 3, 6);
+    PageCell en = cell(QStringLiteral("act_en"), QStringLiteral("Enable"), 0, 0,
+                       QStringLiteral("headPose.map.enabled.toggle"), QColor(), 1,
+                       QStringLiteral("toggle"));
+    en.activeState = QStringLiteral("headPose.map.enabled");
+    roundCell(en);
+    act.cells.push_back(en);
+    PageCell del = cell(QStringLiteral("act_del"), QStringLiteral("Delete"), 0, 1,
+                        QStringLiteral("headPose.map.delete"), sw.cancel, 1, {}, {},
+                        QStringLiteral("delete"));
+    roundCell(del);
+    act.cells.push_back(del);
+    PageCell done = cell(QStringLiteral("act_done"), QStringLiteral("Done"), 0, 2,
+                         QStringLiteral("headPose.map.done"), sw.save, 1, {}, {},
+                         QStringLiteral("check"));
+    roundCell(done);
+    act.cells.push_back(done);
+    host.subGrids.push_back(std::move(act));
+
+    const auto invertButton = [&](PageGrid& out, int col) {
+        PageCell invert = cell(QStringLiteral("out_invert"), QStringLiteral("Invert"), 0, col,
+                               QStringLiteral("headPose.map.invert"), sw.nudge);
+        roundCell(invert);
+        out.cells.push_back(invert);
+    };
+    if (m->dest != HeadPoseDest::Command) {
+        PageGrid out = rowGrid(QStringLiteral("out_row"), 1, 3, 6);
+        out.columnTracks = starTracks({4.0, 1.45, 1.45});
+        PageCell name = cell(QStringLiteral("out_name"), destChipLabel(m->dest), 0, 0, {}, QColor(),
+                             1, QStringLiteral("label"), {}, destChipIcon(m->dest));
+        name.textStyle = QStringLiteral("title");
+        roundCell(name);
+        out.cells.push_back(name);
+        PageCell pick = cell(QStringLiteral("out_pick"), QStringLiteral("Output"), 0, 1,
+                             QStringLiteral("headPose.map.pickOutput"), sw.edit);
+        roundCell(pick);
+        out.cells.push_back(pick);
+        invertButton(out, 2);
+        host.subGrids.push_back(std::move(out));
+    } else {
+        PageGrid out = rowGrid(QStringLiteral("out_row"), 1, 6, 4);
+        out.columnTracks = starTracks({2.2, 0.75, 1.15, 0.75, 1.25, 1.25});
+        const QString shown = m->command.isEmpty() ? QStringLiteral("Command") : m->command;
+        const QString cap = m->command.isEmpty() ? QStringLiteral("Choose a command") : QString();
+        PageCell name = cell(QStringLiteral("out_name"), shown, 0, 0,
+                             QStringLiteral("headPose.map.pickCommand"), QColor(), 1, {}, cap);
+        name.textStyle = QStringLiteral("title");
+        roundCell(name);
+        out.cells.push_back(name);
+        PageCell decAt = cell(QStringLiteral("at_dec"), QStringLiteral("−"), 0, 1,
+                              QStringLiteral("headPose.map.commandAt.dec"), sw.nudge);
+        roundCell(decAt);
+        out.cells.push_back(decAt);
+        PageCell val = cell(QStringLiteral("at_val"),
+                            formatAxisValue(m->commandAt, sourceUnit(m->source)), 0, 2, {}, sw.value,
+                            1, QStringLiteral("value"), QStringLiteral("Trigger"));
+        roundCell(val);
+        out.cells.push_back(val);
+        PageCell incAt = cell(QStringLiteral("at_inc"), QStringLiteral("+"), 0, 3,
+                              QStringLiteral("headPose.map.commandAt.inc"), sw.nudge);
+        roundCell(incAt);
+        out.cells.push_back(incAt);
+        PageCell pick = cell(QStringLiteral("out_pick"), QStringLiteral("Output"), 0, 4,
+                             QStringLiteral("headPose.map.pickOutput"), sw.edit);
+        roundCell(pick);
+        out.cells.push_back(pick);
+        invertButton(out, 5);
+        host.subGrids.push_back(std::move(out));
+    }
+
+    const QString inUnit = sourceUnit(m->source);
+    const QString outUnit = destUnit(m->dest);
+    for (int pointIndex = 0; pointIndex < n; ++pointIndex) {
+        const HeadPoseCurvePoint& pt = m->points[pointIndex];
+        PageGrid row = rowGrid(QStringLiteral("pt_%1").arg(pointIndex), pointIndex + 2, 3, 6);
+        row.columnTracks = starTracks({4.2, 4.2, 0.9});
+        const auto cluster = [&](const QString& id, int col, const QString& op, const QString& value,
+                                 const QString& caption) {
+            PageGrid g = makeNested(id, 0, col, 1, 4, 0);
+            g.styleId = QStringLiteral("row");
+            g.columnTracks = starTracks({0.8, 1.45, 0.8, 1.15});
+            const QString base =
+                QStringLiteral("headPose.map.point.%1.%2").arg(pointIndex).arg(op);
+            const auto piece = [&](const QString& suffix, const QString& lab, int pieceCol,
+                                   const QString& cmd, const QColor& bg, const char* style,
+                                   const QString& role, const QString& cap, const QString& icon) {
+                PageCell c = cell(id + suffix, lab, 0, pieceCol, cmd, bg, 1, role, cap, icon);
+                c.styleId = QLatin1String(style);
+                c.style.thickness = PageBox::all(0.0);
+                g.cells.push_back(std::move(c));
+            };
+            piece(QStringLiteral("_dec"), QStringLiteral("−"), 0,
+                  base + QStringLiteral(".dec"), sw.nudge, "joinLeft", {}, {}, {});
+            piece(QStringLiteral("_val"), value, 1, {}, sw.value, "join", QStringLiteral("value"),
+                  caption, {});
+            piece(QStringLiteral("_inc"), QStringLiteral("+"), 2,
+                  base + QStringLiteral(".inc"), sw.nudge, "join", {}, {}, {});
+            piece(QStringLiteral("_edit"), QStringLiteral("Edit"), 3,
+                  base + QStringLiteral(".edit"), sw.edit, "joinRight", {}, {},
+                  QStringLiteral("editSquare"));
+            return g;
+        };
+        PageGrid inG = cluster(QStringLiteral("p%1_in").arg(pointIndex), 0, QStringLiteral("in"),
+                               formatAxisValue(pt.in, inUnit), QStringLiteral("Input"));
+        PageGrid outG = cluster(QStringLiteral("p%1_out").arg(pointIndex), 1, QStringLiteral("out"),
+                                formatAxisValue(pt.out, outUnit), QStringLiteral("Output"));
+        row.subGrids.push_back(std::move(inG));
+        row.subGrids.push_back(std::move(outG));
+        PageCell trash = cell(QStringLiteral("p%1_del").arg(pointIndex), {}, 0, 2,
+                              QStringLiteral("headPose.map.point.%1.del").arg(pointIndex), sw.cancel,
+                              1, {}, {}, QStringLiteral("delete"));
+        roundCell(trash);
+        row.cells.push_back(trash);
+        host.subGrids.push_back(std::move(row));
+    }
+
+    PageGrid addRow = rowGrid(QStringLiteral("add_row"), n + 2, 1, 0);
+    PageCell add = cell(QStringLiteral("act_add"), QStringLiteral("Add"), 0, 0,
+                        QStringLiteral("headPose.map.point.add"), sw.add, 1, {}, {},
+                        QStringLiteral("add"));
+    roundCell(add);
+    addRow.cells.push_back(add);
+    host.subGrids.push_back(std::move(addRow));
+}
+
+void SettingsUi::fillHeadPoseOutputList(PageGrid& host)
+{
+    host.rows = 12;
+    host.rowTracks.clear();
+    const EditorSwatch sw = editorSwatch();
+    PageGrid title = rowGrid(QStringLiteral("out_head"), 0, 2, 6);
+    title.columnTracks = starTracks({4.2, 1.45});
+    PageCell heading = cell(QStringLiteral("out_title"), QStringLiteral("Output"), 0, 0, {}, QColor(),
+                            1, QStringLiteral("label"));
+    heading.textStyle = QStringLiteral("section");
+    roundCell(heading);
+    title.cells.push_back(heading);
+    PageCell back = cell(QStringLiteral("out_back"), QStringLiteral("Back"), 0, 1,
+                         QStringLiteral("headPose.map.outputs.back"), sw.cancel, 1, {}, {},
+                         QStringLiteral("ArrowLeft"));
+    roundCell(back);
+    title.cells.push_back(back);
+    host.subGrids.push_back(std::move(title));
+
+    for (int i = 0; i < int(sizeof(kDests) / sizeof(kDests[0])); ++i) {
+        const QString id = QLatin1String(headPoseDestId(kDests[i]));
+        const bool command = kDests[i] == HeadPoseDest::Command;
+        const QString cmd = command ? QStringLiteral("headPose.map.pickCommand")
+                                    : QStringLiteral("headPose.map.dest.%1").arg(id);
+        PageCell c = cell(QStringLiteral("dst_%1").arg(id), destChipLabel(kDests[i]), i + 1, 0, cmd,
+                          QColor(), 1, QStringLiteral("choice"));
+        c.activeState = QStringLiteral("headPose.map.dest.%1").arg(id);
+        roundCell(c);
+        host.cells.push_back(c);
+    }
+}
+
+void SettingsUi::fillHeadPoseCommandColumn(PageGrid& host)
+{
+    constexpr int kPage = 8;
+    const QStringList names = headPoseCommandCatalog();
+    const int pages = qMax(1, (names.size() + kPage - 1) / kPage);
+    m_headCmdPage = qBound(0, m_headCmdPage, pages - 1);
+    const int start = m_headCmdPage * kPage;
+    const int pageRows = names.isEmpty() ? 1 : kPage;
+    host.rows = pageRows + 1;
+    host.rowTracks.clear();
+    const EditorSwatch sw = editorSwatch();
+    if (names.isEmpty()) {
+        PageCell empty = cell(QStringLiteral("cmd_empty"), QStringLiteral("No commands"), 0, 0, {},
+                              QColor(), 1, QStringLiteral("label"));
+        roundCell(empty);
+        host.cells.push_back(empty);
+    } else {
+        for (int i = 0; i < kPage; ++i) {
+            const int idx = start + i;
+            if (idx >= names.size()) {
+                PageCell blank = cell(QStringLiteral("cmd_%1").arg(i), {}, i, 0, {}, QColor(), 1,
+                                      QStringLiteral("label"));
+                roundCell(blank);
+                host.cells.push_back(blank);
+                continue;
+            }
+            const QString enc = encodeCmd(names[idx]);
+            PageCell c = cell(QStringLiteral("cmd_%1").arg(i), names[idx], i, 0,
+                              QStringLiteral("headPose.cmd.%1").arg(enc), sw.nudge);
+            c.activeState = QStringLiteral("headPose.map.command.%1").arg(enc);
+            roundCell(c);
+            host.cells.push_back(c);
+        }
+    }
+
+    PageGrid nav = rowGrid(QStringLiteral("cmd_nav"), pageRows, 4, 6);
+    nav.columnTracks = starTracks({1.4, 1.0, 1.4, 1.3});
+    PageCell prev = cell(QStringLiteral("cmd_prev"), QStringLiteral("Previous"), 0, 0,
+                         QStringLiteral("headPose.cmdList.prev"), sw.nudge, 1, {}, {},
+                         QStringLiteral("ArrowLeft"));
+    roundCell(prev);
+    nav.cells.push_back(prev);
+    PageCell pg = cell(QStringLiteral("cmd_pg"),
+                       QStringLiteral("%1 / %2").arg(m_headCmdPage + 1).arg(pages), 0, 1, {},
+                       sw.value, 1, QStringLiteral("value"));
+    roundCell(pg);
+    nav.cells.push_back(pg);
+    PageCell next = cell(QStringLiteral("cmd_next"), QStringLiteral("Next"), 0, 2,
+                         QStringLiteral("headPose.cmdList.next"), sw.nudge, 1, {}, {},
+                         QStringLiteral("ArrowRight"));
+    roundCell(next);
+    nav.cells.push_back(next);
+    PageCell back = cell(QStringLiteral("cmd_back"), QStringLiteral("Back"), 0, 3,
+                         QStringLiteral("headPose.cmdList.cancel"), sw.cancel);
+    roundCell(back);
+    nav.cells.push_back(back);
+    host.subGrids.push_back(std::move(nav));
 }
 
 void SettingsUi::registerHeadPoseCommands()
@@ -285,6 +670,35 @@ void SettingsUi::registerHeadPoseCommands()
             setHeadChartAxis(axis);
             return true;
         });
+    m_commands.registerPrefix(
+        QStringLiteral("headPose.chart.map."),
+        [this](const CommandRegistry::Invocation& inv, QString*) {
+            const QString id = inv.name.mid(int(QLatin1String("headPose.chart.map.").size()));
+            return selectHeadChartMap(id);
+        });
+    m_commands.registerPrefix(
+        QStringLiteral("headPose.axis."),
+        [this](const CommandRegistry::Invocation& inv, QString* e) {
+            const QString rest = inv.name.mid(int(QLatin1String("headPose.axis.").size()));
+            if (!rest.endsWith(QLatin1String(".add"))) {
+                return false;
+            }
+            bool ok = false;
+            const HeadPoseAxis axis = headPoseAxisFromId(rest.left(rest.size() - 4), &ok);
+            if (!ok) {
+                return false;
+            }
+            return headPoseAddAxis(axis, e);
+        });
+    m_commands.registerPrefix(
+        QStringLiteral("headPose.duplicate."),
+        [this](const CommandRegistry::Invocation& inv, QString* e) {
+            const QString id = inv.name.mid(int(QLatin1String("headPose.duplicate.").size()));
+            if (id.isEmpty()) {
+                return false;
+            }
+            return headPoseDuplicate(id, e);
+        });
     m_commands.registerPrefix(QStringLiteral("headPose.edit."),
                               [this](const CommandRegistry::Invocation& inv, QString* e) {
                                   const QString id =
@@ -294,15 +708,25 @@ void SettingsUi::registerHeadPoseCommands()
     m_commands.registerBuiltin(QStringLiteral("headPose.map.enabled.toggle"), [this](QString*) {
         if (HeadPoseMap* m = headPoseDraft()) {
             m->enabled = !m->enabled;
-            commitHeadPoseDraft(*m);
-            refreshHeadPoseEditor();
+            const bool on = m->enabled;
+            commitHeadPoseDraft(*m, true);
+            notifyStatus(on ? QStringLiteral("Map on") : QStringLiteral("Map off"));
+            syncHeadPosePaint();
         }
         return true;
     });
     m_commands.registerBuiltin(QStringLiteral("headPose.map.delete"), [this](QString*) {
-        const QString id = m_headMapId;
-        closeLive(m_headMap);
-        m_headMapId.clear();
+        const HeadPoseMap* draft = headPoseDraft();
+        if (!draft) {
+            return true;
+        }
+        const QString id = draft->id;
+        const HeadPoseAxis axis = draft->source;
+        discardHeadPoseEditor();
+        if (m_headChartMapId == id) {
+            m_headChartMapId.clear();
+        }
+        m_headChartAxis = axis;
         if (m_mutate) {
             m_mutate(
                 [id](AppSettings& s) {
@@ -315,12 +739,30 @@ void SettingsUi::registerHeadPoseCommands()
                 },
                 QStringLiteral("Map removed"));
         }
+        syncHeadPosePaint();
         return true;
     });
     m_commands.registerBuiltin(QStringLiteral("headPose.map.done"), [this](QString*) {
-        closeLive(m_headMap);
-        m_headMapId.clear();
+        closeHeadPoseEditor();
         apply(true);
+        return true;
+    });
+    m_commands.registerBuiltin(QStringLiteral("headPose.map.invert"),
+                               [this](QString*) { return invertHeadPoseMap(); });
+    m_commands.registerBuiltin(QStringLiteral("headPose.map.pickOutput"), [this](QString*) {
+        if (!headPoseEditorOpen()) {
+            return false;
+        }
+        m_headColumn = HeadPoseColumn::Outputs;
+        refreshHeadPoseEditor();
+        return true;
+    });
+    m_commands.registerBuiltin(QStringLiteral("headPose.map.outputs.back"), [this](QString*) {
+        if (!headPoseEditorOpen()) {
+            return false;
+        }
+        m_headColumn = HeadPoseColumn::Edit;
+        refreshHeadPoseEditor();
         return true;
     });
     m_commands.registerPrefix(
@@ -332,13 +774,16 @@ void SettingsUi::registerHeadPoseCommands()
             if (!ok) {
                 return false;
             }
-            if (HeadPoseMap* m = headPoseDraft()) {
-                m->source = axis;
-                commitHeadPoseDraft(*m, true);
-                refreshHeadPoseEditor();
+            HeadPoseMap* m = headPoseDraft();
+            if (!m) {
+                return true;
             }
+            m->source = axis;
             m_headChartAxis = axis;
-            m_pages.refreshActive();
+            m_headChartMapId = m->id;
+            m_headColumn = HeadPoseColumn::Edit;
+            commitHeadPoseDraft(*m, true);
+            syncHeadPosePaint();
             return true;
         });
     m_commands.registerPrefix(
@@ -350,105 +795,74 @@ void SettingsUi::registerHeadPoseCommands()
             if (!ok) {
                 return false;
             }
-            if (HeadPoseMap* m = headPoseDraft()) {
-                m->dest = dest;
-                commitHeadPoseDraft(*m, true);
-                refreshHeadPoseEditor();
+            HeadPoseMap* m = headPoseDraft();
+            if (!m) {
+                return true;
             }
+            m->dest = dest;
+            m_headColumn = HeadPoseColumn::Edit;
+            commitHeadPoseDraft(*m, true);
+            syncHeadPosePaint();
             return true;
         });
 
     m_commands.registerBuiltin(QStringLiteral("headPose.map.point.prev"), [this](QString*) {
         if (const HeadPoseMap* m = headPoseDraft()) {
-            m_headPointIndex = qBound(0, m_headPointIndex - 1, m->points.size() - 1);
-            refreshHeadPoseEditor();
+            if (!m->points.isEmpty()) {
+                m_headPointIndex = qBound(0, m_headPointIndex - 1, m->points.size() - 1);
+                refreshHeadPoseEditor();
+            }
         }
         return true;
     });
     m_commands.registerBuiltin(QStringLiteral("headPose.map.point.next"), [this](QString*) {
         if (const HeadPoseMap* m = headPoseDraft()) {
-            m_headPointIndex = qBound(0, m_headPointIndex + 1, m->points.size() - 1);
-            refreshHeadPoseEditor();
-        }
-        return true;
-    });
-    m_commands.registerBuiltin(QStringLiteral("headPose.map.point.add"), [this](QString*) {
-        if (HeadPoseMap* m = headPoseDraft()) {
-            if (m->points.size() < kMaxHeadPoseCurvePoints) {
-                HeadPoseCurvePoint p;
-                p.in = m->points.isEmpty() ? 0.0 : m->points.last().in + 5.0;
-                p.out = m->points.isEmpty() ? 0.0 : m->points.last().out;
-                m->points.push_back(p);
-                clampHeadPoseMap(*m);
-                m_headPointIndex = m->points.size() - 1;
-                commitHeadPoseDraft(*m, false);
+            if (!m->points.isEmpty()) {
+                m_headPointIndex = qBound(0, m_headPointIndex + 1, m->points.size() - 1);
                 refreshHeadPoseEditor();
             }
         }
         return true;
     });
-    m_commands.registerBuiltin(QStringLiteral("headPose.map.point.del"), [this](QString*) {
-        if (HeadPoseMap* m = headPoseDraft()) {
-            if (m->points.size() > 2 && m_headPointIndex >= 0 && m_headPointIndex < m->points.size()) {
-                m->points.removeAt(m_headPointIndex);
-                clampHeadPoseMap(*m);
-                m_headPointIndex = qBound(0, m_headPointIndex, m->points.size() - 1);
-                commitHeadPoseDraft(*m, false);
-                refreshHeadPoseEditor();
-            }
-        }
-        return true;
+    m_commands.registerBuiltin(QStringLiteral("headPose.map.point.add"),
+                               [this](QString*) { return addHeadPosePoint(); });
+    m_commands.registerBuiltin(QStringLiteral("headPose.map.point.del"), [this](QString* e) {
+        return adjustHeadPosePoint(m_headPointIndex, QStringLiteral("del"), e);
     });
-    auto nudgePoint = [this](bool outAxis, int dir) {
-        return [this, outAxis, dir](QString*) {
-            if (HeadPoseMap* m = headPoseDraft()) {
-                if (m_headPointIndex < 0 || m_headPointIndex >= m->points.size()) {
-                    return true;
-                }
-                HeadPoseCurvePoint& p = m->points[m_headPointIndex];
-                const double step = outAxis ? 10.0 : 1.0;
-                if (outAxis) {
-                    p.out += dir * step;
-                } else {
-                    p.in += dir * step;
-                }
-                clampHeadPoseMap(*m);
-                commitHeadPoseDraft(*m, false);
-                refreshHeadPoseEditor();
-            }
-            return true;
-        };
-    };
-    m_commands.registerBuiltin(QStringLiteral("headPose.map.point.in.dec"), nudgePoint(false, -1));
-    m_commands.registerBuiltin(QStringLiteral("headPose.map.point.in.inc"), nudgePoint(false, +1));
-    m_commands.registerBuiltin(QStringLiteral("headPose.map.point.out.dec"), nudgePoint(true, -1));
-    m_commands.registerBuiltin(QStringLiteral("headPose.map.point.out.inc"), nudgePoint(true, +1));
+    m_commands.registerBuiltin(QStringLiteral("headPose.map.point.in.dec"), [this](QString* e) {
+        return adjustHeadPosePoint(m_headPointIndex, QStringLiteral("in.dec"), e);
+    });
+    m_commands.registerBuiltin(QStringLiteral("headPose.map.point.in.inc"), [this](QString* e) {
+        return adjustHeadPosePoint(m_headPointIndex, QStringLiteral("in.inc"), e);
+    });
+    m_commands.registerBuiltin(QStringLiteral("headPose.map.point.out.dec"), [this](QString* e) {
+        return adjustHeadPosePoint(m_headPointIndex, QStringLiteral("out.dec"), e);
+    });
+    m_commands.registerBuiltin(QStringLiteral("headPose.map.point.out.inc"), [this](QString* e) {
+        return adjustHeadPosePoint(m_headPointIndex, QStringLiteral("out.inc"), e);
+    });
     m_commands.registerBuiltin(QStringLiteral("headPose.map.point.in.edit"), [this](QString* e) {
-        const HeadPoseMap* m = headPoseDraft();
-        if (!m || m_headPointIndex < 0 || m_headPointIndex >= m->points.size()) {
-            return false;
-        }
-        m_headPointEditOut = false;
-        m_numpadReturn = NumpadReturn::HeadPose;
-        m_numpadTitle = QStringLiteral("Input");
-        m_numpadHint = QStringLiteral("Source value (deg or cm)");
-        m_numpadBuffer = QString::number(m->points[m_headPointIndex].in);
-        m_numpadResetSeed = m_numpadBuffer;
-        return presentNumpad(e);
+        return adjustHeadPosePoint(m_headPointIndex, QStringLiteral("in.edit"), e);
     });
     m_commands.registerBuiltin(QStringLiteral("headPose.map.point.out.edit"), [this](QString* e) {
-        const HeadPoseMap* m = headPoseDraft();
-        if (!m || m_headPointIndex < 0 || m_headPointIndex >= m->points.size()) {
-            return false;
-        }
-        m_headPointEditOut = true;
-        m_numpadReturn = NumpadReturn::HeadPose;
-        m_numpadTitle = QStringLiteral("Output");
-        m_numpadHint = QStringLiteral("Mapped output");
-        m_numpadBuffer = QString::number(m->points[m_headPointIndex].out);
-        m_numpadResetSeed = m_numpadBuffer;
-        return presentNumpad(e);
+        return adjustHeadPosePoint(m_headPointIndex, QStringLiteral("out.edit"), e);
     });
+    // Indexed form is "N.op". Unindexed names are exact builtins and never reach this prefix.
+    m_commands.registerPrefix(
+        QStringLiteral("headPose.map.point."),
+        [this](const CommandRegistry::Invocation& inv, QString* e) {
+            const QString rest = inv.name.mid(int(QLatin1String("headPose.map.point.").size()));
+            const int dot = rest.indexOf(QLatin1Char('.'));
+            if (dot <= 0) {
+                return false;
+            }
+            bool ok = false;
+            const int index = rest.left(dot).toInt(&ok);
+            if (!ok) {
+                return false;
+            }
+            return adjustHeadPosePoint(index, rest.mid(dot + 1), e);
+        });
     m_commands.registerBuiltin(QStringLiteral("headPose.map.curve.scrub"), [this](QString*) {
         beginCurveScrub();
         return true;
@@ -466,7 +880,11 @@ void SettingsUi::registerHeadPoseCommands()
         return true;
     });
     m_commands.registerBuiltin(QStringLiteral("headPose.cmdList.cancel"), [this](QString*) {
-        closeLive(m_headCmd);
+        if (!headPoseEditorOpen()) {
+            m_headColumn = HeadPoseColumn::Axes;
+            return true;
+        }
+        m_headColumn = HeadPoseColumn::Outputs;
         refreshHeadPoseEditor();
         return true;
     });
@@ -474,22 +892,26 @@ void SettingsUi::registerHeadPoseCommands()
                               [this](const CommandRegistry::Invocation& inv, QString*) {
                                   const QString enc =
                                       inv.name.mid(int(QLatin1String("headPose.cmd.").size()));
+                                  if (enc.isEmpty()) {
+                                      return false;
+                                  }
                                   if (HeadPoseMap* m = headPoseDraft()) {
                                       m->command = decodeCmd(enc);
                                       m->dest = HeadPoseDest::Command;
-                                      commitHeadPoseDraft(*m);
+                                      m_headColumn = HeadPoseColumn::Edit;
+                                      commitHeadPoseDraft(*m, true);
+                                      syncHeadPosePaint();
                                   }
-                                  closeLive(m_headCmd);
-                                  refreshHeadPoseEditor();
                                   return true;
                               });
     auto nudgeAt = [this](int dir) {
         return [this, dir](QString*) {
             if (HeadPoseMap* m = headPoseDraft()) {
-                m->commandAt += dir * 1.0;
+                m->commandAt = stepHeadPoseCommandAt(m->commandAt, dir);
                 clampHeadPoseMap(*m);
-                commitHeadPoseDraft(*m);
-                refreshHeadPoseEditor();
+                m_headColumn = HeadPoseColumn::Edit;
+                commitHeadPoseDraft(*m, true);
+                syncHeadPosePaint();
             }
             return true;
         };
@@ -522,6 +944,11 @@ bool SettingsUi::headPoseRecenter(QString* error)
 
 bool SettingsUi::headPoseAddMap(QString* error)
 {
+    return headPoseAddAxis(m_headChartAxis, error);
+}
+
+bool SettingsUi::headPoseAddAxis(HeadPoseAxis axis, QString* error)
+{
     if (m_settings.headPoseMaps.size() >= kMaxHeadPoseMaps) {
         const QString msg = QStringLiteral("At most %1 maps").arg(kMaxHeadPoseMaps);
         notifyStatus(msg);
@@ -531,10 +958,45 @@ bool SettingsUi::headPoseAddMap(QString* error)
         return false;
     }
     HeadPoseMap m = AppSettings::makeDefaultHeadPoseMap();
-    m.source = m_headChartAxis;
+    m.source = axis;
     const QString id = m.id;
     if (m_mutate) {
         m_mutate([m](AppSettings& s) { s.headPoseMaps.push_back(m); }, QStringLiteral("Map added"));
+    }
+    return openHeadPoseEditor(id, error);
+}
+
+bool SettingsUi::headPoseDuplicate(const QString& mapId, QString* error)
+{
+    const HeadPoseMap* src = nullptr;
+    for (const HeadPoseMap& m : m_settings.headPoseMaps) {
+        if (m.id == mapId) {
+            src = &m;
+            break;
+        }
+    }
+    if (!src) {
+        const QString msg = QStringLiteral("Unknown map");
+        notifyStatus(msg);
+        if (error) {
+            *error = msg;
+        }
+        return false;
+    }
+    if (m_settings.headPoseMaps.size() >= kMaxHeadPoseMaps) {
+        const QString msg = QStringLiteral("At most %1 maps").arg(kMaxHeadPoseMaps);
+        notifyStatus(msg);
+        if (error) {
+            *error = msg;
+        }
+        return false;
+    }
+    HeadPoseMap copy = *src;
+    copy.id = AppSettings::makeDefaultHeadPoseMap().id;
+    const QString id = copy.id;
+    if (m_mutate) {
+        m_mutate([copy](AppSettings& s) { s.headPoseMaps.push_back(copy); },
+                 QStringLiteral("Map copied"));
     }
     return openHeadPoseEditor(id, error);
 }
@@ -580,251 +1042,167 @@ void SettingsUi::commitHeadPoseDraft(const HeadPoseMap& m, bool persist)
 
 bool SettingsUi::openHeadPoseEditor(const QString& mapId, QString* error)
 {
-    bool found = false;
+    const HeadPoseMap* found = nullptr;
     for (const HeadPoseMap& m : m_settings.headPoseMaps) {
         if (m.id == mapId) {
-            found = true;
+            found = &m;
             break;
         }
     }
     if (!found) {
+        const QString msg = QStringLiteral("Unknown map");
+        notifyStatus(msg);
         if (error) {
-            *error = QStringLiteral("Unknown map");
+            *error = msg;
         }
         return false;
     }
     m_headMapId = mapId;
     m_headPointIndex = 0;
+    m_headColumn = HeadPoseColumn::Edit;
+    m_headChartAxis = found->source;
+    m_headChartMapId = found->id;
     endCurveScrub();
-    return presentLive(m_headMap, QLatin1String(kLiveHeadPoseMap), buildHeadPoseEditor(), error);
+    refreshHeadPoseEditor();
+    return true;
+}
+
+void SettingsUi::discardHeadPoseEditor()
+{
+    endCurveScrub();
+    m_headMapId.clear();
+    m_headColumn = HeadPoseColumn::Axes;
+    m_headPointIndex = 0;
+    m_headCmdPage = 0;
+}
+
+void SettingsUi::onSessionChanged()
+{
+    if (m_pages.showsPage(QString(kHeadPosePageId))) {
+        return;
+    }
+    m_headPoseSeen = false;
+    if (m_headMapId.isEmpty() && m_headColumn == HeadPoseColumn::Axes) {
+        return;
+    }
+    discardHeadPoseEditor();
+    syncHeadPosePaint();
+}
+
+void SettingsUi::closeHeadPoseEditor()
+{
+    discardHeadPoseEditor();
+    m_pages.refreshDecorated();
+    m_pages.refreshActive();
+    syncHeadPosePaint();
 }
 
 void SettingsUi::refreshHeadPoseEditor()
 {
-    if (!m_headMap.active) {
+    if (!headPoseEditorOpen()) {
         return;
     }
-    QString err;
-    (void)m_pages.attachDocument(buildHeadPoseEditor(), &err, false, false);
+    m_pages.refreshDecorated();
+    m_pages.refreshActive();
     syncHeadPosePaint();
 }
 
-void SettingsUi::syncHeadPosePaint()
+bool SettingsUi::adjustHeadPosePoint(int index, const QString& op, QString* error)
 {
-    PageHostWindow* w = m_pages.window();
-    if (!w) {
-        return;
+    HeadPoseMap* m = headPoseDraft();
+    if (!m) {
+        return false;
     }
-    if (m_headMap.active) {
-        if (m_curveScrub) {
-            return;
+    if (op == QLatin1String("in.edit") || op == QLatin1String("out.edit")) {
+        if (index < 0 || index >= m->points.size()) {
+            return false;
         }
-        const HeadPoseMap* m = headPoseDraft();
-        if (!m) {
-            return;
-        }
-        const double liveIn = m_headPose ? m_headPose->axisRelative(m->source) : 0.0;
-        w->setCurve(m->points, m_headPointIndex, liveIn, m_headPose != nullptr);
-        return;
+        m_headPointIndex = index;
+        m_headPointEditOut = op == QLatin1String("out.edit");
+        m_numpadReturn = NumpadReturn::HeadPose;
+        m_numpadTitle = m_headPointEditOut ? QStringLiteral("Output") : QStringLiteral("Input");
+        m_numpadHint = m_headPointEditOut ? QStringLiteral("Mapped output")
+                                          : QStringLiteral("Source value (deg or cm)");
+        m_numpadBuffer = QString::number(m_headPointEditOut ? m->points[index].out
+                                                            : m->points[index].in);
+        m_numpadResetSeed = m_numpadBuffer;
+        syncHeadPosePaint();
+        return presentNumpad(error);
     }
-    const HeadPoseMap* chart = mapForChartAxis();
-    const QVector<HeadPoseCurvePoint> pts =
-        chart ? chart->points : defaultHeadPoseMap().points;
-    const double liveIn = m_headPose ? m_headPose->axisRelative(m_headChartAxis) : 0.0;
-    w->setCurve(pts, -1, liveIn, m_headPose != nullptr);
+    if (op == QLatin1String("del")) {
+        if (index < 0 || index >= m->points.size()) {
+            return false;
+        }
+        if (m->points.size() <= 2) {
+            notifyStatus(QStringLiteral("Keep at least two points"));
+            return true;
+        }
+        m->points.removeAt(index);
+        clampHeadPoseMap(*m);
+        m_headPointIndex = qBound(0, index, qMax(0, m->points.size() - 1));
+        commitHeadPoseDraft(*m, true);
+        syncHeadPosePaint();
+        return true;
+    }
+    if (index < 0 || index >= m->points.size()) {
+        return false;
+    }
+    HeadPoseCurvePoint& p = m->points[index];
+    if (op == QLatin1String("in.dec")) {
+        p.in -= 1.0;
+    } else if (op == QLatin1String("in.inc")) {
+        p.in += 1.0;
+    } else if (op == QLatin1String("out.dec")) {
+        p.out -= 10.0;
+    } else if (op == QLatin1String("out.inc")) {
+        p.out += 10.0;
+    } else {
+        return false;
+    }
+    const double editedIn = qBound(-1000.0, p.in, 1000.0);
+    clampHeadPoseMap(*m);
+    m_headPointIndex = pointIndexForInput(m->points, editedIn, index);
+    commitHeadPoseDraft(*m, true);
+    syncHeadPosePaint();
+    return true;
 }
 
-PageDocument SettingsUi::buildHeadPoseEditor() const
+bool SettingsUi::addHeadPosePoint()
 {
-    PageDocument doc;
-    doc.id = QLatin1String(kLiveHeadPoseMap);
-    doc.name = QStringLiteral("Edit map");
-    const ThemeColors theme = m_settings.resolvedTheme();
-    initGrid(doc, 12, 6, 1080, 900, 6, 12, theme);
-    PageGrid& grid = doc.grids[0];
-    adoptCallerBoard(grid, m_pages.pageBehind(QLatin1String(kLiveHeadPoseMap)));
-    grid.rowTracks = starTracks({0.85, 1.15, 1.7, 4.2, 1.15, 0.95});
-    const EditorSwatch sw = editorSwatch();
-    const HeadPoseMap* m = headPoseDraft();
-    HeadPoseMap fallback = defaultHeadPoseMap();
+    HeadPoseMap* m = headPoseDraft();
     if (!m) {
-        m = &fallback;
+        return false;
     }
-
-    PageCell title =
-        cell(QStringLiteral("title"), QStringLiteral("Map"), 0, 0, {}, QColor(), 8,
-             QStringLiteral("label"),
-             QStringLiteral("%1  →  %2")
-                 .arg(QLatin1String(headPoseAxisLabel(m->source)), destChipLabel(m->dest)));
-    title.textStyle = QStringLiteral("title");
-    grid.cells.push_back(title);
-    PageCell en =
-        cell(QStringLiteral("en"), m->enabled ? QStringLiteral("Enabled") : QStringLiteral("Disabled"),
-             0, 8, QStringLiteral("headPose.map.enabled.toggle"), QColor(), 2,
-             QStringLiteral("toggle"));
-    en.activeState = QStringLiteral("headPose.map.enabled");
-    grid.cells.push_back(en);
-    grid.cells.push_back(cell(QStringLiteral("done"), QStringLiteral("Done"), 0, 10,
-                              QStringLiteral("headPose.map.done"), sw.save, 2, {}, {},
-                              QStringLiteral("check")));
-
-    grid.cells.push_back(sectionLabel(QStringLiteral("h_from"), QStringLiteral("From"), 1, 0, 2));
-    PageGrid from = makeNested(QStringLiteral("from"), 1, 2, 1, 6, 0);
-    from.colSpan = 10;
-    const HeadPoseAxis axes[] = {HeadPoseAxis::Yaw, HeadPoseAxis::Pitch, HeadPoseAxis::Roll,
-                                 HeadPoseAxis::X,   HeadPoseAxis::Y,     HeadPoseAxis::Z};
-    for (int i = 0; i < 6; ++i) {
-        const QString id = QLatin1String(headPoseAxisId(axes[i]));
-        PageCell c = cell(QStringLiteral("src_%1").arg(id),
-                          QString::fromLatin1(headPoseAxisLabel(axes[i])), 0, i,
-                          QStringLiteral("headPose.map.source.%1").arg(id), QColor(), 1,
-                          QStringLiteral("choice"));
-        c.activeState = QStringLiteral("headPose.map.source.%1").arg(id);
-        joinEnds(c, i, 6);
-        from.cells.push_back(c);
+    if (m->points.size() >= kMaxHeadPoseCurvePoints) {
+        notifyStatus(QStringLiteral("At most %1 points").arg(kMaxHeadPoseCurvePoints));
+        return true;
     }
-    grid.subGrids.push_back(std::move(from));
+    HeadPoseCurvePoint p;
+    p.in = m->points.isEmpty() ? 0.0 : m->points.last().in + 5.0;
+    p.out = m->points.isEmpty() ? 0.0 : m->points.last().out;
+    const double editedIn = qBound(-1000.0, p.in, 1000.0);
+    m->points.push_back(p);
+    clampHeadPoseMap(*m);
+    m_headPointIndex = pointIndexForInput(m->points, editedIn, m->points.size() - 1);
+    commitHeadPoseDraft(*m, true);
+    syncHeadPosePaint();
+    return true;
+}
 
-    grid.cells.push_back(sectionLabel(QStringLiteral("h_to"), QStringLiteral("To"), 2, 0, 2));
-    PageGrid to = makeNested(QStringLiteral("to"), 2, 2, 2, 6, 0);
-    to.colSpan = 10;
-    to.gapPx = 4;
-    const HeadPoseDest dests[] = {
-        HeadPoseDest::MouseX, HeadPoseDest::MouseY, HeadPoseDest::ScrollV, HeadPoseDest::ScrollH,
-        HeadPoseDest::GazeX,  HeadPoseDest::GazeY,  HeadPoseDest::JoyLX,   HeadPoseDest::JoyLY,
-        HeadPoseDest::JoyRX,  HeadPoseDest::JoyRY,  HeadPoseDest::Command};
-    for (int i = 0; i < 11; ++i) {
-        const int row = i < 6 ? 0 : 1;
-        const int col = i < 6 ? i : i - 6;
-        const QString id = QLatin1String(headPoseDestId(dests[i]));
-        PageCell c = cell(QStringLiteral("dst_%1").arg(id), destChipLabel(dests[i]), row, col,
-                          QStringLiteral("headPose.map.dest.%1").arg(id), QColor(), 1,
-                          QStringLiteral("choice"), {}, destChipIcon(dests[i]));
-        c.activeState = QStringLiteral("headPose.map.dest.%1").arg(id);
-        if (i == 10) {
-            c.colSpan = 2;
-            joinEnds(c, 4, 5);
-        } else if (i < 6) {
-            joinEnds(c, col, 6);
-        } else {
-            joinEnds(c, col, 5);
-        }
-        to.cells.push_back(c);
+bool SettingsUi::invertHeadPoseMap()
+{
+    HeadPoseMap* m = headPoseDraft();
+    if (!m) {
+        return false;
     }
-    grid.subGrids.push_back(std::move(to));
-
-    PageCell curve = cell(QStringLiteral("curve"), {}, 3, 0, QStringLiteral("headPose.map.curve.scrub"),
-                          QColor(), 12, QStringLiteral("curvefield"), curveCaption(m->points));
-    grid.cells.push_back(curve);
-
-    const int nPts = m->points.size();
-    const int pi = qBound(0, m_headPointIndex, qMax(0, nPts - 1));
-    const HeadPoseCurvePoint pt =
-        (pi >= 0 && pi < nPts) ? m->points[pi] : HeadPoseCurvePoint{};
-
-    PageGrid points = makeNested(QStringLiteral("points"), 4, 0, 1, 12, 6);
-    points.colSpan = 12;
-    PageGrid pick = makeNested(QStringLiteral("pt_pick"), 0, 0, 1, 5, 0);
-    pick.colSpan = 4;
-    PageCell prev = cell(QStringLiteral("pt_prev"), QStringLiteral("Previous"), 0, 0,
-                         QStringLiteral("headPose.map.point.prev"), sw.nudge, 1, {}, {},
-                         QStringLiteral("ArrowLeft"));
-    joinEnds(prev, 0, 5);
-    pick.cells.push_back(prev);
-    PageCell lab = cell(QStringLiteral("pt_lab"), QStringLiteral("Point %1 of %2").arg(pi + 1).arg(nPts),
-                        0, 1, {}, sw.value, 1, QStringLiteral("value"));
-    joinEnds(lab, 1, 5);
-    pick.cells.push_back(lab);
-    PageCell next = cell(QStringLiteral("pt_next"), QStringLiteral("Next"), 0, 2,
-                         QStringLiteral("headPose.map.point.next"), sw.nudge, 1, {}, {},
-                         QStringLiteral("ArrowRight"));
-    joinEnds(next, 2, 5);
-    pick.cells.push_back(next);
-    PageCell add = cell(QStringLiteral("pt_add"), QStringLiteral("Add"), 0, 3,
-                        QStringLiteral("headPose.map.point.add"), sw.add, 1, {}, {},
-                        QStringLiteral("add"));
-    joinEnds(add, 3, 5);
-    pick.cells.push_back(add);
-    PageCell delPt = cell(QStringLiteral("pt_del"), QStringLiteral("Remove"), 0, 4,
-                          QStringLiteral("headPose.map.point.del"), sw.cancel, 1, {}, {},
-                          QStringLiteral("delete"));
-    joinEnds(delPt, 4, 5);
-    pick.cells.push_back(delPt);
-    points.subGrids.push_back(std::move(pick));
-
-    const QString inUnit = sourceUnit(m->source);
-    PageGrid in = makeNested(QStringLiteral("in_step"), 0, 4, 1, 4, 0);
-    in.colSpan = 4;
-    PageCell inDec = cell(QStringLiteral("in_dec"), QStringLiteral("−"), 0, 0,
-                          QStringLiteral("headPose.map.point.in.dec"), sw.nudge);
-    joinEnds(inDec, 0, 4);
-    in.cells.push_back(inDec);
-    PageCell inVal = cell(QStringLiteral("in_val"), formatAxisValue(pt.in, inUnit), 0, 1, {}, sw.value,
-                          1, QStringLiteral("value"), QStringLiteral("Input"));
-    joinEnds(inVal, 1, 4);
-    in.cells.push_back(inVal);
-    PageCell inInc = cell(QStringLiteral("in_inc"), QStringLiteral("+"), 0, 2,
-                          QStringLiteral("headPose.map.point.in.inc"), sw.nudge);
-    joinEnds(inInc, 2, 4);
-    in.cells.push_back(inInc);
-    PageCell inEdit = cell(QStringLiteral("in_edit"), QStringLiteral("Edit"), 0, 3,
-                           QStringLiteral("headPose.map.point.in.edit"), sw.edit, 1, {}, {},
-                           QStringLiteral("editSquare"));
-    joinEnds(inEdit, 3, 4);
-    in.cells.push_back(inEdit);
-    points.subGrids.push_back(std::move(in));
-
-    const QString outU = destUnit(m->dest);
-    PageGrid out = makeNested(QStringLiteral("out_step"), 0, 8, 1, 4, 0);
-    out.colSpan = 4;
-    PageCell outDec = cell(QStringLiteral("out_dec"), QStringLiteral("−"), 0, 0,
-                           QStringLiteral("headPose.map.point.out.dec"), sw.nudge);
-    joinEnds(outDec, 0, 4);
-    out.cells.push_back(outDec);
-    PageCell outVal =
-        cell(QStringLiteral("out_val"), formatAxisValue(pt.out, outU), 0, 1, {}, sw.value, 1,
-             QStringLiteral("value"),
-             m->dest == HeadPoseDest::Command ? QStringLiteral("Unused") : QStringLiteral("Output"));
-    joinEnds(outVal, 1, 4);
-    out.cells.push_back(outVal);
-    PageCell outInc = cell(QStringLiteral("out_inc"), QStringLiteral("+"), 0, 2,
-                           QStringLiteral("headPose.map.point.out.inc"), sw.nudge);
-    joinEnds(outInc, 2, 4);
-    out.cells.push_back(outInc);
-    PageCell outEdit = cell(QStringLiteral("out_edit"), QStringLiteral("Edit"), 0, 3,
-                            QStringLiteral("headPose.map.point.out.edit"), sw.edit, 1, {}, {},
-                            QStringLiteral("editSquare"));
-    joinEnds(outEdit, 3, 4);
-    out.cells.push_back(outEdit);
-    points.subGrids.push_back(std::move(out));
-    grid.subGrids.push_back(std::move(points));
-
-    grid.cells.push_back(cell(QStringLiteral("del"), QStringLiteral("Delete map"), 5, 0,
-                              QStringLiteral("headPose.map.delete"), sw.cancel, 3, {}, {},
-                              QStringLiteral("delete")));
-    if (m->dest == HeadPoseDest::Command) {
-        grid.cells.push_back(cell(QStringLiteral("cmd"),
-                                  m->command.isEmpty() ? QStringLiteral("Choose command") : m->command,
-                                  5, 3, QStringLiteral("headPose.map.pickCommand"), sw.edit, 5, {},
-                                  {}, QStringLiteral("adsClick")));
-        PageGrid trig = makeNested(QStringLiteral("trig"), 5, 8, 1, 4, 0);
-        trig.colSpan = 4;
-        PageCell atDec = cell(QStringLiteral("at_dec"), QStringLiteral("−"), 0, 0,
-                              QStringLiteral("headPose.map.commandAt.dec"), sw.nudge);
-        joinEnds(atDec, 0, 4);
-        trig.cells.push_back(atDec);
-        PageCell atVal =
-            cell(QStringLiteral("at_val"), formatAxisValue(m->commandAt, sourceUnit(m->source)), 0, 1,
-                 {}, sw.value, 2, QStringLiteral("value"), QStringLiteral("Trigger"));
-        joinEnds(atVal, 1, 4);
-        trig.cells.push_back(atVal);
-        PageCell atInc = cell(QStringLiteral("at_inc"), QStringLiteral("+"), 0, 3,
-                              QStringLiteral("headPose.map.commandAt.inc"), sw.nudge);
-        joinEnds(atInc, 3, 4);
-        trig.cells.push_back(atInc);
-        grid.subGrids.push_back(std::move(trig));
+    for (HeadPoseCurvePoint& p : m->points) {
+        p.out = -p.out;
     }
-    return doc;
+    clampHeadPoseMap(*m);
+    commitHeadPoseDraft(*m, true);
+    notifyStatus(QStringLiteral("Outputs inverted"));
+    syncHeadPosePaint();
+    return true;
 }
 
 QStringList SettingsUi::headPoseCommandCatalog() const
@@ -847,70 +1225,56 @@ QStringList SettingsUi::headPoseCommandCatalog() const
 
 bool SettingsUi::openHeadPoseCommandList(QString* error)
 {
+    if (!headPoseDraft()) {
+        const QString msg = QStringLiteral("No map");
+        notifyStatus(msg);
+        if (error) {
+            *error = msg;
+        }
+        return false;
+    }
     m_headCmdPage = 0;
-    return presentLive(m_headCmd, QLatin1String(kLiveHeadPoseCmd), buildHeadPoseCommandList(),
-                       error);
+    m_headColumn = HeadPoseColumn::Commands;
+    m_pages.refreshDecorated();
+    m_pages.refreshActive();
+    return true;
 }
 
 void SettingsUi::refreshHeadPoseCommandList()
 {
-    if (!m_headCmd.active) {
-        return;
+    if (headPoseEditorOpen() && m_headColumn == HeadPoseColumn::Commands) {
+        m_pages.refreshDecorated();
+        m_pages.refreshActive();
     }
-    QString err;
-    (void)m_pages.attachDocument(buildHeadPoseCommandList(), &err, false, false);
 }
 
-PageDocument SettingsUi::buildHeadPoseCommandList() const
+void SettingsUi::syncHeadPosePaint()
 {
-    PageDocument doc;
-    doc.id = QLatin1String(kLiveHeadPoseCmd);
-    doc.name = QStringLiteral("Command");
-    const ThemeColors theme = m_settings.resolvedTheme();
-    initGrid(doc, 4, 6, 860, 640, 8, 16, theme);
-    PageGrid& grid = doc.grids[0];
-    grid.rowTracks = starTracks({0.9, 1.2, 1.2, 1.2, 1.2, 0.95});
-    const EditorSwatch sw = editorSwatch();
-    const QStringList names = headPoseCommandCatalog();
-    constexpr int kPage = 12;
-    const int pages = qMax(1, (names.size() + kPage - 1) / kPage);
-    const int page = qBound(0, m_headCmdPage, pages - 1);
-    const int start = page * kPage;
-    PageCell title = cell(QStringLiteral("title"), QStringLiteral("Choose command"), 0, 0, {},
-                          QColor(), 3, QStringLiteral("label"),
-                          QStringLiteral("Page %1 of %2").arg(page + 1).arg(pages));
-    title.textStyle = QStringLiteral("title");
-    grid.cells.push_back(title);
-    grid.cells.push_back(cell(QStringLiteral("cancel"), QStringLiteral("Cancel"), 0, 3,
-                              QStringLiteral("headPose.cmdList.cancel"), sw.cancel));
-    for (int i = 0; i < kPage; ++i) {
-        const int idx = start + i;
-        const int row = 1 + i / 4;
-        const int col = i % 4;
-        if (idx >= names.size()) {
-            grid.cells.push_back(cell(QStringLiteral("c_%1").arg(i), {}, row, col, {}, QColor(), 1,
-                                      QStringLiteral("label")));
-            continue;
-        }
-        PageCell c = cell(QStringLiteral("c_%1").arg(i), names[idx], row, col,
-                          QStringLiteral("headPose.cmd.%1").arg(encodeCmd(names[idx])), sw.nudge);
-        grid.cells.push_back(c);
+    PageHostWindow* w = m_pages.window();
+    if (!w) {
+        return;
     }
-    PageCell prev = cell(QStringLiteral("prev"), QStringLiteral("Previous"), 5, 0,
-                         QStringLiteral("headPose.cmdList.prev"), sw.nudge, 1, {}, {},
-                         QStringLiteral("ArrowLeft"));
-    joinEnds(prev, 0, 3);
-    grid.cells.push_back(prev);
-    PageCell pg = cell(QStringLiteral("pg"), QStringLiteral("%1 / %2").arg(page + 1).arg(pages), 5, 1,
-                       {}, sw.value, 1, QStringLiteral("value"));
-    joinEnds(pg, 1, 3);
-    grid.cells.push_back(pg);
-    PageCell next = cell(QStringLiteral("next"), QStringLiteral("Next"), 5, 2,
-                         QStringLiteral("headPose.cmdList.next"), sw.nudge, 2, {}, {},
-                         QStringLiteral("ArrowRight"));
-    joinEnds(next, 2, 3);
-    grid.cells.push_back(next);
-    return doc;
+    if (headPoseEditorOpen()) {
+        if (m_curveScrub) {
+            return;
+        }
+        const HeadPoseMap* m = headPoseDraft();
+        if (!m) {
+            return;
+        }
+        const int selected = (m_headColumn == HeadPoseColumn::Edit && !m->points.isEmpty())
+                                 ? qBound(0, m_headPointIndex, m->points.size() - 1)
+                                 : -1;
+        const double liveIn = m_headPose ? m_headPose->axisRelative(m->source) : 0.0;
+        w->setCurve(m->points, selected, liveIn, m_headPose != nullptr);
+        return;
+    }
+    const HeadPoseMap* chart = mapForChartAxis();
+    const QVector<HeadPoseCurvePoint> pts =
+        chart ? chart->points : defaultHeadPoseMap().points;
+    const HeadPoseAxis axis = chart ? chart->source : m_headChartAxis;
+    const double liveIn = m_headPose ? m_headPose->axisRelative(axis) : 0.0;
+    w->setCurve(pts, -1, liveIn, m_headPose != nullptr);
 }
 
 void SettingsUi::beginCurveScrub()
@@ -940,13 +1304,13 @@ void SettingsUi::feedCurveGaze(const GazePoint& point)
     if (!m_curveScrub) {
         return;
     }
-    if (!m_headMap.active) {
+    if (!headPoseEditorOpen()) {
         endCurveScrub();
         return;
     }
     const qint64 now = point.timestampMs;
-    const QRect r =
-        m_pages.targetScreenRect(QLatin1String(kLiveHeadPoseMap), QStringLiteral("curve"));
+    const QRect r = m_pages.targetScreenRect(QStringLiteral("main_settings_head_pose"),
+                                             QStringLiteral("pose_curve"));
     const bool onCurve =
         point.valid && !r.isEmpty() && r.contains(point.toPointF().toPoint());
     if (!onCurve) {
@@ -954,12 +1318,14 @@ void SettingsUi::feedCurveGaze(const GazePoint& point)
             return;
         }
         endCurveScrub();
+        refreshHeadPoseEditor();
         return;
     }
     m_curveLeaveGrace.onValid();
     HeadPoseMap* m = headPoseDraft();
     if (!m || m->points.isEmpty()) {
         endCurveScrub();
+        refreshHeadPoseEditor();
         return;
     }
     if (m_headPointIndex < 0 || m_headPointIndex >= m->points.size()) {
@@ -970,6 +1336,8 @@ void SettingsUi::feedCurveGaze(const GazePoint& point)
     m->points[m_headPointIndex].in = in;
     m->points[m_headPointIndex].out = out;
     clampHeadPoseMap(*m);
+    const double editedIn = qBound(-1000.0, in, 1000.0);
+    m_headPointIndex = pointIndexForInput(m->points, editedIn, m_headPointIndex);
     commitHeadPoseDraft(*m, false);
     if (PageHostWindow* w = m_pages.window()) {
         w->setCurve(m->points, m_headPointIndex, in, true);
@@ -985,6 +1353,7 @@ void SettingsUi::feedCurveGaze(const GazePoint& point)
                          .arg(in, 0, 'f', 1)
                          .arg(out, 0, 'f', 1));
         endCurveScrub();
+        refreshHeadPoseEditor();
     }
 }
 

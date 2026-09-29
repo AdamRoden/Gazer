@@ -20,6 +20,7 @@ private slots:
     void pauseZerosMotion();
     void commandRisingEdge();
     void commandHysteresis();
+    void commandAtStepSkipsZero();
 };
 
 void HeadPoseMapperTest::curveLerp()
@@ -35,17 +36,15 @@ void HeadPoseMapperTest::curveLerp()
 void HeadPoseMapperTest::defaultCurveDeadzone()
 {
     const HeadPoseMap m = defaultHeadPoseMap();
-    QCOMPARE(m.points.size(), 5);
+    QCOMPARE(m.points.size(), 4);
     QCOMPARE(m.points[0].in, -25.0);
     QCOMPARE(m.points[0].out, -600.0);
     QCOMPARE(m.points[1].in, -5.0);
     QCOMPARE(m.points[1].out, 0.0);
-    QCOMPARE(m.points[2].in, 0.0);
+    QCOMPARE(m.points[2].in, 5.0);
     QCOMPARE(m.points[2].out, 0.0);
-    QCOMPARE(m.points[3].in, 5.0);
-    QCOMPARE(m.points[3].out, 0.0);
-    QCOMPARE(m.points[4].in, 25.0);
-    QCOMPARE(m.points[4].out, 600.0);
+    QCOMPARE(m.points[3].in, 25.0);
+    QCOMPARE(m.points[3].out, 600.0);
 
     QCOMPARE(evalHeadPoseCurve(m.points, 0.0), 0.0);
     QCOMPARE(evalHeadPoseCurve(m.points, 3.0), 0.0);
@@ -236,6 +235,26 @@ void HeadPoseMapperTest::commandHysteresis()
     pose.yaw = 12.0;
     auto again = evalHeadPoseMaps({m}, true, pose, {}, false, false, 16, &st);
     QCOMPARE(again.commands.size(), 1);
+}
+
+void HeadPoseMapperTest::commandAtStepSkipsZero()
+{
+    QCOMPARE(stepHeadPoseCommandAt(15.0, -1), 14.0);
+    QCOMPARE(stepHeadPoseCommandAt(2.0, -1), 1.0);
+    QCOMPARE(stepHeadPoseCommandAt(1.0, -1), -1.0);
+    QCOMPARE(stepHeadPoseCommandAt(-1.0, 1), 1.0);
+    QCOMPARE(stepHeadPoseCommandAt(-1.0, -1), -2.0);
+    QCOMPARE(stepHeadPoseCommandAt(0.6, -1), -1.0);
+
+    HeadPoseMap stepped = defaultHeadPoseMap();
+    stepped.commandAt = stepHeadPoseCommandAt(1.0, -1);
+    clampHeadPoseMap(stepped);
+    QCOMPARE(stepped.commandAt, -1.0);
+
+    HeadPoseMap unset = defaultHeadPoseMap();
+    unset.commandAt = 0.0;
+    clampHeadPoseMap(unset);
+    QCOMPARE(unset.commandAt, 15.0);
 }
 
 QObject* createHeadPoseMapperTest()

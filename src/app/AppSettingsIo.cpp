@@ -32,11 +32,13 @@ namespace {
     return ScreenCaptureMode::Pages;
 }
 
-/// Factory curve before the ±5 deadzone points. Rewritten on load only.
+/// Factory curves from before the four-point deadzone (no center handle). Rewritten on load only.
 [[nodiscard]] bool legacyHeadPoseFactoryCurve(const QVector<HeadPoseCurvePoint>& pts)
 {
-    const QVector<HeadPoseCurvePoint> old = {{-25.0, -600.0}, {0.0, 0.0}, {25.0, 600.0}};
-    return pts == old;
+    const QVector<HeadPoseCurvePoint> old3 = {{-25.0, -600.0}, {0.0, 0.0}, {25.0, 600.0}};
+    const QVector<HeadPoseCurvePoint> old5 = {
+        {-25.0, -600.0}, {-5.0, 0.0}, {0.0, 0.0}, {5.0, 0.0}, {25.0, 600.0}};
+    return pts == old3 || pts == old5;
 }
 
 } // namespace

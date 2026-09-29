@@ -296,7 +296,17 @@ bool SettingsUi::numpadSave(QString* error)
                 } else {
                     m->points[m_headPointIndex].in = v;
                 }
+                const double editedIn = qBound(-1000.0, m->points[m_headPointIndex].in, 1000.0);
                 clampHeadPoseMap(*m);
+                int found = m_headPointIndex;
+                for (int i = 0; i < m->points.size(); ++i) {
+                    if (qAbs(m->points[i].in - editedIn) < 1e-4) {
+                        found = i;
+                        break;
+                    }
+                }
+                m_headPointIndex =
+                    m->points.isEmpty() ? 0 : qBound(0, found, m->points.size() - 1);
                 commitHeadPoseDraft(*m);
             }
         }
@@ -376,7 +386,7 @@ bool SettingsUi::numpadCancel(QString* error)
         notifyStatus(QStringLiteral("Edit cancelled"));
         return true;
     }
-    if (ret == NumpadReturn::HeadPose && m_headMap.active) {
+    if (ret == NumpadReturn::HeadPose && headPoseEditorOpen()) {
         closeLive(m_numpad);
         resetNumpad();
         refreshHeadPoseEditor();

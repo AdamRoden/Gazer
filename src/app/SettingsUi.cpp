@@ -68,9 +68,6 @@ bool SettingsUi::presentLive(LiveBoard& board, const QString& id, PageDocument d
 
 void SettingsUi::closeLive(LiveBoard& board)
 {
-    if (&board == &m_headMap) {
-        endCurveScrub();
-    }
     if (&board == &m_lookToMap && m_lookTo) {
         m_lookTo->clearPreview();
     }

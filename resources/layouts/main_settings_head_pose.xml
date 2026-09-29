@@ -14,39 +14,18 @@
     <SubGrid id="sec_preview" row="1" col="0" colSpan="8" rowSpan="8" rows="3" columns="1"
              rowHeights="4*,*,3*" gap="6" margin="6" style="group">
       <Cell id="head_preview" row="0" col="0" label="Head Preview" role="headpreview" style="plain"/>
-      <SubGrid id="row_axes" row="1" col="0" rows="1" columns="6" gap="0" style="row">
-        <Cell id="axis_yaw" row="0" col="0" label="Yaw" role="choice" activeState="headPose.chart.axis.yaw"
-              style="joinLeft" command="headPose.chart.axis.yaw"/>
-        <Cell id="axis_pitch" row="0" col="1" label="Pitch" role="choice" activeState="headPose.chart.axis.pitch"
-              style="join" command="headPose.chart.axis.pitch"/>
-        <Cell id="axis_roll" row="0" col="2" label="Roll" role="choice" activeState="headPose.chart.axis.roll"
-              style="join" command="headPose.chart.axis.roll"/>
-        <Cell id="axis_x" row="0" col="3" label="X" role="choice" activeState="headPose.chart.axis.x"
-              style="join" command="headPose.chart.axis.x"/>
-        <Cell id="axis_y" row="0" col="4" label="Y" role="choice" activeState="headPose.chart.axis.y"
-              style="join" command="headPose.chart.axis.y"/>
-        <Cell id="axis_z" row="0" col="5" label="Z" role="choice" activeState="headPose.chart.axis.z"
-              style="joinRight" command="headPose.chart.axis.z"/>
+      <SubGrid id="row_master" row="1" col="0" rows="1" columns="2" gap="6" style="row">
+        <Cell id="hp_enable" row="0" col="0" label="Enable" role="toggle" activeState="headPose.enabled"
+              style="joinLeft" command="headPose.enabled.toggle"/>
+        <Cell id="hp_recenter" row="0" col="1" label="Recenter" caption="Zero all six axes at current pose" icon="Refocus"
+              style="joinRight" command="headPose.recenter"/>
       </SubGrid>
       <Cell id="pose_curve" row="2" col="0" label="in → out" role="curvefield"/>
     </SubGrid>
 
-    <SubGrid id="sec_maps" row="1" col="8" colSpan="8" rowSpan="8" rows="4" columns="1"
-             rowHeights="*,*,5*,*" gap="6" margin="6" style="group">
-      <Cell id="h_maps" row="0" col="0" label="Map" role="label" textStyle="section" style="plain"/>
-      <SubGrid id="row_maps_actions" row="1" col="0" rows="1" columns="3" gap="6" style="row">
-        <Cell id="hp_enable" row="0" col="0" label="Enable" role="toggle" activeState="headPose.enabled"
-              style="joinLeft" command="headPose.enabled.toggle"/>
-        <Cell id="hp_recenter" row="0" col="1" label="Recenter" caption="Zero all six axes at current pose" icon="Refocus"
-              style="join" command="headPose.recenter"/>
-        <Cell id="hp_add" row="0" col="2" label="Add Map" icon="add" style="joinRight" command="headPose.addMap"/>
-      </SubGrid>
-      <SubGrid id="maps" row="2" col="0" rows="1" columns="6" gap="4" style="row">
-        <Cell id="maps_empty" row="0" col="0" colSpan="6" label="No maps" caption="Add a map to send head motion to the pointer or a command."
-              role="label" style="plain"/>
-      </SubGrid>
-      <Cell id="maps_hint" row="3" col="0" label="Each map sends one axis to an output"
-            caption="Edit to choose destination and scale the input→output curve." role="label" style="plain"/>
+    <SubGrid id="sec_maps" row="1" col="8" colSpan="8" rowSpan="8" rows="1" columns="1"
+             gap="6" margin="6" style="group">
+      <Cell id="maps_placeholder" row="0" col="0" label="Axes" role="label" style="plain"/>
     </SubGrid>
   </Grid>
 </Page>
