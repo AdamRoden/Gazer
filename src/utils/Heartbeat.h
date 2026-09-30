@@ -10,6 +10,10 @@ struct HeartbeatSnapshot {
     quint32 hostPid = 0;
     quint32 flags = 0;
     qint64 guiTickMs = 0;
+    qint32 gazeX = 0;
+    qint32 gazeY = 0;
+    bool gazeValid = false;
+    qint64 gazeTickMs = 0;
     bool valid = false;
 };
 
@@ -37,6 +41,9 @@ public:
     bool openAsGuard();
 
     void pulseGui();
+    /// Worker-safe. Writes the latest gaze into the host mapping. No-op unless
+    /// this process has an open host block. `gazeTickMs` is stored last.
+    static void publishGaze(int x, int y, bool valid);
     void setCleanShutdown();
     void setExclusiveOccluded(bool on);
     void setHostReady(bool on);
@@ -44,6 +51,8 @@ public:
     [[nodiscard]] HeartbeatSnapshot read() const;
     [[nodiscard]] static qint64 nowMs();
     [[nodiscard]] static bool guiStale(const HeartbeatSnapshot& snap, qint64 staleMs = 3000);
+    /// True when the snapshot carries a gaze sample newer than @p maxAgeMs.
+    [[nodiscard]] static bool gazeFresh(const HeartbeatSnapshot& snap, qint64 maxAgeMs = 450);
 
     void close();
 

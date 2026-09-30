@@ -369,16 +369,26 @@ void PageSession::registerMemoryPage(PageDocument doc)
 
 void PageSession::closePreviewPages()
 {
+    QStringList stopped;
     for (int i = m_attached.size() - 1; i >= 0; --i) {
         if (isPreviewId(m_attached[i].doc.id)) {
+            stopped.push_back(m_attached[i].doc.id);
             m_attached.removeAt(i);
         }
     }
     for (auto it = m_memory.begin(); it != m_memory.end();) {
         if (isPreviewId(it.key())) {
+            if (!stopped.contains(it.key())) {
+                stopped.push_back(it.key());
+            }
             it = m_memory.erase(it);
         } else {
             ++it;
+        }
+    }
+    if (m_loopStopPage) {
+        for (const QString& id : stopped) {
+            m_loopStopPage(id);
         }
     }
     leaveGaze();
@@ -469,7 +479,11 @@ bool PageSession::openPage(const QString& id, QString* error)
     if (isPreviewId(id)) {
         for (int i = m_attached.size() - 1; i >= 0; --i) {
             if (isPreviewId(m_attached[i].doc.id) && m_attached[i].doc.id != id) {
+                const QString removed = m_attached[i].doc.id;
                 m_attached.removeAt(i);
+                if (m_loopStopPage) {
+                    m_loopStopPage(removed);
+                }
             }
         }
     }
@@ -477,8 +491,8 @@ bool PageSession::openPage(const QString& id, QString* error)
         if (m_attached[i].doc.id == id) {
             if (i != m_attached.size() - 1) {
                 m_attached.move(i, m_attached.size() - 1);
-                leaveGaze();
                 rebuild();
+                armLeaveGate(id);
             }
             raise();
             emit sessionChanged();

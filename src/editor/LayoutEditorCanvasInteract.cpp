@@ -20,6 +20,14 @@ double snapThreshPx(double scale)
     return qBound(4.0, 8.0 / qMax(0.05, scale), 24.0);
 }
 
+QRectF zoneEditBounds(bool desktopMode, const QRect& desktop, const QSize& screen)
+{
+    if (desktopMode) {
+        return QRectF(desktop);
+    }
+    return QRectF(0, 0, screen.width(), screen.height());
+}
+
 double snapValue(double v, const QVector<double>& stops, double thresh, bool* hit = nullptr)
 {
     double best = v;
@@ -125,14 +133,17 @@ QPoint LayoutEditorCanvas::cellAt(const QPoint& pos, const ScreenMap& m, QString
         const QPoint idx =
             PageHit::cellIndexAt(*g, gp.visual, virt, m.pageFrame().screen.size());
         if (idx.x() < 0) {
-            return {0, 0};
+            if (gridId) {
+                gridId->clear();
+            }
+            return {-1, -1};
         }
         return idx;
     }
     if (gridId) {
         gridId->clear();
     }
-    return {0, 0};
+    return {-1, -1};
 }
 
 QRectF LayoutEditorCanvas::selectedRect(const ScreenMap& m) const
@@ -313,24 +324,30 @@ void LayoutEditorCanvas::commitDrag(const QPoint& pos, const ScreenMap& m)
                                               (pos.y() - m_pressPos.y()) / qMax(0.001, m.scaleY))
                                     : m_ghostVirt.topLeft() - m_pressRect.topLeft();
                 const QString id = m_dragId;
+                const PageZone* cur = PageEdit::findZone(m_session.document(), id);
+                const QRectF bounds =
+                    zoneEditBounds(cur && cur->desktopMode, m.virtualDesktop, m.virtualScreen);
+                const double bw = bounds.width();
+                const double bh = bounds.height();
                 m_session.edit(QStringLiteral("Move zone"), [&](PageDocument& d) {
                     if (PageZone* z = PageEdit::findZone(d, id)) {
-                        const double x0 = z->offset.x.isSet() ? z->offset.x.value : 0.0;
-                        const double y0 = z->offset.y.isSet() ? z->offset.y.value : 0.0;
+                        const double x0 = z->offset.x.isSet()
+                                              ? z->offset.x.resolve(bw, bh, bw, bh)
+                                              : 0.0;
+                        const double y0 = z->offset.y.isSet()
+                                              ? z->offset.y.resolve(bh, bh, bw, bh)
+                                              : 0.0;
                         z->offset.x = PageDim::pixels(x0 + delta.x());
                         z->offset.y = PageDim::pixels(y0 + delta.y());
                     }
                 });
             } else if (m.board.contains(pos)) {
-                const QPoint cell = cellAt(pos, m);
-                const PageCell* c = PageEdit::findCell(m_session.document(), m_dragId);
-                const int dRow = c ? cell.y() - c->row : 0;
-                const int dCol = c ? cell.x() - c->col : 0;
-                if (m_session.selection().itemIds.size() > 1) {
-                    m_session.moveSelected(dRow, dCol);
-                } else {
-                    m_session.moveItemToCell(m_dragId, cell.y(), cell.x());
+                QString gridId;
+                const QPoint cell = cellAt(pos, m, &gridId);
+                if (cell.x() < 0) {
+                    break;
                 }
+                m_session.moveItemToCell(m_dragId, cell.y(), cell.x(), gridId);
             }
         }
         break;
@@ -608,14 +625,27 @@ void LayoutEditorCanvas::applyResize(const QPoint& pos, const ScreenMap& m)
         }
         const QString id = m_dragId;
         const QRectF start = m_pressRect;
+        if (qAbs(r.left() - start.left()) < 0.5 && qAbs(r.top() - start.top()) < 0.5
+            && qAbs(r.width() - start.width()) < 0.5 && qAbs(r.height() - start.height()) < 0.5) {
+            return;
+        }
+        const PageZone* cur = PageEdit::findZone(m_session.document(), id);
+        const QRectF bounds =
+            zoneEditBounds(cur && cur->desktopMode, m.virtualDesktop, m.virtualScreen);
+        PageDimPair zero;
+        zero.x = PageDim::pixels(0);
+        zero.y = PageDim::pixels(0);
+        PageDimPair size;
+        size.x = PageDim::pixels(r.width());
+        size.y = PageDim::pixels(r.height());
+        const QRectF base = PageDimParse::placeRect(bounds, cur ? cur->anchor : PageAnchor::TopLeft,
+                                                    zero, size, bounds.size());
+        const QPointF off = r.topLeft() - base.topLeft();
         m_session.edit(QStringLiteral("Resize %1").arg(id), [&](PageDocument& d) {
             if (PageZone* z = PageEdit::findZone(d, id)) {
-                const double x0 = z->offset.x.isSet() ? z->offset.x.value : 0.0;
-                const double y0 = z->offset.y.isSet() ? z->offset.y.value : 0.0;
-                z->offset.x = PageDim::pixels(x0 + (r.left() - start.left()));
-                z->offset.y = PageDim::pixels(y0 + (r.top() - start.top()));
-                z->size.x = PageDim::pixels(r.width());
-                z->size.y = PageDim::pixels(r.height());
+                z->size = size;
+                z->offset.x = PageDim::pixels(off.x());
+                z->offset.y = PageDim::pixels(off.y());
             }
         });
         return;

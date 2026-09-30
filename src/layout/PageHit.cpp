@@ -172,9 +172,12 @@ void walkGrid(const PageDocument& page, const PageGrid& grid, const QRectF& boun
         if (!frag || !sourced) {
             return;
         }
-        pushGridPaint(env.grids, bounds,
-                      PageResolve::gridStyle(*frag, sourced->styleId, sourced->style), frag->id,
-                      sourced->id, drawer, layer);
+        const bool sourcedStyled = sourced->style.hasAny() || !sourced->styleId.isEmpty();
+        if (!sourcedStyled) {
+            pushGridPaint(env.grids, bounds,
+                          PageResolve::gridStyle(*frag, sourced->styleId, sourced->style),
+                          frag->id, sourced->id, drawer, layer);
+        }
         env.chain->push_back(grid.src);
         walkGrid(*frag, *sourced, bounds, env, normalizedLayers(frag->showLayers), layer, drawer,
                  true, PageCompose::firstSrc(*frag));

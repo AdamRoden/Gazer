@@ -1,11 +1,16 @@
 #include "core/TrackerTobii.h"
 
+#include "core/TrackerMouse.h"
+#include "utils/Heartbeat.h"
 #include "utils/Log.h"
 #include "utils/ScreenGrab.h"
+
+#include <cmath>
 
 #include <QCoreApplication>
 #include <QGuiApplication>
 #include <QMetaObject>
+#include <QScopeGuard>
 #include <QScreen>
 
 #include <chrono>
@@ -36,6 +41,44 @@ TrackerTobii::TrackerTobii(QObject* parent)
 TrackerTobii::~TrackerTobii()
 {
     stop();
+}
+
+bool TrackerTobii::workerOutstanding()
+{
+    std::lock_guard lock(m_exitMutex);
+    return !m_workerExited;
+}
+
+void TrackerTobii::retire()
+{
+    disconnect(this, nullptr, nullptr, nullptr);
+    bool deleteNow = false;
+    {
+        std::lock_guard lock(m_exitMutex);
+        m_retire = true;
+        deleteNow = m_workerExited;
+    }
+    if (deleteNow) {
+        delete this;
+    }
+}
+
+std::unique_ptr<ITracker> openEyeTracker()
+{
+    {
+        auto tobii = std::make_unique<TrackerTobii>();
+        if (tobii->start()) {
+            return tobii;
+        }
+        GAZER_INFO << "Tobii unavailable — falling back to mouse cursor";
+        releaseTracker(tobii);
+    }
+    auto mouse = std::make_unique<TrackerMouse>();
+    if (!mouse->start()) {
+        GAZER_ERROR << "Mouse tracker failed to start";
+        return {};
+    }
+    return mouse;
 }
 
 QString TrackerTobii::name() const
@@ -127,6 +170,7 @@ void TrackerTobii::onGazeFromEngine(tobii_gaze_point_t const* gp)
         m_latestSample = out;
     }
     m_samplePending = true;
+    Heartbeat::publishGaze(int(std::lround(out.x)), int(std::lround(out.y)), out.valid);
 }
 
 void TrackerTobii::onHeadFromEngine(tobii_head_pose_t const* hp)
@@ -136,17 +180,23 @@ void TrackerTobii::onHeadFromEngine(tobii_head_pose_t const* hp)
     HeadPose out;
     out.timestampMs = m_clock.isValid() ? m_clock.elapsed() : 0;
     out.positionValid = (hp->position_validity == TOBII_VALIDITY_VALID);
-    out.rotationValid = (hp->rotation_validity_xyz[0] == TOBII_VALIDITY_VALID)
-                        || (hp->rotation_validity_xyz[1] == TOBII_VALIDITY_VALID)
-                        || (hp->rotation_validity_xyz[2] == TOBII_VALIDITY_VALID);
+    // rotation_xyz is pitch, yaw, roll — same order as the existing copy below.
+    out.pitchValid = (hp->rotation_validity_xyz[0] == TOBII_VALIDITY_VALID);
+    out.yawValid = (hp->rotation_validity_xyz[1] == TOBII_VALIDITY_VALID);
+    out.rollValid = (hp->rotation_validity_xyz[2] == TOBII_VALIDITY_VALID);
+    out.rotationValid = out.pitchValid || out.yawValid || out.rollValid;
     if (out.positionValid) {
         out.x = -static_cast<double>(hp->position_xyz[0]) * 0.1; // mm → cm, negate X
         out.y = static_cast<double>(hp->position_xyz[1]) * 0.1;
         out.z = static_cast<double>(hp->position_xyz[2]) * 0.1;
     }
-    if (out.rotationValid) {
+    if (out.pitchValid) {
         out.pitch = static_cast<double>(hp->rotation_xyz[0]) * kRadToDeg;
+    }
+    if (out.yawValid) {
         out.yaw = -static_cast<double>(hp->rotation_xyz[1]) * kRadToDeg;
+    }
+    if (out.rollValid) {
         out.roll = static_cast<double>(hp->rotation_xyz[2]) * kRadToDeg;
     }
     {
@@ -193,7 +243,7 @@ void TrackerTobii::flushPendingGaze()
 
 bool TrackerTobii::start()
 {
-    if (m_running.load()) {
+    if (m_running.load() || m_thread) {
         return true;
     }
 
@@ -244,58 +294,49 @@ bool TrackerTobii::start()
     ++m_generation;
 
     m_thread = std::make_unique<std::thread>(&TrackerTobii::workerMain, this);
-
-    {
-        std::unique_lock lock(m_setupMutex);
-        if (!m_setupCv.wait_for(lock, std::chrono::seconds(5),
-                                [this]() { return m_setupDone; })) {
-            GAZER_WARN << "TrackerTobii: setup timed out";
-            m_stop = true;
-            // Fall through to join worker / fail start.
-            m_setupOk = false;
-            if (m_setupError.isEmpty()) {
-                m_setupError = QStringLiteral("setup timed out");
-            }
-        }
-    }
-
-    if (!m_setupOk) {
-        m_stop = true;
-        if (m_thread && m_thread->joinable()) {
-            std::unique_lock lock(m_exitMutex);
-            m_exitCv.wait_for(lock, std::chrono::seconds(3),
-                              [this]() { return m_workerExited; });
-            if (m_thread->joinable()) {
-                if (m_workerExited) {
-                    m_thread->join();
-                } else {
-                    m_thread->detach(); // process exit only; do not restart until gone
-                }
-            }
-        }
-        m_thread.reset();
-        GAZER_WARN << "TrackerTobii setup failed:" << m_setupError;
-        return false;
-    }
-
-    m_running = true;
-    m_flushTimer.start();
-    GAZER_INFO << "TrackerTobii started";
+    // Device discovery stays on the worker. Callers keep running; streamFailed
+    // reports a setup failure once this returns true.
     return true;
 }
 
 void TrackerTobii::workerMain()
 {
-    // Always unblock start()/stop(), including setup-failure returns.
-    struct ExitFlag {
-        TrackerTobii* t = nullptr;
-        ~ExitFlag()
+    // Always mark the worker finished, including setup-failure returns.
+    // A retired tracker is deleted here; otherwise a failed setup emits streamFailed.
+    const auto exited = qScopeGuard([this] {
+        const bool setupFailed = m_setupDone && !m_setupOk;
+        const QString reason = m_setupError;
+        const uint64_t gen = m_generation.load();
+        bool retire = false;
         {
-            std::lock_guard lock(t->m_exitMutex);
-            t->m_workerExited = true;
-            t->m_exitCv.notify_all();
+            std::lock_guard lock(m_exitMutex);
+            m_workerExited = true;
+            retire = m_retire;
+            m_exitCv.notify_all();
         }
-    } exited{this};
+        if (retire) {
+            TrackerTobii* self = this;
+            if (QCoreApplication* app = QCoreApplication::instance()) {
+                QMetaObject::invokeMethod(app, [self]() { delete self; }, Qt::QueuedConnection);
+            } else {
+                delete self;
+            }
+            return;
+        }
+        if (!setupFailed || m_stop.load()) {
+            return;
+        }
+        const QString why = reason.isEmpty() ? QStringLiteral("Tobii setup failed") : reason;
+        QMetaObject::invokeMethod(
+            this,
+            [this, why, gen]() {
+                if (m_generation.load() != gen || m_stop.load()) {
+                    return;
+                }
+                emit streamFailed(why);
+            },
+            Qt::QueuedConnection);
+    });
 
     // Entire device lifecycle stays on this thread.
     tobii_error_t e = m_lib.api_create(&m_api, nullptr, nullptr);
@@ -360,6 +401,21 @@ void TrackerTobii::workerMain()
         m_setupOk = true;
         m_setupDone = true;
         m_setupCv.notify_all();
+    }
+
+    {
+        const uint64_t gen = m_generation.load();
+        QMetaObject::invokeMethod(
+            this,
+            [this, gen]() {
+                if (m_generation.load() != gen || m_stop.load()) {
+                    return;
+                }
+                m_running = true;
+                m_flushTimer.start();
+                GAZER_INFO << "TrackerTobii started";
+            },
+            Qt::QueuedConnection);
     }
 
     GAZER_INFO << "Tobii device:" << QString::fromStdString(m_urls.front());

@@ -12,6 +12,7 @@
 #include <exception>
 
 #ifdef Q_OS_WIN
+#  include <dbghelp.h>
 #  include <stdio.h>
 #  include <string>
 #endif
@@ -50,12 +51,12 @@ MiniDumpWriteDumpFn loadDumper()
     return fn;
 }
 
-LONG WINAPI sehFilter(EXCEPTION_POINTERS*)
+LONG WINAPI sehFilter(EXCEPTION_POINTERS* ep)
 {
     if (g_dumping.exchange(true)) {
         return EXCEPTION_CONTINUE_SEARCH;
     }
-    writeDump(GetCurrentProcess(), GetCurrentProcessId());
+    writeDump(GetCurrentProcess(), GetCurrentProcessId(), ep);
     g_dumping.store(false);
     return EXCEPTION_CONTINUE_SEARCH;
 }
@@ -98,7 +99,7 @@ void rotateLiveLog(const QString& livePath, int keep)
 }
 
 #ifdef Q_OS_WIN
-bool writeDump(HANDLE process, DWORD pid)
+bool writeDump(HANDLE process, DWORD pid, EXCEPTION_POINTERS* exception)
 {
     auto dump = loadDumper();
     if (!dump || !process) {
@@ -123,7 +124,15 @@ bool writeDump(HANDLE process, DWORD pid)
         return false;
     }
     constexpr DWORD kType = 0x0000 | 0x0040; // MiniDumpNormal | WithIndirectlyReferencedMemory
-    const BOOL ok = dump(process, pid, file, kType, nullptr, nullptr, nullptr);
+    MINIDUMP_EXCEPTION_INFORMATION exInfo{};
+    MINIDUMP_EXCEPTION_INFORMATION* exPtr = nullptr;
+    if (exception) {
+        exInfo.ThreadId = GetCurrentThreadId();
+        exInfo.ExceptionPointers = exception;
+        exInfo.ClientPointers = FALSE;
+        exPtr = &exInfo;
+    }
+    const BOOL ok = dump(process, pid, file, kType, exPtr, nullptr, nullptr);
     CloseHandle(file);
     return ok == TRUE;
 }

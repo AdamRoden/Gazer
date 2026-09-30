@@ -196,6 +196,7 @@ void MouseDwellMove::gateUntilGazeLeaves(const QRect& screenRect)
 void MouseDwellMove::setGateGraceMs(int ms)
 {
     m_gateGraceMs = qMax(0, ms);
+    m_invalidGrace.graceMs = m_gateGraceMs;
 }
 
 void MouseDwellMove::setPaused(bool paused)

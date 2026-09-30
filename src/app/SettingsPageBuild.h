@@ -53,18 +53,6 @@ inline PageCell cell(const QString& id, const QString& label, int row, int col,
     return c;
 }
 
-inline PageCell scrollHit(const QString& id, int row, int rowSpan, const QString& commandName,
-                          const QColor& bg, double radius)
-{
-    PageCell c = cell(id, {}, row, 0, commandName, bg, 1,
-                      commandName.isEmpty() ? QStringLiteral("label") : QString());
-    c.rowSpan = qMax(1, rowSpan);
-    c.style.thickness = PageBox::all(0);
-    c.style.radius = PageBox::all(radius);
-    c.style.borderColor = QColor(0, 0, 0, 0);
-    return c;
-}
-
 inline PageGrid makeNested(const QString& id, int row, int col, int rows, int cols, int gap)
 {
     PageGrid g;

@@ -14,6 +14,11 @@ struct HeadPose {
     double z = 0.0;     // cm
     qint64 timestampMs = 0;
     bool positionValid = false;
+    bool yawValid = false;
+    bool pitchValid = false;
+    bool rollValid = false;
+    /// True when any rotation component is valid. Callers that need one axis
+    /// check yawValid / pitchValid / rollValid.
     bool rotationValid = false;
 
     [[nodiscard]] bool valid() const { return positionValid || rotationValid; }

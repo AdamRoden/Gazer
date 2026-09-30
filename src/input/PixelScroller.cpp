@@ -336,6 +336,7 @@ struct PixelScroller::Impl {
     HWND thumbVert = nullptr;
     HWND thumbHorz = nullptr;
     HWND cachedHwnd = nullptr;
+    HWND cachedCursor = nullptr;
     ScrollKind cachedKind = ScrollKind::Fallback;
     double remX = 0.0;
     double remY = 0.0;
@@ -470,13 +471,15 @@ struct PixelScroller::Impl {
 
     Target cachedTarget()
     {
-        if (cachedHwnd && IsWindow(cachedHwnd)) {
+        const HWND under = windowUnderCursor();
+        if (cachedHwnd && IsWindow(cachedHwnd) && under == cachedCursor) {
             Target t;
             t.kind = cachedKind;
             t.hwnd = cachedHwnd;
             return t;
         }
-        Target t = resolveTarget(windowUnderCursor());
+        Target t = resolveTarget(under);
+        cachedCursor = under;
         cachedHwnd = t.hwnd;
         cachedKind = t.kind;
         return t;
@@ -696,6 +699,9 @@ struct PixelScroller::Impl {
     {
         endThumb(thumbVert, WM_VSCROLL);
         endThumb(thumbHorz, WM_HSCROLL);
+        cachedHwnd = nullptr;
+        cachedCursor = nullptr;
+        cachedKind = ScrollKind::Fallback;
     }
 
     void reset()

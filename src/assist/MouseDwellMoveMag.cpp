@@ -227,6 +227,8 @@ void MouseDwellMove::onGazeInZoom(const QPointF& g, double dtSec)
         if (m_magPickEnabled) {
             if (!beginMagPick(makePreClickSpec(outside), /*outsideSelectsNewRegion=*/false)) {
                 GAZER_WARN << "MouseDwellMove outside pre-click zoom failed";
+                resetDwell();
+                placeCursor(outside);
             }
         } else {
             placeCursor(outside);

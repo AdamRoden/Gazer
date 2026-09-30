@@ -220,6 +220,12 @@ bool MouseInjector::buttonUp(const QString& button, QString* error)
 bool MouseInjector::moveBy(int dx, int dy, QString* error)
 {
 #ifdef Q_OS_WIN
+    if (InjectGate::paused()) {
+        if (error) {
+            *error = QStringLiteral("Input paused");
+        }
+        return false;
+    }
     INPUT in{};
     in.type = INPUT_MOUSE;
     in.mi.dx = dx;
@@ -246,7 +252,12 @@ bool MouseInjector::moveTo(int screenX, int screenY, QString* error)
 {
     // Callers pass Qt logical global coordinates (same as GazePoint / QCursor::pos).
     // Do not mix with GetSystemMetrics physical virtual-desktop pixels.
-    Q_UNUSED(error);
+    if (InjectGate::paused()) {
+        if (error) {
+            *error = QStringLiteral("Input paused");
+        }
+        return false;
+    }
     QCursor::setPos(screenX, screenY);
     return true;
 }

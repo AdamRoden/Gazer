@@ -188,7 +188,7 @@ Patterns, not every generated name:
 | `settings.pickWindow.round` / `.square` | Zoom window shape |
 | `settings.pickCenter.gaze` / `.screen` | Zoom window at gaze point or screen center |
 | `settings.nudge.themeSaturation.dec` / `.inc` | Saturation 20–100 in five steps (surfaces keep brightness) |
-| `settings.theme.assign.primary` / `.secondary` | Which accent the theme shade chips write (Primary vs Progress) |
+| `settings.theme.assign.primary` / `.secondary` | Retarget the inline theme-color editor (Primary vs Progress). Shade chips always write Progress |
 | `settings.theme.shade.<family>.1`…`.9` | Assign that Material shade (100–900) to Progress at 60% opacity. Families: primary, complementary, analogous1/2, tertiary1/2 |
 | `theme.light` / `.dark` | Light or dark background (keeps the current tint family) |
 | `theme.lightTinted` / `.darkTinted` | Legacy: light/dark plus primary tint |

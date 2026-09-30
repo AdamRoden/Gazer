@@ -205,9 +205,11 @@ bool headPoseAxisValid(const HeadPose& pose, HeadPoseAxis axis)
 {
     switch (axis) {
     case HeadPoseAxis::Yaw:
+        return pose.yawValid;
     case HeadPoseAxis::Pitch:
+        return pose.pitchValid;
     case HeadPoseAxis::Roll:
-        return pose.rotationValid;
+        return pose.rollValid;
     case HeadPoseAxis::X:
     case HeadPoseAxis::Y:
     case HeadPoseAxis::Z:
@@ -225,6 +227,9 @@ void captureHeadPoseOrigin(HeadPose& origin, const HeadPose& pose)
     origin.y = pose.y;
     origin.z = pose.z;
     origin.timestampMs = pose.timestampMs;
+    origin.yawValid = true;
+    origin.pitchValid = true;
+    origin.rollValid = true;
     origin.rotationValid = true;
     origin.positionValid = true;
 }
@@ -323,7 +328,13 @@ HeadPoseOutputs evalHeadPoseMaps(const QVector<HeadPoseMap>& maps, bool enabled,
             if (release) {
                 armed = false;
             }
-            if (beyond && !armed && !paused && !m.command.isEmpty()) {
+            if (paused) {
+                // Already past the threshold while inject or the board is paused:
+                // arm without firing so the unpause edge does not run the command.
+                if (beyond) {
+                    armed = true;
+                }
+            } else if (beyond && !armed && !m.command.isEmpty()) {
                 out.commands.push_back(m.command);
                 armed = true;
             }
@@ -355,21 +366,29 @@ HeadPoseOutputs evalHeadPoseMaps(const QVector<HeadPoseMap>& maps, bool enabled,
             out.gazeOffset.ry() += mapped;
             break;
         case HeadPoseDest::JoyLX:
-            out.joyLX = qBound(-1.0, mapped, 1.0);
-            out.driveJoyLX = true;
-            break;
         case HeadPoseDest::JoyLY:
-            out.joyLY = qBound(-1.0, mapped, 1.0);
-            out.driveJoyLY = true;
-            break;
         case HeadPoseDest::JoyRX:
-            out.joyRX = qBound(-1.0, mapped, 1.0);
-            out.driveJoyRX = true;
+        case HeadPoseDest::JoyRY: {
+            double peak = 1.0;
+            for (const HeadPoseCurvePoint& pt : m.points) {
+                peak = qMax(peak, std::abs(pt.out));
+            }
+            const double unit = qBound(-1.0, mapped / peak, 1.0);
+            if (m.dest == HeadPoseDest::JoyLX) {
+                out.joyLX = unit;
+                out.driveJoyLX = true;
+            } else if (m.dest == HeadPoseDest::JoyLY) {
+                out.joyLY = unit;
+                out.driveJoyLY = true;
+            } else if (m.dest == HeadPoseDest::JoyRX) {
+                out.joyRX = unit;
+                out.driveJoyRX = true;
+            } else {
+                out.joyRY = unit;
+                out.driveJoyRY = true;
+            }
             break;
-        case HeadPoseDest::JoyRY:
-            out.joyRY = qBound(-1.0, mapped, 1.0);
-            out.driveJoyRY = true;
-            break;
+        }
         case HeadPoseDest::Command:
             break;
         }

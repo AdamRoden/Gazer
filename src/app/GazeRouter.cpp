@@ -7,6 +7,7 @@
 #include "assist/HeadPoseMapper.h"
 #include "assist/LookToMaps.h"
 #include "assist/MouseDwellMove.h"
+#include "input/InjectGate.h"
 #include "layout/PageSession.h"
 #include "ui/MagnifierOverlay.h"
 #include "ui/PageHostWindow.h"
@@ -53,9 +54,11 @@ void GazeRouter::dispatch(const GazePoint& point)
     const bool dwellOff = m_pages && m_pages->isDwellSuspended();
     const bool pauseBackgroundAssist =
         overBoard || hit.overMaster || freeAim || dwellOff || overSplash;
+    const bool injectPaused = InjectGate::paused();
 
     if (m_headPose) {
         m_headPose->setPaused(overBoard || hit.overMaster || dwellOff || overSplash
+                              || injectPaused
                               || (m_lookToMaps && m_lookToMaps->anyEnabled()));
     }
     GazePoint assist = point;
@@ -74,7 +77,8 @@ void GazeRouter::dispatch(const GazePoint& point)
     }
     if (m_gazeFollow) {
         const bool pauseFollow =
-            dwellOff || overSplash || (m_session && m_session->pausesGazeFollow())
+            dwellOff || overSplash || injectPaused
+            || (m_session && m_session->pausesGazeFollow())
             || (m_lookToMaps && m_lookToMaps->anyEnabled());
         m_gazeFollow->onGaze(assist, /*pauseInput=*/pauseFollow);
     }

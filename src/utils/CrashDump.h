@@ -17,8 +17,9 @@ void registerRestart(const QString& extraArgs);
 void unregisterRestart();
 
 #ifdef Q_OS_WIN
-/// Write a minidump for @p process (current or a hung peer). Caps files in the crash dir.
-bool writeDump(HANDLE process, DWORD pid);
+/// Write a minidump for @p process (current or a hung peer). No Qt calls;
+/// the caller caps the crash directory from a normal thread.
+bool writeDump(HANDLE process, DWORD pid, EXCEPTION_POINTERS* exception = nullptr);
 #endif
 
 void capCrashDir(int keep = 10);

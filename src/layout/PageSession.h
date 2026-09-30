@@ -72,7 +72,8 @@ public:
     [[nodiscard]] bool attachDocument(PageDocument doc, QString* error = nullptr,
                                       bool decorate = false, bool restack = true);
     [[nodiscard]] PageDocument attachedCopy(const QString& id) const;
-    /// Page in front of @p id, or the current top page if @p id is not attached.
+    /// The attached page behind @p id (older in the stack), the root when @p id
+    /// is the bottom page, or the current top page when @p id is not attached.
     [[nodiscard]] PageDocument pageBehind(const QString& id) const;
     void registerMemoryPage(PageDocument doc);
     void closePreviewPages();
@@ -138,8 +139,6 @@ public:
     /// Cell that armed mouse-dwell-move; still dwellable so the action can be cancelled.
     void setAimActivator(const QString& pageId, const QString& targetId);
     void clearAimActivator();
-    /// True if @p pos is inside a painted grid of page @p id (including shell grids).
-    [[nodiscard]] bool hitsPage(const QString& id, const QPointF& pos) const;
     void leaveGaze();
     /// Do not activate the cell under gaze on @p pageId until gaze leaves it.
     void gateHover(const QString& pageId);

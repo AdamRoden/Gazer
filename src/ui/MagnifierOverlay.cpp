@@ -2,6 +2,7 @@
 
 #include "utils/Log.h"
 #include "utils/ScreenGrab.h"
+#include "utils/WinOverlay.h"
 
 #include <QGuiApplication>
 #include <QLineF>
@@ -110,7 +111,16 @@ void MagnifierOverlay::refreshCapture(const QPoint& screenCenter)
     const int side = m_sourceRadius * 2;
     const QRect srcGlobal(screenCenter.x() - m_sourceRadius, screenCenter.y() - m_sourceRadius,
                           side, side);
+    // Keep the lens out of its own grab, then restore the user's capture mode.
+#ifdef Q_OS_WIN
+    if (HWND hwnd = reinterpret_cast<HWND>(winId())) {
+        SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMCAPTURE);
+    }
+#endif
     const QPixmap shot = grabScreenRect(screen, srcGlobal, QColor(12, 14, 18));
+    if (QWindow* window = windowHandle()) {
+        applyWindowCaptureAffinity(window, /*overlay=*/true);
+    }
     if (shot.isNull()) {
         return;
     }

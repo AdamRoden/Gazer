@@ -20,6 +20,8 @@ public:
 
     void setMode(Mode mode);
     [[nodiscard]] Mode mode() const { return m_mode; }
+    /// Logical global aim. When @p valid, dwell uses this instead of the cursor.
+    void setAimPoint(const QPoint& global, bool valid);
 
 signals:
     void restartHost();
@@ -47,6 +49,8 @@ private:
     QTimer m_tick;
     QString m_hoverId;
     QElapsedTimer m_dwell;
+    QPoint m_aim;
+    bool m_aimValid = false;
 };
 
 } // namespace gazer

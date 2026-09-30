@@ -103,11 +103,13 @@ QString PageCatalog::nameFor(const QString& id) const
 
 QString PageCatalog::pathFor(const QString& id) const
 {
-    const QString live = resolvePath(id, m_userDir, m_dir);
-    if (!live.isEmpty()) {
-        return live;
+    // Scan stores the file whose XML id is `id`. A user file named {id}.xml
+    // with some other id never occupies this slot, so it cannot hide the page.
+    const QString scanned = m_pages.value(id).path;
+    if (!scanned.isEmpty()) {
+        return scanned;
     }
-    return m_pages.value(id).path;
+    return resolvePath(id, QString(), m_dir);
 }
 
 } // namespace gazer

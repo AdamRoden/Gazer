@@ -66,7 +66,6 @@ void commitTheme(AppSettings& s)
 void writeProgress(AppSettings& s, const ThemePalette& pal)
 {
     s.progressColor = AppSettings::colorToHex(pal.progress);
-    s.progressFillColor = AppSettings::colorToHex(pal.progressFill);
 }
 
 } // namespace
@@ -155,8 +154,7 @@ QString AppSettings::themeRoleForColorKey(const QString& key)
     if (key == QLatin1String("customPrimaryColor")) {
         return QStringLiteral("accent");
     }
-    if (key == QLatin1String("customSecondaryColor") || key == QLatin1String("progressColor")
-        || key == QLatin1String("progressFillColor")) {
+    if (key == QLatin1String("customSecondaryColor") || key == QLatin1String("progressColor")) {
         return QStringLiteral("progress");
     }
     if (key == QLatin1String("customTextColor")) {

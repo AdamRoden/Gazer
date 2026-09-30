@@ -8,6 +8,13 @@
 #include <QPainter>
 #include <QScreen>
 
+#ifdef Q_OS_WIN
+#  ifndef WIN32_LEAN_AND_MEAN
+#    define WIN32_LEAN_AND_MEAN
+#  endif
+#  include <windows.h>
+#endif
+
 namespace gazer {
 
 namespace {
@@ -33,11 +40,6 @@ RescueOverlay::RescueOverlay(QWidget* parent)
 void RescueOverlay::setMode(Mode mode)
 {
     if (m_mode == mode) {
-        if (mode != Mode::Hidden) {
-            layoutCells();
-            raise();
-            applyOverlayWindowChrome(this, true);
-        }
         return;
     }
     m_mode = mode;
@@ -84,9 +86,52 @@ void RescueOverlay::layoutCells()
     setGeometry(u.adjusted(-12, -12, 12, 12));
 }
 
+void RescueOverlay::setAimPoint(const QPoint& global, bool valid)
+{
+    m_aim = global;
+    m_aimValid = valid;
+}
+
+bool pointOnRescue(const QWidget* w, const QPoint& logicalGlobal)
+{
+#ifdef Q_OS_WIN
+    if (!w) {
+        return false;
+    }
+    const HWND hwnd = reinterpret_cast<HWND>(w->winId());
+    RECT wr{};
+    if (!hwnd || !GetWindowRect(hwnd, &wr) || wr.right <= wr.left || wr.bottom <= wr.top) {
+        return false;
+    }
+    const QRect g = w->geometry();
+    if (g.width() <= 0 || g.height() <= 0) {
+        return false;
+    }
+    const double fx = double(logicalGlobal.x() - g.x()) / double(g.width());
+    const double fy = double(logicalGlobal.y() - g.y()) / double(g.height());
+    POINT pt;
+    pt.x = LONG(wr.left + qRound(fx * double(wr.right - wr.left)));
+    pt.y = LONG(wr.top + qRound(fy * double(wr.bottom - wr.top)));
+    const HWND hit = WindowFromPoint(pt);
+    return hit == hwnd || (hit && IsChild(hwnd, hit));
+#else
+    Q_UNUSED(w);
+    Q_UNUSED(logicalGlobal);
+    return true;
+#endif
+}
+
 void RescueOverlay::tickGaze()
 {
-    const QPoint g = QCursor::pos();
+    const QPoint g = m_aimValid ? m_aim : QCursor::pos();
+    if (!pointOnRescue(this, g)) {
+        if (!m_hoverId.isEmpty()) {
+            m_hoverId.clear();
+            m_dwell.invalidate();
+            update();
+        }
+        return;
+    }
     const QPoint local = g - pos();
     QString hit;
     for (const Cell& c : m_cells) {

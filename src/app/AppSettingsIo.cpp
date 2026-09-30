@@ -150,6 +150,9 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
                 out = {ms};
             }
         }
+        if (out.size() > AppSettings::kMaxDwellSequenceSteps) {
+            out.resize(AppSettings::kMaxDwellSequenceSteps);
+        }
         return out;
     };
 
@@ -303,6 +306,9 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
         headPoseOrigin.x = ho.value(QStringLiteral("x")).toDouble();
         headPoseOrigin.y = ho.value(QStringLiteral("y")).toDouble();
         headPoseOrigin.z = ho.value(QStringLiteral("z")).toDouble();
+        headPoseOrigin.yawValid = true;
+        headPoseOrigin.pitchValid = true;
+        headPoseOrigin.rollValid = true;
         headPoseOrigin.rotationValid = true;
         headPoseOrigin.positionValid = true;
         headPoseOriginSet = true;

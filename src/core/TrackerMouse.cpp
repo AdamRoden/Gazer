@@ -1,5 +1,6 @@
 #include "core/TrackerMouse.h"
 
+#include "utils/Heartbeat.h"
 #include "utils/Log.h"
 
 #include <QCursor>
@@ -56,6 +57,7 @@ void TrackerMouse::onTick()
     gp.y = pos.y();
     gp.timestampMs = m_elapsedMs;
     gp.valid = true;
+    Heartbeat::publishGaze(pos.x(), pos.y(), true);
     emit gazeUpdated(gp);
 }
 

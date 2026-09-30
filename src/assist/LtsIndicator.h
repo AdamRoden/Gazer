@@ -19,17 +19,4 @@ enum class LtsIndicator {
     return static_cast<LtsIndicator>(v);
 }
 
-[[nodiscard]] inline const char* ltsIndicatorName(LtsIndicator s)
-{
-    switch (s) {
-    case LtsIndicator::Hollow:
-        return "Hollow";
-    case LtsIndicator::PauseOnly:
-        return "Pause";
-    case LtsIndicator::Filled:
-        return "Filled";
-    }
-    return "Filled";
-}
-
 } // namespace gazer

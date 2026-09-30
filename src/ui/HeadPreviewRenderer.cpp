@@ -3,6 +3,7 @@
 #include "utils/Log.h"
 
 #include <QCoreApplication>
+#include <QDateTime>
 #include <QDir>
 #include <QGuiApplication>
 #include <QMatrix4x4>
@@ -66,6 +67,34 @@ bool HeadPreviewRenderer::ensureContext()
     if (m_glReady && m_ctx && m_surface) {
         return m_ctx->makeCurrent(m_surface);
     }
+    const qint64 now = QDateTime::currentMSecsSinceEpoch();
+    if (m_glRetryAt > now) {
+        return false;
+    }
+
+    auto fail = [this](const QString& msg) {
+        m_glError = msg;
+        GAZER_WARN << msg;
+        if (m_ctx && m_surface && m_ctx->makeCurrent(m_surface)) {
+            if (m_meshVbo.isCreated()) {
+                m_meshVbo.destroy();
+            }
+            if (m_dynVbo.isCreated()) {
+                m_dynVbo.destroy();
+            }
+            delete m_prog;
+            m_prog = nullptr;
+            m_ctx->doneCurrent();
+        }
+        delete m_ctx;
+        m_ctx = nullptr;
+        delete m_surface;
+        m_surface = nullptr;
+        m_glReady = false;
+        m_glRetryAt = QDateTime::currentMSecsSinceEpoch() + 1000;
+        return false;
+    };
+
     QSurfaceFormat fmt;
     fmt.setDepthBufferSize(24);
     fmt.setStencilBufferSize(8);
@@ -75,30 +104,24 @@ bool HeadPreviewRenderer::ensureContext()
     m_surface->setFormat(fmt);
     m_surface->create();
     if (!m_surface->isValid()) {
-        m_glError = QStringLiteral("Offscreen surface failed");
-        GAZER_WARN << m_glError;
-        return false;
+        return fail(QStringLiteral("Offscreen surface failed"));
     }
     m_ctx = new QOpenGLContext();
     m_ctx->setFormat(fmt);
     if (!m_ctx->create() || !m_ctx->makeCurrent(m_surface)) {
-        m_glError = QStringLiteral("Offscreen GL context failed");
-        GAZER_WARN << m_glError;
-        return false;
+        return fail(QStringLiteral("Offscreen GL context failed"));
     }
     initializeOpenGLFunctions();
     m_glReady = buildProgram();
-    if (!m_meshVbo.create() || !m_dynVbo.create()) {
-        m_glReady = false;
-        m_glError = QStringLiteral("Could not create GL buffers");
-        GAZER_WARN << m_glError;
-        return false;
+    if (!m_glReady || !m_meshVbo.create() || !m_dynVbo.create()) {
+        return fail(QStringLiteral("Could not create the head-preview GL objects"));
     }
     m_meshVbo.setUsagePattern(QOpenGLBuffer::StaticDraw);
     m_dynVbo.setUsagePattern(QOpenGLBuffer::DynamicDraw);
     m_meshUploaded = false;
     uploadMeshVbo();
-    return m_glReady;
+    m_glRetryAt = 0;
+    return true;
 }
 
 void HeadPreviewRenderer::ensureMeshLoaded()
@@ -277,9 +300,9 @@ void HeadPreviewRenderer::bindVertexLayout()
 
 void HeadPreviewRenderer::drawHeadGl(const QSize& viewport, const QRect& area)
 {
-    const double yaw = m_head.rotationValid ? m_head.yaw : 0.0;
-    const double pitch = m_head.rotationValid ? m_head.pitch : 0.0;
-    const double roll = m_head.rotationValid ? m_head.roll : 0.0;
+    const double yaw = m_head.yawValid ? m_head.yaw : 0.0;
+    const double pitch = m_head.pitchValid ? m_head.pitch : 0.0;
+    const double roll = m_head.rollValid ? m_head.roll : 0.0;
     const double tx = m_head.positionValid ? m_head.x * 0.04 : 0.0;
     const double ty = m_head.positionValid ? m_head.y * 0.04 : 0.0;
     const double tz =

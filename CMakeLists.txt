@@ -452,7 +452,7 @@ if(WIN32)
 endif()
 
 install(TARGETS Gazer RUNTIME DESTINATION bin)
-install(DIRECTORY resources/ DESTINATION share/gazer/resources)
+install(DIRECTORY resources/ DESTINATION bin/resources)
 
 enable_testing()
 set(GAZER_PAGE_TEST_LIB

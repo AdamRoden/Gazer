@@ -1,12 +1,19 @@
 #include "app/GuardApp.h"
 
 #include "app/ActionChannel.h"
+#include "core/GazePoint.h"
+#include "core/ITracker.h"
+#include "core/TrackerMouse.h"
+#include "core/TrackerTobii.h"
 #include "input/KeyboardInjector.h"
 #include "ui/RescueOverlay.h"
 #include "utils/CrashDump.h"
 #include "utils/Heartbeat.h"
 #include "utils/Log.h"
 #include "utils/WinProcess.h"
+
+#include <cmath>
+#include <memory>
 
 #include <QAbstractNativeEventFilter>
 #include <QApplication>
@@ -97,10 +104,14 @@ public:
         m_poll.setInterval(kPollMs);
         connect(&m_poll, &QTimer::timeout, this, [this]() { tick(); });
         m_poll.start();
+        m_aim.setInterval(50);
+        connect(&m_aim, &QTimer::timeout, this, [this]() { refreshAim(); });
+        m_aim.start();
     }
 
     ~GuardHost() override
     {
+        stopRescueTracker();
         delete m_overlay;
         m_overlay = nullptr;
     }
@@ -148,6 +159,8 @@ private:
         const bool clean = snap.valid && (snap.flags & HeartbeatFlag::CleanShutdown);
 
         if (alive) {
+            m_awaitingClaim = false;
+            stopRescueTracker();
             m_state = State::Watch;
             if (Heartbeat::guiStale(snap, kHungMs)) {
                 onHung(pid);
@@ -173,7 +186,19 @@ private:
             return;
         }
 
-        noteDeath(pid);
+        if (m_awaitingClaim) {
+            if (pid == m_pidAtSpawn) {
+                m_deaths.push_back(Heartbeat::nowMs());
+                if (pid != 0) {
+                    m_lastDeadPid = pid;
+                }
+            } else {
+                noteDeath(pid);
+            }
+            m_awaitingClaim = false;
+        } else {
+            noteDeath(pid);
+        }
         if (crashLoopTripped(m_deaths, Heartbeat::nowMs())) {
             enterCrashLoop();
             return;
@@ -197,7 +222,11 @@ private:
 
     void spawnHost(bool safe)
     {
+        stopRescueTracker();
         m_overlay->setMode(RescueOverlay::Mode::Hidden);
+        const HeartbeatSnapshot snap = m_beat.read();
+        m_pidAtSpawn = snap.valid ? snap.hostPid : 0;
+        m_awaitingClaim = true;
         m_state = State::WaitSpawn;
         m_spawnAt.start();
         const QString exe = QCoreApplication::applicationFilePath();
@@ -207,6 +236,7 @@ private:
         }
         if (!QProcess::startDetached(exe, args, QCoreApplication::applicationDirPath())) {
             GAZER_WARN << "Guard: failed to start host";
+            m_awaitingClaim = false;
             enterCrashLoop();
         }
     }
@@ -215,6 +245,67 @@ private:
     {
         m_state = State::CrashLoop;
         m_overlay->setMode(RescueOverlay::Mode::CrashLoop);
+        startRescueTracker();
+    }
+
+    void refreshAim()
+    {
+        if (!m_overlay || m_overlay->mode() == RescueOverlay::Mode::Hidden) {
+            return;
+        }
+        if (m_rescueTracker && m_rescueTracker->isRunning()) {
+            return;
+        }
+        const HeartbeatSnapshot snap = m_beat.read();
+        if (Heartbeat::gazeFresh(snap)) {
+            m_overlay->setAimPoint(QPoint(snap.gazeX, snap.gazeY), true);
+        } else {
+            m_overlay->setAimPoint(QPoint(), false);
+        }
+    }
+
+    void wireRescueAim(ITracker* tracker)
+    {
+        if (!tracker) {
+            return;
+        }
+        connect(tracker, &ITracker::gazeUpdated, this, [this](const GazePoint& gp) {
+            if (!m_overlay) {
+                return;
+            }
+            m_overlay->setAimPoint(QPoint(int(std::lround(gp.x)), int(std::lround(gp.y))), gp.valid);
+        });
+        if (auto* tobii = qobject_cast<TrackerTobii*>(tracker)) {
+            connect(tobii, &TrackerTobii::streamFailed, this, [this](const QString& reason) {
+                GAZER_WARN << "Guard tracker:" << reason;
+                if (m_state != State::CrashLoop) {
+                    return;
+                }
+                releaseTracker(m_rescueTracker);
+                auto mouse = std::make_unique<TrackerMouse>();
+                if (!mouse->start()) {
+                    return;
+                }
+                m_rescueTracker = std::move(mouse);
+                wireRescueAim(m_rescueTracker.get());
+            });
+        }
+    }
+
+    void startRescueTracker()
+    {
+        if (m_rescueTracker) {
+            return;
+        }
+        // openEyeTracker returns as soon as the Tobii worker is launched.
+        // Setup failure arrives later on streamFailed and falls back to the mouse.
+        m_rescueTracker = openEyeTracker();
+        wireRescueAim(m_rescueTracker.get());
+    }
+
+    void stopRescueTracker()
+    {
+        releaseTracker(m_rescueTracker);
     }
 
     void noteDeath(quint32 pid)
@@ -254,11 +345,15 @@ private:
     }
 
     RescueOverlay* m_overlay = nullptr;
+    std::unique_ptr<ITracker> m_rescueTracker;
     QTimer m_poll;
+    QTimer m_aim;
     QElapsedTimer m_exclusiveSince;
     QElapsedTimer m_spawnAt;
     QVector<qint64> m_deaths;
     quint32 m_lastDeadPid = 0;
+    quint32 m_pidAtSpawn = 0;
+    bool m_awaitingClaim = false;
     State m_state = State::Watch;
 };
 
@@ -300,6 +395,7 @@ int runGuard(int argc, char** argv)
 
     GAZER_INFO << "Guard starting";
     CrashDump::installHandlers();
+    CrashDump::capCrashDir();
 
     GuardHost host;
     QWindow probe;

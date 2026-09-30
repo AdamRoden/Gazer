@@ -1,5 +1,6 @@
 #include "assist/ActionLoopService.h"
 
+#include "input/InjectGate.h"
 #include "utils/Log.h"
 
 #include <algorithm>
@@ -107,30 +108,6 @@ void ActionLoopService::stopAll()
         eraseKey(k);
     }
     m_engageLatch.clear();
-    if (!m_assistSticky.isEmpty()) {
-        m_assistSticky.clear();
-        emit loopsChanged();
-    }
-}
-
-void ActionLoopService::setAssistSticky(const QString& activeStateKey, bool on)
-{
-    if (activeStateKey.isEmpty()) {
-        return;
-    }
-    const bool had = m_assistSticky.contains(activeStateKey);
-    if (on && !had) {
-        m_assistSticky.insert(activeStateKey);
-        emit loopsChanged();
-    } else if (!on && had) {
-        m_assistSticky.remove(activeStateKey);
-        emit loopsChanged();
-    }
-}
-
-void ActionLoopService::clearAssistSticky(const QString& activeStateKey)
-{
-    setAssistSticky(activeStateKey, false);
 }
 
 bool ActionLoopService::isActive(const QString& pageId, const QString& targetId) const
@@ -142,9 +119,6 @@ bool ActionLoopService::isActiveState(const QString& activeStateKey) const
 {
     if (activeStateKey.isEmpty()) {
         return false;
-    }
-    if (m_assistSticky.contains(activeStateKey)) {
-        return true;
     }
     for (const LoopEntry& e : m_loops) {
         if (e.activeStateKey == activeStateKey) {
@@ -201,6 +175,10 @@ void ActionLoopService::runStep(const QString& key)
     }
     if (it->stepIndex < 0 || it->stepIndex >= it->actions.size()) {
         it->stepIndex = 0;
+    }
+    if (InjectGate::paused()) {
+        scheduleNext(key);
+        return;
     }
     const int step = it->stepIndex;
     const QString pageId = it->pageId;

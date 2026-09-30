@@ -513,7 +513,17 @@ void LayoutEditorProperties::fillAction(QFormLayout* form)
             applyItem([&](PageLeaf& it) { it.activeState = t; }, QStringLiteral("Active state"));
         });
     });
-    addActionSeriesFields(b, form, item->actions, item->label, m_catalog, m_actionStep,
+    const bool phased = !item->phases.isEmpty();
+    QVector<PageAction> shown;
+    if (phased) {
+        shown.reserve(item->phases.size());
+        for (const PagePhase& phase : item->phases) {
+            shown.push_back(phase.actions.isEmpty() ? PageAction{} : phase.actions.first());
+        }
+    } else {
+        shown = item->actions;
+    }
+    addActionSeriesFields(b, form, shown, item->label, m_catalog, m_actionStep,
                           [this](int step) {
                               if (m_actionStep == step) {
                                   return;
@@ -521,8 +531,12 @@ void LayoutEditorProperties::fillAction(QFormLayout* form)
                               m_actionStep = step;
                               QTimer::singleShot(0, this, &LayoutEditorProperties::rebuild);
                           },
-                          [this, id = item->id](QVector<PageAction> next) {
-                              m_session.setActions(id, std::move(next));
+                          [this, id = item->id, phased](QVector<PageAction> next) {
+                              if (phased) {
+                                  m_session.setPhases(id, std::move(next));
+                              } else {
+                                  m_session.setActions(id, std::move(next));
+                              }
                               rebuildIfNeeded();
                           });
 }

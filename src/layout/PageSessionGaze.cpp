@@ -313,24 +313,6 @@ void PageSession::clearAimActivator()
     m_aimActivator.clear();
 }
 
-bool PageSession::hitsPage(const QString& id, const QPointF& pos) const
-{
-    if (id.isEmpty()) {
-        return false;
-    }
-    const QTransform xf = hitXf();
-    for (const PageGridPaint& g : m_gridPaints) {
-        if (g.pageId != id || g.visual.isEmpty()) {
-            continue;
-        }
-        const QRectF z = PageHit::mapDrawer(g.drawerMotion, g.visual, xf, m_drawerScale);
-        if (PageHit::shapeContains(z, g.chrome, pos)) {
-            return true;
-        }
-    }
-    return false;
-}
-
 void PageSession::leaveGaze()
 {
     if (m_loopLatchClear) {

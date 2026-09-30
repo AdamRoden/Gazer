@@ -12,7 +12,7 @@
 
 namespace gazer {
 
-/// Sticky loops for page targets, plus assist sticky keys (gaze click loop).
+/// Sticky loops for page targets.
 class ActionLoopService final : public QObject {
     Q_OBJECT
 
@@ -35,15 +35,9 @@ public:
     void clearEngageLatchForPage(const QString& pageId);
     void clearAllEngageLatches() { m_engageLatch.clear(); }
 
-    void setAssistSticky(const QString& activeStateKey, bool on);
-    void clearAssistSticky(const QString& activeStateKey);
-
     [[nodiscard]] bool isActive(const QString& pageId, const QString& targetId) const;
     [[nodiscard]] bool isActiveState(const QString& activeStateKey) const;
-    [[nodiscard]] bool anyActive() const
-    {
-        return !m_loops.isEmpty() || !m_assistSticky.isEmpty();
-    }
+    [[nodiscard]] bool anyActive() const { return !m_loops.isEmpty(); }
 
 signals:
     void loopsChanged();
@@ -67,7 +61,6 @@ private:
     DispatchFn m_dispatch;
     QHash<QString, LoopEntry> m_loops;
     QSet<QString> m_engageLatch;
-    QSet<QString> m_assistSticky;
 };
 
 } // namespace gazer

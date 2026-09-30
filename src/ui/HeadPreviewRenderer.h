@@ -75,6 +75,7 @@ private:
     QOpenGLBuffer m_dynVbo{QOpenGLBuffer::VertexBuffer};
     int m_meshVertexCount = 0;
     bool m_glReady = false;
+    qint64 m_glRetryAt = 0;
     bool m_meshUploaded = false;
     QString m_glError;
 };

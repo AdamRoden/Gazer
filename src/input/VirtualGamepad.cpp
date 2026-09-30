@@ -201,6 +201,8 @@ bool VirtualGamepad::pushReport(QString* error)
     }
     const VigemLib::Error err = m->lib.target_x360_update(m->client, m->target, toXusb(m->report));
     if (err != VigemLib::kOk) {
+        // A dead target stays "connected" otherwise, and the next update never replugs.
+        teardown();
         if (error) {
             *error = VigemLib::errorMessage(err);
         }
@@ -268,6 +270,12 @@ bool VirtualGamepad::ensureConnected(QString* error)
 
 bool VirtualGamepad::pressButton(const QString& button, QString* error)
 {
+    if (InjectGate::paused()) {
+        if (error) {
+            *error = QStringLiteral("Input paused");
+        }
+        return false;
+    }
     if (!ensureConnected(error)) {
         return false;
     }
@@ -275,12 +283,23 @@ bool VirtualGamepad::pressButton(const QString& button, QString* error)
     if (!lookupButton(button, &bit, error)) {
         return false;
     }
+    const Report saved = m->report;
     m->report.buttons = static_cast<std::uint16_t>(m->report.buttons | bit);
-    return pushReport(error);
+    if (!pushReport(error)) {
+        m->report = saved;
+        return false;
+    }
+    return true;
 }
 
 bool VirtualGamepad::releaseButton(const QString& button, QString* error)
 {
+    if (InjectGate::paused()) {
+        if (error) {
+            *error = QStringLiteral("Input paused");
+        }
+        return false;
+    }
     if (!ensureConnected(error)) {
         return false;
     }
@@ -288,8 +307,13 @@ bool VirtualGamepad::releaseButton(const QString& button, QString* error)
     if (!lookupButton(button, &bit, error)) {
         return false;
     }
+    const Report saved = m->report;
     m->report.buttons = static_cast<std::uint16_t>(m->report.buttons & ~bit);
-    return pushReport(error);
+    if (!pushReport(error)) {
+        m->report = saved;
+        return false;
+    }
+    return true;
 }
 
 bool VirtualGamepad::setAxis(const QString& axis, double value, QString* error)
@@ -298,6 +322,7 @@ bool VirtualGamepad::setAxis(const QString& axis, double value, QString* error)
         return false;
     }
     const QString a = axis.trimmed().toLower();
+    const Report saved = m->report;
     if (a == QLatin1String("lx")) {
         m->report.leftX = toStick(value);
     } else if (a == QLatin1String("ly")) {
@@ -316,7 +341,11 @@ bool VirtualGamepad::setAxis(const QString& axis, double value, QString* error)
         }
         return false;
     }
-    return pushReport(error);
+    if (!pushReport(error)) {
+        m->report = saved;
+        return false;
+    }
+    return true;
 }
 
 } // namespace gazer

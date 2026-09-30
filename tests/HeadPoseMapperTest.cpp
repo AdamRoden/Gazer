@@ -21,6 +21,8 @@ private slots:
     void commandRisingEdge();
     void commandHysteresis();
     void commandAtStepSkipsZero();
+    void commandDoesNotFireOnUnpause();
+    void stickScalesFactoryCurve();
 };
 
 void HeadPoseMapperTest::curveLerp()
@@ -89,10 +91,10 @@ void HeadPoseMapperTest::originSubtract()
     m.points = {{-10.0, -10.0}, {0.0, 0.0}, {10.0, 10.0}};
     m.dest = HeadPoseDest::GazeX;
     HeadPose pose;
-    pose.rotationValid = true;
+    pose.rotationValid = pose.yawValid = pose.pitchValid = pose.rollValid = true;
     pose.yaw = 20.0;
     HeadPose origin;
-    origin.rotationValid = true;
+    origin.rotationValid = origin.yawValid = origin.pitchValid = origin.rollValid = true;
     origin.yaw = 10.0;
     HeadPoseEvalState st;
     const HeadPoseOutputs out =
@@ -103,7 +105,7 @@ void HeadPoseMapperTest::originSubtract()
 void HeadPoseMapperTest::recenterCapturesAllSixAxes()
 {
     HeadPose pose;
-    pose.rotationValid = true;
+    pose.rotationValid = pose.yawValid = pose.pitchValid = pose.rollValid = true;
     pose.positionValid = false;
     pose.yaw = 12.0;
     pose.pitch = -4.0;
@@ -164,7 +166,7 @@ void HeadPoseMapperTest::mouseVelocityIntegrates()
     m.dest = HeadPoseDest::MouseX;
     m.points = {{-1.0, -100.0}, {0.0, 0.0}, {1.0, 100.0}};
     HeadPose pose;
-    pose.rotationValid = true;
+    pose.rotationValid = pose.yawValid = pose.pitchValid = pose.rollValid = true;
     pose.yaw = 1.0;
     HeadPoseEvalState st;
     const HeadPoseOutputs out =
@@ -178,7 +180,7 @@ void HeadPoseMapperTest::pauseZerosMotion()
     m.id = QStringLiteral("m");
     m.dest = HeadPoseDest::MouseX;
     HeadPose pose;
-    pose.rotationValid = true;
+    pose.rotationValid = pose.yawValid = pose.pitchValid = pose.rollValid = true;
     pose.yaw = 25.0;
     HeadPoseEvalState st;
     const HeadPoseOutputs out =
@@ -197,7 +199,7 @@ void HeadPoseMapperTest::commandRisingEdge()
     m.hysteresis = 2.0;
     m.points = {{0.0, 0.0}, {1.0, 1.0}};
     HeadPose pose;
-    pose.rotationValid = true;
+    pose.rotationValid = pose.yawValid = pose.pitchValid = pose.rollValid = true;
     pose.yaw = 5.0;
     HeadPoseEvalState st;
     auto a = evalHeadPoseMaps({m}, true, pose, {}, false, false, 16, &st);
@@ -220,7 +222,7 @@ void HeadPoseMapperTest::commandHysteresis()
     m.hysteresis = 3.0;
     m.points = {{0.0, 0.0}, {1.0, 1.0}};
     HeadPose pose;
-    pose.rotationValid = true;
+    pose.rotationValid = pose.yawValid = pose.pitchValid = pose.rollValid = true;
     pose.yaw = 12.0;
     HeadPoseEvalState st;
     (void)evalHeadPoseMaps({m}, true, pose, {}, false, false, 16, &st);
@@ -255,6 +257,50 @@ void HeadPoseMapperTest::commandAtStepSkipsZero()
     unset.commandAt = 0.0;
     clampHeadPoseMap(unset);
     QCOMPARE(unset.commandAt, 15.0);
+}
+
+void HeadPoseMapperTest::commandDoesNotFireOnUnpause()
+{
+    HeadPoseMap m;
+    m.id = QStringLiteral("c");
+    m.dest = HeadPoseDest::Command;
+    m.command = QStringLiteral("mouseLeftClick");
+    m.commandAt = 10.0;
+    m.hysteresis = 2.0;
+    m.points = {{0.0, 0.0}, {1.0, 1.0}};
+    HeadPose pose;
+    pose.rotationValid = pose.yawValid = pose.pitchValid = pose.rollValid = true;
+    pose.yaw = 12.0;
+    HeadPoseEvalState st;
+    auto held = evalHeadPoseMaps({m}, true, pose, {}, false, true, 16, &st);
+    QVERIFY(held.commands.isEmpty());
+    QVERIFY(st.commandArmed.value(m.id));
+    auto resume = evalHeadPoseMaps({m}, true, pose, {}, false, false, 16, &st);
+    QVERIFY(resume.commands.isEmpty());
+}
+
+void HeadPoseMapperTest::stickScalesFactoryCurve()
+{
+    HeadPoseMap m = defaultHeadPoseMap();
+    m.id = QStringLiteral("stick");
+    m.dest = HeadPoseDest::JoyLX;
+    HeadPose pose;
+    pose.rotationValid = pose.yawValid = pose.pitchValid = pose.rollValid = true;
+    pose.yaw = 15.0;
+    HeadPoseEvalState st;
+    const HeadPoseOutputs mid = evalHeadPoseMaps({m}, true, pose, {}, false, false, 16, &st);
+    QVERIFY(mid.driveJoyLX);
+    QCOMPARE(mid.joyLX, 0.5);
+
+    pose.yaw = 25.0;
+    const HeadPoseOutputs full = evalHeadPoseMaps({m}, true, pose, {}, false, false, 16, &st);
+    QCOMPARE(full.joyLX, 1.0);
+
+    HeadPoseMap unit = m;
+    unit.points = {{-25.0, -1.0}, {-5.0, 0.0}, {5.0, 0.0}, {25.0, 1.0}};
+    pose.yaw = 15.0;
+    const HeadPoseOutputs kept = evalHeadPoseMaps({unit}, true, pose, {}, false, false, 16, &st);
+    QCOMPARE(kept.joyLX, 0.5);
 }
 
 QObject* createHeadPoseMapperTest()

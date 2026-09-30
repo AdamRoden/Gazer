@@ -55,6 +55,7 @@ bool StreamEngineLib::load(QString* error)
     candidates << QDir(pf).filePath(QStringLiteral("Tobii/web_host/tobii_stream_engine.dll"));
 
     HMODULE mod = nullptr;
+    QString loadFailure;
     for (const QString& path : candidates) {
         if (!QFileInfo::exists(path)) {
             continue;
@@ -65,13 +66,27 @@ bool StreamEngineLib::load(QString* error)
             GAZER_INFO << "Loaded Stream Engine:" << path;
             break;
         }
+        wchar_t* buf = nullptr;
+        const DWORD code = GetLastError();
+        const DWORD n = FormatMessageW(
+            FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+            nullptr, code, 0, reinterpret_cast<LPWSTR>(&buf), 0, nullptr);
+        const QString why = (n && buf) ? QString::fromWCharArray(buf).trimmed()
+                                       : QStringLiteral("Win32 error %1").arg(code);
+        if (buf) {
+            LocalFree(buf);
+        }
+        loadFailure = QStringLiteral("%1: %2").arg(path, why);
+        GAZER_WARN << "Stream Engine load failed" << loadFailure;
     }
 
     if (!mod) {
         if (error) {
-            *error = QStringLiteral(
-                "tobii_stream_engine.dll not found. Install Tobii Experience / Eye Tracking "
-                "Core, or set TOBII_STREAM_ENGINE_DLL.");
+            *error = loadFailure.isEmpty()
+                         ? QStringLiteral(
+                               "tobii_stream_engine.dll not found. Install Tobii Experience / Eye Tracking "
+                               "Core, or set TOBII_STREAM_ENGINE_DLL.")
+                         : loadFailure;
         }
         return false;
     }
@@ -105,12 +120,19 @@ bool StreamEngineLib::load(QString* error)
     GAZER_BIND(device_destroy, "tobii_device_destroy");
     GAZER_BIND(wait_for_callbacks, "tobii_wait_for_callbacks");
     GAZER_BIND(device_process_callbacks, "tobii_device_process_callbacks");
-    GAZER_BIND(device_clear_callback_buffers, "tobii_device_clear_callback_buffers");
     GAZER_BIND(device_reconnect, "tobii_device_reconnect");
-    GAZER_BIND(system_clock, "tobii_system_clock");
     GAZER_BIND(gaze_point_subscribe, "tobii_gaze_point_subscribe");
     GAZER_BIND(gaze_point_unsubscribe, "tobii_gaze_point_unsubscribe");
 #undef GAZER_BIND
+
+    // Soft-optional. Nothing in the app calls these, and older Stream Engine
+    // builds omit them. A missing export must not fail the whole load.
+    if (FARPROC p = GetProcAddress(mod, "tobii_device_clear_callback_buffers")) {
+        device_clear_callback_buffers = reinterpret_cast<tobii_device_clear_callback_buffers_fn>(p);
+    }
+    if (FARPROC p = GetProcAddress(mod, "tobii_system_clock")) {
+        system_clock = reinterpret_cast<tobii_system_clock_fn>(p);
+    }
 
     // Soft-optional head pose (not all builds/devices export these).
     if (FARPROC hp = GetProcAddress(mod, "tobii_head_pose_subscribe")) {

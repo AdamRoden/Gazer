@@ -61,6 +61,9 @@ void HeadPoseMapper::setPaused(bool paused)
 void HeadPoseMapper::onTrackingLost()
 {
     m_last.positionValid = false;
+    m_last.yawValid = false;
+    m_last.pitchValid = false;
+    m_last.rollValid = false;
     m_last.rotationValid = false;
     m_gazeOffset = {};
     m_lastTs = -1;
@@ -70,12 +73,19 @@ void HeadPoseMapper::onTrackingLost()
 void HeadPoseMapper::onPose(const HeadPose& pose)
 {
     m_last.timestampMs = pose.timestampMs;
-    if (pose.rotationValid) {
+    if (pose.yawValid) {
         m_last.yaw = pose.yaw;
-        m_last.pitch = pose.pitch;
-        m_last.roll = pose.roll;
-        m_last.rotationValid = true;
     }
+    if (pose.pitchValid) {
+        m_last.pitch = pose.pitch;
+    }
+    if (pose.rollValid) {
+        m_last.roll = pose.roll;
+    }
+    m_last.yawValid = pose.yawValid;
+    m_last.pitchValid = pose.pitchValid;
+    m_last.rollValid = pose.rollValid;
+    m_last.rotationValid = pose.rotationValid;
     if (pose.positionValid) {
         m_last.x = pose.x;
         m_last.y = pose.y;

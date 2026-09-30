@@ -5,6 +5,7 @@
 #include <QSaveFile>
 
 #include <algorithm>
+#include <utility>
 
 namespace gazer {
 namespace {
@@ -304,35 +305,52 @@ bool WordPredictor::loadUser(const QString& path)
     if (version != kUserVersion) {
         return false;
     }
-    predict_detail::clearUser(*d);
     quint32 total = 0;
     quint32 nUni = 0;
     in >> total >> nUni;
     bool ok = true;
-    for (quint32 i = 0; i < nUni; ++i) {
+    QHash<QString, int> uni;
+    QHash<QString, int> bi;
+    for (quint32 i = 0; i < nUni && ok; ++i) {
         const QString w = readUtf8(in, &ok);
         quint32 count = 0;
         in >> count;
-        if (!ok || w.isEmpty() || count == 0) {
+        if (!ok) {
+            break;
+        }
+        if (w.isEmpty() || count == 0) {
             continue;
         }
-        d->userUni.insert(w, int(count));
-        predict_detail::ensureOov(*d, w);
+        uni.insert(w, int(count));
     }
     quint32 nBi = 0;
-    in >> nBi;
-    for (quint32 i = 0; i < nBi; ++i) {
+    if (ok) {
+        in >> nBi;
+    }
+    for (quint32 i = 0; i < nBi && ok; ++i) {
         const QString a = readUtf8(in, &ok);
         const QString b = readUtf8(in, &ok);
         quint32 count = 0;
         in >> count;
-        if (!ok || a.isEmpty() || b.isEmpty() || count == 0) {
+        if (!ok) {
+            break;
+        }
+        if (a.isEmpty() || b.isEmpty() || count == 0) {
             continue;
         }
-        d->userBi.insert(a + QLatin1Char('\t') + b, int(count));
+        bi.insert(a + QLatin1Char('\t') + b, int(count));
     }
+    if (!ok || in.status() != QDataStream::Ok) {
+        return false;
+    }
+    predict_detail::clearUser(*d);
+    d->userUni = std::move(uni);
+    d->userBi = std::move(bi);
     d->userTotal = int(total);
-    return in.status() == QDataStream::Ok;
+    for (auto it = d->userUni.cbegin(); it != d->userUni.cend(); ++it) {
+        predict_detail::ensureOov(*d, it.key());
+    }
+    return true;
 }
 
 bool WordPredictor::saveUser(const QString& path) const

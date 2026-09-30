@@ -287,9 +287,23 @@ void LayoutEditorWindow::saveAs()
     if (path.isEmpty()) {
         return;
     }
+    QString dest = path;
+    if (isShippedPath(dest)) {
+        if (m_userDir.isEmpty()) {
+            QMessageBox::warning(this, QStringLiteral("Save"),
+                                 QStringLiteral("Choose a folder outside the shipped layouts."));
+            return;
+        }
+        dest = userCopyPath(dest);
+    }
     QString err;
-    if (!m_session->saveTo(path, &err)) {
+    if (!m_session->saveTo(dest, &err)) {
         QMessageBox::warning(this, QStringLiteral("Save failed"), err);
+        return;
+    }
+    if (dest.compare(path, Qt::CaseInsensitive) != 0) {
+        statusBar()->showMessage(
+            QStringLiteral("Saved user copy %1 (shipped file unchanged)").arg(dest), 5000);
     }
 }
 

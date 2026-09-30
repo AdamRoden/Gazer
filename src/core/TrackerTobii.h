@@ -39,6 +39,11 @@ public:
     void stop() override;
     [[nodiscard]] bool isRunning() const override;
     [[nodiscard]] QString name() const override;
+    /// True while a worker thread may still touch this object.
+    [[nodiscard]] bool workerOutstanding();
+    /// Caller has dropped ownership. The worker deletes this when it exits;
+    /// if the worker is already gone, this deletes itself now.
+    void retire();
 
 signals:
     void streamFailed(const QString& reason);
@@ -78,6 +83,7 @@ private:
     std::mutex m_exitMutex;
     std::condition_variable m_exitCv;
     bool m_workerExited = true;
+    bool m_retire = false;
 
     QElapsedTimer m_clock;
 
@@ -94,5 +100,29 @@ private:
     QRect m_screenGeo;
     QPointer<QScreen> m_overlayScreen;
 };
+
+/// stop(), then delete. A Tobii worker that is still running keeps the object
+/// alive until it exits so the destructor does not race the thread.
+template <typename T>
+void releaseTracker(std::unique_ptr<T>& tracker)
+{
+    if (!tracker) {
+        return;
+    }
+    tracker->stop();
+    if (auto* tobii = dynamic_cast<TrackerTobii*>(tracker.get())) {
+        if (tobii->workerOutstanding()) {
+            TrackerTobii* raw = tobii;
+            tracker.release();
+            raw->retire();
+            return;
+        }
+    }
+    tracker.reset();
+}
+
+/// Tobii when start() accepts it, otherwise the mouse tracker.
+/// Device discovery finishes on the Tobii worker; setup failure is streamFailed.
+std::unique_ptr<ITracker> openEyeTracker();
 
 } // namespace gazer

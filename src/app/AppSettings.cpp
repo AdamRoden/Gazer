@@ -116,6 +116,9 @@ void clampSequence(QVector<int>& seq, const QVector<int>& fallback)
     if (seq.isEmpty()) {
         seq = fallback;
     }
+    if (seq.size() > AppSettings::kMaxDwellSequenceSteps) {
+        seq.resize(AppSettings::kMaxDwellSequenceSteps);
+    }
     for (int& ms : seq) {
         ms = qBound(0, ms, 10000);
     }

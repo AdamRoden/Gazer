@@ -60,9 +60,7 @@ Application::Application(QObject* parent)
 
 Application::~Application()
 {
-    if (m_tracker) {
-        m_tracker->stop();
-    }
+    releaseTracker(m_tracker);
 }
 
 bool Application::initialize()
@@ -263,29 +261,21 @@ bool Application::startTracker()
         return m_tracker && m_tracker->isRunning();
     }
 
-    {
-        auto tobii = std::make_unique<TrackerTobii>();
-        if (tobii->start()) {
-            m_tracker = std::move(tobii);
-            wireTracker();
-            if (auto* t = qobject_cast<TrackerTobii*>(m_tracker.get())) {
-                connect(t, &TrackerTobii::streamFailed, this, &Application::onTobiiStreamFailed);
-            }
-            return true;
-        }
+    m_tracker = openEyeTracker();
+    if (!m_tracker) {
+        return false;
     }
-
-    GAZER_INFO << "Tobii unavailable — falling back to mouse cursor";
-    fallbackToMouse();
-    return m_tracker && m_tracker->isRunning();
+    wireTracker();
+    if (auto* t = qobject_cast<TrackerTobii*>(m_tracker.get())) {
+        connect(t, &TrackerTobii::streamFailed, this, &Application::onTobiiStreamFailed,
+                Qt::QueuedConnection);
+    }
+    return true;
 }
 
 void Application::fallbackToMouse()
 {
-    if (m_tracker) {
-        m_tracker->stop();
-        m_tracker.reset();
-    }
+    releaseTracker(m_tracker);
     auto mouse = std::make_unique<TrackerMouse>();
     if (!mouse->start()) {
         GAZER_ERROR << "Mouse tracker failed to start";
@@ -667,15 +657,13 @@ void Application::rescueReset()
 
 void Application::onQuitRequested()
 {
+    m_pulse.stop();
     if (m_heartbeat) {
         m_heartbeat->setCleanShutdown();
     }
     CrashDump::unregisterRestart();
     shutdownUi();
-    if (m_tracker) {
-        m_tracker->stop();
-        m_tracker.reset();
-    }
+    releaseTracker(m_tracker);
     QApplication::quit();
     QTimer::singleShot(500, []() { std::exit(0); });
 }

@@ -378,6 +378,28 @@ QVector<HWND> gazerBandBackToFront()
     appendLayer(OverlayLayer::MagPick);
     appendLayer(OverlayLayer::Magnifier);
     appendLayer(OverlayLayer::Reticle);
+
+    // Other Gazer.exe top-levels (the guard rescue board) sit at the front of
+    // this band. Last HWND is front. Collect front-to-back, then append reversed.
+    QVector<HWND> others;
+    const DWORD self = GetCurrentProcessId();
+    const HWND desktop = GetDesktopWindow();
+    for (HWND h = GetWindow(desktop, GW_CHILD); h; h = GetWindow(h, GW_HWNDNEXT)) {
+        if (!IsWindowVisible(h)) {
+            continue;
+        }
+        DWORD pid = 0;
+        GetWindowThreadProcessId(h, &pid);
+        if (pid == 0 || pid == self || !WinProcess::isGazerImage(pid)) {
+            continue;
+        }
+        others.push_back(h);
+    }
+    for (int i = others.size() - 1; i >= 0; --i) {
+        if (!out.contains(others.at(i))) {
+            out.push_back(others.at(i));
+        }
+    }
     return out;
 }
 

@@ -73,9 +73,9 @@ void PreviewWindow::closeEvent(QCloseEvent* event)
 
 void PreviewWindow::paintOverlay(QPainter& p, const QRect& headArea)
 {
-    const double yaw = m_head.rotationValid ? m_head.yaw : 0.0;
-    const double pitch = m_head.rotationValid ? m_head.pitch : 0.0;
-    const double roll = m_head.rotationValid ? m_head.roll : 0.0;
+    const double yaw = m_head.yawValid ? m_head.yaw : 0.0;
+    const double pitch = m_head.pitchValid ? m_head.pitch : 0.0;
+    const double roll = m_head.rollValid ? m_head.roll : 0.0;
 
     const QPointF g0(headArea.right() - 64, headArea.bottom() - 48);
     auto ax = [&](double x, double y, double z) {

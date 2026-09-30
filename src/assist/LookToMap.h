@@ -96,21 +96,6 @@ struct LookToMapSettings {
     return static_cast<LookToDest>(v);
 }
 
-[[nodiscard]] inline const char* lookToDestId(LookToDest d)
-{
-    switch (d) {
-    case LookToDest::Mouse:
-        return "mouse";
-    case LookToDest::LeftStick:
-        return "leftStick";
-    case LookToDest::RightStick:
-        return "rightStick";
-    case LookToDest::Scroll:
-        return "scroll";
-    }
-    return "scroll";
-}
-
 [[nodiscard]] inline const char* lookToDestLabel(LookToDest d)
 {
     switch (d) {
@@ -126,21 +111,6 @@ struct LookToMapSettings {
     return "Look to scroll";
 }
 
-[[nodiscard]] inline const char* lookToDestShortLabel(LookToDest d)
-{
-    switch (d) {
-    case LookToDest::Mouse:
-        return "Mouse";
-    case LookToDest::LeftStick:
-        return "Left stick";
-    case LookToDest::RightStick:
-        return "Right stick";
-    case LookToDest::Scroll:
-        return "Scroll";
-    }
-    return "Scroll";
-}
-
 [[nodiscard]] inline const char* lookToDestCommand(LookToDest d)
 {
     switch (d) {
@@ -154,35 +124,6 @@ struct LookToMapSettings {
         return "lookToScroll";
     }
     return "lookToScroll";
-}
-
-[[nodiscard]] inline const char* lookToDestIcon(LookToDest d)
-{
-    switch (d) {
-    case LookToDest::Mouse:
-        return "mouseMove";
-    case LookToDest::LeftStick:
-    case LookToDest::RightStick:
-        return "sportsEsports";
-    case LookToDest::Scroll:
-        return "lookToScroll";
-    }
-    return "lookToScroll";
-}
-
-[[nodiscard]] inline const char* lookToDestCaption(LookToDest d)
-{
-    switch (d) {
-    case LookToDest::Mouse:
-        return "Move the pointer by looking away from the origin.";
-    case LookToDest::LeftStick:
-        return "Drive the left analog stick from gaze vs the origin.";
-    case LookToDest::RightStick:
-        return "Drive the right analog stick from gaze vs the origin.";
-    case LookToDest::Scroll:
-        return "Scroll by looking away from the cursor.";
-    }
-    return "Scroll by looking away from the cursor.";
 }
 
 [[nodiscard]] inline LookToDest lookToDestFromId(const QString& id, bool* ok = nullptr)

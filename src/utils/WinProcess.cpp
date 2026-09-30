@@ -107,7 +107,9 @@ bool terminate(quint32 pid, QString* error)
         }
         return false;
     }
-    (void)CrashDump::writeDump(proc, pid);
+    if (CrashDump::writeDump(proc, pid)) {
+        CrashDump::capCrashDir();
+    }
     const BOOL ok = TerminateProcess(proc, 1);
     CloseHandle(proc);
     if (!ok) {

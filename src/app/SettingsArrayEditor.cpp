@@ -24,6 +24,9 @@ bool SettingsUi::openArrayEditor(const QString& settingKey, QString* error)
         m_arrayDraft = rapid ? AppSettings::defaultRapidDwellSequence()
                              : AppSettings::defaultDwellSequence();
     }
+    if (m_arrayDraft.size() > kMaxArraySteps) {
+        m_arrayDraft.resize(kMaxArraySteps);
+    }
     refreshArrayEditor();
     notifyStatus(QStringLiteral("Edit %1").arg(AppSettings::settingTitle(settingKey)));
     return true;
@@ -145,6 +148,9 @@ void SettingsUi::arrayReset()
     if (m_arrayDraft.isEmpty()) {
         m_arrayDraft = rapid ? AppSettings::defaultRapidDwellSequence()
                              : AppSettings::defaultDwellSequence();
+    }
+    if (m_arrayDraft.size() > kMaxArraySteps) {
+        m_arrayDraft.resize(kMaxArraySteps);
     }
     refreshArrayEditor();
 }

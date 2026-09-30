@@ -24,6 +24,8 @@ namespace gazer {
 /// In-class initializers are the factory. defaults() calls applyTheme().
 struct AppSettings {
     // --- Timing ---
+    /// Editor and persisted sequences keep at most this many steps.
+    static constexpr int kMaxDwellSequenceSteps = 12;
     /// Standard dwell steps (ms). Last step repeats while gaze holds.
     /// Default for settings, navigation, mouse, AHK, composer word chips, and other non-key cells.
     QVector<int> dwellSequence = defaultDwellSequence();

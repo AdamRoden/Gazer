@@ -1,5 +1,7 @@
 #pragma once
 
+#include "app/AppSettings.h"
+
 #include <QColor>
 #include <QString>
 #include <QtGlobal>
@@ -14,7 +16,7 @@ constexpr auto kLiveHex = "settings_hex_live";
 constexpr auto kLiveSpeechKey = "settings_speech_key_live";
 constexpr auto kLiveLookToMap = "lookto_map_live";
 
-constexpr int kMaxArraySteps = 12;
+constexpr int kMaxArraySteps = AppSettings::kMaxDwellSequenceSteps;
 constexpr int kStepNudge = 50;
 
 struct ColorAxis {
@@ -48,38 +50,6 @@ inline int pct255(int raw)
 inline int fromPct255(int shown)
 {
     return qBound(0, int(qRound(shown * 2.55)), 255);
-}
-
-inline void colorChannelRange(const QString& channel, int* minV, int* maxV)
-{
-    const QString ch = channel.toLower();
-    if (ch == QLatin1String("h") || ch == QLatin1String("hue")) {
-        *minV = 0;
-        *maxV = 359;
-        return;
-    }
-    if (ch == QLatin1String("s") || ch == QLatin1String("sat") || ch == QLatin1String("l")
-        || ch == QLatin1String("light") || ch == QLatin1String("lightness")
-        || ch == QLatin1String("a") || ch == QLatin1String("alpha")
-        || ch == QLatin1String("opacity")) {
-        *minV = 0;
-        *maxV = 100;
-        return;
-    }
-    *minV = 0;
-    *maxV = 255;
-}
-
-inline QString colorChannelValueText(const QString& channel, int shown)
-{
-    const QString ch = channel.toLower();
-    if (ch == QLatin1String("s") || ch == QLatin1String("sat") || ch == QLatin1String("l")
-        || ch == QLatin1String("light") || ch == QLatin1String("lightness")
-        || ch == QLatin1String("a") || ch == QLatin1String("alpha")
-        || ch == QLatin1String("opacity")) {
-        return QStringLiteral("%1%").arg(shown);
-    }
-    return QString::number(shown);
 }
 
 inline QString normalizeHexDigits(const QString& raw)

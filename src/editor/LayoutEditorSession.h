@@ -125,11 +125,9 @@ public:
     void cutSelected();
     void copySelected();
     void pasteClipboard();
-    void moveItemToCell(const QString& itemId, int row, int col);
+    void moveItemToCell(const QString& itemId, int row, int col, const QString& gridId = {});
     void moveSelected(int dRow, int dCol);
     void nudgeSelected(int dRow, int dCol, int freePx);
-    void resizeItem(const QString& itemId, int rowSpan, int colSpan, double widthUnits);
-    void resizeFreeItem(const QString& itemId, const PageDim& width, const PageDim& height);
     void raiseSelected();
     void lowerSelected();
     void convertSelectedToFree();
@@ -146,6 +144,8 @@ public:
     void alignSelectedRow();
     void applyChromeToSelected(const std::function<void(PageChrome&)>& mut, const QString& undoLabel);
     void setActions(const QString& itemId, QVector<PageAction> acts);
+    /// Each phase becomes exactly this one action. Clears the leaf's direct action list.
+    void setPhases(const QString& itemId, QVector<PageAction> onePerPhase);
     void snapWindowTo(const QPoint& virtualTopLeft, const QSize& virtualScreen);
     [[nodiscard]] QString uniqueItemId(const QString& stem) const;
     [[nodiscard]] QVector<EditorIssue> validate(const QStringList& catalogIds = {}) const;

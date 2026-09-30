@@ -188,13 +188,19 @@ void ActionDispatcher::dispatchPage(const QVector<PageAction>& actions, const QS
             } else {
                 const QRect desk = virtualDesktop();
                 const QRect screen = overlayScreenGeometry();
-                const int x = qRound(a.moveX.resolve(desk.width(), desk.height(), screen.width(),
-                                                     screen.height()));
-                const int y = qRound(a.moveY.resolve(desk.height(), desk.height(), screen.width(),
-                                                     screen.height()));
+                int x = qRound(a.moveX.resolve(desk.width(), desk.height(), screen.width(),
+                                               screen.height()));
+                int y = qRound(a.moveY.resolve(desk.height(), desk.height(), screen.width(),
+                                               screen.height()));
                 if (a.moveMode == PageMoveMode::Relative) {
                     ok = MouseInjector::moveBy(x, y, &err);
                 } else {
+                    if (a.moveX.isSet() && a.moveX.unit != PageDim::Unit::Pixels) {
+                        x += desk.x();
+                    }
+                    if (a.moveY.isSet() && a.moveY.unit != PageDim::Unit::Pixels) {
+                        y += desk.y();
+                    }
                     ok = MouseInjector::moveTo(x, y, &err);
                 }
             }
