@@ -29,9 +29,34 @@
     <Icon Id="GazerIcon" SourceFile="!(bindpath.Payload)\resources\icons\gazer.ico" />
     <Property Id="ARPPRODUCTICON" Value="GazerIcon" />
 
-    <!-- Optional UI (license-free minimal welcome). -->
+    <!-- License page, then progress. Options dialog is sequenced ahead of it. -->
     <ui:WixUI Id="WixUI_Minimal" />
     <WixVariable Id="WixUILicenseRtf" Value="!(bindpath.Packaging)\License.rtf" />
+
+    <!-- "1" checked, "0" not. Remembered under HKLM so repair and quiet installs
+         keep the last choice. Command line wins when the property is already set. -->
+    <Property Id="SAVED_DESKTOP_SHORTCUT" Secure="yes">
+      <RegistrySearch Id="SavedDesktopShortcut"
+                      Root="HKLM"
+                      Key="Software\Gazer\Installer"
+                      Name="DesktopShortcut"
+                      Type="raw" />
+    </Property>
+    <Property Id="INSTALLDESKTOPSHORTCUT" Secure="yes" />
+
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" Secure="yes" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch Gazer" />
+
+    <CustomAction Id="RestoreDesktopShortcutChoice" Property="INSTALLDESKTOPSHORTCUT" Value="[SAVED_DESKTOP_SHORTCUT]" />
+    <CustomAction Id="DefaultDesktopShortcutOn" Property="INSTALLDESKTOPSHORTCUT" Value="1" />
+    <!-- Explorer hands the exe to the medium-integrity shell. A direct launch from
+         elevated msiexec would start Gazer elevated and drop UIAccess. -->
+    <CustomAction Id="LaunchGazer"
+                  Directory="INSTALLFOLDER"
+                  ExeCommand="&quot;[WindowsFolder]explorer.exe&quot; &quot;[INSTALLFOLDER]Gazer.exe&quot;"
+                  Execute="immediate"
+                  Impersonate="yes"
+                  Return="asyncNoWait" />
 
     <Feature Id="ProductFeature" Title="Gazer" Level="1"
              Description="Gazer application, layouts, and Qt runtime."
@@ -40,6 +65,7 @@
       <ComponentGroupRef Id="PayloadFiles" />
       <ComponentRef Id="StartMenuShortcut" />
       <ComponentRef Id="DesktopShortcut" />
+      <ComponentRef Id="DesktopShortcutChoice" />
       <ComponentRef Id="ResetUserSettings" />
       <ComponentRef Id="GuardAutostart" />
     </Feature>
@@ -111,7 +137,48 @@
                   Return="check" />
     <InstallExecuteSequence>
       <Custom Action="TrustGazerCert" After="InstallFiles" Condition="NOT REMOVE" />
+      <Custom Action="RestoreDesktopShortcutChoice" After="AppSearch"
+              Condition="NOT REMOVE AND UILevel &lt;&gt; 5 AND NOT INSTALLDESKTOPSHORTCUT AND SAVED_DESKTOP_SHORTCUT" />
+      <Custom Action="DefaultDesktopShortcutOn" After="RestoreDesktopShortcutChoice"
+              Condition="NOT REMOVE AND UILevel &lt;&gt; 5 AND NOT INSTALLDESKTOPSHORTCUT" />
     </InstallExecuteSequence>
+
+    <InstallUISequence>
+      <Custom Action="RestoreDesktopShortcutChoice" After="AppSearch"
+              Condition="NOT INSTALLDESKTOPSHORTCUT AND SAVED_DESKTOP_SHORTCUT" />
+      <Custom Action="DefaultDesktopShortcutOn" After="RestoreDesktopShortcutChoice"
+              Condition="NOT INSTALLDESKTOPSHORTCUT" />
+    </InstallUISequence>
+
+    <UI>
+      <Dialog Id="GazerOptionsDlg" Width="370" Height="270" Title="Gazer Setup">
+        <Control Id="BannerBitmap" Type="Bitmap" X="0" Y="0" Width="370" Height="44" TabSkip="no" Text="!(loc.InstallDirDlgBannerBitmap)" />
+        <Control Id="BannerLine" Type="Line" X="0" Y="44" Width="370" Height="0" />
+        <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
+        <Control Id="Title" Type="Text" X="15" Y="6" Width="300" Height="15" Transparent="yes" NoPrefix="yes" Text="{\WixUI_Font_Title}Install options" />
+        <Control Id="Description" Type="Text" X="25" Y="23" Width="320" Height="15" Transparent="yes" NoPrefix="yes" Text="Choose a desktop shortcut, then continue to the license." />
+        <Control Id="DesktopShortcutCheckBox" Type="CheckBox" X="20" Y="80" Width="320" Height="18"
+                 Property="INSTALLDESKTOPSHORTCUT" CheckBoxValue="1"
+                 Text="Create a desktop shortcut" />
+        <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Disabled="yes" Text="!(loc.WixUIBack)" />
+        <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="!(loc.WixUINext)">
+          <!-- Unchecking deletes the property. Pin 0 or 1 so execute costing sees the choice. -->
+          <Publish Property="INSTALLDESKTOPSHORTCUT" Value="1" Condition="INSTALLDESKTOPSHORTCUT = 1" Order="1" />
+          <Publish Property="INSTALLDESKTOPSHORTCUT" Value="0" Condition="NOT INSTALLDESKTOPSHORTCUT" Order="2" />
+          <Publish Event="EndDialog" Value="Return" Order="3" />
+        </Control>
+        <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="!(loc.WixUICancel)">
+          <Publish Event="SpawnDialog" Value="CancelDlg" />
+        </Control>
+      </Dialog>
+
+      <InstallUISequence>
+        <Show Dialog="GazerOptionsDlg" Before="WelcomeEulaDlg" Condition="NOT Installed" />
+      </InstallUISequence>
+
+      <Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="LaunchGazer" Order="1"
+               Condition="WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 AND NOT Installed" />
+    </UI>
 
     <Component Id="GuardAutostart" Directory="INSTALLFOLDER" Guid="A7B9C1D3-4E5F-6071-8293-A4B5C6D7E8F0">
       <RegistryValue Root="HKLM"
@@ -122,7 +189,8 @@
                      KeyPath="yes" />
     </Component>
 
-    <Component Id="DesktopShortcut" Directory="DesktopFolder" Guid="C3D5F7A9-2E4B-6C8D-0A1F-3E5B7C9D1A2F">
+    <Component Id="DesktopShortcut" Directory="DesktopFolder" Guid="C3D5F7A9-2E4B-6C8D-0A1F-3E5B7C9D1A2F"
+               Condition="INSTALLDESKTOPSHORTCUT = &quot;1&quot;" Transitive="yes">
       <Shortcut Id="GazerDesktop"
                 Name="Gazer"
                 Description="Gaze input mapper"
@@ -134,6 +202,15 @@
                      Name="DesktopShortcut"
                      Type="integer"
                      Value="1"
+                     KeyPath="yes" />
+    </Component>
+
+    <Component Id="DesktopShortcutChoice" Directory="INSTALLFOLDER" Guid="A9C4E2B1-7D58-4F63-8E21-6B0A4C9D3F17">
+      <RegistryValue Root="HKLM"
+                     Key="Software\Gazer\Installer"
+                     Name="DesktopShortcut"
+                     Type="string"
+                     Value="[INSTALLDESKTOPSHORTCUT]"
                      KeyPath="yes" />
     </Component>
 

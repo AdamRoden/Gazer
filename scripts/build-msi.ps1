@@ -249,6 +249,7 @@ Write-Host "==> Done" -ForegroundColor Green
 Write-Host ("    MSI : {0} ({1:N1} MB)" -f $MsiPath, ($msiSize / 1MB))
 Write-Host "    Install: msiexec /i `"$MsiPath`""
 Write-Host "    Quiet  : msiexec /i `"$MsiPath`" /qn"
+Write-Host "             INSTALLDESKTOPSHORTCUT=0 skips the desktop shortcut. Quiet setup does not launch Gazer."
 Write-Host "    UIAccess works only for the Program Files copy (not .\build\Gazer.exe)."
 Write-Host "    Note  : Stream Engine is not bundled; testers need Tobii Experience / drivers for eye tracking." -ForegroundColor Yellow
 

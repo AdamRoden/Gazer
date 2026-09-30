@@ -55,7 +55,7 @@ winget install WiXToolset.WiXCLI   # once
 .\scripts\build-msi.ps1 -SkipBuild # reuse existing build\Gazer.exe
 ```
 
-Output: `dist\Gazer-<version>-beta.msi`. Installs to `Program Files\Gazer\` with Start Menu and desktop shortcuts. Pages ship under `resources\`.
+Output: `dist\Gazer-<version>-beta.msi`. Installs to `Program Files\Gazer\` with a Start Menu shortcut. Setup asks whether to add a desktop shortcut (remembered for later installs) and whether to launch Gazer when setup finishes. Quiet install keeps the shortcut unless `INSTALLDESKTOPSHORTCUT=0`, and does not launch Gazer. Pages ship under `resources\`.
 
 The MSI stamps `uiAccess=true` on the staged exe and Authenticode-signs it so the **Program Files** copy can sit above Task Manager and type/click into elevated windows. `.\build\Gazer.exe` is left without UIAccess so it still launches from the build directory. A real code-signing PFX: `$env:GAZER_SIGN_PFX` and optional `$env:GAZER_SIGN_PFX_PASSWORD`. Without those, the script uses a local self-signed cert (`%LOCALAPPDATA%\Gazer\signing\`) and the MSI trusts it at install time.
 

@@ -13,7 +13,7 @@ Gazer is a Windows desktop app. There is no web client.
 
 Published builds go on [GitHub Releases](https://github.com/AdamRoden/Gazer/releases).
 
-The MSI installs to `Program Files\Gazer\` with Start Menu and desktop shortcuts, and a logon entry for `Gazer.exe --guard` (watchdog). That copy is stamped `uiAccess=true` and signed so it can sit above Task Manager and type/click into elevated windows. A `Gazer.exe` built in the source tree is left without UIAccess so it still launches from the build directory.
+The MSI installs to `Program Files\Gazer\` with a Start Menu shortcut and a logon entry for `Gazer.exe --guard` (watchdog). Setup asks whether to add a desktop shortcut and, on the last page, whether to launch Gazer. The shortcut choice is remembered for the next install. A quiet install (`msiexec /qn`) keeps the shortcut unless you pass `INSTALLDESKTOPSHORTCUT=0`, and it does not launch Gazer. The Program Files copy is stamped `uiAccess=true` and signed so it can sit above Task Manager and type/click into elevated windows. A `Gazer.exe` built in the source tree is left without UIAccess so it still launches from the build directory.
 
 If no release is up yet, build an MSI from the tree: [README — Beta MSI](https://github.com/AdamRoden/Gazer/blob/master/README.md#beta-msi).
 
