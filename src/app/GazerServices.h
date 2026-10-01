@@ -11,6 +11,7 @@
 
 namespace gazer {
 
+struct GazePoint;
 class ActionLoopService;
 class AhkLauncher;
 class SidecarHost;
@@ -38,6 +39,7 @@ class ElevenClient;
 class SpeechEngine;
 class SpeechHistory;
 class SpeechSecrets;
+class SystemVolume;
 class TtsService;
 class TypingContext;
 
@@ -96,6 +98,9 @@ public:
     /// stopAssistOutput, close attached pages, resume dwell.
     void panicReset();
     void setInjectPaused(bool on);
+    /// Gaze along a `caption="volume"` slider sets the Windows master volume.
+    /// The page rebuild is deferred so this sample's dwell still sees the old targets.
+    void feedVolumeGaze(const GazePoint& point);
 
 signals:
     void settingsChanged();
@@ -110,6 +115,8 @@ private:
 
     std::unique_ptr<PageCatalog> m_catalog;
     std::unique_ptr<PageSession> m_pages;
+    std::unique_ptr<SystemVolume> m_systemVolume;
+    bool m_volumeRefreshQueued = false;
     std::unique_ptr<KeyStateManager> m_keyState;
     std::unique_ptr<InputService> m_input;
     std::unique_ptr<MappingEngine> m_mapping;

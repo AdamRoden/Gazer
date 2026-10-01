@@ -176,7 +176,7 @@ XML `mouseMoveByDirection` is the compass form of the nudge commands.
 | `speech.lang.all` / `speech.lang.set.<code>` | Language filter. |
 | `speech.speed.dec` / `.inc` | Nudge `speechSpeed` by 0.1. |
 | `speech.volume.dec` / `.inc` | Nudge `speechVolume` by 0.5 (1–5× clip boost). |
-| `compose.volume.dec` / `.inc` | Nudge Windows master volume by 10%. |
+| `volume.dec` / `.inc` | Nudge Windows master volume by 10% on any page. `compose.volume.dec` / `.inc` are the same commands. A slider with `caption="volume"` shows that percent and follows gaze. |
 
 While `compose` (or a compose live board) is the source page, `Send` and mapping keys are captured into the phrase. See [Actions — Composer capture](actions.md#composer-capture).
 

@@ -16,6 +16,7 @@ QObject* createPageDimTest();
 QObject* createPageNavTest();
 QObject* createPageHitTest();
 QObject* createPageHitLiveTest();
+QObject* createVolumeBoardTest();
 QObject* createPageComposeTest();
 QObject* createSettingsLayoutTest();
 QObject* createAppSettingsTest();
@@ -83,6 +84,8 @@ int main(int argc, char** argv)
     runSuite("PageNavTest", nav.get(), false);
     std::unique_ptr<QObject> hits(createPageHitTest());
     runSuite("PageHitTest", hits.get(), false);
+    std::unique_ptr<QObject> volumeBoard(createVolumeBoardTest());
+    runSuite("VolumeBoardTest", volumeBoard.get(), false);
     std::unique_ptr<QObject> hitLive(createPageHitLiveTest());
     runSuite("PageHitLiveTest", hitLive.get(), false);
     std::unique_ptr<QObject> compose(createPageComposeTest());

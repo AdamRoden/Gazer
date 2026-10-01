@@ -39,6 +39,9 @@ struct Visual {
 
 [[nodiscard]] Visual visual(const QRectF& cell, bool scrubbing);
 
+/// 0–1 along a `caption="volume"` bar. Same insets as the volume paint.
+[[nodiscard]] double volumeFractionAtX(const QRectF& cell, double x);
+
 void fillChecker(QPainter& p, const QRectF& r, int tile = 10);
 
 void paintPreview(QPainter& p, const QRectF& r, double radius, const QColor& color);

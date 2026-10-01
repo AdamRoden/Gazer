@@ -25,7 +25,10 @@
 #include "assist/SpeechEngine.h"
 #include "assist/SpeechHistory.h"
 #include "assist/SpeechSecrets.h"
+#include "assist/SystemVolume.h"
 #include "assist/TtsService.h"
+#include "assist/VolumeBoard.h"
+#include "core/GazePoint.h"
 #include "input/InjectGate.h"
 #include "input/InputService.h"
 #include "input/InputTypes.h"
@@ -44,6 +47,7 @@
 
 #include <QColor>
 #include <QCoreApplication>
+#include <QTimer>
 #include <QDir>
 #include <QFile>
 #include <QPoint>
@@ -105,6 +109,19 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
 
     m_catalog = std::make_unique<PageCatalog>();
     m_pages = std::make_unique<PageSession>();
+    m_systemVolume = std::make_unique<SystemVolume>(this);
+    connect(m_systemVolume.get(), &SystemVolume::changed, this, [this]() {
+        if (m_volumeRefreshQueued || !m_pages || !m_settingsUi) {
+            return;
+        }
+        m_volumeRefreshQueued = true;
+        QTimer::singleShot(0, this, [this]() {
+            m_volumeRefreshQueued = false;
+            if (m_pages && m_settingsUi) {
+                m_pages->refreshDecorated();
+            }
+        });
+    });
     m_keyState = std::make_unique<KeyStateManager>();
     m_keyState->setInjector([](const QString& key, bool down, QString* error) {
         return down ? KeyboardInjector::keyDown(key, error) : KeyboardInjector::keyUp(key, error);
@@ -208,6 +225,9 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
         m_settingsUi->decoratePage(doc);
         if (m_compose) {
             m_compose->decoratePage(doc);
+        }
+        if (m_systemVolume) {
+            VolumeBoard::stamp(doc, m_systemVolume->percent());
         }
         if (m_mouseAssist) {
             stampMousePage(doc, QStringLiteral("Step %1 px").arg(m_mouseAssist->moveAmountPx()),
@@ -619,6 +639,19 @@ void GazerServices::resetSettingsToDefaults()
     notifyStatus(QStringLiteral("Settings reset to defaults"));
 }
 
+void GazerServices::feedVolumeGaze(const GazePoint& point)
+{
+    if (!m_systemVolume || !m_pages || !point.valid || m_pages->isDwellSuspended()) {
+        return;
+    }
+    const std::optional<int> pct = VolumeBoard::percentAt(
+        m_pages->targets(), m_pages->gridPaints(), m_pages->drawerScale(), point.toPointF());
+    if (!pct) {
+        return;
+    }
+    m_systemVolume->setPercent(*pct);
+}
+
 void GazerServices::registerDomainCommands()
 {
     m_assistCmdCtx = std::make_unique<AssistCommandContext>();
@@ -640,6 +673,14 @@ void GazerServices::registerDomainCommands()
     m_assistCmdCtx->setDwellSuspended = [this](bool on) { setDwellSuspended(on); };
     m_assistCmdCtx->isDwellSuspended = [this]() { return isDwellSuspended(); };
     registerAssistCommands(*m_assistCmdCtx);
+
+    auto nudgeMaster = [this](int dir) {
+        return [this, dir](QString*) {
+            return m_systemVolume && m_systemVolume->nudge(dir);
+        };
+    };
+    m_commands->registerBuiltin({ "volume.dec", "compose.volume.dec" }, nudgeMaster(-1));
+    m_commands->registerBuiltin({ "volume.inc", "compose.volume.inc" }, nudgeMaster(1));
 
     auto cycleMod = [this](const QString& key) {
         return [this, key](QString* error) { return m_keyState->cycle(key, error); };

@@ -9,7 +9,6 @@
 #include "assist/SoundboardStore.h"
 #include "assist/SpeechHistory.h"
 #include "assist/SpeechSecrets.h"
-#include "assist/SystemVolume.h"
 #include "assist/TtsService.h"
 #include "layout/PageSession.h"
 #include "layout/PageTypes.h"
@@ -45,13 +44,7 @@ ComposeUi::ComposeUi(PageSession& pages, SpeechEngine& speech, AppSettings& sett
     , m_tts(tts)
     , m_board(board)
     , m_history(history)
-    , m_systemVolume(std::make_unique<SystemVolume>())
 {
-    QObject::connect(m_systemVolume.get(), &SystemVolume::changed, &m_pages, [this]() {
-        if (isOpen()) {
-            refresh();
-        }
-    });
     loadPredictor();
 }
 
@@ -463,14 +456,6 @@ void ComposeUi::nudgeVolume(int dir)
     }
 }
 
-void ComposeUi::nudgeSystemVolume(int dir)
-{
-    if (!m_systemVolume->nudge(dir)) {
-        return;
-    }
-    refresh();
-}
-
 QString ComposeUi::ellipsis(const QString& text, int maxChars)
 {
     if (text.size() <= maxChars) {
@@ -508,8 +493,6 @@ void ComposeUi::decoratePage(PageDocument& doc) const
                     c.caretIndex = qBound(0, m_buffer.caret(), c.label.size());
                     c.role = QStringLiteral("display");
                 }
-            } else if (c.id == QLatin1String("vol_track")) {
-                c.label = QStringLiteral("%1%").arg(m_systemVolume->percent());
             } else if (c.id == QLatin1String("page_title")) {
                 if (naming) {
                     c.caption = QStringLiteral("Type a name, then Save");

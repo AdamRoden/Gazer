@@ -365,8 +365,10 @@ void Application::onGaze(const gazer::GazePoint& point)
     }
     scheduleHeadPreviewPaint();
 
-    // Head-pose curve scrub and list scrollbars before board dwell so leaving
-    // them can activate a neighbor on the same sample.
+    // Volume, head-pose curve, and list scrollbars before board dwell so leaving
+    // them can activate a neighbor on the same sample. Volume's page refresh
+    // is deferred until this sample has been classified.
+    m_svc->feedVolumeGaze(point);
     m_svc->settingsUi().onGaze(point);
     m_svc->composeUi().onGaze(point);
     m_gazeRouter.dispatch(point);

@@ -146,7 +146,7 @@ When adding a command: register it and add a row here.
 | `speech.lang.all` / `speech.lang.set.<code>` | Language filter |
 | `speech.speed.dec` / `.inc` | Nudge `speechSpeed` 0.1 |
 | `speech.volume.dec` / `.inc` | Nudge `speechVolume` 0.5 (1–5× clip boost) |
-| `compose.volume.dec` / `.inc` | Nudge Windows master volume by 10% |
+| `volume.dec` / `.inc` | Nudge Windows master volume by 10%. Any page. `compose.volume.dec` / `.inc` are the same commands. A `role="slider"` `caption="volume"` cell shows the percent and follows gaze. |
 
 While `compose` is top (or a compose live board), `Send` and mapping keys (`backspace`, `space`, `enter`, `escape`, modifiers) are captured and never reach the OS. Caps uses XML `ShowLayers`.
 

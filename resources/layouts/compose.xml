@@ -9,9 +9,9 @@
       <Cell id="page_title" row="0" col="0" colSpan="4" label="Speak" role="label" textStyle="title" style="plain"/>
       <SubGrid id="sys_vol" row="0" col="5" colSpan="2" rows="1" columns="5" gap="4" margin="0"
                layers="1,2,3,4">
-        <Cell id="vol_down" row="0" col="1" label="−" command="compose.volume.dec"/>
+        <Cell id="vol_down" row="0" col="1" label="−" command="volume.dec"/>
         <Cell id="vol_track" row="0" col="2" colSpan="2" role="slider" caption="volume" label="50%"/>
-        <Cell id="vol_up" row="0" col="4" label="+" command="compose.volume.inc"/>
+        <Cell id="vol_up" row="0" col="4" label="+" command="volume.inc"/>
       </SubGrid>
       <Cell id="editPins" row="0" col="7" label="Edit" icon="edit" command="compose.editPins" activeState="compose.editMode"/>
     </SubGrid>

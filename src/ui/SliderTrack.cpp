@@ -184,6 +184,14 @@ void paintVolumeBar(QPainter& p, const QRectF& cell, const ThemeColors& theme,
 
 } // namespace
 
+double volumeFractionAtX(const QRectF& cell, double x)
+{
+    if (cell.isEmpty()) {
+        return 0.0;
+    }
+    return volumeVisual(cell, false).tAtX(x);
+}
+
 void paint(QPainter& p, const QRectF& cell, const ThemeColors& theme, const ProgressVisuals& pv,
            const QColor& previewColor, const QString& channel, const QString& label, bool hovered,
            double hoverProgress, bool scrubbing, double scrubT, const QString& scrubValue,

@@ -18,13 +18,17 @@ public:
 
     [[nodiscard]] int percent() const;
     [[nodiscard]] bool muted() const;
-    /// 0–100 scalar. Unmutes. True if the endpoint accepted the write.
+    /// 0–100 scalar. Unmutes. True when the level is already there or the
+    /// endpoint accepted the write. `changed` fires only when mute or level changes.
     bool setPercent(int percent);
     bool setMuted(bool on);
     /// ±10 (callers pass ±1). Unmutes on increase.
     bool nudge(int dir);
 
-    [[nodiscard]] static int clampPercent(int percent);
+    [[nodiscard]] static int clampPercent(int percent)
+    {
+        return qBound(kMin, percent, kMax);
+    }
 
 signals:
     void changed();

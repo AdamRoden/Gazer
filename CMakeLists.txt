@@ -116,6 +116,7 @@ set(GAZER_SOURCES
     src/assist/ClipPlayer.cpp
     src/assist/ClipBoost.cpp
     src/assist/SystemVolume.cpp
+    src/assist/VolumeBoard.cpp
     src/assist/ComposeBuffer.cpp
     src/assist/SpeechSecrets.cpp
     src/assist/ElevenClient.cpp
@@ -506,6 +507,9 @@ add_executable(GazerPageTests
     tests/PageNavTest.cpp
     tests/PageHitTest.cpp
     tests/PageHitLiveTest.cpp
+    tests/VolumeBoardTest.cpp
+    src/assist/VolumeBoard.cpp
+    src/ui/SliderTrack.cpp
     tests/PageComposeTest.cpp
     tests/SettingsLayoutTest.cpp
     tests/AppSettingsTest.cpp

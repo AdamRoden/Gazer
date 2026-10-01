@@ -15,11 +15,6 @@
 
 namespace gazer {
 
-int SystemVolume::clampPercent(int percent)
-{
-    return qBound(kMin, percent, kMax);
-}
-
 #ifdef Q_OS_WIN
 
 class SystemVolumeNotify final : public IAudioEndpointVolumeCallback {
@@ -193,6 +188,9 @@ bool SystemVolume::setPercent(int percent)
     }
     auto* endpoint = static_cast<IAudioEndpointVolume*>(m_endpoint);
     const int p = clampPercent(percent);
+    if (!muted() && this->percent() == p) {
+        return true;
+    }
     m_setting = true;
     endpoint->SetMute(FALSE, nullptr);
     const HRESULT hr = endpoint->SetMasterVolumeLevelScalar(float(p) / 100.0f, nullptr);

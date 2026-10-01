@@ -1,7 +1,7 @@
 <Page id="uw_qwerty" name="Qwerty" radius="0">
   <Dwell id="vert1" activation="100,600"/>
   <Dwell id="vert2" activation="200"/>
-  <Grid id="board" rows="4" columns="160" anchor="TopLeft" offset="500,740" size="1600,300" gap="0" margin="0">
+  <Grid id="board" rows="4" columns="160" anchor="TopLeft" offset="500,740" size="1600,300" gap="0" margin="0" layers="1,3">
     <Cell id="esc" row="0" col="0" colSpan="9" label="Esc" background="bg95" command="escape"/>
     <Cell id="n1" row="0" col="9" colSpan="10" label="1" textStyle="key" send="1"/>
     <Cell id="n2" row="0" col="19" colSpan="10" label="2" textStyle="key" send="2"/>
@@ -68,18 +68,41 @@
     <Cell id="pgdn" row="3" col="140" colSpan="10" label="Pg Dn" background="bg95" command="pageDown"/>
     <Cell id="enter" row="3" col="150" colSpan="10" icon="keyReturn" background="bg95" command="enter"/>
   </Grid>
-  <Grid id="vert1" rows="6" columns="1" anchor="TopLeft" offset="2000,0" size="100,740" layers="1,2">
+  <Grid id="fn" rows="1" columns="150" anchor="TopLeft" offset="500,665" size="1500,75" gap="0" margin="0" layers="3">
+    <Cell id="grave" row="0" col="0" colSpan="9" label="`" send="`"/>
+    <Cell id="f1" row="0" col="9" colSpan="10" label="F1" send="F1"/>
+    <Cell id="f2" row="0" col="19" colSpan="10" label="F2" send="F2"/>
+    <Cell id="f3" row="0" col="29" colSpan="10" label="F3" send="F3"/>
+    <Cell id="f4" row="0" col="39" colSpan="10" label="F4" send="F4"/>
+    <Cell id="f5" row="0" col="49" colSpan="10" label="F5" send="F5"/>
+    <Cell id="f6" row="0" col="59" colSpan="10" label="F6" send="F6"/>
+    <Cell id="f7" row="0" col="69" colSpan="10" label="F7" send="F7"/>
+    <Cell id="f8" row="0" col="79" colSpan="10" label="F8" send="F8"/>
+    <Cell id="f9" row="0" col="89" colSpan="10" label="F9" send="F9"/>
+    <Cell id="f10" row="0" col="99" colSpan="10" label="F10" send="F10"/>
+    <Cell id="f11" row="0" col="109" colSpan="10" label="F11" send="F11"/>
+    <Cell id="f12" row="0" col="119" colSpan="11" label="F12" send="F12"/>
+    <Cell id="bkslash" row="0" col="130" colSpan="10" label="\" send="\"/>
+    <Cell id="vol_track" row="0" col="140" colSpan="10" role="slider" caption="volume" label="50%"/>
+  </Grid>
+  <Grid id="vert1" rows="6" columns="1" anchor="TopLeft" offset="2000,0" size="100,740" layers="1,2,3">
     <Cell id="more" row="0" col="0" dwell="vert1" icon="mouse" openPage="example_mouse"/>
     <Cell id="move_lclick" row="1" col="0" icon="mouseLeftClickAtGaze" dwell="vert1" activeState="mouseLeftClickAtGaze" mouseLeftClickAtGaze=""/>
     <Cell id="move_rclick" row="2" col="0" icon="mouseRightClickAtGaze" dwell="vert1" activeState="mouseRightClickAtGaze" mouseRightClickAtGaze=""/>
-    <SubGrid id="edge" row="3" col="0" layers="1">
+    <SubGrid id="edge" row="3" col="0" layers="1,3">
       <Cell id="edge" row="0" col="0" icon="ArrowPointingToRight" dwell="vert2" showLayers="2"/>
     </SubGrid>
     <SubGrid id="keyboard" row="3" col="0" layers="2">
       <Cell id="keyboard" row="0" col="0" icon="keyboardKeys" dwell="vert2" showLayers="1"/>
     </SubGrid>
-    <Cell id="comboMouse" row="4" col="0" icon="comboMouse" dwell="vert1" activeState="comboMouse" command="toggleComboMouse"/>
-    <Cell id="lts" row="5" col="0" icon="lookToScroll" dwell="vert1" activeState="lookToScroll" command="toggleLookToScroll"/>
+    <SubGrid id="fn_off" row="5" col="0" layers="1,2">
+      <Cell id="fn_off" row="0" col="0" icon="bottomUp" dwell="vert1" showLayers="3"/>
+    </SubGrid>
+    <SubGrid id="fn_on" row="5" col="0" rows="2" layers="3">      
+        <Cell id="vol_up" row="0" col="0" label="+" command="volume.inc"/>
+        <Cell id="vol_down" row="1" col="0" label="−" command="volume.dec"/>
+    </SubGrid>
+    <Cell id="lts" row="4" col="0" icon="lookToScroll" dwell="vert1" activeState="lookToScroll" command="toggleLookToScroll"/>
   </Grid>
   <Grid id="vert2"  rows="2" columns="1" anchor="TopLeft" offset="2000,740" size="100,300"  layers="2">
     <Cell id="mid" row="0" col="0" icon="WindowMid" label="Mid" dwell="vert1">

@@ -22,7 +22,6 @@ class SoundboardStore;
 class SpeechHistory;
 class SpeechEngine;
 class SpeechSecrets;
-class SystemVolume;
 class TtsService;
 
 /// Gaze composer: capture Send/mapping on the compose page, stamp labels,
@@ -95,7 +94,6 @@ public:
     void setLangFilter(const QString& language);
     void nudgeSpeed(int dir);
     void nudgeVolume(int dir);
-    void nudgeSystemVolume(int dir);
 
     bool toggleFreestyle(QString* error = nullptr);
     bool pin(QString* error = nullptr);
@@ -195,7 +193,6 @@ private:
     TtsService& m_tts;
     SoundboardStore& m_board;
     SpeechHistory& m_history;
-    std::unique_ptr<SystemVolume> m_systemVolume;
     ComposeBuffer m_buffer;
     std::function<void()> m_apply;
     std::function<void(const QString&)> m_notify;
