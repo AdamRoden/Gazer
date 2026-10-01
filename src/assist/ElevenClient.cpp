@@ -1,5 +1,6 @@
 #include "assist/ElevenClient.h"
 
+#include "assist/DialogueSocket.h"
 #include "assist/ElevenRequest.h"
 #include "utils/AtomicFile.h"
 #include "utils/Log.h"
@@ -8,6 +9,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QJsonDocument>
+#include <QJsonObject>
 #include <QJsonParseError>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
@@ -21,7 +23,11 @@ namespace gazer {
 ElevenClient::ElevenClient(QObject* parent)
     : QObject(parent)
     , m_nam(new QNetworkAccessManager(this))
+    , m_dialogue(new DialogueSocket(this))
 {
+    connect(m_dialogue, &DialogueSocket::speechChunk, this, &ElevenClient::speechChunk);
+    connect(m_dialogue, &DialogueSocket::speechStreamEnded, this, &ElevenClient::speechStreamEnded);
+    connect(m_dialogue, &DialogueSocket::speechFailed, this, &ElevenClient::speechFailed);
 }
 
 QString ElevenClient::speechDir()
@@ -210,79 +216,14 @@ void ElevenClient::onCatalogFinished()
     emit catalogReady(false, err);
 }
 
-void ElevenClient::fetchSpeech(const QString& apiKey, const QString& voiceId, const QJsonObject& body)
+void ElevenClient::startSpeech(const QString& apiKey, const QString& voiceId, const QString& text)
 {
-    const QString key = apiKey.trimmed();
-    const QString id = voiceId.trimmed();
-    if (key.isEmpty() || id.isEmpty()) {
-        emit speechFailed(0, QStringLiteral("Missing API key or voice"), 0);
-        return;
-    }
-    abortSpeech();
-    QNetworkRequest req(QUrl(ElevenRequest::speakUrl(id)));
-    req.setRawHeader("Accept", "audio/mpeg");
-    req.setRawHeader("Content-Type", "application/json");
-    req.setRawHeader("xi-api-key", key.toUtf8());
-    const QByteArray payload = QJsonDocument(body).toJson(QJsonDocument::Compact);
-    m_speakReply = m_nam->post(req, payload);
-    QTimer::singleShot(ElevenRequest::kSpeakTimeoutMs, m_speakReply, [reply = m_speakReply]() {
-        if (reply) {
-            reply->abort();
-        }
-    });
-    connect(m_speakReply, &QNetworkReply::finished, this, &ElevenClient::onSpeakFinished);
+    m_dialogue->start(apiKey, voiceId, text);
 }
 
 void ElevenClient::abortSpeech()
 {
-    if (!m_speakReply) {
-        return;
-    }
-    QNetworkReply* reply = m_speakReply;
-    m_speakReply = nullptr;
-    reply->disconnect(this);
-    reply->abort();
-    reply->deleteLater();
-}
-
-void ElevenClient::onSpeakFinished()
-{
-    auto* reply = qobject_cast<QNetworkReply*>(sender());
-    if (!reply) {
-        return;
-    }
-    if (m_speakReply == reply) {
-        m_speakReply = nullptr;
-    }
-    reply->deleteLater();
-    if (m_speakReply) {
-        return;
-    }
-    const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-    if (reply->error() == QNetworkReply::NoError && status >= 200 && status < 300) {
-        const QByteArray mpeg = reply->readAll();
-        GAZER_INFO << "ElevenLabs speech ok" << status << "bytes" << mpeg.size();
-        emit speechReady(mpeg);
-        return;
-    }
-    int retryAfterMs = 0;
-    if (status == 429) {
-        bool ok = false;
-        const int sec = QString::fromLatin1(reply->rawHeader("Retry-After").trimmed()).toInt(&ok);
-        retryAfterMs = ok && sec > 0 ? qMin(sec * 1000, 5000) : 1000;
-    }
-    QString err = QStringLiteral("ElevenLabs request failed");
-    if (status == 401 || status == 403) {
-        err = QStringLiteral("Invalid API key");
-    } else if (status == 429) {
-        err = QStringLiteral("ElevenLabs busy — try again");
-    } else if (reply->error() == QNetworkReply::OperationCanceledError) {
-        err = QStringLiteral("ElevenLabs timed out");
-    } else if (status > 0) {
-        err = QStringLiteral("ElevenLabs error %1").arg(status);
-    }
-    GAZER_WARN << err << "status" << status;
-    emit speechFailed(status, err, retryAfterMs);
+    m_dialogue->abort();
 }
 
 } // namespace gazer

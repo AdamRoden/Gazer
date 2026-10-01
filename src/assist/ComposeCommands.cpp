@@ -149,11 +149,15 @@ void registerComposeCommands(CommandRegistry& commands, ComposeUi& compose)
     };
     commands.registerBuiltin({"speech.model.sapi", "settings.speech.model.sapi"},
                              setModel(QStringLiteral("sapi")));
+    commands.registerBuiltin({"speech.model.eleven_v4_turbo",
+                              "settings.speech.model.eleven_v4_turbo"},
+                             setModel(QStringLiteral("eleven_v4_turbo")));
+    // Older boards still name Flash and v3. Both select v4 Turbo.
     commands.registerBuiltin({"speech.model.eleven_flash_v2_5",
                               "settings.speech.model.eleven_flash_v2_5"},
-                             setModel(QStringLiteral("eleven_flash_v2_5")));
+                             setModel(QStringLiteral("eleven_v4_turbo")));
     commands.registerBuiltin({"speech.model.eleven_v3", "settings.speech.model.eleven_v3"},
-                             setModel(QStringLiteral("eleven_v3")));
+                             setModel(QStringLiteral("eleven_v4_turbo")));
     commands.registerBuiltin(QStringLiteral("speech.preview"), [&compose](QString*) {
         compose.previewCurrent();
         return true;

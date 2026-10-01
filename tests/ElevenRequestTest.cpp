@@ -3,6 +3,7 @@
 
 #include <QDateTime>
 #include <QJsonArray>
+#include <QJsonDocument>
 #include <QJsonObject>
 #include <QTemporaryDir>
 #include <QtTest>
@@ -18,27 +19,24 @@ private slots:
     void normalizeAliasesAndUnknown();
     void isElevenAfterNormalize();
     void tagsDetectAndStrip();
-    void emptyBodyAfterStrip();
-    void splitSpeed_data();
-    void splitSpeed();
-    void splitSpeedAliasUsesFlash();
-    void tagsForceV3KeepText();
-    void flashStripsTags();
-    void sapiUnknownHasNoElevenModel();
-    void prepareJsonKeysFlash();
-    void prepareJsonKeysV3();
-    void nonFiniteSpeedAndPitchDefault();
-    void speakUrlEncodesVoiceId();
+    void tagsStayOnTurbo();
+    void localSpeedClamp_data();
+    void localSpeedClamp();
+    void sapiStripsTags();
+    void nonFiniteSpeedDefaults();
+    void dialogueMessages();
     void voicesCacheRoundTrip();
     void voicesCacheTtl();
 };
 
 void ElevenRequestTest::normalizeAliasesAndUnknown()
 {
-    QCOMPARE(normalizeModelId(QStringLiteral("eleven_v3")), QString(kModelV3));
-    QCOMPARE(normalizeModelId(QStringLiteral("eleven_flash_v2_5")), QString(kModelFlash));
-    QCOMPARE(normalizeModelId(QStringLiteral("eleven_flash_v2")), QString(kModelFlash));
-    QCOMPARE(normalizeModelId(QStringLiteral("eleven_multilingual_v2")), QString(kModelFlash));
+    QCOMPARE(normalizeModelId(QStringLiteral("eleven_v4_turbo")), QString(kModelTurbo));
+    QCOMPARE(normalizeModelId(QStringLiteral("eleven_v4")), QString(kModelTurbo));
+    QCOMPARE(normalizeModelId(QStringLiteral("eleven_v3")), QString(kModelTurbo));
+    QCOMPARE(normalizeModelId(QStringLiteral("eleven_flash_v2_5")), QString(kModelTurbo));
+    QCOMPARE(normalizeModelId(QStringLiteral("eleven_flash_v2")), QString(kModelTurbo));
+    QCOMPARE(normalizeModelId(QStringLiteral("eleven_multilingual_v2")), QString(kModelTurbo));
     QCOMPARE(normalizeModelId(QStringLiteral("sapi")), QString(kModelSapi));
     QCOMPARE(normalizeModelId(QString()), QString(kModelSapi));
     QCOMPARE(normalizeModelId(QStringLiteral("browser_tts")), QString(kModelSapi));
@@ -48,6 +46,7 @@ void ElevenRequestTest::normalizeAliasesAndUnknown()
 
 void ElevenRequestTest::isElevenAfterNormalize()
 {
+    QVERIFY(isElevenModel(QStringLiteral("eleven_v4_turbo")));
     QVERIFY(isElevenModel(QStringLiteral("eleven_v3")));
     QVERIFY(isElevenModel(QStringLiteral("eleven_flash_v2")));
     QVERIFY(!isElevenModel(QStringLiteral("sapi")));
@@ -68,167 +67,90 @@ void ElevenRequestTest::tagsDetectAndStrip()
     QVERIFY(!hasNonTagSpeechContent(QString()));
 }
 
-void ElevenRequestTest::emptyBodyAfterStrip()
+void ElevenRequestTest::tagsStayOnTurbo()
 {
     QVERIFY(!hasNonTagSpeechContent(QStringLiteral("[laugh][cry]")));
-    const Prepared p = prepareSpeakRequest(QStringLiteral("[laugh][cry]"), kModelFlash, 1.0, 1.0);
-    QCOMPARE(p.modelId, QString(kModelV3)); // tags force v3
-    QCOMPARE(p.text, QStringLiteral("[laugh][cry]"));
-    QCOMPARE(p.body.value(QStringLiteral("text")).toString(), QStringLiteral("[laugh][cry]"));
+    const Prepared tags = prepareSpeakRequest(QStringLiteral("Hello [laugh] there"),
+                                              QStringLiteral("eleven_flash_v2_5"), 1.4);
+    QCOMPARE(tags.modelId, QString(kModelTurbo));
+    QCOMPARE(tags.text, QStringLiteral("Hello [laugh] there"));
+    QCOMPARE(tags.localSpeed, 1.4);
 }
 
-void ElevenRequestTest::splitSpeed_data()
+void ElevenRequestTest::localSpeedClamp_data()
 {
     QTest::addColumn<double>("desired");
     QTest::addColumn<QString>("model");
-    QTest::addColumn<bool>("hasApi");
-    QTest::addColumn<double>("api");
     QTest::addColumn<double>("local");
 
-    auto flashRow = [](const char* name, double d, double api) {
-        QTest::newRow(name) << d << QString(kModelFlash) << true << api << (d / api);
-    };
-    auto v3Row = [](const char* name, double d) {
-        QTest::newRow(name) << d << QString(kModelV3) << false << 0.0 << d;
-    };
-
-    flashRow("flash_0.25", 0.25, 0.7);
-    flashRow("flash_0.5", 0.5, 0.7);
-    flashRow("flash_0.7", 0.7, 0.7);
-    flashRow("flash_1.0", 1.0, 1.0);
-    flashRow("flash_1.2", 1.2, 1.2);
-    flashRow("flash_1.4", 1.4, 1.2);
-    flashRow("flash_2.0", 2.0, 1.2);
-    flashRow("flash_4.0", 4.0, 1.2);
-    v3Row("v3_0.25", 0.25);
-    v3Row("v3_0.5", 0.5);
-    v3Row("v3_0.7", 0.7);
-    v3Row("v3_1.0", 1.0);
-    v3Row("v3_1.2", 1.2);
-    v3Row("v3_1.4", 1.4);
-    v3Row("v3_2.0", 2.0);
-    v3Row("v3_4.0", 4.0);
-
-    QTest::newRow("flash_below_min") << 0.1 << QString(kModelFlash) << true << 0.7
-                                     << (0.25 / 0.7);
-    QTest::newRow("flash_above_max") << 8.0 << QString(kModelFlash) << true << 1.2
-                                     << (4.0 / 1.2);
-    QTest::newRow("v3_below_min") << 0.1 << QString(kModelV3) << false << 0.0 << 0.25;
-    QTest::newRow("v3_above_max") << 8.0 << QString(kModelV3) << false << 0.0 << 4.0;
+    const char* models[] = {"eleven_v4_turbo", "eleven_v3", "eleven_flash_v2_5", "sapi"};
+    for (const char* model : models) {
+        QTest::newRow(model) << 1.4 << QString::fromLatin1(model) << 1.4;
+    }
+    QTest::newRow("below_min") << 0.1 << QString(kModelTurbo) << 0.25;
+    QTest::newRow("above_max") << 8.0 << QString(kModelTurbo) << 4.0;
+    QTest::newRow("legacy_flash") << 1.4 << QStringLiteral("eleven_flash_v2") << 1.4;
 }
 
-void ElevenRequestTest::splitSpeed()
+void ElevenRequestTest::localSpeedClamp()
 {
     QFETCH(double, desired);
     QFETCH(QString, model);
-    QFETCH(bool, hasApi);
-    QFETCH(double, api);
     QFETCH(double, local);
 
-    const SpeedSplit s = ElevenRequest::splitSpeed(desired, model);
-    QCOMPARE(s.apiSpeed.has_value(), hasApi);
-    if (hasApi) {
-        QCOMPARE(*s.apiSpeed, api);
-    }
-    QCOMPARE(s.localSpeed, local);
+    QCOMPARE(prepareSpeakRequest(QStringLiteral("Hi"), model, desired).localSpeed, local);
 }
 
-void ElevenRequestTest::splitSpeedAliasUsesFlash()
+void ElevenRequestTest::sapiStripsTags()
 {
-    const SpeedSplit s = ElevenRequest::splitSpeed(1.4, QStringLiteral("eleven_flash_v2"));
-    QVERIFY(s.apiSpeed.has_value());
-    QCOMPARE(*s.apiSpeed, 1.2);
-    QCOMPARE(s.localSpeed, 1.4 / 1.2);
-}
-
-void ElevenRequestTest::tagsForceV3KeepText()
-{
-    const Prepared p = prepareSpeakRequest(QStringLiteral("Hello [laugh] there"), kModelFlash,
-                                           1.4, 1.0);
-    QCOMPARE(p.modelId, QString(kModelV3));
-    QCOMPARE(p.text, QStringLiteral("Hello [laugh] there"));
-    QCOMPARE(p.body.value(QStringLiteral("model_id")).toString(), QString(kModelV3));
-    QCOMPARE(p.body.value(QStringLiteral("text")).toString(), p.text);
-    QVERIFY(!p.body.contains(QStringLiteral("voice_settings")));
-    QVERIFY(!p.body.contains(QStringLiteral("fx")));
+    const Prepared p =
+        prepareSpeakRequest(QStringLiteral("Hello [laugh] there"), kModelSapi, 1.4);
+    QCOMPARE(p.modelId, QString(kModelSapi));
+    QCOMPARE(p.text, QStringLiteral("Hello there"));
     QCOMPARE(p.localSpeed, 1.4);
 
-    const Prepared fromSapi = prepareSpeakRequest(QStringLiteral("Hi [cry]"), kModelSapi, 1.0, 1.0);
-    QCOMPARE(fromSapi.modelId, QString(kModelV3));
+    const Prepared unknown =
+        prepareSpeakRequest(QStringLiteral("Hello"), QStringLiteral("nope"), 1.4);
+    QCOMPARE(unknown.modelId, QString(kModelSapi));
+    QVERIFY(!isElevenModel(unknown.modelId));
 }
 
-void ElevenRequestTest::flashStripsTags()
+void ElevenRequestTest::nonFiniteSpeedDefaults()
 {
-    // Tags always force v3, so Flash never sees [tags] in prepareSpeakRequest.
-    // The Flash strip path is untagged text (identity) plus stripInlineTags itself.
-    QCOMPARE(stripInlineTags(QStringLiteral("Hello [laugh] there")), QStringLiteral("Hello there"));
-    const Prepared clean =
-        prepareSpeakRequest(QStringLiteral("Hello there"), kModelFlash, 1.0, 1.0);
-    QCOMPARE(clean.modelId, QString(kModelFlash));
-    QCOMPARE(clean.text, QStringLiteral("Hello there"));
-    QVERIFY(!phraseHasInlineTags(clean.text));
-}
-
-void ElevenRequestTest::sapiUnknownHasNoElevenModel()
-{
-    const Prepared p = prepareSpeakRequest(QStringLiteral("Hello"), QStringLiteral("nope"), 1.4,
-                                           1.0);
-    QCOMPARE(p.modelId, QString(kModelSapi));
-    QVERIFY(!isElevenModel(p.modelId));
-    QCOMPARE(p.body.value(QStringLiteral("model_id")).toString(), QString(kModelSapi));
-    QVERIFY(p.body.contains(QStringLiteral("voice_settings")));
-    QCOMPARE(p.body.value(QStringLiteral("voice_settings")).toObject().value(QStringLiteral("speed")).toDouble(),
-             1.2);
-    QCOMPARE(p.localSpeed, 1.4 / 1.2);
-}
-
-void ElevenRequestTest::prepareJsonKeysFlash()
-{
-    const Prepared p = prepareSpeakRequest(QStringLiteral("Hello there"), kModelFlash, 1.4, 0.8);
-    QCOMPARE(p.body.keys().size(), 3);
-    QVERIFY(p.body.contains(QStringLiteral("text")));
-    QVERIFY(p.body.contains(QStringLiteral("model_id")));
-    QVERIFY(p.body.contains(QStringLiteral("voice_settings")));
-    QCOMPARE(p.body.value(QStringLiteral("model_id")).toString(), QString(kModelFlash));
-    QCOMPARE(p.body.value(QStringLiteral("text")).toString(), QStringLiteral("Hello there"));
-    const QJsonObject vs = p.body.value(QStringLiteral("voice_settings")).toObject();
-    QCOMPARE(vs.value(QStringLiteral("speed")).toDouble(), 1.2);
-    QCOMPARE(p.localSpeed, 1.4 / 1.2);
-    QCOMPARE(p.pitch, 0.8);
-}
-
-void ElevenRequestTest::prepareJsonKeysV3()
-{
-    const Prepared p = prepareSpeakRequest(QStringLiteral("Hello [laugh] there"), kModelV3, 1.4,
-                                           1.5);
-    QCOMPARE(p.body.keys().size(), 2);
-    QVERIFY(p.body.contains(QStringLiteral("text")));
-    QVERIFY(p.body.contains(QStringLiteral("model_id")));
-    QVERIFY(!p.body.contains(QStringLiteral("voice_settings")));
-    QCOMPARE(p.pitch, 1.5);
-}
-
-void ElevenRequestTest::nonFiniteSpeedAndPitchDefault()
-{
-    const Prepared p = prepareSpeakRequest(QStringLiteral("Hi"), kModelFlash,
-                                           std::numeric_limits<double>::quiet_NaN(),
-                                           std::numeric_limits<double>::infinity());
+    const Prepared p = prepareSpeakRequest(QStringLiteral("Hi"), kModelTurbo,
+                                           std::numeric_limits<double>::quiet_NaN());
     QCOMPARE(p.localSpeed, 1.0);
-    QCOMPARE(p.pitch, 1.0);
-    QCOMPARE(p.body.value(QStringLiteral("voice_settings"))
-                 .toObject()
-                 .value(QStringLiteral("speed"))
-                 .toDouble(),
-             1.0);
 }
 
-void ElevenRequestTest::speakUrlEncodesVoiceId()
+void ElevenRequestTest::dialogueMessages()
 {
-    QCOMPARE(speakUrl(QStringLiteral("abc123")),
-             QStringLiteral("https://api.elevenlabs.io/v1/text-to-speech/abc123"));
+    const QString url = dialogueStreamUrl();
+    QVERIFY(url.startsWith(
+        QStringLiteral("wss://api.elevenlabs.io/v1/text-to-dialogue/stream-input?")));
+    QVERIFY(url.contains(QStringLiteral("model_id=eleven_v4_turbo")));
+    QVERIFY(url.contains(QStringLiteral("output_format=pcm_24000")));
     QCOMPARE(QString(kVoicesUrl), QStringLiteral("https://api.elevenlabs.io/v1/voices"));
     QCOMPARE(kSpeakTimeoutMs, 25000);
     QCOMPARE(kVoicesTimeoutMs, 15000);
+
+    const QJsonObject reg =
+        QJsonDocument::fromJson(registerVoicesMessage(QStringLiteral("abc\"x"))).object();
+    QCOMPARE(reg.value(QStringLiteral("voices")).toArray().at(0).toString(),
+             QStringLiteral("abc\"x"));
+    QVERIFY(!reg.contains(QStringLiteral("xi_api_key")));
+
+    const QJsonObject line =
+        QJsonDocument::fromJson(speakInputsMessage(QStringLiteral("Hi [laugh]"), QStringLiteral("v1")))
+            .object()
+            .value(QStringLiteral("inputs"))
+            .toArray()
+            .at(0)
+            .toObject();
+    QCOMPARE(line.value(QStringLiteral("text")).toString(), QStringLiteral("Hi [laugh]"));
+    QCOMPARE(line.value(QStringLiteral("voice_id")).toString(), QStringLiteral("v1"));
+    QVERIFY(line.value(QStringLiteral("new_turn")).toBool());
+    QVERIFY(QJsonDocument::fromJson(closeSocketMessage()).object().value(QStringLiteral("close_socket")).toBool());
+    QVERIFY(QJsonDocument::fromJson(keepAliveMessage()).object().value(QStringLiteral("keep_alive")).toBool());
 }
 
 void ElevenRequestTest::voicesCacheRoundTrip()

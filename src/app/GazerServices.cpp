@@ -229,9 +229,9 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
     m_compose->setNotifyFn([this](const QString& msg) { notifyStatus(msg); });
     connect(m_speech.get(), &SpeechEngine::historyReady, this,
             [this](const QString& phrase, const QString& backend, const QString& modelId,
-                   const QString& voiceId, const QString& mpegPath) {
+                   const QString& voiceId, const QString& clipPath) {
                 if (m_compose) {
-                    m_compose->onHistoryReady(phrase, backend, modelId, voiceId, mpegPath);
+                    m_compose->onHistoryReady(phrase, backend, modelId, voiceId, clipPath);
                 }
             });
     connect(m_speech.get(), &SpeechEngine::statusChanged, this, [this]() {

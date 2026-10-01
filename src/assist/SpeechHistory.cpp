@@ -77,7 +77,20 @@ QString SpeechHistory::clipPath(const QString& id) const
     if (!validId(id)) {
         return {};
     }
+    const QString wav = QDir(filesDir()).filePath(id + QStringLiteral(".wav"));
+    if (QFileInfo::exists(wav)) {
+        return wav;
+    }
     return QDir(filesDir()).filePath(id + QStringLiteral(".mp3"));
+}
+
+void SpeechHistory::deleteClip(const QString& id) const
+{
+    if (!validId(id)) {
+        return;
+    }
+    QFile::remove(QDir(filesDir()).filePath(id + QStringLiteral(".wav")));
+    QFile::remove(QDir(filesDir()).filePath(id + QStringLiteral(".mp3")));
 }
 
 const SpeechHistoryItem* SpeechHistory::find(const QString& id) const
@@ -168,17 +181,11 @@ void SpeechHistory::trimToCap()
 {
     while (m_items.size() > kMaxItems) {
         const SpeechHistoryItem last = m_items.takeLast();
-        const QString path = clipPath(last.id);
-        if (!path.isEmpty()) {
-            QFile::remove(path);
-        }
+        deleteClip(last.id);
     }
     while (usedBytes() > m_maxBytes && !m_items.isEmpty()) {
         const SpeechHistoryItem last = m_items.takeLast();
-        const QString path = clipPath(last.id);
-        if (!path.isEmpty()) {
-            QFile::remove(path);
-        }
+        deleteClip(last.id);
     }
 }
 
@@ -187,10 +194,7 @@ void SpeechHistory::makeRoom(qint64 extraBytes)
     const qint64 extra = qMax<qint64>(0, extraBytes);
     while (!m_items.isEmpty() && usedBytes() + extra > m_maxBytes) {
         const SpeechHistoryItem last = m_items.takeLast();
-        const QString path = clipPath(last.id);
-        if (!path.isEmpty()) {
-            QFile::remove(path);
-        }
+        deleteClip(last.id);
     }
     (void)save();
 }
@@ -213,10 +217,7 @@ bool SpeechHistory::remove(const QString& id, QString* error)
         if (m_items[i].id != id) {
             continue;
         }
-        const QString path = clipPath(m_items[i].id);
-        if (!path.isEmpty()) {
-            QFile::remove(path);
-        }
+        deleteClip(m_items[i].id);
         m_items.removeAt(i);
         return save(error);
     }
@@ -227,11 +228,11 @@ bool SpeechHistory::remove(const QString& id, QString* error)
 }
 
 bool SpeechHistory::record(const QString& phrase, const QString& backend, const QString& modelId,
-                           const QString& voiceId, const QString& mpegPath, QString* error,
-                           QString* copiedMpeg)
+                           const QString& voiceId, const QString& clipPath, QString* error,
+                           QString* copiedClip)
 {
-    if (copiedMpeg) {
-        copiedMpeg->clear();
+    if (copiedClip) {
+        copiedClip->clear();
     }
     const QString text = phrase.trimmed();
     if (text.isEmpty()) {
@@ -244,15 +245,18 @@ bool SpeechHistory::record(const QString& phrase, const QString& backend, const 
     it.modelId = modelId;
     it.voiceId = voiceId;
     it.atIso = QDateTime::currentDateTimeUtc().toString(Qt::ISODate);
-    if (!mpegPath.isEmpty() && QFileInfo::exists(mpegPath)) {
+    if (!clipPath.isEmpty() && QFileInfo::exists(clipPath)) {
         QDir().mkpath(filesDir());
-        const QString dest = clipPath(it.id);
-        if (dest.isEmpty() || !QFile::copy(mpegPath, dest)) {
+        const QString suffix = QFileInfo(clipPath).suffix().toLower() == QLatin1String("wav")
+                                   ? QStringLiteral("wav")
+                                   : QStringLiteral("mp3");
+        const QString dest = QDir(filesDir()).filePath(it.id + QLatin1Char('.') + suffix);
+        if (dest.isEmpty() || !QFile::copy(clipPath, dest)) {
             if (error) {
                 *error = QStringLiteral("Could not copy history clip");
             }
-        } else if (copiedMpeg) {
-            *copiedMpeg = dest;
+        } else if (copiedClip) {
+            *copiedClip = dest;
         }
     }
     m_items.push_front(it);

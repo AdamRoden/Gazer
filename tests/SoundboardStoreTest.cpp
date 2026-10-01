@@ -157,7 +157,16 @@ void SoundboardStoreTest::importAndEvictUnreferenced()
     QString err;
     const QString id = s.importClip(src, &err);
     QVERIFY2(!id.isEmpty(), qPrintable(err));
+    QVERIFY(s.clipPath(id).endsWith(QStringLiteral(".mp3")));
     QVERIFY(QFile::exists(s.clipPath(id)));
+    const QString wav = dir.filePath(QStringLiteral("src.wav"));
+    {
+        QFile f(wav);
+        QVERIFY(f.open(QIODevice::WriteOnly));
+        f.write(QByteArray(32, 'W'));
+    }
+    const QString wavId = s.importClip(wav, &err);
+    QVERIFY(s.clipPath(wavId).endsWith(QStringLiteral(".wav")));
     s.evictUnreferencedClips();
     QVERIFY(!QFile::exists(s.clipPath(id)));
 

@@ -3,6 +3,8 @@
 #include "app/AppSettings.h"
 #include "assist/ClipPlayer.h"
 #include "assist/ElevenClient.h"
+#include "assist/PcmStreamPlayer.h"
+#include "assist/PcmWav.h"
 #include "assist/SpeechSecrets.h"
 #include "utils/Log.h"
 
@@ -28,12 +30,16 @@ SpeechEngine::SpeechEngine(TtsService& tts, AppSettings& settings, SpeechSecrets
     , m_secrets(secrets)
     , m_eleven(eleven)
     , m_clips(clips)
+    , m_pcmPlayer(new PcmStreamPlayer(this))
 {
     connect(&m_tts, &TtsService::started, this, [this](const QString&) { onTtsStarted(); });
     connect(&m_tts, &TtsService::finished, this, &SpeechEngine::onTtsFinished);
     connect(&m_tts, &TtsService::failed, this, &SpeechEngine::onTtsFailed);
-    connect(&m_eleven, &ElevenClient::speechReady, this, &SpeechEngine::onSpeechReady);
+    connect(&m_eleven, &ElevenClient::speechChunk, this, &SpeechEngine::onSpeechChunk);
+    connect(&m_eleven, &ElevenClient::speechStreamEnded, this, &SpeechEngine::onSpeechStreamEnded);
     connect(&m_eleven, &ElevenClient::speechFailed, this, &SpeechEngine::onSpeechFailed);
+    connect(m_pcmPlayer, &PcmStreamPlayer::stopped, this, &SpeechEngine::onPcmStopped);
+    connect(m_pcmPlayer, &PcmStreamPlayer::failed, this, &SpeechEngine::onPcmFailed);
     connect(&m_clips, &ClipPlayer::started, this, &SpeechEngine::onClipStarted);
     connect(&m_clips, &ClipPlayer::stopped, this, &SpeechEngine::onClipStopped);
     connect(&m_clips, &ClipPlayer::failed, this, &SpeechEngine::onClipFailed);
@@ -41,18 +47,20 @@ SpeechEngine::SpeechEngine(TtsService& tts, AppSettings& settings, SpeechSecrets
 
 SpeechEngine::~SpeechEngine()
 {
+    ++m_generation;
     m_eleven.abortSpeech();
+    m_pcmPlayer->stop();
     m_clips.stop();
     m_tts.stop();
-    removeIfTemp(m_tmpMpeg);
+    removeIfTemp(m_tmpClip);
     removeIfTemp(m_lastClip.path);
 }
 
-QString SpeechEngine::tmpMpegPath() const
+QString SpeechEngine::tmpClipPath() const
 {
     const QString dir = QDir(ElevenClient::speechDir()).filePath(QStringLiteral("tmp"));
     QDir().mkpath(dir);
-    return QDir(dir).filePath(QStringLiteral("%1.mp3").arg(m_generation));
+    return QDir(dir).filePath(QStringLiteral("%1.wav").arg(m_generation));
 }
 
 void SpeechEngine::removeIfTemp(const QString& path)
@@ -68,11 +76,11 @@ void SpeechEngine::removeIfTemp(const QString& path)
 
 void SpeechEngine::discardTmpIfUnretained()
 {
-    if (m_tmpMpeg.isEmpty() || m_tmpMpeg == m_lastClip.path) {
+    if (m_tmpClip.isEmpty() || m_tmpClip == m_lastClip.path) {
         return;
     }
-    removeIfTemp(m_tmpMpeg);
-    m_tmpMpeg.clear();
+    removeIfTemp(m_tmpClip);
+    m_tmpClip.clear();
 }
 
 void SpeechEngine::setLastClip(const QString& path, const QString& phrase)
@@ -98,7 +106,10 @@ void SpeechEngine::cancelInFlight()
 {
     ++m_generation;
     m_retried429 = false;
+    m_heardAudio = false;
+    m_pcm.clear();
     m_eleven.abortSpeech();
+    m_pcmPlayer->stop();
     m_clips.stop();
     m_tts.stop();
     discardTmpIfUnretained();
@@ -244,7 +255,7 @@ void SpeechEngine::startEleven(const QString& phrase, const QString& voiceId)
     m_lastBackend = Backend::Eleven;
     m_elevenGen = m_generation;
     m_pendingPrep = ElevenRequest::prepareSpeakRequest(phrase, m_settings.speechModel,
-                                                       m_settings.speechSpeed, m_settings.speechPitch);
+                                                       m_settings.speechSpeed);
     m_pendingSpoken = ElevenRequest::stripInlineTags(phrase);
     m_pendingVoiceId = voiceId;
     m_retried429 = false;
@@ -257,10 +268,12 @@ void SpeechEngine::startEleven(const QString& phrase, const QString& voiceId)
     m_status.busy = true;
     m_status.speaking = false;
     m_status.lastError.clear();
+    m_pcm.clear();
+    m_heardAudio = false;
     emit statusChanged();
 
     GAZER_INFO << "ElevenLabs speak model" << m_pendingPrep.modelId << "voice" << voiceId;
-    m_eleven.fetchSpeech(key, voiceId, m_pendingPrep.body);
+    m_eleven.startSpeech(key, voiceId, m_pendingPrep.text);
 }
 
 void SpeechEngine::fallbackSapi(const QString& spoken)
@@ -277,45 +290,70 @@ void SpeechEngine::latchIfNeeded()
     }
 }
 
-bool SpeechEngine::writeMpegTemp(const QByteArray& mpeg, QString* pathOut)
+bool SpeechEngine::writeWavTemp(const QByteArray& pcm, QString* pathOut)
 {
-    if (mpeg.isEmpty() || !pathOut) {
+    if (pcm.size() < 2 || !pathOut) {
         return false;
     }
-    if (mpeg.size() > kMaxClipBytes) {
-        GAZER_WARN << "SpeechEngine: clip" << mpeg.size() << "bytes exceeds 5 MB cap";
+    if (pcm.size() > kMaxClipBytes) {
+        GAZER_WARN << "SpeechEngine: clip" << pcm.size() << "bytes exceeds 5 MB cap";
         return false;
     }
-    const QString path = tmpMpegPath();
-    if (m_tmpMpeg != path) {
+    const QString path = tmpClipPath();
+    if (m_tmpClip != path) {
         discardTmpIfUnretained();
     }
-    QFile f(path);
-    if (!f.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+    if (!PcmWav::writeFile(path, pcm, PcmWav::kSampleRate)) {
         GAZER_WARN << "SpeechEngine: cannot write" << path;
+        QFile::remove(path);
         return false;
     }
-    if (f.write(mpeg) != mpeg.size()) {
-        f.remove();
-        return false;
-    }
-    f.close();
-    m_tmpMpeg = path;
+    m_tmpClip = path;
     *pathOut = path;
     return true;
 }
 
-void SpeechEngine::playMpeg(const QString& path, double localSpeed, const QString& spokenFallback)
+bool SpeechEngine::elevenLive() const
 {
-    m_clipGen = m_generation;
-    if (m_clips.isAvailable() && m_clips.play(path, localSpeed, m_settings.speechVolume)) {
-        m_status.busy = true;
-        m_status.speaking = true;
-        emit statusChanged();
+    return m_elevenGen == m_generation && m_status.busy && m_lastBackend == Backend::Eleven;
+}
+
+void SpeechEngine::endElevenAttempt(bool drain, const QString& notice)
+{
+    if (!elevenLive()) {
         return;
     }
-    GAZER_WARN << "ClipPlayer unavailable; SAPI fallback";
-    fallbackSapi(spokenFallback);
+    if (!notice.isEmpty()) {
+        emit notify(notice);
+    }
+    if (m_heardAudio) {
+        endElevenPlayback(drain);
+        return;
+    }
+    latchIfNeeded();
+    fallbackSapi(m_pendingSpoken);
+}
+
+void SpeechEngine::endElevenPlayback(bool drain)
+{
+    if (m_heardAudio && !m_pcm.isEmpty() && m_recordHistory) {
+        QString path;
+        if (writeWavTemp(m_pcm, &path)) {
+            setLastClip(path, m_pendingSpoken);
+            emitHistoryIfNeeded(QStringLiteral("eleven"), m_pendingPrep.modelId, m_pendingVoiceId);
+        }
+    }
+    if (m_pcmPlayer->isPlaying()) {
+        if (drain) {
+            m_pcmPlayer->finish();
+        } else {
+            m_pcmPlayer->stop();
+        }
+        return;
+    }
+    discardTmpIfUnretained();
+    setIdle();
+    emit finished();
 }
 
 void SpeechEngine::stop()
@@ -332,11 +370,11 @@ void SpeechEngine::emitHistoryIfNeeded(const QString& backend, const QString& mo
         return;
     }
     m_recordHistory = false;
-    const QString mpeg = (backend == QLatin1String("eleven") && !m_lastClip.path.isEmpty()
+    const QString clip = (backend == QLatin1String("eleven") && !m_lastClip.path.isEmpty()
                           && QFileInfo::exists(m_lastClip.path))
                              ? m_lastClip.path
                              : QString();
-    emit historyReady(m_historyPhrase, backend, modelId, voiceId, mpeg);
+    emit historyReady(m_historyPhrase, backend, modelId, voiceId, clip);
 }
 
 bool SpeechEngine::playFile(const QString& path)
@@ -407,45 +445,69 @@ void SpeechEngine::onTtsFailed(const QString& error)
     emit failed(error);
 }
 
-void SpeechEngine::onSpeechReady(const QByteArray& mpeg)
+void SpeechEngine::onSpeechChunk(const QByteArray& pcm)
 {
-    if (m_elevenGen != m_generation || !m_status.busy || m_lastBackend != Backend::Eleven) {
+    if (!elevenLive() || pcm.isEmpty() || m_pcm.size() >= kMaxClipBytes) {
         return;
     }
+    const int room = int(kMaxClipBytes - m_pcm.size());
+    const QByteArray chunk = pcm.left(room);
+    m_pcm.append(chunk);
     m_elevenFails = 0;
-    QString path;
-    if (!writeMpegTemp(mpeg, &path)) {
-        latchIfNeeded();
-        fallbackSapi(m_pendingSpoken);
+    if (!m_pcmPlayer->isPlaying()) {
+        if (!m_pcmPlayer->start(PcmWav::kSampleRate, m_pendingPrep.localSpeed,
+                                m_settings.speechVolume)) {
+            m_eleven.abortSpeech();
+            m_pcm.clear();
+            GAZER_WARN << "PcmStreamPlayer unavailable; SAPI fallback";
+            endElevenAttempt(false, {});
+            return;
+        }
+    }
+    m_pcmPlayer->push(chunk);
+    if (!elevenLive() || m_heardAudio || !m_pcmPlayer->isPlaying()) {
         return;
     }
-    if (m_recordHistory) {
-        setLastClip(path, m_pendingSpoken);
-        emitHistoryIfNeeded(QStringLiteral("eleven"), m_pendingPrep.modelId, m_pendingVoiceId);
-        playMpeg(m_lastClip.path, m_pendingPrep.localSpeed, m_pendingSpoken);
-    } else {
-        playMpeg(path, m_pendingPrep.localSpeed, m_pendingSpoken);
+    // Push returns only when the sink survived. A write error stops the player
+    // first and takes SAPI when no sample was accepted.
+    m_heardAudio = true;
+    m_status.speaking = true;
+    emit statusChanged();
+}
+
+void SpeechEngine::onSpeechStreamEnded()
+{
+    endElevenAttempt(true, {});
+}
+
+void SpeechEngine::onPcmStopped()
+{
+    if (!elevenLive()) {
+        return;
     }
+    discardTmpIfUnretained();
+    setIdle();
+    emit finished();
+}
+
+void SpeechEngine::onPcmFailed(const QString& error)
+{
+    if (!elevenLive()) {
+        return;
+    }
+    if (m_pcmPlayer->bytesAccepted() > 0) {
+        m_heardAudio = true;
+    }
+    GAZER_WARN << "PcmStreamPlayer:" << error;
+    endElevenAttempt(false, {});
 }
 
 void SpeechEngine::onSpeechFailed(int httpStatus, const QString& error, int retryAfterMs)
 {
-    if (m_elevenGen != m_generation || !m_status.busy || m_lastBackend != Backend::Eleven) {
+    if (!elevenLive()) {
         return;
     }
-    if (httpStatus == 401) {
-        emit notify(error.isEmpty() ? QStringLiteral("Invalid API key") : error);
-        latchIfNeeded();
-        fallbackSapi(m_pendingSpoken);
-        return;
-    }
-    if (httpStatus == 403) {
-        emit notify(error.isEmpty() ? QStringLiteral("ElevenLabs forbidden") : error);
-        latchIfNeeded();
-        fallbackSapi(m_pendingSpoken);
-        return;
-    }
-    if (httpStatus == 429 && !m_retried429) {
+    if (!m_heardAudio && httpStatus == 429 && !m_retried429) {
         m_retried429 = true;
         emit notify(QStringLiteral("ElevenLabs busy — try again"));
         const int waitMs = retryAfterMs > 0 ? retryAfterMs : 1000;
@@ -456,18 +518,20 @@ void SpeechEngine::onSpeechFailed(int httpStatus, const QString& error, int retr
             }
             QString key;
             if (!m_secrets.load(&key) || key.isEmpty()) {
-                fallbackSapi(m_pendingSpoken);
+                endElevenAttempt(false, {});
                 return;
             }
-            m_eleven.fetchSpeech(key, m_pendingVoiceId, m_pendingPrep.body);
+            m_eleven.startSpeech(key, m_pendingVoiceId, m_pendingPrep.text);
         });
         return;
     }
-    if (!error.isEmpty()) {
-        emit notify(error);
+    QString notice = error;
+    if (!m_heardAudio && httpStatus == 401) {
+        notice = error.isEmpty() ? QStringLiteral("Invalid API key") : error;
+    } else if (!m_heardAudio && httpStatus == 403) {
+        notice = error.isEmpty() ? QStringLiteral("ElevenLabs forbidden") : error;
     }
-    latchIfNeeded();
-    fallbackSapi(m_pendingSpoken);
+    endElevenAttempt(false, notice);
 }
 
 void SpeechEngine::onClipStarted()

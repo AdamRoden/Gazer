@@ -11,7 +11,9 @@ class QNetworkReply;
 
 namespace gazer {
 
-/// GUI-thread ElevenLabs HTTP. Validate + TTS POST. Catalog cache on disk.
+class DialogueSocket;
+
+/// GUI-thread ElevenLabs voice catalog. Live speech is `DialogueSocket`.
 class ElevenClient final : public QObject {
     Q_OBJECT
 
@@ -22,7 +24,8 @@ public:
 
     void validateApiKey(const QString& apiKey);
     void refreshCatalog(const QString& apiKey);
-    void fetchSpeech(const QString& apiKey, const QString& voiceId, const QJsonObject& body);
+    /// Forward one utterance to `DialogueSocket`.
+    void startSpeech(const QString& apiKey, const QString& voiceId, const QString& text);
     void abortSpeech();
 
     [[nodiscard]] static QString speechDir();
@@ -40,19 +43,19 @@ public:
 signals:
     void keyValidated(bool ok, const QString& error);
     void catalogReady(bool ok, const QString& error);
-    void speechReady(const QByteArray& mpeg);
+    void speechChunk(const QByteArray& pcm);
+    void speechStreamEnded();
     void speechFailed(int httpStatus, const QString& error, int retryAfterMs);
 
 private:
     void startVoicesGet(const QString& apiKey, bool forValidate);
     void onValidateFinished();
     void onCatalogFinished();
-    void onSpeakFinished();
 
     QNetworkAccessManager* m_nam = nullptr;
     QNetworkReply* m_validateReply = nullptr;
     QNetworkReply* m_catalogReply = nullptr;
-    QNetworkReply* m_speakReply = nullptr;
+    DialogueSocket* m_dialogue = nullptr;
 };
 
 } // namespace gazer

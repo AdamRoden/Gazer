@@ -17,8 +17,8 @@ Gaze tools on top of the page session.
 | `SidecarHost` | `<Run>` Python / AHK files (one-shot or persist). Path jail: page dir, AppData, app `resources`. |
 | `ChildProcess` | Shared spawn/kill for AHK and `<Run>` children. `killChildren` disconnects first so parent dtors are safe. |
 | `TtsService` | SAPI voice |
-| `SpeechEngine` | Canned = SAPI. Composed = Eleven when model+key+voiceId, else SAPI. Abort + generation + ClipPlayer. Three Eleven failures latch SAPI until model, voice, or API key changes. Speak never types. |
-| `ClipPlayer` | GUI-thread `QMediaPlayer` for baked MPEG. `play()` true means the engine owns the clip; `failed()` is the SAPI fallback; `stopped()` always means finished. Gain > 1× is a `ClipBoost` preprocess, then the same play path. Manual: `tests/fixtures/speech/beep.mp3` |
+| `SpeechEngine` | Canned = SAPI. Composed = Eleven v4 Turbo when model+key+voiceId, else SAPI. Turbo audio plays as PCM arrives. Abort + generation. Three Eleven failures latch SAPI until model, voice, or API key changes. Speak never types. |
+| `ClipPlayer` | GUI-thread `QMediaPlayer` for a saved WAV or MPEG clip. `play()` true means the engine owns the clip; `failed()` is the SAPI fallback; `stopped()` always means finished. Gain > 1× is a `ClipBoost` preprocess, then the same play path. Manual: `tests/fixtures/speech/beep.mp3` |
 | `ClipBoost` | Decode clip → Int16 WAV with `AudioGain`. Not a player. |
 | `AudioGain` | Int16 PCM scale + clamp for clip boost (1–5×) |
 | `SystemVolume` | WASAPI default-device master volume (0–100, step 10). Composer title-row slider. |
@@ -26,7 +26,9 @@ Gaze tools on top of the page session.
 | `ComposeCommands` | `compose.*` / `speech.*` builtins and prefixes |
 | `VoiceCatalog` | Parse/filter/sort ElevenLabs voice cache. No network. |
 | `SoundboardStore` | `boards.json` + `clips/`. Starters, assign, clip import, eviction. |
-| `SpeechHistory` | Last 50 composed utterances (`history.json` + optional MPEG). |
-| `ElevenRequest` | ElevenLabs request policy (tags, model aliases, speed split). No network. |
+| `PcmStreamPlayer` | GUI-thread `QAudioSink` for live int16 PCM. Speed resamples; boost uses `AudioGain`. |
+| `SpeechHistory` | Last 50 composed utterances (`history.json` + optional WAV or MPEG). |
+| `ElevenRequest` | ElevenLabs request policy (v4 Turbo, tags kept, local speed). No network. |
 | `SpeechSecrets` | DPAPI ElevenLabs API key (`secrets/eleven.dpapi`) |
-| `ElevenClient` | GUI-thread HTTP: GET `/v1/voices` (15 s, writes `speech/voices-cache.json`) and POST TTS (25 s, abortable) |
+| `DialogueSocket` | v4 Turbo text-to-dialogue WebSocket. PCM chunks, abortable. Upgrade and server JSON parse without a socket. |
+| `ElevenClient` | GUI-thread HTTP GET `/v1/voices` (15 s). Speech forwards to `DialogueSocket`. |

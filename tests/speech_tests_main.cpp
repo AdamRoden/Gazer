@@ -1,8 +1,11 @@
 #include "utils/Log.h"
 
 #include <QCoreApplication>
+#include <QDir>
+#include <QFile>
 #include <QStringList>
 #include <QTest>
+#include <QTextStream>
 #include <memory>
 
 Q_LOGGING_CATEGORY(lcGazer, "gazer")
@@ -13,6 +16,7 @@ QObject* createVoiceCatalogTest();
 QObject* createSoundboardStoreTest();
 QObject* createSpeechHistoryTest();
 QObject* createAudioGainTest();
+QObject* createSpeechStreamTest();
 
 namespace {
 
@@ -40,17 +44,27 @@ int main(int argc, char** argv)
     QCoreApplication app(argc, argv);
     int status = 0;
     const QStringList rest = argsWithoutDashO(argc, argv);
+    QFile suiteLog(QDir::temp().filePath(QStringLiteral("GazerSpeechTests-suites.txt")));
+    (void)suiteLog.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text);
+    auto runSuite = [&](const char* name, QObject* obj, bool first) {
+        const int s = first ? QTest::qExec(obj, argc, argv) : QTest::qExec(obj, rest);
+        QTextStream(&suiteLog) << name << ' ' << s << '\n';
+        suiteLog.flush();
+        status |= s;
+    };
     std::unique_ptr<QObject> req(createElevenRequestTest());
-    status |= QTest::qExec(req.get(), argc, argv);
+    runSuite("ElevenRequestTest", req.get(), true);
     std::unique_ptr<QObject> buf(createComposeBufferTest());
-    status |= QTest::qExec(buf.get(), rest);
+    runSuite("ComposeBufferTest", buf.get(), false);
     std::unique_ptr<QObject> voices(createVoiceCatalogTest());
-    status |= QTest::qExec(voices.get(), rest);
+    runSuite("VoiceCatalogTest", voices.get(), false);
     std::unique_ptr<QObject> board(createSoundboardStoreTest());
-    status |= QTest::qExec(board.get(), rest);
+    runSuite("SoundboardStoreTest", board.get(), false);
     std::unique_ptr<QObject> hist(createSpeechHistoryTest());
-    status |= QTest::qExec(hist.get(), rest);
+    runSuite("SpeechHistoryTest", hist.get(), false);
     std::unique_ptr<QObject> gain(createAudioGainTest());
-    status |= QTest::qExec(gain.get(), rest);
+    runSuite("AudioGainTest", gain.get(), false);
+    std::unique_ptr<QObject> stream(createSpeechStreamTest());
+    runSuite("SpeechStreamTest", stream.get(), false);
     return status;
 }

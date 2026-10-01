@@ -130,7 +130,7 @@ public:
     void historyPage(int delta);
     void historyGoto(int offset);
     void onHistoryReady(const QString& phrase, const QString& backend, const QString& modelId,
-                        const QString& voiceId, const QString& mpegPath);
+                        const QString& voiceId, const QString& clipPath);
     /// Gaze-follow the history / voices scrollbar (passive track, not a dwell cell).
     void onGaze(const GazePoint& point);
 

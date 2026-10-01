@@ -202,19 +202,17 @@ PageDocument ComposeUi::buildVoicesDocument()
     const QColor value = theme.bgMain.isValid() ? theme.bgMain : QColor(24, 24, 26);
     const QString model = ElevenRequest::normalizeModelId(m_settings.speechModel);
 
-    auto modelCell = [&](const QString& id, const QString& label, int col, const QString& cmd,
-                         const QString& keyName) {
-        PageCell c = cell(id, label, 0, col, cmd, model == keyName ? accent : key);
+    auto modelCell = [&](const QString& id, const QString& label, int col, int colSpan,
+                         const QString& cmd, const QString& keyName) {
+        PageCell c = cell(id, label, 0, col, cmd, model == keyName ? accent : key, colSpan);
         c.activeState = cmd;
         grid.cells.push_back(c);
     };
-    modelCell(QStringLiteral("m_sapi"), QStringLiteral("SAPI"), 0,
+    modelCell(QStringLiteral("m_sapi"), QStringLiteral("SAPI"), 0, 1,
               QStringLiteral("speech.model.sapi"), QStringLiteral("sapi"));
-    modelCell(QStringLiteral("m_flash"), QStringLiteral("Flash"), 1,
-              QStringLiteral("speech.model.eleven_flash_v2_5"),
-              QStringLiteral("eleven_flash_v2_5"));
-    modelCell(QStringLiteral("m_v3"), QStringLiteral("v3"), 2,
-              QStringLiteral("speech.model.eleven_v3"), QStringLiteral("eleven_v3"));
+    modelCell(QStringLiteral("m_turbo"), QStringLiteral("v4 Turbo"), 1, 2,
+              QStringLiteral("speech.model.eleven_v4_turbo"),
+              QStringLiteral("eleven_v4_turbo"));
 
     const QString current = currentVoiceId();
     grid.cells.push_back(cell(QStringLiteral("spd_dec"), QStringLiteral("\u2212"), 0, 3,

@@ -87,11 +87,11 @@ bool ComposeUi::openHistory(QString* error)
 }
 
 void ComposeUi::onHistoryReady(const QString& phrase, const QString& backend, const QString& modelId,
-                               const QString& voiceId, const QString& mpegPath)
+                               const QString& voiceId, const QString& clipPath)
 {
     QString err;
     QString copied;
-    (void)m_history.record(phrase, backend, modelId, voiceId, mpegPath, &err, &copied);
+    (void)m_history.record(phrase, backend, modelId, voiceId, clipPath, &err, &copied);
     if (!copied.isEmpty()) {
         m_speech.keepGeneratedClip(copied);
     }

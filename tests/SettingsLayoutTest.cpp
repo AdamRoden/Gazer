@@ -727,8 +727,9 @@ void SettingsLayoutTest::adminCaptureModes()
     QCOMPARE(speak.findCell(QStringLiteral("predict_on"))->actions[0].command,
              QStringLiteral("settings.speech.predictions.toggle"));
     QVERIFY(speak.findCell(QStringLiteral("m_sapi")));
-    QVERIFY(speak.findCell(QStringLiteral("m_flash")));
-    QVERIFY(speak.findCell(QStringLiteral("m_v3")));
+    QVERIFY(speak.findCell(QStringLiteral("m_turbo")));
+    QCOMPARE(speak.findCell(QStringLiteral("m_turbo"))->actions[0].command,
+             QStringLiteral("settings.speech.model.eleven_v4_turbo"));
     QVERIFY(!speak.findCell(QStringLiteral("cap_all")));
     QVERIFY(!speak.findCell(QStringLiteral("vigem_install")));
     QVERIFY(!speak.findGrid(QStringLiteral("sec_key")));

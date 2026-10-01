@@ -1,5 +1,6 @@
 #include "app/AppSettings.h"
 
+#include "assist/ElevenRequest.h"
 #include "assist/GazeFollowProfile.h"
 #include "assist/LookToMap.h"
 #include "mapping/HeadPoseCurve.h"
@@ -413,10 +414,7 @@ void AppSettings::clamp()
             v.volume = qBound(1.0, v.volume, 5.0);
             v.color = v.color.trimmed();
             v.icon = v.icon.trimmed();
-            if (v.model != QLatin1String("sapi") && v.model != QLatin1String("eleven_v3")
-                && v.model != QLatin1String("eleven_flash_v2_5")) {
-                v.model = QStringLiteral("sapi");
-            }
+            v.model = ElevenRequest::normalizeModelId(v.model);
             if (v.id.isEmpty() || v.name.isEmpty()) {
                 continue;
             }
@@ -431,10 +429,7 @@ void AppSettings::clamp()
     if (speechLangFilter == QLatin1String("all")) {
         speechLangFilter.clear();
     }
-    if (speechModel != QLatin1String("sapi") && speechModel != QLatin1String("eleven_v3")
-        && speechModel != QLatin1String("eleven_flash_v2_5")) {
-        speechModel = QStringLiteral("sapi");
-    }
+    speechModel = ElevenRequest::normalizeModelId(speechModel);
     if (headPoseMaps.size() > kMaxHeadPoseMaps) {
         headPoseMaps.resize(kMaxHeadPoseMaps);
     }

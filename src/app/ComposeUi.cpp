@@ -433,7 +433,7 @@ void ComposeUi::insertTagAt(int index)
 
 void ComposeUi::setSpeechModel(const QString& model)
 {
-    m_settings.speechModel = model;
+    m_settings.speechModel = ElevenRequest::normalizeModelId(model);
     m_voicePage = 0;
     apply();
     if (freestyleMode()) {

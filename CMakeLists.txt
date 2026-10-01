@@ -110,6 +110,9 @@ set(GAZER_SOURCES
     src/assist/SoundboardStore.cpp
     src/assist/SpeechHistory.cpp
     src/assist/SpeechEngine.cpp
+    src/assist/WsFrame.cpp
+    src/assist/DialogueSocket.cpp
+    src/assist/PcmStreamPlayer.cpp
     src/assist/ClipPlayer.cpp
     src/assist/ClipBoost.cpp
     src/assist/SystemVolume.cpp
@@ -249,6 +252,11 @@ set(GAZER_HEADERS
     src/assist/TtsService.h
     src/assist/ElevenRequest.h
     src/assist/SpeechEngine.h
+    src/assist/WsFrame.h
+    src/assist/DialogueSocket.h
+    src/assist/PcmRate.h
+    src/assist/PcmWav.h
+    src/assist/PcmStreamPlayer.h
     src/assist/ClipPlayer.h
     src/assist/ClipBoost.h
     src/assist/AudioGain.h
@@ -506,6 +514,7 @@ add_executable(GazerPageTests
     src/app/AppSettings.cpp
     src/app/AppSettingsIo.cpp
     src/app/AppSettingsTheme.cpp
+    src/assist/ElevenRequest.cpp
     src/ui/Theme.cpp
     src/ui/ThemeScheme.cpp
     src/ui/MaterialPalette.cpp
@@ -561,7 +570,10 @@ add_executable(GazerSpeechTests
     tests/SoundboardStoreTest.cpp
     tests/SpeechHistoryTest.cpp
     tests/AudioGainTest.cpp
+    tests/SpeechStreamTest.cpp
     src/assist/ElevenRequest.cpp
+    src/assist/WsFrame.cpp
+    src/assist/DialogueSocket.cpp
     src/assist/ComposeBuffer.cpp
     src/assist/VoiceCatalog.cpp
     src/assist/SoundboardStore.cpp

@@ -1,6 +1,13 @@
 #include "assist/ElevenRequest.h"
 
+#include "assist/PcmWav.h"
+
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QRegularExpression>
+#include <QUrl>
+#include <QUrlQuery>
 #include <algorithm>
 #include <cmath>
 
@@ -22,25 +29,35 @@ double clampOrDefault(double v, double lo, double hi, double fallback)
     return std::clamp(v, lo, hi);
 }
 
+bool isLegacyEleven(const QString& s)
+{
+    return s == kModelTurbo || s == QLatin1String("eleven_v3")
+           || s == QLatin1String("eleven_flash_v2_5") || s == QLatin1String("eleven_flash_v2")
+           || s == QLatin1String("eleven_multilingual_v2") || s == QLatin1String("eleven_v4");
+}
+
+QByteArray jsonBytes(const QJsonObject& obj)
+{
+    return QJsonDocument(obj).toJson(QJsonDocument::Compact);
+}
+
 } // namespace
 
 QString normalizeModelId(QStringView id)
 {
     const QString s = id.toString();
-    if (s == kModelSapi || s == kModelV3 || s == kModelFlash) {
+    if (s == kModelSapi) {
         return s;
     }
-    if (s == QLatin1String("eleven_flash_v2")
-        || s == QLatin1String("eleven_multilingual_v2")) {
-        return kModelFlash.toString();
+    if (isLegacyEleven(s)) {
+        return kModelTurbo.toString();
     }
     return kModelSapi.toString();
 }
 
 bool isElevenModel(QStringView id)
 {
-    const QString m = normalizeModelId(id);
-    return m == kModelV3 || m == kModelFlash;
+    return normalizeModelId(id) == kModelTurbo;
 }
 
 bool phraseHasInlineTags(QStringView text)
@@ -60,50 +77,62 @@ bool hasNonTagSpeechContent(QStringView text)
     return !stripInlineTags(text).isEmpty();
 }
 
-SpeedSplit splitSpeed(double desired, QStringView modelId)
-{
-    const double speed = clampOrDefault(desired, kDesiredSpeedMin, kDesiredSpeedMax, 1.0);
-    const QString model = normalizeModelId(modelId);
-    if (model == kModelV3) {
-        return {std::nullopt, speed};
-    }
-    const double api = std::clamp(speed, kApiSpeedMin, kApiSpeedMax);
-    return {api, speed / api};
-}
-
-Prepared prepareSpeakRequest(QStringView phrase, QStringView selectedModel, double speed,
-                             double pitch)
+Prepared prepareSpeakRequest(QStringView phrase, QStringView selectedModel, double speed)
 {
     const QString phraseStr(phrase);
-    const double spd = clampOrDefault(speed, kDesiredSpeedMin, kDesiredSpeedMax, 1.0);
-    const double pit = clampOrDefault(pitch, kPitchMin, kPitchMax, 1.0);
-    const bool hasTags = phraseHasInlineTags(phraseStr);
-    const QString selected = normalizeModelId(selectedModel);
-    const QString modelId = hasTags ? kModelV3.toString() : selected;
-    const QString text = modelId == kModelV3 ? phraseStr : stripInlineTags(phraseStr);
-    const SpeedSplit split = splitSpeed(spd, modelId);
-
-    QJsonObject body;
-    body.insert(QStringLiteral("text"), text);
-    body.insert(QStringLiteral("model_id"), modelId);
-    if (split.apiSpeed) {
-        QJsonObject vs;
-        vs.insert(QStringLiteral("speed"), *split.apiSpeed);
-        body.insert(QStringLiteral("voice_settings"), vs);
-    }
-
+    const QString modelId = normalizeModelId(selectedModel);
     Prepared out;
     out.modelId = modelId;
-    out.text = text;
-    out.body = body;
-    out.localSpeed = split.localSpeed;
-    out.pitch = pit;
+    out.text = modelId == kModelTurbo ? phraseStr : stripInlineTags(phraseStr);
+    out.localSpeed = clampOrDefault(speed, kDesiredSpeedMin, kDesiredSpeedMax, 1.0);
     return out;
 }
 
-QString speakUrl(QStringView voiceId)
+QString dialogueStreamUrl()
 {
-    return QStringLiteral("https://api.elevenlabs.io/v1/text-to-speech/%1").arg(voiceId);
+    QUrl url(QStringLiteral("wss://api.elevenlabs.io/v1/text-to-dialogue/stream-input"));
+    QUrlQuery query;
+    query.addQueryItem(QStringLiteral("model_id"), kModelTurbo.toString());
+    query.addQueryItem(QStringLiteral("output_format"),
+                       QStringLiteral("pcm_%1").arg(PcmWav::kSampleRate));
+    url.setQuery(query);
+    return url.toString(QUrl::FullyEncoded);
+}
+
+QByteArray registerVoicesMessage(QStringView voiceId)
+{
+    QJsonObject obj;
+    QJsonArray voices;
+    voices.append(voiceId.toString());
+    obj.insert(QStringLiteral("voices"), voices);
+    return jsonBytes(obj);
+}
+
+QByteArray speakInputsMessage(QStringView text, QStringView voiceId)
+{
+    QJsonObject line;
+    line.insert(QStringLiteral("text"), text.toString());
+    line.insert(QStringLiteral("voice_id"), voiceId.toString());
+    line.insert(QStringLiteral("new_turn"), true);
+    QJsonArray inputs;
+    inputs.append(line);
+    QJsonObject obj;
+    obj.insert(QStringLiteral("inputs"), inputs);
+    return jsonBytes(obj);
+}
+
+QByteArray closeSocketMessage()
+{
+    QJsonObject obj;
+    obj.insert(QStringLiteral("close_socket"), true);
+    return jsonBytes(obj);
+}
+
+QByteArray keepAliveMessage()
+{
+    QJsonObject obj;
+    obj.insert(QStringLiteral("keep_alive"), true);
+    return jsonBytes(obj);
 }
 
 } // namespace ElevenRequest

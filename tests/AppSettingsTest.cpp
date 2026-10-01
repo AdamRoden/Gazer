@@ -545,7 +545,7 @@ void AppSettingsTest::speechSettingsRoundTrip()
     QVERIFY(s.saveToFile(path));
     AppSettings b;
     QVERIFY(b.loadFromFile(path));
-    QCOMPARE(b.speechModel, QStringLiteral("eleven_v3"));
+    QCOMPARE(b.speechModel, QStringLiteral("eleven_v4_turbo"));
     QCOMPARE(b.speechSpeed, 1.4);
     QCOMPARE(b.speechPitch, 1.2);
     QCOMPARE(b.speechVolume, 2.5);
@@ -556,6 +556,7 @@ void AppSettingsTest::speechSettingsRoundTrip()
     QCOMPARE(b.savedSpeechVoices.size(), 1);
     QCOMPARE(b.savedSpeechVoices.front().id, QStringLiteral("v1"));
     QCOMPARE(b.savedSpeechVoices.front().name, QStringLiteral("Rachel laugh"));
+    QCOMPARE(b.savedSpeechVoices.front().model, QStringLiteral("eleven_v4_turbo"));
     QCOMPARE(b.savedSpeechVoices.front().voiceId, QStringLiteral("abc123"));
     QCOMPARE(b.savedSpeechVoices.front().volume, 2.0);
 }

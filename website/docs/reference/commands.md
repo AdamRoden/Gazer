@@ -167,7 +167,7 @@ XML `mouseMoveByDirection` is the compass form of the nudge commands.
 | `soundboard.topic.<id>` | Switch topic. |
 | `soundboard.newTopic` / `soundboard.loadStarters` | Topics. |
 | `compose.insertTagAt.<i>` | Insert `savedSpeechTags[i]`. |
-| `speech.model.sapi` / `.eleven_flash_v2_5` / `.eleven_v3` | Composer engine. |
+| `speech.model.sapi` / `.eleven_v4_turbo` | Composer engine. `.eleven_flash_v2_5` and `.eleven_v3` also select v4 Turbo. |
 | `speech.voice.<id>` | Select a voice (percent-encoded id). |
 | `speech.voicePreview.<id>` / `speech.preview` | Preview without selecting / preview current. |
 | `speech.fav.toggle` / `speech.fav.toggle.<id>` | Favorite the current or named ElevenLabs voice. |
@@ -209,7 +209,7 @@ Patterns — boards generate many concrete names from these:
 | `settings.speech.editKey` / `.clearKey` | Paste-from-clipboard API-key board / wipe DPAPI. |
 | `settings.speech.key.paste` / `.save` / `.cancel` / `.clear` | Key board. |
 | `settings.speech.predictions.toggle` | Turn word suggestions on the Speak page on or off. |
-| `settings.speech.model.sapi` / `.eleven_flash_v2_5` / `.eleven_v3` | Same handlers as `speech.model.*`. |
+| `settings.speech.model.sapi` / `.eleven_v4_turbo` | Same handlers as `speech.model.*`. |
 | `settings.dwell.slow` / `.normal` / `.fast` / `.custom` | Dwell presets (standard + rapid together). |
 | `settings.dwell.custom.save` / `.restore` | Save or restore Custom timings. |
 | `settings.mag.follow.slow` / `.sticky` / `.smooth` / `.snappy` | Gaze follow (indicator, gaze mouse, live lens). |

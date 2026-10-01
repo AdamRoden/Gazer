@@ -15,15 +15,13 @@
         <Cell id="key_edit" row="0" col="1" label="Paste key" icon="contentPaste" command="settings.speech.editKey"/>
       </SubGrid>
       <SubGrid id="row_eng" row="2" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="eng_l" row="0" col="0" label="Composer voice" caption="Eleven when a key and voice id are set, otherwise SAPI. XML Speak stays SAPI."
+        <Cell id="eng_l" row="0" col="0" label="Composer voice" caption="v4 Turbo streams as soon as audio is ready. XML Speak stays SAPI."
               role="label" style="plain"/>
-        <SubGrid id="act_eng" row="0" col="1" rows="1" columns="3" gap="0" style="row">
+        <SubGrid id="act_eng" row="0" col="1" rows="1" columns="2" gap="0" style="row">
           <Cell id="m_sapi" row="0" col="0" label="SAPI" role="choice" activeState="settings.speech.model.sapi"
                 style="joinLeft" command="settings.speech.model.sapi"/>
-          <Cell id="m_flash" row="0" col="1" label="Eleven Flash" role="choice" activeState="settings.speech.model.eleven_flash_v2_5"
-                style="join" command="settings.speech.model.eleven_flash_v2_5"/>
-          <Cell id="m_v3" row="0" col="2" label="Eleven v3" role="choice" activeState="settings.speech.model.eleven_v3"
-                style="joinRight" command="settings.speech.model.eleven_v3"/>
+          <Cell id="m_turbo" row="0" col="1" label="v4 Turbo" role="choice" activeState="settings.speech.model.eleven_v4_turbo"
+                style="joinRight" command="settings.speech.model.eleven_v4_turbo"/>
         </SubGrid>
       </SubGrid>
       <SubGrid id="row_spd" row="3" col="0" rows="1" columns="2" gap="6" style="row">

@@ -68,6 +68,20 @@ void SpeechHistoryTest::copiesMpegAndRejectsBadId()
     QCOMPARE(h.items().size(), 1);
     QVERIFY(QFile::exists(h.clipPath(h.items().first().id)));
     QCOMPARE(copied, h.clipPath(h.items().first().id));
+    QVERIFY(copied.endsWith(QStringLiteral(".mp3")));
+
+    const QString wav = dir.filePath(QStringLiteral("src.wav"));
+    {
+        QFile f(wav);
+        QVERIFY(f.open(QIODevice::WriteOnly));
+        f.write(QByteArray(32, 'W'));
+    }
+    QString copiedWav;
+    QVERIFY(h.record(QStringLiteral("wave"), QStringLiteral("eleven"),
+                     QStringLiteral("eleven_v4_turbo"), QStringLiteral("abc"), wav, nullptr,
+                     &copiedWav));
+    QVERIFY(copiedWav.endsWith(QStringLiteral(".wav")));
+    QCOMPARE(h.clipPath(h.items().first().id), copiedWav);
 }
 
 void SpeechHistoryTest::recordTwoMpegFilesKeepBoth()

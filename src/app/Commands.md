@@ -136,7 +136,7 @@ When adding a command: register it and add a row here.
 | `soundboard.topic.<id>` | Prefix; switch topic |
 | `soundboard.newTopic` / `soundboard.loadStarters` | Topics |
 | `compose.insertTagAt.<i>` | Prefix; insert `savedSpeechTags[i]` |
-| `speech.model.sapi` / `.eleven_flash_v2_5` / `.eleven_v3` | Composer engine |
+| `speech.model.sapi` / `.eleven_v4_turbo` | Composer engine. `.eleven_flash_v2_5` and `.eleven_v3` also select v4 Turbo. |
 | `speech.voice.<id>` | Prefix; select a voice (percent-encoded id) |
 | `speech.voicePreview.<id>` | Prefix; preview that voice without selecting it |
 | `speech.preview` | Preview the current voice |
@@ -177,7 +177,7 @@ Patterns, not every generated name:
 | `settings.speech.predictions.toggle` | Word suggestions on the Speak page |
 | `settings.speech.editKey` / `.clearKey` | Paste-from-clipboard API-key board / wipe DPAPI |
 | `settings.speech.key.paste` / `.save` / `.cancel` / `.clear` | Key board |
-| `settings.speech.model.sapi` / `.eleven_flash_v2_5` / `.eleven_v3` | Same handlers as `speech.model.*` (ComposeCommands) |
+| `settings.speech.model.sapi` / `.eleven_v4_turbo` | Same handlers as `speech.model.*` (ComposeCommands) |
 | `settings.dwell.slow` / `.normal` / `.fast` / `.custom` | Dwell presets (standard + rapid dwells together) |
 | `settings.dwell.custom.save` / `.restore` | Save or restore Custom timings |
 | `settings.mag.follow.slow` / `.sticky` / `.smooth` / `.snappy` | Gaze follow (indicator, gaze mouse, live lens) |

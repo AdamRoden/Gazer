@@ -736,6 +736,10 @@ QString SoundboardStore::clipPath(const QString& clipId) const
     if (!validClipId(clipId)) {
         return {};
     }
+    const QString wav = QDir(clipsDir()).filePath(clipId + QStringLiteral(".wav"));
+    if (QFileInfo::exists(wav)) {
+        return wav;
+    }
     return QDir(clipsDir()).filePath(clipId + QStringLiteral(".mp3"));
 }
 
@@ -765,7 +769,9 @@ QString SoundboardStore::importClip(const QString& srcPath, QString* error, Spee
     }
     evictUnreferencedClips();
     const QString id = makeId();
-    const QString dest = clipPath(id);
+    const QString suffix = src.suffix().toLower() == QLatin1String("wav") ? QStringLiteral("wav")
+                                                                          : QStringLiteral("mp3");
+    const QString dest = QDir(clipsDir()).filePath(id + QLatin1Char('.') + suffix);
     if (dest.isEmpty() || !QFile::copy(srcPath, dest)) {
         if (error) {
             *error = QStringLiteral("Could not copy clip");
@@ -812,7 +818,8 @@ void SoundboardStore::evictUnreferencedClips()
 {
     const QStringList keep = referencedClipIds();
     const QFileInfoList files =
-        QDir(clipsDir()).entryInfoList(QStringList{QStringLiteral("*.mp3")}, QDir::Files,
+        QDir(clipsDir()).entryInfoList(
+            QStringList{QStringLiteral("*.mp3"), QStringLiteral("*.wav")}, QDir::Files,
                                        QDir::Time | QDir::Reversed);
     for (const QFileInfo& fi : files) {
         const QString id = fi.completeBaseName();

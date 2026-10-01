@@ -11,6 +11,7 @@ namespace gazer {
 class AppSettings;
 class ClipPlayer;
 class ElevenClient;
+class PcmStreamPlayer;
 class SpeechSecrets;
 
 enum class SpeakKind { Canned, Composed };
@@ -46,7 +47,7 @@ public:
     [[nodiscard]] Backend lastAttemptedBackend() const { return m_lastBackend; }
     [[nodiscard]] LastClip lastClip() const { return m_lastClip; }
     [[nodiscard]] bool elevenLatched() const { return m_elevenLatched; }
-    /// Point `lastClip` at the history/clips copy so tmp MPEG can be deleted.
+    /// Point `lastClip` at the history or soundboard copy so the tmp clip can be deleted.
     void keepGeneratedClip(const QString& stablePath);
 
 signals:
@@ -55,7 +56,7 @@ signals:
     void failed(const QString& error);
     void notify(const QString& message);
     void historyReady(const QString& phrase, const QString& backend, const QString& modelId,
-                      const QString& voiceId, const QString& mpegPath);
+                      const QString& voiceId, const QString& clipPath);
 
 private:
     void cancelInFlight();
@@ -63,8 +64,11 @@ private:
     void speakSapi(const QString& spoken);
     void startEleven(const QString& phrase, const QString& voiceId);
     void fallbackSapi(const QString& spoken);
-    bool writeMpegTemp(const QByteArray& mpeg, QString* pathOut);
-    void playMpeg(const QString& path, double localSpeed, const QString& spokenFallback);
+    bool writeWavTemp(const QByteArray& pcm, QString* pathOut);
+    [[nodiscard]] bool elevenLive() const;
+    /// Heard audio drains or stops. Silence latches and speaks SAPI. `notice` is optional.
+    void endElevenAttempt(bool drain, const QString& notice);
+    void endElevenPlayback(bool drain);
     void latchIfNeeded();
     void emitHistoryIfNeeded(const QString& backend, const QString& modelId,
                              const QString& voiceId);
@@ -73,13 +77,16 @@ private:
     void setLastClip(const QString& path, const QString& phrase);
     void maybeResetElevenLatch();
     [[nodiscard]] QString elevenConfigFingerprint() const;
-    [[nodiscard]] QString tmpMpegPath() const;
+    [[nodiscard]] QString tmpClipPath() const;
 
     void onTtsStarted();
     void onTtsFinished();
     void onTtsFailed(const QString& error);
-    void onSpeechReady(const QByteArray& mpeg);
+    void onSpeechChunk(const QByteArray& pcm);
+    void onSpeechStreamEnded();
     void onSpeechFailed(int httpStatus, const QString& error, int retryAfterMs);
+    void onPcmStopped();
+    void onPcmFailed(const QString& error);
     void onClipStarted();
     void onClipStopped();
     void onClipFailed(const QString& error);
@@ -89,6 +96,7 @@ private:
     SpeechSecrets& m_secrets;
     ElevenClient& m_eleven;
     ClipPlayer& m_clips;
+    PcmStreamPlayer* m_pcmPlayer = nullptr;
 
     Status m_status;
     Backend m_lastBackend = Backend::Sapi;
@@ -105,7 +113,9 @@ private:
     QString m_pendingVoiceId;
     ElevenRequest::Prepared m_pendingPrep;
     LastClip m_lastClip;
-    QString m_tmpMpeg;
+    QByteArray m_pcm;
+    QString m_tmpClip;
+    bool m_heardAudio = false;
     bool m_recordHistory = false;
     QString m_historyPhrase;
 };

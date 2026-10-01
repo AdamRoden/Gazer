@@ -35,13 +35,13 @@ public:
     [[nodiscard]] QString clipPath(const QString& id) const;
     [[nodiscard]] static bool validId(const QString& id);
 
-    /// Newest first. Copies `mpegPath` into history/ when it exists.
-    /// `copiedMpeg` receives the history/ destination when the copy succeeds.
+    /// Newest first. Copies `clipPath` into history/ when it exists.
+    /// `copiedClip` receives the history/ destination when the copy succeeds.
     bool record(const QString& phrase, const QString& backend, const QString& modelId,
-                const QString& voiceId, const QString& mpegPath, QString* error = nullptr,
-                QString* copiedMpeg = nullptr);
+                const QString& voiceId, const QString& clipPath, QString* error = nullptr,
+                QString* copiedClip = nullptr);
 
-    /// Drop the row and its MPEG. Returns false if `id` is unknown.
+    /// Drop the row and its clip. Returns false if `id` is unknown.
     bool remove(const QString& id, QString* error = nullptr);
 
     void evictOldestHistory();
@@ -52,6 +52,7 @@ public:
 
 private:
     static QString makeId();
+    void deleteClip(const QString& id) const;
     void trimToCap();
 
     QString m_root;
