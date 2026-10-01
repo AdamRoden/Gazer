@@ -35,6 +35,7 @@
 #include "layout/PageCatalog.h"
 #include "layout/PageSession.h"
 #include "layout/PageTypes.h"
+#include "predict/TypingContext.h"
 #include "mapping/MappingEngine.h"
 #include "ui/MagnifierOverlay.h"
 #include "ui/ProgressVisuals.h"
@@ -42,6 +43,7 @@
 #include "utils/WinOverlay.h"
 
 #include <QColor>
+#include <QCoreApplication>
 #include <QDir>
 #include <QFile>
 #include <QPoint>
@@ -307,6 +309,30 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
         }
     });
 
+    m_typing = std::make_unique<TypingContext>(&m_compose->predictor(), this);
+    m_typing->setListener([this](const QHash<QChar, double>& distribution) {
+        if (m_pages) {
+            m_pages->setKeyDistribution(distribution);
+        }
+    });
+    {
+        const QString shipped = QDir(QCoreApplication::applicationDirPath())
+                                    .filePath(QStringLiteral("resources/predict/charprior.bin"));
+        const QString appData = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+        QString userChar;
+        QString userWord;
+        if (!appData.isEmpty()) {
+            QDir().mkpath(appData);
+            userChar = QDir(appData).filePath(QStringLiteral("char-prior-user.bin"));
+            userWord = QDir(appData).filePath(QStringLiteral("predict-user.bin"));
+        }
+        QString priorErr;
+        if (!m_typing->load(shipped, userChar, userWord, &priorErr) && !priorErr.isEmpty()) {
+            GAZER_WARN << "Character prior unavailable:" << priorErr;
+        }
+    }
+    m_compose->setTypingContext(m_typing.get());
+
     applySettings(false);
     refreshActiveIndicators();
     return true;
@@ -509,6 +535,7 @@ void GazerServices::applySettings(bool persist)
         m_pages->setTheme(m_settings.resolvedTheme());
         m_pages->setDwellTiming(m_settings.dwellSequence, m_settings.rapidDwellSequence,
                                m_settings.dwellGraceMs, m_settings.scanGraceMs);
+        m_pages->setKeyGravity(m_settings.keyGravity);
     }
 
     m_mouseDwellMove->setDwellMs(m_settings.mouseMoveDwellMs);

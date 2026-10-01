@@ -118,6 +118,15 @@ public:
     [[nodiscard]] bool isLexiconWord(const QString& word) const;
     [[nodiscard]] QVector<Hit> suggest(const Query& query, int limit) const;
 
+    /// Next-symbol mass from the lexicon and personal word counts. Not the spelling beam.
+    /// A word equal to `query.typed` contributes to space; a longer word contributes its next
+    /// character. Empty `typed` uses the next-word distribution's first letters.
+    struct NextChar {
+        QChar symbol;
+        double mass = 0;
+    };
+    [[nodiscard]] QVector<NextChar> nextCharMass(const Query& query) const;
+
     /// Count an accepted or exactly typed word. `left` is the sentence context before it.
     void observe(const QStringList& left, const QString& word);
     bool loadUser(const QString& path);

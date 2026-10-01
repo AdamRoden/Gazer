@@ -39,6 +39,7 @@ class SpeechEngine;
 class SpeechHistory;
 class SpeechSecrets;
 class TtsService;
+class TypingContext;
 
 /// Composition root for domain services (not tray/tracker UI shell).
 /// Accessors return references; include the domain header at the call site.
@@ -65,6 +66,7 @@ public:
     ClipPlayer& clipPlayer() { return *m_clips; }
     CommandRegistry& commands() { return *m_commands; }
     ComposeUi& composeUi() { return *m_compose; }
+    TypingContext* typing() { return m_typing.get(); }
     AhkLauncher& ahk() { return *m_ahk; }
     SidecarHost& sidecars() { return *m_sidecars; }
     LookToMaps& lookToMaps() { return *m_lookToMaps; }
@@ -120,6 +122,8 @@ private:
     std::unique_ptr<SoundboardStore> m_board;
     std::unique_ptr<SpeechHistory> m_history;
     std::unique_ptr<ComposeUi> m_compose;
+    /// Declared after compose so this is destroyed first, while the predictor can still save.
+    std::unique_ptr<TypingContext> m_typing;
     std::unique_ptr<AhkLauncher> m_ahk;
     std::unique_ptr<SidecarHost> m_sidecars;
     std::unique_ptr<LookToMaps> m_lookToMaps;

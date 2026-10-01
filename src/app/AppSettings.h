@@ -33,6 +33,8 @@ struct AppSettings {
     QVector<int> rapidDwellSequence = defaultRapidDwellSequence();
     /// Time on-target before dwell progress / sequence begins (ms).
     int scanGraceMs = 100;
+    /// How strongly likely next characters pull gaze and shorten rapid dwell. 0 is off.
+    int keyGravity = 55;
     int dwellGraceMs = 200;
     int mouseMoveDwellMs = 800;
     /// Dwell for the first mag-pick step (choose region to magnify).

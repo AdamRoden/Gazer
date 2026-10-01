@@ -165,6 +165,7 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
     }
 
     scanGraceMs = o.value(QStringLiteral("scanGraceMs")).toInt(scanGraceMs);
+    keyGravity = o.value(QStringLiteral("keyGravity")).toInt(keyGravity);
     dwellGraceMs = o.value(QStringLiteral("dwellGraceMs")).toInt(dwellGraceMs);
     mouseMoveDwellMs = o.value(QStringLiteral("mouseMoveDwellMs")).toInt(mouseMoveDwellMs);
     magPickDwellMs = o.value(QStringLiteral("magPickDwellMs")).toInt(magPickDwellMs);
@@ -487,6 +488,7 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     }
     o.insert(QStringLiteral("rapidDwellSequence"), rapidSeq);
     o.insert(QStringLiteral("scanGraceMs"), copy.scanGraceMs);
+    o.insert(QStringLiteral("keyGravity"), copy.keyGravity);
     o.insert(QStringLiteral("dwellGraceMs"), copy.dwellGraceMs);
     o.insert(QStringLiteral("mouseMoveDwellMs"), copy.mouseMoveDwellMs);
     o.insert(QStringLiteral("magPickDwellMs"), copy.magPickDwellMs);

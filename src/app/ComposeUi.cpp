@@ -13,6 +13,7 @@
 #include "assist/TtsService.h"
 #include "layout/PageSession.h"
 #include "layout/PageTypes.h"
+#include "predict/TypingContext.h"
 #include "ui/BoardPaint.h"
 #include "ui/Theme.h"
 #include "utils/Log.h"
@@ -21,7 +22,6 @@
 #include <QDir>
 #include <QFontMetrics>
 #include <QObject>
-#include <QStandardPaths>
 #include <QStringView>
 #include <QtGlobal>
 #include <QVector>
@@ -56,6 +56,14 @@ ComposeUi::ComposeUi(PageSession& pages, SpeechEngine& speech, AppSettings& sett
 }
 
 ComposeUi::~ComposeUi() = default;
+
+void ComposeUi::setTypingContext(TypingContext* typing)
+{
+    m_typing = typing;
+    if (m_typing && !nameEditing()) {
+        m_typing->syncPhrase(m_buffer.text(), m_buffer.caret());
+    }
+}
 
 bool ComposeUi::isCapturing(const QString& sourcePageId) const
 {
@@ -146,6 +154,9 @@ void ComposeUi::refresh()
     updatePredictions();
     m_pages.refreshDecorated();
     m_pages.refreshActive();
+    if (m_typing && !nameEditing()) {
+        m_typing->syncPhrase(m_buffer.text(), m_buffer.caret());
+    }
 }
 
 void ComposeUi::refreshLiveBoards()
@@ -200,9 +211,10 @@ void ComposeUi::insertText(QStringView chars)
     if (m_settings.composePredictions && !nameEditing() && chars == QLatin1String(" ")) {
         const WordPredictor::Query q = WordPredictor::fromPhrase(m_buffer.text(), m_buffer.caret());
         if (!q.typed.isEmpty() && m_predictor.isLexiconWord(q.typed)) {
-            m_predictor.observe(q.sentenceWords, q.typed);
-            if (!m_predictUserPath.isEmpty()) {
-                m_predictor.saveUser(m_predictUserPath);
+            if (m_typing) {
+                m_typing->noteAcceptedWord(q.sentenceWords, q.typed);
+            } else {
+                m_predictor.observe(q.sentenceWords, q.typed);
             }
         }
     }
@@ -588,12 +600,6 @@ void ComposeUi::loadPredictor()
         m_predictWarned = true;
         GAZER_WARN << "Word predictions unavailable:" << err;
     }
-    const QString dir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    if (!dir.isEmpty()) {
-        QDir().mkpath(dir);
-        m_predictUserPath = QDir(dir).filePath(QStringLiteral("predict-user.bin"));
-        m_predictor.loadUser(m_predictUserPath);
-    }
 }
 
 void ComposeUi::updatePredictions()
@@ -716,9 +722,10 @@ void ComposeUi::acceptPrediction(int slot)
     const ShownPrediction shown = m_shown[slot];
     m_buffer.replaceRange(shown.start, shown.end, shown.insertText);
     if (m_settings.composePredictions) {
-        m_predictor.observe(shown.learnLeft, shown.learnWord);
-        if (!m_predictUserPath.isEmpty()) {
-            m_predictor.saveUser(m_predictUserPath);
+        if (m_typing) {
+            m_typing->noteAcceptedWord(shown.learnLeft, shown.learnWord);
+        } else {
+            m_predictor.observe(shown.learnLeft, shown.learnWord);
         }
     }
     refresh();

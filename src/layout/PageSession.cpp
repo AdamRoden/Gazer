@@ -593,6 +593,8 @@ void PageSession::ingest(const PageDocument& doc, bool isMaster, QVector<PageTar
 
 void PageSession::rebuild()
 {
+    m_gravityCells.clear();
+    m_gravityScale = -1;
     syncExpanded();
     QString hostedErr;
     if (!gatherHosted(&hostedErr)) {

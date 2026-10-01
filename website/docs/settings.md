@@ -6,7 +6,7 @@ The hub and the tab bar are the same eight boards. **Done** on the tab bar close
 
 | Board | What you change |
 |-------|-----------------|
-| **Dwell** | Slow / Normal / Fast / Custom. Standard and rapid sequences. Scan grace, blink grace, button progress, and pointer progress (ring, pie, fill). |
+| **Dwell** | Slow / Normal / Fast / Custom. Standard and rapid sequences. Likely keys pulls rapid character keys toward what you tend to type next. Scan grace, blink grace, button progress, and pointer progress (ring, pie, fill). |
 | **Zoom** | Magnify pick, foresight, repeat zoom, zoom dwell, foresight dwell and hold, window level / size / fill / shape / position, region markers, and Move to…. |
 | **Place** | Pointer dwell, pointer grace, final-pick markers, Move to…, and ComboMouse radii and colors. |
 | **Gaze** | Gaze follow (slow / sticky / smooth / snappy), show gaze, gaze mouse, the live lens, and the four look-to maps. |

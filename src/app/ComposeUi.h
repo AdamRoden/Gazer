@@ -17,6 +17,7 @@ namespace gazer {
 class AppSettings;
 class ElevenClient;
 class PageSession;
+class TypingContext;
 class SoundboardStore;
 class SpeechHistory;
 class SpeechEngine;
@@ -40,6 +41,8 @@ public:
 
     void setApplyFn(std::function<void()> fn) { m_apply = std::move(fn); }
     void setNotifyFn(std::function<void(const QString&)> fn) { m_notify = std::move(fn); }
+    void setTypingContext(TypingContext* typing);
+    [[nodiscard]] WordPredictor& predictor() { return m_predictor; }
 
     [[nodiscard]] bool isOpen() const;
     [[nodiscard]] bool assignMode() const;
@@ -223,7 +226,7 @@ private:
     };
     QVector<ShownPrediction> m_shown;
     WordPredictor m_predictor;
-    QString m_predictUserPath;
+    TypingContext* m_typing = nullptr;
     bool m_predictWarned = false;
     InvalidGazeGrace m_listScrollGrace;
     QElapsedTimer m_listScrollClock;

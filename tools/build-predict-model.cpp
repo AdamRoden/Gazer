@@ -1,7 +1,10 @@
+#include "predict/CharPrior.h"
 #include "predict/WordPredictor.h"
 
 #include <QCoreApplication>
+#include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QTextStream>
 
 namespace {
@@ -63,10 +66,30 @@ int main(int argc, char** argv)
         err << error << "\n";
         return 1;
     }
-    if (!model.saveFile(QString::fromLocal8Bit(argv[3]), &error)) {
+    const QString modelPath = QString::fromLocal8Bit(argv[3]);
+    if (!model.saveFile(modelPath, &error)) {
+        err << error << "\n";
+        return 1;
+    }
+    QVector<gazer::CharPrior::WordUse> uses;
+    uses.reserve(usage.size());
+    for (const gazer::WordPredictor::UsageCount& row : usage) {
+        gazer::CharPrior::WordUse use;
+        use.word = row.word;
+        use.count = row.count;
+        uses.push_back(use);
+    }
+    gazer::CharPrior prior;
+    if (!prior.build(lines, uses, &error)) {
+        err << error << "\n";
+        return 1;
+    }
+    const QString priorPath = QFileInfo(modelPath).dir().filePath(QStringLiteral("charprior.bin"));
+    if (!prior.saveFile(priorPath, &error)) {
         err << error << "\n";
         return 1;
     }
     err << "words loaded from usage list: " << usage.size() << "\n";
+    err << "character prior: " << priorPath << "\n";
     return 0;
 }

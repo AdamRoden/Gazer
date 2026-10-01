@@ -21,6 +21,12 @@ Two sequences share scan grace:
 
 Both live under Settings → **Dwell** (Slow / Normal / Fast / Custom). Per-cell XML can override `scanGrace`, `dwellGrace`, and `activation`.
 
+## Likely keys
+
+**Likely keys** (Settings → **Dwell**, under Rapid) pulls the dwell target toward the next character you probably want, and shortens that key’s rapid steps. After `t`, `h` is easier to land than `g` or `j`. After a finished word, Space is easier than the letters beside it. The pull learns from what you type on every keyboard. `0` turns it off.
+
+The gaze marker stays on the measured point. The center of a key always wins, and Shift, Backspace, Enter, and the other non-character keys keep their real bounds. A per-cell `activation` sequence keeps the times written in the layout.
+
 ## Pause dwell
 
 **Pause dwell** on the drawer, or the **Sleep** chip, suspends dwell everywhere except `suspendExempt` unlock targets (the Main chip also resumes). A dim screen border leaves a gap at those targets. Suspend and resume hold 500 ms before a new dwell can start.

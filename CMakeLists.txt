@@ -78,6 +78,7 @@ set(GAZER_SOURCES
     src/layout/PageResolve.cpp
     src/layout/PageDetector.cpp
     src/layout/PageHit.cpp
+    src/layout/KeyGravity.cpp
     src/layout/PageCompose.cpp
     src/layout/PageSession.cpp
     src/layout/PageSessionAttach.cpp
@@ -119,6 +120,9 @@ set(GAZER_SOURCES
     src/predict/PredictBeam.cpp
     src/predict/PredictScore.cpp
     src/predict/PredictBlob.cpp
+    src/predict/PredictNext.cpp
+    src/predict/CharPrior.cpp
+    src/predict/TypingContext.cpp
     src/assist/AhkLauncher.cpp
     src/assist/ChildProcess.cpp
     src/assist/SidecarHost.cpp
@@ -251,6 +255,9 @@ set(GAZER_HEADERS
     src/assist/SystemVolume.h
     src/assist/ComposeBuffer.h
     src/predict/WordPredictor.h
+    src/predict/CharPrior.h
+    src/predict/TypingContext.h
+    src/layout/KeyGravity.h
     src/assist/SpeechSecrets.h
     src/assist/ElevenClient.h
     src/assist/AhkLauncher.h
@@ -463,6 +470,7 @@ set(GAZER_PAGE_TEST_LIB
     src/layout/PageResolve.cpp
     src/layout/PageDetector.cpp
     src/layout/PageHit.cpp
+    src/layout/KeyGravity.cpp
     src/layout/PageCompose.cpp
     src/layout/PageWriter.cpp
     src/layout/PageEdit.cpp
@@ -520,6 +528,7 @@ add_executable(GazerPageTests
     tests/KeyStateManagerTest.cpp
     tests/ColorPickerHexTest.cpp
     tests/HeadPoseMapperTest.cpp
+    tests/KeyGravityTest.cpp
     src/mapping/HeadPoseCurve.cpp
     src/input/KeyStateManager.cpp
     src/input/KeyGlyphs.cpp
@@ -566,13 +575,20 @@ add_test(NAME GazerSpeechTests COMMAND GazerSpeechTests)
 add_executable(GazerPredictTests
     tests/predict_tests_main.cpp
     tests/PredictTest.cpp
+    tests/CharPriorTest.cpp
     src/predict/PredictModel.cpp
     src/predict/PredictBeam.cpp
     src/predict/PredictScore.cpp
     src/predict/PredictBlob.cpp
+    src/predict/PredictNext.cpp
+    src/predict/CharPrior.cpp
+    src/predict/TypingContext.cpp
     src/predict/PredictTrain.cpp
 )
 target_include_directories(GazerPredictTests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_compile_definitions(GazerPredictTests PRIVATE
+    "GAZER_SOURCE_DIR=\"${CMAKE_SOURCE_DIR}\""
+)
 target_link_libraries(GazerPredictTests PRIVATE Qt6::Core Qt6::Test)
 add_test(NAME GazerPredictTests COMMAND GazerPredictTests)
 
@@ -582,6 +598,7 @@ add_executable(BuildPredictModel
     src/predict/PredictBeam.cpp
     src/predict/PredictScore.cpp
     src/predict/PredictBlob.cpp
+    src/predict/CharPrior.cpp
     src/predict/PredictTrain.cpp
 )
 target_include_directories(BuildPredictModel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)

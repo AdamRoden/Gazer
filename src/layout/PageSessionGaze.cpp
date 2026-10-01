@@ -1,5 +1,6 @@
 #include "layout/PageSession.h"
 
+#include "layout/KeyGravity.h"
 #include "layout/PageHit.h"
 #include "ui/PageHostWindow.h"
 #include "utils/ScreenGrab.h"
@@ -7,6 +8,9 @@
 #include <QStringList>
 #include <QTransform>
 #include <QtGlobal>
+
+#include <algorithm>
+#include <cmath>
 
 namespace gazer {
 
@@ -131,20 +135,124 @@ const PageTarget* PageSession::findTarget(const QString& id) const
     return nullptr;
 }
 
+void PageSession::setKeyGravity(int strength)
+{
+    m_keyGravity = qBound(0, strength, 100);
+}
+
+void PageSession::setKeyDistribution(const QHash<QChar, double>& distribution)
+{
+    m_keyProb = distribution;
+}
+
+double PageSession::keySurprise(const PageTarget& t) const
+{
+    const QChar symbol = characterSymbol(t);
+    if (symbol.isNull() || m_keyProb.isEmpty()) {
+        return 0;
+    }
+    double sum = 0;
+    int count = 0;
+    double self = 0;
+    bool haveSelf = false;
+    for (const PageTarget& cell : m_targets) {
+        if (cell.gridId != t.gridId) {
+            continue;
+        }
+        const QChar next = characterSymbol(cell);
+        if (next.isNull()) {
+            continue;
+        }
+        const double p = std::max(m_keyProb.value(next, 0.0), 1e-6);
+        const double logP = std::log(p);
+        sum += logP;
+        ++count;
+        if (next == symbol) {
+            self = logP;
+            haveSelf = true;
+        }
+    }
+    if (!haveSelf || count <= 0) {
+        return 0;
+    }
+    return std::clamp(self - (sum / double(count)), -1.0, 1.0);
+}
+
+void PageSession::ensureGravityCells(const QTransform& xf) const
+{
+    const bool sameBoard = m_gravityCells.size() == m_targets.size() && m_gravityScale >= 0;
+    if (sameBoard && m_gravityScale == m_drawerScale && m_gravityXf == xf) {
+        return;
+    }
+    if (!sameBoard) {
+        m_gravityCells.resize(m_targets.size());
+    }
+    for (int i = 0; i < m_targets.size(); ++i) {
+        const PageTarget& t = m_targets.at(i);
+        KeyGravityCell& cell = m_gravityCells[i];
+        if (!sameBoard) {
+            cell.id = sessionKey(t);
+            cell.gridId = t.gridId;
+            cell.symbol = characterSymbol(t);
+        }
+        cell.rect = PageHit::mapDrawer(t, t.geom.dwellZone, xf, m_drawerScale);
+    }
+    m_gravityXf = xf;
+    m_gravityScale = m_drawerScale;
+}
+
+const PageTarget* PageSession::biasCharacter(const PageTarget* hit, const QPointF& gaze) const
+{
+    if (!hit || m_keyGravity <= 0) {
+        return hit;
+    }
+    const QTransform xf = hitXf();
+    ensureGravityCells(xf);
+    KeyGravityQuery query;
+    query.cells = m_gravityCells;
+    query.gaze = gaze;
+    query.strength = m_keyGravity;
+    query.probability = &m_keyProb;
+    query.stickyId = m_hoverId;
+    query.geometricIndex = -1;
+    for (int i = 0; i < m_targets.size(); ++i) {
+        if (&m_targets.at(i) == hit) {
+            query.geometricIndex = i;
+            break;
+        }
+    }
+    if (query.geometricIndex < 0) {
+        return hit;
+    }
+    const int pick = keyGravityPick(query);
+    if (pick < 0 || pick >= m_targets.size()) {
+        return hit;
+    }
+    return &m_targets.at(pick);
+}
+
 void PageSession::applyDwellFor(const PageTarget& t)
 {
     const bool rapid = usesRapidDwell(t.actions, t.phases);
     int scan = m_scanGraceMs;
     int grace = m_blinkGraceMs;
-    QVector<int> seq = rapid ? m_rapidSequence : m_standardSequence;
     if (t.dwell.scanGrace) {
         scan = *t.dwell.scanGrace;
     }
     if (t.dwell.dwellGrace) {
         grace = *t.dwell.dwellGrace;
     }
-    if (t.dwell.activation && !t.dwell.activation->isEmpty()) {
+    QVector<int> seq;
+    if (rapid) {
+        const QVector<int>* authored = nullptr;
+        if (t.dwell.activation && !t.dwell.activation->isEmpty()) {
+            authored = &(*t.dwell.activation);
+        }
+        seq = chooseRapidSteps(m_rapidSequence, authored, m_keyGravity, keySurprise(t));
+    } else if (t.dwell.activation && !t.dwell.activation->isEmpty()) {
         seq = *t.dwell.activation;
+    } else {
+        seq = m_standardSequence;
     }
     m_dwell.setScanGraceMs(scan);
     m_dwell.setInvalidGraceMs(grace);
@@ -241,6 +349,9 @@ bool PageSession::feedGaze(const GazePoint& point, const GazeHit& classified, Ga
     if (blockedByLeaveGate(hit)) {
         leaveGaze();
         return classified.overBoard;
+    }
+    if (m_keyGravity > 0 && hit) {
+        hit = biasCharacter(hit, point.toPointF());
     }
     const QString id = hit ? sessionKey(*hit) : QString();
     if (hit && !m_dwellSuspended) {

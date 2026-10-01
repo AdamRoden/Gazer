@@ -154,8 +154,8 @@ void SettingsLayoutTest::timingSectionUsesRowWeights()
     const PageGrid* dwell = doc.findGrid(QStringLiteral("sec_dwell"));
     QVERIFY(dwell);
     QCOMPARE(dwell->styleId, QStringLiteral("group"));
-    QCOMPARE(dwell->rows, 3);
-    QCOMPARE(PageDimParse::tokenList(dwell->rowTracks), QStringLiteral("*,2*,2*"));
+    QCOMPARE(dwell->rows, 4);
+    QCOMPARE(PageDimParse::tokenList(dwell->rowTracks), QStringLiteral("*,2*,2*,2*"));
     const PageGrid* standard = doc.findGrid(QStringLiteral("row_dwell"));
     QVERIFY(standard);
     QCOMPARE(standard->styleId, QStringLiteral("row"));
@@ -355,8 +355,11 @@ void SettingsLayoutTest::presetsComeFirst()
     QVERIFY(presets->row < dwell->row);
     QCOMPARE(doc.findGrid(QStringLiteral("row_dwell"))->row, 1);
     QCOMPARE(doc.findGrid(QStringLiteral("row_rapid_dwell"))->row, 2);
+    QCOMPARE(doc.findGrid(QStringLiteral("row_key_gravity"))->row, 3);
     QCOMPARE(doc.findCell(QStringLiteral("dwell_label"))->label, QStringLiteral("Standard"));
     QCOMPARE(doc.findCell(QStringLiteral("rapid_dwell_label"))->label, QStringLiteral("Rapid"));
+    QCOMPARE(doc.findCell(QStringLiteral("gravity_label"))->label, QStringLiteral("Likely keys"));
+    QCOMPARE(doc.findCell(QStringLiteral("gravity_val"))->settingKey, QStringLiteral("keyGravity"));
     QVERIFY(!doc.findGrid(QStringLiteral("sec_rapid")));
     QVERIFY(!doc.findGrid(QStringLiteral("sec_designer")));
     const PageCell* slow = doc.findCell(QStringLiteral("p_slow"));

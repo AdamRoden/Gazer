@@ -68,6 +68,8 @@ struct PredictModel {
 
 namespace predict_detail {
 
+/// Letter, digit, apostrophe, or hyphen. Shared by `normWord` and key-stream tokens.
+[[nodiscard]] bool isWordChar(QChar c);
 [[nodiscard]] QString normWord(QStringView word);
 [[nodiscard]] bool isClosedClass(const QString& norm);
 [[nodiscard]] int lexiconId(const PredictModel& m, const QString& norm);

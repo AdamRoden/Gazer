@@ -37,6 +37,7 @@ QObject* createActionLoopServiceTest();
 QObject* createKeyStateManagerTest();
 QObject* createColorPickerHexTest();
 QObject* createHeadPoseMapperTest();
+QObject* createKeyGravityTest();
 
 namespace {
 
@@ -126,5 +127,7 @@ int main(int argc, char** argv)
     runSuite("ColorPickerHexTest", colorHex.get(), false);
     std::unique_ptr<QObject> headPose(createHeadPoseMapperTest());
     runSuite("HeadPoseMapperTest", headPose.get(), false);
+    std::unique_ptr<QObject> gravity(createKeyGravityTest());
+    runSuite("KeyGravityTest", gravity.get(), false);
     return status;
 }

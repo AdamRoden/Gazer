@@ -79,6 +79,8 @@ void AppSettingsTest::factoryUsesDomainConstants()
     QCOMPARE(s.magPickDwellMs, pack.magPickDwellMs);
     QCOMPARE(s.dwellGraceMs, pack.blinkGraceMs);
     QCOMPARE(s.scanGraceMs, 100);
+    QCOMPARE(s.keyGravity, 55);
+    QCOMPARE(s.displayValue(QStringLiteral("keyGravity")), QStringLiteral("55"));
     QVERIFY(s.showSplash);
     QCOMPARE(s.magPickStyle, PickStyle::kDefaultMagPick);
     QCOMPARE(s.mousePickStyle, PickStyle::kDefaultMousePick);
@@ -221,6 +223,7 @@ void AppSettingsTest::loadOmitsRapidKeepsDefault()
     QCOMPARE(s.dwellSequence, (QVector<int>{1200, 1000, 800, 600, 400}));
     QCOMPARE(s.rapidDwellSequence, AppSettings::defaultRapidDwellSequence());
     QCOMPARE(s.scanGraceMs, 200);
+    QCOMPARE(s.keyGravity, 55);
     QCOMPARE(s.magPickDwellMs, 1200);
     QCOMPARE(s.dwellPreset(), 3);
 }
@@ -229,6 +232,7 @@ void AppSettingsTest::rapidDwellRoundTrip()
 {
     AppSettings s;
     s.setDwellPreset(2);
+    s.keyGravity = 80;
     QTemporaryDir dir;
     QVERIFY(dir.isValid());
     const QString path = dir.filePath(QStringLiteral("settings.json"));
@@ -238,6 +242,7 @@ void AppSettingsTest::rapidDwellRoundTrip()
     const QByteArray json = jsonFile.readAll();
     jsonFile.close();
     QVERIFY(json.contains("\"rapidDwellSequence\""));
+    QVERIFY(json.contains("\"keyGravity\""));
     QVERIFY(json.contains("\"customRapidDwellSequence\""));
     QVERIFY(!json.contains("\"customrapidDwellSequence\""));
     QVERIFY(!json.contains("\"themeCustom\""));
@@ -248,6 +253,10 @@ void AppSettingsTest::rapidDwellRoundTrip()
     QCOMPARE(b.dwellPreset(), 2);
     QCOMPARE(b.rapidDwellSequence, (QVector<int>{100, 600, 400, 250, 150, 50}));
     QCOMPARE(b.scanGraceMs, 100);
+    QCOMPARE(b.keyGravity, 80);
+    AppSettings off;
+    off.keyGravity = 0;
+    QCOMPARE(off.displayValue(QStringLiteral("keyGravity")), QStringLiteral("Off"));
 }
 
 void AppSettingsTest::namedColorsResolveFromPalette()

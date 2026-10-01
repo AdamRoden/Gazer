@@ -8,6 +8,7 @@
 #include "assist/SoundboardStore.h"
 #include "layout/PageSession.h"
 #include "layout/PageTypes.h"
+#include "predict/TypingContext.h"
 #include "ui/Theme.h"
 
 #include <QUuid>
@@ -106,6 +107,9 @@ void ComposeUi::endNameEdit(bool restorePhrase)
 {
     if (restorePhrase) {
         m_buffer.load(m_nameEditBackup);
+        if (m_typing) {
+            m_typing->adoptPhrase(m_buffer.text(), m_buffer.caret());
+        }
     }
     m_nameEdit = NameEditKind::None;
     m_editId.clear();

@@ -14,6 +14,7 @@
 #include "input/MouseInjector.h"
 #include "layout/PageDim.h"
 #include "layout/PageSession.h"
+#include "predict/TypingContext.h"
 #include "utils/Log.h"
 #include "utils/ScreenGrab.h"
 
@@ -54,6 +55,26 @@ MouseDwellMove::ArmZoom armZoomFrom(const PageAction& a)
 }
 
 } // namespace
+
+void TypingContext::noteAction(const QString& pageId, const PageAction& action)
+{
+    switch (action.type) {
+    case PageActionType::Command:
+        noteCommand(pageId, action.command);
+        break;
+    case PageActionType::Send:
+        noteSend(pageId, action.sendKey, action.sendEdge);
+        break;
+    case PageActionType::Nav:
+    case PageActionType::HostPage:
+    case PageActionType::GoBack:
+    case PageActionType::Click:
+        resetContext();
+        break;
+    default:
+        break;
+    }
+}
 
 ActionDispatcher::ActionDispatcher(GazerServices& services, QObject* parent)
     : QObject(parent)
@@ -116,10 +137,18 @@ void ActionDispatcher::dispatchPage(const QVector<PageAction>& actions, const QS
         if (m_svc.composeUi().tryHandle(a, sourcePageId)) {
             continue;
         }
+        auto committed = [&](bool ok) {
+            if (ok) {
+                if (TypingContext* typing = m_svc.typing()) {
+                    typing->noteAction(sourcePageId, a);
+                }
+            }
+            return ok;
+        };
         switch (a.type) {
         case PageActionType::Command: {
             QString err;
-            if (!m_svc.commands().run({a.command, sourcePageId}, &err)) {
+            if (!committed(m_svc.commands().run({a.command, sourcePageId}, &err))) {
                 notify(err.isEmpty() ? QStringLiteral("Command failed: %1").arg(a.command) : err);
             }
             break;
@@ -133,7 +162,7 @@ void ActionDispatcher::dispatchPage(const QVector<PageAction>& actions, const QS
                 m_svc.comboMouse().setEnabled(false);
             }
             QString err;
-            if (!m_svc.pages().applyNav(a, sourcePageId, targetId, &err)) {
+            if (!committed(m_svc.pages().applyNav(a, sourcePageId, targetId, &err))) {
                 notify(err.isEmpty() ? QStringLiteral("Page action failed") : err);
             }
             break;
@@ -161,14 +190,14 @@ void ActionDispatcher::dispatchPage(const QVector<PageAction>& actions, const QS
             } else {
                 ok = keys.activate(a.sendKey, &err);
             }
-            if (!ok) {
+            if (!committed(ok)) {
                 notify(err.isEmpty() ? QStringLiteral("Send failed") : err);
             }
             break;
         }
         case PageActionType::Click: {
             QString err;
-            if (!dispatchClick(a, &err)) {
+            if (!committed(dispatchClick(a, &err))) {
                 notify(err.isEmpty() ? QStringLiteral("Click failed") : err);
             }
             break;

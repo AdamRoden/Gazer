@@ -122,18 +122,20 @@ void pushUnique(QVector<int>& ids, QSet<int>& seen, int id, int cap)
 
 } // namespace
 
+bool isWordChar(QChar c)
+{
+    return c.isLetterOrNumber() || c == QLatin1Char('\'') || c == QLatin1Char('-');
+}
+
 QString normWord(QStringView word)
 {
     const QString raw = word.toString().toLower();
     int a = 0;
     int b = raw.size();
-    const auto keep = [](QChar c) {
-        return c.isLetterOrNumber() || c == QLatin1Char('\'') || c == QLatin1Char('-');
-    };
-    while (a < b && !keep(raw[a])) {
+    while (a < b && !isWordChar(raw[a])) {
         ++a;
     }
-    while (b > a && !keep(raw[b - 1])) {
+    while (b > a && !isWordChar(raw[b - 1])) {
         --b;
     }
     return raw.mid(a, b - a);

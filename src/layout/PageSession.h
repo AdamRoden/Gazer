@@ -4,6 +4,7 @@
 #include "layout/DwellPhase.h"
 #include "layout/DwellStateMachine.h"
 #include "layout/InvalidGazeGrace.h"
+#include "layout/KeyGravity.h"
 #include "layout/PageHit.h"
 #include "layout/PageNav.h"
 #include "layout/PageTypes.h"
@@ -18,6 +19,7 @@
 #include <QScreen>
 #include <QString>
 #include <QTimer>
+#include <QTransform>
 #include <QVariantMap>
 #include <QVector>
 #include <functional>
@@ -95,6 +97,9 @@ public:
     void setThemeChromeVisibility(bool hoverCustom, bool flashCustom);
     void setDwellTiming(const QVector<int>& standard, const QVector<int>& rapid,
                         int blinkGraceMs, int scanGraceMs);
+    /// 0 leaves rapid character hits geometric. 100 is the full capture band.
+    void setKeyGravity(int strength);
+    void setKeyDistribution(const QHash<QChar, double>& distribution);
 
     void setAutoCollapseMain(bool on) { m_autoCollapseMain = on; }
     void setLayoutAutoClose(bool on, int idleMs, int fadeMs = 3000);
@@ -159,6 +164,9 @@ private:
     [[nodiscard]] PageFrame frame() const;
     void rebuild();
     void applyDwellFor(const PageTarget& t);
+    [[nodiscard]] const PageTarget* biasCharacter(const PageTarget* hit, const QPointF& gaze) const;
+    void ensureGravityCells(const QTransform& xf) const;
+    [[nodiscard]] double keySurprise(const PageTarget& t) const;
     void commitDwellPhase(const QString& targetId);
     void advanceDwellPhase(const PageTarget& t);
     void setLivePhase(const QString& key, int index);
@@ -243,6 +251,12 @@ private:
     QVector<int> m_rapidSequence = {400, 600, 400, 300, 200, 100};
     int m_blinkGraceMs = 180;
     int m_scanGraceMs = 100;
+    int m_keyGravity = 55;
+    QHash<QChar, double> m_keyProb;
+    /// Symbols and ids follow the board. Rects follow the drawer transform.
+    mutable QVector<KeyGravityCell> m_gravityCells;
+    mutable QTransform m_gravityXf;
+    mutable double m_gravityScale = -1;
     QString m_hoverId;
     DispatchFn m_dispatch;
     DecorateFn m_decorate;
