@@ -26,7 +26,15 @@ PageTarget volumeSlider(const QString& id, const QRectF& r)
     PageTarget t = box(id, r, false);
     t.role = QStringLiteral("slider");
     t.caption = QStringLiteral("volume");
+    t.dwell.scanGrace = 0;
     return t;
+}
+
+std::optional<VolumeBoard::Gaze> look(const QVector<PageTarget>& targets,
+                                      const QVector<PageGridPaint>& grids, const QPointF& gaze,
+                                      qint64 nowMs, int fallbackGraceMs, VolumeBoard::Arm* arm)
+{
+    return VolumeBoard::at(targets, grids, 1.0, gaze, nowMs, fallbackGraceMs, arm);
 }
 
 } // namespace
@@ -36,7 +44,8 @@ class VolumeBoardTest final : public QObject {
 
 private slots:
     void stampWritesSlidersOnly();
-    void passiveSliderFollowsGaze();
+    void sliderFollowsGaze();
+    void scanGraceArmsThenFollows();
     void frontKeyBlocksTheSlider();
     void coveringPageBlocksTheSlider();
 };
@@ -74,18 +83,56 @@ void VolumeBoardTest::stampWritesSlidersOnly()
     QCOMPARE(doc.zones[0].label, QStringLiteral("37%"));
 }
 
-void VolumeBoardTest::passiveSliderFollowsGaze()
+void VolumeBoardTest::sliderFollowsGaze()
 {
     const QRectF bar(200, 0, 100, 40);
     const QPointF gaze(250, 20);
     const QVector<PageTarget> targets{box(QStringLiteral("key"), QRectF(0, 0, 100, 40), true),
                                       volumeSlider(QStringLiteral("vol"), bar)};
+    VolumeBoard::Arm arm;
 
     QVERIFY(PageHit::at(targets, gaze) == nullptr);
-    const std::optional<int> pct = VolumeBoard::percentAt(targets, {}, 1.0, gaze);
-    QVERIFY(pct.has_value());
-    QCOMPARE(*pct, qRound(SliderTrack::volumeFractionAtX(bar, gaze.x()) * 100.0));
-    QVERIFY(!VolumeBoard::percentAt(targets, {}, 1.0, QPointF(50, 20)).has_value());
+    const std::optional<VolumeBoard::Gaze> on = look(targets, {}, gaze, 0, 100, &arm);
+    QVERIFY(on && on->percent);
+    QCOMPARE(*on->percent, qRound(SliderTrack::volumeFractionAtX(bar, gaze.x()) * 100.0));
+    QVERIFY(!look(targets, {}, QPointF(50, 20), 10, 100, &arm));
+}
+
+void VolumeBoardTest::scanGraceArmsThenFollows()
+{
+    const QRectF bar(0, 0, 100, 40);
+    const QPointF gaze(80, 20);
+    PageTarget vol = volumeSlider(QStringLiteral("vol"), bar);
+    vol.dwell.scanGrace = 2000;
+    const int level = qRound(SliderTrack::volumeFractionAtX(bar, gaze.x()) * 100.0);
+    VolumeBoard::Arm arm;
+
+    const std::optional<VolumeBoard::Gaze> start = look({vol}, {}, gaze, 0, 100, &arm);
+    QVERIFY(start && !start->percent);
+    QCOMPARE(start->arm, 0.0);
+
+    const std::optional<VolumeBoard::Gaze> mid = look({vol}, {}, gaze, 1000, 100, &arm);
+    QVERIFY(mid && !mid->percent);
+    QVERIFY(mid->arm > 0.45);
+    QVERIFY(mid->arm < 0.55);
+
+    const std::optional<VolumeBoard::Gaze> armed = look({vol}, {}, gaze, 2000, 100, &arm);
+    QVERIFY(armed && armed->percent);
+    QCOMPARE(*armed->percent, level);
+    QCOMPARE(armed->arm, 1.0);
+
+    QVERIFY(!look({vol}, {}, QPointF(-10, -10), 2500, 100, &arm));
+    const std::optional<VolumeBoard::Gaze> again = look({vol}, {}, gaze, 2500, 100, &arm);
+    QVERIFY(again && !again->percent);
+
+    PageTarget bare = volumeSlider(QStringLiteral("vol"), bar);
+    bare.dwell.scanGrace.reset();
+    VolumeBoard::Arm fallback;
+    const std::optional<VolumeBoard::Gaze> waiting = look({bare}, {}, gaze, 0, 500, &fallback);
+    QVERIFY(waiting && !waiting->percent);
+    const std::optional<VolumeBoard::Gaze> fell = look({bare}, {}, gaze, 500, 500, &fallback);
+    QVERIFY(fell && fell->percent);
+    QCOMPARE(*fell->percent, level);
 }
 
 void VolumeBoardTest::frontKeyBlocksTheSlider()
@@ -96,7 +143,8 @@ void VolumeBoardTest::frontKeyBlocksTheSlider()
     const QPointF gaze(50, 20);
 
     QCOMPARE(PageHit::at(targets, gaze)->id, QStringLiteral("key"));
-    QVERIFY(!VolumeBoard::percentAt(targets, {}, 1.0, gaze).has_value());
+    VolumeBoard::Arm arm;
+    QVERIFY(!look(targets, {}, gaze, 0, 0, &arm));
 }
 
 void VolumeBoardTest::coveringPageBlocksTheSlider()
@@ -112,8 +160,11 @@ void VolumeBoardTest::coveringPageBlocksTheSlider()
 
     const QVector<PageTarget> targets{back};
     const QVector<PageGridPaint> grids{older, newer};
-    QVERIFY(!VolumeBoard::percentAt(targets, grids, 1.0, QPointF(80, 20)).has_value());
-    QVERIFY(VolumeBoard::percentAt(targets, {older}, 1.0, QPointF(80, 20)).has_value());
+    VolumeBoard::Arm blocked;
+    QVERIFY(!look(targets, grids, QPointF(80, 20), 0, 0, &blocked));
+    VolumeBoard::Arm open;
+    const std::optional<VolumeBoard::Gaze> shown = look(targets, {older}, QPointF(80, 20), 0, 0, &open);
+    QVERIFY(shown && shown->percent);
 }
 
 QObject* createVolumeBoardTest()

@@ -42,6 +42,8 @@ public:
     void setHover(const QString& id, double progress, bool revealProgress = false);
     void flash(const QString& id);
     void setPreviewColor(const QColor& color);
+    /// Live slider thumb. Empty @p id clears it. @p progress is the arming ring.
+    void setSliderScrub(const QString& id, double t, double progress);
     void setHeadPreviewImage(QImage image);
     void setCurve(QVector<HeadPoseCurvePoint> points, int selected, double liveIn, bool liveOn);
     void setTargetPhase(const QString& targetKey, int phaseIndex);

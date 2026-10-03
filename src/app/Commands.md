@@ -148,7 +148,7 @@ When adding a command: register it and add a row here.
 | `speech.volume.dec` / `.inc` | Nudge `speechVolume` 0.5 (1–5× clip boost) |
 | `volume.dec` / `.inc` | Nudge Windows master volume by 10%. Any page. `compose.volume.dec` / `.inc` are the same commands. A `role="slider"` `caption="volume"` cell shows the percent and follows gaze. |
 
-While `compose` is top (or a compose live board), `Send` and mapping keys (`backspace`, `space`, `enter`, `escape`, modifiers) are captured and never reach the OS. Caps uses XML `ShowLayers`.
+While `compose` is top (or a compose live board), `Send` and mapping keys (`backspace`, `space`, `enter`, `escape`, modifiers) are captured and never reach the OS. `volume.dec` / `volume.inc` still nudge the Windows endpoint. Caps uses XML `ShowLayers`.
 
 ## Settings (`SettingsCommands.cpp`)
 

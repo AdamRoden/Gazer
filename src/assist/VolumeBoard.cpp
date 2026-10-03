@@ -1,22 +1,17 @@
 #include "assist/VolumeBoard.h"
 
 #include "assist/SystemVolume.h"
+#include "layout/PageTypes.h"
 #include "ui/SliderTrack.h"
 
 namespace gazer {
 namespace VolumeBoard {
 namespace {
 
-bool isSlider(const QString& role, const QString& caption)
-{
-    return role.compare(QLatin1String("slider"), Qt::CaseInsensitive) == 0
-           && caption.compare(QLatin1String("volume"), Qt::CaseInsensitive) == 0;
-}
-
 void stampGrid(PageGrid& grid, const QString& label)
 {
     for (PageCell& cell : grid.cells) {
-        if (isSlider(cell.role, cell.caption)) {
+        if (isVolumeSlider(cell.role, cell.caption)) {
             cell.label = label;
         }
     }
@@ -34,16 +29,19 @@ void stamp(PageDocument& doc, int percent)
         stampGrid(grid, label);
     }
     for (PageZone& zone : doc.zones) {
-        if (isSlider(zone.role, zone.caption)) {
+        if (isVolumeSlider(zone.role, zone.caption)) {
             zone.label = label;
         }
     }
 }
 
-std::optional<int> percentAt(const QVector<PageTarget>& targets,
-                             const QVector<PageGridPaint>& grids, double drawerScale,
-                             const QPointF& gaze)
+std::optional<Gaze> at(const QVector<PageTarget>& targets, const QVector<PageGridPaint>& grids,
+                       double drawerScale, const QPointF& gaze, qint64 nowMs, int fallbackGraceMs,
+                       Arm* arm)
 {
+    if (!arm) {
+        return std::nullopt;
+    }
     const QTransform xf = PageHit::drawerTransform(targets, drawerScale, grids);
     const PageGridPaint* cover = PageHit::coveringGrid(grids, gaze, drawerScale, targets, &xf);
     const QHash<QString, int> stack = PageHit::pageStackOrder(targets, grids);
@@ -60,12 +58,29 @@ std::optional<int> percentAt(const QVector<PageTarget>& targets,
         if (cell.isEmpty() || !PageHit::shapeContains(cell, t.chrome, gaze)) {
             continue;
         }
-        if (!isSlider(t.role, t.caption)) {
+        if (!isVolumeSlider(t.role, t.caption)) {
+            *arm = {};
             return std::nullopt;
         }
-        return SystemVolume::clampPercent(
-            qRound(SliderTrack::volumeFractionAtX(cell, gaze.x()) * 100.0));
+        const QString key = sessionKey(t);
+        const int grace = t.dwell.scanGrace.value_or(qMax(0, fallbackGraceMs));
+        if (arm->key != key) {
+            arm->key = key;
+            arm->sinceMs = nowMs;
+        }
+        const qint64 elapsed = qMax(qint64(0), nowMs - arm->sinceMs);
+        Gaze out;
+        out.key = key;
+        if (grace <= 0 || elapsed >= grace) {
+            out.arm = 1;
+            out.percent = SystemVolume::clampPercent(
+                qRound(SliderTrack::volumeFractionAtX(cell, gaze.x()) * 100.0));
+        } else {
+            out.arm = static_cast<double>(elapsed) / static_cast<double>(grace);
+        }
+        return out;
     }
+    *arm = {};
     return std::nullopt;
 }
 

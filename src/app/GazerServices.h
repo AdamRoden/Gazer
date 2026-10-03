@@ -2,6 +2,7 @@
 
 #include "app/ActiveStateResolver.h"
 #include "app/AppSettings.h"
+#include "assist/VolumeBoard.h"
 #include "layout/PageTypes.h"
 
 #include <QObject>
@@ -98,8 +99,9 @@ public:
     /// stopAssistOutput, close attached pages, resume dwell.
     void panicReset();
     void setInjectPaused(bool on);
-    /// Gaze along a `caption="volume"` slider sets the Windows master volume.
-    /// The page rebuild is deferred so this sample's dwell still sees the old targets.
+    /// Gaze along a `caption="volume"` slider sets the Windows master volume
+    /// after that cell's scan grace. The page rebuild is deferred so this
+    /// sample's dwell still sees the old targets.
     void feedVolumeGaze(const GazePoint& point);
 
 signals:
@@ -116,6 +118,7 @@ private:
     std::unique_ptr<PageCatalog> m_catalog;
     std::unique_ptr<PageSession> m_pages;
     std::unique_ptr<SystemVolume> m_systemVolume;
+    VolumeBoard::Arm m_volumeArm;
     bool m_volumeRefreshQueued = false;
     std::unique_ptr<KeyStateManager> m_keyState;
     std::unique_ptr<InputService> m_input;

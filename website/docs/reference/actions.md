@@ -172,7 +172,7 @@ Unknown multi-character names fail (`Unknown key: …`). Prefer mapping commands
 
 ### What happens
 
-1. If the source page is a composer capture page and the name is **not** in the allow-through families (`compose.*`, `speech.*`, `soundboard.*`, `history.*`, `settings.speech.*`, `toggleDwellSuspend` / `suspendDwell` / `resumeDwell`), the command is captured ([Composer capture](#composer-capture)).
+1. If the source page is a composer capture page and the name is **not** in the allow-through families (`compose.*`, `speech.*`, `soundboard.*`, `history.*`, `settings.speech.*`, `volume.dec` / `volume.inc`, `toggleDwellSuspend` / `suspendDwell` / `resumeDwell`), the command is captured ([Composer capture](#composer-capture)).
 2. Otherwise `CommandRegistry.run(name, sourcePageId)`:
    1. **Exact builtin** (shell, assist, settings, composer, …).
    2. Else **longest prefix** handler (`settings.edit.`, `compose.removeWord.`, `speech.voice.`, `headPose.map.`, …).
@@ -433,7 +433,7 @@ While the action’s **source page** is `compose`, `compose_voices_live`, `compo
 | `command="enter"` | Speaks (or saves, while renaming). |
 | `command="escape"` | Stops speech if busy; otherwise cancels assign/edit, closes a live overlay, or closes composer. |
 | `leftShift`, `tab`, arrows, other mapping keys | Consumed, no OS inject. |
-| `compose.*` / `speech.*` / `soundboard.*` / `history.*` / `settings.speech.*` / dwell suspend commands | Run as builtins (not captured). |
+| `compose.*` / `speech.*` / `soundboard.*` / `history.*` / `settings.speech.*` / `volume.dec` / `volume.inc` / dwell suspend commands | Run as builtins (not captured). |
 
 `qwerty_main` (and any other non-compose page) still injects into Windows even if composer is open underneath. Caps on the composer keyboard is XML `ShowLayers`, not OS Shift.
 

@@ -83,7 +83,7 @@
     <Cell id="f11" row="0" col="109" colSpan="10" label="F11" send="F11"/>
     <Cell id="f12" row="0" col="119" colSpan="11" label="F12" send="F12"/>
     <Cell id="bkslash" row="0" col="130" colSpan="10" label="\" send="\"/>
-    <Cell id="vol_track" row="0" col="140" colSpan="10" role="slider" caption="volume" label="50%"/>
+    <Cell id="vol_track" row="0" col="140" colSpan="10" role="slider" caption="volume" label="50%" scanGrace="2000"/>
   </Grid>
   <Grid id="vert1" rows="6" columns="1" anchor="TopLeft" offset="2000,0" size="100,740" layers="1,2,3">
     <Cell id="more" row="0" col="0" dwell="vert1" icon="mouse" openPage="example_mouse"/>

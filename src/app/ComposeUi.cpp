@@ -101,6 +101,8 @@ bool ComposeUi::isAllowThroughCommand(const QString& name)
            || name.startsWith(QLatin1String("soundboard."))
            || name.startsWith(QLatin1String("history."))
            || name.startsWith(QLatin1String("settings.speech."))
+           || name == QLatin1String("volume.dec")
+           || name == QLatin1String("volume.inc")
            || name == QLatin1String("toggleDwellSuspend")
            || name == QLatin1String("suspendDwell")
            || name == QLatin1String("resumeDwell");

@@ -503,6 +503,20 @@ void PageHostWindow::flash(const QString& id)
     }
 }
 
+void PageHostWindow::setSliderScrub(const QString& id, double t, double progress)
+{
+    if (m_live.sliderScrubId == id && qFuzzyCompare(m_live.sliderScrubT + 1.0, t + 1.0)
+        && qFuzzyCompare(m_live.sliderScrubProgress + 1.0, progress + 1.0)) {
+        return;
+    }
+    m_live.sliderScrubId = id;
+    m_live.sliderScrubT = t;
+    m_live.sliderScrubProgress = progress;
+    if (m_board) {
+        m_board->update();
+    }
+}
+
 void PageHostWindow::setPreviewColor(const QColor& color)
 {
     const QColor next = color.isValid() ? color : ThemeColors::defaultProgressColor();

@@ -240,7 +240,7 @@ Nested `<SubGrid>` occupies a cell span.
 | `swatch` | yes | Round color well |
 | `swatchrect` | yes | Rounded-rectangle color well |
 | `tab` | yes, unless no actions | No actions = current tab (selected, not a target) |
-| `slider` | yes if it has a command | Gaze-follow scrub; without actions it is passive |
+| `slider` | yes if it has a command | Gaze-follow scrub. Without actions it is passive. A `caption="volume"` slider stays passive; its `scanGrace` elapses before the level follows |
 | `colorfield` | no | HSV saturation×value square (click-at-gaze on the live color picker) |
 | `headpreview` | no | Live 3D head mesh (same renderer as tray Head preview) |
 | `curvefield` | yes if it has a command | Input→output transfer curve. Caption `in,out;in,out;…` is a fallback; the live host supplies typed points. |

@@ -553,6 +553,7 @@ void PageLoaderTest::loadQwertyXml()
     QCOMPARE(vol->role, QStringLiteral("slider"));
     QCOMPARE(vol->caption, QStringLiteral("volume"));
     QVERIFY(!vol->isInteractive());
+    QCOMPARE(vol->dwell.scanGrace.value_or(-1), 2000);
     QCOMPARE(volUp->actions.at(0).command, QStringLiteral("volume.inc"));
     QCOMPARE(volDown->actions.at(0).command, QStringLiteral("volume.dec"));
     const PageCell* fnOff = doc.findCell(QStringLiteral("fn_off"));
@@ -748,6 +749,7 @@ void PageLoaderTest::loadComposePage()
              QStringLiteral("volume.dec"));
     QVERIFY(doc.findCell(QStringLiteral("vol_track")));
     QVERIFY(!doc.findCell(QStringLiteral("vol_track"))->isInteractive());
+    QVERIFY(!doc.findCell(QStringLiteral("vol_track"))->dwell.scanGrace.has_value());
     QVERIFY(!doc.findCell(QStringLiteral("vol_val")));
     QVERIFY(doc.findCell(QStringLiteral("vol_up")));
     QCOMPARE(doc.findCell(QStringLiteral("vol_up"))->actions[0].command,

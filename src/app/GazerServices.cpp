@@ -29,6 +29,7 @@
 #include "assist/TtsService.h"
 #include "assist/VolumeBoard.h"
 #include "core/GazePoint.h"
+#include "ui/PageHostWindow.h"
 #include "input/InjectGate.h"
 #include "input/InputService.h"
 #include "input/InputTypes.h"
@@ -641,15 +642,28 @@ void GazerServices::resetSettingsToDefaults()
 
 void GazerServices::feedVolumeGaze(const GazePoint& point)
 {
+    auto show = [this](const QString& id, double t, double progress) {
+        if (m_pages && m_pages->window()) {
+            m_pages->window()->setSliderScrub(id, t, progress);
+        }
+    };
     if (!m_systemVolume || !m_pages || !point.valid || m_pages->isDwellSuspended()) {
+        m_volumeArm = {};
+        show({}, 0, 0);
         return;
     }
-    const std::optional<int> pct = VolumeBoard::percentAt(
-        m_pages->targets(), m_pages->gridPaints(), m_pages->drawerScale(), point.toPointF());
-    if (!pct) {
+    const std::optional<VolumeBoard::Gaze> g = VolumeBoard::at(
+        m_pages->targets(), m_pages->gridPaints(), m_pages->drawerScale(), point.toPointF(),
+        point.timestampMs, m_settings.scanGraceMs, &m_volumeArm);
+    if (!g) {
+        show({}, 0, 0);
         return;
     }
-    m_systemVolume->setPercent(*pct);
+    const double thumb = (g->percent ? *g->percent : m_systemVolume->percent()) / 100.0;
+    show(g->key, thumb, g->percent ? 0.0 : g->arm);
+    if (g->percent) {
+        m_systemVolume->setPercent(*g->percent);
+    }
 }
 
 void GazerServices::registerDomainCommands()

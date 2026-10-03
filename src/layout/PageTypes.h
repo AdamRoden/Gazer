@@ -383,6 +383,14 @@ struct PagePhase {
     return usesRapidDwell(actions);
 }
 
+/// Master-volume track (`role="slider"` `caption="volume"`). Passive to dwell.
+/// `VolumeBoard` reads `scanGrace` as how long gaze must stay before the level follows.
+[[nodiscard]] inline bool isVolumeSlider(const QString& role, const QString& caption)
+{
+    return role.compare(QLatin1String("slider"), Qt::CaseInsensitive) == 0
+           && caption.compare(QLatin1String("volume"), Qt::CaseInsensitive) == 0;
+}
+
 /// label / value / display / slider / preview / scrollbar / colorfield / headpreview /
 /// curvefield are not dwell targets (slider/curvefield with actions are).
 [[nodiscard]] inline bool pageRoleIsPassive(QStringView role)
