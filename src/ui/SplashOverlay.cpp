@@ -300,6 +300,9 @@ void SplashOverlay::enter(Phase phase)
     if (s.openMenu) {
         setMasterLayers({2});
     }
+    if (s.openMore) {
+        setMasterLayers({4});
+    }
     if (s.suspend >= 0) {
         setSuspended(s.suspend == 1);
     }
@@ -446,7 +449,7 @@ QRect SplashOverlay::markRect(splash::Mark mark) const
         return sleepDwell();
     case Mark::Drawer: {
         const QRect a = targetRect(QStringLiteral("open_keyboard"));
-        const QRect b = targetRect(QStringLiteral("open_settings"));
+        const QRect b = targetRect(QStringLiteral("more_back"));
         return (a.width() >= 8 && b.width() >= 8) ? a.united(b) : menuRect();
     }
     case Mark::AmberFrame:

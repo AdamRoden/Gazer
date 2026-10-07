@@ -34,7 +34,7 @@ Version **0.6.5**. License: [GPL-3.0](https://github.com/AdamRoden/Gazer/blob/ma
 
 -   :material-dock-bottom: __Shell__
 
-    Process-lifetime dock: **Main** (drawer), **Sleep** (pause dwell), Keyboard / Speak / Mouse / Gamepad / Assist / Settings, Close All, Quit.
+    Process-lifetime dock: **Main** (drawer), **Sleep** (pause dwell), **More** (Keyboard, Speak, Mouse, Gamepad, Assist, wide QWERTY, Numpad), Settings, Close All, Quit.
 
 -   :material-keyboard: __Keyboards__
 

@@ -138,7 +138,7 @@ void PageHitLiveTest::hitDrawerCell()
     QVERIFY(hit);
     QCOMPARE(hit->kind, PageTarget::Kind::Cell);
     QCOMPARE(hit->gridId, QStringLiteral("drawer"));
-    QCOMPARE(hit->id, QStringLiteral("open_keyboard"));
+    QCOMPARE(hit->id, QStringLiteral("open_more"));
     QVERIFY(hit->shell);
     QVERIFY(t.last().shell);
 }

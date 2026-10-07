@@ -6,7 +6,8 @@ Shipped boards:
 |------|------|
 | `qwerty_main` | Full QWERTY plus edge mouse / look-to-scroll / window AHK strips |
 | `example_keyboard` | Compact 3×12 letters / shift / symbols |
-| `uw_qwerty` | Wide QWERTY (drawer **More**) |
+| `uw_qwerty` | Wide QWERTY (More layer, cell **More**) |
+| `uw_qwerty_pad` | Wide QWERTY without the number row, taller letter keys, nav cluster and numpad to the right of the edge strip (More layer, **Numpad**) |
 
 Letter cells use **`Send`**: `send="q"` taps `q` into the focused OS window (Windows `SendInput`). Optional edge and hold: `send="a,Down"`, `send="a,500"`. A comma key is `send=","`. Named keys (`Enter`, `Tab`, `F1`…`F12`, OEM names) and US shifted punctuation (`!` injects `1` plus a transient Shift) are listed under [Actions — Send](reference/actions.md#send).
 

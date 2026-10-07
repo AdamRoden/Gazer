@@ -1,0 +1,144 @@
+<Page id="uw_qwerty_pad" name="Qwerty Pad" radius="0">
+  <Dwell id="vert1" activation="100,600"/>
+  <Dwell id="vert2" activation="200"/>
+  <Grid id="board" rows="3" columns="160" anchor="TopLeft" offset="500,740" size="1600,300" gap="0" margin="0" layers="1,3">
+    <Cell id="tab" row="0" col="0" colSpan="11" icon="keyTab" background="bg95" command="tab"/>
+    <Cell id="k_q" row="0" col="11" colSpan="12" label="q" textStyle="key" send="q"/>
+    <Cell id="k_w" row="0" col="23" colSpan="12" label="w" textStyle="key" send="w"/>
+    <Cell id="k_e" row="0" col="35" colSpan="12" label="e" textStyle="key" send="e"/>
+    <Cell id="k_r" row="0" col="47" colSpan="12" label="r" textStyle="key" send="r"/>
+    <Cell id="k_t" row="0" col="59" colSpan="12" label="t" textStyle="key" send="t"/>
+    <Cell id="k_y" row="0" col="71" colSpan="12" label="y" textStyle="key" send="y"/>
+    <Cell id="k_u" row="0" col="83" colSpan="12" label="u" textStyle="key" send="u"/>
+    <Cell id="k_i" row="0" col="95" colSpan="12" label="i" textStyle="key" send="i"/>
+    <Cell id="k_o" row="0" col="107" colSpan="12" label="o" textStyle="key" send="o"/>
+    <Cell id="k_p" row="0" col="119" colSpan="12" label="p" textStyle="key" send="p"/>
+    <Cell id="del" row="0" col="131" colSpan="10" label="Del" background="bg95" command="delete"/>
+    <Cell id="pgup" row="0" col="141" colSpan="9" label="Pg Up" background="bg95" command="pageUp"/>
+    <Cell id="bksp" row="0" col="150" colSpan="10" icon="keyBackspace" background="bg95" command="backspace"/>
+    <Cell id="shift_l" row="1" col="0" colSpan="13" icon="KeyShift" background="bg95" activeState="mod.shift" command="leftShift"/>
+    <Cell id="k_a" row="1" col="13" colSpan="12" label="a" textStyle="key" send="a"/>
+    <Cell id="k_s" row="1" col="25" colSpan="12" label="s" textStyle="key" send="s"/>
+    <Cell id="k_d" row="1" col="37" colSpan="12" label="d" textStyle="key" send="d"/>
+    <Cell id="k_f" row="1" col="49" colSpan="12" label="f" textStyle="key" send="f"/>
+    <Cell id="k_g" row="1" col="61" colSpan="12" label="g" textStyle="key" send="g"/>
+    <Cell id="k_h" row="1" col="73" colSpan="12" label="h" textStyle="key" send="h"/>
+    <Cell id="k_j" row="1" col="85" colSpan="12" label="j" textStyle="key" send="j"/>
+    <Cell id="k_k" row="1" col="97" colSpan="12" label="k" textStyle="key" send="k"/>
+    <Cell id="k_l" row="1" col="109" colSpan="12" label="l" textStyle="key" send="l"/>
+    <Cell id="semi" row="1" col="121" colSpan="9" label=";" textStyle="key" send=";"/>
+    <Cell id="quote" row="1" col="130" colSpan="9" label="&apos;" textStyle="key" send="&apos;"/>
+    <Cell id="pgdn" row="1" col="139" colSpan="11" label="Pg Dn" background="bg95" command="pageDown"/>
+    <Cell id="shift_r" row="1" col="150" colSpan="10" icon="KeyShift" background="bg95" activeState="mod.shift" command="leftShift"/>
+    <Cell id="ctrl_l" row="2" col="0" colSpan="9" label="Ctrl" background="bg95" activeState="mod.ctrl" command="leftCtrl"/>
+    <Cell id="win" row="2" col="9" colSpan="9" icon="KeyWin" background="bg95" activeState="mod.win" command="leftWin"/>
+    <Cell id="k_z" row="2" col="18" colSpan="12" label="z" textStyle="key" send="z"/>
+    <Cell id="k_x" row="2" col="30" colSpan="12" label="x" textStyle="key" send="x"/>
+    <Cell id="k_c" row="2" col="42" colSpan="12" label="c" textStyle="key" send="c"/>
+    <Cell id="k_v" row="2" col="54" colSpan="12" label="v" textStyle="key" send="v"/>
+    <Cell id="space" row="2" col="66" colSpan="15" icon="keySpace" command="space"/>
+    <Cell id="k_b" row="2" col="81" colSpan="12" label="b" textStyle="key" send="b"/>
+    <Cell id="k_n" row="2" col="93" colSpan="12" label="n" textStyle="key" send="n"/>
+    <Cell id="k_m" row="2" col="105" colSpan="12" label="m" textStyle="key" send="m"/>
+    <Cell id="comma" row="2" col="117" colSpan="8" label="," textStyle="key" send=","/>
+    <Cell id="dot" row="2" col="125" colSpan="8" label="." textStyle="key" send="."/>
+    <Cell id="slash" row="2" col="133" colSpan="8" label="/" textStyle="key" send="/"/> 
+    <Cell id="alt" row="2" col="141" colSpan="9" label="Alt" background="bg95" activeState="mod.alt" command="leftAlt"/>   
+    <Cell id="enter" row="2" col="150" colSpan="10" icon="keyReturn" background="bg95" command="enter"/>
+  </Grid>
+  <Grid id="fn" rows="1" columns="150" anchor="TopLeft" offset="500,665" size="1500,75" gap="0" margin="0" layers="3">
+    <Cell id="grave" row="0" col="0" colSpan="9" label="`" send="`"/>
+    <Cell id="f1" row="0" col="9" colSpan="10" label="F1" send="F1"/>
+    <Cell id="f2" row="0" col="19" colSpan="10" label="F2" send="F2"/>
+    <Cell id="f3" row="0" col="29" colSpan="10" label="F3" send="F3"/>
+    <Cell id="f4" row="0" col="39" colSpan="10" label="F4" send="F4"/>
+    <Cell id="f5" row="0" col="49" colSpan="10" label="F5" send="F5"/>
+    <Cell id="f6" row="0" col="59" colSpan="10" label="F6" send="F6"/>
+    <Cell id="f7" row="0" col="69" colSpan="10" label="F7" send="F7"/>
+    <Cell id="f8" row="0" col="79" colSpan="10" label="F8" send="F8"/>
+    <Cell id="f9" row="0" col="89" colSpan="10" label="F9" send="F9"/>
+    <Cell id="f10" row="0" col="99" colSpan="10" label="F10" send="F10"/>
+    <Cell id="f11" row="0" col="109" colSpan="10" label="F11" send="F11"/>
+    <Cell id="f12" row="0" col="119" colSpan="11" label="F12" send="F12"/>
+    <Cell id="bkslash" row="0" col="130" colSpan="10" label="\" send="\"/>
+    <Cell id="vol_track" row="0" col="140" colSpan="10" role="slider" caption="volume" label="50%" scanGrace="2000"/>
+  </Grid>
+  <Grid id="vert1" rows="6" columns="1" anchor="TopLeft" offset="2000,0" size="100,740" layers="1,2,3">
+    <Cell id="more" row="0" col="0" dwell="vert1" icon="mouse" openPage="example_mouse"/>
+    <Cell id="move_lclick" row="1" col="0" icon="mouseLeftClickAtGaze" dwell="vert1" activeState="mouseLeftClickAtGaze" mouseLeftClickAtGaze=""/>
+    <Cell id="move_rclick" row="2" col="0" icon="mouseRightClickAtGaze" dwell="vert1" activeState="mouseRightClickAtGaze" mouseRightClickAtGaze=""/>
+    <SubGrid id="edge" row="3" col="0" layers="1,3">
+      <Cell id="edge" row="0" col="0" icon="ArrowPointingToRight" dwell="vert2" showLayers="2"/>
+    </SubGrid>
+    <SubGrid id="keyboard" row="3" col="0" layers="2">
+      <Cell id="keyboard" row="0" col="0" icon="keyboardKeys" dwell="vert2" showLayers="1"/>
+    </SubGrid>
+    <SubGrid id="fn_off" row="5" col="0" layers="1,2">
+      <Cell id="fn_off" row="0" col="0" icon="bottomUp" dwell="vert1" showLayers="3"/>
+    </SubGrid>
+    <SubGrid id="fn_on" row="5" col="0" rows="2" layers="3">
+        <Cell id="vol_up" row="0" col="0" label="+" command="volume.inc"/>
+        <Cell id="vol_down" row="1" col="0" label="−" command="volume.dec"/>
+    </SubGrid>
+    <Cell id="lts" row="4" col="0" icon="lookToScroll" dwell="vert1" activeState="lookToScroll" command="toggleLookToScroll"/>
+  </Grid>
+  <Grid id="vert2" rows="2" columns="1" anchor="TopLeft" offset="2000,740" size="100,300" layers="2">
+    <Cell id="mid" row="0" col="0" icon="WindowMid" label="Mid" dwell="vert1">
+      <AHK><![CDATA[
+      {
+      try { 
+      Title := WinGetTitle("A")
+      xPos := 494
+      yPos := -6
+      v_nWidthN := 1514
+      v_nHeightN := 756
+      WinRestore Title 
+      WinMove xPos, yPos, v_nWidthN, v_nHeightN, Title
+      } catch { 
+      }
+      }
+      ]]></AHK>
+    </Cell>
+    <Cell id="max" row="1" col="0" icon="WindowMax" label="Max" dwell="vert1">
+    <AHK><![CDATA[
+    {
+    try { 
+    Title := WinGetTitle("A")
+    xPos := 494
+    yPos := -6
+    v_nWidthN := 1514
+    v_nHeightN := A_ScreenHeight-32
+    WinRestore Title 
+    WinMove xPos, yPos, v_nWidthN, v_nHeightN, Title
+    } catch { 
+    }
+    }
+    ]]></AHK>
+    </Cell>
+  </Grid>
+  <Grid id="numpad" rows="5" columns="3" anchor="TopLeft" offset="2100,140" size="360,500" gap="0" margin="0" layers="1,3">
+    <Cell id="esc" row="0" col="0" label="Esc" background="bg95" command="escape"/>
+    <Cell id="minus" row="0" col="1" label="-" textStyle="key" send="-"/>
+    <Cell id="equals" row="0" col="2" label="=" textStyle="key" send="="/>
+    <Cell id="n7" row="1" col="0" label="7" textStyle="key" send="7"/>
+    <Cell id="n8" row="1" col="1" label="8" textStyle="key" send="8"/>
+    <Cell id="n9" row="1" col="2" label="9" textStyle="key" send="9"/>
+    <Cell id="n4" row="2" col="0" label="4" textStyle="key" send="4"/>
+    <Cell id="n5" row="2" col="1" label="5" textStyle="key" send="5"/>
+    <Cell id="n6" row="2" col="2" label="6" textStyle="key" send="6"/>
+    <Cell id="n1" row="3" col="0" label="1" textStyle="key" send="1"/>
+    <Cell id="n2" row="3" col="1" label="2" textStyle="key" send="2"/>
+    <Cell id="n3" row="3" col="2" label="3" textStyle="key" send="3"/>
+    <Cell id="n0" row="4" col="0" colSpan="1" label="0" textStyle="key" send="0"/>    
+    <Cell id="lbrack" row="4" col="1" colSpan="1" label="[" textStyle="key" scanGrace="300" send="["/>
+    <Cell id="rbrack" row="4" col="2" colSpan="1" label="]" textStyle="key" scanGrace="300" send="]"/>
+  </Grid>
+  <Grid id="nav" rows="4" columns="3" anchor="TopLeft" offset="2100,640" size="360,400" gap="0" margin="0" layers="1,3">    
+    <Cell id="home" row="1" col="0" label="Home" background="bg95" command="home"/>
+    <Cell id="up" row="1" col="1" icon="KeyUp" background="bg95" command="arrowUp"/>
+    <Cell id="end" row="1" col="2" label="End" background="bg95" command="end"/>
+    <Cell id="left" row="2" col="0" icon="KeyLeft" background="bg95" command="arrowLeft"/>
+    <Cell id="down" row="2" col="1" icon="KeyDown" background="bg95" command="arrowDown"/>
+    <Cell id="right" row="2" col="2" icon="KeyRight" background="bg95" command="arrowRight"/>
+  </Grid>
+</Page>

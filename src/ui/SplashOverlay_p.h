@@ -36,7 +36,7 @@ inline constexpr Callout kCallouts[] = {
     {"open_compose", "Speak", "Say a phrase out loud"},
     {"open_mouse", "Mouse", "Move and click the cursor"},
     {"open_assist", "Assist", "Scroll and extra tools"},
-    {"open_settings", "Settings", "Timing, theme, and this tour"},
+    {"open_pad", "Numpad", "Wide keys and a digit pad"},
 };
 
 /// One row per SplashOverlay::Phase. introMs plays the lerp, then the row waits
@@ -52,6 +52,7 @@ struct Spec {
     Scale scaleTo = Scale::One;
     bool openMenu = false;
     bool closeMenu = false;
+    bool openMore = false;
     int suspend = -1;
     Mark gazeFrom = Mark::None;
     Mark gazeTo = Mark::None;
@@ -155,6 +156,7 @@ inline constexpr Spec kPhases[] = {
         .mini = true,
         .scaleFrom = Scale::Fitted,
         .scaleTo = Scale::Fitted,
+        .openMore = true,
         .suspend = 0,
         .gazeFrom = Mark::Drawer,
         .gazeTo = Mark::Drawer,

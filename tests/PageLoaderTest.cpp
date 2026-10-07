@@ -56,6 +56,7 @@ private slots:
     void loadComposePage();
     void findCellMutateDoesNotShareCopy();
     void loadQwertyXml();
+    void loadQwertyPadXml();
     void layersAttribute();
     void rejectInvalidLayers();
     void rejectInvalidIntAndBoolAttrs();
@@ -579,6 +580,52 @@ void PageLoaderTest::loadQwertyXml()
     QCOMPARE(vert1->cells[1].actions[0].zoomMode, PageZoomMode::Settings);
 }
 
+void PageLoaderTest::loadQwertyPadXml()
+{
+    PageDocument doc;
+    QString err;
+    const QString path =
+        QStringLiteral(GAZER_SOURCE_DIR) + QStringLiteral("/resources/layouts/uw_qwerty_pad.xml");
+    QVERIFY2(PageLoader::loadFromFile(path, doc, &err), qPrintable(err));
+    QCOMPARE(doc.id, QStringLiteral("uw_qwerty_pad"));
+    const PageGrid* board = doc.findGrid(QStringLiteral("board"));
+    const PageGrid* numpad = doc.findGrid(QStringLiteral("numpad"));
+    const PageGrid* nav = doc.findGrid(QStringLiteral("nav"));
+    const PageGrid* vert1 = doc.findGrid(QStringLiteral("vert1"));
+    QVERIFY(board && numpad && nav && vert1);
+    QCOMPARE(board->rows, 3);
+    QCOMPARE(board->columns, 150);
+    QCOMPARE(board->size.x.value, 1500.0);
+    QCOMPARE(board->size.y.value, 300.0);
+    QCOMPARE(board->offset.x.value, 500.0);
+    QCOMPARE(board->offset.y.value, 740.0);
+    const PageCell* q = doc.findCell(QStringLiteral("k_q"));
+    QVERIFY(q);
+    QCOMPARE(q->colSpan, 12);
+    bool boardHasDigit = false;
+    for (const PageCell& c : board->cells) {
+        if (c.label.size() == 1 && c.label[0].isDigit()) {
+            boardHasDigit = true;
+        }
+    }
+    QVERIFY(!boardHasDigit);
+    QCOMPARE(vert1->offset.x.value, 2000.0);
+    QCOMPARE(vert1->size.x.value, 100.0);
+    QCOMPARE(numpad->offset.x.value, 2100.0);
+    QCOMPARE(nav->offset.x.value, 2100.0);
+    QVERIFY(numpad->offset.y.value + numpad->size.y.value <= nav->offset.y.value);
+    QCOMPARE(numpad->columns, 3);
+    QCOMPARE(nav->columns, 3);
+    QCOMPARE(nav->rows, 4);
+    const PageCell* zero = doc.findCell(QStringLiteral("n0"));
+    const PageCell* esc = doc.findCell(QStringLiteral("esc"));
+    QVERIFY(zero && esc);
+    QCOMPARE(zero->colSpan, 2);
+    QCOMPARE(esc->actions.at(0).command, QStringLiteral("escape"));
+    QCOMPARE(doc.findCell(QStringLiteral("del"))->actions.at(0).command, QStringLiteral("delete"));
+    QCOMPARE(doc.findCell(QStringLiteral("enter"))->actions.at(0).command, QStringLiteral("enter"));
+}
+
 void PageLoaderTest::layersAttribute()
 {
     PageDocument doc;
@@ -903,20 +950,33 @@ void PageLoaderTest::loadMainPage()
     QCOMPARE(doc.id, QStringLiteral("main"));
     QCOMPARE(doc.master, true);
     QCOMPARE(doc.zones.size(), 5);
-    QCOMPARE(doc.grids.size(), 2);
+    QCOMPARE(doc.grids.size(), 3);
     QVERIFY(doc.findZone(QStringLiteral("show")));
     QVERIFY(doc.findZone(QStringLiteral("hide")));
+    QCOMPARE(doc.findZone(QStringLiteral("hide"))->layers, (QVector<int>{2, 4}));
     QVERIFY(doc.findZone(QStringLiteral("sleep")));
+    QCOMPARE(doc.findZone(QStringLiteral("sleep"))->layers, (QVector<int>{1, 2, 4}));
     QVERIFY(doc.findZone(QStringLiteral("rescue")));
     QCOMPARE(doc.findZone(QStringLiteral("rescue"))->actions[0].command,
              QStringLiteral("rescue.reset"));
     QVERIFY(doc.findZone(QStringLiteral("tracker_lost")));
     QVERIFY(doc.findGrid(QStringLiteral("drawer")));
+    QVERIFY(doc.findGrid(QStringLiteral("more")));
     QVERIFY(doc.findGrid(QStringLiteral("quit")));
     QCOMPARE(doc.findGrid(QStringLiteral("drawer"))->layers, QVector<int>({2}));
+    QCOMPARE(doc.findGrid(QStringLiteral("more"))->layers, QVector<int>({4}));
     QCOMPARE(doc.findGrid(QStringLiteral("quit"))->layers, QVector<int>({3}));
     QCOMPARE(doc.showLayers, QVector<int>({1}));
-    QCOMPARE(doc.findGrid(QStringLiteral("drawer"))->cells.size(), 10);
+    QCOMPARE(doc.findGrid(QStringLiteral("drawer"))->cells.size(), 5);
+    QCOMPARE(doc.findGrid(QStringLiteral("drawer"))->columns, 5);
+    QCOMPARE(doc.findGrid(QStringLiteral("more"))->cells.size(), 8);
+    QCOMPARE(doc.findCell(QStringLiteral("open_more"))->actions[0].type, PageActionType::ShowLayers);
+    QCOMPARE(doc.findCell(QStringLiteral("open_more"))->actions[0].layers, QVector<int>({4}));
+    QCOMPARE(doc.findCell(QStringLiteral("more_back"))->actions[0].layers, QVector<int>({2}));
+    QCOMPARE(doc.findCell(QStringLiteral("open_right"))->actions[0].targetId,
+             QStringLiteral("uw_qwerty"));
+    QCOMPARE(doc.findCell(QStringLiteral("open_pad"))->actions[0].targetId,
+             QStringLiteral("uw_qwerty_pad"));
     QCOMPARE(doc.findCell(QStringLiteral("open_gamepad"))->actions[0].targetId,
              QStringLiteral("example_gamepad"));
     QCOMPARE(doc.findCell(QStringLiteral("open_compose"))->actions[0].command,

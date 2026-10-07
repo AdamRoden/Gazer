@@ -11,42 +11,53 @@
     <Command value="resumeDwell"/>
     <ShowLayers value="2"/>
   </Zone>
-  <Zone id="hide" anchor="Bottom" offset="0,0" size="200,100" layers="2"
+  <Zone id="hide" anchor="Bottom" offset="0,0" size="200,100" layers="2,4"
         dwellOffset="0,300" dwellSize="300,200"
         style="chip" label="Hide" icon="AlignBottom" suspendExempt="true" shell="true">
     <ShowLayers value="1"/>
   </Zone>
-  <Zone id="sleep" anchor="Bottom" offset="400,0" size="200,100" layers="1,2"
+  <Zone id="sleep" anchor="Bottom" offset="400,0" size="200,100" layers="1,2,4"
         dwellOffset="0,300" dwellSize="300,200"
         style="chip" label="Sleep" icon="Sleep"
         activeState="dwellSuspend" shell="true" command="toggleDwellSuspend"/>
-  <Zone id="rescue" anchor="Bottom" offset="800,0" size="200,100" layers="1,2"
+  <Zone id="rescue" anchor="Bottom" offset="800,0" size="200,100" layers="1,2,4"
         dwellOffset="0,300" dwellSize="300,200"
         style="chip" label="Rescue" icon="restart" suspendExempt="true" shell="true"
         command="rescue.reset"/>
-  <Zone id="tracker_lost" anchor="Bottom" offset="1200,0" size="240,100" layers="1,2"
+  <Zone id="tracker_lost" anchor="Bottom" offset="1200,0" size="240,100" layers="1,2,4"
         dwellOffset="0,300" dwellSize="300,200"
         style="chip" label="Tracker lost — mouse" icon="emergency"
         visibleWhen="trackerLostMouse" suspendExempt="true" shell="true"
         command="rescue.reset"/>
 
-  <Grid id="drawer" desktopMode="false" rows="1" columns="10"
-        anchor="Bottom" offset="0,0" size="1440,150" style="drawer" gap="10" margin="10"
+  <Grid id="drawer" desktopMode="false" rows="1" columns="5"
+        anchor="Bottom" offset="0,0" size="725,150" style="drawer" gap="10" margin="10"
         layers="2" drawerMotion="true" autoClose="true" shell="true" >
+    <Cell id="open_more" row="0" col="0" label="More" icon="moreHoriz">
+      <ShowLayers value="4"/>
+    </Cell>
+    <Cell id="open_settings" row="0" col="1" label="Settings" icon="settings" openPage="main_settings"/>
+    <Cell id="close_all" row="0" col="2" label="Close All" icon="CloseAll">
+      <CloseAllPages/>
+    </Cell>
+    <Cell id="dwell_suspend" row="0" col="3" label="Pause dwell" icon="Sleep" activeState="dwellSuspend" command="toggleDwellSuspend"/>
+    <Cell id="quit" row="0" col="4" label="Quit" icon="powerOnOff">
+      <ShowLayers value="1,3"/>
+    </Cell>
+  </Grid>
+
+  <Grid id="more" desktopMode="false" rows="1" columns="8"
+        anchor="Bottom" offset="0,0" size="1154,150" style="drawer" gap="10" margin="10"
+        layers="4" drawerMotion="true" autoClose="true" shell="true" >
     <Cell id="open_keyboard" row="0" col="0" label="Keyboard" icon="keyboardKeys" openPage="qwerty_main"/>
     <Cell id="open_compose" row="0" col="1" label="Speak" icon="Speak" command="compose.open"/>
     <Cell id="open_mouse" row="0" col="2" label="Mouse" icon="mouse" openPage="example_mouse"/>
     <Cell id="open_gamepad" row="0" col="3" label="Gamepad" icon="sportsEsports" openPage="example_gamepad"/>
     <Cell id="open_assist" row="0" col="4" label="Assist" icon="ideas" openPage="example_assist"/>
-    <Cell id="open_right" row="0" col="5" label="More" icon="moreHoriz" openPage="uw_qwerty"/>
-    <Cell id="open_settings" row="0" col="6" label="Settings" icon="settings" openPage="main_settings"/>
-    <Cell id="close_all" row="0" col="7" label="Close All" icon="CloseAll">
-      <CloseAllPages/>
+    <Cell id="open_right" row="0" col="5" label="Edge" icon="moreVert" openPage="uw_qwerty"/>
+    <Cell id="open_pad" row="0" col="6" label="Numpad" icon="numbers" openPage="uw_qwerty_pad"/>
+    <Cell id="more_back" row="0" col="7" label="Back" icon="Back">
       <ShowLayers value="2"/>
-    </Cell>
-    <Cell id="dwell_suspend" row="0" col="8" label="Pause dwell" icon="Sleep" activeState="dwellSuspend" command="toggleDwellSuspend"/>
-    <Cell id="quit" row="0" col="9" label="Quit" icon="powerOnOff">
-      <ShowLayers value="1,3"/>
     </Cell>
   </Grid>
 
