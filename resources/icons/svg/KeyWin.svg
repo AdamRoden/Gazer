@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
-<svg
+<svg fill="#e3e3e3"
    xmlns:dc="http://purl.org/dc/elements/1.1/"
    xmlns:cc="http://creativecommons.org/ns#"
    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
@@ -58,7 +58,7 @@
   </metadata>
   <path
      id="path2994"
-     style="fill:#000000;fill-rule:nonzero"
+     style="fill:#e3e3e3;fill-rule:nonzero"
      d="m 30,33 0,16.5 23,3 0,-19.5 -23,0 z m 3.8125,3.25 15.28125,0 0,12.96875 -15.28125,-2 0,-10.96875 z M 53,11.5 l -23,3 0,16.5 23,0 0,-19.5 z m -3.6875,3.28125 0,13.34375 -15.71875,0 0,-11.28125 15.71875,-2.0625 z M 11,33 11,47 28,49.21875 28,33 11,33 z m 3.0625,2.78125 10.78125,0 0,10.28125 -10.78125,-1.4375 0,-8.84375 z M 28,14.78125 11,17 l 0,14 17,0 0,-16.21875 z m -3.28125,3.28125 0,10.0625 -10.53125,0 0,-8.6875 10.53125,-1.375 z" />
   <svg
      inkscape:version="0.48.5 r10040"
