@@ -54,8 +54,8 @@
     <Cell id="open_mouse" row="0" col="2" label="Mouse" icon="mouse" openPage="example_mouse"/>
     <Cell id="open_gamepad" row="0" col="3" label="Gamepad" icon="sportsEsports" openPage="example_gamepad"/>
     <Cell id="open_assist" row="0" col="4" label="Assist" icon="ideas" openPage="example_assist"/>
-    <Cell id="open_right" row="0" col="5" label="Edge" icon="moreVert" openPage="uw_qwerty"/>
-    <Cell id="open_pad" row="0" col="6" label="Numpad" icon="numbers" openPage="uw_qwerty_pad"/>
+    <Cell id="open_right" row="0" col="5" label="Edge" icon="windowMid" openPage="uw_qwerty"/>
+    <Cell id="open_pad" row="0" col="6" label="Numpad" icon="keyboardRight" openPage="uw_qwerty_pad"/>
     <Cell id="more_back" row="0" col="7" label="Back" icon="Back">
       <ShowLayers value="2"/>
     </Cell>
