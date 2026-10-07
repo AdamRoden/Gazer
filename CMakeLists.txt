@@ -188,6 +188,7 @@ set(GAZER_SOURCES
     src/utils/WinOverlay.cpp
     src/utils/AppDirs.cpp
     src/utils/CrashDump.cpp
+    src/utils/Log.cpp
     src/utils/Heartbeat.cpp
     src/utils/SessionWatch.cpp
     src/utils/WinProcess.cpp
@@ -496,6 +497,7 @@ set(GAZER_PAGE_TEST_LIB
     src/app/ActionChannel.cpp
     src/utils/AppDirs.cpp
     src/utils/CrashDump.cpp
+    src/utils/Log.cpp
     src/utils/Heartbeat.cpp
     src/utils/WinProcess.cpp
 )
@@ -534,6 +536,7 @@ add_executable(GazerPageTests
     tests/InboundActionsTest.cpp
     tests/ActionChannelTest.cpp
     tests/HeartbeatTest.cpp
+    tests/LogRotateTest.cpp
     tests/InjectGateTest.cpp
     tests/WinProcessTest.cpp
     tests/ActionLoopServiceTest.cpp

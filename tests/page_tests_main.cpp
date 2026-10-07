@@ -32,6 +32,7 @@ QObject* createVirtualGamepadTest();
 QObject* createInboundActionsTest();
 QObject* createActionChannelTest();
 QObject* createHeartbeatTest();
+QObject* createLogRotateTest();
 QObject* createInjectGateTest();
 QObject* createWinProcessTest();
 QObject* createActionLoopServiceTest();
@@ -118,6 +119,8 @@ int main(int argc, char** argv)
     runSuite("ActionChannelTest", channel.get(), false);
     std::unique_ptr<QObject> heartbeat(createHeartbeatTest());
     runSuite("HeartbeatTest", heartbeat.get(), false);
+    std::unique_ptr<QObject> logRotate(createLogRotateTest());
+    runSuite("LogRotateTest", logRotate.get(), false);
     std::unique_ptr<QObject> injectGate(createInjectGateTest());
     runSuite("InjectGateTest", injectGate.get(), false);
     std::unique_ptr<QObject> winProc(createWinProcessTest());

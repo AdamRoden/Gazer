@@ -32,6 +32,7 @@ The tray icon owns the process:
 - **Show layout** — raise the host window
 - **Head-pose preview** — 3D head model from the tracker (`openPreview`)
 - **Page editor**
+- **Open log folder** — `%LOCALAPPDATA%\Gazer\logs` (`openLogFolder`). Attach `gazer.log` when you report a bug. See [Install — Reporting a problem](install.md#reporting-a-problem).
 - **Quit**
 
 Closing overlay pages does not exit. `quitApp` (Quit → Yes) does.

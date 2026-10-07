@@ -64,6 +64,7 @@ Shipped Mid/Max window cells are `<AHK>` (`icon="WindowMid"` / `WindowMax`), not
 | `rescue.reset` | Panic reset: stop loops, release modifiers, turn off look-to / ComboMouse / mag / follow, close pages, dock, restack. Dock **Rescue** chip. Pause key on the guard process. |
 | `openPageEditor` | Open the XML page designer. Optional `Invocation.pageId`. |
 | `openPreview` | Head-pose 3D preview window. |
+| `openLogFolder` | Open the log folder (`%LOCALAPPDATA%\Gazer\logs`). Settings → Setup → **Open log folder**, and the tray menu. |
 | `settings.session.showSplash.play` | Run the startup dock tour now (Settings → Setup → Play tour). |
 
 ---

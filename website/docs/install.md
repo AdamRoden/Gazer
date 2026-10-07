@@ -29,7 +29,9 @@ Closing overlay pages does not quit. **Quit → Yes** on the dock, or tray **Qui
 
 | Path | Contents |
 |------|----------|
-| `gazer.log` | Log in the working directory (rotated copies under `%LOCALAPPDATA%\Gazer\logs`) |
+| `%LOCALAPPDATA%\Gazer\logs\gazer.log` | Current session. Attach this when you report a bug. |
+| `%LOCALAPPDATA%\Gazer\logs\gazer-*.log` | Earlier sessions (five kept). Attach the newest if Gazer was restarted after the problem. |
+| `%LOCALAPPDATA%\Gazer\logs\guard.log` | Watchdog log (`Gazer.exe --guard`). |
 | `%LOCALAPPDATA%\Gazer\crashes\` | Minidumps after a crash or hung-peer takeover |
 | `%AppData%\Gazer\settings.json` | Prefs (theme, dwell, assist, …). Not the ElevenLabs key. |
 | `%AppData%\Gazer\layouts\` | User Page XML (overrides shipped ids) |
@@ -37,6 +39,12 @@ Closing overlay pages does not quit. **Quit → Yes** on the dock, or tray **Qui
 | `%AppData%\Gazer\` speech store | Soundboard JSON, clips, voice cache, history |
 
 Each MSI install deletes `settings.json` so the next launch writes factory defaults. Speech secrets, clips, and user layouts are left in place.
+
+## Reporting a problem
+
+Settings → **Setup** → **Open log folder**, or the tray menu **Open log folder**, opens `%LOCALAPPDATA%\Gazer\logs`.
+
+Attach `gazer.log`. If you already restarted Gazer, also attach the newest `gazer-` file (that is the previous session). If Gazer crashed or a hung window was replaced, also attach the newest file in `%LOCALAPPDATA%\Gazer\crashes`. The log does not include the ElevenLabs key.
 
 ## Build from source
 

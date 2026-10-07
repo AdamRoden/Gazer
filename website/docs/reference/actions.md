@@ -180,7 +180,7 @@ Unknown multi-character names fail (`Unknown key: …`). Prefer mapping commands
 3. Unknown names fail (`Command failed: …`).
 4. Successful builtins toast `Cmd <name>` except families `compose.*` / `speech.*` / `soundboard.*` / `history.*` / `settings.*` / `headPose.*` / `lookTo.*`.
 
-Dwell: **rapid** for mapping keys and modifiers (`backspace`, `leftShift`, …). **Standard** for settings, theme, speech, history, soundboard, compose (except `compose.backspace` / `compose.deleteWord`), head-pose, look-to, `toggle*`, `mouse*`, `cycleMouse*`, `quitApp`, `openPageEditor`, `openPreview`, `suspendDwell`, `resumeDwell`, `stopAllActionLoops`.
+Dwell: **rapid** for mapping keys and modifiers (`backspace`, `leftShift`, …). **Standard** for settings, theme, speech, history, soundboard, compose (except `compose.backspace` / `compose.deleteWord`), head-pose, look-to, `toggle*`, `mouse*`, `cycleMouse*`, `quitApp`, `openPageEditor`, `openPreview`, `openLogFolder`, `suspendDwell`, `resumeDwell`, `stopAllActionLoops`.
 
 Names, mapping JSON types, and `gamepad.*`: [Commands](commands.md).
 

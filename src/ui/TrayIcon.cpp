@@ -65,12 +65,18 @@ TrayIcon::TrayIcon(QObject* parent)
     auto* layoutAction = m_menu->addAction(QStringLiteral("Show pages"));
     auto* previewAction = m_menu->addAction(QStringLiteral("Show preview"));
     auto* editorAction = m_menu->addAction(QStringLiteral("Page editor"));
+    auto* logsAction = m_menu->addAction(QStringLiteral("Open log folder"));
     m_menu->addSeparator();
     auto* quitAction = m_menu->addAction(QStringLiteral("Quit Gazer"));
 
     connect(layoutAction, &QAction::triggered, this, &TrayIcon::showLayoutRequested);
     connect(previewAction, &QAction::triggered, this, &TrayIcon::showPreviewRequested);
     connect(editorAction, &QAction::triggered, this, &TrayIcon::layoutEditorRequested);
+    connect(logsAction, &QAction::triggered, this, []() {
+        if (!revealSessionLogs()) {
+            GAZER_WARN << "Could not open the log folder";
+        }
+    });
     connect(quitAction, &QAction::triggered, this, &TrayIcon::quitRequested);
 
     m_tray = new QSystemTrayIcon(makeTrayIcon(), this);

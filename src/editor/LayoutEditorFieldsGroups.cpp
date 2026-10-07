@@ -433,6 +433,7 @@ QString friendlyCommandLabel(const QString& commandId)
         {QStringLiteral("toggleDwellSuspend"), QStringLiteral("Pause / resume dwell")},
         {QStringLiteral("openPageEditor"), QStringLiteral("Page editor")},
         {QStringLiteral("openPreview"), QStringLiteral("Head preview")},
+        {QStringLiteral("openLogFolder"), QStringLiteral("Open log folder")},
         {QStringLiteral("tab"), QStringLiteral("Tab key")},
         {QStringLiteral("enter"), QStringLiteral("Enter key")},
         {QStringLiteral("backspace"), QStringLiteral("Backspace")},

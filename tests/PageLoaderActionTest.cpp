@@ -482,6 +482,7 @@ void PageLoaderActionTest::rapidDwellClassification()
     QVERIFY(!usesRapidDwell({cmd(QStringLiteral("lookTo.edit.scroll"))}));
     QVERIFY(!usesRapidDwell({cmd(QStringLiteral("compose.speak"))}));
     QVERIFY(!usesRapidDwell({cmd(QStringLiteral("quitApp"))}));
+    QVERIFY(!usesRapidDwell({cmd(QStringLiteral("openLogFolder"))}));
     QVERIFY(!usesRapidDwell({cmd(QStringLiteral("compose.removeWord.3"))}));
     QVERIFY(!usesRapidDwell({cmd(QStringLiteral("compose.moveEndOfWord.0"))}));
     QVERIFY(!usesRapidDwell({cmd(QStringLiteral("compose.moveStartOfWord.1"))}));

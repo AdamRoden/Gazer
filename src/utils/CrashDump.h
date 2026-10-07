@@ -23,7 +23,6 @@ bool writeDump(HANDLE process, DWORD pid, EXCEPTION_POINTERS* exception = nullpt
 #endif
 
 void capCrashDir(int keep = 10);
-void rotateLiveLog(const QString& livePath, int keep = 5);
 
 } // namespace CrashDump
 } // namespace gazer

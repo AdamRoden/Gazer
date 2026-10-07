@@ -56,6 +56,7 @@ When adding a command: register it and add a row here.
 | `rescue.reset` | Panic: stop loops, release keys, disable assist, close pages, dock, restack |
 | `openPageEditor` | Page designer (`Invocation.pageId` optional) |
 | `openPreview` | Head-pose preview |
+| `openLogFolder` | Open `%LOCALAPPDATA%\Gazer\logs` (Setup → Open log folder, tray) |
 | `settings.session.showSplash.play` | Run the startup dock tour now |
 
 ## Assist (`AssistCommands.cpp`)

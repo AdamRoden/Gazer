@@ -8,60 +8,21 @@
 #include "utils/WinProcess.h"
 
 #include <QApplication>
-#include <QDateTime>
-#include <QFile>
 #include <QLoggingCategory>
 #include <QQuickWindow>
 #include <QSGRendererInterface>
-#include <QTextStream>
 #include <QThread>
 
+#include <cstdio>
 #include <cstring>
 #include <memory>
 
 // Define the logging category declared in Log.h (for GAZER_* macros).
 Q_LOGGING_CATEGORY(lcGazer, "gazer")
 
-namespace {
-QFile g_logFile;
-
-void gazerMessageHandler(QtMsgType type, const QMessageLogContext& ctx, const QString& msg)
-{
-    const char* level = "INFO";
-    switch (type) {
-    case QtDebugMsg:
-        level = "DEBUG";
-        break;
-    case QtInfoMsg:
-        level = "INFO";
-        break;
-    case QtWarningMsg:
-        level = "WARN";
-        break;
-    case QtCriticalMsg:
-        level = "ERROR";
-        break;
-    case QtFatalMsg:
-        level = "FATAL";
-        break;
-    }
-    const QString line =
-        QStringLiteral("%1 [%2] %3\n")
-            .arg(QDateTime::currentDateTime().toString(Qt::ISODateWithMs),
-                 QLatin1String(level), msg);
-    fprintf(stderr, "%s", qPrintable(line));
-    if (g_logFile.isOpen()) {
-        QTextStream(&g_logFile) << line;
-        g_logFile.flush();
-    }
-    Q_UNUSED(ctx);
-}
-} // namespace
-
 int main(int argc, char* argv[])
 {
-    qInstallMessageHandler(gazerMessageHandler);
-    qputenv("QT_LOGGING_RULES", "gazer.*=true");
+    gazer::installMessageHandler();
 
     for (int i = 1; i < argc; ++i) {
         if (std::strcmp(argv[i], "--guard") == 0) {
@@ -116,13 +77,8 @@ int main(int argc, char* argv[])
         }
     }
 
-    // File + stderr logging so expand/activate failures are visible without a debugger.
-    // Open only as the live instance so a --action client does not truncate gazer.log.
-    gazer::CrashDump::rotateLiveLog(QStringLiteral("gazer.log"));
-    g_logFile.setFileName(QStringLiteral("gazer.log"));
-    if (!g_logFile.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
-        fprintf(stderr, "Could not open gazer.log\n");
-    }
+    // Open only as the live instance so a --action client does not truncate the log.
+    gazer::openSessionLog(QStringLiteral("gazer.log"));
     gazer::CrashDump::installHandlers();
 
     gazer::Application app;

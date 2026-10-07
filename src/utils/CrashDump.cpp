@@ -3,7 +3,6 @@
 #include "utils/AppDirs.h"
 #include "utils/Log.h"
 
-#include <QDateTime>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -82,20 +81,6 @@ void onAbort(int)
 void capCrashDir(int keep)
 {
     capDir(AppDirs::crashDir(), {QStringLiteral("*.dmp")}, keep);
-}
-
-void rotateLiveLog(const QString& livePath, int keep)
-{
-    QFileInfo fi(livePath);
-    if (!fi.exists() || fi.size() <= 0) {
-        return;
-    }
-    const QString destDir = AppDirs::logDir();
-    const QString stamp =
-        QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd-HHmmss"));
-    const QString dest = QDir(destDir).filePath(QStringLiteral("gazer-%1.log").arg(stamp));
-    QFile::copy(livePath, dest);
-    capDir(destDir, {QStringLiteral("gazer-*.log")}, keep);
 }
 
 #ifdef Q_OS_WIN

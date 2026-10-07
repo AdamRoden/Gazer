@@ -7,7 +7,7 @@ class QMenu;
 
 namespace gazer {
 
-/// System tray: show pages, show preview, quit.
+/// System tray: show pages, show preview, open the log folder, quit.
 class TrayIcon final : public QObject {
     Q_OBJECT
 

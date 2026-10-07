@@ -340,6 +340,7 @@ struct PageAction {
         QStringLiteral("quitApp"),
         QStringLiteral("openPageEditor"),
         QStringLiteral("openPreview"),
+        QStringLiteral("openLogFolder"),
         QStringLiteral("suspendDwell"),
         QStringLiteral("resumeDwell"),
         QStringLiteral("stopAllActionLoops"),

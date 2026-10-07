@@ -638,7 +638,9 @@ void SettingsLayoutTest::zoomAndSetupHoldSession()
     QCOMPARE(setup.findCell(QStringLiteral("ac_on"))->role, QStringLiteral("toggle"));
     QCOMPARE(setup.findGrid(QStringLiteral("board"))->rows, 6);
     QCOMPARE(setup.findGrid(QStringLiteral("sec_session"))->row, 5);
-    QCOMPARE(setup.findGrid(QStringLiteral("sec_session"))->rows, 3);
+    QCOMPARE(setup.findGrid(QStringLiteral("sec_session"))->rows, 4);
+    QCOMPARE(setup.findCell(QStringLiteral("log_open"))->actions[0].command,
+             QStringLiteral("openLogFolder"));
     const PageCell* on = setup.findCell(QStringLiteral("splash_on"));
     const PageCell* play = setup.findCell(QStringLiteral("splash_play"));
     QVERIFY(on);

@@ -43,6 +43,7 @@
 
 #include <QApplication>
 #include <QCoreApplication>
+#include <QSysInfo>
 #include <QRect>
 #include <QDir>
 #include <QFileInfo>
@@ -138,6 +139,15 @@ bool Application::initialize()
         }
         return true;
     });
+    m_svc->commands().registerBuiltin(QStringLiteral("openLogFolder"), [](QString* err) {
+        if (!revealSessionLogs()) {
+            if (err) {
+                *err = QStringLiteral("Could not open the log folder");
+            }
+            return false;
+        }
+        return true;
+    });
     m_svc->commands().registerBuiltin(QStringLiteral("settings.session.showSplash.play"),
                                       [this](QString*) {
                                           startSplash();
@@ -229,10 +239,13 @@ bool Application::initialize()
     (void)spawnGuardDetached();
 
     updateTrayStatus();
-    GAZER_INFO << "Gazer running. Tracker:" << m_tracker->name()
+    GAZER_INFO << "Gazer" << QCoreApplication::applicationVersion()
+               << "running. Tracker:" << m_tracker->name()
                << "TTS:" << (m_svc->tts().isAvailable() ? "yes" : "no")
                << "UIAccess:" << (processHasUiAccess() ? "yes" : "no")
-               << "settings:" << AppSettings::defaultFilePath();
+               << "OS:" << QSysInfo::prettyProductName() << QSysInfo::currentCpuArchitecture()
+               << "settings:" << AppSettings::defaultFilePath()
+               << "log:" << sessionLogPath();
 
     if (QCoreApplication::arguments().contains(QStringLiteral("--editor"))) {
         openPageEditor();
