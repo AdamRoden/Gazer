@@ -517,6 +517,8 @@ void AppSettingsTest::speechSettingsRoundTrip()
     s.speechSpeed = 1.4;
     s.speechPitch = 1.2;
     s.speechVolume = 2.5;
+    s.speechOutputId = QStringLiteral("c3BlYWtlcnM=");
+    s.speechOutputName = QStringLiteral("Speakers");
     s.elevenVoiceId = QStringLiteral("abc123");
     s.speechLangFilter = QStringLiteral("en");
     s.elevenFavoriteVoiceIds = {QStringLiteral("abc"), QString()};
@@ -549,6 +551,8 @@ void AppSettingsTest::speechSettingsRoundTrip()
     QCOMPARE(b.speechSpeed, 1.4);
     QCOMPARE(b.speechPitch, 1.2);
     QCOMPARE(b.speechVolume, 2.5);
+    QCOMPARE(b.speechOutputId, QStringLiteral("c3BlYWtlcnM="));
+    QCOMPARE(b.speechOutputName, QStringLiteral("Speakers"));
     QCOMPARE(b.elevenVoiceId, QStringLiteral("abc123"));
     QCOMPARE(b.speechLangFilter, QStringLiteral("en"));
     QCOMPARE(b.elevenFavoriteVoiceIds, s.elevenFavoriteVoiceIds);

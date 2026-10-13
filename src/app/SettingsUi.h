@@ -29,7 +29,8 @@ class VigemInstaller;
 
 /// Settings boards: live value decoration, numeric editor, color picker, settings commands.
 /// Implementations: SettingsUi.cpp (shared), SettingsNumpad, SettingsArrayEditor,
-/// SettingsColorPicker, SettingsHexEditor, SettingsSpeechKey, SettingsSliderGaze,
+/// SettingsColorPicker, SettingsHexEditor, SettingsSpeechKey, SettingsSpeechOutput,
+/// SettingsSliderGaze,
 /// SettingsCommands, SettingsHeadPose.
 class SettingsUi {
 public:
@@ -209,6 +210,10 @@ private:
     void applyLookToNumpad(double v);
     void syncLookToPreview();
 
+    void decorateSpeechOutput(PageDocument& doc);
+    void fillSpeechOutputList(PageGrid& host);
+    [[nodiscard]] bool selectSpeechOutput(const QString& encoded, QString* error);
+
     [[nodiscard]] bool openSpeechKeyBoard(QString* error = nullptr);
     void refreshSpeechKeyBoard();
     [[nodiscard]] PageDocument buildSpeechKeyDocument() const;
@@ -303,6 +308,7 @@ private:
     bool m_keyChecking = false;
     QString m_keyBuffer;
     QMetaObject::Connection m_editorKeyConn;
+    std::unique_ptr<QObject> m_audioWatch;
 };
 
 } // namespace gazer

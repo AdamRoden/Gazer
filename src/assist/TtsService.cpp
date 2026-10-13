@@ -1,5 +1,6 @@
 #include "assist/TtsService.h"
 
+#include "assist/AudioOutput.h"
 #include "utils/Log.h"
 
 #include <QTimer>
@@ -223,17 +224,126 @@ void TtsService::pollSapiStatus()
 
 void TtsService::setSpeed(double speed)
 {
+    m_speed = speed;
+    applySpeed();
+}
+
+void TtsService::setOutputKey(const QString& key)
+{
+    const QString next = key.trimmed();
+    if (next == m_outputKey) {
+        return;
+    }
+    m_outputKey = next;
+    m_outputMissLogged = false;
+    if (!m_speaking) {
+        applyOutput();
+    }
+}
+
+void TtsService::applySpeed()
+{
 #ifdef Q_OS_WIN
     auto* voice = static_cast<ISpVoice*>(m_voice);
     if (!voice) {
         return;
     }
-    speed = qBound(0.5, speed, 2.0);
+    const double speed = qBound(0.5, m_speed, 2.0);
     const long rate = speed >= 1.0 ? long(qRound((speed - 1.0) * 10.0))
                                    : long(qRound((speed - 1.0) * 20.0));
     voice->SetRate(qBound(-10L, rate, 10L));
-#else
-    Q_UNUSED(speed);
+#endif
+}
+
+#ifdef Q_OS_WIN
+namespace {
+
+/// Classic `SPCAT_AUDIOOUT` token ids end with the Qt endpoint id.
+QString outputTokenId(const QByteArray& endpointId)
+{
+    if (endpointId.isEmpty()) {
+        return {};
+    }
+    const QString needle = QString::fromLatin1(endpointId);
+    ISpObjectTokenCategory* cat = nullptr;
+    HRESULT hr = CoCreateInstance(CLSID_SpObjectTokenCategory, nullptr, CLSCTX_ALL,
+                                  IID_ISpObjectTokenCategory, reinterpret_cast<void**>(&cat));
+    if (FAILED(hr) || !cat) {
+        return {};
+    }
+    hr = cat->SetId(SPCAT_AUDIOOUT, FALSE);
+    IEnumSpObjectTokens* en = nullptr;
+    if (SUCCEEDED(hr)) {
+        hr = cat->EnumTokens(nullptr, nullptr, &en);
+    }
+    if (FAILED(hr) || !en) {
+        cat->Release();
+        return {};
+    }
+    QString found;
+    ISpObjectToken* token = nullptr;
+    while (found.isEmpty() && en->Next(1, &token, nullptr) == S_OK && token) {
+        WCHAR* id = nullptr;
+        if (SUCCEEDED(token->GetId(&id)) && id) {
+            const QString text = QString::fromWCharArray(id);
+            CoTaskMemFree(id);
+            if (text.endsWith(needle, Qt::CaseInsensitive)) {
+                found = text;
+            }
+        }
+        token->Release();
+        token = nullptr;
+    }
+    en->Release();
+    cat->Release();
+    return found;
+}
+
+bool setOutputToken(ISpVoice* voice, const QString& tokenId)
+{
+    if (!voice) {
+        return false;
+    }
+    if (tokenId.isEmpty()) {
+        return SUCCEEDED(voice->SetOutput(nullptr, TRUE));
+    }
+    ISpObjectToken* tok = nullptr;
+    HRESULT hr = CoCreateInstance(CLSID_SpObjectToken, nullptr, CLSCTX_ALL, IID_ISpObjectToken,
+                                  reinterpret_cast<void**>(&tok));
+    if (FAILED(hr) || !tok) {
+        return false;
+    }
+    const std::wstring w = tokenId.toStdWString();
+    hr = tok->SetId(nullptr, w.c_str(), FALSE);
+    if (SUCCEEDED(hr)) {
+        hr = voice->SetOutput(tok, TRUE);
+    }
+    tok->Release();
+    return SUCCEEDED(hr);
+}
+
+} // namespace
+#endif
+
+void TtsService::applyOutput()
+{
+#ifdef Q_OS_WIN
+    auto* voice = static_cast<ISpVoice*>(m_voice);
+    if (!voice) {
+        return;
+    }
+    const QByteArray endpoint = AudioOutput::idFromKey(m_outputKey);
+    const QString tokenId = outputTokenId(endpoint);
+    if (!endpoint.isEmpty() && tokenId.isEmpty()) {
+        if (!m_outputMissLogged) {
+            GAZER_WARN << "TtsService: saved output has no SAPI token";
+            m_outputMissLogged = true;
+        }
+        (void)setOutputToken(voice, {});
+        return;
+    }
+    m_outputMissLogged = false;
+    (void)setOutputToken(voice, tokenId);
 #endif
 }
 
@@ -255,6 +365,7 @@ bool TtsService::speak(const QString& text, QString* error)
         voice->Speak(nullptr, SPF_PURGEBEFORESPEAK, nullptr);
         emitFinishedIfSpeaking();
     }
+    applyOutput();
     ULONG stream = 0;
     const std::wstring w = text.toStdWString();
     const HRESULT hr = voice->Speak(w.c_str(), SPF_ASYNC | SPF_PURGEBEFORESPEAK, &stream);

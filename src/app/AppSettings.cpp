@@ -430,6 +430,14 @@ void AppSettings::clamp()
         speechLangFilter.clear();
     }
     speechModel = ElevenRequest::normalizeModelId(speechModel);
+    speechOutputId = speechOutputId.trimmed();
+    speechOutputName = speechOutputName.trimmed();
+    if (speechOutputId.isEmpty() || speechOutputId.size() > 512) {
+        speechOutputId.clear();
+        speechOutputName.clear();
+    } else if (speechOutputName.size() > 160) {
+        speechOutputName.truncate(160);
+    }
     if (headPoseMaps.size() > kMaxHeadPoseMaps) {
         headPoseMaps.resize(kMaxHeadPoseMaps);
     }

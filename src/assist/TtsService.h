@@ -28,6 +28,9 @@ public:
     [[nodiscard]] bool speak(const QString& text, QString* error = nullptr);
     /// Map 0.5–2.0 onto SAPI SetRate (−10…10). No-op off Windows.
     void setSpeed(double speed);
+    /// Empty key uses the Windows default. Otherwise an `AudioOutput::deviceKey`.
+    /// Classic SAPI tokens end with that endpoint id. No-op off Windows.
+    void setOutputKey(const QString& key);
     void stop();
     [[nodiscard]] QVector<VoiceInfo> listVoices() const;
     bool setVoiceToken(const QString& token, QString* error = nullptr);
@@ -46,10 +49,15 @@ private:
     void attachNotify();
     void emitFinishedIfSpeaking();
     void drainEndEvents();
+    void applyOutput();
+    void applySpeed();
 
     bool m_available = false;
     bool m_speaking = false;
     QString m_voiceToken;
+    QString m_outputKey;
+    bool m_outputMissLogged = false;
+    double m_speed = 1.0;
     bool m_seenSpeaking = false;
     int m_pollTicks = 0;
     void* m_voice = nullptr;      // ISpVoice* on Windows

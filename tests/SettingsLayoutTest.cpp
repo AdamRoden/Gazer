@@ -732,6 +732,12 @@ void SettingsLayoutTest::adminCaptureModes()
     QVERIFY(speak.findCell(QStringLiteral("m_turbo")));
     QCOMPARE(speak.findCell(QStringLiteral("m_turbo"))->actions[0].command,
              QStringLiteral("settings.speech.model.eleven_v4_turbo"));
+    QCOMPARE(speak.findGrid(QStringLiteral("sec_output"))->row, 1);
+    QCOMPARE(speak.findGrid(QStringLiteral("sec_output"))->col, 1);
+    QVERIFY(speak.findGrid(QStringLiteral("out_list")));
+    QCOMPARE(speak.findCell(QStringLiteral("h_output"))->label, QStringLiteral("Output"));
+    QCOMPARE(speak.findCell(QStringLiteral("out_refresh"))->actions[0].command,
+             QStringLiteral("settings.speech.output.refresh"));
     QVERIFY(!speak.findCell(QStringLiteral("cap_all")));
     QVERIFY(!speak.findCell(QStringLiteral("vigem_install")));
     QVERIFY(!speak.findGrid(QStringLiteral("sec_key")));

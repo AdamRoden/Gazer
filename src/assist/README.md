@@ -21,6 +21,7 @@ Gaze tools on top of the page session.
 | `ClipPlayer` | GUI-thread `QMediaPlayer` for a saved WAV or MPEG clip. `play()` true means the engine owns the clip; `failed()` is the SAPI fallback; `stopped()` always means finished. Gain > 1× is a `ClipBoost` preprocess, then the same play path. Manual: `tests/fixtures/speech/beep.mp3` |
 | `ClipBoost` | Decode clip → Int16 WAV with `AudioGain`. Not a player. |
 | `AudioGain` | Int16 PCM scale + clamp for clip boost (1–5×) |
+| `AudioOutput` | Playback-device list and the saved `speechOutputId`. Empty id is the Windows default. SAPI matches the endpoint id on the classic audio-output token |
 | `SystemVolume` / `VolumeBoard` | WASAPI default-device master volume (0–100, step 10). The shell owns the endpoint. `VolumeBoard` stamps any `caption="volume"` slider and maps gaze on it. The slider stays passive. Its `scanGrace` (settings grace when unset) elapses before the endpoint moves; the arming ring is the slider scrub. The label refresh waits until the current gaze sample has been classified. |
 | `ComposeBuffer` | Composer phrase, caret, chips, undo (800 ms coalesce). `load()` replaces the phrase and drops history for name-edit. No UI. |
 | `ComposeCommands` | `compose.*` / `speech.*` builtins and prefixes |

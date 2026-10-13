@@ -176,6 +176,8 @@ Patterns, not every generated name:
 | `settings.progress.*.toggle` / `settings.mouseProgress.*.toggle` | Progress bits (radial / pie / fill). Any subset, including none |
 | `settings.session.autoCollapse.toggle` / `.startDocked.toggle` / `.showSplash.toggle` / `.showSplash.play` / `.layoutAutoClose.toggle` | Session |
 | `settings.speech.predictions.toggle` | Word suggestions on the Speak page |
+| `settings.speech.output.<id>` | Prefix. Play speech on that device. Empty id is the Windows default. `<id>` is the percent-encoded device key |
+| `settings.speech.output.refresh` | Rescan playback devices on the Speak page |
 | `settings.speech.editKey` / `.clearKey` | Paste-from-clipboard API-key board / wipe DPAPI |
 | `settings.speech.key.paste` / `.save` / `.cancel` / `.clear` | Key board |
 | `settings.speech.model.sapi` / `.eleven_v4_turbo` | Same handlers as `speech.model.*` (ComposeCommands) |

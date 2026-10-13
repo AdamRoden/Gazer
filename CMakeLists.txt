@@ -52,6 +52,7 @@ set(GAZER_SOURCES
     src/app/SettingsColorPicker.cpp
     src/app/SettingsHexEditor.cpp
     src/app/SettingsSpeechKey.cpp
+    src/app/SettingsSpeechOutput.cpp
     src/app/SettingsSliderGaze.cpp
     src/app/SettingsCommands.cpp
     src/app/SettingsHeadPose.cpp
@@ -114,6 +115,7 @@ set(GAZER_SOURCES
     src/assist/DialogueSocket.cpp
     src/assist/PcmStreamPlayer.cpp
     src/assist/ClipPlayer.cpp
+    src/assist/AudioOutput.cpp
     src/assist/ClipBoost.cpp
     src/assist/SystemVolume.cpp
     src/assist/VolumeBoard.cpp
@@ -262,6 +264,7 @@ set(GAZER_HEADERS
     src/assist/ClipPlayer.h
     src/assist/ClipBoost.h
     src/assist/AudioGain.h
+    src/assist/AudioOutput.h
     src/assist/SystemVolume.h
     src/assist/ComposeBuffer.h
     src/predict/WordPredictor.h
@@ -577,7 +580,9 @@ add_executable(GazerSpeechTests
     tests/SoundboardStoreTest.cpp
     tests/SpeechHistoryTest.cpp
     tests/AudioGainTest.cpp
+    tests/AudioOutputTest.cpp
     tests/SpeechStreamTest.cpp
+    src/assist/AudioOutput.cpp
     src/assist/ElevenRequest.cpp
     src/assist/WsFrame.cpp
     src/assist/DialogueSocket.cpp
@@ -588,7 +593,7 @@ add_executable(GazerSpeechTests
     src/assist/ElevenClient.cpp
 )
 target_include_directories(GazerSpeechTests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_link_libraries(GazerSpeechTests PRIVATE Qt6::Core Qt6::Gui Qt6::Network Qt6::Test)
+target_link_libraries(GazerSpeechTests PRIVATE Qt6::Core Qt6::Gui Qt6::Network Qt6::Multimedia Qt6::Test)
 add_test(NAME GazerSpeechTests COMMAND GazerSpeechTests)
 
 add_executable(GazerPredictTests

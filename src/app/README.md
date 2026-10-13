@@ -28,6 +28,7 @@ Composition root, settings, command dispatch.
 | `SettingsColorPicker.cpp` | HSV field + hue/opacity sliders, eyedropper, picker palette swatches |
 | `SettingsHexEditor.cpp` | Hex color pad (6–8 digits, copy/paste) |
 | `SettingsSpeechKey.cpp` | ElevenLabs API-key live board |
+| `SettingsSpeechOutput.cpp` | Speak-page playback device list (`settings.speech.output.*`) |
 | `SettingsSliderGaze.cpp` | Head-pose curve gaze-scrub |
 | `SettingsCommands.cpp` | `settings.*` builtins |
 | `SettingsHeadPose.cpp` | Head-pose axis list and in-column editor (`headPose.*`) |

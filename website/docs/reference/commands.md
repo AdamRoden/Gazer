@@ -210,6 +210,8 @@ Patterns — boards generate many concrete names from these:
 | `settings.speech.editKey` / `.clearKey` | Paste-from-clipboard API-key board / wipe DPAPI. |
 | `settings.speech.key.paste` / `.save` / `.cancel` / `.clear` | Key board. |
 | `settings.speech.predictions.toggle` | Turn word suggestions on the Speak page on or off. |
+| `settings.speech.output.<id>` | Play speech on that device. An empty id follows the Windows default. `<id>` is the percent-encoded device key. |
+| `settings.speech.output.refresh` | Rescan playback devices on the Speak page. |
 | `settings.speech.model.sapi` / `.eleven_v4_turbo` | Same handlers as `speech.model.*`. |
 | `settings.dwell.slow` / `.normal` / `.fast` / `.custom` | Dwell presets (standard + rapid together). |
 | `settings.dwell.custom.save` / `.restore` | Save or restore Custom timings. |

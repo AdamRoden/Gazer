@@ -16,6 +16,7 @@
 
 #include <QColor>
 #include <QKeyEvent>
+#include <QMediaDevices>
 #include <QObject>
 #include <QtGlobal>
 #include <QVector>
@@ -40,6 +41,15 @@ SettingsUi::SettingsUi(AppSettings& settings, CommandRegistry& commands, PageSes
                          notifyStatus(msg);
                          m_pages.refreshDecorated();
                      });
+    m_audioWatch = std::make_unique<QObject>();
+    auto* devices = new QMediaDevices(m_audioWatch.get());
+    QObject::connect(devices, &QMediaDevices::audioOutputsChanged, m_audioWatch.get(),
+                     [this]() {
+                         if (m_pages.showsPage(QStringLiteral("main_settings_speak"))) {
+                             m_pages.refreshDecorated();
+                         }
+                     },
+                     Qt::QueuedConnection);
 }
 
 SettingsUi::~SettingsUi() = default;
@@ -394,6 +404,9 @@ void SettingsUi::decoratePage(PageDocument& doc)
     }
     for (PageGrid& g : doc.grids) {
         stampGrid(g, m_settings, swatch, live, source, primary, secondary);
+    }
+    if (doc.id == QLatin1String("main_settings_speak")) {
+        decorateSpeechOutput(doc);
     }
     if (doc.id == QLatin1String("main_settings_speak")
         || doc.id == QLatin1String("main_settings_setup")) {

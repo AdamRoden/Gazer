@@ -280,6 +280,10 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
     if (!ctx.settings) {
         return false;
     }
+    if (key.startsWith(QLatin1String("settings.speech.output."))) {
+        const auto prefix = QLatin1String("settings.speech.output.");
+        return ctx.settings->speechOutputId == VoiceCatalog::decodeId(key.mid(prefix.size()));
+    }
     const AppSettings& s = *ctx.settings;
     for (const AppSettings::StyleToggle& t : AppSettings::kStyleToggles) {
         if (key == QLatin1String(t.command)) {

@@ -365,6 +365,8 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
     speechSpeed = o.value(QStringLiteral("speechSpeed")).toDouble(speechSpeed);
     speechPitch = o.value(QStringLiteral("speechPitch")).toDouble(speechPitch);
     speechVolume = o.value(QStringLiteral("speechVolume")).toDouble(speechVolume);
+    speechOutputId = o.value(QStringLiteral("speechOutputId")).toString(speechOutputId);
+    speechOutputName = o.value(QStringLiteral("speechOutputName")).toString(speechOutputName);
     speechLangFilter = o.value(QStringLiteral("speechLangFilter")).toString(speechLangFilter);
     elevenApiKeySet = false;
     auto readStringList = [](const QJsonObject& obj, const QString& key, const QStringList& fallback) {
@@ -600,6 +602,8 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     o.insert(QStringLiteral("speechSpeed"), copy.speechSpeed);
     o.insert(QStringLiteral("speechPitch"), copy.speechPitch);
     o.insert(QStringLiteral("speechVolume"), copy.speechVolume);
+    o.insert(QStringLiteral("speechOutputId"), copy.speechOutputId);
+    o.insert(QStringLiteral("speechOutputName"), copy.speechOutputName);
     o.insert(QStringLiteral("speechLangFilter"), copy.speechLangFilter);
     auto writeStringList = [](const QStringList& v) {
         QJsonArray a;

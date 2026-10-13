@@ -147,6 +147,11 @@ struct AppSettings {
     double speechPitch = 1.0;
     /// Playback gain for composer clips (1–5×). SAPI cannot go above 100%.
     double speechVolume = 1.0;
+    /// Empty uses the Windows default playback device. Otherwise an
+    /// `AudioOutput::deviceKey` for a connected endpoint.
+    QString speechOutputId;
+    /// Last chosen device label, kept so the list can show it after unplug.
+    QString speechOutputName;
     /// Word suggestions above the Speak phrase.
     bool composePredictions = true;
     QString speechLangFilter;

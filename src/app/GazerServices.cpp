@@ -532,6 +532,10 @@ void GazerServices::applySettings(bool persist)
     if (m_tts) {
         QString voiceErr;
         (void)m_tts->setVoiceToken(m_settings.sapiVoiceToken, &voiceErr);
+        m_tts->setOutputKey(m_settings.speechOutputId);
+    }
+    if (m_clips) {
+        m_clips->setOutputKey(m_settings.speechOutputId);
     }
 
     if (m_pages) {

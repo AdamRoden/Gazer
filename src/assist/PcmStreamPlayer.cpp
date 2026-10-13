@@ -1,12 +1,12 @@
 #include "assist/PcmStreamPlayer.h"
 
 #include "assist/AudioGain.h"
+#include "assist/AudioOutput.h"
 #include "utils/Log.h"
 
 #include <QAudioDevice>
 #include <QAudioFormat>
 #include <QAudioSink>
-#include <QMediaDevices>
 #include <QTimer>
 
 #include <algorithm>
@@ -38,16 +38,20 @@ PcmStreamPlayer::~PcmStreamPlayer()
     stopQuiet();
 }
 
-bool PcmStreamPlayer::start(int sampleRate, double speed, double gain)
+bool PcmStreamPlayer::start(int sampleRate, double speed, double gain, const QString& outputKey)
 {
     stopQuiet();
     if (sampleRate < 8000) {
         return false;
     }
-    const QAudioDevice dev = QMediaDevices::defaultAudioOutput();
+    bool fellBack = false;
+    const QAudioDevice dev = AudioOutput::resolveDevice(outputKey, &fellBack);
     if (dev.isNull()) {
         GAZER_WARN << "PcmStreamPlayer: no audio output";
         return false;
+    }
+    if (fellBack) {
+        GAZER_WARN << "PcmStreamPlayer: saved output is not connected; using the default";
     }
     QAudioFormat fmt;
     fmt.setSampleRate(sampleRate);

@@ -5,10 +5,10 @@
   <Style id="join" background="transparent" thickness="0" radius="0"/>
   <Style id="joinLeft" background="transparent" thickness="0" radius="10,0,0,10"/>
   <Style id="joinRight" background="transparent" thickness="0" radius="0,10,10,0"/>
-  <Grid id="board" desktopMode="true" rows="2" columns="16" anchor="Top" offset="0,0" size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" gap="6" margin="12" radius="16"
-        rowHeights="96,*">
-    <Cell id="page_title" row="0" col="0" colSpan="16" label="Speak" caption="Composer voice" role="label" textStyle="title" style="plain"/>
-    <SubGrid id="sec_speech" row="1" col="0" colSpan="16" rows="5" columns="1" rowHeights="*,2*,2*,2*,2*" gap="6" margin="6" style="group">
+  <Grid id="board" desktopMode="true" rows="2" columns="2" anchor="Top" offset="0,0" size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" gap="6" margin="12" radius="16"
+        rowHeights="96,*" columnWidths="3*,2*">
+    <Cell id="page_title" row="0" col="0" colSpan="2" label="Speak" caption="Voice and playback" role="label" textStyle="title" style="plain"/>
+    <SubGrid id="sec_speech" row="1" col="0" rows="5" columns="1" rowHeights="*,2*,2*,2*,2*" gap="6" margin="6" style="group">
       <Cell id="h_speech" row="0" col="0" label="Speech" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_key" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="key_status" row="0" col="0" label="No API key" role="value" style="plain"/>
@@ -44,6 +44,13 @@
         <Cell id="predict_l" row="0" col="0" label="Word predictions" caption="Suggestions above the phrase. Dwell a word to insert it." role="label" style="plain"/>
         <Cell id="predict_on" row="0" col="1" label="On" role="toggle" activeState="settings.speech.predictions.toggle" command="settings.speech.predictions.toggle"/>
       </SubGrid>
+    </SubGrid>
+    <SubGrid id="sec_output" row="1" col="1" rows="2" columns="1" rowHeights="*,8*" gap="6" margin="6" style="group">
+      <SubGrid id="row_output" row="0" col="0" rows="1" columns="2" columnWidths="*,140" gap="6" style="row">
+        <Cell id="h_output" row="0" col="0" label="Output" caption="Where speech is heard." role="label" textStyle="section" style="plain"/>
+        <Cell id="out_refresh" row="0" col="1" label="Refresh" icon="restart" command="settings.speech.output.refresh"/>
+      </SubGrid>
+      <SubGrid id="out_list" row="1" col="0" rows="1" columns="1" gap="6" style="row"/>
     </SubGrid>
   </Grid>
 </Page>

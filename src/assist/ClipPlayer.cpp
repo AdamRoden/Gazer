@@ -1,6 +1,7 @@
 #include "assist/ClipPlayer.h"
 
 #include "assist/AudioGain.h"
+#include "assist/AudioOutput.h"
 #include "assist/ClipBoost.h"
 #include "utils/Log.h"
 
@@ -67,6 +68,24 @@ bool ClipPlayer::isAvailable() const
     return m_backendOk;
 }
 
+void ClipPlayer::setOutputKey(const QString& key)
+{
+    m_outputKey = key.trimmed();
+}
+
+void ClipPlayer::applyOutput()
+{
+    if (!m_audio) {
+        return;
+    }
+    bool fellBack = false;
+    const QAudioDevice dev = AudioOutput::resolveDevice(m_outputKey, &fellBack);
+    if (dev.isNull() || m_audio->device() == dev) {
+        return;
+    }
+    m_audio->setDevice(dev);
+}
+
 void ClipPlayer::stopQuiet()
 {
     m_boosting = false;
@@ -111,6 +130,7 @@ bool ClipPlayer::play(const QString& path, double playbackRate, double gain)
 
 bool ClipPlayer::startFile(const QString& path, double playbackRate)
 {
+    applyOutput();
     m_audio->setVolume(1.0);
     m_player->setPlaybackRate(playbackRate);
     m_armed = true;

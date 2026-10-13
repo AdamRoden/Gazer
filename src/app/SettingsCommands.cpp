@@ -144,6 +144,17 @@ void SettingsUi::registerCommands()
         speechKeyPaste();
         return true;
     });
+    m_commands.registerBuiltin(QStringLiteral("settings.speech.output.refresh"), [this](QString*) {
+        m_pages.refreshDecorated();
+        notifyStatus(QStringLiteral("Audio devices updated"));
+        return true;
+    });
+    m_commands.registerPrefix(
+        QStringLiteral("settings.speech.output."),
+        [this](const CommandRegistry::Invocation& inv, QString* error) {
+            const auto prefix = QLatin1String("settings.speech.output.");
+            return selectSpeechOutput(inv.name.mid(prefix.size()), error);
+        });
 
     for (const char* ck : kColorKeys) {
         m_commands.registerBuiltin(

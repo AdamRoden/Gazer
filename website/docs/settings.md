@@ -11,7 +11,7 @@ The hub and the tab bar are the same eight boards. **Done** on the tab bar close
 | **Place** | Pointer dwell, pointer grace, final-pick markers, Move to…, and ComboMouse radii and colors. |
 | **Gaze** | Gaze follow (slow / sticky / smooth / snappy), show gaze, gaze mouse, the live lens, and the four look-to maps. |
 | **Head** | Analog head-pose maps (yaw / pitch / roll / x / y / z → commands or a virtual pad). |
-| **Speak** | Composer voice: API key, SAPI or ElevenLabs model, speed, boost, and word predictions. The voice library stays on the Speak board. |
+| **Speak** | Composer voice: API key, SAPI or ElevenLabs model, speed, boost, word predictions, and the playback device. The voice library stays on the Speak board. |
 | **Theme** | Light / dark, brightness, tint family, accent, progress color, saturation, custom palette, hover, and flash. |
 | **Setup** | Tracker, ViGEm install, screen capture (**All** / **Pages** / **None**), startup splash (**Play tour**), auto-close, and **Open log folder**. |
 

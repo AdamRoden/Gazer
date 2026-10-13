@@ -21,6 +21,8 @@ public:
     ~ClipPlayer() override;
 
     [[nodiscard]] bool isAvailable() const;
+    /// Empty key uses the Windows default. Applied on the next `play`.
+    void setOutputKey(const QString& key);
     /// Start playing `path`. Returns false if the backend/file cannot start.
     /// playbackRate maps Eleven localSpeed; gain > 1 preprocesses PCM then plays.
     [[nodiscard]] bool play(const QString& path, double playbackRate = 1.0, double gain = 1.0);
@@ -40,6 +42,7 @@ private:
     void onBoostFailed();
     void playUnboostedOrFail();
     void stopQuiet();
+    void applyOutput();
     [[nodiscard]] bool startFile(const QString& path, double playbackRate);
 
     QMediaPlayer* m_player = nullptr;
@@ -47,6 +50,7 @@ private:
     ClipBoost* m_boost = nullptr;
     QTemporaryFile* m_gainFile = nullptr;
     QString m_sourcePath;
+    QString m_outputKey;
     double m_rate = 1.0;
     bool m_backendOk = false;
     bool m_playing = false;

@@ -235,6 +235,7 @@ void SpeechEngine::speakSapi(const QString& spoken)
     m_status.lastError.clear();
     emit statusChanged();
 
+    m_tts.setOutputKey(m_settings.speechOutputId);
     m_tts.setSpeed(m_settings.speechSpeed);
     QString err;
     if (!m_tts.speak(spoken, &err)) {
@@ -393,6 +394,7 @@ bool SpeechEngine::playFile(const QString& path)
     m_status.lastError.clear();
     emit statusChanged();
     m_clipGen = m_generation;
+    m_clips.setOutputKey(m_settings.speechOutputId);
     if (m_clips.isAvailable() && m_clips.play(path, 1.0, m_settings.speechVolume)) {
         m_status.speaking = true;
         emit statusChanged();
@@ -456,7 +458,7 @@ void SpeechEngine::onSpeechChunk(const QByteArray& pcm)
     m_elevenFails = 0;
     if (!m_pcmPlayer->isPlaying()) {
         if (!m_pcmPlayer->start(PcmWav::kSampleRate, m_pendingPrep.localSpeed,
-                                m_settings.speechVolume)) {
+                                m_settings.speechVolume, m_settings.speechOutputId)) {
             m_eleven.abortSpeech();
             m_pcm.clear();
             GAZER_WARN << "PcmStreamPlayer unavailable; SAPI fallback";

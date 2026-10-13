@@ -9,7 +9,7 @@ Drawer **Speak** (`compose.open`) opens `compose.xml`. This is an internal phras
 - **Soundboard**: pin the spoken clip onto topic cells; replay without re-synthesis. Store: `%AppData%\Gazer\` (`boards.json`, `clips/`).
 - **Freestyle**: saved voices + ElevenLabs audio tags (`[laugh]`, accents, …).
 - **History**: last 50 composed utterances; replay, restore, or delete.
-- Settings → **Speak**: paste API key from the clipboard (never stored in `settings.json`), model, speed, boost, word predictions.
+- Settings → **Speak**: paste API key from the clipboard (never stored in `settings.json`), model, speed, boost, word predictions, and the playback device. **System default** follows Windows. A named device is used for SAPI, v4 Turbo, and saved clips. If that device is unplugged, speech uses the Windows default until it returns.
 
 While the action’s **source page** is `compose` (or a compose live board), `Send` and mapping/modifier commands are captured into the phrase: letters insert, `backspace` deletes, `space` inserts a space, `enter` speaks, `escape` stops speech or closes. `leftShift` / `tab` / arrows are consumed with no OS inject. Caps uses XML `ShowLayers`. The full QWERTY board (`qwerty_main`) still types into Windows. Capture table: [Actions — Composer capture](reference/actions.md#composer-capture).
 

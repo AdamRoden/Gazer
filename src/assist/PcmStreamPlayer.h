@@ -20,7 +20,9 @@ public:
     ~PcmStreamPlayer() override;
 
     /// `speed` matches QMediaPlayer playback rate. `gain` is the 1–5× clip boost.
-    [[nodiscard]] bool start(int sampleRate, double speed, double gain);
+    /// `outputKey` empty uses the Windows default. A missing key falls back to it.
+    [[nodiscard]] bool start(int sampleRate, double speed, double gain,
+                             const QString& outputKey = {});
     void push(const QByteArray& pcm);
     /// No more audio. Emits `stopped` after the device drains.
     void finish();
