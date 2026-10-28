@@ -174,11 +174,13 @@ private:
     void syncExpanded();
     [[nodiscard]] bool anyRootGridShown() const;
     [[nodiscard]] bool drawerMotionShown() const;
+    /// Layers of shown top-level `drawerMotion` master grids.
+    [[nodiscard]] QVector<int> drawerMotionLayers() const;
     [[nodiscard]] bool nonDrawerRootShown() const;
     void resetDrawerAnim();
     void snapHideDrawerMotion();
     void hideRootAutoClose(bool animate);
-    void syncDrawerAnim(bool wasDrawer);
+    void syncDrawerAnim(const QVector<int>& wasDrawerLayers);
     [[nodiscard]] const PageTarget* findTarget(const QString& id) const;
     [[nodiscard]] const PageTarget* findLiveTarget(const QString& pageId,
                                                    const QString& targetId) const;
@@ -186,7 +188,8 @@ private:
     void ingest(const PageDocument& doc, bool isMaster, QVector<PageTarget>& targets,
                 QVector<PageGridPaint>& gridPaints, QHash<QString, QString>* pageBgTokens,
                 bool includeDrawerMotion = false,
-                const QHash<QString, const PageDocument*>* fragments = nullptr);
+                const QHash<QString, const PageDocument*>* fragments = nullptr,
+                const QVector<int>* drawerLayers = nullptr);
     [[nodiscard]] bool loadCatalogDoc(const QString& id, PageDocument& out, QString* error) const;
     [[nodiscard]] bool applyHostPage(const PageAction& action, const QString& sourcePageId,
                                      QString* error);
@@ -282,6 +285,8 @@ private:
     enum class DrawerPhase { Idle, Appear, Dismiss };
     DrawerPhase m_drawerPhase = DrawerPhase::Idle;
     double m_drawerScale = 1.0;
+    /// Drawer layers that were shown when Dismiss began; only those paint while it runs.
+    QVector<int> m_dismissLayers;
     static constexpr double kDrawerMinScale = 0.05;
     static constexpr int kDrawerAppearMs = 420;
     static constexpr int kDrawerDismissMs = 500;
