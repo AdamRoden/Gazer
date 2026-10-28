@@ -1,5 +1,7 @@
 #pragma once
 
+#include <QByteArray>
+#include <QJsonObject>
 #include <QString>
 #include <QVector>
 #include <cstdint>
@@ -40,6 +42,30 @@ public:
     static constexpr int kMaxRows = 6;
     static constexpr qint64 kMaxTotalBytes = 200ll * 1024 * 1024;
     static constexpr qint64 kMaxClipBytes = 5ll * 1024 * 1024;
+    /// Voice `aac-workspace` JSON. Larger exports drop audio and keep phrases.
+    static constexpr qint64 kWorkspaceMaxBytes = 20ll * 1024 * 1024;
+
+    struct WorkspaceExportSettings {
+        QString model;
+        double speed = 1.0;
+        double pitch = 1.0;
+        int volumeStop = 1;
+        QString theme;
+        QString accentColor;
+    };
+
+    struct WorkspaceImportedSettings {
+        bool hasModel = false;
+        QString model;
+        bool hasSpeed = false;
+        double speed = 1.0;
+        bool hasPitch = false;
+        double pitch = 1.0;
+        bool hasVolume = false;
+        double volume = 1.0;
+    };
+
+    enum class WorkspaceMode { Replace, Merge };
 
     struct PlayPlan {
         enum class Kind { None, Utterance, Clip, Source };
@@ -101,6 +127,17 @@ public:
     static QVector<SoundboardTopic> starterTopics();
     static void clampTopic(SoundboardTopic* topic);
     static void repackSequential(SoundboardTopic* topic);
+
+    /// Voice-compatible `aac-workspace` v1. Also accepts `gazer-soundboard`.
+    /// Does not write `boards.json`. `load` / `save` stay on gazer-soundboard.
+    [[nodiscard]] QByteArray exportWorkspace(const WorkspaceExportSettings& settings,
+                                             bool* audioOmitted = nullptr,
+                                             qint64 maxBytes = kWorkspaceMaxBytes) const;
+    bool importWorkspace(const QJsonObject& root, WorkspaceMode mode,
+                         WorkspaceImportedSettings* imported = nullptr,
+                         QString* error = nullptr);
+    /// Put topics back after a failed save, then evict clips the import added.
+    void restoreTopics(QVector<SoundboardTopic> topics, const QString& activeId);
 
 private:
     [[nodiscard]] QStringList referencedClipIds() const;

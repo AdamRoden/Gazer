@@ -115,28 +115,33 @@ When adding a command: register it and add a row here.
 | `compose.stop` | Abort Eleven POST, stop clip, stop SAPI |
 | `compose.clear` / `compose.undo` / `compose.redo` | Buffer |
 | `compose.backspace` / `compose.deleteWord` | Edit |
-| `compose.removeWord.<i>` | Prefix; `i` is visible chip 0–11 |
+| `compose.removeWord.<i>` | Prefix; `i` is chip slot 0–11. Pager slots are not words |
+| `compose.pageChips.<n>` | Prefix; move the word window by `n` tokens (the chips use ±5) |
+| `compose.selectAll` / `compose.cut` / `compose.copy` / `compose.paste` | Phrase selection and the clipboard. Copy uses the selection, or the whole phrase when nothing is selected. Cut needs a selection |
 | `compose.acceptPrediction.<i>` | Prefix; dwell suggestion `i` above the phrase. Replaces the word being typed, or inserts the next word |
 | `compose.moveEndOfWord.<i>` / `compose.moveStartOfWord.<i>` | Prefix; caret to that chip’s word edge |
 | `compose.openVoices` / `compose.openHistory` | Voice list (model, speed, catalog); history |
-| `compose.toggleFreestyle` | Switch Speak between topics and Freestyle (saved voices + tags) |
-| `compose.saveName` / `compose.cancelName` / `compose.deleteName` | Save, discard, or delete the item being edited and return to Topics/Freestyle |
+| `compose.applyStyle.<name>` / `compose.clearStyle` | Standing ElevenLabs style. `name` is the percent-encoded display name. Empty clears it. The tag is added on the Eleven request only |
+| `compose.openStyleEditor` / `compose.closeStyleEditor` | Style list editor: every style, with star and trash. Done returns to the favorite picker |
+| `compose.favStyle.<name>` / `compose.trashStyle.<name>` | Star or remove a style. `name` is the percent-encoded display name. Trashing the standing style clears it. The catalog is saved |
+| `compose.stylePage.<n>` | Move the style editor by `n` pages |
+| `compose.beginStyleName` | Type a new style on the keyboard. Save adds it, starred. Cancel returns to the editor |
+| `compose.exportBoard` | Save the soundboard as a Voice `aac-workspace` v1 JSON file |
+| `compose.importChoose` / `compose.importMerge` / `compose.importReplace` | Pick a workspace file, then merge topics or replace the board. Replace also applies model, speed, pitch, and volume |
+| `compose.saveName` / `compose.cancelName` / `compose.deleteName` | Save, discard, or delete the item being edited and return to the board |
 | `compose.editShowColors` / `compose.editShowIcons` | Switch the edit overlay between color chips and icons |
 | `compose.editColor.<i>` / `compose.editIcon.<i>` | Set color or icon on the item being edited |
 | `compose.editClearColor` / `compose.editClearIcon` | Clear custom color or icon on the item being edited |
-| `compose.voicePreset.<id>` / `compose.editVoicePreset.<id>` / `compose.newVoicePreset` | Apply, rename, or save a Freestyle voice (voice + speed + boost) |
-| `compose.editTag.<i>` / `compose.newTag` | Rename or create a saved tag from the composer |
 | `history.play.<id>` / `history.restore.<id>` / `history.delete.<id>` | Replay, put the phrase back in the buffer, or drop the row |
 | `history.list.next` / `.prev` / `history.list.goto.<n>` | History list: gaze along the track to scroll; commands still page/jump |
-| `compose.pin` / `compose.cancelAssign` | Topics: empty buffer no-op; phrase assigns onto the soundboard. Freestyle: save the current voice + speed + boost |
-| `compose.editPins` | Edit mode: dwell a pin/topic (or a Freestyle voice/tag) to rename |
+| `compose.pin` / `compose.cancelAssign` | Empty buffer no-op; otherwise dwell a cell to save the phrase on the soundboard |
+| `compose.editPins` | Keyboard **Edit** key. Dwell a pin or topic to rename |
 | `soundboard.edit.<id>` | Open the pin item editor |
 | `soundboard.editTopic.<id>` | Open the topic item editor |
 | `soundboard.play.<id>` | Prefix; play a button |
 | `soundboard.assign.sb_r_c` | Prefix; create/overwrite a cell |
 | `soundboard.topic.<id>` | Prefix; switch topic |
 | `soundboard.newTopic` / `soundboard.loadStarters` | Topics |
-| `compose.insertTagAt.<i>` | Prefix; insert `savedSpeechTags[i]` |
 | `speech.model.sapi` / `.eleven_v4_turbo` | Composer engine. `.eleven_flash_v2_5` and `.eleven_v3` also select v4 Turbo. |
 | `speech.voice.<id>` | Prefix; select a voice (percent-encoded id) |
 | `speech.voicePreview.<id>` | Prefix; preview that voice without selecting it |
@@ -146,8 +151,8 @@ When adding a command: register it and add a row here.
 | `speech.gender.all` / `.female` / `.male` | Voice filter |
 | `speech.lang.all` / `speech.lang.set.<code>` | Language filter |
 | `speech.speed.dec` / `.inc` | Nudge `speechSpeed` 0.1 |
-| `speech.volume.dec` / `.inc` | Nudge `speechVolume` 0.5 (1–5× clip boost) |
-| `volume.dec` / `.inc` | Nudge Windows master volume by 10%. Any page. `compose.volume.dec` / `.inc` are the same commands. A `role="slider"` `caption="volume"` cell shows the percent and follows gaze. |
+| `speech.volume.dec` / `.inc` | Nudge `speechVolume` 0.5 (1–5× clip boost). The voice list uses these |
+| `volume.dec` / `.inc` | Nudge Windows master volume by 10%. Any page. `compose.volume.dec` / `.inc` are the same commands. Speak → Actions → **Volume** is a `role="slider"` `caption="volume"` cell with `scanGrace` 2000 ms. After that, the level eases toward the gaze point at 20 percent per second. Wide QWERTY follows gaze as soon as its own scan grace ends |
 
 While `compose` is top (or a compose live board), `Send` and mapping keys (`backspace`, `space`, `enter`, `escape`, modifiers) are captured and never reach the OS. `volume.dec` / `volume.inc` still nudge the Windows endpoint. Caps uses XML `ShowLayers`.
 

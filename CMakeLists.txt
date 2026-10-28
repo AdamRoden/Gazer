@@ -64,8 +64,8 @@ set(GAZER_SOURCES
     src/app/ComposeUi.cpp
     src/app/ComposeVoices.cpp
     src/app/ComposeSoundboard.cpp
-    src/app/ComposeFreestyle.cpp
     src/app/ComposeItemEdit.cpp
+    src/app/ComposeStyles.cpp
     src/app/ComposeHistory.cpp
     src/app/ComposeListScroll.cpp
     src/assist/ComposeCommands.cpp
@@ -107,8 +107,10 @@ set(GAZER_SOURCES
     src/mapping/HeadPoseCurve.cpp
     src/assist/TtsService.cpp
     src/assist/ElevenRequest.cpp
+    src/assist/VoiceStyles.cpp
     src/assist/VoiceCatalog.cpp
     src/assist/SoundboardStore.cpp
+    src/assist/SoundboardWorkspace.cpp
     src/assist/SpeechHistory.cpp
     src/assist/SpeechEngine.cpp
     src/assist/WsFrame.cpp
@@ -524,6 +526,7 @@ add_executable(GazerPageTests
     src/app/AppSettingsIo.cpp
     src/app/AppSettingsTheme.cpp
     src/assist/ElevenRequest.cpp
+    src/assist/VoiceStyles.cpp
     src/ui/Theme.cpp
     src/ui/ThemeScheme.cpp
     src/ui/MaterialPalette.cpp
@@ -575,6 +578,7 @@ add_test(NAME GazerDwellTests COMMAND GazerDwellTests)
 add_executable(GazerSpeechTests
     tests/speech_tests_main.cpp
     tests/ElevenRequestTest.cpp
+    tests/VoiceStylesTest.cpp
     tests/ComposeBufferTest.cpp
     tests/VoiceCatalogTest.cpp
     tests/SoundboardStoreTest.cpp
@@ -584,11 +588,13 @@ add_executable(GazerSpeechTests
     tests/SpeechStreamTest.cpp
     src/assist/AudioOutput.cpp
     src/assist/ElevenRequest.cpp
+    src/assist/VoiceStyles.cpp
     src/assist/WsFrame.cpp
     src/assist/DialogueSocket.cpp
     src/assist/ComposeBuffer.cpp
     src/assist/VoiceCatalog.cpp
     src/assist/SoundboardStore.cpp
+    src/assist/SoundboardWorkspace.cpp
     src/assist/SpeechHistory.cpp
     src/assist/ElevenClient.cpp
 )

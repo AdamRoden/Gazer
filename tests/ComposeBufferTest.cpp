@@ -15,7 +15,8 @@ private slots:
     void redo();
     void tokenize();
     void visibleWindowMapping();
-    void removeVisibleWordMapsLastTwelve();
+    void chipPageStepsByFive();
+    void selectionReplacesOnEdit();
     void tagPadding();
     void insertTagWrapsBrackets();
     void clearResets();
@@ -128,27 +129,80 @@ void ComposeBufferTest::visibleWindowMapping()
         b.insertPadded(QString::number(i));
     }
     QCOMPARE(b.tokens().size(), 15);
-    QCOMPARE(b.visibleTokens().size(), 12);
-    QCOMPARE(b.tokenIndexForVisibleSlot(0), 3);
-    QCOMPARE(b.tokenIndexForVisibleSlot(11), 14);
-    QCOMPARE(b.tokenIndexForVisibleSlot(12), -1);
-    QCOMPARE(b.visibleTokens().front().text, QStringLiteral("3"));
+    QVERIFY(b.chipsOverflow());
+    QCOMPARE(b.chipWindowStart(), 5);
+    QCOMPARE(b.visibleTokens().size(), 10);
+    QCOMPARE(b.chipSlot(0).kind, ComposeBuffer::ChipSlotKind::PageBack);
+    QCOMPARE(b.chipSlot(11).kind, ComposeBuffer::ChipSlotKind::PageForward);
+    QCOMPARE(b.tokenIndexForVisibleSlot(0), -1);
+    QCOMPARE(b.tokenIndexForVisibleSlot(11), -1);
+    QCOMPARE(b.tokenIndexForVisibleSlot(1), 5);
+    QCOMPARE(b.tokenIndexForVisibleSlot(10), 14);
+    QCOMPARE(b.visibleTokens().front().text, QStringLiteral("5"));
     QCOMPARE(b.visibleTokens().back().text, QStringLiteral("14"));
+    b.removeVisibleWord(1);
+    QCOMPARE(b.tokens().at(5).text, QStringLiteral("6"));
+    QCOMPARE(b.chipWindowStart(), b.tokens().size() - ComposeBuffer::kChipWordSlots);
+
+    ComposeBuffer exact;
+    exact.setNowMsForTest(0);
+    for (int i = 0; i < 12; ++i) {
+        exact.setNowMsForTest(i * (ComposeBuffer::kCoalesceMs + 1));
+        exact.insertPadded(QString::number(i));
+    }
+    QVERIFY(!exact.chipsOverflow());
+    QCOMPARE(exact.visibleTokens().size(), 12);
+    QCOMPARE(exact.chipSlot(0).kind, ComposeBuffer::ChipSlotKind::Word);
+    QCOMPARE(exact.tokenIndexForVisibleSlot(0), 0);
 }
 
-void ComposeBufferTest::removeVisibleWordMapsLastTwelve()
+void ComposeBufferTest::chipPageStepsByFive()
 {
     ComposeBuffer b;
     b.setNowMsForTest(0);
-    for (int i = 0; i < 15; ++i) {
+    for (int i = 0; i < 20; ++i) {
         b.setNowMsForTest(i * (ComposeBuffer::kCoalesceMs + 1));
         b.insertPadded(QString::number(i));
     }
-    // slot 0 = token 3 ("3")
-    b.removeVisibleWord(0);
-    const auto toks = b.tokens();
-    QCOMPARE(toks.size(), 14);
-    QCOMPARE(toks[3].text, QStringLiteral("4"));
+    QCOMPARE(b.chipWindowStart(), 10);
+    b.pageChips(-5);
+    QCOMPARE(b.chipWindowStart(), 5);
+    b.setNowMsForTest(100000);
+    b.insertPadded(QStringLiteral("tail"));
+    QCOMPARE(b.chipWindowStart(), b.tokens().size() - ComposeBuffer::kChipWordSlots);
+}
+
+void ComposeBufferTest::selectionReplacesOnEdit()
+{
+    ComposeBuffer b;
+    b.insert(QStringLiteral("hello"));
+    b.selectAll();
+    QVERIFY(b.hasSelection());
+    QCOMPARE(b.selectedText(), QStringLiteral("hello"));
+    QCOMPARE(b.selectionStart(), 0);
+    QCOMPARE(b.selectionEnd(), 5);
+    b.backspace();
+    QCOMPARE(b.text(), QString());
+    QVERIFY(!b.hasSelection());
+
+    ComposeBuffer empty;
+    empty.selectAll();
+    QVERIFY(!empty.hasSelection());
+    QVERIFY(!empty.canUndo());
+
+    ComposeBuffer caret;
+    caret.insert(QStringLiteral("hello"));
+    caret.selectAll();
+    caret.setCaret(1);
+    QVERIFY(!caret.hasSelection());
+    QVERIFY(caret.undo());
+    QCOMPARE(caret.text(), QString());
+
+    ComposeBuffer word;
+    word.insert(QStringLiteral("hello world"));
+    word.selectAll();
+    word.deleteWord();
+    QCOMPARE(word.text(), QString());
 }
 
 void ComposeBufferTest::tagPadding()

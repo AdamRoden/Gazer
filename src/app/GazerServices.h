@@ -119,6 +119,7 @@ private:
     std::unique_ptr<PageSession> m_pages;
     std::unique_ptr<SystemVolume> m_systemVolume;
     VolumeBoard::Arm m_volumeArm;
+    VolumeBoard::Slew m_volumeSlew;
     bool m_volumeRefreshQueued = false;
     std::unique_ptr<KeyStateManager> m_keyState;
     std::unique_ptr<InputService> m_input;

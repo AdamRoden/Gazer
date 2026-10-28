@@ -1,11 +1,14 @@
 #include "app/AppSettings.h"
 
 #include "assist/ElevenRequest.h"
+#include "assist/VoiceStyles.h"
 #include "assist/GazeFollowProfile.h"
 #include "assist/LookToMap.h"
 #include "mapping/HeadPoseCurve.h"
 #include "ui/PickStyle.h"
 
+#include <QJsonArray>
+#include <QJsonObject>
 #include <QSet>
 #include <QStringList>
 #include <QUuid>
@@ -437,6 +440,23 @@ void AppSettings::clamp()
         speechOutputName.clear();
     } else if (speechOutputName.size() > 160) {
         speechOutputName.truncate(160);
+    }
+    speechStyle = VoiceStyles::normalizeStyleName(speechStyle);
+    if (voiceStylesSet) {
+        QJsonObject raw;
+        QJsonArray styles;
+        for (const QString& name : voiceStyleNames) {
+            styles.append(name);
+        }
+        QJsonArray favorites;
+        for (const QString& name : voiceStyleFavorites) {
+            favorites.append(name);
+        }
+        raw.insert(QStringLiteral("styles"), styles);
+        raw.insert(QStringLiteral("favorites"), favorites);
+        const VoiceStyles::Catalog cat = VoiceStyles::parseCatalog(raw);
+        voiceStyleNames = cat.styles;
+        voiceStyleFavorites = cat.favorites;
     }
     if (headPoseMaps.size() > kMaxHeadPoseMaps) {
         headPoseMaps.resize(kMaxHeadPoseMaps);

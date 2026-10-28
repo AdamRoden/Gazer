@@ -43,6 +43,7 @@ private slots:
     void appearanceSwitchesCustomNeutrals();
     void backgroundShadeAndTintFamily();
     void speechSettingsRoundTrip();
+    void voiceStylesLoad();
     void headPoseMapsRoundTrip();
     void legacyHeadPoseCurveUpgradesOnLoad();
     void lookToMapsRoundTripAndLegacyMigrate();
@@ -136,6 +137,8 @@ void AppSettingsTest::factoryUsesDomainConstants()
     QCOMPARE(s.resolvedHoverBorder(), s.colorKey(QStringLiteral("progressColor")));
     QCOMPARE(s.speechModel, QStringLiteral("sapi"));
     QCOMPARE(s.speechVolume, 1.0);
+    QVERIFY(s.speechStyle.isEmpty());
+    QVERIFY(!s.voiceStylesSet);
     QCOMPARE(s.savedSpeechTags, AppSettings::defaultSavedSpeechTags());
     QVERIFY(s.savedSpeechVoices.isEmpty());
     QVERIFY(s.progress.radial);
@@ -563,6 +566,36 @@ void AppSettingsTest::speechSettingsRoundTrip()
     QCOMPARE(b.savedSpeechVoices.front().model, QStringLiteral("eleven_v4_turbo"));
     QCOMPARE(b.savedSpeechVoices.front().voiceId, QStringLiteral("abc123"));
     QCOMPARE(b.savedSpeechVoices.front().volume, 2.0);
+}
+
+void AppSettingsTest::voiceStylesLoad()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("settings.json"));
+    {
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write(QByteArrayLiteral("{\"speechStyle\":\"none\"}"));
+    }
+    AppSettings missing;
+    QVERIFY(missing.loadFromFile(path));
+    QVERIFY(missing.speechStyle.isEmpty());
+    QVERIFY(!missing.voiceStylesSet);
+    QVERIFY(missing.voiceStyleNames.isEmpty());
+
+    {
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly | QIODevice::Truncate));
+        file.write(QByteArrayLiteral(
+            "{\"speechStyle\":\"[happy]\",\"voiceStyles\":{\"styles\":[],\"favorites\":[\"happy\"]}}"));
+    }
+    AppSettings empty;
+    QVERIFY(empty.loadFromFile(path));
+    QCOMPARE(empty.speechStyle, QStringLiteral("happy"));
+    QVERIFY(empty.voiceStylesSet);
+    QVERIFY(empty.voiceStyleNames.isEmpty());
+    QVERIFY(empty.voiceStyleFavorites.isEmpty());
 }
 
 void AppSettingsTest::headPoseMapsRoundTrip()

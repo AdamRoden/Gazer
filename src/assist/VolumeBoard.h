@@ -21,6 +21,18 @@ struct Arm {
     qint64 sinceMs = -1;
 };
 
+/// Speak slider follow. The first call seeds the clock and returns @p current.
+/// Later calls move at most @p perSec percent each second. A gap longer than
+/// 200 ms counts as 200 ms, so a look that returns does not jump the level.
+struct Slew {
+    double credit = 0;
+    qint64 atMs = -1;
+};
+
+inline constexpr double kSpeakSlewPercentPerSec = 20.0;
+
+[[nodiscard]] int stepToward(int current, int target, qint64 nowMs, double perSec, Slew* slew);
+
 struct Gaze {
     QString key;
     /// 0–1 through scan grace. 1 once the level may follow.

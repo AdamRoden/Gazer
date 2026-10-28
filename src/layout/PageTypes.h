@@ -420,6 +420,9 @@ struct PageLeaf {
     QString visibleWhen;
     /// UTF-16 offset in `label` for a blinking caret; -1 = none.
     int caretIndex = -1;
+    /// Inclusive start and exclusive end of a phrase selection. -1 = none.
+    int selectionStart = -1;
+    int selectionEnd = -1;
     bool suspendExempt = false;
     bool actionLoop = false;
     /// Zones only. Cells take shell from their grid.

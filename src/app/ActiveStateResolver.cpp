@@ -16,6 +16,7 @@
 #include "mapping/HeadPoseTypes.h"
 #include "assist/SpeechEngine.h"
 #include "assist/VoiceCatalog.h"
+#include "assist/VoiceStyles.h"
 #include "ui/PickStyle.h"
 #include "ui/Theme.h"
 
@@ -113,8 +114,21 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
     if (key == QLatin1String("compose.editMode")) {
         return ctx.composeUi && ctx.composeUi->editMode();
     }
-    if (key == QLatin1String("compose.freestyleMode")) {
-        return ctx.composeUi && ctx.composeUi->freestyleMode();
+    if (key == QLatin1String("compose.styleOn")) {
+        return ctx.settings
+               && !VoiceStyles::normalizeStyleName(ctx.settings->speechStyle).isEmpty();
+    }
+    if (key.startsWith(QLatin1String("compose.style."))) {
+        if (!ctx.settings) {
+            return false;
+        }
+        const QString live = VoiceStyles::keyOf(ctx.settings->speechStyle);
+        if (live.isEmpty()) {
+            return false;
+        }
+        const QString encoded = key.mid(int(QLatin1String("compose.style.").size()));
+        const QString decoded = QUrl::fromPercentEncoding(encoded.toUtf8());
+        return VoiceStyles::keyOf(decoded) == live;
     }
     if (key == QLatin1String("compose.nameEdit")) {
         return ctx.composeUi && ctx.composeUi->nameEditing();
@@ -126,11 +140,6 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
     if (key == QLatin1String("compose.editIcons")) {
         return ctx.composeUi && ctx.composeUi->nameEditing()
                && ctx.composeUi->editIconPalette();
-    }
-    if (key.startsWith(QLatin1String("compose.voicePreset."))) {
-        return ctx.composeUi
-               && ctx.composeUi->activeVoicePresetId()
-                      == key.mid(int(QLatin1String("compose.voicePreset.").size()));
     }
     if (key.startsWith(QLatin1String("speech.voice."))) {
         const QString id = VoiceCatalog::decodeId(

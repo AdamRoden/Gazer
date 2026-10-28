@@ -4,6 +4,8 @@
 #include "layout/PageTypes.h"
 #include "ui/SliderTrack.h"
 
+#include <QtGlobal>
+
 namespace gazer {
 namespace VolumeBoard {
 namespace {
@@ -33,6 +35,34 @@ void stamp(PageDocument& doc, int percent)
             zone.label = label;
         }
     }
+}
+
+int stepToward(int current, int target, qint64 nowMs, double perSec, Slew* slew)
+{
+    const int clamped = SystemVolume::clampPercent(current);
+    const int goal = SystemVolume::clampPercent(target);
+    if (!slew || perSec <= 0.0) {
+        return goal;
+    }
+    if (slew->atMs < 0) {
+        slew->atMs = nowMs;
+        slew->credit = 0;
+        return clamped;
+    }
+    const qint64 dt = qBound(qint64(0), nowMs - slew->atMs, qint64(200));
+    slew->atMs = nowMs;
+    if (clamped == goal) {
+        slew->credit = 0;
+        return clamped;
+    }
+    slew->credit += perSec * static_cast<double>(dt) / 1000.0;
+    const int room = static_cast<int>(slew->credit);
+    if (room <= 0) {
+        return clamped;
+    }
+    const int step = qBound(-room, goal - clamped, room);
+    slew->credit -= qAbs(step);
+    return clamped + step;
 }
 
 std::optional<Gaze> at(const QVector<PageTarget>& targets, const QVector<PageGridPaint>& grids,

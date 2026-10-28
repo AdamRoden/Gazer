@@ -12,8 +12,14 @@
 #include "ui/Theme.h"
 
 #include <QColor>
+#include <QDate>
+#include <QDir>
+#include <QFile>
+#include <QFileDialog>
 #include <QFileInfo>
+#include <QJsonDocument>
 #include <QRegularExpression>
+#include <QStandardPaths>
 #include <QVector>
 
 namespace gazer {
@@ -58,27 +64,13 @@ void ComposeUi::fillSoundboard(PageDocument& doc) const
 {
     const ThemeColors theme = m_settings.resolvedTheme();
     const QColor ok(46, 125, 50);
-    const QStringList pinIds = {QStringLiteral("pin"), QStringLiteral("pin_s"),
-                                QStringLiteral("pin_sym"), QStringLiteral("pin_ss")};
-    for (const QString& id : pinIds) {
-        PageCell* pin = doc.findCell(id);
-        if (!pin) {
+    const QStringList editIds = {QStringLiteral("pin"), QStringLiteral("pin_s"),
+                                 QStringLiteral("pin_sym"), QStringLiteral("pin_ss")};
+    for (const QString& id : editIds) {
+        PageCell* edit = doc.findCell(id);
+        if (!edit) {
             continue;
         }
-        if (assignMode()) {
-            pin->label = QStringLiteral("Cancel");
-        } else if (freestyleMode()) {
-            pin->label = QStringLiteral("Save");
-        } else {
-            pin->label = QStringLiteral("Pin");
-        }
-        pin->actions.clear();
-        pin->actions.push_back(
-            commandAction(assignMode() ? QStringLiteral("compose.cancelAssign")
-                                       : QStringLiteral("compose.pin")));
-        pin->activeState = QStringLiteral("compose.assignMode");
-    }
-    if (PageCell* edit = doc.findCell(QStringLiteral("editPins"))) {
         edit->label = editMode() ? QStringLiteral("Done") : QStringLiteral("Edit");
         edit->icon = editMode() ? QStringLiteral("check") : QStringLiteral("edit");
         edit->actions.clear();
@@ -90,16 +82,20 @@ void ComposeUi::fillSoundboard(PageDocument& doc) const
             edit->style.background = ok;
             edit->style.foreground = QColor(255, 255, 255);
         } else {
-            edit->style.background = QColor();
-            edit->style.foreground = QColor();
+            edit->style.background.token = QStringLiteral("bg90");
+            edit->style.foreground.reset();
         }
     }
-    stampComposerChrome(doc);
-    if (freestyleMode()) {
-        fillFreestyleMode(doc);
-    } else {
-        fillTopicsMode(doc);
+    if (PageCell* pin = doc.findCell(QStringLiteral("cmd_pin"))) {
+        pin->label = assignMode() ? QStringLiteral("Cancel") : QStringLiteral("Pin");
+        pin->actions.clear();
+        pin->actions.push_back(
+            commandAction(assignMode() ? QStringLiteral("compose.cancelAssign")
+                                       : QStringLiteral("compose.pin")));
+        pin->activeState = QStringLiteral("compose.assignMode");
     }
+    stampComposerChrome(doc);
+    fillTopicsMode(doc);
 }
 
 void ComposeUi::fillTopicsMode(PageDocument& doc) const
@@ -184,27 +180,13 @@ void ComposeUi::fillTopicsMode(PageDocument& doc) const
     }
 }
 
-bool ComposeUi::toggleFreestyle(QString* error)
-{
-    Q_UNUSED(error);
-    if (nameEditing()) {
-        finishItemEditor(true);
-    }
-    m_interaction = Interaction::Use;
-    closeItemEdit();
-    m_boardKind = m_boardKind == BoardKind::Freestyle ? BoardKind::Topics : BoardKind::Freestyle;
-    rebuildBoard();
-    notify(freestyleMode() ? QStringLiteral("Freestyle") : QStringLiteral("Topics"));
-    return true;
-}
-
 bool ComposeUi::pin(QString* error)
 {
+    if (m_styleNaming) {
+        return saveStyleName(error);
+    }
     if (nameEditing()) {
         return saveNameEdit(error);
-    }
-    if (freestyleMode()) {
-        return newVoicePreset(error);
     }
     const QString text = m_buffer.text().trimmed();
     if (text.isEmpty()) {
@@ -219,8 +201,12 @@ bool ComposeUi::pin(QString* error)
 
 void ComposeUi::cancelAssign()
 {
+    if (m_styleNaming) {
+        cancelStyleName();
+        return;
+    }
     if (nameEditing()) {
-        finishItemEditor(true);
+        cancelNameEdit();
         return;
     }
     const bool any = assignMode() || editMode();
@@ -233,14 +219,16 @@ void ComposeUi::cancelAssign()
 
 bool ComposeUi::editPins()
 {
+    if (m_styleNaming) {
+        return true;
+    }
     if (editMode()) {
         cancelAssign();
         return true;
     }
     m_interaction = Interaction::Edit;
     rebuildBoard();
-    notify(freestyleMode() ? QStringLiteral("Dwell a voice or tag")
-                           : QStringLiteral("Dwell a button to edit"));
+    notify(QStringLiteral("Dwell a button to edit"));
     return true;
 }
 
@@ -374,6 +362,184 @@ bool ComposeUi::loadStarters(QString* error)
     }
     rebuildBoard();
     return true;
+}
+
+bool ComposeUi::exportBoard(QString* error)
+{
+    if (capturingPhrase()) {
+        const QString msg = QStringLiteral("Finish the name first");
+        notify(msg);
+        if (error) {
+            *error = msg;
+        }
+        return false;
+    }
+    const QString dir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+    const QString suggested = QDir(dir).filePath(
+        QStringLiteral("aac-workspace-%1.json").arg(QDate::currentDate().toString(Qt::ISODate)));
+    const QString path = QFileDialog::getSaveFileName(
+        nullptr, QStringLiteral("Export boards"), suggested, QStringLiteral("JSON (*.json)"));
+    if (path.isEmpty()) {
+        return true;
+    }
+    SoundboardStore::WorkspaceExportSettings settings;
+    settings.model = m_settings.speechModel;
+    settings.speed = m_settings.speechSpeed;
+    settings.pitch = m_settings.speechPitch;
+    settings.volumeStop = qBound(1, qRound(m_settings.speechVolume), 5);
+    settings.theme = themeAppearanceIsDark(m_settings.themeAppearance) ? QStringLiteral("dark")
+                                                                        : QStringLiteral("light");
+    settings.accentColor = m_settings.customPrimaryColor;
+    bool omitted = false;
+    const QByteArray bytes = m_board.exportWorkspace(settings, &omitted);
+    QFile file(path);
+    if (!file.open(QIODevice::WriteOnly) || file.write(bytes) != bytes.size()) {
+        const QString msg = QStringLiteral("Could not write the export");
+        notify(msg);
+        if (error) {
+            *error = msg;
+        }
+        return false;
+    }
+    notify(omitted ? QStringLiteral(
+                         "Audio clips omitted (file too large); phrases export as live text.")
+                   : QStringLiteral("Boards exported"));
+    return true;
+}
+
+bool ComposeUi::importChoose(QString* error)
+{
+    if (capturingPhrase()) {
+        const QString msg = QStringLiteral("Finish the name first");
+        notify(msg);
+        if (error) {
+            *error = msg;
+        }
+        return false;
+    }
+    const QString dir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+    const QString path = QFileDialog::getOpenFileName(
+        nullptr, QStringLiteral("Import boards"), dir, QStringLiteral("JSON (*.json)"));
+    if (path.isEmpty()) {
+        return true;
+    }
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly)) {
+        const QString msg = QStringLiteral("Could not read the file");
+        notify(msg);
+        if (error) {
+            *error = msg;
+        }
+        return false;
+    }
+    QJsonParseError parseError;
+    const QJsonDocument json = QJsonDocument::fromJson(file.readAll(), &parseError);
+    if (parseError.error != QJsonParseError::NoError || !json.isObject()) {
+        m_pendingImport.clear();
+        m_pendingImportName.clear();
+        const QString msg = QStringLiteral("Invalid file");
+        notify(msg);
+        if (error) {
+            *error = msg;
+        }
+        refresh();
+        return false;
+    }
+    m_pendingImport = json.toJson(QJsonDocument::Compact);
+    m_pendingImportName = QFileInfo(path).fileName();
+    refresh();
+    return true;
+}
+
+bool ComposeUi::importMerge(QString* error)
+{
+    return importPending(false, error);
+}
+
+bool ComposeUi::importReplace(QString* error)
+{
+    return importPending(true, error);
+}
+
+bool ComposeUi::importPending(bool replace, QString* error)
+{
+    if (capturingPhrase()) {
+        const QString msg = QStringLiteral("Finish the name first");
+        notify(msg);
+        if (error) {
+            *error = msg;
+        }
+        return false;
+    }
+    if (m_pendingImport.isEmpty()) {
+        const QString msg = QStringLiteral("Choose a file");
+        notify(msg);
+        if (error) {
+            *error = msg;
+        }
+        return false;
+    }
+    QJsonParseError parseError;
+    const QJsonDocument json = QJsonDocument::fromJson(m_pendingImport, &parseError);
+    if (parseError.error != QJsonParseError::NoError || !json.isObject()) {
+        m_pendingImport.clear();
+        m_pendingImportName.clear();
+        const QString msg = QStringLiteral("Invalid file");
+        notify(msg);
+        if (error) {
+            *error = msg;
+        }
+        refresh();
+        return false;
+    }
+    const QVector<SoundboardTopic> backupTopics = m_board.topics();
+    const QString backupActive = m_board.activeTopicId();
+    SoundboardStore::WorkspaceImportedSettings imported;
+    QString err;
+    if (!m_board.importWorkspace(json.object(),
+                                 replace ? SoundboardStore::WorkspaceMode::Replace
+                                         : SoundboardStore::WorkspaceMode::Merge,
+                                 &imported, &err)) {
+        const QString msg = err.isEmpty() ? QStringLiteral("Import failed") : err;
+        notify(msg);
+        if (error) {
+            *error = msg;
+        }
+        return false;
+    }
+    if (!m_board.save(&err)) {
+        m_board.restoreTopics(backupTopics, backupActive);
+        m_board.evictUnreferencedClips();
+        const QString msg = QStringLiteral("Could not save boards");
+        notify(msg);
+        if (error) {
+            *error = msg;
+        }
+        return false;
+    }
+    if (replace) {
+        applyImportedSpeech(imported);
+    }
+    notify(replace ? QStringLiteral("Boards replaced") : QStringLiteral("Boards merged"));
+    rebuildBoard();
+    return true;
+}
+
+void ComposeUi::applyImportedSpeech(const SoundboardStore::WorkspaceImportedSettings& imported)
+{
+    if (imported.hasModel) {
+        m_settings.speechModel = imported.model;
+    }
+    if (imported.hasSpeed) {
+        m_settings.speechSpeed = imported.speed;
+    }
+    if (imported.hasPitch) {
+        m_settings.speechPitch = imported.pitch;
+    }
+    if (imported.hasVolume) {
+        m_settings.speechVolume = imported.volume;
+    }
+    apply();
 }
 
 } // namespace gazer

@@ -10,6 +10,7 @@
 #include "assist/SpeechHistory.h"
 #include "assist/SpeechSecrets.h"
 #include "assist/TtsService.h"
+#include "assist/VoiceStyles.h"
 #include "layout/PageSession.h"
 #include "layout/PageTypes.h"
 #include "predict/TypingContext.h"
@@ -17,9 +18,11 @@
 #include "ui/Theme.h"
 #include "utils/Log.h"
 
+#include <QClipboard>
 #include <QCoreApplication>
 #include <QDir>
 #include <QFontMetrics>
+#include <QGuiApplication>
 #include <QObject>
 #include <QStringView>
 #include <QtGlobal>
@@ -53,7 +56,7 @@ ComposeUi::~ComposeUi() = default;
 void ComposeUi::setTypingContext(TypingContext* typing)
 {
     m_typing = typing;
-    if (m_typing && !nameEditing()) {
+    if (m_typing && !capturingPhrase()) {
         m_typing->syncPhrase(m_buffer.text(), m_buffer.caret());
     }
 }
@@ -79,14 +82,14 @@ bool ComposeUi::editMode() const
     return m_interaction == Interaction::Edit || m_interaction == Interaction::NameEdit;
 }
 
-bool ComposeUi::freestyleMode() const
-{
-    return m_boardKind == BoardKind::Freestyle;
-}
-
 bool ComposeUi::nameEditing() const
 {
     return m_interaction == Interaction::NameEdit;
+}
+
+bool ComposeUi::capturingPhrase() const
+{
+    return nameEditing() || m_styleNaming;
 }
 
 bool ComposeUi::hasLive(QLatin1String id) const
@@ -129,7 +132,6 @@ bool ComposeUi::tryHandle(const PageAction& a, const QString& sourcePageId)
 
 void ComposeUi::apply()
 {
-    syncActiveVoicePreset();
     if (m_apply) {
         m_apply();
     }
@@ -149,7 +151,7 @@ void ComposeUi::refresh()
     updatePredictions();
     m_pages.refreshDecorated();
     m_pages.refreshActive();
-    if (m_typing && !nameEditing()) {
+    if (m_typing && !capturingPhrase()) {
         m_typing->syncPhrase(m_buffer.text(), m_buffer.caret());
     }
 }
@@ -162,37 +164,8 @@ void ComposeUi::refreshLiveBoards()
     refresh();
 }
 
-void ComposeUi::syncActiveVoicePreset()
-{
-    if (m_activeVoicePresetId.isEmpty()) {
-        return;
-    }
-    for (const AppSettings::SavedSpeechVoice& v : m_settings.savedSpeechVoices) {
-        if (v.id != m_activeVoicePresetId) {
-            continue;
-        }
-        const QString liveId =
-            ElevenRequest::isElevenModel(ElevenRequest::normalizeModelId(v.model))
-                ? m_settings.elevenVoiceId.trimmed()
-                : m_settings.sapiVoiceToken.trimmed();
-        if (v.model == m_settings.speechModel && v.voiceId.trimmed() == liveId
-            && qAbs(v.speed - m_settings.speechSpeed) < 0.05
-            && qAbs(v.volume - m_settings.speechVolume) < 0.05) {
-            return;
-        }
-        break;
-    }
-    m_activeVoicePresetId.clear();
-}
-
 void ComposeUi::syncFromSettings()
 {
-    const QString before = m_activeVoicePresetId;
-    syncActiveVoicePreset();
-    if (before != m_activeVoicePresetId && isOpen() && freestyleMode()) {
-        rebuildBoard();
-        return;
-    }
     if (isOpen()) {
         refresh();
     }
@@ -203,7 +176,7 @@ void ComposeUi::insertText(QStringView chars)
     if (chars.isEmpty()) {
         return;
     }
-    if (m_settings.composePredictions && !nameEditing() && chars == QLatin1String(" ")) {
+    if (m_settings.composePredictions && !capturingPhrase() && chars == QLatin1String(" ")) {
         const WordPredictor::Query q = WordPredictor::fromPhrase(m_buffer.text(), m_buffer.caret());
         if (!q.typed.isEmpty() && m_predictor.isLexiconWord(q.typed)) {
             if (m_typing) {
@@ -213,14 +186,26 @@ void ComposeUi::insertText(QStringView chars)
             }
         }
     }
-    m_buffer.insert(chars);
+    QStringView text = chars;
+    QString capped;
+    if (m_styleNaming) {
+        const int room = VoiceStyles::kNameMax - m_buffer.text().size();
+        if (room <= 0) {
+            return;
+        }
+        if (text.size() > room) {
+            capped = text.left(room).toString();
+            text = capped;
+        }
+    }
+    m_buffer.insert(text);
     refresh();
 }
 
 void ComposeUi::handleSend(const PageAction& a)
 {
     const QString top = m_pages.topPageId();
-    if (top != kPageId && !nameEditing()) {
+    if (top != kPageId && !capturingPhrase()) {
         return;
     }
     const QString key = a.sendKey.trimmed();
@@ -246,8 +231,12 @@ void ComposeUi::handleCapturedCommand(const QString& command)
             stopSpeech();
             return;
         }
+        if (m_styleNaming) {
+            cancelStyleName();
+            return;
+        }
         if (nameEditing()) {
-            finishItemEditor(true);
+            cancelNameEdit();
             return;
         }
         if ((assignMode() || editMode()) && top == kPageId) {
@@ -269,7 +258,7 @@ void ComposeUi::handleCapturedCommand(const QString& command)
         m_pages.closePage(QString(kPageId));
         return;
     }
-    if (nameEditing()) {
+    if (capturingPhrase()) {
         if (c == QLatin1String("backspace") || c == QLatin1String("compose.backspace")) {
             backspace();
             return;
@@ -280,7 +269,11 @@ void ComposeUi::handleCapturedCommand(const QString& command)
         }
         if (c == QLatin1String("enter")) {
             QString err;
-            saveNameEdit(&err);
+            if (m_styleNaming) {
+                saveStyleName(&err);
+            } else {
+                saveNameEdit(&err);
+            }
         }
         return;
     }
@@ -303,7 +296,16 @@ void ComposeUi::handleCapturedCommand(const QString& command)
 
 void ComposeUi::abandonClosedSession()
 {
-    if (nameEditing()) {
+    if (m_styleNaming) {
+        m_styleNaming = false;
+        m_buffer.load(m_nameEditBackup);
+        if (m_typing) {
+            m_typing->adoptPhrase(m_buffer.text(), m_buffer.caret());
+        }
+        m_nameEdit = NameEditKind::None;
+        m_editId.clear();
+        m_nameEditBackup.clear();
+    } else if (nameEditing()) {
         endNameEdit(true);
     } else {
         m_nameEdit = NameEditKind::None;
@@ -314,6 +316,8 @@ void ComposeUi::abandonClosedSession()
     m_editIcons = false;
     m_editColor.clear();
     m_editIcon.clear();
+    m_styleEditor = false;
+    m_stylePage = 0;
     stopListScroll();
     closeItemEdit();
     m_composeAuthored = {};
@@ -342,6 +346,9 @@ bool ComposeUi::openCompose(QString* error)
 
 bool ComposeUi::speakOrStop(QString* error)
 {
+    if (m_styleNaming) {
+        return saveStyleName(error);
+    }
     if (nameEditing()) {
         return saveNameEdit(error);
     }
@@ -414,15 +421,63 @@ void ComposeUi::moveStartOfWord(int slot)
     refresh();
 }
 
-void ComposeUi::insertTagAt(int index)
+void ComposeUi::selectAll()
 {
-    if (nameEditing()) {
+    if (capturingPhrase()) {
         return;
     }
-    if (index < 0 || index >= m_settings.savedSpeechTags.size()) {
+    m_buffer.selectAll();
+    refresh();
+}
+
+void ComposeUi::copy()
+{
+    if (capturingPhrase()) {
         return;
     }
-    m_buffer.insertTag(m_settings.savedSpeechTags.at(index).name);
+    QClipboard* clip = QGuiApplication::clipboard();
+    if (!clip) {
+        return;
+    }
+    const QString text = m_buffer.hasSelection() ? m_buffer.selectedText() : m_buffer.text();
+    clip->setText(text);
+}
+
+void ComposeUi::cut()
+{
+    if (capturingPhrase() || !m_buffer.hasSelection()) {
+        return;
+    }
+    if (QClipboard* clip = QGuiApplication::clipboard()) {
+        clip->setText(m_buffer.selectedText());
+    }
+    m_buffer.backspace();
+    refresh();
+}
+
+void ComposeUi::paste()
+{
+    if (capturingPhrase()) {
+        return;
+    }
+    QClipboard* clip = QGuiApplication::clipboard();
+    if (!clip) {
+        return;
+    }
+    const QString text = clip->text();
+    if (text.isEmpty()) {
+        return;
+    }
+    m_buffer.insert(text);
+    refresh();
+}
+
+void ComposeUi::pageChips(int delta)
+{
+    if (capturingPhrase()) {
+        return;
+    }
+    m_buffer.pageChips(delta);
     refresh();
 }
 
@@ -431,9 +486,6 @@ void ComposeUi::setSpeechModel(const QString& model)
     m_settings.speechModel = ElevenRequest::normalizeModelId(model);
     m_voicePage = 0;
     apply();
-    if (freestyleMode()) {
-        rebuildBoard();
-    }
 }
 
 void ComposeUi::nudgeSpeed(int dir)
@@ -442,9 +494,6 @@ void ComposeUi::nudgeSpeed(int dir)
         return;
     }
     apply();
-    if (freestyleMode()) {
-        rebuildBoard();
-    }
 }
 
 void ComposeUi::nudgeVolume(int dir)
@@ -453,9 +502,6 @@ void ComposeUi::nudgeVolume(int dir)
         return;
     }
     apply();
-    if (freestyleMode()) {
-        rebuildBoard();
-    }
 }
 
 QString ComposeUi::ellipsis(const QString& text, int maxChars)
@@ -479,53 +525,44 @@ void ComposeUi::decoratePage(PageDocument& doc) const
     }
     const auto st = m_speech.status();
     const bool stop = st.busy || st.speaking;
-    const bool naming = nameEditing();
-    const auto vis = naming ? QVector<ComposeBuffer::Token>{} : m_buffer.visibleTokens();
+    const bool naming = capturingPhrase();
+    if (!naming) {
+        stampChips(doc);
+    }
+    stampStyleLayer(doc);
 
     auto paint = [&](PageGrid& g, auto& self) -> void {
         for (PageCell& c : g.cells) {
             if (c.id == QLatin1String("phrase")) {
+                c.selectionStart = -1;
+                c.selectionEnd = -1;
                 if (naming) {
-                    const QString raw = m_buffer.text().trimmed();
-                    c.label = ellipsis(raw, 24);
-                    const int visLen = qMin(raw.size(), 24);
-                    c.caretIndex = qBound(0, qBound(0, m_buffer.caret(), visLen), c.label.size());
+                    presentNamingPhrase(c);
                 } else {
                     c.label = m_buffer.text();
                     c.caretIndex = qBound(0, m_buffer.caret(), c.label.size());
+                    if (m_buffer.hasSelection()) {
+                        c.selectionStart = m_buffer.selectionStart();
+                        c.selectionEnd = m_buffer.selectionEnd();
+                    }
                     c.role = QStringLiteral("display");
-                }
-            } else if (c.id == QLatin1String("page_title")) {
-                if (naming) {
-                    c.caption = QStringLiteral("Type a name, then Save");
-                } else if (editMode() && freestyleMode()) {
-                    c.caption = QStringLiteral("Dwell a voice or tag");
-                } else if (editMode()) {
-                    c.caption = QStringLiteral("Dwell a button or + topic");
-                } else if (assignMode()) {
-                    c.caption = QStringLiteral("Dwell a cell to save");
-                } else if (m_speech.elevenLatched()) {
-                    c.caption = QStringLiteral("Using SAPI (network)");
-                } else {
-                    c.caption.clear();
+                    if (editMode()) {
+                        c.caption = QStringLiteral("Dwell a button or + topic");
+                    } else if (assignMode()) {
+                        c.caption = QStringLiteral("Dwell a cell to save");
+                    } else if (m_speech.elevenLatched()) {
+                        c.caption = QStringLiteral("Using SAPI (network)");
+                    } else {
+                        c.caption.clear();
+                    }
                 }
             } else if (c.id == QLatin1String("speak") && !naming) {
                 c.label = stop ? QStringLiteral("Stop") : QStringLiteral("Speak");
                 c.icon = stop ? QStringLiteral("Sleep") : QStringLiteral("Speak");
-            } else if (c.id == QLatin1String("chip_more")) {
-                c.label = !naming && m_buffer.tokens().size() > ComposeBuffer::kVisibleChips
-                              ? QStringLiteral("\u22ef")
-                              : QString();
-            } else if (c.id.startsWith(QLatin1String("chip_"))) {
-                bool ok = false;
-                const int i = QStringView(c.id).mid(5).toInt(&ok);
-                if (naming || !ok) {
-                    c.label.clear();
-                } else if (i >= 0 && i < vis.size()) {
-                    c.label = vis[i].text;
-                } else {
-                    c.label.clear();
-                }
+            } else if (c.id == QLatin1String("import_file")) {
+                c.label = m_pendingImportName.isEmpty()
+                              ? QStringLiteral("No file")
+                              : ellipsis(m_pendingImportName, 28);
             }
         }
         for (PageGrid& sub : g.subGrids) {
@@ -590,7 +627,7 @@ void ComposeUi::loadPredictor()
 void ComposeUi::updatePredictions()
 {
     m_shown.clear();
-    if (nameEditing() || !m_settings.composePredictions || !m_predictor.isLoaded()) {
+    if (capturingPhrase() || !m_settings.composePredictions || !m_predictor.isLoaded()) {
         return;
     }
     const QString text = m_buffer.text();
@@ -651,7 +688,7 @@ void ComposeUi::layoutPredictRow(PageDocument& doc) const
     const int pRow = authPredict->row;
     const int phRow = authPhrase->row;
     const int phSpan = std::max(1, authPhrase->rowSpan);
-    const bool hide = nameEditing() || !m_settings.composePredictions;
+    const bool hide = capturingPhrase() || !m_settings.composePredictions;
     if (hide) {
         predict->rowSpan = 0;
         predict->colSpan = 0;
@@ -659,7 +696,7 @@ void ComposeUi::layoutPredictRow(PageDocument& doc) const
         predict->columnTracks.clear();
         phrase->row = std::min(pRow, phRow);
         int bottom = phRow + phSpan;
-        if (nameEditing() && authChips) {
+        if (capturingPhrase() && authChips) {
             bottom = std::max(bottom, authChips->row + std::max(1, authChips->rowSpan));
         }
         phrase->rowSpan = std::max(1, bottom - phrase->row);
@@ -701,7 +738,7 @@ void ComposeUi::layoutPredictRow(PageDocument& doc) const
 
 void ComposeUi::acceptPrediction(int slot)
 {
-    if (nameEditing() || slot < 0 || slot >= m_shown.size()) {
+    if (capturingPhrase() || slot < 0 || slot >= m_shown.size()) {
         return;
     }
     const ShownPrediction shown = m_shown[slot];
@@ -716,9 +753,74 @@ void ComposeUi::acceptPrediction(int slot)
     refresh();
 }
 
+void ComposeUi::stampChips(PageDocument& doc) const
+{
+    PageGrid* chips = doc.findGrid(QStringLiteral("chips"));
+    const PageGrid* authored = m_composeAuthored.findGrid(QStringLiteral("chips"));
+    if (!chips || !authored) {
+        return;
+    }
+    chips->row = authored->row;
+    chips->col = authored->col;
+    chips->rowSpan = std::max(1, authored->rowSpan);
+    chips->colSpan = std::max(1, authored->colSpan);
+    chips->cells = authored->cells;
+    const QVector<ComposeBuffer::Token> tokens = m_buffer.tokens();
+    for (PageCell& cell : chips->cells) {
+        if (cell.id == QLatin1String("chip_more")) {
+            cell.label.clear();
+            continue;
+        }
+        if (!cell.id.startsWith(QLatin1String("chip_"))) {
+            continue;
+        }
+        bool ok = false;
+        const int slot = QStringView(cell.id).mid(5).toInt(&ok);
+        if (!ok) {
+            continue;
+        }
+        const ComposeBuffer::ChipSlot chip = m_buffer.chipSlot(slot);
+        if (chip.kind == ComposeBuffer::ChipSlotKind::Word) {
+            cell.label = chip.tokenIndex >= 0 && chip.tokenIndex < tokens.size()
+                             ? tokens.at(chip.tokenIndex).text
+                             : QString();
+            continue;
+        }
+        cell.phases.clear();
+        cell.actions.clear();
+        if (chip.kind == ComposeBuffer::ChipSlotKind::PageBack
+            || chip.kind == ComposeBuffer::ChipSlotKind::PageForward) {
+            const bool back = chip.kind == ComposeBuffer::ChipSlotKind::PageBack;
+            cell.label = back ? QString(u"\u25C05") : QString(u"5\u25B6");
+            cell.role.clear();
+            cell.actions.push_back(commandAction(
+                QStringLiteral("compose.pageChips.%1")
+                    .arg(back ? -ComposeBuffer::kChipPageStep : ComposeBuffer::kChipPageStep)));
+        } else {
+            cell.label.clear();
+            cell.role = QStringLiteral("label");
+        }
+    }
+}
+
+void ComposeUi::presentNamingPhrase(PageCell& cell) const
+{
+    const int cap = m_styleNaming ? VoiceStyles::kNameMax : 24;
+    const QString raw = m_buffer.text().trimmed();
+    cell.label = ellipsis(raw, cap);
+    const int visLen = qMin(raw.size(), cap);
+    cell.caretIndex = qBound(0, qBound(0, m_buffer.caret(), visLen), cell.label.size());
+    cell.selectionStart = -1;
+    cell.selectionEnd = -1;
+    cell.caption = m_styleNaming ? QStringLiteral("Type a style name, then Save")
+                                 : QStringLiteral("Type a name, then Save");
+    cell.textStyle = QStringLiteral("title");
+    cell.role = QStringLiteral("display");
+}
+
 void ComposeUi::stampComposerChrome(PageDocument& doc) const
 {
-    if (!nameEditing()) {
+    if (!capturingPhrase()) {
         return;
     }
 
@@ -727,21 +829,6 @@ void ComposeUi::stampComposerChrome(PageDocument& doc) const
     const QColor warn = theme.danger.isValid() ? theme.danger : QColor(180, 80, 80);
     const QColor surface = theme.defaultCell();
     const QColor accent = theme.accent.isValid() ? theme.accent : QColor(80, 160, 220);
-
-    auto setCmd = [](PageCell* c, const QString& cmd) {
-        if (!c) {
-            return;
-        }
-        c->actions.clear();
-        if (!cmd.isEmpty()) {
-            c->actions.push_back(commandAction(cmd));
-            if (c->role == QLatin1String("label") || c->role == QLatin1String("display")) {
-                c->role.clear();
-            }
-        } else {
-            c->role = QStringLiteral("label");
-        }
-    };
 
     if (PageGrid* keys = doc.findGrid(QStringLiteral("edit_keys"))) {
         QString styleId;
@@ -752,21 +839,30 @@ void ComposeUi::stampComposerChrome(PageDocument& doc) const
             keyCol = keys->cells.first().col;
             keyColSpan = qMax(1, keys->cells.first().colSpan);
         }
+        keys->row = 0;
+        keys->rowSpan = 3;
         keys->cells.clear();
-        PageCell color = cell(QStringLiteral("clear"), QStringLiteral("Color"), 0, keyCol,
-                              QStringLiteral("compose.editShowColors"),
-                              !m_editIcons ? accent : surface, keyColSpan, {}, {},
-                              QStringLiteral("palette"));
-        color.styleId = styleId;
-        color.activeState = QStringLiteral("compose.editColors");
-        keys->cells.push_back(std::move(color));
-        PageCell image = cell(QStringLiteral("undo"), QStringLiteral("Icon"), 1, keyCol,
-                              QStringLiteral("compose.editShowIcons"),
-                              m_editIcons ? accent : surface, keyColSpan, {}, {},
-                              QStringLiteral("photoCamera"));
-        image.styleId = styleId;
-        image.activeState = QStringLiteral("compose.editIcons");
-        keys->cells.push_back(std::move(image));
+        if (m_styleNaming) {
+            PageCell clear = cell(QStringLiteral("clear"), QStringLiteral("Clear"), 0, keyCol,
+                                  QStringLiteral("compose.clear"), surface, keyColSpan);
+            clear.styleId = styleId;
+            keys->cells.push_back(std::move(clear));
+        } else {
+            PageCell color = cell(QStringLiteral("clear"), QStringLiteral("Color"), 0, keyCol,
+                                  QStringLiteral("compose.editShowColors"),
+                                  !m_editIcons ? accent : surface, keyColSpan, {}, {},
+                                  QStringLiteral("palette"));
+            color.styleId = styleId;
+            color.activeState = QStringLiteral("compose.editColors");
+            keys->cells.push_back(std::move(color));
+            PageCell image = cell(QStringLiteral("undo"), QStringLiteral("Icon"), 1, keyCol,
+                                  QStringLiteral("compose.editShowIcons"),
+                                  m_editIcons ? accent : surface, keyColSpan, {}, {},
+                                  QStringLiteral("photoCamera"));
+            image.styleId = styleId;
+            image.activeState = QStringLiteral("compose.editIcons");
+            keys->cells.push_back(std::move(image));
+        }
         keys->rows = keys->cells.size();
     }
 
@@ -783,13 +879,9 @@ void ComposeUi::stampComposerChrome(PageDocument& doc) const
     }
 
     if (PageCell* phrase = doc.findCell(QStringLiteral("phrase"))) {
+        presentNamingPhrase(*phrase);
         const QColor bg = parseColor(m_editColor, surface);
-        phrase->label = ellipsis(m_buffer.text().trimmed(), 24);
-        phrase->caretIndex = qBound(0, m_buffer.caret(), phrase->label.size());
         phrase->icon = m_editIcon;
-        phrase->caption.clear();
-        phrase->role = QStringLiteral("display");
-        phrase->textStyle = QStringLiteral("title");
         phrase->style.background = bg;
         phrase->style.foreground = ThemeColors::contrastOn(bg);
         phrase->style.borderColor = accent;
@@ -797,34 +889,39 @@ void ComposeUi::stampComposerChrome(PageDocument& doc) const
         phrase->actions.clear();
     }
 
-    if (PageCell* speak = doc.findCell(QStringLiteral("speak"))) {
-        speak->label = QStringLiteral("Save");
-        speak->icon = QStringLiteral("check");
-        speak->style.background = ok;
-        speak->style.foreground = QColor(255, 255, 255);
-        speak->activeState.clear();
-        setCmd(speak, QStringLiteral("compose.saveName"));
-    }
-    if (PageCell* voices = doc.findCell(QStringLiteral("voices"))) {
-        voices->label = QStringLiteral("Cancel");
-        voices->icon = QStringLiteral("close");
-        voices->style.background = surface;
-        setCmd(voices, QStringLiteral("compose.cancelName"));
-    }
-    if (PageCell* history = doc.findCell(QStringLiteral("history"))) {
-        if (nameEditCanDelete()) {
-            history->label = QStringLiteral("Delete");
-            history->icon = QStringLiteral("delete");
-            history->style.background = warn;
-            history->style.foreground = ThemeColors::contrastOn(warn);
-            setCmd(history, QStringLiteral("compose.deleteName"));
-        } else {
-            history->label.clear();
-            history->icon.clear();
-            history->style.background = QColor();
-            history->style.foreground = QColor();
-            setCmd(history, {});
+    if (PageGrid* side = doc.findGrid(QStringLiteral("speak_keys"))) {
+        QString styleId;
+        int keyCol = 0;
+        int keyColSpan = 1;
+        if (!side->cells.isEmpty()) {
+            styleId = side->cells.first().styleId;
+            keyCol = side->cells.first().col;
+            keyColSpan = qMax(1, side->cells.first().colSpan);
         }
+        side->row = 0;
+        side->rowSpan = 3;
+        side->cells.clear();
+        PageCell save = cell(QStringLiteral("speak"), QStringLiteral("Save"), 0, keyCol,
+                             QStringLiteral("compose.saveName"), ok, keyColSpan, {}, {},
+                             QStringLiteral("check"));
+        save.styleId = styleId;
+        save.style.foreground = QColor(255, 255, 255);
+        save.activeState.clear();
+        side->cells.push_back(std::move(save));
+        PageCell cancel = cell(QStringLiteral("voices"), QStringLiteral("Cancel"), 1, keyCol,
+                               QStringLiteral("compose.cancelName"), surface, keyColSpan, {}, {},
+                               QStringLiteral("close"));
+        cancel.styleId = styleId;
+        side->cells.push_back(std::move(cancel));
+        if (nameEditCanDelete()) {
+            PageCell del = cell(QStringLiteral("history"), QStringLiteral("Delete"), 2, keyCol,
+                                QStringLiteral("compose.deleteName"), warn, keyColSpan, {}, {},
+                                QStringLiteral("delete"));
+            del.styleId = styleId;
+            del.style.foreground = ThemeColors::contrastOn(warn);
+            side->cells.push_back(std::move(del));
+        }
+        side->rows = side->cells.size();
     }
 }
 
@@ -842,17 +939,6 @@ bool ComposeUi::elevenMode() const
 QString ComposeUi::currentVoiceId() const
 {
     return elevenMode() ? m_settings.elevenVoiceId.trimmed() : m_settings.sapiVoiceToken.trimmed();
-}
-
-QString ComposeUi::currentVoiceDisplayName() const
-{
-    const QString id = currentVoiceId();
-    for (const VoiceCatalog::Voice& v : currentVoices()) {
-        if (v.id == id) {
-            return v.name;
-        }
-    }
-    return elevenMode() ? QStringLiteral("Voice") : QStringLiteral("SAPI");
 }
 
 void ComposeUi::syncClosedOverlays()

@@ -5,6 +5,7 @@
 #include "assist/LtsIndicator.h"
 #include "assist/LtsScrollMode.h"
 #include "mapping/HeadPoseCurve.h"
+#include "assist/VoiceStyles.h"
 #include "ui/Theme.h"
 #include "utils/Log.h"
 
@@ -422,6 +423,18 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
             savedSpeechVoices.push_back(item);
         }
     }
+    speechStyle = o.value(QStringLiteral("speechStyle")).toString();
+    voiceStyleNames.clear();
+    voiceStyleFavorites.clear();
+    voiceStylesSet = false;
+    if (o.contains(QStringLiteral("voiceStyles"))
+        && o.value(QStringLiteral("voiceStyles")).isObject()) {
+        const VoiceStyles::Catalog cat =
+            VoiceStyles::parseCatalog(o.value(QStringLiteral("voiceStyles")));
+        voiceStyleNames = cat.styles;
+        voiceStyleFavorites = cat.favorites;
+        voiceStylesSet = true;
+    }
     if (o.contains(QStringLiteral("themeAppearance"))) {
         themeAppearance = themeAppearanceFromString(
             o.value(QStringLiteral("themeAppearance")).toString());
@@ -639,6 +652,13 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
             voices.append(vo);
         }
         o.insert(QStringLiteral("savedSpeechVoices"), voices);
+    }
+    o.insert(QStringLiteral("speechStyle"), copy.speechStyle);
+    if (copy.voiceStylesSet) {
+        VoiceStyles::Catalog cat;
+        cat.styles = copy.voiceStyleNames;
+        cat.favorites = copy.voiceStyleFavorites;
+        o.insert(QStringLiteral("voiceStyles"), VoiceStyles::serialize(cat));
     }
     o.insert(QStringLiteral("themeAppearance"), themeAppearanceToString(copy.themeAppearance));
     o.insert(QStringLiteral("themeSaturation"), copy.themeSaturation);

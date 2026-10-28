@@ -111,9 +111,6 @@ void ComposeUi::selectVoice(const QString& encodedId)
         m_settings.sapiVoiceToken = id;
     }
     apply();
-    if (freestyleMode()) {
-        rebuildBoard();
-    }
 }
 
 void ComposeUi::toggleFavorite(const QString& encodedId)

@@ -11,6 +11,7 @@
 Q_LOGGING_CATEGORY(lcGazer, "gazer")
 
 QObject* createElevenRequestTest();
+QObject* createVoiceStylesTest();
 QObject* createComposeBufferTest();
 QObject* createVoiceCatalogTest();
 QObject* createSoundboardStoreTest();
@@ -55,6 +56,8 @@ int main(int argc, char** argv)
     };
     std::unique_ptr<QObject> req(createElevenRequestTest());
     runSuite("ElevenRequestTest", req.get(), true);
+    std::unique_ptr<QObject> styles(createVoiceStylesTest());
+    runSuite("VoiceStylesTest", styles.get(), false);
     std::unique_ptr<QObject> buf(createComposeBufferTest());
     runSuite("ComposeBufferTest", buf.get(), false);
     std::unique_ptr<QObject> voices(createVoiceCatalogTest());

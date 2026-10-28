@@ -1,6 +1,7 @@
 #include "assist/SoundboardStore.h"
 
 #include "assist/ElevenClient.h"
+#include "assist/SoundboardJson.h"
 #include "assist/SpeechHistory.h"
 #include "utils/AtomicFile.h"
 #include "utils/Log.h"
@@ -20,37 +21,9 @@
 namespace gazer {
 namespace {
 
-QString readString(const QJsonObject& o, const char* key)
-{
-    return o.value(QLatin1String(key)).toString();
-}
-
-int readInt(const QJsonObject& o, const char* key, int fallback)
-{
-    const QJsonValue v = o.value(QLatin1String(key));
-    if (v.isDouble() || v.isString()) {
-        return v.toInt(fallback);
-    }
-    return fallback;
-}
-
-SoundboardButton buttonFromJson(const QJsonObject& o)
-{
-    SoundboardButton b;
-    b.id = readString(o, "id").trimmed();
-    b.label = readString(o, "label");
-    b.icon = readString(o, "icon");
-    b.color = readString(o, "color");
-    b.sourceText = readString(o, "sourceText");
-    b.utteranceText = readString(o, "utteranceText");
-    b.clipId = readString(o, "clipId").trimmed();
-    b.effectsBaked = o.value(QStringLiteral("effectsBaked")).toBool(false);
-    b.col = readInt(o, "col", 0);
-    b.row = readInt(o, "row", 0);
-    b.colSpan = qMax(1, readInt(o, "colSpan", 1));
-    b.rowSpan = qMax(1, readInt(o, "rowSpan", 1));
-    return b;
-}
+using soundboard_json::buttonFromJson;
+using soundboard_json::readInt;
+using soundboard_json::readString;
 
 QJsonObject buttonToJson(const SoundboardButton& b)
 {

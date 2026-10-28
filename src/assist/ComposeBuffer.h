@@ -12,7 +12,18 @@ class ComposeBuffer {
 public:
     static constexpr int kUndoLimit = 80;
     static constexpr int kCoalesceMs = 800;
+    /// Physical chip buttons on the Speak row.
     static constexpr int kVisibleChips = 12;
+    /// Word chips kept when the row pages. The first and last buttons are pagers.
+    static constexpr int kChipWordSlots = 10;
+    static constexpr int kChipPageStep = 5;
+
+    enum class ChipSlotKind { Empty, Word, PageBack, PageForward };
+
+    struct ChipSlot {
+        ChipSlotKind kind = ChipSlotKind::Empty;
+        int tokenIndex = -1;
+    };
 
     struct Token {
         QString text;
@@ -36,7 +47,7 @@ public:
     void backspace();
     /// Delete the selection, or the whole word before caret (Voice deleteWholeWord).
     void deleteWord();
-    /// Remove visible chip `slot` (0..11 = last 12 tokens, not the full list).
+    /// Remove the word on chip `slot`. Pager slots and empty slots do nothing.
     void removeVisibleWord(int slot);
     void clear();
     /// Replace the phrase and caret, and drop undo/redo. Used when the composer
@@ -54,10 +65,26 @@ public:
     [[nodiscard]] bool canRedo() const { return !m_redo.isEmpty(); }
     void resetHistory();
 
+    [[nodiscard]] bool hasSelection() const;
+    /// Ordered selection, or -1 when there is none.
+    [[nodiscard]] int selectionStart() const;
+    [[nodiscard]] int selectionEnd() const;
+    /// The selection only. Empty when nothing is selected.
+    [[nodiscard]] QString selectedText() const;
+    /// Select the whole phrase. Empty text is a no-op and does not push undo.
+    void selectAll();
+    void collapseSelection();
+
     [[nodiscard]] QVector<Token> tokens() const;
+    /// Words in the chip window. Pager buttons are not included.
     [[nodiscard]] QVector<Token> visibleTokens() const;
-    /// Full-token index for a visible slot, or -1.
+    /// Full-token index for a word chip, or -1 for a pager or empty slot.
     [[nodiscard]] int tokenIndexForVisibleSlot(int slot) const;
+    [[nodiscard]] bool chipsOverflow() const;
+    [[nodiscard]] int chipWindowStart() const;
+    [[nodiscard]] ChipSlot chipSlot(int slot) const;
+    /// Move the word window by `delta` tokens (the chips use ±5).
+    void pageChips(int delta);
 
     /// Test hook: freeze the coalesce clock. nullopt = wall clock.
     void setNowMsForTest(std::optional<qint64> ms) { m_nowOverride = ms; }
@@ -78,6 +105,10 @@ private:
 
     QString m_text;
     int m_caret = 0;
+    int m_selA = -1;
+    int m_selB = -1;
+    bool m_followTail = true;
+    int m_windowStart = 0;
     QVector<Snapshot> m_undo;
     QVector<Snapshot> m_redo;
     Kind m_lastKind = Kind::None;

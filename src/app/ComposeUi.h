@@ -1,12 +1,15 @@
 #pragma once
 
 #include "assist/ComposeBuffer.h"
+#include "assist/SoundboardStore.h"
 #include "assist/VoiceCatalog.h"
+#include "assist/VoiceStyles.h"
 #include "core/GazePoint.h"
 #include "predict/WordPredictor.h"
 #include "layout/InvalidGazeGrace.h"
 #include "layout/PageTypes.h"
 
+#include <QByteArray>
 #include <QElapsedTimer>
 #include <QString>
 #include <functional>
@@ -18,7 +21,6 @@ class AppSettings;
 class ElevenClient;
 class PageSession;
 class TypingContext;
-class SoundboardStore;
 class SpeechHistory;
 class SpeechEngine;
 class SpeechSecrets;
@@ -46,11 +48,9 @@ public:
     [[nodiscard]] bool isOpen() const;
     [[nodiscard]] bool assignMode() const;
     [[nodiscard]] bool editMode() const;
-    [[nodiscard]] bool freestyleMode() const;
     [[nodiscard]] bool nameEditing() const;
     [[nodiscard]] bool editIconPalette() const { return m_editIcons; }
     [[nodiscard]] QString activeTopicId() const;
-    [[nodiscard]] QString activeVoicePresetId() const { return m_activeVoicePresetId; }
     [[nodiscard]] QString currentVoiceId() const;
     /// Consume Send and mapping/modifier Commands while compose (or a compose
     /// live board) is capturing. Composer builtins return false so dispatch runs them.
@@ -71,14 +71,26 @@ public:
     bool redo();
     void backspace();
     void deleteWord();
+    void selectAll();
+    void cut();
+    void copy();
+    void paste();
+    void pageChips(int delta);
+    void applyStyle(const QString& encoded);
+    void clearStyle();
+    void openStyleEditor();
+    void closeStyleEditor();
+    void pageStyles(int delta);
+    void toggleStyleFavorite(const QString& encoded);
+    void trashStyle(const QString& encoded);
+    void beginStyleName();
     void removeVisibleWord(int slot);
     void acceptPrediction(int slot);
     void moveEndOfWord(int slot);
     void moveStartOfWord(int slot);
-    void insertTagAt(int index);
     void refresh();
     void refreshLiveBoards();
-    /// Drop a Freestyle voice highlight that no longer matches live model/voice/speed/boost.
+    /// Refresh the open Speak board after settings change.
     void syncFromSettings();
     void onCatalogReady(bool ok, const QString& error);
 
@@ -95,7 +107,6 @@ public:
     void nudgeSpeed(int dir);
     void nudgeVolume(int dir);
 
-    bool toggleFreestyle(QString* error = nullptr);
     bool pin(QString* error = nullptr);
     void cancelAssign();
     bool editPins();
@@ -108,11 +119,10 @@ public:
     bool setEditedIcon(int index, QString* error = nullptr);
     void clearEditedColor();
     void clearEditedIcon();
-    bool applyVoicePreset(const QString& id, QString* error = nullptr);
-    bool editVoicePreset(const QString& id, QString* error = nullptr);
-    bool newVoicePreset(QString* error = nullptr);
-    bool editTagAt(int index, QString* error = nullptr);
-    bool newTag(QString* error = nullptr);
+    bool exportBoard(QString* error = nullptr);
+    bool importChoose(QString* error = nullptr);
+    bool importMerge(QString* error = nullptr);
+    bool importReplace(QString* error = nullptr);
     bool openPinEdit(const QString& buttonId, QString* error = nullptr);
     bool openTopicEdit(const QString& topicId, QString* error = nullptr);
     bool playSoundboard(const QString& buttonId, QString* error = nullptr);
@@ -134,6 +144,8 @@ public:
 
 private:
     [[nodiscard]] bool isCapturing(const QString& sourcePageId) const;
+    /// Phrase buffer holds a topic, pin, or style name.
+    [[nodiscard]] bool capturingPhrase() const;
     void handleSend(const PageAction& a);
     void handleCapturedCommand(const QString& command);
     void insertText(QStringView chars);
@@ -141,16 +153,26 @@ private:
     void notify(const QString& msg);
     static QString ellipsis(const QString& text, int maxChars);
     static bool isAllowThroughCommand(const QString& name);
-    enum class BoardKind { Topics, Freestyle };
     enum class Interaction { Use, Assign, Edit, NameEdit };
-    enum class NameEditKind { None, Topic, Pin, Voice, NewVoice, Tag, NewTag };
+    enum class NameEditKind { None, Topic, Pin };
 
     void rebuildBoard();
     [[nodiscard]] PageDim speakBoardWidth() const;
     void fillSoundboard(PageDocument& doc) const;
     void fillTopicsMode(PageDocument& doc) const;
-    void fillFreestyleMode(PageDocument& doc) const;
+    void stampChips(PageDocument& doc) const;
+    void stampStyleLayer(PageDocument& doc) const;
+    void stampStylePicker(PageGrid& grid) const;
+    void stampStyleEditor(PageGrid& grid) const;
     void stampComposerChrome(PageDocument& doc) const;
+    void presentNamingPhrase(PageCell& cell) const;
+    void showComposeLayer(int layer);
+    bool saveStyleName(QString* error = nullptr);
+    void cancelStyleName();
+    void storeStyleCatalog(const VoiceStyles::Catalog& catalog);
+    [[nodiscard]] VoiceStyles::Catalog styleCatalog() const;
+    bool importPending(bool replace, QString* error);
+    void applyImportedSpeech(const SoundboardStore::WorkspaceImportedSettings& imported);
     void updatePredictions();
     void layoutPredictRow(PageDocument& doc) const;
     void loadPredictor();
@@ -162,14 +184,10 @@ private:
     void syncClosedOverlays();
     void loadEditAppearance();
     void persistEditAppearance();
-    void syncActiveVoicePreset();
     bool presentItemEdit(QString* error = nullptr);
     void rebuildItemEdit();
     [[nodiscard]] bool hasLive(QLatin1String id) const;
     [[nodiscard]] bool nameEditCanDelete() const;
-    [[nodiscard]] int editedVoiceIndex() const;
-    [[nodiscard]] int editedTagIndex() const;
-    [[nodiscard]] QString currentVoiceDisplayName() const;
     PageDocument buildItemEditDocument() const;
 
     [[nodiscard]] bool elevenMode() const;
@@ -200,7 +218,6 @@ private:
     bool m_voicesLoading = false;
     QString m_genderFilter;
     int m_voicePage = 0;
-    BoardKind m_boardKind = BoardKind::Topics;
     Interaction m_interaction = Interaction::Use;
     NameEditKind m_nameEdit = NameEditKind::None;
     QString m_editId;
@@ -208,8 +225,15 @@ private:
     bool m_editIcons = false;
     QString m_editColor;
     QString m_editIcon;
-    QString m_activeVoicePresetId;
+    QByteArray m_pendingImport;
+    QString m_pendingImportName;
     int m_historyPage = 0;
+    bool m_styleEditor = false;
+    /// Keyboard capture for a new style name. Leaves Interaction::NameEdit alone.
+    bool m_styleNaming = false;
+    int m_stylePage = 0;
+    /// Styles shown on one editor page: 2 rows × 3 columns.
+    static constexpr int kStyleEditorPage = 6;
     enum class ListScroll { None, History, Voices };
     ListScroll m_listScroll = ListScroll::None;
     mutable PageDocument m_composeAuthored;

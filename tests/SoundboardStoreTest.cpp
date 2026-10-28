@@ -3,6 +3,9 @@
 
 #include <QDir>
 #include <QFile>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QTemporaryDir>
 #include <QtTest>
 
@@ -24,6 +27,7 @@ private slots:
     void importEvictsOldestHistoryFirst();
     void removeButtonAndSetColor();
     void removeAndStyleTopic();
+    void workspaceImportExport();
 };
 
 QString writeBytes(const QString& path, int n)
@@ -306,6 +310,184 @@ void SoundboardStoreTest::removeAndStyleTopic()
         QVERIFY(s.removeTopic(s.activeTopicId()));
     }
     QVERIFY(!s.removeTopic(s.activeTopicId()));
+}
+
+void SoundboardStoreTest::workspaceImportExport()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    SoundboardStore store(dir.path());
+    QVERIFY(store.load());
+    const QString clipFile = writeBytes(QDir(dir.path()).filePath(QStringLiteral("clip.mp3")), 32);
+    const QString clipId = store.importClip(clipFile);
+    QVERIFY(!clipId.isEmpty());
+    SoundboardButton seed;
+    seed.label = QStringLiteral("Pets");
+    seed.icon = QStringLiteral("pets");
+    seed.sourceText = QStringLiteral("Hello there");
+    seed.clipId = clipId;
+    seed.effectsBaked = true;
+    seed.col = 1;
+    seed.row = 0;
+    QVERIFY(store.assignCell(0, 1, seed));
+
+    SoundboardStore::WorkspaceExportSettings settings;
+    settings.model = QStringLiteral("eleven_v4_turbo");
+    settings.speed = 1.25;
+    settings.pitch = 1.1;
+    settings.volumeStop = 3;
+    settings.theme = QStringLiteral("dark");
+    settings.accentColor = QStringLiteral("#112233");
+    const QByteArray json = store.exportWorkspace(settings);
+    const QJsonObject root = QJsonDocument::fromJson(json).object();
+    QCOMPARE(root.value(QStringLiteral("format")).toString(), QStringLiteral("aac-workspace"));
+    QCOMPARE(root.value(QStringLiteral("version")).toInt(), 1);
+    const QJsonObject speech = root.value(QStringLiteral("settings")).toObject();
+    QVERIFY(speech.value(QStringLiteral("volume")).isString());
+    QCOMPARE(speech.value(QStringLiteral("volume")).toString(), QStringLiteral("3"));
+    QCOMPARE(speech.value(QStringLiteral("speed")).toDouble(), 1.25);
+    bool sawPets = false;
+    for (const QJsonValue& topicVal : root.value(QStringLiteral("topics")).toArray()) {
+        for (const QJsonValue& buttonVal : topicVal.toObject().value(QStringLiteral("buttons")).toArray()) {
+            const QJsonObject button = buttonVal.toObject();
+            if (button.value(QStringLiteral("label")).toString() != QLatin1String("Pets")) {
+                continue;
+            }
+            sawPets = true;
+            QCOMPARE(button.value(QStringLiteral("icon")).toString(), QStringLiteral("pets"));
+            QCOMPARE(button.value(QStringLiteral("symbol")).toString(), QStringLiteral("pets"));
+            QVERIFY(!button.contains(QStringLiteral("clipId")));
+            QVERIFY(button.value(QStringLiteral("audioData")).toString().startsWith(QLatin1String("data:audio/mpeg;base64,")));
+            QCOMPARE(button.value(QStringLiteral("thread")).toString(), QString());
+            QVERIFY(button.value(QStringLiteral("effectsBaked")).toBool());
+        }
+        QCOMPARE(topicVal.toObject().value(QStringLiteral("thread")).toString(), QStringLiteral("all"));
+    }
+    QVERIFY(sawPets);
+
+    bool omitted = false;
+    const QByteArray slim = store.exportWorkspace(settings, &omitted, 50);
+    QVERIFY(omitted);
+    const QJsonObject slimRoot = QJsonDocument::fromJson(slim).object();
+    QCOMPARE(slimRoot.value(QStringLiteral("exportNote")).toString(),
+             QStringLiteral("Audio clips omitted (file too large); phrases export as live text."));
+    for (const QJsonValue& topicVal : slimRoot.value(QStringLiteral("topics")).toArray()) {
+        for (const QJsonValue& buttonVal : topicVal.toObject().value(QStringLiteral("buttons")).toArray()) {
+            const QJsonObject button = buttonVal.toObject();
+            if (button.value(QStringLiteral("label")).toString() != QLatin1String("Pets")) {
+                continue;
+            }
+            QVERIFY(button.value(QStringLiteral("audioData")).isNull());
+            QVERIFY(!button.value(QStringLiteral("effectsBaked")).toBool());
+            QCOMPARE(button.value(QStringLiteral("sourceText")).toString(), QStringLiteral("Hello there"));
+        }
+    }
+
+    QTemporaryDir other;
+    QVERIFY(other.isValid());
+    SoundboardStore imported(other.path());
+    QVERIFY(imported.load());
+    const int before = imported.topics().size();
+    QJsonObject rejected;
+    rejected.insert(QStringLiteral("format"), QStringLiteral("nope"));
+    rejected.insert(QStringLiteral("topics"), root.value(QStringLiteral("topics")));
+    QString err;
+    QVERIFY(!imported.importWorkspace(rejected, SoundboardStore::WorkspaceMode::Replace, nullptr, &err));
+    QCOMPARE(imported.topics().size(), before);
+
+    SoundboardStore::WorkspaceImportedSettings speechIn;
+    QVERIFY(imported.importWorkspace(root, SoundboardStore::WorkspaceMode::Replace, &speechIn, &err));
+    QCOMPARE(imported.topics().size(), store.topics().size());
+    QVERIFY(speechIn.hasModel);
+    QCOMPARE(speechIn.model, QStringLiteral("eleven_v4_turbo"));
+    QVERIFY(speechIn.hasSpeed);
+    QCOMPARE(speechIn.speed, 1.25);
+    QVERIFY(speechIn.hasVolume);
+    QCOMPARE(speechIn.volume, 3.0);
+    const SoundboardButton* pets = nullptr;
+    for (const SoundboardTopic& topic : imported.topics()) {
+        for (const SoundboardButton& button : topic.buttons) {
+            if (button.label == QLatin1String("Pets")) {
+                pets = &button;
+            }
+        }
+    }
+    QVERIFY(pets);
+    QCOMPARE(pets->icon, QStringLiteral("pets"));
+    QCOMPARE(pets->col, 1);
+    QVERIFY(!pets->clipId.isEmpty());
+    QVERIFY(QFile::exists(imported.clipPath(pets->clipId)));
+    QCOMPARE(imported.planPlay(*pets).kind, SoundboardStore::PlayPlan::Kind::Clip);
+
+    const QString petsId = pets->id;
+    const QString topicId = imported.activeTopicId();
+    QJsonObject mergedButton;
+    mergedButton.insert(QStringLiteral("id"), petsId);
+    mergedButton.insert(QStringLiteral("label"), QStringLiteral("Dogs"));
+    QJsonObject mergedTopic;
+    mergedTopic.insert(QStringLiteral("id"), topicId);
+    mergedTopic.insert(QStringLiteral("buttons"), QJsonArray{mergedButton});
+    QJsonObject merged;
+    merged.insert(QStringLiteral("format"), QStringLiteral("aac-workspace"));
+    merged.insert(QStringLiteral("topics"), QJsonArray{mergedTopic});
+    QVERIFY(imported.importWorkspace(merged, SoundboardStore::WorkspaceMode::Merge, nullptr, &err));
+    QCOMPARE(imported.findButton(petsId)->label, QStringLiteral("Dogs"));
+
+    QJsonObject positioned;
+    positioned.insert(QStringLiteral("symbol"), QStringLiteral("star"));
+    positioned.insert(QStringLiteral("x"), 200);
+    positioned.insert(QStringLiteral("y"), 80);
+    positioned.insert(QStringLiteral("text"), QStringLiteral("Hello there"));
+    QJsonObject positionedTopic;
+    positionedTopic.insert(QStringLiteral("id"), QStringLiteral("placed"));
+    positionedTopic.insert(QStringLiteral("name"), QStringLiteral("Placed"));
+    positionedTopic.insert(QStringLiteral("gridCols"), 4);
+    positionedTopic.insert(QStringLiteral("gridRows"), 3);
+    positionedTopic.insert(QStringLiteral("buttons"), QJsonArray{positioned});
+    QJsonObject placedRoot;
+    placedRoot.insert(QStringLiteral("format"), QStringLiteral("aac-workspace"));
+    placedRoot.insert(QStringLiteral("topics"), QJsonArray{positionedTopic});
+    placedRoot.insert(QStringLiteral("activeTopicId"), QStringLiteral("placed"));
+    QVERIFY(imported.importWorkspace(placedRoot, SoundboardStore::WorkspaceMode::Replace, nullptr, &err));
+    QCOMPARE(imported.topics().size(), 1);
+    QCOMPARE(imported.activeTopic()->buttons.size(), 1);
+    QCOMPARE(imported.activeTopic()->buttons[0].icon, QStringLiteral("star"));
+    QCOMPARE(imported.activeTopic()->buttons[0].col, 2);
+    QCOMPARE(imported.activeTopic()->buttons[0].row, 1);
+    QCOMPARE(imported.activeTopic()->buttons[0].sourceText, QStringLiteral("Hello there"));
+
+    QJsonObject wideButton;
+    wideButton.insert(QStringLiteral("label"), QStringLiteral("Wide"));
+    wideButton.insert(QStringLiteral("col"), 0);
+    wideButton.insert(QStringLiteral("row"), 0);
+    wideButton.insert(QStringLiteral("colSpan"), 3);
+    QJsonObject wideTopic;
+    wideTopic.insert(QStringLiteral("name"), QStringLiteral("Wide"));
+    wideTopic.insert(QStringLiteral("gridCols"), 8);
+    wideTopic.insert(QStringLiteral("gridRows"), 1);
+    wideTopic.insert(QStringLiteral("buttons"), QJsonArray{wideButton});
+    QJsonObject wideRoot;
+    wideRoot.insert(QStringLiteral("format"), QStringLiteral("gazer-soundboard"));
+    wideRoot.insert(QStringLiteral("topics"), QJsonArray{wideTopic});
+    QVERIFY(imported.importWorkspace(wideRoot, SoundboardStore::WorkspaceMode::Replace, nullptr, &err));
+    QVERIFY(imported.activeTopic()->gridCols <= SoundboardStore::kMaxCols);
+    QVERIFY(imported.activeTopic()->gridRows <= SoundboardStore::kMaxRows);
+    QCOMPARE(imported.activeTopic()->buttons[0].colSpan, 1);
+    QVERIFY(imported.save());
+    QFile boards(imported.boardsPath());
+    QVERIFY(boards.open(QIODevice::ReadOnly));
+    const QJsonObject saved = QJsonDocument::fromJson(boards.readAll()).object();
+    QCOMPARE(saved.value(QStringLiteral("format")).toString(), QStringLiteral("gazer-soundboard"));
+
+    const QString foreignPath = QDir(other.path()).filePath(QStringLiteral("boards.json"));
+    {
+        QFile foreign(foreignPath);
+        QVERIFY(foreign.open(QIODevice::WriteOnly | QIODevice::Truncate));
+        foreign.write(QJsonDocument(placedRoot).toJson());
+    }
+    SoundboardStore rejectedLoad(other.path());
+    QVERIFY(!rejectedLoad.load(&err));
+    QVERIFY(rejectedLoad.topics().size() >= 3);
 }
 
 QObject* createSoundboardStoreTest()

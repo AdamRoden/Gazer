@@ -41,13 +41,17 @@ int fontPxToFit(const QString& family, int weight, int startPx, int minPx, const
 namespace {
 
 void paintLabelText(QPainter& p, const QRectF& box, const QFont& font, int flags,
-                    const QString& text, const QColor& color, int caretIndex)
+                    const QString& text, const QColor& color, int caretIndex,
+                    int selectionStart = -1, int selectionEnd = -1)
 {
     if (box.isEmpty() || !color.isValid()) {
         return;
     }
-    if (caretIndex >= 0) {
-        paintPhraseLayout(p, box, text, font, flags, color, caretIndex);
+    const bool phraseInk =
+        caretIndex >= 0 || (selectionStart >= 0 && selectionEnd > selectionStart);
+    if (phraseInk) {
+        paintPhraseLayout(p, box, text, font, flags, color, caretIndex, selectionStart,
+                          selectionEnd);
         return;
     }
     p.setPen(color);
@@ -160,7 +164,7 @@ void paintLabel(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeCo
         titlePx = 12;
         titleWeight = QFont::Normal;
     } else if (ts == QLatin1String("body")) {
-        titlePx = 14;
+        titlePx = 18;
         titleWeight = QFont::Normal;
     } else if (ts == QLatin1String("subtitle")) {
         titlePx = 20;
@@ -174,11 +178,13 @@ void paintLabel(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeCo
         titleFg = theme.textSecondary;
     }
     if (t.caption.isEmpty()) {
-        const int px = t.caretIndex >= 0
+        const bool phraseInk =
+            t.caretIndex >= 0 || (t.selectionStart >= 0 && t.selectionEnd > t.selectionStart);
+        const int px = phraseInk
                            ? fontPxToFitPhrase(family, titleWeight, titlePx, 11, t.label, pad, flags)
                            : fontPxToFit(family, titleWeight, titlePx, 11, t.label, pad, flags);
         paintLabelText(p, pad, QFont(family, px, titleWeight), flags, t.label, titleFg,
-                       t.caretIndex);
+                       t.caretIndex, t.selectionStart, t.selectionEnd);
         return;
     }
 
@@ -196,7 +202,8 @@ void paintLabel(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeCo
     const QRectF capR(pad.left(), titleR.bottom() + 2.0, pad.width(),
                       qMax(1.0, pad.bottom() - titleR.bottom() - 2.0));
     const int capPx = fontPxToFit(family, QFont::Normal, 12, 9, t.caption, capR, capFlags);
-    paintLabelText(p, titleR, tFont, flags, t.label, titleFg, t.caretIndex);
+    paintLabelText(p, titleR, tFont, flags, t.label, titleFg, t.caretIndex, t.selectionStart,
+                   t.selectionEnd);
     p.setPen(theme.textSecondary);
     p.setFont(QFont(family, capPx));
     p.drawText(capR, capFlags, t.caption);
@@ -298,7 +305,8 @@ void paintIconAndText(QPainter& p, const PageTarget& t, const QRectF& r, const Q
         iconR = QRectF(x0, y0 + (totalH - side) * 0.5, side, side);
         paintedIcon = KeySymbols::paint(p, t.icon, iconR, fg);
         textR = QRectF(iconR.right() + gap, y0, ts.width(), totalH);
-        paintLabelText(p, textR, tFont, flags, t.label, fg, t.caretIndex);
+        paintLabelText(p, textR, tFont, flags, t.label, fg, t.caretIndex, t.selectionStart,
+                       t.selectionEnd);
         return;
     }
 
@@ -369,7 +377,8 @@ void paintIconAndText(QPainter& p, const PageTarget& t, const QRectF& r, const Q
             textFont = QFont(family, fontPxToFit(family, weight, startPx, 10, t.label, textR, flags),
                              weight);
         }
-        paintLabelText(p, textR, textFont, flags, t.label, fg, t.caretIndex);
+        paintLabelText(p, textR, textFont, flags, t.label, fg, t.caretIndex, t.selectionStart,
+                       t.selectionEnd);
         if (!capR.isEmpty() && hasCap) {
             p.setPen(fg);
             p.setFont(QFont(family, fontPxToFit(family, QFont::Normal, 12, 9, t.caption, capR,
@@ -718,7 +727,8 @@ void paintTarget(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeC
                         const int px = fontPxToFit(family, QFont::DemiBold, 13, 10, t.label,
                                                    geom.text, flags);
                         paintLabelText(p, geom.text, QFont(family, px, QFont::DemiBold), flags,
-                                       t.label, fg, t.caretIndex);
+                                       t.label, fg, t.caretIndex, t.selectionStart,
+                                       t.selectionEnd);
                     }
                 } else {
                     paintIconAndText(p, t, geom.text, fg, theme);

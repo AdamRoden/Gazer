@@ -168,7 +168,8 @@ struct AppSettings {
         }
     };
     QVector<SavedSpeechTag> savedSpeechTags = defaultSavedSpeechTags();
-    /// Freestyle rail: named voice + speed presets (max 8).
+    /// Older builds saved voice + speed presets here (max 8). The Speak board
+    /// no longer edits them; the JSON stays so existing settings still load.
     struct SavedSpeechVoice {
         QString id;
         QString name;
@@ -181,6 +182,14 @@ struct AppSettings {
     };
     static constexpr int kMaxSavedSpeechVoices = 8;
     QVector<SavedSpeechVoice> savedSpeechVoices;
+    /// Standing ElevenLabs style. Empty means none. Not written into history.
+    QString speechStyle;
+    /// Voice style catalog. `voiceStylesSet` is false when settings have no
+    /// `voiceStyles` key, and the board then uses the built-in catalog.
+    /// An empty `styles` array is a real catalog and sets the flag.
+    QStringList voiceStyleNames;
+    QStringList voiceStyleFavorites;
+    bool voiceStylesSet = false;
 
     [[nodiscard]] static QVector<SavedSpeechTag> defaultSavedSpeechTags()
     {

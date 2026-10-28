@@ -39,8 +39,34 @@ void registerComposeCommands(CommandRegistry& commands, ComposeUi& compose)
                              [&compose](QString* error) { return compose.openVoices(error); });
     commands.registerBuiltin(QStringLiteral("compose.openHistory"),
                              [&compose](QString* error) { return compose.openHistory(error); });
-    commands.registerBuiltin(QStringLiteral("compose.toggleFreestyle"),
-                             [&compose](QString* error) { return compose.toggleFreestyle(error); });
+    commands.registerBuiltin(QStringLiteral("compose.selectAll"), [&compose](QString*) {
+        compose.selectAll();
+        return true;
+    });
+    commands.registerBuiltin(QStringLiteral("compose.cut"), [&compose](QString*) {
+        compose.cut();
+        return true;
+    });
+    commands.registerBuiltin(QStringLiteral("compose.copy"), [&compose](QString*) {
+        compose.copy();
+        return true;
+    });
+    commands.registerBuiltin(QStringLiteral("compose.paste"), [&compose](QString*) {
+        compose.paste();
+        return true;
+    });
+    commands.registerBuiltin(QStringLiteral("compose.clearStyle"), [&compose](QString*) {
+        compose.clearStyle();
+        return true;
+    });
+    commands.registerBuiltin(QStringLiteral("compose.exportBoard"),
+                             [&compose](QString* error) { return compose.exportBoard(error); });
+    commands.registerBuiltin(QStringLiteral("compose.importChoose"),
+                             [&compose](QString* error) { return compose.importChoose(error); });
+    commands.registerBuiltin(QStringLiteral("compose.importMerge"),
+                             [&compose](QString* error) { return compose.importMerge(error); });
+    commands.registerBuiltin(QStringLiteral("compose.importReplace"),
+                             [&compose](QString* error) { return compose.importReplace(error); });
     commands.registerBuiltin(QStringLiteral("compose.saveName"),
                              [&compose](QString* error) { return compose.saveNameEdit(error); });
     commands.registerBuiltin(QStringLiteral("compose.cancelName"), [&compose](QString*) {
@@ -49,10 +75,6 @@ void registerComposeCommands(CommandRegistry& commands, ComposeUi& compose)
     });
     commands.registerBuiltin(QStringLiteral("compose.deleteName"),
                              [&compose](QString* error) { return compose.deleteNameEdit(error); });
-    commands.registerBuiltin(QStringLiteral("compose.newVoicePreset"),
-                             [&compose](QString* error) { return compose.newVoicePreset(error); });
-    commands.registerBuiltin(QStringLiteral("compose.newTag"),
-                             [&compose](QString* error) { return compose.newTag(error); });
     commands.registerBuiltin(QStringLiteral("compose.pin"),
                              [&compose](QString* error) { return compose.pin(error); });
     commands.registerBuiltin(QStringLiteral("compose.cancelAssign"), [&compose](QString*) {
@@ -116,8 +138,22 @@ void registerComposeCommands(CommandRegistry& commands, ComposeUi& compose)
         });
     };
 
-    bindId(QStringLiteral("compose.voicePreset."), &ComposeUi::applyVoicePreset);
-    bindId(QStringLiteral("compose.editVoicePreset."), &ComposeUi::editVoicePreset);
+    bindVoidId(QStringLiteral("compose.applyStyle."), &ComposeUi::applyStyle);
+    bindVoidId(QStringLiteral("compose.favStyle."), &ComposeUi::toggleStyleFavorite);
+    bindVoidId(QStringLiteral("compose.trashStyle."), &ComposeUi::trashStyle);
+    bindVoidInt(QStringLiteral("compose.stylePage."), &ComposeUi::pageStyles);
+    commands.registerBuiltin(QStringLiteral("compose.openStyleEditor"), [&compose](QString*) {
+        compose.openStyleEditor();
+        return true;
+    });
+    commands.registerBuiltin(QStringLiteral("compose.closeStyleEditor"), [&compose](QString*) {
+        compose.closeStyleEditor();
+        return true;
+    });
+    commands.registerBuiltin(QStringLiteral("compose.beginStyleName"), [&compose](QString*) {
+        compose.beginStyleName();
+        return true;
+    });
     bindId(QStringLiteral("soundboard.edit."), &ComposeUi::openPinEdit);
     bindId(QStringLiteral("soundboard.editTopic."), &ComposeUi::openTopicEdit);
     bindId(QStringLiteral("soundboard.play."), &ComposeUi::playSoundboard);
@@ -130,14 +166,13 @@ void registerComposeCommands(CommandRegistry& commands, ComposeUi& compose)
     bindVoidId(QStringLiteral("speech.voicePreview."), &ComposeUi::previewVoice);
     bindVoidId(QStringLiteral("speech.fav.toggle."), &ComposeUi::toggleFavorite);
     bindVoidId(QStringLiteral("speech.lang.set."), &ComposeUi::setLangFilter);
-    bindInt(QStringLiteral("compose.editTag."), &ComposeUi::editTagAt);
     bindInt(QStringLiteral("compose.editColor."), &ComposeUi::setEditedColor);
     bindInt(QStringLiteral("compose.editIcon."), &ComposeUi::setEditedIcon);
+    bindVoidInt(QStringLiteral("compose.pageChips."), &ComposeUi::pageChips);
     bindVoidInt(QStringLiteral("compose.removeWord."), &ComposeUi::removeVisibleWord);
     bindVoidInt(QStringLiteral("compose.acceptPrediction."), &ComposeUi::acceptPrediction);
     bindVoidInt(QStringLiteral("compose.moveEndOfWord."), &ComposeUi::moveEndOfWord);
     bindVoidInt(QStringLiteral("compose.moveStartOfWord."), &ComposeUi::moveStartOfWord);
-    bindVoidInt(QStringLiteral("compose.insertTagAt."), &ComposeUi::insertTagAt);
     bindVoidInt(QStringLiteral("history.list.goto."), &ComposeUi::historyGoto);
     bindVoidInt(QStringLiteral("speech.voiceList.goto."), &ComposeUi::voicesGoto);
 

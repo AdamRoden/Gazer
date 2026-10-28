@@ -147,27 +147,32 @@ XML `mouseMoveByDirection` is the compass form of the nudge commands.
 | `compose.stop` | Abort Eleven POST, stop clip, stop SAPI. |
 | `compose.clear` / `compose.undo` / `compose.redo` | Buffer. |
 | `compose.backspace` / `compose.deleteWord` | Edit (rapid dwell). |
-| `compose.removeWord.<i>` | Prefix; `i` is visible chip 0–11. |
+| `compose.removeWord.<i>` | Prefix; `i` is chip slot 0–11. Pager slots are not words. |
+| `compose.pageChips.<n>` | Move the word window by `n` tokens. The chips use ±5. |
+| `compose.selectAll` / `compose.cut` / `compose.copy` / `compose.paste` | Phrase selection and the clipboard. |
 | `compose.acceptPrediction.<i>` | Prefix; dwell suggestion `i` above the phrase. |
 | `compose.moveEndOfWord.<i>` / `compose.moveStartOfWord.<i>` | Caret to that chip’s word edge. |
 | `compose.openVoices` / `compose.openHistory` | Voice list; history. |
-| `compose.toggleFreestyle` | Speak board: topics ↔ Freestyle. |
+| `compose.applyStyle.<name>` / `compose.clearStyle` | Standing ElevenLabs style. `name` is percent-encoded. The tag is added on the Eleven request only. |
+| `compose.openStyleEditor` / `compose.closeStyleEditor` | Edit the style list (every style, star, trash). Done returns to the favorites. |
+| `compose.favStyle.<name>` / `compose.trashStyle.<name>` | Star or remove a style. Trashing the standing style clears it. |
+| `compose.stylePage.<n>` | Move the style editor by `n` pages. |
+| `compose.beginStyleName` | Type a new style on the keyboard. Save adds it, already starred. |
+| `compose.exportBoard` | Save the soundboard as a Voice `aac-workspace` v1 file. |
+| `compose.importChoose` / `compose.importMerge` / `compose.importReplace` | Pick a workspace file, then merge or replace. Replace also applies model, speed, pitch, and volume. |
 | `compose.saveName` / `compose.cancelName` / `compose.deleteName` | Item editor: save, discard, or delete and return. |
 | `compose.editShowColors` / `compose.editShowIcons` | Color chips vs icons on the editor. |
 | `compose.editColor.<i>` / `compose.editIcon.<i>` | Set color or icon. |
 | `compose.editClearColor` / `compose.editClearIcon` | Clear custom color or icon. |
-| `compose.voicePreset.<id>` / `compose.editVoicePreset.<id>` / `compose.newVoicePreset` | Apply, rename, or save a Freestyle voice (voice + speed + boost). |
-| `compose.editTag.<i>` / `compose.newTag` | Rename or create a saved tag. |
 | `history.play.<id>` / `history.restore.<id>` / `history.delete.<id>` | Replay, put the phrase back, or drop the row. |
 | `history.list.next` / `.prev` / `history.list.goto.<n>` | History list page/jump (gaze along the track also scrolls). |
-| `compose.pin` / `compose.cancelAssign` | Topics: empty buffer no-op; phrase assigns onto the soundboard. Freestyle: save the current voice + speed + boost. |
-| `compose.editPins` | Edit mode: dwell a pin/topic (or Freestyle voice/tag) to rename. |
+| `compose.pin` / `compose.cancelAssign` | Empty buffer no-op; otherwise dwell a cell to save the phrase. |
+| `compose.editPins` | Keyboard **Edit** key. Dwell a pin or topic to rename. |
 | `soundboard.edit.<id>` / `soundboard.editTopic.<id>` | Pin / topic item editor. |
 | `soundboard.play.<id>` | Play a button. |
 | `soundboard.assign.sb_r_c` | Create/overwrite a cell. |
 | `soundboard.topic.<id>` | Switch topic. |
 | `soundboard.newTopic` / `soundboard.loadStarters` | Topics. |
-| `compose.insertTagAt.<i>` | Insert `savedSpeechTags[i]`. |
 | `speech.model.sapi` / `.eleven_v4_turbo` | Composer engine. `.eleven_flash_v2_5` and `.eleven_v3` also select v4 Turbo. |
 | `speech.voice.<id>` | Select a voice (percent-encoded id). |
 | `speech.voicePreview.<id>` / `speech.preview` | Preview without selecting / preview current. |
@@ -176,8 +181,8 @@ XML `mouseMoveByDirection` is the compass form of the nudge commands.
 | `speech.gender.all` / `.female` / `.male` | Voice filter. |
 | `speech.lang.all` / `speech.lang.set.<code>` | Language filter. |
 | `speech.speed.dec` / `.inc` | Nudge `speechSpeed` by 0.1. |
-| `speech.volume.dec` / `.inc` | Nudge `speechVolume` by 0.5 (1–5× clip boost). |
-| `volume.dec` / `.inc` | Nudge Windows master volume by 10% on any page. `compose.volume.dec` / `.inc` are the same commands. A slider with `caption="volume"` shows that percent. Gaze follows it after the cell's `scanGrace` (the Dwell setting when the cell does not set one). |
+| `speech.volume.dec` / `.inc` | Nudge `speechVolume` by 0.5 (1–5× clip boost). The voice list uses these. |
+| `volume.dec` / `.inc` | Nudge Windows master volume by 10% on any page. `compose.volume.dec` / `.inc` are the same commands. A slider with `caption="volume"` shows that percent. On Speak, Actions → Volume waits 2 seconds, then the level eases toward where you look at about 20 percent per second. Other sliders follow gaze once their `scanGrace` ends (the Dwell setting when the cell does not set one). |
 
 While `compose` (or a compose live board) is the source page, `Send` and mapping keys are captured into the phrase. See [Actions — Composer capture](actions.md#composer-capture).
 

@@ -77,6 +77,37 @@ bool hasNonTagSpeechContent(QStringView text)
     return !stripInlineTags(text).isEmpty();
 }
 
+QString normalizeStandingTag(QStringView raw)
+{
+    QString t = raw.toString().trimmed();
+    if (t.size() >= 2 && t.startsWith(QLatin1Char('[')) && t.endsWith(QLatin1Char(']'))) {
+        t = t.mid(1, t.size() - 2).trimmed();
+    }
+    t.remove(QLatin1Char('['));
+    t.remove(QLatin1Char(']'));
+    return t.simplified();
+}
+
+QString applyStandingTag(QStringView phrase, QStringView tag)
+{
+    const QString clean = normalizeStandingTag(tag);
+    const QString text = phrase.toString();
+    if (clean.isEmpty()) {
+        return text;
+    }
+    const QString wrapped = QLatin1Char('[') + clean + QLatin1Char(']');
+    int lead = 0;
+    while (lead < text.size() && text.at(lead).isSpace()) {
+        ++lead;
+    }
+    const QStringView head = QStringView(text).mid(lead);
+    if (head.size() >= wrapped.size()
+        && head.left(wrapped.size()).compare(QStringView(wrapped), Qt::CaseInsensitive) == 0) {
+        return text;
+    }
+    return wrapped + QLatin1Char(' ') + text;
+}
+
 Prepared prepareSpeakRequest(QStringView phrase, QStringView selectedModel, double speed)
 {
     const QString phraseStr(phrase);

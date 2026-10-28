@@ -653,6 +653,7 @@ void GazerServices::feedVolumeGaze(const GazePoint& point)
     };
     if (!m_systemVolume || !m_pages || !point.valid || m_pages->isDwellSuspended()) {
         m_volumeArm = {};
+        m_volumeSlew = {};
         show({}, 0, 0);
         return;
     }
@@ -660,14 +661,23 @@ void GazerServices::feedVolumeGaze(const GazePoint& point)
         m_pages->targets(), m_pages->gridPaints(), m_pages->drawerScale(), point.toPointF(),
         point.timestampMs, m_settings.scanGraceMs, &m_volumeArm);
     if (!g) {
+        m_volumeSlew = {};
         show({}, 0, 0);
         return;
     }
-    const double thumb = (g->percent ? *g->percent : m_systemVolume->percent()) / 100.0;
-    show(g->key, thumb, g->percent ? 0.0 : g->arm);
-    if (g->percent) {
-        m_systemVolume->setPercent(*g->percent);
+    int shown = m_systemVolume->percent();
+    if (g->percent && g->key.startsWith(QLatin1String("compose/"))) {
+        shown = VolumeBoard::stepToward(shown, *g->percent, point.timestampMs,
+                                        VolumeBoard::kSpeakSlewPercentPerSec, &m_volumeSlew);
+        m_systemVolume->setPercent(shown);
+    } else if (g->percent) {
+        m_volumeSlew = {};
+        shown = *g->percent;
+        m_systemVolume->setPercent(shown);
+    } else {
+        m_volumeSlew = {};
     }
+    show(g->key, shown / 100.0, g->percent ? 0.0 : g->arm);
 }
 
 void GazerServices::registerDomainCommands()

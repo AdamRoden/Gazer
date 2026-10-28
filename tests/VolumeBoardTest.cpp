@@ -46,6 +46,7 @@ private slots:
     void stampWritesSlidersOnly();
     void sliderFollowsGaze();
     void scanGraceArmsThenFollows();
+    void slewLimitsTheStep();
     void frontKeyBlocksTheSlider();
     void coveringPageBlocksTheSlider();
 };
@@ -133,6 +134,33 @@ void VolumeBoardTest::scanGraceArmsThenFollows()
     const std::optional<VolumeBoard::Gaze> fell = look({bare}, {}, gaze, 500, 500, &fallback);
     QVERIFY(fell && fell->percent);
     QCOMPARE(*fell->percent, level);
+}
+
+void VolumeBoardTest::slewLimitsTheStep()
+{
+    VolumeBoard::Slew slew;
+    int level = 0;
+    QCOMPARE(VolumeBoard::stepToward(level, 100, 0, 20.0, &slew), 0);
+    for (int i = 1; i <= 50; ++i) {
+        level = VolumeBoard::stepToward(level, 100, i * 20, 20.0, &slew);
+    }
+    QVERIFY(level >= 19);
+    QVERIFY(level <= 20);
+
+    VolumeBoard::Slew down;
+    level = 30;
+    QCOMPARE(VolumeBoard::stepToward(level, 0, 0, 20.0, &down), 30);
+    for (int i = 1; i <= 200; ++i) {
+        level = VolumeBoard::stepToward(level, 0, i * 20, 20.0, &down);
+    }
+    QCOMPARE(level, 0);
+
+    VolumeBoard::Slew burst;
+    QCOMPARE(VolumeBoard::stepToward(10, 100, 0, 20.0, &burst), 10);
+    const int jumped = VolumeBoard::stepToward(10, 100, 5000, 20.0, &burst);
+    QVERIFY(jumped >= 13);
+    QVERIFY(jumped <= 14);
+    QCOMPARE(VolumeBoard::kSpeakSlewPercentPerSec, 20.0);
 }
 
 void VolumeBoardTest::frontKeyBlocksTheSlider()

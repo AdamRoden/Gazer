@@ -47,6 +47,8 @@ void ComposeBuffer::apply(const QString& text, int caret, Kind kind, bool coales
     }
     m_text = text;
     m_caret = clampCaret(caret, m_text.size());
+    collapseSelection();
+    m_followTail = true;
     m_lastKind = kind;
     m_lastAt = nowMs();
 }
@@ -71,6 +73,14 @@ QString ComposeBuffer::padAgainstNeighbors(QStringView text, int start, int end,
 void ComposeBuffer::insert(QStringView chars)
 {
     if (chars.isEmpty()) {
+        return;
+    }
+    if (hasSelection()) {
+        const int start = selectionStart();
+        const int end = selectionEnd();
+        QString next = m_text;
+        next.replace(start, end - start, chars.toString());
+        apply(next, start + int(chars.size()), Kind::Other, false);
         return;
     }
     const qint64 t = nowMs();
@@ -116,6 +126,14 @@ void ComposeBuffer::insertTag(QStringView tag)
 
 void ComposeBuffer::backspace()
 {
+    if (hasSelection()) {
+        const int start = selectionStart();
+        const int end = selectionEnd();
+        QString next = m_text;
+        next.remove(start, end - start);
+        apply(next, start, Kind::Other, false);
+        return;
+    }
     if (m_caret <= 0) {
         return;
     }
@@ -128,14 +146,15 @@ void ComposeBuffer::backspace()
 
 void ComposeBuffer::deleteWord()
 {
-    const int start = m_caret;
-    const int end = m_caret;
-    if (start != end) {
+    if (hasSelection()) {
+        const int start = selectionStart();
+        const int end = selectionEnd();
         QString next = m_text;
         next.remove(start, end - start);
         apply(next, start, Kind::Other, false);
         return;
     }
+    const int start = m_caret;
     if (start <= 0) {
         return;
     }
@@ -191,12 +210,15 @@ void ComposeBuffer::load(const QString& text)
 {
     m_text = text;
     m_caret = text.size();
+    collapseSelection();
+    m_followTail = true;
     resetHistory();
 }
 
 void ComposeBuffer::setCaret(int pos)
 {
     m_caret = clampCaret(pos, m_text.size());
+    collapseSelection();
 }
 
 void ComposeBuffer::moveCaretToTokenEdge(int index, bool atStart)
@@ -223,6 +245,7 @@ bool ComposeBuffer::undo()
     m_redo.push_back(cur);
     m_text = prev.text;
     m_caret = clampCaret(prev.caret, m_text.size());
+    collapseSelection();
     m_lastKind = Kind::None;
     return true;
 }
@@ -240,6 +263,7 @@ bool ComposeBuffer::redo()
     }
     m_text = next.text;
     m_caret = clampCaret(next.caret, m_text.size());
+    collapseSelection();
     m_lastKind = Kind::None;
     return true;
 }
@@ -266,26 +290,127 @@ QVector<ComposeBuffer::Token> ComposeBuffer::tokens() const
     return out;
 }
 
+bool ComposeBuffer::hasSelection() const
+{
+    return m_selA >= 0 && m_selB >= 0 && m_selA != m_selB;
+}
+
+int ComposeBuffer::selectionStart() const
+{
+    if (!hasSelection()) {
+        return -1;
+    }
+    return std::min(m_selA, m_selB);
+}
+
+int ComposeBuffer::selectionEnd() const
+{
+    if (!hasSelection()) {
+        return -1;
+    }
+    return std::max(m_selA, m_selB);
+}
+
+QString ComposeBuffer::selectedText() const
+{
+    if (!hasSelection()) {
+        return {};
+    }
+    const int start = selectionStart();
+    return m_text.mid(start, selectionEnd() - start);
+}
+
+void ComposeBuffer::selectAll()
+{
+    if (m_text.isEmpty()) {
+        collapseSelection();
+        return;
+    }
+    m_selA = 0;
+    m_selB = m_text.size();
+    m_caret = m_text.size();
+}
+
+void ComposeBuffer::collapseSelection()
+{
+    m_selA = -1;
+    m_selB = -1;
+}
+
+bool ComposeBuffer::chipsOverflow() const
+{
+    return tokens().size() > kVisibleChips;
+}
+
+int ComposeBuffer::chipWindowStart() const
+{
+    const int n = int(tokens().size());
+    if (n <= kVisibleChips) {
+        return 0;
+    }
+    const int maxStart = std::max(0, n - kChipWordSlots);
+    if (m_followTail) {
+        return maxStart;
+    }
+    return std::clamp(m_windowStart, 0, maxStart);
+}
+
+ComposeBuffer::ChipSlot ComposeBuffer::chipSlot(int slot) const
+{
+    ChipSlot out;
+    const int n = int(tokens().size());
+    if (slot < 0 || slot >= kVisibleChips || n <= 0) {
+        return out;
+    }
+    if (!chipsOverflow()) {
+        if (slot < n) {
+            out.kind = ChipSlotKind::Word;
+            out.tokenIndex = slot;
+        }
+        return out;
+    }
+    if (slot == 0) {
+        out.kind = ChipSlotKind::PageBack;
+        return out;
+    }
+    if (slot == kVisibleChips - 1) {
+        out.kind = ChipSlotKind::PageForward;
+        return out;
+    }
+    const int index = chipWindowStart() + (slot - 1);
+    if (index >= 0 && index < n) {
+        out.kind = ChipSlotKind::Word;
+        out.tokenIndex = index;
+    }
+    return out;
+}
+
+void ComposeBuffer::pageChips(int delta)
+{
+    const int n = int(tokens().size());
+    if (n <= kVisibleChips) {
+        return;
+    }
+    const int maxStart = std::max(0, n - kChipWordSlots);
+    int start = chipWindowStart() + delta;
+    start = std::clamp(start, 0, maxStart);
+    m_windowStart = start;
+    m_followTail = start == maxStart;
+}
+
 QVector<ComposeBuffer::Token> ComposeBuffer::visibleTokens() const
 {
     const QVector<Token> all = tokens();
     if (all.size() <= kVisibleChips) {
         return all;
     }
-    return all.mid(all.size() - kVisibleChips);
+    return all.mid(chipWindowStart(), kChipWordSlots);
 }
 
 int ComposeBuffer::tokenIndexForVisibleSlot(int slot) const
 {
-    const int n = tokens().size();
-    if (n == 0) {
-        return -1;
-    }
-    const int window = std::min(kVisibleChips, n);
-    if (slot < 0 || slot >= window) {
-        return -1;
-    }
-    return n - window + slot;
+    const ChipSlot chip = chipSlot(slot);
+    return chip.kind == ChipSlotKind::Word ? chip.tokenIndex : -1;
 }
 
 } // namespace gazer

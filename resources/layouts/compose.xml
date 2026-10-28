@@ -2,38 +2,26 @@
   <Style id="group" background="bg95" thickness="0" radius="16"/>
   <Style id="round" thickness="2" radius="1000"/>
   <Style id="plain" background="transparent" thickness="0" radius="0"/>
-  <Grid id="board" desktopMode="true" rows="5" columns="1" anchor="Top" offset="0,0"
+  <Grid id="board" desktopMode="true" rows="4" columns="1" anchor="Top" offset="0,0"
         size="1.5*A_ScreenHeight, A_ScreenHeight" gap="8" margin="16" radius="16"
-        rowHeights="*,*,3*,3*,4*" layers="1,2,3,4">
-    <SubGrid id="title" row="0" col="0" rows="1" columns="8" gap="8" margin="4" style="plain" layers="1,2,3,4">
-      <Cell id="page_title" row="0" col="0" colSpan="4" label="Speak" role="label" textStyle="title" style="plain"/>
-      <SubGrid id="sys_vol" row="0" col="5" colSpan="2" rows="1" columns="5" gap="4" margin="0"
-               layers="1,2,3,4">
-        <Cell id="vol_down" row="0" col="1" label="−" command="volume.dec"/>
-        <Cell id="vol_track" row="0" col="2" colSpan="2" role="slider" caption="volume" label="50%"/>
-        <Cell id="vol_up" row="0" col="4" label="+" command="volume.inc"/>
-      </SubGrid>
-      <Cell id="editPins" row="0" col="7" label="Edit" icon="edit" command="compose.editPins" activeState="compose.editMode"/>
-    </SubGrid>
-    <SubGrid id="topics" row="1" col="0" rows="1" columns="8" gap="8" margin="4" style="group" layers="1,2,3,4">
+        rowHeights="*,3*,4*,4*" layers="1,2,3,4,5,6,7,8">
+    <SubGrid id="topics" row="0" col="0" rows="1" columns="8" gap="8" margin="4" style="group" layers="1,2,3,4,5,6,7,8">
       <Cell id="topics_placeholder" row="0" col="0" colSpan="8" role="label"/>
     </SubGrid>
-    <SubGrid id="soundboard" row="2" col="0" rows="3" columns="4" gap="8" margin="8" style="group" layers="1,2,3,4">
+    <SubGrid id="soundboard" row="1" col="0" rows="3" columns="4" gap="8" margin="8" style="group" layers="1,2,3,4,5,6,7,8">
       <Cell id="sb_placeholder" row="0" col="0" colSpan="4" role="label"/>
     </SubGrid>
-    <SubGrid id="compose" row="3" col="0" rows="3" columns="3" rowHeights="0.7*,2*,*" columnWidths="1*,14*,1*" gap="8" margin="4" layers="1,2,3,4">
-      <SubGrid id="edit_keys" row="0" col="0" rowSpan="3" rows="3" columns="1" columnWidths="1/3h" gap="6" margin="0" layers="1,2,3,4">
-        <Cell id="clear" row="0" col="0" label="Clear" style="round" command="compose.clear"/>
-        <Cell id="undo" row="1" col="0" icon="undo" label="Undo" style="round" command="compose.undo"/>
-        <Cell id="redo" row="2" col="0" icon="redo" label="Redo" style="round" command="compose.redo"/>
-      </SubGrid>
-      <SubGrid id="predict" row="0" col="1" rows="1" columns="1" gap="6" margin="0" layers="1,2,3,4">
+    <SubGrid id="compose" row="2" col="0" rows="3" columns="3" rowHeights="1.1*,2*,1.35*" columnWidths="1*,14*,1*" gap="8" margin="4" layers="1,2,3,4,5,6,7,8">
+      <SubGrid id="predict" row="0" col="0" colSpan="3" rows="1" columns="1" gap="6" margin="0" layers="1,2,3,4,5,6,7,8">
         <Cell id="pred_0" row="0" col="0" role="label"/>
       </SubGrid>
-      <SubGrid id="phrase" row="1" col="1" rows="1" columns="1" gap="0" margin="4" style="group" layers="1,2,3,4">
+      <SubGrid id="edit_keys" row="1" col="0" rows="1" columns="1" gap="6" margin="0" layers="1,2,3,4,5,6,7,8">
+        <Cell id="clear" row="0" col="0" label="Clear" style="round" command="compose.clear"/>
+      </SubGrid>
+      <SubGrid id="phrase" row="1" col="1" rows="1" columns="1" gap="0" margin="4" style="group" layers="1,2,3,4,5,6,7,8">
         <Cell id="phrase" row="0" col="0" role="display" textStyle="body"/>
       </SubGrid>
-      <SubGrid id="chips" row="2" col="1" colSpan="1" rows="1" columns="13" gap="6" margin="4" layers="1,2,3,4">
+      <SubGrid id="chips" row="2" col="0" colSpan="3" rows="1" columns="13" gap="6" margin="4" layers="1,2,3,4,5,6,7,8">
         <Cell id="chip_0" row="0" col="0">
           <Phase command="compose.moveEndOfWord.0"/>
           <Phase command="compose.removeWord.0"/>
@@ -84,14 +72,12 @@
         </Cell>
         <Cell id="chip_more" row="0" col="12" role="label"/>
       </SubGrid>
-      <SubGrid id="speak_keys" row="0" col="2" rowSpan="3" rows="3" columns="1" columnWidths="1/3h" gap="6" margin="0" layers="1,2,3,4">
+      <SubGrid id="speak_keys" row="1" col="2" rows="1" columns="1" gap="6" margin="0" layers="1,2,3,4,5,6,7,8">
         <Cell id="speak" row="0" col="0" icon="Speak" label="Speak" activeState="compose.busy" style="round" command="compose.speak"/>
-        <Cell id="voices" row="1" col="0" icon="recordVoiceOver" label="Voice" style="round" command="compose.openVoices"/>
-        <Cell id="history" row="2" col="0" icon="history" label="History" style="round" command="compose.openHistory"/>
       </SubGrid>
     </SubGrid>
-    <SubGrid id="keys" row="4" col="0" rows="3" columns="120" gap="4" margin="4" layers="1">
-      <Cell id="pin" row="0" col="0" colSpan="10" icon="pushPin" label="Pin" background="bg90" command="compose.pin" activeState="compose.assignMode"/>
+    <SubGrid id="keys" row="3" col="0" rows="3" columns="120" gap="4" margin="4" layers="1">
+      <Cell id="pin" row="0" col="0" colSpan="10" icon="edit" label="Edit" background="bg90" command="compose.editPins" activeState="compose.editMode"/>
       <Cell id="ch_113_0_1" row="0" col="10" colSpan="10" label="q" textStyle="key" send="q"/>
       <Cell id="ch_119_0_2" row="0" col="20" colSpan="10" label="w" textStyle="key" send="w"/>
       <Cell id="ch_101_0_3" row="0" col="30" colSpan="10" label="e" textStyle="key" send="e"/>
@@ -115,7 +101,7 @@
       <Cell id="ch_108_1_9" row="1" col="93" colSpan="10" label="l" textStyle="key" send="l"/>
       <Cell id="comma" row="1" col="103" colSpan="8" label="," textStyle="key" send=","/>
       <Cell id="quote" row="1" col="111" colSpan="9" label="&apos;" textStyle="key" send="&apos;"/>
-      <Cell id="delivery" row="2" col="0" colSpan="9" icon="graphicEq" label="Freestyle" background="bg90" command="compose.toggleFreestyle" activeState="compose.freestyleMode"/>
+      <Cell id="delivery" row="2" col="0" colSpan="9" icon="graphicEq" label="Actions" background="bg90" showLayers="5"/>
       <Cell id="sym" row="2" col="9" colSpan="9" icon="numbers" label="123?" background="accent" showLayers="3"/>
       <Cell id="ch_122_2_2" row="2" col="18" colSpan="9" label="z" textStyle="key" send="z"/>
       <Cell id="ch_120_2_3" row="2" col="27" colSpan="9" label="x" textStyle="key" send="x"/>
@@ -128,8 +114,8 @@
       <Cell id="period" row="2" col="100" colSpan="9" label="." textStyle="key" send="."/>
       <Cell id="enter" row="2" col="109" colSpan="11" icon="keyReturn" background="accent" command="enter"/>
     </SubGrid>
-    <SubGrid id="keys_shift" row="4" col="0" rows="3" columns="120" gap="4" margin="4" layers="2">
-      <Cell id="pin_s" row="0" col="0" colSpan="10" icon="pushPin" label="Pin" background="bg90" command="compose.pin" activeState="compose.assignMode"/>
+    <SubGrid id="keys_shift" row="3" col="0" rows="3" columns="120" gap="4" margin="4" layers="2">
+      <Cell id="pin_s" row="0" col="0" colSpan="10" icon="edit" label="Edit" background="bg90" command="compose.editPins" activeState="compose.editMode"/>
       <Cell id="ch_81_0_1" row="0" col="10" colSpan="10" label="Q" textStyle="key" send="Q"/>
       <Cell id="ch_87_0_2" row="0" col="20" colSpan="10" label="W" textStyle="key" send="W"/>
       <Cell id="ch_69_0_3" row="0" col="30" colSpan="10" label="E" textStyle="key" send="E"/>
@@ -153,7 +139,7 @@
       <Cell id="ch_76_1_9" row="1" col="93" colSpan="10" label="L" textStyle="key" send="L"/>
       <Cell id="comma_s" row="1" col="103" colSpan="8" label="?" textStyle="key" send="?"/>
       <Cell id="quote_s" row="1" col="111" colSpan="9" label="&quot;" textStyle="key" send="&quot;"/>
-      <Cell id="delivery_s" row="2" col="0" colSpan="9" icon="graphicEq" label="Freestyle" background="bg90" command="compose.toggleFreestyle" activeState="compose.freestyleMode"/>
+      <Cell id="delivery_s" row="2" col="0" colSpan="9" icon="graphicEq" label="Actions" background="bg90" showLayers="5"/>
       <Cell id="sym_s" row="2" col="9" colSpan="9" icon="numbers" label="123?" background="accent" showLayers="4"/>
       <Cell id="ch_90_2_2" row="2" col="18" colSpan="8" label="Z" textStyle="key" send="Z"/>
       <Cell id="ch_88_2_3" row="2" col="26" colSpan="8" label="X" textStyle="key" send="X"/>
@@ -166,8 +152,8 @@
       <Cell id="period_s" row="2" col="100" colSpan="9" label="!" textStyle="key" send="!"/>
       <Cell id="enter_s" row="2" col="109" colSpan="11" icon="keyReturn" background="accent" command="enter"/>
     </SubGrid>
-    <SubGrid id="keys_sym" row="4" col="0" rows="3" columns="120" gap="4" margin="4" layers="3">
-      <Cell id="pin_sym" row="0" col="0" colSpan="10" icon="pushPin" label="Pin" background="bg90" command="compose.pin" activeState="compose.assignMode"/>
+    <SubGrid id="keys_sym" row="3" col="0" rows="3" columns="120" gap="4" margin="4" layers="3">
+      <Cell id="pin_sym" row="0" col="0" colSpan="10" icon="edit" label="Edit" background="bg90" command="compose.editPins" activeState="compose.editMode"/>
       <Cell id="d1" row="0" col="10" colSpan="10" label="1" textStyle="key" send="1"/>
       <Cell id="d2" row="0" col="20" colSpan="10" label="2" textStyle="key" send="2"/>
       <Cell id="d3" row="0" col="30" colSpan="10" label="3" textStyle="key" send="3"/>
@@ -190,7 +176,7 @@
       <Cell id="s8" row="1" col="91" colSpan="12" label=")" textStyle="key" send=")"/>
       <Cell id="comma_sym" row="1" col="103" colSpan="8" label="," textStyle="key" send=","/>
       <Cell id="quote_sym" row="1" col="111" colSpan="9" label="&apos;" textStyle="key" send="&apos;"/>
-      <Cell id="delivery_sym" row="2" col="0" colSpan="9" icon="graphicEq" label="Freestyle" background="bg90" command="compose.toggleFreestyle" activeState="compose.freestyleMode"/>
+      <Cell id="delivery_sym" row="2" col="0" colSpan="9" icon="graphicEq" label="Actions" background="bg90" showLayers="5"/>
       <Cell id="abc" row="2" col="9" colSpan="9" icon="keyboardKeys" label="ABC" background="accent" showLayers="1"/>
       <Cell id="l2" row="2" col="18" colSpan="8" label="_" textStyle="key" send="_"/>
       <Cell id="l3" row="2" col="26" colSpan="8" label="=" textStyle="key" send="="/>
@@ -203,8 +189,8 @@
       <Cell id="period_sym" row="2" col="100" colSpan="9" label="." textStyle="key" send="."/>
       <Cell id="enter_sym" row="2" col="109" colSpan="11" icon="keyReturn" background="accent" command="enter"/>
     </SubGrid>
-    <SubGrid id="keys_sym_shift" row="4" col="0" rows="3" columns="120" gap="4" margin="4" layers="4">
-      <Cell id="pin_ss" row="0" col="0" colSpan="10" icon="pushPin" label="Pin" background="bg90" command="compose.pin" activeState="compose.assignMode"/>
+    <SubGrid id="keys_sym_shift" row="3" col="0" rows="3" columns="120" gap="4" margin="4" layers="4">
+      <Cell id="pin_ss" row="0" col="0" colSpan="10" icon="edit" label="Edit" background="bg90" command="compose.editPins" activeState="compose.editMode"/>
       <Cell id="d1_ss" row="0" col="10" colSpan="10" label="!" textStyle="key" send="!"/>
       <Cell id="d2_ss" row="0" col="20" colSpan="10" label="@" textStyle="key" send="@"/>
       <Cell id="d3_ss" row="0" col="30" colSpan="10" label="#" textStyle="key" send="#"/>
@@ -227,7 +213,7 @@
       <Cell id="s6_ss" row="1" col="91" colSpan="12" label="&gt;" textStyle="key" send="&gt;"/>
       <Cell id="comma_ss" row="1" col="103" colSpan="8" label="?" textStyle="key" send="?"/>
       <Cell id="quote_ss" row="1" col="111" colSpan="9" label="&quot;" textStyle="key" send="&quot;"/>
-      <Cell id="delivery_ss" row="2" col="0" colSpan="9" icon="graphicEq" label="Freestyle" background="bg90" command="compose.toggleFreestyle" activeState="compose.freestyleMode"/>
+      <Cell id="delivery_ss" row="2" col="0" colSpan="9" icon="graphicEq" label="Actions" background="bg90" showLayers="5"/>
       <Cell id="abc_ss" row="2" col="9" colSpan="9" icon="keyboardKeys" label="ABC" background="accent" showLayers="2"/>
       <Cell id="l2_ss" row="2" col="18" colSpan="9" label="·" textStyle="key" send="·"/>
       <Cell id="l3_ss" row="2" col="27" colSpan="9" label="°" textStyle="key" send="°"/>
@@ -239,6 +225,39 @@
       <Cell id="r9_ss" row="2" col="90" colSpan="10" label="¡" textStyle="key" send="¡"/>
       <Cell id="period_ss" row="2" col="100" colSpan="9" label="!" textStyle="key" send="!"/>
       <Cell id="enter_ss" row="2" col="109" colSpan="11" icon="keyReturn" background="accent" command="enter"/>
+    </SubGrid>
+    <SubGrid id="keys_cmd" row="3" col="0" rows="3" columns="5" gap="4" margin="4" layers="5">
+      <Cell id="cmd_select" row="0" col="0" label="Select all" command="compose.selectAll"/>
+      <Cell id="cmd_cut" row="0" col="1" label="Cut" command="compose.cut"/>
+      <Cell id="cmd_copy" row="0" col="2" label="Copy" command="compose.copy"/>
+      <Cell id="cmd_paste" row="0" col="3" label="Paste" command="compose.paste"/>
+      <Cell id="cmd_clear" row="0" col="4" label="Clear" command="compose.clear"/>
+      <Cell id="cmd_undo" row="1" col="0" icon="undo" label="Undo" command="compose.undo"/>
+      <Cell id="cmd_redo" row="1" col="1" icon="redo" label="Redo" command="compose.redo"/>
+      <Cell id="cmd_history" row="1" col="2" icon="history" label="History" command="compose.openHistory"/>
+      <Cell id="cmd_voice" row="1" col="3" icon="recordVoiceOver" label="Voice" command="compose.openVoices"/>
+      <Cell id="cmd_style" row="1" col="4" label="Style" showLayers="6" activeState="compose.styleOn"/>
+      <Cell id="cmd_pin" row="2" col="0" icon="pushPin" label="Pin" command="compose.pin" activeState="compose.assignMode"/>
+      <Cell id="cmd_volume" row="2" col="1" label="Volume" showLayers="7"/>
+      <Cell id="cmd_import" row="2" col="2" label="Import" showLayers="8"/>
+      <Cell id="cmd_export" row="2" col="3" label="Export" command="compose.exportBoard"/>
+      <Cell id="cmd_keys" row="2" col="4" icon="keyboardKeys" label="ABC" background="accent" showLayers="1"/>
+    </SubGrid>
+    <SubGrid id="keys_style" row="3" col="0" rows="3" columns="5" gap="4" margin="4" layers="6">
+      <Cell id="style_placeholder" row="0" col="0" role="label"/>
+    </SubGrid>
+    <SubGrid id="keys_vol" row="3" col="0" rows="1" columns="5" gap="4" margin="4" layers="7">
+      <Cell id="vol_down" row="0" col="0" label="−" command="volume.dec"/>
+      <Cell id="vol_track" row="0" col="1" colSpan="2" role="slider" caption="volume" label="50%" scanGrace="2000"/>
+      <Cell id="vol_up" row="0" col="3" label="+" command="volume.inc"/>
+      <Cell id="vol_back" row="0" col="4" label="Back" showLayers="5"/>
+    </SubGrid>
+    <SubGrid id="keys_import" row="3" col="0" rows="2" columns="5" gap="4" margin="4" layers="8">
+      <Cell id="import_file" row="0" col="0" colSpan="4" role="label" label="No file"/>
+      <Cell id="import_back" row="0" col="4" label="Back" showLayers="5"/>
+      <Cell id="import_choose" row="1" col="0" colSpan="2" label="Choose" command="compose.importChoose"/>
+      <Cell id="import_merge" row="1" col="2" label="Merge" command="compose.importMerge"/>
+      <Cell id="import_replace" row="1" col="3" colSpan="2" label="Replace" command="compose.importReplace"/>
     </SubGrid>
   </Grid>
 </Page>

@@ -255,7 +255,9 @@ void SpeechEngine::startEleven(const QString& phrase, const QString& voiceId)
 
     m_lastBackend = Backend::Eleven;
     m_elevenGen = m_generation;
-    m_pendingPrep = ElevenRequest::prepareSpeakRequest(phrase, m_settings.speechModel,
+    const QString elevenText =
+        ElevenRequest::applyStandingTag(phrase, m_settings.speechStyle);
+    m_pendingPrep = ElevenRequest::prepareSpeakRequest(elevenText, m_settings.speechModel,
                                                        m_settings.speechSpeed);
     m_pendingSpoken = ElevenRequest::stripInlineTags(phrase);
     m_pendingVoiceId = voiceId;

@@ -33,6 +33,13 @@ struct Prepared {
 [[nodiscard]] QString stripInlineTags(QStringView text);
 [[nodiscard]] bool hasNonTagSpeechContent(QStringView text);
 
+/// Standing voice tag: trim, drop one wrapping [pair], drop leftover brackets.
+/// Empty means no standing tag. "none" is kept here; style names reject it.
+[[nodiscard]] QString normalizeStandingTag(QStringView raw);
+/// Put `[tag]` at the start of text sent to ElevenLabs. Leave the phrase
+/// alone when it already starts with that tag (ignoring leading space).
+[[nodiscard]] QString applyStandingTag(QStringView phrase, QStringView tag);
+
 /// Build speak pieces. v4 Turbo keeps audio tags and applies speed on playback.
 /// SAPI text has brackets stripped. Desired speed is clamped to 0.25–4.
 [[nodiscard]] Prepared prepareSpeakRequest(QStringView phrase, QStringView selectedModel,

@@ -92,10 +92,37 @@ void withPhraseLayout(const QRectF& pad, const QString& text, const QFont& font,
 }
 
 inline void paintPhraseLayout(QPainter& p, const QRectF& pad, const QString& text, const QFont& font,
-                              int flags, const QColor& color, int caretIndex)
+                              int flags, const QColor& color, int caretIndex,
+                              int selectionStart = -1, int selectionEnd = -1)
 {
     withPhraseLayout(pad, text, font, flags, [&](QTextLayout& layout, const QPointF& origin,
                                                  const QRectF& box) {
+        if (selectionStart >= 0 && selectionEnd > selectionStart && layout.lineCount() > 0) {
+            const int n = layout.text().size();
+            const int fromSel = qBound(0, selectionStart, n);
+            const int toSel = qBound(0, selectionEnd, n);
+            QColor hi = color;
+            hi.setAlpha(80);
+            p.setPen(Qt::NoPen);
+            for (int lineIndex = 0; lineIndex < layout.lineCount(); ++lineIndex) {
+                const QTextLine line = layout.lineAt(lineIndex);
+                if (!line.isValid()) {
+                    continue;
+                }
+                const int lineStart = line.textStart();
+                const int lineEnd = lineStart + line.textLength();
+                const int from = qMax(fromSel, lineStart);
+                const int to = qMin(toSel, lineEnd);
+                if (from >= to) {
+                    continue;
+                }
+                const qreal x1 = line.cursorToX(from);
+                const qreal x2 = line.cursorToX(to);
+                p.fillRect(QRectF(origin.x() + qMin(x1, x2), origin.y() + line.y(), qAbs(x2 - x1),
+                                  qMax(1.0, line.height())),
+                           hi);
+            }
+        }
         p.setPen(color);
         p.setFont(font);
         layout.draw(&p, origin);

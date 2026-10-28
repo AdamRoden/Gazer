@@ -207,6 +207,8 @@ void walkGrid(const PageDocument& page, const PageGrid& grid, const QRectF& boun
         t.textStyle = cell.textStyle;
         t.role = cell.role;
         t.caretIndex = cell.caretIndex;
+        t.selectionStart = cell.selectionStart;
+        t.selectionEnd = cell.selectionEnd;
         t.settingKey = cell.settingKey;
         t.suspendExempt = cell.suspendExempt;
         t.interactive = cell.isInteractive() && !currentTab

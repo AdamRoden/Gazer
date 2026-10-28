@@ -30,6 +30,8 @@ struct PageTarget {
     QString textStyle;
     QString role;
     int caretIndex = -1;
+    int selectionStart = -1;
+    int selectionEnd = -1;
     QString settingKey;
     bool suspendExempt = false;
     bool interactive = true;
