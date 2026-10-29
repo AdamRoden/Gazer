@@ -33,6 +33,21 @@ bool PageSession::drawerMotionShown() const
     return false;
 }
 
+QVector<int> PageSession::drawerMotionLayers() const
+{
+    QVector<int> out;
+    for (const PageGrid& g : m_root.grids) {
+        if (g.drawerMotion && layersVisible(g.layers, m_root.showLayers)) {
+            for (int n : normalizedLayers(g.layers)) {
+                if (!out.contains(n)) {
+                    out.push_back(n);
+                }
+            }
+        }
+    }
+    return out;
+}
+
 bool PageSession::nonDrawerRootShown() const
 {
     for (const PageGrid& g : m_root.grids) {
@@ -48,6 +63,7 @@ void PageSession::resetDrawerAnim()
     m_drawerTimer.stop();
     m_drawerPhase = DrawerPhase::Idle;
     m_drawerScale = 1.0;
+    m_dismissLayers.clear();
 }
 
 void PageSession::snapHideDrawerMotion()
@@ -70,7 +86,7 @@ void PageSession::snapHideDrawerMotion()
 
 void PageSession::hideRootAutoClose(bool animate)
 {
-    const bool wasDrawer = drawerMotionShown();
+    const QVector<int> wasDrawer = drawerMotionLayers();
     QVector<int> drop;
     for (const PageGrid& g : m_root.grids) {
         if (g.autoClose && layersVisible(g.layers, m_root.showLayers)) {
@@ -94,14 +110,15 @@ void PageSession::hideRootAutoClose(bool animate)
     emitShowChanged();
 }
 
-void PageSession::syncDrawerAnim(bool wasDrawer)
+void PageSession::syncDrawerAnim(const QVector<int>& wasDrawerLayers)
 {
-    switch (PageNav::reconcileDrawer(wasDrawer, drawerMotionShown(), nonDrawerRootShown(),
-                                     m_drawerPhase == DrawerPhase::Dismiss)) {
+    switch (PageNav::reconcileDrawer(!wasDrawerLayers.isEmpty(), drawerMotionShown(),
+                                     nonDrawerRootShown(), m_drawerPhase == DrawerPhase::Dismiss)) {
     case PageNav::DrawerAnim::Appear:
         playDrawerAppear();
         break;
     case PageNav::DrawerAnim::Dismiss:
+        m_dismissLayers = wasDrawerLayers;
         playDrawerDismiss();
         break;
     case PageNav::DrawerAnim::Snap:
@@ -114,6 +131,7 @@ void PageSession::syncDrawerAnim(bool wasDrawer)
 
 void PageSession::playDrawerAppear()
 {
+    m_dismissLayers.clear();
     m_drawerPhase = DrawerPhase::Appear;
     m_drawerScale = kDrawerMinScale;
     m_drawerClock.restart();
@@ -159,6 +177,7 @@ void PageSession::tickDrawer()
     if (m_drawerPhase == DrawerPhase::Dismiss) {
         m_drawerPhase = DrawerPhase::Idle;
         m_drawerScale = 1.0;
+        m_dismissLayers.clear();
         rebuild();
         emit sessionChanged();
         return;

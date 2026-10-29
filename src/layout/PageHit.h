@@ -95,13 +95,16 @@ namespace PageHit {
 /// master (zones, then grids/cells), then each open page the same way.
 /// `shownLayers` unset uses `page.showLayers`. Pass a set to preview another
 /// visible set (editor layer filter) without mutating the document.
+/// `includeDrawerMotion` keeps hidden `drawerMotion` grids (dismiss animation).
+/// `drawerLayers` limits those to grids on these layers; null keeps all.
 [[nodiscard]] QVector<PageTarget> collect(const PageDocument& page, const PageFrame& frame,
                                           const QVariantMap& props = {},
                                           bool dwellSuspended = false,
                                           QVector<PageGridPaint>* grids = nullptr,
                                           bool includeDrawerMotion = false,
                                           const std::optional<QVector<int>>& shownLayers = std::nullopt,
-                                          const QHash<QString, const PageDocument*>* fragments = nullptr);
+                                          const QHash<QString, const PageDocument*>* fragments = nullptr,
+                                          const QVector<int>* drawerLayers = nullptr);
 
 /// Topmost painted grid whose visual AABB contains pos (corners occlude even
 /// when chrome is rounded). Null if none.
