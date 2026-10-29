@@ -145,14 +145,20 @@ struct WalkEnv {
     QVector<PageGridPaint>* grids = nullptr;
     const QHash<QString, const PageDocument*>* fragments = nullptr;
     QStringList* chain = nullptr;
+    const QVector<int>* drawerLayers = nullptr;
+
+    [[nodiscard]] bool keepsDrawer(const PageGrid& g) const
+    {
+        return includeDrawerMotion && g.drawerMotion
+               && (!drawerLayers || layersVisible(g.layers, *drawerLayers));
+    }
 };
 
 void walkGrid(const PageDocument& page, const PageGrid& grid, const QRectF& bounds, WalkEnv& env,
               const QVector<int>& shownLayers, bool shell, bool drawerMotion, bool asNested,
               const QString& currentSrc)
 {
-    if (!layersVisible(grid.layers, shownLayers)
-        && !(env.includeDrawerMotion && grid.drawerMotion)) {
+    if (!layersVisible(grid.layers, shownLayers) && !env.keepsDrawer(grid)) {
         return;
     }
 
@@ -228,8 +234,7 @@ void walkGrid(const PageDocument& page, const PageGrid& grid, const QRectF& boun
     }
 
     for (const PageGrid& sub : grid.subGrids) {
-        if (!layersVisible(sub.layers, shownLayers)
-            && !(env.includeDrawerMotion && sub.drawerMotion)) {
+        if (!layersVisible(sub.layers, shownLayers) && !env.keepsDrawer(sub)) {
             continue;
         }
         const QRectF slot = cellRect(grid, bounds, sub.row, sub.col, sub.rowSpan, sub.colSpan,
@@ -243,7 +248,8 @@ void walkGrid(const PageDocument& page, const PageGrid& grid, const QRectF& boun
 QVector<PageTarget> collect(const PageDocument& page, const PageFrame& frame,
                             const QVariantMap& props, bool dwellSuspended, QVector<PageGridPaint>* grids,
                             bool includeDrawerMotion, const std::optional<QVector<int>>& shownLayers,
-                            const QHash<QString, const PageDocument*>* fragments)
+                            const QHash<QString, const PageDocument*>* fragments,
+                            const QVector<int>* drawerLayers)
 {
     QVector<PageTarget> rest;
     QVector<PageTarget> shell;
@@ -254,7 +260,7 @@ QVector<PageTarget> collect(const PageDocument& page, const PageFrame& frame,
     for (const PageGrid& g : page.grids) {
         QVector<PageTarget> piece;
         WalkEnv env{screen, props, dwellSuspended, includeDrawerMotion, piece, grids, fragments,
-                    &chain};
+                    &chain, drawerLayers};
         walkGrid(page, g, gridBounds(g, frame), env, shown, g.shell, g.drawerMotion, false,
                  PageCompose::firstSrc(page));
         for (PageTarget& t : piece) {

@@ -567,14 +567,16 @@ int PageSession::closeAttached()
 void PageSession::ingest(const PageDocument& doc, bool isMaster, QVector<PageTarget>& targets,
                          QVector<PageGridPaint>& gridPaints, QHash<QString, QString>* pageBgTokens,
                          bool includeDrawerMotion,
-                         const QHash<QString, const PageDocument*>* fragments)
+                         const QHash<QString, const PageDocument*>* fragments,
+                         const QVector<int>* drawerLayers)
 {
     if (pageBgTokens) {
         pageBgTokens->insert(doc.id, doc.style.background.token);
     }
     QVector<PageGridPaint> g;
     QVector<PageTarget> piece = PageHit::collect(doc, frame(), m_props, m_dwellSuspended, &g,
-                                                 includeDrawerMotion, std::nullopt, fragments);
+                                                 includeDrawerMotion, std::nullopt, fragments,
+                                                 drawerLayers);
     for (PageGridPaint& gp : g) {
         if (gp.pageId.isEmpty()) {
             gp.pageId = doc.id;
@@ -608,7 +610,8 @@ void PageSession::rebuild()
     for (const AttachedPage& a : m_attached) {
         ingest(a.doc, false, m_targets, m_gridPaints, &pageBgTokens, false, &fragments);
     }
-    ingest(m_root, true, m_targets, m_gridPaints, &pageBgTokens, keepDrawer, &fragments);
+    ingest(m_root, true, m_targets, m_gridPaints, &pageBgTokens, keepDrawer, &fragments,
+           &m_dismissLayers);
 
     if (m_host) {
         const PageFrame fr = frame();

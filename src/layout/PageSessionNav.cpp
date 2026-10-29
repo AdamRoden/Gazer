@@ -161,7 +161,7 @@ bool PageSession::showLayers(const QVector<PageAction>& actions, const QString& 
     if (wantCrumb) {
         snap = captureBreadcrumb();
     }
-    const bool wasDrawer = drawerMotionShown();
+    const QVector<int> wasDrawer = drawerMotionLayers();
     bool ok = true;
     for (const PageAction& a : actions) {
         if (!applyShowLayers(a.layers, sourcePageId, error)) {

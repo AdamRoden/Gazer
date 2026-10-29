@@ -49,6 +49,7 @@ private slots:
     void frostedBoundsUsesRestPose();
     void reservedBoundsKeepsHiddenGrids();
     void dismissingDrawerStillCollects();
+    void dismissingDrawerKeepsOnlyItsLayers();
     void desktopModeUsesDesktop();
     void masterZonesBeatOpenGrids();
     void masterGridCoversOpenTargets();
@@ -599,6 +600,39 @@ void PageHitTest::dismissingDrawerStillCollects()
     const QVector<PageTarget> during =
         PageHit::collect(doc, frame, {}, false, nullptr, true);
     QVERIFY(targetById(during, QStringLiteral("open_keyboard")));
+}
+
+void PageHitTest::dismissingDrawerKeepsOnlyItsLayers()
+{
+    PageDocument doc;
+    doc.id = QStringLiteral("p");
+    auto addDrawer = [&doc](const QString& id, int layer, const QString& cellId) {
+        PageGrid g;
+        g.id = id;
+        g.layers = {layer};
+        g.drawerMotion = true;
+        g.shell = true;
+        g.anchor = PageAnchor::Bottom;
+        g.size.x = PageDim::pixels(400);
+        g.size.y = PageDim::pixels(100);
+        PageCell cell;
+        cell.id = cellId;
+        g.cells.push_back(cell);
+        doc.grids.push_back(g);
+    };
+    addDrawer(QStringLiteral("drawer"), 2, QStringLiteral("open_more"));
+    addDrawer(QStringLiteral("more"), 4, QStringLiteral("open_keyboard"));
+    PageFrame frame;
+    frame.screen = QRectF(0, 0, 1920, 1080);
+    frame.desktop = frame.screen;
+    const QVector<int> dismissing{2};
+    QVector<PageGridPaint> grids;
+    const QVector<PageTarget> during = PageHit::collect(doc, frame, {}, false, &grids, true,
+                                                        std::nullopt, nullptr, &dismissing);
+    QVERIFY(targetById(during, QStringLiteral("open_more")));
+    QVERIFY(targetById(during, QStringLiteral("open_keyboard")) == nullptr);
+    QCOMPARE(grids.size(), 1);
+    QCOMPARE(grids.front().gridId, QStringLiteral("drawer"));
 }
 
 void PageHitTest::desktopModeUsesDesktop()
