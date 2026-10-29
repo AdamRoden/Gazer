@@ -126,8 +126,13 @@ When adding a command: register it and add a row here.
 | `compose.favStyle.<name>` / `compose.trashStyle.<name>` | Star or remove a style. `name` is the percent-encoded display name. Trashing the standing style clears it. The catalog is saved |
 | `compose.stylePage.<n>` | Move the style editor by `n` pages |
 | `compose.beginStyleName` | Type a new style on the keyboard. Save adds it, starred. Cancel returns to the editor |
-| `compose.exportBoard` | Save the soundboard as a Voice `aac-workspace` v1 JSON file |
-| `compose.importChoose` / `compose.importMerge` / `compose.importReplace` | Pick a workspace file, then merge topics or replace the board. Replace also applies model, speed, pitch, and volume |
+| `compose.openFiles` / `compose.exportBoard` / `compose.importChoose` | Open File Explorer over Speak and show the keyboard layer so the file name can be typed. Closing returns to the layer that was showing |
+| `compose.browserPrev` / `compose.browserForward` / `compose.browserUp` | Back, forward, or parent folder. A path chip uses `compose.browserGoto.<i>` |
+| `compose.browserSave` | **Export**. Asks Yes/No, then writes a Voice `aac-workspace` v1 JSON file under the name in the text box |
+| `compose.fileYes` / `compose.fileNo` | Accept or dismiss that confirm. Yes is the only step that reads or writes the file. Escape is No |
+| `compose.browserBack` | Close File Explorer |
+| `compose.importPick.<i>` / `compose.importPage.<n>` | Open folder `i` or select that JSON file (no read yet), or move the tile window by `n` pages |
+| `compose.importMerge` / `compose.importReplace` | **Merge** or **Import**. Each asks Yes/No first. Import replaces the board and also applies model, speed, pitch, and volume |
 | `compose.saveName` / `compose.cancelName` / `compose.deleteName` | Save, discard, or delete the item being edited and return to the board |
 | `compose.editShowColors` / `compose.editShowIcons` | Switch the edit overlay between color chips and icons |
 | `compose.editColor.<i>` / `compose.editIcon.<i>` | Set color or icon on the item being edited |
@@ -152,7 +157,7 @@ When adding a command: register it and add a row here.
 | `speech.lang.all` / `speech.lang.set.<code>` | Language filter |
 | `speech.speed.dec` / `.inc` | Nudge `speechSpeed` 0.1 |
 | `speech.volume.dec` / `.inc` | Nudge `speechVolume` 0.5 (1–5× clip boost). The voice list uses these |
-| `volume.dec` / `.inc` | Nudge Windows master volume by 10%. Any page. `compose.volume.dec` / `.inc` are the same commands. Speak → Actions → **Volume** is a `role="slider"` `caption="volume"` cell with `scanGrace` 2000 ms. After that, the level eases toward the gaze point at 20 percent per second. Wide QWERTY follows gaze as soon as its own scan grace ends |
+| `volume.dec` / `.inc` | Nudge Windows master volume by 10%. Any page. `compose.volume.dec` / `.inc` are the same commands. Speak → Actions puts **−**, a `role="slider"` `caption="volume"` cell (`scanGrace` 2000 ms), and **+** on the bottom row. After the grace, the level eases toward the gaze point at 20 percent per second. Wide QWERTY follows gaze as soon as its own scan grace ends |
 
 While `compose` is top (or a compose live board), `Send` and mapping keys (`backspace`, `space`, `enter`, `escape`, modifiers) are captured and never reach the OS. `volume.dec` / `volume.inc` still nudge the Windows endpoint. Caps uses XML `ShowLayers`.
 

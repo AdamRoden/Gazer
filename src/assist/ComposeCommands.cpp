@@ -61,6 +61,26 @@ void registerComposeCommands(CommandRegistry& commands, ComposeUi& compose)
     });
     commands.registerBuiltin(QStringLiteral("compose.exportBoard"),
                              [&compose](QString* error) { return compose.exportBoard(error); });
+    commands.registerBuiltin(QStringLiteral("compose.openFiles"),
+                             [&compose](QString* error) { return compose.openFiles(error); });
+    commands.registerBuiltin(QStringLiteral("compose.browserUp"),
+                             [&compose](QString* error) { return compose.browserUp(error); });
+    commands.registerBuiltin(QStringLiteral("compose.browserPrev"),
+                             [&compose](QString* error) { return compose.browserPrev(error); });
+    commands.registerBuiltin(QStringLiteral("compose.browserForward"),
+                             [&compose](QString* error) { return compose.browserForward(error); });
+    commands.registerBuiltin(QStringLiteral("compose.browserSave"),
+                             [&compose](QString* error) { return compose.browserSave(error); });
+    commands.registerBuiltin(QStringLiteral("compose.fileYes"),
+                             [&compose](QString* error) { return compose.confirmFileYes(error); });
+    commands.registerBuiltin(QStringLiteral("compose.fileNo"), [&compose](QString*) {
+        compose.confirmFileNo();
+        return true;
+    });
+    commands.registerBuiltin(QStringLiteral("compose.browserBack"), [&compose](QString*) {
+        compose.browserBack();
+        return true;
+    });
     commands.registerBuiltin(QStringLiteral("compose.importChoose"),
                              [&compose](QString* error) { return compose.importChoose(error); });
     commands.registerBuiltin(QStringLiteral("compose.importMerge"),
@@ -169,6 +189,9 @@ void registerComposeCommands(CommandRegistry& commands, ComposeUi& compose)
     bindInt(QStringLiteral("compose.editColor."), &ComposeUi::setEditedColor);
     bindInt(QStringLiteral("compose.editIcon."), &ComposeUi::setEditedIcon);
     bindVoidInt(QStringLiteral("compose.pageChips."), &ComposeUi::pageChips);
+    bindInt(QStringLiteral("compose.importPick."), &ComposeUi::pickImportFile);
+    bindVoidInt(QStringLiteral("compose.importPage."), &ComposeUi::pageImportFiles);
+    bindInt(QStringLiteral("compose.browserGoto."), &ComposeUi::browserGoto);
     bindVoidInt(QStringLiteral("compose.removeWord."), &ComposeUi::removeVisibleWord);
     bindVoidInt(QStringLiteral("compose.acceptPrediction."), &ComposeUi::acceptPrediction);
     bindVoidInt(QStringLiteral("compose.moveEndOfWord."), &ComposeUi::moveEndOfWord);

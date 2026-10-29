@@ -64,7 +64,8 @@ void ComposeUi::setTypingContext(TypingContext* typing)
 bool ComposeUi::isCapturing(const QString& sourcePageId) const
 {
     return sourcePageId == kPageId || sourcePageId == kVoicesLiveId
-           || sourcePageId == kHistoryLiveId || sourcePageId == kItemEditLiveId;
+           || sourcePageId == kHistoryLiveId || sourcePageId == kFilesLiveId
+           || sourcePageId == kItemEditLiveId;
 }
 
 bool ComposeUi::isOpen() const
@@ -151,7 +152,8 @@ void ComposeUi::refresh()
     updatePredictions();
     m_pages.refreshDecorated();
     m_pages.refreshActive();
-    if (m_typing && !capturingPhrase()) {
+    rebuildFiles();
+    if (m_typing && !capturingPhrase() && !editingFileName()) {
         m_typing->syncPhrase(m_buffer.text(), m_buffer.caret());
     }
 }
@@ -199,11 +201,14 @@ void ComposeUi::insertText(QStringView chars)
         }
     }
     m_buffer.insert(text);
-    refresh();
+    commitEdit();
 }
 
 void ComposeUi::handleSend(const PageAction& a)
 {
+    if (handleFileSend(a)) {
+        return;
+    }
     const QString top = m_pages.topPageId();
     if (top != kPageId && !capturingPhrase()) {
         return;
@@ -255,7 +260,13 @@ void ComposeUi::handleCapturedCommand(const QString& command)
             m_pages.closePage(QString(kHistoryLiveId));
             return;
         }
+        if (handleFileEscape()) {
+            return;
+        }
         m_pages.closePage(QString(kPageId));
+        return;
+    }
+    if (handleFileCommand(c)) {
         return;
     }
     if (capturingPhrase()) {
@@ -352,6 +363,9 @@ bool ComposeUi::speakOrStop(QString* error)
     if (nameEditing()) {
         return saveNameEdit(error);
     }
+    if (consumeFileSpeak(error)) {
+        return true;
+    }
     const auto st = m_speech.status();
     if (st.busy || st.speaking) {
         stopSpeech();
@@ -373,40 +387,40 @@ void ComposeUi::stopSpeech()
 
 void ComposeUi::clear()
 {
-    m_buffer.clear();
-    refresh();
+    editTarget().clear();
+    commitEdit();
 }
 
 bool ComposeUi::undo()
 {
-    const bool ok = m_buffer.undo();
-    refresh();
+    const bool ok = editTarget().undo();
+    commitEdit();
     return ok;
 }
 
 bool ComposeUi::redo()
 {
-    const bool ok = m_buffer.redo();
-    refresh();
+    const bool ok = editTarget().redo();
+    commitEdit();
     return ok;
 }
 
 void ComposeUi::backspace()
 {
-    m_buffer.backspace();
-    refresh();
+    editTarget().backspace();
+    commitEdit();
 }
 
 void ComposeUi::deleteWord()
 {
-    m_buffer.deleteWord();
-    refresh();
+    editTarget().deleteWord();
+    commitEdit();
 }
 
 void ComposeUi::removeVisibleWord(int slot)
 {
     m_buffer.removeVisibleWord(slot);
-    refresh();
+    commitEdit();
 }
 
 void ComposeUi::moveEndOfWord(int slot)
@@ -426,7 +440,7 @@ void ComposeUi::selectAll()
     if (capturingPhrase()) {
         return;
     }
-    m_buffer.selectAll();
+    editTarget().selectAll();
     refresh();
 }
 
@@ -439,20 +453,24 @@ void ComposeUi::copy()
     if (!clip) {
         return;
     }
-    const QString text = m_buffer.hasSelection() ? m_buffer.selectedText() : m_buffer.text();
-    clip->setText(text);
+    const ComposeBuffer& buf = editTarget();
+    clip->setText(buf.hasSelection() ? buf.selectedText() : buf.text());
 }
 
 void ComposeUi::cut()
 {
-    if (capturingPhrase() || !m_buffer.hasSelection()) {
+    if (capturingPhrase()) {
+        return;
+    }
+    ComposeBuffer& buf = editTarget();
+    if (!buf.hasSelection()) {
         return;
     }
     if (QClipboard* clip = QGuiApplication::clipboard()) {
-        clip->setText(m_buffer.selectedText());
+        clip->setText(buf.selectedText());
     }
-    m_buffer.backspace();
-    refresh();
+    buf.backspace();
+    commitEdit();
 }
 
 void ComposeUi::paste()
@@ -468,8 +486,12 @@ void ComposeUi::paste()
     if (text.isEmpty()) {
         return;
     }
+    if (editingFileName()) {
+        insertFileName(text);
+        return;
+    }
     m_buffer.insert(text);
-    refresh();
+    commitEdit();
 }
 
 void ComposeUi::pageChips(int delta)
@@ -550,6 +572,8 @@ void ComposeUi::decoratePage(PageDocument& doc) const
                         c.caption = QStringLiteral("Dwell a button or + topic");
                     } else if (assignMode()) {
                         c.caption = QStringLiteral("Dwell a cell to save");
+                    } else if (!m_boardNote.isEmpty()) {
+                        c.caption = m_boardNote;
                     } else if (m_speech.elevenLatched()) {
                         c.caption = QStringLiteral("Using SAPI (network)");
                     } else {
@@ -559,10 +583,6 @@ void ComposeUi::decoratePage(PageDocument& doc) const
             } else if (c.id == QLatin1String("speak") && !naming) {
                 c.label = stop ? QStringLiteral("Stop") : QStringLiteral("Speak");
                 c.icon = stop ? QStringLiteral("Sleep") : QStringLiteral("Speak");
-            } else if (c.id == QLatin1String("import_file")) {
-                c.label = m_pendingImportName.isEmpty()
-                              ? QStringLiteral("No file")
-                              : ellipsis(m_pendingImportName, 28);
             }
         }
         for (PageGrid& sub : g.subGrids) {
@@ -946,6 +966,8 @@ void ComposeUi::syncClosedOverlays()
     if (m_listScroll == ListScroll::History && !hasLive(kHistoryLiveId)) {
         stopListScroll();
     } else if (m_listScroll == ListScroll::Voices && !hasLive(kVoicesLiveId)) {
+        stopListScroll();
+    } else if (m_listScroll == ListScroll::Files && !hasLive(kFilesLiveId)) {
         stopListScroll();
     }
     if (nameEditing() && !hasLive(kItemEditLiveId)) {

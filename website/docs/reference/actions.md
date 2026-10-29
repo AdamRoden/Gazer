@@ -422,16 +422,16 @@ Composer word chips use phases: first dwell moves the caret to that word; a late
 
 ## Composer capture
 
-While the action’s **source page** is `compose`, `compose_voices_live`, `compose_history_live`, or `compose_item_edit_live`:
+While the action’s **source page** is `compose`, `compose_voices_live`, `compose_history_live`, `compose_files_live`, or `compose_item_edit_live`:
 
 | Incoming | What happens |
 |----------|----------------|
-| `Send` of a single character | Inserted into the phrase (only when `compose` is top, or while renaming an item). |
+| `Send` of a single character | Inserted into the phrase (only when `compose` is top, or while renaming an item). While File Explorer is the top page, it goes into the file name. |
 | `Send` of `space` (named) | Inserts a space in those same cases. Other named Send keys are consumed and ignored. |
-| `command="backspace"` / `compose.backspace` | Deletes in the buffer. |
+| `command="backspace"` / `compose.backspace` | Deletes in the buffer, or in the file name while File Explorer is top. |
 | `command="space"` | Inserts a space. |
-| `command="enter"` | Speaks (or saves, while renaming). |
-| `command="escape"` | Stops speech if busy; otherwise cancels assign/edit, closes a live overlay, or closes composer. |
+| `command="enter"` | Speaks (or saves, while renaming). Does not speak while File Explorer is top. |
+| `command="escape"` | Stops speech if busy; otherwise cancels assign/edit, dismisses a File Explorer Yes/No, closes a live overlay (including File Explorer), or closes composer. |
 | `leftShift`, `tab`, arrows, other mapping keys | Consumed, no OS inject. |
 | `compose.*` / `speech.*` / `soundboard.*` / `history.*` / `settings.speech.*` / `volume.dec` / `volume.inc` / dwell suspend commands | Run as builtins (not captured). |
 

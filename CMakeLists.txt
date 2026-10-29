@@ -67,6 +67,7 @@ set(GAZER_SOURCES
     src/app/ComposeItemEdit.cpp
     src/app/ComposeStyles.cpp
     src/app/ComposeHistory.cpp
+    src/app/ComposeFiles.cpp
     src/app/ComposeListScroll.cpp
     src/assist/ComposeCommands.cpp
     src/core/TrackerMouse.cpp

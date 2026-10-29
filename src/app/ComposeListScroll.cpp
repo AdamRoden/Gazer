@@ -22,7 +22,8 @@ const PageTarget* frontScrollTrack(const QVector<PageTarget>& targets)
         if (localIdOf(t) != compose_detail::kOverlayScrollTrackId) {
             continue;
         }
-        if (t.pageId == ComposeUi::kHistoryLiveId || t.pageId == ComposeUi::kVoicesLiveId) {
+        if (t.pageId == ComposeUi::kHistoryLiveId || t.pageId == ComposeUi::kVoicesLiveId
+            || t.pageId == ComposeUi::kFilesLiveId) {
             return &t;
         }
     }
@@ -33,7 +34,7 @@ const PageTarget* frontScrollTrack(const QVector<PageTarget>& targets)
 
 void ComposeUi::onGaze(const GazePoint& point)
 {
-    if (!hasLive(kHistoryLiveId) && !hasLive(kVoicesLiveId)) {
+    if (!hasLive(kHistoryLiveId) && !hasLive(kVoicesLiveId) && !hasLive(kFilesLiveId)) {
         stopListScroll();
         return;
     }
@@ -115,8 +116,12 @@ void ComposeUi::feedListScrollGaze(const GazePoint& point)
         return;
     }
 
-    const ListScroll kind = track->pageId == kHistoryLiveId ? ListScroll::History
-                                                            : ListScroll::Voices;
+    ListScroll kind = ListScroll::History;
+    if (track->pageId == kVoicesLiveId) {
+        kind = ListScroll::Voices;
+    } else if (track->pageId == kFilesLiveId) {
+        kind = ListScroll::Files;
+    }
     if (m_listScroll != kind) {
         m_listScroll = kind;
         m_listScrollT = rawT;
@@ -130,8 +135,12 @@ void ComposeUi::feedListScrollGaze(const GazePoint& point)
         if (offset != m_historyPage) {
             historyGoto(offset);
         }
-    } else if (offset != m_voicePage) {
-        voicesGoto(offset);
+    } else if (kind == ListScroll::Voices) {
+        if (offset != m_voicePage) {
+            voicesGoto(offset);
+        }
+    } else {
+        filesGoto(offset);
     }
 }
 

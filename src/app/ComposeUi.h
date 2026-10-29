@@ -12,6 +12,9 @@
 #include <QByteArray>
 #include <QElapsedTimer>
 #include <QString>
+#include <QStringList>
+#include <QStringView>
+#include <QVector>
 #include <functional>
 #include <memory>
 
@@ -33,6 +36,7 @@ public:
     static constexpr auto kPageId = QLatin1String("compose");
     static constexpr auto kVoicesLiveId = QLatin1String("compose_voices_live");
     static constexpr auto kHistoryLiveId = QLatin1String("compose_history_live");
+    static constexpr auto kFilesLiveId = QLatin1String("compose_files_live");
     static constexpr auto kItemEditLiveId = QLatin1String("compose_item_edit_live");
 
     ComposeUi(PageSession& pages, SpeechEngine& speech, AppSettings& settings,
@@ -121,6 +125,19 @@ public:
     void clearEditedIcon();
     bool exportBoard(QString* error = nullptr);
     bool importChoose(QString* error = nullptr);
+    bool openFiles(QString* error = nullptr);
+    bool pickImportFile(int index, QString* error = nullptr);
+    void pageImportFiles(int delta);
+    bool browserUp(QString* error = nullptr);
+    bool browserPrev(QString* error = nullptr);
+    bool browserForward(QString* error = nullptr);
+    bool browserGoto(int index, QString* error = nullptr);
+    bool browserSave(QString* error = nullptr);
+    void browserBack();
+    /// Yes on the File Explorer confirm row. Reads or writes only here.
+    bool confirmFileYes(QString* error = nullptr);
+    void confirmFileNo();
+    void filesGoto(int offset);
     bool importMerge(QString* error = nullptr);
     bool importReplace(QString* error = nullptr);
     bool openPinEdit(const QString& buttonId, QString* error = nullptr);
@@ -162,6 +179,31 @@ private:
     void fillTopicsMode(PageDocument& doc) const;
     void stampChips(PageDocument& doc) const;
     void stampStyleLayer(PageDocument& doc) const;
+    void ensureBrowserEntries() const;
+    [[nodiscard]] bool editingFileName() const;
+    /// Phrase buffer, or the file name while File Explorer is the top page.
+    [[nodiscard]] ComposeBuffer& editTarget();
+    void insertFileName(QStringView chars);
+    /// Send, mapping keys, and Escape while the file name is being edited.
+    [[nodiscard]] bool handleFileSend(const PageAction& action);
+    [[nodiscard]] bool handleFileCommand(const QString& command);
+    [[nodiscard]] bool handleFileEscape();
+    [[nodiscard]] bool consumeFileSpeak(QString* error);
+    void rebuildFiles();
+    void navigateBrowser(const QString& dir);
+    PageDocument buildFilesDocument() const;
+    enum class FileConfirm { None, Import, Merge, Export };
+    bool armFileConfirm(FileConfirm kind, QString* error);
+    bool requestFileImport(bool replace, QString* error);
+    bool writeExport(QString* error);
+    bool readSelectedWorkspace(QString* error);
+    void restoreFileLayers();
+    [[nodiscard]] QString selectedJsonPath() const;
+    [[nodiscard]] QString fileConfirmQuestion() const;
+    /// `keep` survives closing File Explorer. Edits drop either kind.
+    void setBoardNote(const QString& text, bool keep = false);
+    void dismissBoardNote();
+    void commitEdit();
     void stampStylePicker(PageGrid& grid) const;
     void stampStyleEditor(PageGrid& grid) const;
     void stampComposerChrome(PageDocument& doc) const;
@@ -227,6 +269,23 @@ private:
     QString m_editIcon;
     QByteArray m_pendingImport;
     QString m_pendingImportName;
+    QString m_pendingImportPath;
+    /// Empty directory means the drive list. File Explorer reads and writes this folder.
+    QString m_browserDir;
+    QString m_boardNote;
+    /// Result notes stay on the phrase after File Explorer closes.
+    bool m_boardNoteKeep = false;
+    mutable QStringList m_browserEntries;
+    mutable bool m_browserFresh = false;
+    /// First tile index. Snapped to a whole row.
+    int m_fileOffset = 0;
+    FileConfirm m_fileConfirm = FileConfirm::None;
+    /// Speak layers under File Explorer. Restored when it closes.
+    QVector<int> m_fileRestoreLayers;
+    QStringList m_fileBack;
+    QStringList m_fileForward;
+    /// Export name. The Speak keyboard types into this while File Explorer is on top.
+    ComposeBuffer m_fileName;
     int m_historyPage = 0;
     bool m_styleEditor = false;
     /// Keyboard capture for a new style name. Leaves Interaction::NameEdit alone.
@@ -234,7 +293,7 @@ private:
     int m_stylePage = 0;
     /// Styles shown on one editor page: 2 rows × 3 columns.
     static constexpr int kStyleEditorPage = 6;
-    enum class ListScroll { None, History, Voices };
+    enum class ListScroll { None, History, Voices, Files };
     ListScroll m_listScroll = ListScroll::None;
     mutable PageDocument m_composeAuthored;
     struct ShownPrediction {

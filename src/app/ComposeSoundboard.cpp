@@ -10,20 +10,18 @@
 #include "layout/PageSession.h"
 #include "layout/PageTypes.h"
 #include "ui/Theme.h"
+#include "utils/Log.h"
 
 #include <QColor>
-#include <QDate>
-#include <QDir>
-#include <QFile>
-#include <QFileDialog>
 #include <QFileInfo>
 #include <QJsonDocument>
+#include <QJsonObject>
 #include <QRegularExpression>
-#include <QStandardPaths>
 #include <QVector>
 
 namespace gazer {
 
+using SettingsPageBuild::cell;
 using compose_detail::ChoiceSlot;
 using compose_detail::commandAction;
 using compose_detail::fillChoiceGrid;
@@ -364,101 +362,23 @@ bool ComposeUi::loadStarters(QString* error)
     return true;
 }
 
-bool ComposeUi::exportBoard(QString* error)
+void ComposeUi::setBoardNote(const QString& text, bool keep)
 {
-    if (capturingPhrase()) {
-        const QString msg = QStringLiteral("Finish the name first");
-        notify(msg);
-        if (error) {
-            *error = msg;
-        }
-        return false;
-    }
-    const QString dir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
-    const QString suggested = QDir(dir).filePath(
-        QStringLiteral("aac-workspace-%1.json").arg(QDate::currentDate().toString(Qt::ISODate)));
-    const QString path = QFileDialog::getSaveFileName(
-        nullptr, QStringLiteral("Export boards"), suggested, QStringLiteral("JSON (*.json)"));
-    if (path.isEmpty()) {
-        return true;
-    }
-    SoundboardStore::WorkspaceExportSettings settings;
-    settings.model = m_settings.speechModel;
-    settings.speed = m_settings.speechSpeed;
-    settings.pitch = m_settings.speechPitch;
-    settings.volumeStop = qBound(1, qRound(m_settings.speechVolume), 5);
-    settings.theme = themeAppearanceIsDark(m_settings.themeAppearance) ? QStringLiteral("dark")
-                                                                        : QStringLiteral("light");
-    settings.accentColor = m_settings.customPrimaryColor;
-    bool omitted = false;
-    const QByteArray bytes = m_board.exportWorkspace(settings, &omitted);
-    QFile file(path);
-    if (!file.open(QIODevice::WriteOnly) || file.write(bytes) != bytes.size()) {
-        const QString msg = QStringLiteral("Could not write the export");
-        notify(msg);
-        if (error) {
-            *error = msg;
-        }
-        return false;
-    }
-    notify(omitted ? QStringLiteral(
-                         "Audio clips omitted (file too large); phrases export as live text.")
-                   : QStringLiteral("Boards exported"));
-    return true;
+    m_boardNote = text;
+    m_boardNoteKeep = keep && !text.isEmpty();
+    notify(text);
 }
 
-bool ComposeUi::importChoose(QString* error)
+void ComposeUi::dismissBoardNote()
 {
-    if (capturingPhrase()) {
-        const QString msg = QStringLiteral("Finish the name first");
-        notify(msg);
-        if (error) {
-            *error = msg;
-        }
-        return false;
-    }
-    const QString dir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
-    const QString path = QFileDialog::getOpenFileName(
-        nullptr, QStringLiteral("Import boards"), dir, QStringLiteral("JSON (*.json)"));
-    if (path.isEmpty()) {
-        return true;
-    }
-    QFile file(path);
-    if (!file.open(QIODevice::ReadOnly)) {
-        const QString msg = QStringLiteral("Could not read the file");
-        notify(msg);
-        if (error) {
-            *error = msg;
-        }
-        return false;
-    }
-    QJsonParseError parseError;
-    const QJsonDocument json = QJsonDocument::fromJson(file.readAll(), &parseError);
-    if (parseError.error != QJsonParseError::NoError || !json.isObject()) {
-        m_pendingImport.clear();
-        m_pendingImportName.clear();
-        const QString msg = QStringLiteral("Invalid file");
-        notify(msg);
-        if (error) {
-            *error = msg;
-        }
-        refresh();
-        return false;
-    }
-    m_pendingImport = json.toJson(QJsonDocument::Compact);
-    m_pendingImportName = QFileInfo(path).fileName();
+    m_boardNote.clear();
+    m_boardNoteKeep = false;
+}
+
+void ComposeUi::commitEdit()
+{
+    dismissBoardNote();
     refresh();
-    return true;
-}
-
-bool ComposeUi::importMerge(QString* error)
-{
-    return importPending(false, error);
-}
-
-bool ComposeUi::importReplace(QString* error)
-{
-    return importPending(true, error);
 }
 
 bool ComposeUi::importPending(bool replace, QString* error)
@@ -472,11 +392,12 @@ bool ComposeUi::importPending(bool replace, QString* error)
         return false;
     }
     if (m_pendingImport.isEmpty()) {
-        const QString msg = QStringLiteral("Choose a file");
-        notify(msg);
+        const QString msg = QStringLiteral("Dwell a JSON file first");
+        setBoardNote(msg);
         if (error) {
             *error = msg;
         }
+        refresh();
         return false;
     }
     QJsonParseError parseError;
@@ -484,8 +405,9 @@ bool ComposeUi::importPending(bool replace, QString* error)
     if (parseError.error != QJsonParseError::NoError || !json.isObject()) {
         m_pendingImport.clear();
         m_pendingImportName.clear();
+        m_pendingImportPath.clear();
         const QString msg = QStringLiteral("Invalid file");
-        notify(msg);
+        setBoardNote(msg);
         if (error) {
             *error = msg;
         }
@@ -501,26 +423,28 @@ bool ComposeUi::importPending(bool replace, QString* error)
                                          : SoundboardStore::WorkspaceMode::Merge,
                                  &imported, &err)) {
         const QString msg = err.isEmpty() ? QStringLiteral("Import failed") : err;
-        notify(msg);
+        setBoardNote(msg);
         if (error) {
             *error = msg;
         }
+        refresh();
         return false;
     }
     if (!m_board.save(&err)) {
         m_board.restoreTopics(backupTopics, backupActive);
         m_board.evictUnreferencedClips();
         const QString msg = QStringLiteral("Could not save boards");
-        notify(msg);
+        setBoardNote(msg);
         if (error) {
             *error = msg;
         }
+        refresh();
         return false;
     }
     if (replace) {
         applyImportedSpeech(imported);
     }
-    notify(replace ? QStringLiteral("Boards replaced") : QStringLiteral("Boards merged"));
+    setBoardNote(replace ? QStringLiteral("Boards replaced") : QStringLiteral("Boards merged"), true);
     rebuildBoard();
     return true;
 }

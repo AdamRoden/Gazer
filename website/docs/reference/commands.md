@@ -158,8 +158,13 @@ XML `mouseMoveByDirection` is the compass form of the nudge commands.
 | `compose.favStyle.<name>` / `compose.trashStyle.<name>` | Star or remove a style. Trashing the standing style clears it. |
 | `compose.stylePage.<n>` | Move the style editor by `n` pages. |
 | `compose.beginStyleName` | Type a new style on the keyboard. Save adds it, already starred. |
-| `compose.exportBoard` | Save the soundboard as a Voice `aac-workspace` v1 file. |
-| `compose.importChoose` / `compose.importMerge` / `compose.importReplace` | Pick a workspace file, then merge or replace. Replace also applies model, speed, pitch, and volume. |
+| `compose.openFiles` / `compose.exportBoard` / `compose.importChoose` | Open File Explorer over Speak and show the keyboard layer so the file name can be typed. Closing returns to the layer that was showing. |
+| `compose.browserPrev` / `compose.browserForward` / `compose.browserUp` | Back, forward, or the parent folder. A path chip runs `compose.browserGoto.<i>`. |
+| `compose.browserSave` | **Export**. Asks Yes/No, then writes an `aac-workspace` v1 file using the name in the text box. |
+| `compose.browserBack` | Close File Explorer. |
+| `compose.importPick.<i>` / `compose.importPage.<n>` | Open folder `i` or select that JSON file (no read yet), or move the tile window by `n` pages. |
+| `compose.fileYes` / `compose.fileNo` | Accept or dismiss the File Explorer confirm. Yes is the only step that reads or writes the file. |
+| `compose.importMerge` / `compose.importReplace` | **Merge**, or **Import** (replace the board and apply model, speed, pitch, and volume). Each asks Yes/No before reading the file. |
 | `compose.saveName` / `compose.cancelName` / `compose.deleteName` | Item editor: save, discard, or delete and return. |
 | `compose.editShowColors` / `compose.editShowIcons` | Color chips vs icons on the editor. |
 | `compose.editColor.<i>` / `compose.editIcon.<i>` | Set color or icon. |
@@ -182,7 +187,7 @@ XML `mouseMoveByDirection` is the compass form of the nudge commands.
 | `speech.lang.all` / `speech.lang.set.<code>` | Language filter. |
 | `speech.speed.dec` / `.inc` | Nudge `speechSpeed` by 0.1. |
 | `speech.volume.dec` / `.inc` | Nudge `speechVolume` by 0.5 (1–5× clip boost). The voice list uses these. |
-| `volume.dec` / `.inc` | Nudge Windows master volume by 10% on any page. `compose.volume.dec` / `.inc` are the same commands. A slider with `caption="volume"` shows that percent. On Speak, Actions → Volume waits 2 seconds, then the level eases toward where you look at about 20 percent per second. Other sliders follow gaze once their `scanGrace` ends (the Dwell setting when the cell does not set one). |
+| `volume.dec` / `.inc` | Nudge Windows master volume by 10% on any page. `compose.volume.dec` / `.inc` are the same commands. A slider with `caption="volume"` shows that percent. On Speak, the Actions bottom row is **−**, the slider, and **+**. The slider waits 2 seconds, then the level eases toward where you look at about 20 percent per second. Other sliders follow gaze once their `scanGrace` ends (the Dwell setting when the cell does not set one). |
 
 While `compose` (or a compose live board) is the source page, `Send` and mapping keys are captured into the phrase. See [Actions — Composer capture](actions.md#composer-capture).
 

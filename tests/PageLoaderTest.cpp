@@ -781,7 +781,7 @@ void PageLoaderTest::loadComposePage()
     QCOMPARE(doc.findGrid(QStringLiteral("keys"))->columns, 120);
     QCOMPARE(doc.findGrid(QStringLiteral("keys"))->cells.size(), 36);
     QCOMPARE(doc.findGrid(QStringLiteral("board"))->layers,
-             (QVector<int>{1, 2, 3, 4, 5, 6, 7, 8}));
+             (QVector<int>{1, 2, 3, 4, 5, 6}));
     QCOMPARE(doc.findGrid(QStringLiteral("keys"))->layers, QVector<int>({1}));
     QCOMPARE(doc.findGrid(QStringLiteral("keys_shift"))->layers, QVector<int>({2}));
     QCOMPARE(doc.findGrid(QStringLiteral("keys_sym"))->layers, QVector<int>({3}));
@@ -797,28 +797,53 @@ void PageLoaderTest::loadComposePage()
     QVERIFY(!doc.findCell(QStringLiteral("vol_speech")));
     QVERIFY(!doc.findCell(QStringLiteral("vol_speech_down")));
     QVERIFY(!doc.findCell(QStringLiteral("vol_val")));
-    const PageGrid* keysVol = doc.findGrid(QStringLiteral("keys_vol"));
-    QVERIFY(keysVol);
-    bool trackOnVol = false;
-    for (const PageCell& c : keysVol->cells) {
+    QVERIFY(!doc.findGrid(QStringLiteral("keys_vol")));
+    QVERIFY(!doc.findGrid(QStringLiteral("keys_import")));
+    QVERIFY(!doc.findCell(QStringLiteral("vol_back")));
+    QVERIFY(!doc.findCell(QStringLiteral("cmd_clear")));
+    QVERIFY(!doc.findCell(QStringLiteral("cmd_volume")));
+    QVERIFY(!doc.findCell(QStringLiteral("cmd_import")));
+    QVERIFY(!doc.findCell(QStringLiteral("cmd_export")));
+    const PageGrid* keysCmd = doc.findGrid(QStringLiteral("keys_cmd"));
+    QVERIFY(keysCmd);
+    bool trackOnCmd = false;
+    for (const PageCell& c : keysCmd->cells) {
         if (c.id == QLatin1String("vol_track")) {
-            trackOnVol = true;
+            trackOnCmd = true;
         }
     }
-    QVERIFY(trackOnVol);
+    QVERIFY(trackOnCmd);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_pin"))->row, 0);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_pin"))->col, 0);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_select"))->row, 0);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_select"))->col, 1);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_cut"))->col, 2);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_copy"))->col, 3);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_paste"))->col, 4);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_keys"))->row, 2);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_keys"))->col, 0);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_keys"))->actions[0].type, PageActionType::ShowLayers);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_keys"))->actions[0].layers, QVector<int>({1}));
     QVERIFY(doc.findCell(QStringLiteral("vol_down")));
+    QCOMPARE(doc.findCell(QStringLiteral("vol_down"))->row, 2);
+    QCOMPARE(doc.findCell(QStringLiteral("vol_down"))->col, 1);
     QCOMPARE(doc.findCell(QStringLiteral("vol_down"))->actions[0].command,
              QStringLiteral("volume.dec"));
     QVERIFY(doc.findCell(QStringLiteral("vol_track")));
+    QCOMPARE(doc.findCell(QStringLiteral("vol_track"))->row, 2);
+    QCOMPARE(doc.findCell(QStringLiteral("vol_track"))->col, 2);
     QCOMPARE(doc.findCell(QStringLiteral("vol_track"))->role, QStringLiteral("slider"));
     QCOMPARE(doc.findCell(QStringLiteral("vol_track"))->caption, QStringLiteral("volume"));
     QVERIFY(!doc.findCell(QStringLiteral("vol_track"))->isInteractive());
     QCOMPARE(doc.findCell(QStringLiteral("vol_track"))->dwell.scanGrace.value_or(-1), 2000);
     QVERIFY(doc.findCell(QStringLiteral("vol_up")));
+    QCOMPARE(doc.findCell(QStringLiteral("vol_up"))->col, 3);
     QCOMPARE(doc.findCell(QStringLiteral("vol_up"))->actions[0].command,
              QStringLiteral("volume.inc"));
-    QCOMPARE(doc.findCell(QStringLiteral("vol_back"))->actions[0].type, PageActionType::ShowLayers);
-    QCOMPARE(doc.findCell(QStringLiteral("vol_back"))->actions[0].layers, QVector<int>({5}));
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_files"))->row, 2);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_files"))->col, 4);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_files"))->actions[0].command,
+             QStringLiteral("compose.openFiles"));
     QVERIFY(!doc.findCell(QStringLiteral("topic_new")));
     QVERIFY(!doc.findCell(QStringLiteral("delword")));
     QVERIFY(!doc.findGrid(QStringLiteral("actions")));
@@ -846,7 +871,7 @@ void PageLoaderTest::loadComposePage()
     QVERIFY(!doc.findCell(QStringLiteral("voices")));
     QVERIFY(!doc.findCell(QStringLiteral("history")));
     QCOMPARE(doc.findGrid(QStringLiteral("phrase"))->col, 1);
-    const QVector<int> allLayers{1, 2, 3, 4, 5, 6, 7, 8};
+    const QVector<int> allLayers{1, 2, 3, 4, 5, 6};
     QCOMPARE(doc.findGrid(QStringLiteral("compose"))->layers, allLayers);
     QCOMPARE(doc.findGrid(QStringLiteral("edit_keys"))->layers, allLayers);
     QCOMPARE(doc.findGrid(QStringLiteral("phrase"))->layers, allLayers);
@@ -885,14 +910,10 @@ void PageLoaderTest::loadComposePage()
     QCOMPARE(doc.findCell(QStringLiteral("cmd_style"))->actions[0].type, PageActionType::ShowLayers);
     QCOMPARE(doc.findCell(QStringLiteral("cmd_style"))->actions[0].layers, QVector<int>({6}));
     QCOMPARE(doc.findGrid(QStringLiteral("keys_style"))->layers, QVector<int>({6}));
-    QCOMPARE(doc.findGrid(QStringLiteral("keys_vol"))->layers, QVector<int>({7}));
-    QCOMPARE(doc.findGrid(QStringLiteral("keys_import"))->layers, QVector<int>({8}));
-    QCOMPARE(doc.findCell(QStringLiteral("cmd_export"))->actions[0].command,
-             QStringLiteral("compose.exportBoard"));
     QVERIFY(!doc.findCell(QStringLiteral("tags")));
     QCOMPARE(doc.findCell(QStringLiteral("sym"))->icon, QStringLiteral("numbers"));
     for (const char* gid : {"keys", "keys_shift", "keys_sym", "keys_sym_shift", "keys_cmd",
-                            "keys_style", "keys_vol", "keys_import", "edit_keys", "speak_keys"}) {
+                            "keys_style", "edit_keys", "speak_keys"}) {
         const PageGrid* g = doc.findGrid(QLatin1String(gid));
         QVERIFY2(g, gid);
         for (const PageCell& c : g->cells) {
