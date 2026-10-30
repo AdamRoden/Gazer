@@ -425,7 +425,7 @@ AHK should `Run` that `--action` line (the pipe is Qt duplex; `FileOpen` write-o
 
 ### Composer capture
 
-While `compose` is top, or the action’s source page is `compose` or a compose live board (`compose_voices_live`, `compose_history_live`, `compose_files_live`, `compose_item_edit_live`), `Send` and mapping/modifier commands never inject into the OS. Letters go into the internal phrase, or into the File Explorer file name when that page is on top. `backspace` / `space` / `enter` edit or speak. `escape` stops speech, dismisses a File Explorer Yes/No, or closes that page. `leftShift` / `Ctrl` / `tab` / arrows are no-ops. `qwerty_main` is unchanged. `compose.*` and `settings.speech.*` still run as builtins.
+While `compose` is top, or the action’s source page is `compose` or a compose live board (`compose_voices_live`, `compose_history_live`, `compose_files_live`, `compose_item_edit_live`), `Send` and mapping/modifier commands never inject into the OS. Letters go into the internal phrase, or into the File Explorer file name when that page is on top. `backspace` / `space` / `enter` edit or speak. `escape` stops speech, dismisses a File Explorer Yes/No, or closes that page. `leftShift` / `Ctrl` / `tab` / arrows are no-ops. `qwerty_main` is unchanged. `qwerty_file` is that same OS keyboard, shown with the Windows open or save dialog. `compose.*` and `settings.speech.*` still run as builtins.
 
 ---
 

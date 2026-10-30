@@ -226,22 +226,24 @@
       <Cell id="period_ss" row="2" col="100" colSpan="9" label="!" textStyle="key" send="!"/>
       <Cell id="enter_ss" row="2" col="109" colSpan="11" icon="keyReturn" background="accent" command="enter"/>
     </SubGrid>
-    <SubGrid id="keys_cmd" row="3" col="0" rows="3" columns="5" gap="4" margin="4" layers="5">
+    <SubGrid id="keys_cmd" row="3" col="0" rows="3" columns="6" gap="4" margin="4" layers="5">
       <Cell id="cmd_pin" row="0" col="0" icon="pushPin" label="Pin" command="compose.pin" activeState="compose.assignMode"/>
       <Cell id="cmd_select" row="0" col="1" label="Select all" command="compose.selectAll"/>
       <Cell id="cmd_cut" row="0" col="2" label="Cut" command="compose.cut"/>
       <Cell id="cmd_copy" row="0" col="3" label="Copy" command="compose.copy"/>
       <Cell id="cmd_paste" row="0" col="4" label="Paste" command="compose.paste"/>
+      <Cell id="cmd_import" row="0" col="5" icon="folder" label="Import" command="compose.importFile"/>
       <Cell id="cmd_undo" row="1" col="0" icon="undo" label="Undo" command="compose.undo"/>
       <Cell id="cmd_redo" row="1" col="1" icon="redo" label="Redo" command="compose.redo"/>
       <Cell id="cmd_history" row="1" col="2" icon="history" label="History" command="compose.openHistory"/>
       <Cell id="cmd_voice" row="1" col="3" icon="recordVoiceOver" label="Voice" command="compose.openVoices"/>
       <Cell id="cmd_style" row="1" col="4" label="Style" showLayers="6" activeState="compose.styleOn"/>
+      <Cell id="cmd_export" row="1" col="5" icon="description" label="Export" command="compose.exportFile"/>
       <Cell id="cmd_keys" row="2" col="0" icon="keyboardKeys" label="ABC" background="accent" showLayers="1"/>
       <Cell id="vol_down" row="2" col="1" label="−" command="volume.dec"/>
       <Cell id="vol_track" row="2" col="2" role="slider" caption="volume" label="50%" scanGrace="2000"/>
       <Cell id="vol_up" row="2" col="3" label="+" command="volume.inc"/>
-      <Cell id="cmd_files" row="2" col="4" icon="folder" label="File Explorer" command="compose.openFiles"/>
+      <Cell id="cmd_files" row="2" col="4" colSpan="2" icon="folder" label="File Explorer" command="compose.openFiles"/>
     </SubGrid>
     <SubGrid id="keys_style" row="3" col="0" rows="3" columns="5" gap="4" margin="4" layers="6">
       <Cell id="style_placeholder" row="0" col="0" role="label"/>

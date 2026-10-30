@@ -51,6 +51,14 @@ public:
     void setLayoutsDirectory(const QString& dir) { m_layoutsDir = dir; }
     void setCatalog(PageCatalog* catalog) { m_catalog = catalog; }
     [[nodiscard]] bool openPage(const QString& id, QString* error = nullptr);
+    /// Remember every open page, then show the root as it is plus @p pageId.
+    /// Other boards stay in the session so listeners still see them as open, but
+    /// they are not painted and do not reserve host space. The root keeps its
+    /// current layers and stays hittable. `endExclusivePage` puts the saved
+    /// documents back, which closes @p pageId when it was not already open.
+    [[nodiscard]] bool beginExclusivePage(const QString& pageId, QString* error = nullptr);
+    void endExclusivePage();
+    [[nodiscard]] bool exclusivePageActive() const { return m_exclusiveActive; }
     /// Put the attached page's center on @p screenCenter. Size stays as authored.
     /// @p leaveGate: do not activate the cell under gaze until gaze leaves it.
     [[nodiscard]] bool placeAttachedCenter(const QString& id, const QPoint& screenCenter,
@@ -234,6 +242,9 @@ private:
 
     PageDocument m_root;
     QVector<PageBreadcrumb> m_crumbs;
+    bool m_exclusiveActive = false;
+    QString m_exclusivePageId;
+    PageBreadcrumb m_exclusiveSnap;
     QString m_layoutsDir;
     QHash<QString, PageDocument> m_memory;
     QHash<QString, PageDocument> m_hosted;

@@ -125,9 +125,17 @@ public:
     void clearEditedIcon();
     bool exportBoard(QString* error = nullptr);
     bool importChoose(QString* error = nullptr);
+    /// Requests the Windows open dialog. False only when a name capture must
+    /// finish first. True means the dialog was requested, not that a file was
+    /// imported. A later failure shows on the board note.
+    bool importFromDialog(QString* error = nullptr);
+    /// Requests the Windows save dialog. Same contract as `importFromDialog`.
+    bool exportToDialog(QString* error = nullptr);
     bool openFiles(QString* error = nullptr);
     bool pickImportFile(int index, QString* error = nullptr);
     void pageImportFiles(int delta);
+    /// Move the File Explorer tile window by `rows`. One row is one tile row.
+    void scrollFileRows(int rows);
     bool browserUp(QString* error = nullptr);
     bool browserPrev(QString* error = nullptr);
     bool browserForward(QString* error = nullptr);
@@ -196,6 +204,8 @@ private:
     bool armFileConfirm(FileConfirm kind, QString* error);
     bool requestFileImport(bool replace, QString* error);
     bool writeExport(QString* error);
+    bool writeWorkspaceFile(const QString& path, QString* error);
+    bool loadPendingFile(const QString& path, QString* error);
     bool readSelectedWorkspace(QString* error);
     void restoreFileLayers();
     [[nodiscard]] QString selectedJsonPath() const;

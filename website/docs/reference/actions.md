@@ -435,7 +435,7 @@ While the action’s **source page** is `compose`, `compose_voices_live`, `compo
 | `leftShift`, `tab`, arrows, other mapping keys | Consumed, no OS inject. |
 | `compose.*` / `speech.*` / `soundboard.*` / `history.*` / `settings.speech.*` / `volume.dec` / `volume.inc` / dwell suspend commands | Run as builtins (not captured). |
 
-`qwerty_main` (and any other non-compose page) still injects into Windows even if composer is open underneath. Caps on the composer keyboard is XML `ShowLayers`, not OS Shift.
+`qwerty_main` (and any other non-compose page, including `qwerty_file` beside a Windows file dialog) still injects into Windows even if composer is open underneath. Caps on the composer keyboard is XML `ShowLayers`, not OS Shift.
 
 ---
 

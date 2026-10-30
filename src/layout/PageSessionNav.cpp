@@ -29,6 +29,63 @@ PageSession::PageBreadcrumb PageSession::captureBreadcrumb() const
     return b;
 }
 
+bool PageSession::beginExclusivePage(const QString& pageId, QString* error)
+{
+    if (pageId.isEmpty()) {
+        if (error) {
+            *error = QStringLiteral("No page");
+        }
+        return false;
+    }
+    if (m_exclusiveActive) {
+        if (error) {
+            *error = QStringLiteral("An exclusive page is already open");
+        }
+        return false;
+    }
+    if (!hasRoot()) {
+        if (error) {
+            *error = QStringLiteral("No root page");
+        }
+        return false;
+    }
+
+    PageBreadcrumb snap = captureBreadcrumb();
+    m_exclusiveActive = true;
+    m_exclusivePageId = pageId;
+    m_exclusiveSnap = snap;
+    // The root stays on screen. Stop loops only on the boards this hold hides.
+    if (m_loopStopPage) {
+        for (const AttachedPage& a : m_attached) {
+            if (a.doc.id.isEmpty() || a.doc.id == pageId) {
+                continue;
+            }
+            m_loopStopPage(a.doc.id);
+        }
+    }
+    resetDrawerAnim();
+    if (!openPage(pageId, error)) {
+        m_exclusiveActive = false;
+        m_exclusivePageId.clear();
+        m_exclusiveSnap = {};
+        restoreBreadcrumb(std::move(snap));
+        return false;
+    }
+    return true;
+}
+
+void PageSession::endExclusivePage()
+{
+    if (!m_exclusiveActive) {
+        return;
+    }
+    PageBreadcrumb snap = std::move(m_exclusiveSnap);
+    m_exclusiveActive = false;
+    m_exclusivePageId.clear();
+    m_exclusiveSnap = {};
+    restoreBreadcrumb(std::move(snap));
+}
+
 void PageSession::restoreBreadcrumb(PageBreadcrumb snap)
 {
     QSet<QString> keep;

@@ -10,6 +10,7 @@
 #include <QHash>
 #include <QImage>
 #include <QRectF>
+#include <QRegion>
 #include <QQuickWindow>
 #include <QSet>
 #include <QString>
@@ -50,6 +51,9 @@ public:
     void setInputFocusEnabled(bool on);
     void showHost();
     void raiseHost();
+    /// While set, the HWND is the painted pieces, not their bounding rectangle.
+    /// The empty corner is then not part of this window. `commit` applies it.
+    void setPieceClip(bool on);
 
     [[nodiscard]] QString mouseHit(const QPointF& global) const;
     [[nodiscard]] const QVector<PageTarget>& targets() const { return m_targets; }
@@ -69,6 +73,7 @@ private:
     void syncBoardSize();
     void syncGlass();
     void fitToChrome();
+    void applyPieceClip();
     void applyChrome();
     void applyInputFocusChrome();
     void cacheDrawerXf();
@@ -105,6 +110,8 @@ private:
     QRectF m_flashRect;
     PageBox m_flashRadii;
     QPoint m_origin;
+    bool m_pieceClip = false;
+    QRegion m_appliedClip;
     BoardPaint::Live m_live;
     bool m_inputFocus = false;
     friend class PageHostItem;

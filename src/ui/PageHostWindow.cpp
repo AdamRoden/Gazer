@@ -349,12 +349,65 @@ void PageHostWindow::fitToChrome()
             geo.setHeight(1);
         }
     }
-    if (geo.topLeft() == m_origin && geo.size() == size()) {
+    if (geo.topLeft() != m_origin || geo.size() != size()) {
+        m_origin = geo.topLeft();
+        setGeometry(geo);
+        syncBoardSize();
+    }
+    applyPieceClip();
+}
+
+void PageHostWindow::setPieceClip(bool on)
+{
+    m_pieceClip = on;
+}
+
+void PageHostWindow::applyPieceClip()
+{
+    // The host rectangle is the bounding box of an L-shaped board. The region
+    // is the painted pieces, so the empty corner is not this HWND.
+    if (!m_pieceClip) {
+        if (m_appliedClip.isEmpty()) {
+            return;
+        }
+        m_appliedClip = {};
+        setMask(QRegion());
         return;
     }
-    m_origin = geo.topLeft();
-    setGeometry(geo);
-    syncBoardSize();
+    const int pad = qMax(8, qCeil(m_blurMax * 2.0));
+    QRegion region;
+    auto add = [&](const QRectF& global) {
+        if (global.isEmpty()) {
+            return;
+        }
+        const QRect local =
+            global.toAlignedRect().adjusted(-pad, -pad, pad, pad).translated(-m_origin);
+        if (local.width() < 1 || local.height() < 1) {
+            return;
+        }
+        region += local;
+    };
+    for (const PageGridPaint& g : m_gridPaints) {
+        add(g.visual);
+    }
+    for (const PageTarget& t : m_targets) {
+        add(t.geom.contentOnScreen());
+        if (t.geom.hidesUntilProgress()) {
+            add(t.geom.progressZone);
+        }
+    }
+    if (region.isEmpty()) {
+        if (!m_appliedClip.isEmpty()) {
+            m_appliedClip = {};
+            setMask(QRegion());
+        }
+        return;
+    }
+    if (region == m_appliedClip) {
+        return;
+    }
+    m_appliedClip = region;
+    setMask(region);
 }
 
 void PageHostWindow::commit(QVector<PageTarget> targets, QVector<PageGridPaint> grids,

@@ -87,6 +87,10 @@ void registerComposeCommands(CommandRegistry& commands, ComposeUi& compose)
                              [&compose](QString* error) { return compose.importMerge(error); });
     commands.registerBuiltin(QStringLiteral("compose.importReplace"),
                              [&compose](QString* error) { return compose.importReplace(error); });
+    commands.registerBuiltin(QStringLiteral("compose.importFile"),
+                             [&compose](QString* error) { return compose.importFromDialog(error); });
+    commands.registerBuiltin(QStringLiteral("compose.exportFile"),
+                             [&compose](QString* error) { return compose.exportToDialog(error); });
     commands.registerBuiltin(QStringLiteral("compose.saveName"),
                              [&compose](QString* error) { return compose.saveNameEdit(error); });
     commands.registerBuiltin(QStringLiteral("compose.cancelName"), [&compose](QString*) {
@@ -191,6 +195,7 @@ void registerComposeCommands(CommandRegistry& commands, ComposeUi& compose)
     bindVoidInt(QStringLiteral("compose.pageChips."), &ComposeUi::pageChips);
     bindInt(QStringLiteral("compose.importPick."), &ComposeUi::pickImportFile);
     bindVoidInt(QStringLiteral("compose.importPage."), &ComposeUi::pageImportFiles);
+    bindVoidInt(QStringLiteral("compose.fileRow."), &ComposeUi::scrollFileRows);
     bindInt(QStringLiteral("compose.browserGoto."), &ComposeUi::browserGoto);
     bindVoidInt(QStringLiteral("compose.removeWord."), &ComposeUi::removeVisibleWord);
     bindVoidInt(QStringLiteral("compose.acceptPrediction."), &ComposeUi::acceptPrediction);

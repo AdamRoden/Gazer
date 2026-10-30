@@ -9,7 +9,6 @@
 #include "layout/PageTypes.h"
 #include "ui/ScrollBar.h"
 #include "ui/Theme.h"
-#include "utils/Log.h"
 
 #include <QColor>
 #include <QDateTime>
@@ -166,11 +165,29 @@ QVector<PathChip> pathChips(const QString& dir)
     return chips;
 }
 
-int alignFileOffset(int offset, int count)
+// Nearest row start. The short last row is a stop, and a tie keeps it.
+int nearestFileOffset(int offset, int count)
 {
     const int maxOff = qMax(0, count - kTileCount);
     offset = qBound(0, offset, maxOff);
-    offset -= offset % kTileCols;
+    const int down = offset - offset % kTileCols;
+    const int up = qMin(maxOff, down == offset ? down : down + kTileCols);
+    return offset - down < up - offset ? down : up;
+}
+
+int stepFileOffset(int offset, int rows, int count)
+{
+    const int maxOff = qMax(0, count - kTileCount);
+    offset = qBound(0, offset, maxOff);
+    while (rows > 0 && offset < maxOff) {
+        offset = qMin(maxOff, offset - offset % kTileCols + kTileCols);
+        --rows;
+    }
+    while (rows < 0 && offset > 0) {
+        const int rem = offset % kTileCols;
+        offset -= rem == 0 ? kTileCols : rem;
+        ++rows;
+    }
     return offset;
 }
 
@@ -548,35 +565,7 @@ bool ComposeUi::writeExport(QString* error)
     if (name.isEmpty()) {
         return fail(why.isEmpty() ? QStringLiteral("Type a file name") : why);
     }
-    if (!QDir().mkpath(m_browserDir)) {
-        return fail(QStringLiteral("Could not use that folder"));
-    }
-    const QString path = QDir(m_browserDir).filePath(name);
-    SoundboardStore::WorkspaceExportSettings settings;
-    settings.model = m_settings.speechModel;
-    settings.speed = m_settings.speechSpeed;
-    settings.pitch = m_settings.speechPitch;
-    settings.volumeStop = qBound(1, qRound(m_settings.speechVolume), 5);
-    settings.theme = themeAppearanceIsDark(m_settings.themeAppearance) ? QStringLiteral("dark")
-                                                                        : QStringLiteral("light");
-    settings.accentColor = m_settings.customPrimaryColor;
-    bool omitted = false;
-    const QByteArray bytes = m_board.exportWorkspace(settings, &omitted);
-    QFile file(path);
-    if (!file.open(QIODevice::WriteOnly) || file.write(bytes) != bytes.size()) {
-        return fail(QStringLiteral("Could not write the export"));
-    }
-    file.close();
-    m_fileName.load(name);
-    m_browserFresh = false;
-    const QString msg = omitted ? QStringLiteral("Saved %1 without audio").arg(path)
-                                : QStringLiteral("Saved %1").arg(path);
-    setBoardNote(msg, true);
-    GAZER_INFO << "Exported workspace" << path;
-    if (hasLive(kFilesLiveId)) {
-        rebuildFiles();
-    }
-    return true;
+    return writeWorkspaceFile(QDir(m_browserDir).filePath(name), error);
 }
 
 void ComposeUi::browserBack()
@@ -639,7 +628,23 @@ void ComposeUi::pageImportFiles(int delta)
         return;
     }
     ensureBrowserEntries();
-    m_fileOffset = alignFileOffset(m_fileOffset + delta * kTileCount, m_browserEntries.size());
+    const int maxOff = qMax(0, m_browserEntries.size() - kTileCount);
+    int offset = qBound(0, m_fileOffset + delta * kTileCount, maxOff);
+    m_fileOffset = offset == maxOff ? offset : offset - offset % kTileCols;
+    rebuildFiles();
+}
+
+void ComposeUi::scrollFileRows(int rows)
+{
+    if (rows == 0 || !hasLive(kFilesLiveId)) {
+        return;
+    }
+    ensureBrowserEntries();
+    const int next = stepFileOffset(m_fileOffset, rows, m_browserEntries.size());
+    if (next == m_fileOffset) {
+        return;
+    }
+    m_fileOffset = next;
     rebuildFiles();
 }
 
@@ -649,7 +654,7 @@ void ComposeUi::filesGoto(int offset)
         return;
     }
     ensureBrowserEntries();
-    const int next = alignFileOffset(offset, m_browserEntries.size());
+    const int next = nearestFileOffset(offset, m_browserEntries.size());
     if (next == m_fileOffset) {
         return;
     }
@@ -663,7 +668,7 @@ void ComposeUi::rebuildFiles()
         return;
     }
     ensureBrowserEntries();
-    m_fileOffset = alignFileOffset(m_fileOffset, m_browserEntries.size());
+    m_fileOffset = nearestFileOffset(m_fileOffset, m_browserEntries.size());
     QString err;
     (void)presentLive(QString(kFilesLiveId), buildFilesDocument(), &err);
 }
@@ -768,24 +773,35 @@ PageDocument ComposeUi::buildFilesDocument() const
     }
     mid.subGrids.push_back(std::move(tiles));
 
+    const int maxOff = qMax(0, m_browserEntries.size() - kTileCount);
+    auto rowButton = [&](const char* id, int row, int dir, const char* icon) {
+        const bool on = dir < 0 ? m_fileOffset > 0 : m_fileOffset < maxOff;
+        return cell(QString::fromLatin1(id), {}, row, 0,
+                    on ? QStringLiteral("compose.fileRow.%1").arg(dir) : QString(), surface, 1,
+                    on ? QString() : QStringLiteral("label"), {}, QString::fromLatin1(icon));
+    };
     PageGrid scroll;
     scroll.id = QStringLiteral("files_scroll");
     scroll.nested = true;
     scroll.row = 0;
     scroll.col = 6;
-    scroll.rows = 1;
+    scroll.rows = 3;
     scroll.columns = 1;
-    scroll.gapPx = 0;
+    scroll.gapPx = 6;
     scroll.marginPx = 4;
+    scroll.rowTracks = {PageTrackSize::fromDim(PageDim::pixels(96)), PageTrackSize::starWeight(),
+                        PageTrackSize::fromDim(PageDim::pixels(96))};
     scroll.style.background = surface;
     scroll.style.thickness = PageBox::all(0);
     scroll.style.radius = PageBox::all(16);
-    PageCell track = cell(QString(kOverlayScrollTrackId), {}, 0, 0, {}, QColor(), 1,
+    scroll.cells.push_back(rowButton("file_row_up", 0, -1, "ArrowUp"));
+    PageCell track = cell(QString(kOverlayScrollTrackId), {}, 1, 0, {}, QColor(), 1,
                           QStringLiteral("scrollbar"));
     track.caption = ScrollBar::formatSpec(m_fileOffset, kTileCount, m_browserEntries.size());
     track.style.thickness = PageBox::all(0);
     track.style.radius = PageBox::all(10);
     scroll.cells.push_back(std::move(track));
+    scroll.cells.push_back(rowButton("file_row_down", 2, 1, "ArrowDown"));
     mid.subGrids.push_back(std::move(scroll));
     grid.subGrids.push_back(std::move(mid));
 
@@ -895,57 +911,43 @@ void ComposeUi::confirmFileNo()
     rebuildFiles();
 }
 
-bool ComposeUi::readSelectedWorkspace(QString* error)
+bool ComposeUi::loadPendingFile(const QString& path, QString* error)
 {
-    const QString path = selectedJsonPath();
-    if (path.isEmpty()) {
-        const QString msg = QStringLiteral("Dwell a JSON file first");
-        setBoardNote(msg);
-        if (error) {
-            *error = msg;
-        }
-        return false;
-    }
-    QFile file(path);
-    if (!file.open(QIODevice::ReadOnly)) {
+    auto fail = [&](const QString& msg) {
         m_pendingImport.clear();
         m_pendingImportName.clear();
         m_pendingImportPath.clear();
-        const QString msg = QStringLiteral("Could not read the file");
         setBoardNote(msg);
         if (error) {
             *error = msg;
         }
         return false;
+    };
+    if (path.isEmpty()) {
+        return fail(QStringLiteral("Dwell a JSON file first"));
+    }
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly)) {
+        return fail(QStringLiteral("Could not read the file"));
     }
     QJsonParseError parseError;
     const QJsonDocument json = QJsonDocument::fromJson(file.readAll(), &parseError);
     if (parseError.error != QJsonParseError::NoError || !json.isObject()) {
-        m_pendingImport.clear();
-        m_pendingImportName.clear();
-        m_pendingImportPath.clear();
-        const QString msg = QStringLiteral("Invalid file");
-        setBoardNote(msg);
-        if (error) {
-            *error = msg;
-        }
-        return false;
+        return fail(QStringLiteral("Invalid file"));
     }
     QString invalid;
     if (!workspaceFileLooksValid(json.object(), &invalid)) {
-        m_pendingImport.clear();
-        m_pendingImportName.clear();
-        m_pendingImportPath.clear();
-        setBoardNote(invalid);
-        if (error) {
-            *error = invalid;
-        }
-        return false;
+        return fail(invalid.isEmpty() ? QStringLiteral("Invalid file") : invalid);
     }
     m_pendingImport = json.toJson(QJsonDocument::Compact);
     m_pendingImportName = QFileInfo(path).fileName();
     m_pendingImportPath = path;
     return true;
+}
+
+bool ComposeUi::readSelectedWorkspace(QString* error)
+{
+    return loadPendingFile(selectedJsonPath(), error);
 }
 
 QString ComposeUi::selectedJsonPath() const

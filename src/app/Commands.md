@@ -127,11 +127,13 @@ When adding a command: register it and add a row here.
 | `compose.stylePage.<n>` | Move the style editor by `n` pages |
 | `compose.beginStyleName` | Type a new style on the keyboard. Save adds it, starred. Cancel returns to the editor |
 | `compose.openFiles` / `compose.exportBoard` / `compose.importChoose` | Open File Explorer over Speak and show the keyboard layer so the file name can be typed. Closing returns to the layer that was showing |
+| `compose.importFile` | **Import**. Saves the open pages, hides the other boards, and leaves the main dock up. Shows the Windows open dialog beside the boards, with `qwerty_file`. Keys type into the dialog. Closing it restores those pages. The chosen JSON file replaces the boards |
+| `compose.exportFile` | **Export**. Same hold, with the Windows save dialog. Writes an `aac-workspace` v1 file |
 | `compose.browserPrev` / `compose.browserForward` / `compose.browserUp` | Back, forward, or parent folder. A path chip uses `compose.browserGoto.<i>` |
 | `compose.browserSave` | **Export**. Asks Yes/No, then writes a Voice `aac-workspace` v1 JSON file under the name in the text box |
 | `compose.fileYes` / `compose.fileNo` | Accept or dismiss that confirm. Yes is the only step that reads or writes the file. Escape is No |
 | `compose.browserBack` | Close File Explorer |
-| `compose.importPick.<i>` / `compose.importPage.<n>` | Open folder `i` or select that JSON file (no read yet), or move the tile window by `n` pages |
+| `compose.importPick.<i>` / `compose.importPage.<n>` / `compose.fileRow.<n>` | Open folder `i` or select that JSON file (no read yet), move the tile window by `n` pages, or move it by `n` rows |
 | `compose.importMerge` / `compose.importReplace` | **Merge** or **Import**. Each asks Yes/No first. Import replaces the board and also applies model, speed, pitch, and volume |
 | `compose.saveName` / `compose.cancelName` / `compose.deleteName` | Save, discard, or delete the item being edited and return to the board |
 | `compose.editShowColors` / `compose.editShowIcons` | Switch the edit overlay between color chips and icons |

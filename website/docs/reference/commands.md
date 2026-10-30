@@ -159,10 +159,12 @@ XML `mouseMoveByDirection` is the compass form of the nudge commands.
 | `compose.stylePage.<n>` | Move the style editor by `n` pages. |
 | `compose.beginStyleName` | Type a new style on the keyboard. Save adds it, already starred. |
 | `compose.openFiles` / `compose.exportBoard` / `compose.importChoose` | Open File Explorer over Speak and show the keyboard layer so the file name can be typed. Closing returns to the layer that was showing. |
+| `compose.importFile` | **Import**. Saves the open pages, hides the other boards, and leaves the main dock up. Shows the Windows open dialog beside the boards, with `qwerty_file`. Keys type into the dialog. Closing it restores those pages. The chosen JSON file replaces the boards. |
+| `compose.exportFile` | **Export**. Same hold, with the Windows save dialog. Writes an `aac-workspace` v1 file. |
 | `compose.browserPrev` / `compose.browserForward` / `compose.browserUp` | Back, forward, or the parent folder. A path chip runs `compose.browserGoto.<i>`. |
 | `compose.browserSave` | **Export**. Asks Yes/No, then writes an `aac-workspace` v1 file using the name in the text box. |
 | `compose.browserBack` | Close File Explorer. |
-| `compose.importPick.<i>` / `compose.importPage.<n>` | Open folder `i` or select that JSON file (no read yet), or move the tile window by `n` pages. |
+| `compose.importPick.<i>` / `compose.importPage.<n>` / `compose.fileRow.<n>` | Open folder `i` or select that JSON file (no read yet), move the tile window by `n` pages, or move it by `n` rows. |
 | `compose.fileYes` / `compose.fileNo` | Accept or dismiss the File Explorer confirm. Yes is the only step that reads or writes the file. |
 | `compose.importMerge` / `compose.importReplace` | **Merge**, or **Import** (replace the board and apply model, speed, pitch, and volume). Each asks Yes/No before reading the file. |
 | `compose.saveName` / `compose.cancelName` / `compose.deleteName` | Item editor: save, discard, or delete and return. |

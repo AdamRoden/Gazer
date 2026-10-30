@@ -5,6 +5,7 @@ Shipped boards:
 | Page | Role |
 |------|------|
 | `qwerty_main` | Full QWERTY plus edge mouse / look-to-scroll / window AHK strips |
+| `qwerty_file` | That same board, shown beside a Windows open or save dialog so keys type into the file name |
 | `example_keyboard` | Compact 3×12 letters / shift / symbols |
 | `uw_qwerty` | Wide QWERTY (More layer, cell **More**) |
 | `uw_qwerty_pad` | Wide QWERTY without the number row, taller letter keys, nav cluster and numpad to the right of the edge strip (More layer, **Numpad**) |

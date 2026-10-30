@@ -515,7 +515,9 @@ bool PageSession::openPage(const QString& id, QString* error)
     AttachedPage att;
     att.doc = std::move(doc);
     m_attached.push_back(std::move(att));
-    if (m_autoCollapseMain) {
+    // An exclusive hold is showing the root on purpose. Collapsing it here
+    // would hide the dock for the rest of that hold.
+    if (m_autoCollapseMain && !m_exclusiveActive) {
         hideRootAutoClose(false);
     }
     rebuild();
@@ -607,7 +609,14 @@ void PageSession::rebuild()
     QHash<QString, QString> pageBgTokens;
     const QHash<QString, const PageDocument*> fragments = PageCompose::pointers(m_hosted);
     const bool keepDrawer = m_drawerPhase == DrawerPhase::Dismiss;
+    const bool exclusive = m_exclusiveActive && !m_exclusivePageId.isEmpty();
+    auto shownAttached = [&](const PageDocument& doc) {
+        return !exclusive || doc.id == m_exclusivePageId;
+    };
     for (const AttachedPage& a : m_attached) {
+        if (!shownAttached(a.doc)) {
+            continue;
+        }
         ingest(a.doc, false, m_targets, m_gridPaints, &pageBgTokens, false, &fragments);
     }
     ingest(m_root, true, m_targets, m_gridPaints, &pageBgTokens, keepDrawer, &fragments,
@@ -615,14 +624,23 @@ void PageSession::rebuild()
 
     if (m_host) {
         const PageFrame fr = frame();
-        QRectF reserved = PageHit::reservedBounds(m_root, fr);
-        for (const AttachedPage& a : m_attached) {
-            const QRectF piece = PageHit::reservedBounds(a.doc, fr);
+        QRectF reserved;
+        auto addReserved = [&](const PageDocument& doc) {
+            const QRectF piece = PageHit::reservedBounds(doc, fr);
             if (piece.isEmpty()) {
-                continue;
+                return;
             }
             reserved = reserved.isEmpty() ? piece : reserved.united(piece);
+        };
+        addReserved(m_root);
+        for (const AttachedPage& a : m_attached) {
+            if (!shownAttached(a.doc)) {
+                continue;
+            }
+            addReserved(a.doc);
         }
+        // Before commit, so fitToChrome clips this frame's pieces.
+        m_host->setPieceClip(exclusive);
         stampLivePhases();
         m_host->commit(m_targets, m_gridPaints, m_drawerScale, reserved, pageBgTokens);
     }

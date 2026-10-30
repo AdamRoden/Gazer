@@ -57,6 +57,7 @@ private slots:
     void findCellMutateDoesNotShareCopy();
     void loadQwertyXml();
     void loadQwertyPadXml();
+    void loadFileKeysXml();
     void layersAttribute();
     void rejectInvalidLayers();
     void rejectInvalidIntAndBoolAttrs();
@@ -626,6 +627,51 @@ void PageLoaderTest::loadQwertyPadXml()
     QCOMPARE(doc.findCell(QStringLiteral("enter"))->actions.at(0).command, QStringLiteral("enter"));
 }
 
+void PageLoaderTest::loadFileKeysXml()
+{
+    auto load = [](const char* name, PageDocument* doc) {
+        QString err;
+        const QString path = QStringLiteral(GAZER_SOURCE_DIR) + QStringLiteral("/resources/layouts/")
+                             + QLatin1String(name);
+        return PageLoader::loadFromFile(path, *doc, &err) ? QString() : err;
+    };
+    PageDocument keys;
+    PageDocument file;
+    const QString keyErr = load("qwerty_main.xml", &keys);
+    const QString fileErr = load("qwerty_file.xml", &file);
+    QVERIFY2(keyErr.isEmpty(), qPrintable(keyErr));
+    QVERIFY2(fileErr.isEmpty(), qPrintable(fileErr));
+    QCOMPARE(file.id, QStringLiteral("qwerty_file"));
+    QCOMPARE(file.name, QStringLiteral("File keys"));
+    QCOMPARE(keys.id, QStringLiteral("qwerty_main"));
+
+    struct Walker {
+        static void walk(const PageGrid& grid, QStringList* out)
+        {
+            out->push_back(grid.id);
+            for (const PageCell& cell : grid.cells) {
+                out->push_back(cell.id);
+            }
+            for (const PageGrid& sub : grid.subGrids) {
+                walk(sub, out);
+            }
+        }
+    };
+    QStringList fromKeys;
+    QStringList fromFile;
+    for (const PageGrid& grid : keys.grids) {
+        Walker::walk(grid, &fromKeys);
+    }
+    for (const PageGrid& grid : file.grids) {
+        Walker::walk(grid, &fromFile);
+    }
+    QCOMPARE(fromFile, fromKeys);
+    const PageGrid* board = file.findGrid(QStringLiteral("board"));
+    QVERIFY(board);
+    QCOMPARE(board->anchor, PageAnchor::Bottom);
+    QCOMPARE(file.findGrid(QStringLiteral("vert1"))->anchor, PageAnchor::TopRight);
+}
+
 void PageLoaderTest::layersAttribute()
 {
     PageDocument doc;
@@ -802,8 +848,15 @@ void PageLoaderTest::loadComposePage()
     QVERIFY(!doc.findCell(QStringLiteral("vol_back")));
     QVERIFY(!doc.findCell(QStringLiteral("cmd_clear")));
     QVERIFY(!doc.findCell(QStringLiteral("cmd_volume")));
-    QVERIFY(!doc.findCell(QStringLiteral("cmd_import")));
-    QVERIFY(!doc.findCell(QStringLiteral("cmd_export")));
+    QCOMPARE(doc.findGrid(QStringLiteral("keys_cmd"))->columns, 6);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_import"))->row, 0);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_import"))->col, 5);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_import"))->actions[0].command,
+             QStringLiteral("compose.importFile"));
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_export"))->row, 1);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_export"))->col, 5);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_export"))->actions[0].command,
+             QStringLiteral("compose.exportFile"));
     const PageGrid* keysCmd = doc.findGrid(QStringLiteral("keys_cmd"));
     QVERIFY(keysCmd);
     bool trackOnCmd = false;
@@ -842,6 +895,7 @@ void PageLoaderTest::loadComposePage()
              QStringLiteral("volume.inc"));
     QCOMPARE(doc.findCell(QStringLiteral("cmd_files"))->row, 2);
     QCOMPARE(doc.findCell(QStringLiteral("cmd_files"))->col, 4);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_files"))->colSpan, 2);
     QCOMPARE(doc.findCell(QStringLiteral("cmd_files"))->actions[0].command,
              QStringLiteral("compose.openFiles"));
     QVERIFY(!doc.findCell(QStringLiteral("topic_new")));
