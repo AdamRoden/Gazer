@@ -216,14 +216,14 @@ void PageHitLiveTest::edgeChipHidesUntilProgress()
         QStringLiteral(GAZER_SOURCE_DIR) + QStringLiteral("/resources/layouts/uw_qwerty.xml");
     QVERIFY2(PageLoader::loadFromFile(kbPath, kb, &err), qPrintable(err));
     const QVector<PageTarget> keys = PageHit::collect(kb, frame);
-    const PageTarget* kbSleep = nullptr;
+    const PageTarget* letter = nullptr;
     for (const PageTarget& x : keys) {
-        if (x.id == QLatin1String("sleep")) {
-            kbSleep = &x;
+        if (x.id == QLatin1String("k_q")) {
+            letter = &x;
         }
     }
-    QVERIFY(kbSleep);
-    QVERIFY(!kbSleep->geom.hidesUntilProgress());
+    QVERIFY(letter);
+    QVERIFY(!letter->geom.hidesUntilProgress());
 }
 
 void PageHitLiveTest::qwertyClosedGridHidden()
@@ -239,7 +239,7 @@ void PageHitLiveTest::qwertyClosedGridHidden()
     QCOMPARE(kb.findGrid(QStringLiteral("vert2"))->layers, QVector<int>({2}));
     const QVector<PageTarget> keys = PageHit::collect(kb, frame);
     QVERIFY(targetById(keys, QStringLiteral("k_q")));
-    QVERIFY(targetById(keys, QStringLiteral("sleep")));
+    QVERIFY(targetById(keys, QStringLiteral("lts")));
     QVERIFY(!targetById(keys, QStringLiteral("max")));
     const QVector<PageTarget> all =
         PageHit::collect(kb, frame, {}, false, nullptr, false, PageEdit::usedLayers(kb));

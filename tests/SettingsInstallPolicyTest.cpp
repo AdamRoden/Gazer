@@ -42,8 +42,10 @@ void SettingsInstallPolicyTest::installerRemovesSettingsOnlyWhenResetRequested()
     QVERIFY(text.contains(QStringLiteral("Id=\"FactoryResetSettings\"")));
     QVERIFY(text.contains(QStringLiteral("Condition=\"RESETUSERSETTINGS = &quot;1&quot;\"")));
 
-    const int preserveAt = text.indexOf(QStringLiteral("Id=\"ResetUserSettings\""));
-    const int factoryAt = text.indexOf(QStringLiteral("Id=\"FactoryResetSettings\""));
+    // Anchor on the Component elements. The Feature lists the same ids as
+    // ComponentRef, and the comment above ResetUserSettings mentions settings.json.
+    const int preserveAt = text.indexOf(QStringLiteral("<Component Id=\"ResetUserSettings\""));
+    const int factoryAt = text.indexOf(QStringLiteral("<Component Id=\"FactoryResetSettings\""));
     const int removeAt = text.indexOf(QStringLiteral("Id=\"RemoveSettingsJson\""));
     QVERIFY(preserveAt > 0);
     QVERIFY(factoryAt > preserveAt);

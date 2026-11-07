@@ -79,6 +79,7 @@ jobs:
           path: |
             build/ctest.log
             build/GazerPageTests-suites.txt
+            build/GazerPageTests-*.txt
             build/Testing/**
             build/CMakeFiles/CMakeConfigureLog.yaml
             build/CMakeCache.txt
