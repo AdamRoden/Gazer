@@ -568,6 +568,10 @@ add_executable(GazerPageTests
     src/core/TobiiPumpHealth.cpp
     # Q_OBJECT test seam. Not in GAZER_HEADERS: listing the header there makes
     # AUTOMOC emit FakeTracker into Gazer.exe without this source file.
+    # ITracker.h must be a source of this target. AUTOMOC does not moc a
+    # Q_OBJECT base that is only included through FakeTracker.h, so the
+    # signal implementations (gazeUpdated, trackingLost, the vtable) are missing.
+    src/core/ITracker.h
     src/core/FakeTracker.cpp
     src/assist/HeadPoseMapper.cpp
     # HeadPoseMapper calls MouseInjector. That TU includes WinOverlay.h (QWidget)
