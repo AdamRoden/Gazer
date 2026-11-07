@@ -170,6 +170,9 @@ void TrackerTobii::onGazeFromEngine(tobii_gaze_point_t const* gp)
         m_latestSample = out;
     }
     m_samplePending = true;
+    if (m_clock.isValid()) {
+        m_lastGazeCbMs.store(m_clock.elapsed(), std::memory_order_relaxed);
+    }
     Heartbeat::publishGaze(int(std::lround(out.x)), int(std::lround(out.y)), out.valid);
 }
 
@@ -204,6 +207,9 @@ void TrackerTobii::onHeadFromEngine(tobii_head_pose_t const* hp)
         m_latestHead = out;
     }
     m_headPending = true;
+    if (m_clock.isValid()) {
+        m_lastHeadCbMs.store(m_clock.elapsed(), std::memory_order_relaxed);
+    }
 }
 
 void TrackerTobii::flushPendingGaze()
@@ -284,6 +290,9 @@ bool TrackerTobii::start()
     m_guiHadValid = false;
     m_samplePending = false;
     m_stop = false;
+    m_forceReconnect.store(false);
+    m_lastGazeCbMs.store(-1, std::memory_order_relaxed);
+    m_lastHeadCbMs.store(-1, std::memory_order_relaxed);
     m_setupDone = false;
     m_setupOk = false;
     m_setupError.clear();
@@ -414,14 +423,40 @@ void TrackerTobii::workerMain()
                 m_running = true;
                 m_flushTimer.start();
                 GAZER_INFO << "TrackerTobii started";
+                emit streamReady();
             },
             Qt::QueuedConnection);
     }
 
     GAZER_INFO << "Tobii device:" << QString::fromStdString(m_urls.front());
 
+    TobiiPumpHealth pump;
+    pump.setHeadSubscribed(m_headPoseSubscribed);
+    pump.noteStreamStart(m_clock.isValid() ? m_clock.elapsed() : 0);
+    qint64 seenGaze = -1;
+    qint64 seenHead = -1;
+    auto pullCallbacks = [&]() {
+        const qint64 g = m_lastGazeCbMs.load(std::memory_order_relaxed);
+        const qint64 h = m_lastHeadCbMs.load(std::memory_order_relaxed);
+        if (g >= 0 && g != seenGaze) {
+            seenGaze = g;
+            pump.onGazeCallback(g);
+        }
+        if (h >= 0 && h != seenHead) {
+            seenHead = h;
+            pump.onHeadCallback(h);
+        }
+    };
+
     QString failReason;
     while (!m_stop.load()) {
+        if (m_forceReconnect.exchange(false) && m_device) {
+            const qint64 now = m_clock.isValid() ? m_clock.elapsed() : 0;
+            const tobii_error_t re = m_lib.device_reconnect(m_device);
+            publishPump(pump.onReconnectFinished(re == TOBII_ERROR_NO_ERROR, now,
+                                                m_lib.errorString(re)));
+        }
+
         tobii_device_t* devices[1] = {m_device};
         e = m_lib.wait_for_callbacks(1, devices);
         if (m_stop.load()) {
@@ -429,21 +464,29 @@ void TrackerTobii::workerMain()
         }
 
         if (e == TOBII_ERROR_TIMED_OUT) {
+            const qint64 now = m_clock.isValid() ? m_clock.elapsed() : 0;
+            pullCallbacks();
+            publishPump(pump.onWaitTimeout(now));
             continue;
         }
         if (e == TOBII_ERROR_CONNECTION_FAILED) {
+            const qint64 now = m_clock.isValid() ? m_clock.elapsed() : 0;
+            publishPump(pump.onConnectionFailed(now));
             GAZER_WARN << "wait_for_callbacks: reconnecting";
             bool reconnected = false;
+            tobii_error_t last = e;
             for (int i = 0; i < 30 && !m_stop.load(); ++i) {
-                e = m_lib.device_reconnect(m_device);
-                if (e == TOBII_ERROR_NO_ERROR) {
+                last = m_lib.device_reconnect(m_device);
+                if (last == TOBII_ERROR_NO_ERROR) {
                     reconnected = true;
                     break;
                 }
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
             }
+            publishPump(pump.onReconnectFinished(reconnected, m_clock.isValid() ? m_clock.elapsed() : now,
+                                                m_lib.errorString(last)));
             if (!reconnected) {
-                failReason = QStringLiteral("reconnect failed: %1").arg(m_lib.errorString(e));
+                failReason = QStringLiteral("reconnect failed: %1").arg(m_lib.errorString(last));
                 break;
             }
             continue;
@@ -455,18 +498,23 @@ void TrackerTobii::workerMain()
 
         e = m_lib.device_process_callbacks(m_device);
         if (e == TOBII_ERROR_CONNECTION_FAILED) {
+            const qint64 now = m_clock.isValid() ? m_clock.elapsed() : 0;
+            publishPump(pump.onConnectionFailed(now));
             GAZER_WARN << "process_callbacks: reconnecting";
             bool reconnected = false;
+            tobii_error_t last = e;
             for (int i = 0; i < 30 && !m_stop.load(); ++i) {
-                e = m_lib.device_reconnect(m_device);
-                if (e == TOBII_ERROR_NO_ERROR) {
+                last = m_lib.device_reconnect(m_device);
+                if (last == TOBII_ERROR_NO_ERROR) {
                     reconnected = true;
                     break;
                 }
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
             }
+            publishPump(pump.onReconnectFinished(reconnected, m_clock.isValid() ? m_clock.elapsed() : now,
+                                                m_lib.errorString(last)));
             if (!reconnected) {
-                failReason = QStringLiteral("reconnect failed: %1").arg(m_lib.errorString(e));
+                failReason = QStringLiteral("reconnect failed: %1").arg(m_lib.errorString(last));
                 break;
             }
             continue;
@@ -475,6 +523,8 @@ void TrackerTobii::workerMain()
             failReason = QStringLiteral("process_callbacks: %1").arg(m_lib.errorString(e));
             break;
         }
+        pullCallbacks();
+        publishPump(pump.onAfterCallbacks(m_clock.isValid() ? m_clock.elapsed() : 0));
     }
 
     teardownDeviceUnlocked();
@@ -493,6 +543,44 @@ void TrackerTobii::workerMain()
             }
         },
         Qt::QueuedConnection);
+}
+
+void TrackerTobii::publishPump(const TobiiPumpHealth::Edges& edges)
+{
+    if (!edges.gazeStale && !edges.headStale && !edges.disconnected && !edges.reconnected) {
+        return;
+    }
+    const uint64_t gen = m_generation.load();
+    QMetaObject::invokeMethod(
+        this,
+        [this, edges, gen]() {
+            if (m_generation.load() != gen || m_stop.load()) {
+                return;
+            }
+            if (edges.disconnected) {
+                emit deviceDisconnected();
+            }
+            if (edges.gazeStale) {
+                emit gazeStreamStale();
+            }
+            if (edges.headStale) {
+                emit headStreamStale();
+            }
+            if (edges.reconnected) {
+                emit deviceReconnected();
+            }
+        },
+        Qt::QueuedConnection);
+}
+
+void TrackerTobii::requestReconnect()
+{
+    if (m_running.load() && m_thread) {
+        m_forceReconnect.store(true);
+        return;
+    }
+    stop();
+    start();
 }
 
 void TrackerTobii::teardownDeviceUnlocked()

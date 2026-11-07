@@ -17,7 +17,7 @@ The hub and the tab bar are the same eight boards. **Done** on the tab bar close
 
 Live boards fire `settings.*` / `theme.*` / `headPose.*` commands (numpad, color picker, dwell presets, ViGEm install, …). Patterns: [Commands — Settings](reference/commands.md#settings).
 
-Prefs are `%AppData%\Gazer\settings.json`. The ElevenLabs key is **not** in that file; it is DPAPI-protected under `secrets\`. Each MSI install deletes `settings.json` so the next launch writes factory defaults.
+Prefs are `%AppData%\Gazer\settings.json`. The ElevenLabs key is **not** in that file; it is DPAPI-protected under `secrets\`. Installs and upgrades keep this file. Factory defaults come from **Reset my settings to factory defaults** in setup (`RESETUSERSETTINGS=1`) or from `settings.reset` in the app, which also copies the current file to `settings.json.bak`.
 
 ## Theme
 

@@ -4,6 +4,7 @@
 #include "core/HeadPose.h"
 #include "core/ITracker.h"
 #include "core/StreamEngineLib.h"
+#include "core/TobiiPumpHealth.h"
 
 #include <QElapsedTimer>
 #include <QMutex>
@@ -39,6 +40,8 @@ public:
     void stop() override;
     [[nodiscard]] bool isRunning() const override;
     [[nodiscard]] QString name() const override;
+    /// Ask the worker to reconnect, or start again if it has already exited.
+    void requestReconnect();
     /// True while a worker thread may still touch this object.
     [[nodiscard]] bool workerOutstanding();
     /// Caller has dropped ownership. The worker deletes this when it exits;
@@ -47,6 +50,16 @@ public:
 
 signals:
     void streamFailed(const QString& reason);
+    /// Worker has subscribed and the flush timer is running.
+    void streamReady();
+    /// No gaze callbacks for the stall timeout. Not a blink.
+    void gazeStreamStale();
+    /// Gaze is still arriving and the head stream is not.
+    void headStreamStale();
+    /// Connection failed. Emitted before the reconnect attempts.
+    void deviceDisconnected();
+    /// device_reconnect succeeded. No synthetic gaze sample is emitted.
+    void deviceReconnected();
 
 private:
     void flushPendingGaze();
@@ -57,6 +70,7 @@ private:
     static void urlReceiver(char const* url, void* user_data);
 
     void workerMain();
+    void publishPump(const TobiiPumpHealth::Edges& edges);
     void onGazeFromEngine(tobii_gaze_point_t const* gaze_point);
     void onHeadFromEngine(tobii_head_pose_t const* head_pose);
     void cacheScreenGeometry();
@@ -72,6 +86,9 @@ private:
     std::unique_ptr<std::thread> m_thread;
     std::atomic<bool> m_stop{false};
     std::atomic<bool> m_running{false};
+    std::atomic<bool> m_forceReconnect{false};
+    std::atomic<qint64> m_lastGazeCbMs{-1};
+    std::atomic<qint64> m_lastHeadCbMs{-1};
     std::atomic<uint64_t> m_generation{0};
 
     std::mutex m_setupMutex;

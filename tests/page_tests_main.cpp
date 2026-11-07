@@ -40,6 +40,9 @@ QObject* createKeyStateManagerTest();
 QObject* createColorPickerHexTest();
 QObject* createHeadPoseMapperTest();
 QObject* createKeyGravityTest();
+QObject* createSettingsMigrationTest();
+QObject* createSettingsInstallPolicyTest();
+QObject* createTrackingWatchTest();
 
 namespace {
 
@@ -135,5 +138,11 @@ int main(int argc, char** argv)
     runSuite("HeadPoseMapperTest", headPose.get(), false);
     std::unique_ptr<QObject> gravity(createKeyGravityTest());
     runSuite("KeyGravityTest", gravity.get(), false);
+    std::unique_ptr<QObject> settingsMigration(createSettingsMigrationTest());
+    runSuite("SettingsMigrationTest", settingsMigration.get(), false);
+    std::unique_ptr<QObject> installPolicy(createSettingsInstallPolicyTest());
+    runSuite("SettingsInstallPolicyTest", installPolicy.get(), false);
+    std::unique_ptr<QObject> tracking(createTrackingWatchTest());
+    runSuite("TrackingWatchTest", tracking.get(), false);
     return status;
 }

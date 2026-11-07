@@ -25,6 +25,8 @@ signals:
     void showLayoutRequested();
     void showPreviewRequested();
     void layoutEditorRequested();
+    void retryTrackerRequested();
+    void useMouseTrackerRequested();
     void quitRequested();
 
 private:

@@ -17,6 +17,7 @@
 #include "assist/ClipPlayer.h"
 #include "assist/SpeechEngine.h"
 #include "assist/TtsService.h"
+#include "core/HeadPose.h"
 #include "core/ITracker.h"
 #include "core/TrackerMouse.h"
 #include "core/TrackerTobii.h"
@@ -27,6 +28,7 @@
 #include "layout/PageSession.h"
 #include "layout/PageTypes.h"
 #include "ui/DwellSuspendOverlay.h"
+#include "ui/TrackingLossOverlay.h"
 #include "ui/ProgressVisuals.h"
 #include "ui/SplashOverlay.h"
 #include "ui/Theme.h"
@@ -43,6 +45,7 @@
 
 #include <QApplication>
 #include <QCoreApplication>
+#include <QPoint>
 #include <QSysInfo>
 #include <QRect>
 #include <QDir>
@@ -61,6 +64,7 @@ Application::Application(QObject* parent)
 
 Application::~Application()
 {
+    m_trackingPoll.stop();
     releaseTracker(m_tracker);
 }
 
@@ -85,7 +89,16 @@ bool Application::initialize()
     m_tray = std::make_unique<TrayIcon>();
     m_splash = std::make_unique<SplashOverlay>();
     m_dwellSuspendOverlay = std::make_unique<DwellSuspendOverlay>();
+    m_lossOverlay = std::make_unique<TrackingLossOverlay>();
     m_stackWatch = std::make_unique<OverlayStackWatch>();
+    m_watch.setBlinkGraceMs(m_svc->settings().dwellGraceMs);
+    m_watchClock.start();
+    m_trackingPoll.setInterval(100);
+    connect(&m_trackingPoll, &QTimer::timeout, this, &Application::pollTracking);
+    m_trackingPoll.start();
+    connect(m_svc.get(), &GazerServices::settingsChanged, this, [this]() {
+        m_watch.setBlinkGraceMs(m_svc->settings().dwellGraceMs);
+    });
 
     // Domain owns loops + lifecycle; shell only supplies the dispatcher.
     m_svc->bindActionDispatch(
@@ -117,6 +130,15 @@ bool Application::initialize()
     });
     connect(m_tray.get(), &TrayIcon::layoutEditorRequested, this, [this]() { openPageEditor(); });
     connect(m_tray.get(), &TrayIcon::quitRequested, this, &Application::onQuitRequested);
+    connect(m_tray.get(), &TrayIcon::retryTrackerRequested, this, &Application::retryEyeTracker);
+    connect(m_tray.get(), &TrayIcon::useMouseTrackerRequested, this, &Application::useMouseTracker);
+    connect(m_lossOverlay.get(), &TrackingLossOverlay::resumeRequested, this, [this]() {
+        applyTrackingTransition(m_watch.resume());
+    });
+    connect(m_lossOverlay.get(), &TrackingLossOverlay::retryRequested, this,
+            &Application::retryEyeTracker);
+    connect(m_lossOverlay.get(), &TrackingLossOverlay::useMouseRequested, this,
+            &Application::useMouseTracker);
 
     m_svc->commands().registerBuiltin(
         QStringLiteral("openPageEditor"),
@@ -261,6 +283,10 @@ void Application::updateTrayStatus()
     if (!m_tray || !m_tracker || !m_svc) {
         return;
     }
+    if (m_watch.blocksBoardGaze()) {
+        m_tray->setStatus(QStringLiteral("tracking paused · %1").arg(m_tracker->name()));
+        return;
+    }
     const int n = m_svc->pages().openCount();
     m_tray->setStatus(QStringLiteral("%1 boards · %2").arg(n).arg(m_tracker->name()));
 }
@@ -279,15 +305,14 @@ bool Application::startTracker()
         return false;
     }
     wireTracker();
-    if (auto* t = qobject_cast<TrackerTobii*>(m_tracker.get())) {
-        connect(t, &TrackerTobii::streamFailed, this, &Application::onTobiiStreamFailed,
-                Qt::QueuedConnection);
-    }
     return true;
 }
 
 void Application::fallbackToMouse()
 {
+    if (m_svc) {
+        m_svc->neutralizeForTracking(false);
+    }
     releaseTracker(m_tracker);
     auto mouse = std::make_unique<TrackerMouse>();
     if (!mouse->start()) {
@@ -300,7 +325,17 @@ void Application::fallbackToMouse()
 
 void Application::onTobiiStreamFailed(const QString& reason)
 {
-    GAZER_WARN << "Tobii stream failed:" << reason << "— switching to mouse";
+    GAZER_WARN << "Tobii stream failed:" << reason;
+    // A stream that already produced gaze or head, or is already in the loss
+    // hold, must not be replaced by the mouse. Eye-only users cannot use that
+    // fallback. Setup that never tracked still falls back so a machine without
+    // a tracker can start.
+    if (m_watch.lossHold() || m_watch.hadLiveGaze() || m_watch.hadLiveHead()) {
+        applyTrackingTransition(
+            m_watch.noteGazeStale(TrackingWatch::GazeLossReason::Disconnected));
+        return;
+    }
+    GAZER_WARN << "Tobii never tracked; switching to mouse";
     fallbackToMouse();
     if (m_svc) {
         m_svc->setTrackerLostMouse(true);
@@ -349,15 +384,11 @@ void Application::wireTracker()
             &PreviewWindow::onGazeUpdated);
     connect(m_tracker.get(), &ITracker::headPoseUpdated, m_preview.get(),
             &PreviewWindow::onHeadPoseUpdated);
-    connect(m_tracker.get(), &ITracker::headPoseUpdated, this, [this](const gazer::HeadPose& pose) {
-        m_svc->headPoseMapper().onPose(pose);
-        scheduleHeadPreviewPaint();
-    });
+    connect(m_tracker.get(), &ITracker::headPoseUpdated, this, &Application::onHeadPose);
     connect(m_tracker.get(), &ITracker::trackingLost, m_preview.get(), [this]() {
         if (m_tracker) {
             m_preview->setTrackerName(QStringLiteral("%1 (lost)").arg(m_tracker->name()));
         }
-        m_svc->headPoseMapper().onTrackingLost();
         scheduleHeadPreviewPaint();
     });
     connect(m_tracker.get(), &ITracker::trackingRestored, m_preview.get(), [this]() {
@@ -365,6 +396,29 @@ void Application::wireTracker()
             m_preview->setTrackerName(m_tracker->name());
         }
     });
+    if (auto* tobii = qobject_cast<TrackerTobii*>(m_tracker.get())) {
+        connect(tobii, &TrackerTobii::streamFailed, this, &Application::onTobiiStreamFailed,
+                Qt::QueuedConnection);
+        connect(tobii, &TrackerTobii::streamReady, this, [this]() {
+            m_watch.noteStreamRunning(watchNow());
+        });
+        connect(tobii, &TrackerTobii::gazeStreamStale, this, [this]() {
+            applyTrackingTransition(
+                m_watch.noteGazeStale(TrackingWatch::GazeLossReason::NoCallbacks));
+        });
+        connect(tobii, &TrackerTobii::headStreamStale, this, [this]() {
+            applyTrackingTransition(m_watch.noteHeadStale());
+        });
+        connect(tobii, &TrackerTobii::deviceDisconnected, this, [this]() {
+            applyTrackingTransition(m_watch.onDisconnect(watchNow()));
+        });
+        connect(tobii, &TrackerTobii::deviceReconnected, this, [this]() {
+            m_watch.onReconnect(watchNow());
+            if (m_lossOverlay && m_lossOverlay->isActive()) {
+                m_lossOverlay->setStatus(m_watch.statusText());
+            }
+        });
+    }
 
     m_preview->setTrackerName(m_tracker->name());
     m_tray->setStatus(QStringLiteral("%1 — running").arg(m_tracker->name()));
@@ -378,6 +432,17 @@ void Application::onGaze(const gazer::GazePoint& point)
     }
     scheduleHeadPreviewPaint();
 
+    const bool blockedBefore = m_watch.blocksBoardGaze();
+    applyTrackingTransition(m_watch.onGaze(point, watchNow()));
+    if (m_lossOverlay && m_lossOverlay->isActive()) {
+        m_lossOverlay->setAimPoint(QPoint(qRound(point.x), qRound(point.y)), point.valid);
+    }
+    // The sample that enters the hold, or the sample that dwells Resume, must
+    // not activate a board cell or mapping underneath.
+    if (blockedBefore || m_watch.blocksBoardGaze() || m_watch.consumeResumeLatch()) {
+        return;
+    }
+
     // Volume, head-pose curve, and list scrollbars before board dwell so leaving
     // them can activate a neighbor on the same sample. Volume's page refresh
     // is deferred until this sample has been classified.
@@ -388,6 +453,105 @@ void Application::onGaze(const gazer::GazePoint& point)
     if (m_svc->isDwellSuspended()) {
         syncDwellSuspendOverlay();
     }
+}
+
+void Application::onHeadPose(const gazer::HeadPose& pose)
+{
+    applyTrackingTransition(m_watch.onHead(pose, watchNow()));
+    if (!m_svc) {
+        return;
+    }
+    if (m_watch.blocksBoardGaze()) {
+        scheduleHeadPreviewPaint();
+        return;
+    }
+    m_svc->headPoseMapper().onPose(pose);
+    scheduleHeadPreviewPaint();
+}
+
+qint64 Application::watchNow()
+{
+    if (!m_watchClock.isValid()) {
+        m_watchClock.start();
+    }
+    return m_watchClock.elapsed();
+}
+
+void Application::pollTracking()
+{
+    if (!m_tracker) {
+        return;
+    }
+    const qint64 now = watchNow();
+    if (m_tracker->isRunning()) {
+        m_watch.noteStreamRunning(now);
+    } else {
+        m_watch.noteStreamStopped();
+    }
+    applyTrackingTransition(m_watch.poll(now));
+}
+
+void Application::applyTrackingTransition(const TrackingWatch::Transition& transition)
+{
+    if (!m_svc) {
+        return;
+    }
+    if (transition.enteredGazeLoss) {
+        GAZER_WARN << "Gaze tracking lost; releasing outputs";
+        m_svc->neutralizeForTracking(true);
+        if (m_lossOverlay) {
+            m_lossOverlay->showLoss(m_watch.statusText());
+        }
+        updateTrayStatus();
+    } else if (transition.enteredHeadLoss) {
+        GAZER_WARN << "Head tracking lost; releasing head outputs";
+        m_svc->neutralizeForTracking(false);
+    }
+    if (transition.resumed) {
+        m_svc->releaseTrackingHold();
+        if (m_lossOverlay) {
+            m_lossOverlay->hideLoss();
+        }
+        updateTrayStatus();
+    } else if (m_lossOverlay && m_lossOverlay->isActive()) {
+        m_lossOverlay->setStatus(m_watch.statusText());
+    }
+}
+
+void Application::retryEyeTracker()
+{
+    if (m_lossOverlay && m_lossOverlay->isActive()) {
+        m_lossOverlay->setStatus(QStringLiteral("Retrying the eye tracker…"));
+    }
+    if (auto* tobii = qobject_cast<TrackerTobii*>(m_tracker.get())) {
+        tobii->requestReconnect();
+        return;
+    }
+    if (m_svc) {
+        m_svc->neutralizeForTracking(false);
+    }
+    releaseTracker(m_tracker);
+    if (!startTracker()) {
+        fallbackToMouse();
+    }
+    if (m_svc) {
+        m_svc->setTrackerLostMouse(qobject_cast<TrackerTobii*>(m_tracker.get()) == nullptr);
+    }
+    updateTrayStatus();
+}
+
+void Application::useMouseTracker()
+{
+    fallbackToMouse();
+    if (m_svc) {
+        m_svc->setTrackerLostMouse(true);
+    }
+    if (m_watch.lossHold()) {
+        applyTrackingTransition(m_watch.resume());
+    } else if (m_lossOverlay) {
+        m_lossOverlay->hideLoss();
+    }
+    updateTrayStatus();
 }
 
 void Application::scheduleHeadPreviewPaint()

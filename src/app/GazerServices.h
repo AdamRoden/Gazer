@@ -99,6 +99,12 @@ public:
     /// stopAssistOutput, close attached pages, resume dwell.
     void panicReset();
     void setInjectPaused(bool on);
+    /// Release held gaze outputs (and head). @p gazeScope also cancels dwell,
+    /// stops repeating actions, and pauses look-to until releaseTrackingHold().
+    void neutralizeForTracking(bool gazeScope);
+    /// Allow look-to and combo again. Does not restart stopped loops or keys.
+    /// Arms one paused head sample so a command does not fire on the way back.
+    void releaseTrackingHold();
     /// Gaze along a `caption="volume"` slider sets the Windows master volume
     /// after that cell's scan grace. The page rebuild is deferred so this
     /// sample's dwell still sees the old targets.

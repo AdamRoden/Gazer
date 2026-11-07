@@ -8,7 +8,7 @@ Version **0.6.8**. License: [GPL-3.0](LICENSE).
 
 **User manual:** [adamroden.github.io/Gazer](https://adamroden.github.io/Gazer/) (sources in [`website/docs/`](website/docs/)).
 
-Contributors and coding agents: start at [AGENTS.md](AGENTS.md). Page XML schema: [docs/page-xml.md](docs/page-xml.md). Command catalog: [src/app/Commands.md](src/app/Commands.md).
+Contributors and coding agents: start at [AGENTS.md](AGENTS.md). Bugs and tests: [CONTRIBUTING.md](CONTRIBUTING.md). Page XML schema: [docs/page-xml.md](docs/page-xml.md). Command catalog: [src/app/Commands.md](src/app/Commands.md).
 
 Preview the docs locally:
 
@@ -23,7 +23,7 @@ mkdocs serve -f website/mkdocs.yml
 
 - Windows
 - CMake ≥ 3.21
-- Qt 6 (Core, Gui, Widgets, Qml, Quick) — tested with 6.11.1 MinGW
+- Qt 6 (Core, Gui, Widgets, OpenGL, Quick, Svg, Network, Multimedia, Test) — tested with 6.11.1 MinGW
 - Optional: [Tobii Stream Engine](https://developer.tobii.com/) headers under `third_party/` (`tobii.h`, `tobii_streams.h`). At runtime Gazer loads `tobii_stream_engine.dll` from the Tobii Experience / Eye Tracking Core install (not copied next to the exe). Without hardware, Gazer uses the mouse tracker.
 - Optional: a local [AutoHotkey](https://www.autohotkey.com/) install for `<AHK>` cells (v2 preferred; `#Requires AutoHotkey v1` selects v1). Set `GAZER_AHK` to an exe to override discovery. AutoHotkey is not bundled.
 
@@ -45,7 +45,14 @@ MinGW `bin` must be on `PATH` when configuring (otherwise AUTOMOC / g++ predefs 
 
 The post-build step copies `resources/` next to `Gazer.exe` and runs `windeployqt`. Stream Engine is not copied (a leftover next to the exe is deleted). Gazer loads it from the Tobii install, or `TOBII_STREAM_ENGINE_DLL` / `TOBII_STREAM_ENGINE_DIR`.
 
-Tests: `cmake --build build --target GazerPageTests` (and `GazerDwellTests`, `GazerSpeechTests`).
+Tests (no Tobii hardware or `tobii_stream_engine.dll` required):
+
+```powershell
+cmake --build build --target GazerPageTests GazerDwellTests GazerSpeechTests GazerPredictTests
+ctest --test-dir build --output-on-failure
+```
+
+`-DGAZER_USE_TOBII=OFF` builds the mouse tracker only. The default `ON` compiles the Stream Engine loader against `third_party/tobii.h` and still runs the tests without a device.
 
 ### Beta MSI
 
@@ -56,6 +63,8 @@ winget install WiXToolset.WiXCLI   # once
 ```
 
 Output: `dist\Gazer-<version>-beta.msi`. Installs to `Program Files\Gazer\` with a Start Menu shortcut. Setup asks whether to add a desktop shortcut (remembered for later installs) and whether to launch Gazer when setup finishes. Quiet install keeps the shortcut unless `INSTALLDESKTOPSHORTCUT=0`, and does not launch Gazer. Pages ship under `resources\`.
+
+Install, upgrade, repair, and same-version reinstall keep `%AppData%\Gazer\settings.json`. Check **Reset my settings to factory defaults**, or pass `RESETUSERSETTINGS=1`, to delete that file so the next launch writes factory defaults. In the app, `settings.reset` does the same and first copies the file to `settings.json.bak`. A bad `settings.json` is copied aside and, when a backup parses, restored. See [CONTRIBUTING.md](CONTRIBUTING.md) for the manual MSI smoke check (not run in CI).
 
 The MSI stamps `uiAccess=true` on the staged exe and Authenticode-signs it so the **Program Files** copy can sit above Task Manager and type/click into elevated windows. `.\build\Gazer.exe` is left without UIAccess so it still launches from the build directory. A real code-signing PFX: `$env:GAZER_SIGN_PFX` and optional `$env:GAZER_SIGN_PFX_PASSWORD`. Without those, the script uses a local self-signed cert (`%LOCALAPPDATA%\Gazer\signing\`) and the MSI trusts it at install time.
 

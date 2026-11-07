@@ -67,6 +67,9 @@ TrayIcon::TrayIcon(QObject* parent)
     auto* editorAction = m_menu->addAction(QStringLiteral("Page editor"));
     auto* logsAction = m_menu->addAction(QStringLiteral("Open log folder"));
     m_menu->addSeparator();
+    auto* retryAction = m_menu->addAction(QStringLiteral("Retry eye tracker"));
+    auto* mouseAction = m_menu->addAction(QStringLiteral("Use mouse tracker"));
+    m_menu->addSeparator();
     auto* quitAction = m_menu->addAction(QStringLiteral("Quit Gazer"));
 
     connect(layoutAction, &QAction::triggered, this, &TrayIcon::showLayoutRequested);
@@ -77,6 +80,8 @@ TrayIcon::TrayIcon(QObject* parent)
             GAZER_WARN << "Could not open the log folder";
         }
     });
+    connect(retryAction, &QAction::triggered, this, &TrayIcon::retryTrackerRequested);
+    connect(mouseAction, &QAction::triggered, this, &TrayIcon::useMouseTrackerRequested);
     connect(quitAction, &QAction::triggered, this, &TrayIcon::quitRequested);
 
     m_tray = new QSystemTrayIcon(makeTrayIcon(), this);

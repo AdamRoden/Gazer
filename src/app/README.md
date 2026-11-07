@@ -20,7 +20,7 @@ Composition root, settings, command dispatch.
 | `ComposeListScroll.cpp` | Gaze-follow scrollbar on history / voices live boards |
 | `GazeRouter` | Gaze sample → session + assist |
 | `ActiveStateResolver` | `visibleWhen` / `activeState` keys (`mod.shift`, …) |
-| `AppSettings` | Persisted prefs. Factory values on the struct; `defaults()` calls `applyTheme()`; spec tables + nudge/display in `.cpp`; JSON overlay in `AppSettingsIo.cpp`; Fluent appearance × accent/progress in `AppSettingsTheme.cpp` |
+| `AppSettings` | Persisted prefs. Factory values on the struct; `defaults()` calls `applyTheme()`; spec tables + nudge/display in `.cpp`; JSON overlay in `AppSettingsIo.cpp` (`loadManaged`: backup, schema migrate, restore); Fluent appearance × accent/progress in `AppSettingsTheme.cpp`. Installer wipe policy: `SettingsInstallPolicy.h` |
 | `SettingsUi.h` | Live settings boards (numpad, array, color, hex, speech key, slider) |
 | `SettingsUi.cpp` | Ctor, decorate, live attach, keyboard focus |
 | `SettingsNumpad.cpp` | Numeric editor |

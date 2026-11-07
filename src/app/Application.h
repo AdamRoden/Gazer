@@ -1,6 +1,7 @@
 #pragma once
 
 #include "app/GazeRouter.h"
+#include "core/TrackingWatch.h"
 #include "layout/PageTypes.h"
 
 #include <QElapsedTimer>
@@ -15,6 +16,7 @@ class ActionChannel;
 class ActionDispatcher;
 class DwellSuspendOverlay;
 class GazerServices;
+class TrackingLossOverlay;
 class Heartbeat;
 class ITracker;
 class LayoutEditorWindow;
@@ -51,11 +53,17 @@ private:
     void openPageEditor(const QString& pageId = {});
     [[nodiscard]] bool testEditedLayout(const PageDocument& doc, QString* error);
     void onGaze(const gazer::GazePoint& point);
+    void onHeadPose(const gazer::HeadPose& pose);
     void scheduleHeadPreviewPaint();
     void updateHeadPosePaint();
     [[nodiscard]] bool headPreviewOnScreen() const;
     void onTobiiStreamFailed(const QString& reason);
     void fallbackToMouse();
+    void pollTracking();
+    void applyTrackingTransition(const TrackingWatch::Transition& transition);
+    void retryEyeTracker();
+    void useMouseTracker();
+    [[nodiscard]] qint64 watchNow();
     void shutdownUi();
     void rescueReset();
     void pulseHeartbeat();
@@ -69,6 +77,10 @@ private:
     std::unique_ptr<SplashOverlay> m_splash;
     bool m_splashSavedMag = false;
     std::unique_ptr<DwellSuspendOverlay> m_dwellSuspendOverlay;
+    std::unique_ptr<TrackingLossOverlay> m_lossOverlay;
+    TrackingWatch m_watch;
+    QElapsedTimer m_watchClock;
+    QTimer m_trackingPoll;
     std::unique_ptr<PreviewWindow> m_preview;
     std::unique_ptr<HeadPreviewRenderer> m_headPreviewGl;
     QElapsedTimer m_headPaintClock;

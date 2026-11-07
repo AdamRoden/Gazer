@@ -74,6 +74,8 @@ set(GAZER_SOURCES
     src/assist/ComposeCommands.cpp
     src/core/TrackerMouse.cpp
     src/core/TrackerTobii.cpp
+    src/core/TrackingWatch.cpp
+    src/core/TobiiPumpHealth.cpp
     src/core/StreamEngineLib.cpp
     src/layout/PageDim.cpp
     src/layout/PageActionParse.cpp
@@ -166,6 +168,7 @@ set(GAZER_SOURCES
     src/ui/MagnifierOverlay.cpp
     src/ui/DwellSuspendOverlay.cpp
     src/ui/RescueOverlay.cpp
+    src/ui/TrackingLossOverlay.cpp
     src/ui/SplashOverlay.cpp
     src/ui/SplashOverlayPaint.cpp
     src/ui/Theme.cpp
@@ -353,6 +356,11 @@ set(GAZER_HEADERS
     src/utils/WinProcess.h
     src/input/InjectGate.h
     src/ui/RescueOverlay.h
+    src/ui/TrackingLossOverlay.h
+    src/core/TrackingWatch.h
+    src/core/TobiiPumpHealth.h
+    src/core/FakeTracker.h
+    src/app/SettingsInstallPolicy.h
 )
 
 add_executable(Gazer WIN32
@@ -554,6 +562,14 @@ add_executable(GazerPageTests
     tests/ColorPickerHexTest.cpp
     tests/HeadPoseMapperTest.cpp
     tests/KeyGravityTest.cpp
+    tests/SettingsMigrationTest.cpp
+    tests/SettingsInstallPolicyTest.cpp
+    tests/TrackingWatchTest.cpp
+    src/core/TrackingWatch.cpp
+    src/core/TobiiPumpHealth.cpp
+    src/core/FakeTracker.cpp
+    src/assist/HeadPoseMapper.cpp
+    src/input/MouseInjector.cpp
     src/mapping/HeadPoseCurve.cpp
     src/input/KeyStateManager.cpp
     src/input/KeyGlyphs.cpp

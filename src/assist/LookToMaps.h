@@ -53,6 +53,8 @@ public:
 
     void disableAll();
     void setOutputPaused(bool on);
+    /// Neutralize stick / wheel / mouse output on every map.
+    void releaseHeldOutput();
     [[nodiscard]] bool outputPaused() const { return m_outputPaused; }
     [[nodiscard]] bool anyEnabled() const;
     [[nodiscard]] bool containsGaze(const GazePoint& point) const;

@@ -70,6 +70,17 @@ void HeadPoseMapper::onTrackingLost()
     zeroJoystick();
 }
 
+void HeadPoseMapper::beginStreamLoss()
+{
+    onTrackingLost();
+    m_recoverSettle = true;
+}
+
+void HeadPoseMapper::armRecoverySettle()
+{
+    m_recoverSettle = true;
+}
+
 void HeadPoseMapper::onPose(const HeadPose& pose)
 {
     m_last.timestampMs = pose.timestampMs;
@@ -97,6 +108,21 @@ void HeadPoseMapper::onPose(const HeadPose& pose)
         dt = pose.timestampMs - m_lastTs;
     }
     m_lastTs = pose.timestampMs;
+
+    // The first valid pose after a stall is paused, so a command already past
+    // its threshold is armed and does not fire. Invalid samples are ignored
+    // until then; treating them as zero would release the latch and the next
+    // real pose would look like a new press.
+    if (m_recoverSettle && m_enabled) {
+        if (!pose.valid()) {
+            return;
+        }
+        m_recoverSettle = false;
+        const HeadPoseOutputs settled = evalHeadPoseMaps(
+            m_maps, m_enabled, pose, m_origin, m_originSet, true, dt, &m_state);
+        apply(settled);
+        return;
+    }
 
     const HeadPoseOutputs out =
         evalHeadPoseMaps(m_maps, m_enabled, pose, m_origin, m_originSet, m_paused, dt, &m_state);

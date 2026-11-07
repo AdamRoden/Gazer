@@ -43,6 +43,10 @@
                       Type="raw" />
     </Property>
     <Property Id="INSTALLDESKTOPSHORTCUT" Secure="yes" />
+    <!-- "0" keeps settings. "1" deletes settings.json so the next launch writes
+         factory defaults. Quiet install: msiexec /qn RESETUSERSETTINGS=1
+         Policy: src/app/SettingsInstallPolicy.h -->
+    <Property Id="RESETUSERSETTINGS" Value="0" Secure="yes" />
 
     <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" Secure="yes" />
     <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch Gazer" />
@@ -67,6 +71,7 @@
       <ComponentRef Id="DesktopShortcut" />
       <ComponentRef Id="DesktopShortcutChoice" />
       <ComponentRef Id="ResetUserSettings" />
+      <ComponentRef Id="FactoryResetSettings" />
       <ComponentRef Id="GuardAutostart" />
     </Feature>
 
@@ -80,8 +85,8 @@
 
     <StandardDirectory Id="DesktopFolder" />
 
-    <!-- Reset settings.json on each install. Nested Gazer\Gazer is leftover from
-         builds that set organizationName; one upgrade generation. -->
+    <!-- Nested Gazer\Gazer is leftover from builds that set organizationName.
+         settings.json is removed only by FactoryResetSettings. -->
     <StandardDirectory Id="AppDataFolder">
       <Directory Id="GazerAppDataFolder" Name="Gazer">
         <Directory Id="GazerLegacyNestedAppData" Name="Gazer" />
@@ -114,13 +119,25 @@
                      KeyPath="yes" />
     </Component>
 
+    <!-- Key path only. Do not RemoveFile settings.json here: upgrade, repair,
+         and same-version reinstall reinstall this component. -->
     <Component Id="ResetUserSettings" Directory="GazerAppDataFolder" Guid="D4E6A8B0-3F5C-7D9E-1B2A-4C6D8E0F1A3B">
+      <RegistryValue Root="HKCU"
+                     Key="Software\Gazer\Installer"
+                     Name="SettingsPreserved"
+                     Type="integer"
+                     Value="1"
+                     KeyPath="yes" />
+    </Component>
+
+    <Component Id="FactoryResetSettings" Directory="GazerAppDataFolder" Guid="E7C1A9D4-2B6F-4E18-9C35-7A0D4F8B2E61"
+               Condition="RESETUSERSETTINGS = &quot;1&quot;" Transitive="yes">
       <RemoveFile Id="RemoveSettingsJson" Name="settings.json" On="install" />
       <RemoveFile Id="RemoveLegacyNestedSettingsJson" Name="settings.json" On="install"
                   Directory="GazerLegacyNestedAppData" />
       <RegistryValue Root="HKCU"
                      Key="Software\Gazer\Installer"
-                     Name="ResetSettings"
+                     Name="FactoryReset"
                      Type="integer"
                      Value="1"
                      KeyPath="yes" />
@@ -156,16 +173,21 @@
         <Control Id="BannerLine" Type="Line" X="0" Y="44" Width="370" Height="0" />
         <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
         <Control Id="Title" Type="Text" X="15" Y="6" Width="300" Height="15" Transparent="yes" NoPrefix="yes" Text="{\WixUI_Font_Title}Install options" />
-        <Control Id="Description" Type="Text" X="25" Y="23" Width="320" Height="15" Transparent="yes" NoPrefix="yes" Text="Choose a desktop shortcut, then continue to the license." />
-        <Control Id="DesktopShortcutCheckBox" Type="CheckBox" X="20" Y="80" Width="320" Height="18"
+        <Control Id="Description" Type="Text" X="25" Y="23" Width="320" Height="15" Transparent="yes" NoPrefix="yes" Text="Settings are kept unless you reset them." />
+        <Control Id="DesktopShortcutCheckBox" Type="CheckBox" X="20" Y="70" Width="320" Height="18"
                  Property="INSTALLDESKTOPSHORTCUT" CheckBoxValue="1"
                  Text="Create a desktop shortcut" />
+        <Control Id="ResetSettingsCheckBox" Type="CheckBox" X="20" Y="100" Width="330" Height="32"
+                 Property="RESETUSERSETTINGS" CheckBoxValue="1"
+                 Text="Reset my settings to factory defaults" />
         <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Disabled="yes" Text="!(loc.WixUIBack)" />
         <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="!(loc.WixUINext)">
           <!-- Unchecking deletes the property. Pin 0 or 1 so execute costing sees the choice. -->
           <Publish Property="INSTALLDESKTOPSHORTCUT" Value="1" Condition="INSTALLDESKTOPSHORTCUT = 1" Order="1" />
           <Publish Property="INSTALLDESKTOPSHORTCUT" Value="0" Condition="NOT INSTALLDESKTOPSHORTCUT" Order="2" />
-          <Publish Event="EndDialog" Value="Return" Order="3" />
+          <Publish Property="RESETUSERSETTINGS" Value="1" Condition="RESETUSERSETTINGS = 1" Order="3" />
+          <Publish Property="RESETUSERSETTINGS" Value="0" Condition="NOT RESETUSERSETTINGS" Order="4" />
+          <Publish Event="EndDialog" Value="Return" Order="5" />
         </Control>
         <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="!(loc.WixUICancel)">
           <Publish Event="SpawnDialog" Value="CancelDlg" />
