@@ -6,6 +6,27 @@
 
 namespace gazer {
 
+namespace {
+
+/// True when every enabled map can be evaluated without substituting zero
+/// for a missing axis. A zero stand-in would release a command latch.
+bool mappedAxesReady(const QVector<HeadPoseMap>& maps, const HeadPose& pose)
+{
+    bool any = false;
+    for (const HeadPoseMap& m : maps) {
+        if (!m.enabled || m.id.isEmpty()) {
+            continue;
+        }
+        any = true;
+        if (!headPoseAxisValid(pose, m.source)) {
+            return false;
+        }
+    }
+    return any ? true : pose.valid();
+}
+
+} // namespace
+
 HeadPoseMapper::HeadPoseMapper(QObject* parent)
     : QObject(parent)
 {
@@ -114,7 +135,7 @@ void HeadPoseMapper::onPose(const HeadPose& pose)
     // until then; treating them as zero would release the latch and the next
     // real pose would look like a new press.
     if (m_recoverSettle && m_enabled) {
-        if (!pose.valid()) {
+        if (!mappedAxesReady(m_maps, pose)) {
             return;
         }
         m_recoverSettle = false;

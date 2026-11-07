@@ -302,8 +302,9 @@ void TrackingWatchTest::mapperRecoveryDoesNotFireCommand()
 
     mapper.beginStreamLoss();
     HeadPose junk = headAt(20, 0.0);
-    junk.yawValid = junk.pitchValid = junk.rollValid = junk.rotationValid = false;
-    junk.positionValid = false;
+    junk.yawValid = false;
+    junk.rotationValid = true;
+    junk.positionValid = true;
     mapper.onPose(junk);
     mapper.onPose(headAt(30, 12.0));
     QVERIFY(fired.isEmpty());
