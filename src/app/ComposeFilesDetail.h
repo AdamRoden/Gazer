@@ -10,12 +10,30 @@
 namespace gazer {
 namespace files_detail {
 
-/// Rows on screen in the File Explorer list. An offset is the first visible row.
+/// Rows on screen in the File Explorer list. An offset is the first visible item.
 constexpr int kFileRows = 5;
+/// Tile view is this many columns by rows. One arrow step moves one row of tiles.
+constexpr int kFileTileCols = 8;
+constexpr int kFileTileRows = 4;
 
-[[nodiscard]] inline int maxFileOffset(int count)
+[[nodiscard]] inline int filePageSize(bool tiles)
 {
-    return qMax(0, count - kFileRows);
+    return tiles ? kFileTileCols * kFileTileRows : kFileRows;
+}
+
+[[nodiscard]] inline int fileRowStep(bool tiles)
+{
+    return tiles ? kFileTileCols : 1;
+}
+
+[[nodiscard]] inline int maxFileOffset(int count, bool tiles)
+{
+    return qMax(0, count - filePageSize(tiles));
+}
+
+[[nodiscard]] inline int clampFileOffset(int offset, int count, bool tiles)
+{
+    return qBound(0, offset, maxFileOffset(count, tiles));
 }
 
 struct PathChip {

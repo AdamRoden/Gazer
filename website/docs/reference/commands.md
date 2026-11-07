@@ -164,7 +164,8 @@ XML `mouseMoveByDirection` is the compass form of the nudge commands.
 | `compose.browserPrev` / `compose.browserForward` / `compose.browserUp` | Back, forward, or the parent folder. A path crumb runs `compose.browserGoto.<i>`. A Places entry runs `compose.browserPlace.<i>`. |
 | `compose.browserSave` | **Export**. Asks Yes/No, then writes an `aac-workspace` v1 file using the name in the text box. |
 | `compose.browserBack` | Close File Explorer. |
-| `compose.importPick.<i>` / `compose.importPage.<n>` / `compose.fileRow.<n>` | Open folder `i` or select that JSON file (no read yet), move the list by `n` pages, or move it by `n` rows. |
+| `compose.fileView.list` / `compose.fileView.tiles` | File Explorer toolbar. List is the detail columns. Tiles is a grid of icons, eight across and four down. The current view is filled. |
+| `compose.importPick.<i>` / `compose.importPage.<n>` / `compose.fileRow.<n>` | Open folder `i` or select that JSON file (no read yet), move by `n` pages, or move by `n` rows. A list row is one file. A tile row is eight files. |
 | `compose.fileYes` / `compose.fileNo` | Accept or dismiss the File Explorer confirm. Yes is the only step that reads or writes the file. |
 | `compose.importMerge` / `compose.importReplace` | **Merge**, or **Import** (replace the board and apply model, speed, pitch, and volume). Each asks Yes/No before reading the file. |
 | `compose.saveName` / `compose.cancelName` / `compose.deleteName` | Item editor: save, discard, or delete and return. |

@@ -135,8 +135,10 @@ public:
     bool openFiles(QString* error = nullptr);
     bool pickImportFile(int index, QString* error = nullptr);
     void pageImportFiles(int delta);
-    /// Move the File Explorer list by `rows`. One row is one file.
+    /// Move the File Explorer list by `rows`. A list row is one file. A tile row is eight.
     void scrollFileRows(int rows);
+    /// List shows the detail columns. Tiles shows a grid of icons.
+    void setFileTiles(bool tiles);
     bool browserUp(QString* error = nullptr);
     bool browserPrev(QString* error = nullptr);
     bool browserForward(QString* error = nullptr);
@@ -290,8 +292,10 @@ private:
     bool m_boardNoteKeep = false;
     mutable QStringList m_browserEntries;
     mutable bool m_browserFresh = false;
-    /// First visible File Explorer row.
+    /// First visible File Explorer item.
     int m_fileOffset = 0;
+    /// Tile grid instead of the detail columns. List is the default.
+    bool m_fileTiles = false;
     FileConfirm m_fileConfirm = FileConfirm::None;
     /// Speak layers under File Explorer. Restored when it closes.
     QVector<int> m_fileRestoreLayers;

@@ -133,7 +133,8 @@ When adding a command: register it and add a row here.
 | `compose.browserSave` | **Export**. Asks Yes/No, then writes a Voice `aac-workspace` v1 JSON file under the name in the text box |
 | `compose.fileYes` / `compose.fileNo` | Accept or dismiss that confirm. Yes is the only step that reads or writes the file. Escape is No |
 | `compose.browserBack` | Close File Explorer |
-| `compose.importPick.<i>` / `compose.importPage.<n>` / `compose.fileRow.<n>` | Open folder `i` or select that JSON file (no read yet), move the list by `n` pages, or move it by `n` rows |
+| `compose.fileView.list` / `compose.fileView.tiles` | File Explorer toolbar. List is the detail columns. Tiles is a grid of icons, eight across and four down. The current view is filled |
+| `compose.importPick.<i>` / `compose.importPage.<n>` / `compose.fileRow.<n>` | Open folder `i` or select that JSON file (no read yet), move by `n` pages, or move by `n` rows. A list row is one file. A tile row is eight files |
 | `compose.importMerge` / `compose.importReplace` | **Merge** or **Import**. Each asks Yes/No first. Import replaces the board and also applies model, speed, pitch, and volume |
 | `compose.saveName` / `compose.cancelName` / `compose.deleteName` | Save, discard, or delete the item being edited and return to the board |
 | `compose.editShowColors` / `compose.editShowIcons` | Switch the edit overlay between color chips and icons |

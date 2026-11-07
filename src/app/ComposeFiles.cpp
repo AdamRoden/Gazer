@@ -17,9 +17,10 @@
 
 namespace gazer {
 
+using files_detail::clampFileOffset;
+using files_detail::filePageSize;
 using files_detail::filePlaces;
-using files_detail::kFileRows;
-using files_detail::maxFileOffset;
+using files_detail::fileRowStep;
 using files_detail::pathChips;
 
 namespace {
@@ -508,8 +509,8 @@ void ComposeUi::pageImportFiles(int delta)
         return;
     }
     ensureBrowserEntries();
-    const int maxOff = maxFileOffset(m_browserEntries.size());
-    m_fileOffset = qBound(0, m_fileOffset + delta * kFileRows, maxOff);
+    m_fileOffset = clampFileOffset(m_fileOffset + delta * filePageSize(m_fileTiles),
+                                   m_browserEntries.size(), m_fileTiles);
     rebuildFiles();
 }
 
@@ -519,7 +520,8 @@ void ComposeUi::scrollFileRows(int rows)
         return;
     }
     ensureBrowserEntries();
-    const int next = qBound(0, m_fileOffset + rows, maxFileOffset(m_browserEntries.size()));
+    const int next = clampFileOffset(m_fileOffset + rows * fileRowStep(m_fileTiles),
+                                     m_browserEntries.size(), m_fileTiles);
     if (next == m_fileOffset) {
         return;
     }
@@ -533,11 +535,20 @@ void ComposeUi::filesGoto(int offset)
         return;
     }
     ensureBrowserEntries();
-    const int next = qBound(0, offset, maxFileOffset(m_browserEntries.size()));
+    const int next = clampFileOffset(offset, m_browserEntries.size(), m_fileTiles);
     if (next == m_fileOffset) {
         return;
     }
     m_fileOffset = next;
+    rebuildFiles();
+}
+
+void ComposeUi::setFileTiles(bool tiles)
+{
+    if (m_fileTiles == tiles) {
+        return;
+    }
+    m_fileTiles = tiles;
     rebuildFiles();
 }
 
@@ -547,7 +558,7 @@ void ComposeUi::rebuildFiles()
         return;
     }
     ensureBrowserEntries();
-    m_fileOffset = qBound(0, m_fileOffset, maxFileOffset(m_browserEntries.size()));
+    m_fileOffset = clampFileOffset(m_fileOffset, m_browserEntries.size(), m_fileTiles);
     QString err;
     (void)presentLive(QString(kFilesLiveId), buildFilesDocument(), &err);
 }

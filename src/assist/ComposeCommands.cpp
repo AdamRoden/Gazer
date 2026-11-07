@@ -196,6 +196,14 @@ void registerComposeCommands(CommandRegistry& commands, ComposeUi& compose)
     bindInt(QStringLiteral("compose.importPick."), &ComposeUi::pickImportFile);
     bindVoidInt(QStringLiteral("compose.importPage."), &ComposeUi::pageImportFiles);
     bindVoidInt(QStringLiteral("compose.fileRow."), &ComposeUi::scrollFileRows);
+    commands.registerBuiltin(QStringLiteral("compose.fileView.list"), [&compose](QString*) {
+        compose.setFileTiles(false);
+        return true;
+    });
+    commands.registerBuiltin(QStringLiteral("compose.fileView.tiles"), [&compose](QString*) {
+        compose.setFileTiles(true);
+        return true;
+    });
     bindInt(QStringLiteral("compose.browserGoto."), &ComposeUi::browserGoto);
     bindInt(QStringLiteral("compose.browserPlace."), &ComposeUi::browserPlace);
     bindVoidInt(QStringLiteral("compose.removeWord."), &ComposeUi::removeVisibleWord);

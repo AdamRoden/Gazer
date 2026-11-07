@@ -18,8 +18,11 @@ using SettingsPageBuild::cell;
 using SettingsPageBuild::initTopOverlay;
 using files_detail::Place;
 using files_detail::browserEntryLabel;
+using files_detail::filePageSize;
 using files_detail::filePlaces;
 using files_detail::kFileRows;
+using files_detail::kFileTileCols;
+using files_detail::kFileTileRows;
 using files_detail::pathChips;
 using files_detail::samePath;
 
@@ -126,6 +129,17 @@ PageCell navButton(const QString& id, const QString& label, const QString& icon,
     return cell(id, label, 0, col, command, surface, 1, {}, {}, icon);
 }
 
+PageCell viewButton(const QString& id, const QString& label, const QString& icon, int col,
+                    bool selected, const QString& command, const QColor& surface,
+                    const QColor& picked)
+{
+    PageCell button = cell(id, label, 0, col, selected ? QString() : command,
+                           selected ? picked : surface, 1,
+                           selected ? QStringLiteral("label") : QString(), {}, icon);
+    button.textStyle = QStringLiteral("row");
+    return button;
+}
+
 PageCell columnHead(const QString& id, const QString& text, int col, const QColor& ink)
 {
     PageCell c = cell(id, text, 0, col, {}, QColor(0, 0, 0, 0), 1, QStringLiteral("label"));
@@ -203,9 +217,10 @@ PageDocument ComposeUi::buildFilesDocument() const
     bar.row = 1;
     bar.col = 0;
     bar.rows = 1;
-    bar.columns = 4;
+    bar.columns = 6;
     bar.gapPx = 8;
-    bar.columnTracks = {pxTrack(100), pxTrack(112), pxTrack(88), PageTrackSize::starWeight()};
+    bar.columnTracks = {pxTrack(100), pxTrack(112), pxTrack(88), PageTrackSize::starWeight(),
+                        pxTrack(108), pxTrack(116)};
     bar.cells.push_back(navButton(QStringLiteral("file_back"), QStringLiteral("Back"),
                                   QStringLiteral("ArrowLeft"), 0,
                                   QStringLiteral("compose.browserPrev"), surface));
@@ -242,6 +257,12 @@ PageDocument ComposeUi::buildFilesDocument() const
         address.cells.push_back(std::move(chip));
     }
     bar.subGrids.push_back(std::move(address));
+    bar.cells.push_back(viewButton(QStringLiteral("file_view_list"), QStringLiteral("List"),
+                                   QStringLiteral("menu"), 4, !m_fileTiles,
+                                   QStringLiteral("compose.fileView.list"), surface, picked));
+    bar.cells.push_back(viewButton(QStringLiteral("file_view_tiles"), QStringLiteral("Tiles"),
+                                   QStringLiteral("keyboardKeys"), 5, m_fileTiles,
+                                   QStringLiteral("compose.fileView.tiles"), surface, picked));
     grid.subGrids.push_back(std::move(bar));
 
     PageGrid body;
@@ -302,32 +323,16 @@ PageDocument ComposeUi::buildFilesDocument() const
     main.rowTracks = {pxTrack(26), PageTrackSize::starWeight()};
     framePane(main, theme);
 
-    PageGrid head;
-    head.id = QStringLiteral("file_cols");
-    head.nested = true;
-    head.row = 0;
-    head.col = 0;
-    head.rows = 1;
-    head.columns = 4;
-    head.gapPx = 0;
-    head.columnTracks = detailColumns();
-    head.cells.push_back(columnHead(QStringLiteral("file_col_name"), QStringLiteral("Name"), 0, ink));
-    head.cells.push_back(
-        columnHead(QStringLiteral("file_col_when"), QStringLiteral("Modified"), 1, ink));
-    head.cells.push_back(columnHead(QStringLiteral("file_col_type"), QStringLiteral("Type"), 2, ink));
-    head.cells.push_back(columnHead(QStringLiteral("file_col_size"), QStringLiteral("Size"), 3, ink));
-    main.subGrids.push_back(std::move(head));
-
     const QString selected = selectedJsonPath();
-    PageGrid list;
-    list.id = QStringLiteral("files_list");
-    list.nested = true;
-    list.row = 1;
-    list.col = 0;
-    list.columns = 1;
-    list.gapPx = 6;
-    if (m_browserEntries.isEmpty()) {
+    const int page = filePageSize(m_fileTiles);
+    auto emptyList = [&]() {
+        PageGrid list;
+        list.id = QStringLiteral("files_list");
+        list.nested = true;
+        list.row = m_fileTiles ? 0 : 1;
+        list.col = 0;
         list.rows = 1;
+        list.columns = 1;
         list.rowTracks = {PageTrackSize::starWeight()};
         PageCell empty;
         empty.id = QStringLiteral("file_empty");
@@ -339,48 +344,116 @@ PageDocument ComposeUi::buildFilesDocument() const
         empty.style.background = clear;
         empty.style.thickness = PageBox::all(0);
         list.cells.push_back(std::move(empty));
-    } else {
-        const int shown = qMin(kFileRows, m_browserEntries.size() - m_fileOffset);
-        list.rows = shown + 1;
-        for (int slot = 0; slot < shown; ++slot) {
-            list.rowTracks.push_back(pxTrack(kFileRowPx));
-            const int index = m_fileOffset + slot;
-            const QString path = m_browserEntries.at(index);
-            const QFileInfo info(path);
-            const bool on = !info.isDir() && !selected.isEmpty() && samePath(path, selected);
-            const FileFacts facts = fileFacts(info);
-            const QString command = QStringLiteral("compose.importPick.%1").arg(index);
-            PageGrid row;
-            row.id = QStringLiteral("file_row_%1").arg(slot);
-            row.nested = true;
-            row.row = slot;
-            row.col = 0;
-            row.rows = 1;
-            row.columns = 4;
-            row.gapPx = 0;
-            row.columnTracks = detailColumns();
-            row.style.background = on ? picked : surface;
-            row.style.thickness = PageBox::all(0);
-            row.style.radius = PageBox::all(10);
-            row.cells.push_back(columnCell(QStringLiteral("file_entry_%1").arg(slot),
-                                           browserEntryLabel(path), 0, command, fileIcon(info)));
-            row.cells.push_back(columnCell(QStringLiteral("file_when_%1").arg(slot), facts.when, 1,
-                                           command, {}));
-            row.cells.push_back(columnCell(QStringLiteral("file_kind_%1").arg(slot), facts.kind, 2,
-                                           command, {}));
-            row.cells.push_back(columnCell(QStringLiteral("file_size_%1").arg(slot), facts.size, 3,
-                                           command, {}));
-            list.subGrids.push_back(std::move(row));
+        return list;
+    };
+    if (m_fileTiles) {
+        main.rows = 1;
+        main.rowTracks = {PageTrackSize::starWeight()};
+        if (m_browserEntries.isEmpty()) {
+            main.subGrids.push_back(emptyList());
+        } else {
+            const int shown = qMin(page, m_browserEntries.size() - m_fileOffset);
+            PageGrid tiles;
+            tiles.id = QStringLiteral("files_list");
+            tiles.nested = true;
+            tiles.row = 0;
+            tiles.col = 0;
+            tiles.rows = kFileTileRows;
+            tiles.columns = kFileTileCols;
+            tiles.gapPx = 8;
+            for (int i = 0; i < kFileTileRows; ++i) {
+                tiles.rowTracks.push_back(PageTrackSize::starWeight());
+            }
+            for (int i = 0; i < kFileTileCols; ++i) {
+                tiles.columnTracks.push_back(PageTrackSize::starWeight());
+            }
+            for (int slot = 0; slot < shown; ++slot) {
+                const int index = m_fileOffset + slot;
+                const QString path = m_browserEntries.at(index);
+                const QFileInfo info(path);
+                const bool on = !info.isDir() && !selected.isEmpty() && samePath(path, selected);
+                const QString command = QStringLiteral("compose.importPick.%1").arg(index);
+                PageCell tile = cell(QStringLiteral("file_entry_%1").arg(slot),
+                                     browserEntryLabel(path), slot / kFileTileCols,
+                                     slot % kFileTileCols, command, on ? picked : surface, 1, {},
+                                     {}, fileIcon(info));
+                tile.style.radius = PageBox::all(12);
+                tiles.cells.push_back(std::move(tile));
+            }
+            main.subGrids.push_back(std::move(tiles));
         }
-        list.rowTracks.push_back(PageTrackSize::starWeight());
+    } else {
+        PageGrid head;
+        head.id = QStringLiteral("file_cols");
+        head.nested = true;
+        head.row = 0;
+        head.col = 0;
+        head.rows = 1;
+        head.columns = 4;
+        head.gapPx = 0;
+        head.columnTracks = detailColumns();
+        head.cells.push_back(
+            columnHead(QStringLiteral("file_col_name"), QStringLiteral("Name"), 0, ink));
+        head.cells.push_back(
+            columnHead(QStringLiteral("file_col_when"), QStringLiteral("Modified"), 1, ink));
+        head.cells.push_back(
+            columnHead(QStringLiteral("file_col_type"), QStringLiteral("Type"), 2, ink));
+        head.cells.push_back(
+            columnHead(QStringLiteral("file_col_size"), QStringLiteral("Size"), 3, ink));
+        main.subGrids.push_back(std::move(head));
+
+        if (m_browserEntries.isEmpty()) {
+            main.subGrids.push_back(emptyList());
+        } else {
+            const int shown = qMin(kFileRows, m_browserEntries.size() - m_fileOffset);
+            PageGrid list;
+            list.id = QStringLiteral("files_list");
+            list.nested = true;
+            list.row = 1;
+            list.col = 0;
+            list.columns = 1;
+            list.gapPx = 6;
+            list.rows = shown + 1;
+            for (int slot = 0; slot < shown; ++slot) {
+                list.rowTracks.push_back(pxTrack(kFileRowPx));
+                const int index = m_fileOffset + slot;
+                const QString path = m_browserEntries.at(index);
+                const QFileInfo info(path);
+                const bool on = !info.isDir() && !selected.isEmpty() && samePath(path, selected);
+                const FileFacts facts = fileFacts(info);
+                const QString command = QStringLiteral("compose.importPick.%1").arg(index);
+                PageGrid row;
+                row.id = QStringLiteral("file_row_%1").arg(slot);
+                row.nested = true;
+                row.row = slot;
+                row.col = 0;
+                row.rows = 1;
+                row.columns = 4;
+                row.gapPx = 0;
+                row.columnTracks = detailColumns();
+                row.style.background = on ? picked : surface;
+                row.style.thickness = PageBox::all(0);
+                row.style.radius = PageBox::all(10);
+                row.cells.push_back(columnCell(QStringLiteral("file_entry_%1").arg(slot),
+                                               browserEntryLabel(path), 0, command, fileIcon(info)));
+                row.cells.push_back(columnCell(QStringLiteral("file_when_%1").arg(slot), facts.when,
+                                               1, command, {}));
+                row.cells.push_back(columnCell(QStringLiteral("file_kind_%1").arg(slot), facts.kind,
+                                               2, command, {}));
+                row.cells.push_back(columnCell(QStringLiteral("file_size_%1").arg(slot), facts.size,
+                                               3, command, {}));
+                list.subGrids.push_back(std::move(row));
+            }
+            list.rowTracks.push_back(PageTrackSize::starWeight());
+            main.subGrids.push_back(std::move(list));
+        }
     }
-    main.subGrids.push_back(std::move(list));
 
     PageGrid scroll = compose_detail::overlayScrollbar(
-        m_fileOffset, kFileRows, m_browserEntries.size(), surface,
+        m_fileOffset, page, m_browserEntries.size(), surface,
         QStringLiteral("compose.fileRow.-1"), QStringLiteral("compose.fileRow.1"));
     scroll.id = QStringLiteral("files_scroll");
-    scroll.row = 1;
+    scroll.row = m_fileTiles ? 0 : 1;
     scroll.col = 1;
     main.subGrids.push_back(std::move(scroll));
     body.subGrids.push_back(std::move(main));

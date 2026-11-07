@@ -18,7 +18,7 @@ Composition root, settings, command dispatch.
 | `ComposeItemEdit.cpp` | Unified name/color/icon editor overlay |
 | `ComposeHistory.cpp` | History replay/restore |
 | `ComposeFiles.cpp` | File Explorer import, merge, export, and confirm |
-| `ComposeFilesWindow.cpp` | File Explorer window (places, details columns, footer) |
+| `ComposeFilesWindow.cpp` | File Explorer window (places, list or tile view, footer) |
 | `ComposeListScroll.cpp` | Scrollbar drag on history, voices, and File Explorer (`GazeTrack`) |
 | `GazeRouter` | Gaze sample → session + assist |
 | `ActiveStateResolver` | `visibleWhen` / `activeState` keys (`mod.shift`, …) |
