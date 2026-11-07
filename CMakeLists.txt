@@ -359,7 +359,6 @@ set(GAZER_HEADERS
     src/ui/TrackingLossOverlay.h
     src/core/TrackingWatch.h
     src/core/TobiiPumpHealth.h
-    src/core/FakeTracker.h
     src/app/SettingsInstallPolicy.h
 )
 
@@ -567,6 +566,8 @@ add_executable(GazerPageTests
     tests/TrackingWatchTest.cpp
     src/core/TrackingWatch.cpp
     src/core/TobiiPumpHealth.cpp
+    # Q_OBJECT test seam. Not in GAZER_HEADERS: listing the header there makes
+    # AUTOMOC emit FakeTracker into Gazer.exe without this source file.
     src/core/FakeTracker.cpp
     src/assist/HeadPoseMapper.cpp
     # HeadPoseMapper calls MouseInjector. That TU includes WinOverlay.h (QWidget)
