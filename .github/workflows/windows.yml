@@ -27,7 +27,11 @@ jobs:
           host: windows
           target: desktop
           arch: win64_mingw
-          # qtbase supplies Core, Gui, Widgets, OpenGL, Network, Test.
+          # qtmultimedia is an add-on module, not a qtbase archive. aqt ignores
+          # an archives name that is not in a selected package, so listing it
+          # only under archives never downloads it. --archives also filters
+          # extra modules: modules without qtmultimedia in archives drops it.
+          modules: qtmultimedia
           archives: qtbase qtdeclarative qtsvg qtmultimedia qttools
           tools: tools_mingw1310
           cache: true
