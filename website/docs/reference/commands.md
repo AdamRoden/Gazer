@@ -189,7 +189,7 @@ XML `mouseMoveByDirection` is the compass form of the nudge commands.
 | `speech.lang.all` / `speech.lang.set.<code>` | Language filter. |
 | `speech.speed.dec` / `.inc` | Nudge `speechSpeed` by 0.1. |
 | `speech.volume.dec` / `.inc` | Nudge `speechVolume` by 0.5 (1–5× clip boost). The voice list uses these. |
-| `volume.dec` / `.inc` | Nudge Windows master volume by 10% on any page. `compose.volume.dec` / `.inc` are the same commands. A slider with `caption="volume"` shows that percent. On Speak, the Actions bottom row is **−**, the slider, and **+**. The slider waits 2 seconds, then the level eases toward where you look at about 20 percent per second. Other sliders follow gaze once their `scanGrace` ends (the Dwell setting when the cell does not set one). |
+| `volume.dec` / `.inc` | Nudge the Speak output device by 10% on any page. That device is Settings → Speak, or the Windows default when none is chosen. `compose.volume.dec` / `.inc` are the same commands. A slider with `caption="volume"` shows that percent. On Speak, the Actions bottom row is **−**, the slider, and **+**. The slider waits 2 seconds, then the level eases toward where you look at about 20 percent per second. Other sliders follow gaze once their `scanGrace` ends (the Dwell setting when the cell does not set one). |
 
 While `compose` (or a compose live board) is the source page, `Send` and mapping keys are captured into the phrase. See [Actions — Composer capture](actions.md#composer-capture).
 

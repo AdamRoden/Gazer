@@ -159,9 +159,9 @@ When adding a command: register it and add a row here.
 | `speech.lang.all` / `speech.lang.set.<code>` | Language filter |
 | `speech.speed.dec` / `.inc` | Nudge `speechSpeed` 0.1 |
 | `speech.volume.dec` / `.inc` | Nudge `speechVolume` 0.5 (1–5× clip boost). The voice list uses these |
-| `volume.dec` / `.inc` | Nudge Windows master volume by 10%. Any page. `compose.volume.dec` / `.inc` are the same commands. Speak → Actions puts **−**, a `role="slider"` `caption="volume"` cell (`scanGrace` 2000 ms), and **+** on the bottom row. After the grace, the level eases toward the gaze point at 20 percent per second. Wide QWERTY follows gaze as soon as its own scan grace ends |
+| `volume.dec` / `.inc` | Nudge the Speak output device by 10%. That device is Settings → Speak, or the Windows default when none is chosen. Any page. `compose.volume.dec` / `.inc` are the same commands. Speak → Actions puts **−**, a `role="slider"` `caption="volume"` cell (`scanGrace` 2000 ms), and **+** on the bottom row. After the grace, the level eases toward the gaze point at 20 percent per second. Wide QWERTY follows gaze as soon as its own scan grace ends |
 
-While `compose` is top (or a compose live board), `Send` and mapping keys (`backspace`, `space`, `enter`, `escape`, modifiers) are captured and never reach the OS. `volume.dec` / `volume.inc` still nudge the Windows endpoint. Caps uses XML `ShowLayers`.
+While `compose` is top (or a compose live board), `Send` and mapping keys (`backspace`, `space`, `enter`, `escape`, modifiers) are captured and never reach the OS. `volume.dec` / `volume.inc` still nudge the Speak output device. Caps uses XML `ShowLayers`.
 
 ## Settings (`SettingsCommands.cpp`)
 

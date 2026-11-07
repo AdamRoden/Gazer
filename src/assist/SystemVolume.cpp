@@ -1,6 +1,9 @@
 #include "assist/SystemVolume.h"
 
+#include "assist/AudioOutput.h"
 #include "utils/Log.h"
+
+#include <QMediaDevices>
 
 #include <QtGlobal>
 
@@ -11,6 +14,8 @@
 #  include <windows.h>
 #  include <mmdeviceapi.h>
 #  include <endpointvolume.h>
+#  include <objbase.h>
+#  include <string>
 #endif
 
 namespace gazer {
@@ -69,12 +74,75 @@ private:
 SystemVolume::SystemVolume(QObject* parent)
     : QObject(parent)
 {
-    (void)ensureEndpoint();
+    auto* devices = new QMediaDevices(this);
+    connect(devices, &QMediaDevices::audioOutputsChanged, this, [this] {
+        (void)bindCurrent();
+    });
+    (void)retarget();
 }
 
 SystemVolume::~SystemVolume()
 {
     releaseEndpoint();
+    releaseEnumerator();
+#ifdef Q_OS_WIN
+    if (m_comInited) {
+        CoUninitialize();
+        m_comInited = false;
+    }
+#endif
+}
+
+bool SystemVolume::setDeviceKey(const QString& key)
+{
+#ifdef Q_OS_WIN
+    const QString next = key.trimmed();
+    if (next == m_deviceKey && m_endpoint) {
+        return true;
+    }
+    if (next != m_deviceKey) {
+        m_deviceKey = next;
+        m_fallbackLogged = false;
+    }
+    return bindCurrent();
+#else
+    Q_UNUSED(key);
+    return false;
+#endif
+}
+
+bool SystemVolume::ensureEnumerator()
+{
+#ifdef Q_OS_WIN
+    if (m_enumerator) {
+        return true;
+    }
+    IMMDeviceEnumerator* enumerator = nullptr;
+    HRESULT hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL,
+                                  __uuidof(IMMDeviceEnumerator),
+                                  reinterpret_cast<void**>(&enumerator));
+    if (hr == CO_E_NOTINITIALIZED) {
+        const HRESULT init = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+        if (SUCCEEDED(init)) {
+            m_comInited = true;
+        } else if (init != RPC_E_CHANGED_MODE) {
+            GAZER_WARN << "SystemVolume: COM init failed";
+            return false;
+        }
+        enumerator = nullptr;
+        hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL,
+                              __uuidof(IMMDeviceEnumerator),
+                              reinterpret_cast<void**>(&enumerator));
+    }
+    if (FAILED(hr) || !enumerator) {
+        GAZER_WARN << "SystemVolume: no device enumerator";
+        return false;
+    }
+    m_enumerator = enumerator;
+    return true;
+#else
+    return false;
+#endif
 }
 
 bool SystemVolume::ensureEndpoint()
@@ -83,29 +151,48 @@ bool SystemVolume::ensureEndpoint()
     if (m_endpoint) {
         return true;
     }
-    auto* enumerator = static_cast<IMMDeviceEnumerator*>(m_enumerator);
-    if (!enumerator) {
-        const HRESULT hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL,
-                                            __uuidof(IMMDeviceEnumerator),
-                                            reinterpret_cast<void**>(&enumerator));
-        if (FAILED(hr) || !enumerator) {
-            GAZER_WARN << "SystemVolume: no device enumerator";
-            return false;
+    return retarget();
+#else
+    return false;
+#endif
+}
+
+bool SystemVolume::retarget()
+{
+#ifdef Q_OS_WIN
+    bool fellBack = false;
+    const QAudioDevice chosen = AudioOutput::resolveDevice(m_deviceKey, &fellBack);
+    if (chosen.isNull() || chosen.id().isEmpty()) {
+        if (m_endpoint) {
+            releaseEndpoint();
         }
-        m_enumerator = enumerator;
+        return false;
     }
+    const QString id = QString::fromUtf8(chosen.id());
+    if (m_endpoint && id == m_boundEndpointId) {
+        noteFollow(fellBack);
+        return true;
+    }
+    if (!ensureEnumerator()) {
+        return false;
+    }
+    auto* enumerator = static_cast<IMMDeviceEnumerator*>(m_enumerator);
     IMMDevice* device = nullptr;
-    if (FAILED(enumerator->GetDefaultAudioEndpoint(eRender, eMultimedia, &device)) || !device) {
+    const std::wstring wide = id.toStdWString();
+    if (FAILED(enumerator->GetDevice(wide.c_str(), &device)) || !device) {
+        if (m_endpoint) {
+            releaseEndpoint();
+        }
         return false;
     }
     IAudioEndpointVolume* endpoint = nullptr;
-    const HRESULT ok =
-        device->Activate(__uuidof(IAudioEndpointVolume), CLSCTX_ALL, nullptr,
-                         reinterpret_cast<void**>(&endpoint));
+    const HRESULT ok = device->Activate(__uuidof(IAudioEndpointVolume), CLSCTX_ALL, nullptr,
+                                        reinterpret_cast<void**>(&endpoint));
     device->Release();
     if (FAILED(ok) || !endpoint) {
         return false;
     }
+    releaseEndpoint();
     auto* notify = new SystemVolumeNotify(this);
     if (FAILED(endpoint->RegisterControlChangeNotify(notify))) {
         notify->detach();
@@ -114,10 +201,39 @@ bool SystemVolume::ensureEndpoint()
     }
     m_endpoint = endpoint;
     m_notify = notify;
+    m_boundEndpointId = id;
+    noteFollow(fellBack);
     return true;
 #else
     return false;
 #endif
+}
+
+bool SystemVolume::bindCurrent()
+{
+    const QString previous = m_boundEndpointId;
+    const bool had = m_endpoint != nullptr;
+    const bool ok = retarget();
+    if (ok) {
+        if (!had || m_boundEndpointId != previous) {
+            emit changed();
+        }
+    } else if (had) {
+        emit changed();
+    }
+    return ok;
+}
+
+void SystemVolume::noteFollow(bool fellBack)
+{
+    if (!fellBack) {
+        m_fallbackLogged = false;
+        return;
+    }
+    if (!m_fallbackLogged) {
+        GAZER_WARN << "SystemVolume: playback device missing; using Windows default";
+        m_fallbackLogged = true;
+    }
 }
 
 void SystemVolume::releaseEndpoint()
@@ -135,13 +251,20 @@ void SystemVolume::releaseEndpoint()
     if (endpoint) {
         endpoint->Release();
     }
+#endif
+    m_endpoint = nullptr;
+    m_notify = nullptr;
+    m_boundEndpointId.clear();
+}
+
+void SystemVolume::releaseEnumerator()
+{
+#ifdef Q_OS_WIN
     auto* enumerator = static_cast<IMMDeviceEnumerator*>(m_enumerator);
     if (enumerator) {
         enumerator->Release();
     }
 #endif
-    m_endpoint = nullptr;
-    m_notify = nullptr;
     m_enumerator = nullptr;
 }
 

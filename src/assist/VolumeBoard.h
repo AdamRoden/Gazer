@@ -7,7 +7,7 @@
 
 namespace gazer {
 
-/// Page side of master volume. `SystemVolume` owns the endpoint. This stamps
+/// Page side of the Speak output volume. `SystemVolume` owns the endpoint. This stamps
 /// `caption="volume"` sliders and maps gaze on them. The sliders stay passive,
 /// so `PageHit` does not dwell them. Gaze must stay for the cell's `scanGrace`
 /// (or @p fallbackGraceMs) before the level is reported.

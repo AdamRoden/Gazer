@@ -99,7 +99,7 @@ public:
     /// stopAssistOutput, close attached pages, resume dwell.
     void panicReset();
     void setInjectPaused(bool on);
-    /// Gaze along a `caption="volume"` slider sets the Windows master volume
+    /// Gaze along a `caption="volume"` slider sets the Speak output device
     /// after that cell's scan grace. The page rebuild is deferred so this
     /// sample's dwell still sees the old targets.
     void feedVolumeGaze(const GazePoint& point);

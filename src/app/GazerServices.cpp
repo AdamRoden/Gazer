@@ -537,6 +537,13 @@ void GazerServices::applySettings(bool persist)
     if (m_clips) {
         m_clips->setOutputKey(m_settings.speechOutputId);
     }
+    if (m_systemVolume) {
+        const QString before = m_systemVolume->boundEndpointId();
+        m_systemVolume->setDeviceKey(m_settings.speechOutputId);
+        if (m_systemVolume->boundEndpointId() != before) {
+            m_volumeSlew = {};
+        }
+    }
 
     if (m_pages) {
         m_pages->setAutoCollapseMain(m_settings.autoCollapseMain);
@@ -702,13 +709,13 @@ void GazerServices::registerDomainCommands()
     m_assistCmdCtx->isDwellSuspended = [this]() { return isDwellSuspended(); };
     registerAssistCommands(*m_assistCmdCtx);
 
-    auto nudgeMaster = [this](int dir) {
+    auto nudgeOutput = [this](int dir) {
         return [this, dir](QString*) {
             return m_systemVolume && m_systemVolume->nudge(dir);
         };
     };
-    m_commands->registerBuiltin({ "volume.dec", "compose.volume.dec" }, nudgeMaster(-1));
-    m_commands->registerBuiltin({ "volume.inc", "compose.volume.inc" }, nudgeMaster(1));
+    m_commands->registerBuiltin({ "volume.dec", "compose.volume.dec" }, nudgeOutput(-1));
+    m_commands->registerBuiltin({ "volume.inc", "compose.volume.inc" }, nudgeOutput(1));
 
     auto cycleMod = [this](const QString& key) {
         return [this, key](QString* error) { return m_keyState->cycle(key, error); };
