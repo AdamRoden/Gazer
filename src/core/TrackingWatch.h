@@ -9,11 +9,13 @@ namespace gazer {
 
 /// Distinguishes a blink from a stalled gaze or head stream.
 ///
-/// Invalid samples that keep arriving are a blink until `sustainedInvalidMs`.
-/// No samples at all is a stall: `streamStaleMs` after the last sample, or
+/// Invalid gaze that keeps arriving is a blink until `sustainedInvalidMs`.
+/// Invalid head does not refresh the head clock; a brief gap is not a stall,
+/// and a sustained run of invalid head (or no head samples) is.
+/// No gaze samples at all is a stall: `streamStaleMs` after the last sample, or
 /// `startupSilenceMs` if the stream has never delivered one. A disconnect is
-/// immediate. Loss holds outputs until `resume()`; a later sample does not
-/// clear the hold and does not count as permission to activate.
+/// immediate. Gaze loss stays until `resume()`. Head-only loss clears when a
+/// valid head pose returns, so the next stall can neutralize again.
 class TrackingWatch {
 public:
     static constexpr int kDefaultBlinkGraceMs = 200;
@@ -47,12 +49,16 @@ public:
     /// Worker already decided the gaze or head stream is stale.
     [[nodiscard]] Transition noteGazeStale(GazeLossReason reason);
     [[nodiscard]] Transition noteHeadStale();
+    /// Remember a failed Retry so the overlay does not stay on "Retrying…".
+    void noteRetryFailed(const QString& reason);
+    void clearRetryFailure();
     [[nodiscard]] Transition resume();
 
     [[nodiscard]] bool blocksBoardGaze() const { return m_gazeHold; }
     [[nodiscard]] bool headHeld() const { return m_headHold; }
     [[nodiscard]] bool lossHold() const { return m_gazeHold || m_headHold; }
-    /// False while a gaze or head hold is active, including after samples return.
+    /// False during a gaze hold, or during a head-only hold that has not yet
+    /// seen a valid pose come back. A later gaze sample does not clear gaze loss.
     [[nodiscard]] bool allowsActivation() const { return !m_gazeHold && !m_headHold; }
     [[nodiscard]] bool hadLiveGaze() const { return m_hadLiveGaze; }
     [[nodiscard]] bool hadLiveHead() const { return m_hadLiveHead; }
@@ -81,8 +87,12 @@ private:
     qint64 m_invalidSinceMs = 0;
 
     bool m_headSeen = false;
+    /// Time of the last *valid* head sample. Invalid poses do not refresh it.
     qint64 m_lastHeadMs = 0;
     bool m_hadLiveHead = false;
+    bool m_headInvalidOpen = false;
+    qint64 m_headInvalidSinceMs = 0;
+    QString m_retryFailure;
 
     bool m_gazeHold = false;
     bool m_headHold = false;

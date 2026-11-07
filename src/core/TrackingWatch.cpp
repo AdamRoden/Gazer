@@ -55,6 +55,7 @@ TrackingWatch::Transition TrackingWatch::enterGaze(GazeLossReason reason)
         m_gazeHold = true;
         m_gazeReason = reason;
         m_reconnected = false;
+        m_retryFailure.clear();
         t.enteredGazeLoss = true;
     }
     if (!m_headHold) {
@@ -101,10 +102,33 @@ TrackingWatch::Transition TrackingWatch::onGaze(const GazePoint& point, qint64 n
 
 TrackingWatch::Transition TrackingWatch::onHead(const HeadPose& pose, qint64 nowMs)
 {
+    if (!pose.valid()) {
+        // Do not refresh m_lastHeadMs. A stream of invalid poses must age out
+        // through poll(), and a long enough run is its own head-only loss.
+        // Boards stay available: enterHead() does not set the gaze hold.
+        if (!m_hadLiveHead || m_gazeHold || m_headHold) {
+            return {};
+        }
+        if (!m_headInvalidOpen) {
+            m_headInvalidOpen = true;
+            m_headInvalidSinceMs = nowMs;
+            return {};
+        }
+        if (nowMs - m_headInvalidSinceMs >= m_sustainedInvalidMs) {
+            return enterHead();
+        }
+        return {};
+    }
+
     m_headSeen = true;
     m_lastHeadMs = nowMs;
-    if (pose.valid()) {
-        m_hadLiveHead = true;
+    m_hadLiveHead = true;
+    m_headInvalidOpen = false;
+    // Head-only hold ends on the first valid pose so the mapper can take its
+    // paused recovery sample and a later stall can neutralize again.
+    // Gaze loss is not cleared here.
+    if (m_headHold && !m_gazeHold) {
+        m_headHold = false;
     }
     return {};
 }
@@ -116,6 +140,7 @@ TrackingWatch::Transition TrackingWatch::onDisconnect(qint64 /*nowMs*/)
 
 void TrackingWatch::onReconnect(qint64 /*nowMs*/)
 {
+    m_retryFailure.clear();
     if (m_gazeHold || m_headHold) {
         m_reconnected = true;
     }
@@ -160,9 +185,28 @@ TrackingWatch::Transition TrackingWatch::noteHeadStale()
     return enterHead();
 }
 
+void TrackingWatch::noteRetryFailed(const QString& reason)
+{
+    if (reason.trimmed().isEmpty()) {
+        m_retryFailure = QStringLiteral(
+            "Eye tracker retry failed. Dwell Retry, Resume, or Use mouse.");
+    } else {
+        m_retryFailure = QStringLiteral(
+                             "Eye tracker retry failed: %1. Dwell Retry, Resume, or Use mouse.")
+                             .arg(reason.trimmed());
+    }
+}
+
+void TrackingWatch::clearRetryFailure()
+{
+    m_retryFailure.clear();
+}
+
 TrackingWatch::Transition TrackingWatch::resume()
 {
     Transition t;
+    m_retryFailure.clear();
+    m_headInvalidOpen = false;
     if (!m_gazeHold && !m_headHold) {
         return t;
     }
@@ -185,6 +229,9 @@ bool TrackingWatch::consumeResumeLatch()
 
 QString TrackingWatch::statusText() const
 {
+    if (!m_retryFailure.isEmpty()) {
+        return m_retryFailure;
+    }
     if (m_gazeHold && m_reconnected) {
         return QStringLiteral(
             "Eye tracker reconnected. Dwell Resume. Nothing clicks until you do.");

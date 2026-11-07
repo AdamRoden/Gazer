@@ -547,7 +547,7 @@ void TrackerTobii::workerMain()
 
 void TrackerTobii::publishPump(const TobiiPumpHealth::Edges& edges)
 {
-    if (!edges.gazeStale && !edges.headStale && !edges.disconnected && !edges.reconnected) {
+    if (!edges.actionable()) {
         return;
     }
     const uint64_t gen = m_generation.load();
@@ -568,6 +568,9 @@ void TrackerTobii::publishPump(const TobiiPumpHealth::Edges& edges)
             }
             if (edges.reconnected) {
                 emit deviceReconnected();
+            }
+            if (edges.failed) {
+                emit reconnectFailed(edges.reason);
             }
         },
         Qt::QueuedConnection);

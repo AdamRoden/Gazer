@@ -133,7 +133,12 @@ bool Application::initialize()
     connect(m_tray.get(), &TrayIcon::retryTrackerRequested, this, &Application::retryEyeTracker);
     connect(m_tray.get(), &TrayIcon::useMouseTrackerRequested, this, &Application::useMouseTracker);
     connect(m_lossOverlay.get(), &TrackingLossOverlay::resumeRequested, this, [this]() {
-        applyTrackingTransition(m_watch.resume());
+        const TrackingWatch::Transition tr = m_watch.resume();
+        applyTrackingTransition(tr);
+        // Retry-failure board with no gaze/head hold: Resume just dismisses it.
+        if (!tr.resumed && m_lossOverlay && m_lossOverlay->isActive() && !m_watch.lossHold()) {
+            m_lossOverlay->hideLoss();
+        }
     });
     connect(m_lossOverlay.get(), &TrackingLossOverlay::retryRequested, this,
             &Application::retryEyeTracker);
@@ -414,8 +419,25 @@ void Application::wireTracker()
         });
         connect(tobii, &TrackerTobii::deviceReconnected, this, [this]() {
             m_watch.onReconnect(watchNow());
-            if (m_lossOverlay && m_lossOverlay->isActive()) {
+            if (!m_lossOverlay || !m_lossOverlay->isActive()) {
+                return;
+            }
+            if (m_watch.lossHold()) {
                 m_lossOverlay->setStatus(m_watch.statusText());
+            } else {
+                m_lossOverlay->hideLoss();
+            }
+        });
+        connect(tobii, &TrackerTobii::reconnectFailed, this, [this](const QString& reason) {
+            m_watch.noteRetryFailed(reason);
+            if (!m_lossOverlay) {
+                return;
+            }
+            const QString status = m_watch.statusText();
+            if (m_lossOverlay->isActive()) {
+                m_lossOverlay->setStatus(status);
+            } else {
+                m_lossOverlay->showLoss(status);
             }
         });
     }
@@ -549,6 +571,7 @@ void Application::useMouseTracker()
     if (m_watch.lossHold()) {
         applyTrackingTransition(m_watch.resume());
     } else if (m_lossOverlay) {
+        m_watch.clearRetryFailure();
         m_lossOverlay->hideLoss();
     }
     updateTrayStatus();

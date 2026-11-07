@@ -565,7 +565,7 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     copy.applyTheme();
 
     QJsonObject o;
-    o.insert(QStringLiteral("schemaVersion"), 2);
+    o.insert(QStringLiteral("schemaVersion"), kSettingsSchemaVersion);
     QJsonArray seq;
     for (int ms : copy.dwellSequence) {
         seq.append(ms);

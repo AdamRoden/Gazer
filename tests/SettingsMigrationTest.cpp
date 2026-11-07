@@ -61,7 +61,8 @@ void SettingsMigrationTest::upgradePreservesDwellAndWritesBackup()
     QVERIFY(QFile::exists(dir.filePath(QStringLiteral("settings.v1.json.bak"))));
 
     const QJsonObject rewritten = QJsonDocument::fromJson(readText(path)).object();
-    QCOMPARE(rewritten.value(QStringLiteral("schemaVersion")).toInt(), 2);
+    QCOMPARE(rewritten.value(QStringLiteral("schemaVersion")).toInt(),
+             AppSettings::kSettingsSchemaVersion);
     AppSettings again;
     QVERIFY(again.loadFromFile(path));
     QCOMPARE(again.dwellSequence, QVector<int>({321, 654}));

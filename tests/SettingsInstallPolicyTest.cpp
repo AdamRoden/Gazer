@@ -54,6 +54,11 @@ void SettingsInstallPolicyTest::installerRemovesSettingsOnlyWhenResetRequested()
     const QString preserveBody = text.mid(preserveAt, preserveEnd - preserveAt);
     QVERIFY(!preserveBody.contains(QStringLiteral("RemoveFile")));
     QVERIFY(!preserveBody.contains(QStringLiteral("settings.json")));
+    // Same GUID as the shipped component. The keypath name must stay
+    // ResetSettings; renaming it under this GUID breaks major upgrade.
+    QVERIFY(preserveBody.contains(QStringLiteral("D4E6A8B0-3F5C-7D9E-1B2A-4C6D8E0F1A3B")));
+    QVERIFY(preserveBody.contains(QStringLiteral("Name=\"ResetSettings\"")));
+    QVERIFY(!text.contains(QStringLiteral("SettingsPreserved")));
 }
 
 QObject* createSettingsInstallPolicyTest()

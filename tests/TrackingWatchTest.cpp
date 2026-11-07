@@ -59,6 +59,11 @@ private slots:
     void disconnectIsImmediate();
     void reconnectDoesNotAllowActivation();
     void headLossIsIndependentOfGaze();
+    void headOnlyLossClearsWhenValidHeadReturns();
+    void repeatedInvalidHeadDoesNotStayFresh();
+    void sustainedInvalidHeadDoesNotBlockBoards();
+    void validHeadDoesNotClearGazeHold();
+    void failedReconnectEdgeIsPublishedAndKeptOnScreen();
     void resumeLatchSkipsTheAcknowledgingSample();
     void fakeTrackerStaleAndReconnectDoNotActivate();
     void pumpNoCallbacksThenDisconnectAndReconnect();
@@ -168,6 +173,139 @@ void TrackingWatchTest::headLossIsIndependentOfGaze()
     QVERIFY(!watch.allowsActivation());
 }
 
+void TrackingWatchTest::headOnlyLossClearsWhenValidHeadReturns()
+{
+    TrackingWatch watch;
+    watch.setStreamStaleMs(800);
+    watch.noteStreamRunning(0);
+    QVERIFY(!watch.onGaze(gazeAt(0, true), 0).enteredGazeLoss);
+    QVERIFY(!watch.onHead(headAt(0, 1.0), 0).enteredHeadLoss);
+    QVERIFY(!watch.onGaze(gazeAt(800, true), 800).enteredGazeLoss);
+
+    const TrackingWatch::Transition first = watch.poll(800);
+    QVERIFY(first.enteredHeadLoss);
+    QVERIFY(!first.enteredGazeLoss);
+    QVERIFY(!watch.blocksBoardGaze());
+    QVERIFY(watch.headHeld());
+    QVERIFY(watch.lossHold());
+
+    QVERIFY(!watch.onGaze(gazeAt(900, true), 900).enteredGazeLoss);
+    const TrackingWatch::Transition back = watch.onHead(headAt(900, 2.0), 900);
+    QVERIFY(!back.enteredHeadLoss);
+    QVERIFY(!back.enteredGazeLoss);
+    QVERIFY(!watch.headHeld());
+    QVERIFY(!watch.lossHold());
+    QVERIFY(!watch.blocksBoardGaze());
+    QVERIFY(watch.allowsActivation());
+
+    // Worker signal for a second stall. Must enter again so neutralize runs.
+    const TrackingWatch::Transition second = watch.noteHeadStale();
+    QVERIFY(second.enteredHeadLoss);
+    QVERIFY(!second.enteredGazeLoss);
+    QVERIFY(!watch.blocksBoardGaze());
+    QVERIFY(watch.headHeld());
+    QVERIFY(watch.lossHold());
+}
+
+void TrackingWatchTest::repeatedInvalidHeadDoesNotStayFresh()
+{
+    TrackingWatch watch;
+    watch.setStreamStaleMs(800);
+    watch.setSustainedInvalidMs(2000);
+    watch.noteStreamRunning(0);
+    QVERIFY(!watch.onGaze(gazeAt(0, true), 0).enteredGazeLoss);
+    QVERIFY(!watch.onHead(headAt(0, 1.0), 0).enteredHeadLoss);
+
+    HeadPose bad;
+    bad.timestampMs = 100;
+    QVERIFY(!watch.onHead(bad, 100).enteredHeadLoss);
+    bad.timestampMs = 300;
+    QVERIFY(!watch.onHead(bad, 300).enteredHeadLoss);
+    QVERIFY(!watch.headHeld());
+    QVERIFY(!watch.blocksBoardGaze());
+
+    QVERIFY(!watch.onGaze(gazeAt(400, true), 400).enteredGazeLoss);
+    QVERIFY(!watch.poll(400).enteredHeadLoss);
+
+    bad.timestampMs = 700;
+    QVERIFY(!watch.onHead(bad, 700).enteredHeadLoss);
+    QVERIFY(!watch.onGaze(gazeAt(800, true), 800).enteredGazeLoss);
+    const TrackingWatch::Transition lost = watch.poll(800);
+    QVERIFY(lost.enteredHeadLoss);
+    QVERIFY(!lost.enteredGazeLoss);
+    QVERIFY(!watch.blocksBoardGaze());
+    QVERIFY(watch.headHeld());
+}
+
+void TrackingWatchTest::sustainedInvalidHeadDoesNotBlockBoards()
+{
+    TrackingWatch watch;
+    watch.setStreamStaleMs(5000);
+    watch.setSustainedInvalidMs(500);
+    watch.noteStreamRunning(0);
+    QVERIFY(!watch.onGaze(gazeAt(0, true), 0).enteredGazeLoss);
+    QVERIFY(!watch.onHead(headAt(0, 1.0), 0).enteredHeadLoss);
+
+    HeadPose bad;
+    bad.timestampMs = 10;
+    QVERIFY(!watch.onHead(bad, 10).enteredHeadLoss);
+    QVERIFY(!watch.blocksBoardGaze());
+
+    bad.timestampMs = 510;
+    const TrackingWatch::Transition lost = watch.onHead(bad, 510);
+    QVERIFY(lost.enteredHeadLoss);
+    QVERIFY(!lost.enteredGazeLoss);
+    QVERIFY(!watch.blocksBoardGaze());
+    QVERIFY(watch.headHeld());
+}
+
+void TrackingWatchTest::validHeadDoesNotClearGazeHold()
+{
+    TrackingWatch watch;
+    watch.noteStreamRunning(0);
+    QVERIFY(!watch.onGaze(gazeAt(0, true), 0).enteredGazeLoss);
+    QVERIFY(watch.onDisconnect(10).enteredGazeLoss);
+    QVERIFY(!watch.onHead(headAt(20, 3.0), 20).enteredHeadLoss);
+    QVERIFY(watch.blocksBoardGaze());
+    QVERIFY(watch.headHeld());
+    QVERIFY(watch.lossHold());
+    QVERIFY(!watch.allowsActivation());
+}
+
+void TrackingWatchTest::failedReconnectEdgeIsPublishedAndKeptOnScreen()
+{
+    TobiiPumpHealth pump;
+    pump.noteStreamStart(0);
+    const TobiiPumpHealth::Edges fail =
+        pump.onReconnectFinished(false, 5, QStringLiteral("no device"));
+    QVERIFY(fail.failed);
+    QVERIFY(fail.actionable());
+    QVERIFY(!fail.reconnected);
+    QVERIFY(!fail.gazeStale);
+    QVERIFY(!fail.headStale);
+    QVERIFY(!fail.disconnected);
+    QCOMPARE(fail.reason, QStringLiteral("no device"));
+
+    TobiiPumpHealth::Edges quiet;
+    QVERIFY(!quiet.actionable());
+
+    TrackingWatch watch;
+    watch.noteStreamRunning(0);
+    QVERIFY(!watch.onGaze(gazeAt(0, true), 0).enteredGazeLoss);
+    QVERIFY(watch.onDisconnect(10).enteredGazeLoss);
+    watch.noteRetryFailed(fail.reason);
+    const QString status = watch.statusText();
+    QVERIFY(status.contains(QStringLiteral("no device")));
+    QVERIFY(status.contains(QStringLiteral("Resume")));
+    QVERIFY(status.contains(QStringLiteral("Retry")));
+    QVERIFY(status.contains(QStringLiteral("Use mouse")));
+    // A later sample must not wipe the failure or lift the gaze hold.
+    QVERIFY(!watch.onGaze(gazeAt(30, true), 30).enteredGazeLoss);
+    QCOMPARE(watch.statusText(), status);
+    QVERIFY(watch.blocksBoardGaze());
+    QVERIFY(!watch.allowsActivation());
+}
+
 void TrackingWatchTest::resumeLatchSkipsTheAcknowledgingSample()
 {
     TrackingWatch watch;
@@ -260,6 +398,7 @@ void TrackingWatchTest::pumpNoCallbacksThenDisconnectAndReconnect()
 
     TobiiPumpHealth::Edges fail = drop.onReconnectFinished(false, 13, QStringLiteral("no device"));
     QVERIFY(fail.failed);
+    QVERIFY(fail.actionable());
     QCOMPARE(fail.reason, QStringLiteral("no device"));
 }
 

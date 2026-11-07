@@ -18,6 +18,13 @@ public:
         bool reconnected = false;
         bool failed = false;
         QString reason;
+
+        /// True when the worker must tell the UI. Includes a failed retry
+        /// that has no other edge set.
+        [[nodiscard]] bool actionable() const
+        {
+            return gazeStale || headStale || disconnected || reconnected || failed;
+        }
     };
 
     void setHeadSubscribed(bool on) { m_headSubscribed = on; }

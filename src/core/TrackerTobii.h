@@ -60,6 +60,8 @@ signals:
     void deviceDisconnected();
     /// device_reconnect succeeded. No synthetic gaze sample is emitted.
     void deviceReconnected();
+    /// device_reconnect failed. The worker keeps running; the UI must say so.
+    void reconnectFailed(const QString& reason);
 
 private:
     void flushPendingGaze();

@@ -120,11 +120,13 @@
     </Component>
 
     <!-- Key path only. Do not RemoveFile settings.json here: upgrade, repair,
-         and same-version reinstall reinstall this component. -->
+         and same-version reinstall reinstall this component.
+         Name="ResetSettings" is the original keypath. Do not rename it under
+         this GUID. settings.json is removed only by FactoryResetSettings. -->
     <Component Id="ResetUserSettings" Directory="GazerAppDataFolder" Guid="D4E6A8B0-3F5C-7D9E-1B2A-4C6D8E0F1A3B">
       <RegistryValue Root="HKCU"
                      Key="Software\Gazer\Installer"
-                     Name="SettingsPreserved"
+                     Name="ResetSettings"
                      Type="integer"
                      Value="1"
                      KeyPath="yes" />
