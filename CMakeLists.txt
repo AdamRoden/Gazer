@@ -569,16 +569,20 @@ add_executable(GazerPageTests
     src/core/TobiiPumpHealth.cpp
     src/core/FakeTracker.cpp
     src/assist/HeadPoseMapper.cpp
+    # HeadPoseMapper calls MouseInjector. That TU includes WinOverlay.h (QWidget)
+    # and constructs OverlayInputPassThrough, defined in WinOverlay.cpp.
     src/input/MouseInjector.cpp
+    src/utils/WinOverlay.cpp
     src/mapping/HeadPoseCurve.cpp
     src/input/KeyStateManager.cpp
     src/input/KeyGlyphs.cpp
     ${GAZER_PAGE_TEST_LIB}
 )
 target_include_directories(GazerPageTests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_link_libraries(GazerPageTests PRIVATE Qt6::Core Qt6::Gui Qt6::Network Qt6::Test)
+target_link_libraries(GazerPageTests PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Network Qt6::Test)
 if(WIN32)
-    target_link_libraries(GazerPageTests PRIVATE user32 shell32)
+    # WinOverlay::processHasUiAccess calls OpenProcessToken / GetTokenInformation.
+    target_link_libraries(GazerPageTests PRIVATE user32 shell32 advapi32)
 endif()
 target_compile_definitions(GazerPageTests PRIVATE
     "GAZER_TEST_FIXTURES=\"${CMAKE_SOURCE_DIR}/tests/fixtures\""
