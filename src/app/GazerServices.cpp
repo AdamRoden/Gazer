@@ -541,7 +541,7 @@ void GazerServices::applySettings(bool persist)
         const QString before = m_systemVolume->boundEndpointId();
         m_systemVolume->setDeviceKey(m_settings.speechOutputId);
         if (m_systemVolume->boundEndpointId() != before) {
-            m_volumeSlew = {};
+            m_volumeDrag = {};
         }
     }
 
@@ -658,33 +658,40 @@ void GazerServices::feedVolumeGaze(const GazePoint& point)
             m_pages->window()->setSliderScrub(id, t, progress);
         }
     };
+    auto release = [this]() {
+        if (m_pages && m_pages->window()) {
+            m_pages->window()->releaseSliderScrub(m_volumeArm.key);
+        }
+        m_volumeArm.clear();
+        m_volumeDrag = {};
+    };
     if (!m_systemVolume || !m_pages || !point.valid || m_pages->isDwellSuspended()) {
-        m_volumeArm = {};
-        m_volumeSlew = {};
-        show({}, 0, 0);
+        release();
         return;
     }
     const std::optional<VolumeBoard::Gaze> g = VolumeBoard::at(
         m_pages->targets(), m_pages->gridPaints(), m_pages->drawerScale(), point.toPointF(),
-        point.timestampMs, m_settings.scanGraceMs, &m_volumeArm);
+        point.timestampMs, &m_volumeArm);
     if (!g) {
-        m_volumeSlew = {};
-        show({}, 0, 0);
+        release();
+        return;
+    }
+    if (!g->ready) {
+        m_volumeDrag = {};
+        show(g->key, m_systemVolume->percent() / 100.0, g->arm);
         return;
     }
     int shown = m_systemVolume->percent();
-    if (g->percent && g->key.startsWith(QLatin1String("compose/"))) {
-        shown = VolumeBoard::stepToward(shown, *g->percent, point.timestampMs,
-                                        VolumeBoard::kSpeakSlewPercentPerSec, &m_volumeSlew);
+    const double span = qMax(1.0, g->track1 - g->track0);
+    const double thumb = g->track0 + span * (shown / 100.0);
+    const double pos = GazeTrack::moveThumb(m_volumeDrag, g->gazePx, thumb, g->track0, g->track1,
+                                            point.timestampMs);
+    const int next = SystemVolume::clampPercent(qRound((pos - g->track0) / span * 100.0));
+    if (next != shown) {
+        shown = next;
         m_systemVolume->setPercent(shown);
-    } else if (g->percent) {
-        m_volumeSlew = {};
-        shown = *g->percent;
-        m_systemVolume->setPercent(shown);
-    } else {
-        m_volumeSlew = {};
     }
-    show(g->key, shown / 100.0, g->percent ? 0.0 : g->arm);
+    show(g->key, shown / 100.0, 0.0);
 }
 
 void GazerServices::registerDomainCommands()

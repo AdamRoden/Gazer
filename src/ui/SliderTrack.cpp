@@ -184,12 +184,26 @@ void paintVolumeBar(QPainter& p, const QRectF& cell, const ThemeColors& theme,
 
 } // namespace
 
+ValueAxis volumeValueAxis(const QRectF& cell)
+{
+    ValueAxis axis;
+    if (cell.isEmpty()) {
+        return axis;
+    }
+    const Visual geom = volumeVisual(cell, false);
+    axis.from = geom.valueLeft;
+    axis.to = geom.valueRight;
+    return axis;
+}
+
 double volumeFractionAtX(const QRectF& cell, double x)
 {
-    if (cell.isEmpty()) {
+    const ValueAxis axis = volumeValueAxis(cell);
+    const double span = axis.to - axis.from;
+    if (span <= 1.0) {
         return 0.0;
     }
-    return volumeVisual(cell, false).tAtX(x);
+    return qBound(0.0, (x - axis.from) / span, 1.0);
 }
 
 void paint(QPainter& p, const QRectF& cell, const ThemeColors& theme, const ProgressVisuals& pv,

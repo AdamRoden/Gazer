@@ -570,6 +570,14 @@ void PageHostWindow::setSliderScrub(const QString& id, double t, double progress
     }
 }
 
+void PageHostWindow::releaseSliderScrub(const QString& id)
+{
+    if (id.isEmpty() || m_live.sliderScrubId != id) {
+        return;
+    }
+    setSliderScrub({}, 0, 0);
+}
+
 void PageHostWindow::setPreviewColor(const QColor& color)
 {
     const QColor next = color.isValid() ? color : ThemeColors::defaultProgressColor();

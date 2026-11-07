@@ -2,6 +2,7 @@
 
 #include "app/AppSettings.h"
 #include "app/ComposeUiInternal.h"
+#include "assist/GazeTrack.h"
 #include "layout/PageHit.h"
 #include "layout/PageSession.h"
 #include "ui/PageHostWindow.h"
@@ -12,8 +13,6 @@
 namespace gazer {
 
 namespace {
-
-constexpr double kFollowLerp = 0.32;
 
 const PageTarget* frontScrollTrack(const QVector<PageTarget>& targets)
 {
@@ -43,9 +42,12 @@ void ComposeUi::onGaze(const GazePoint& point)
 
 void ComposeUi::stopListScroll()
 {
+    if (m_pages.window()) {
+        m_pages.window()->releaseSliderScrub(m_listScrollLock.key);
+    }
     m_listScroll = ListScroll::None;
-    m_listScrollEngageAtMs = -1;
-    m_listScrollT = 0.0;
+    m_listScrollLock.clear();
+    m_listScrollDrag = {};
     m_listScrollGrace.reset();
 }
 
@@ -62,7 +64,7 @@ void ComposeUi::feedListScrollGaze(const GazePoint& point)
     const qint64 now = point.timestampMs > 0 ? point.timestampMs : m_listScrollClock.elapsed();
 
     auto leaveTrack = [&]() {
-        if (m_listScroll == ListScroll::None && m_listScrollEngageAtMs < 0) {
+        if (m_listScroll == ListScroll::None && m_listScrollLock.key.isEmpty()) {
             return;
         }
         if (!point.valid || m_listScrollGrace.onInvalid(now) != InvalidGazeGrace::Result::Holding) {
@@ -107,12 +109,16 @@ void ComposeUi::feedListScrollGaze(const GazePoint& point)
         return;
     }
 
-    const double rawT = ScrollBar::visual(cell, spec).tAtY(point.y);
-    if (m_listScrollEngageAtMs < 0) {
-        m_listScrollEngageAtMs = now;
-        return;
+    const QString id = sessionKey(*track);
+    if (m_listScrollLock.key != id) {
+        m_listScrollDrag = {};
     }
-    if (now - m_listScrollEngageAtMs < qMax(0, m_settings.scanGraceMs)) {
+    const int grace = track->dwell.scanGrace.value_or(kTrackLockMs);
+    const double progress = m_listScrollLock.arm(id, now, grace);
+    if (m_pages.window()) {
+        m_pages.window()->setSliderScrub(id, spec.t(), progress >= 1.0 ? 0.0 : progress);
+    }
+    if (progress < 1.0) {
         return;
     }
 
@@ -124,13 +130,19 @@ void ComposeUi::feedListScrollGaze(const GazePoint& point)
     }
     if (m_listScroll != kind) {
         m_listScroll = kind;
-        m_listScrollT = rawT;
-    } else {
-        m_listScrollT += (rawT - m_listScrollT) * kFollowLerp;
+        m_listScrollDrag = {};
     }
-
-    const int offset = qBound(0, int(qRound(m_listScrollT * double(spec.maxOffset()))),
-                              spec.maxOffset());
+    const ScrollBar::Visual vis = ScrollBar::visual(cell, spec);
+    const double travel0 = vis.track.top() + vis.thumb.height() * 0.5;
+    const double travel1 = vis.track.bottom() - vis.thumb.height() * 0.5;
+    const double usable = travel1 - travel0;
+    if (usable <= 1.0) {
+        return;
+    }
+    const double pos = GazeTrack::moveThumb(m_listScrollDrag, point.y, vis.thumb.center().y(),
+                                            travel0, travel1, now);
+    const double t = qBound(0.0, (pos - travel0) / usable, 1.0);
+    const int offset = qBound(0, int(qRound(t * double(spec.maxOffset()))), spec.maxOffset());
     if (kind == ListScroll::History) {
         if (offset != m_historyPage) {
             historyGoto(offset);
@@ -139,7 +151,7 @@ void ComposeUi::feedListScrollGaze(const GazePoint& point)
         if (offset != m_voicePage) {
             voicesGoto(offset);
         }
-    } else {
+    } else if (offset != m_fileOffset) {
         filesGoto(offset);
     }
 }

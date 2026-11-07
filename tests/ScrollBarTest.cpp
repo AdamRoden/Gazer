@@ -73,16 +73,31 @@ void ScrollBarTest::offsetAtYMonotonic()
 
 void ScrollBarTest::overlayIsPassiveTrack()
 {
-    const PageGrid g =
-        compose_detail::overlayScrollbar(4, 10, 40, QColor(40, 40, 44));
-    QCOMPARE(g.cells.size(), 1);
+    const PageGrid g = compose_detail::overlayScrollbar(4, 10, 40, QColor(40, 40, 44),
+                                                       QStringLiteral("history.list.prev"),
+                                                       QStringLiteral("history.list.next"));
+    QCOMPARE(g.cells.size(), 3);
     QCOMPARE(g.subGrids.size(), 0);
-    const PageCell& track = g.cells[0];
+    QCOMPARE(g.cells[0].id, QStringLiteral("sb_up"));
+    QCOMPARE(g.cells[0].icon, QStringLiteral("ArrowUp"));
+    QCOMPARE(g.cells[0].actions[0].command, QStringLiteral("history.list.prev"));
+    const PageCell& track = g.cells[1];
     QCOMPARE(track.id, QStringLiteral("sb_track"));
     QCOMPARE(track.role, QStringLiteral("scrollbar"));
     QCOMPARE(track.caption, QStringLiteral("4,10,40"));
+    QCOMPARE(track.dwell.scanGrace.value_or(-1), kTrackLockMs);
     QVERIFY(!track.isInteractive());
     QVERIFY(track.actions.isEmpty());
+    QCOMPARE(g.cells[2].id, QStringLiteral("sb_down"));
+    QCOMPARE(g.cells[2].icon, QStringLiteral("ArrowDown"));
+    QCOMPARE(g.cells[2].actions[0].command, QStringLiteral("history.list.next"));
+
+    const PageGrid top = compose_detail::overlayScrollbar(0, 10, 40, QColor(40, 40, 44),
+                                                         QStringLiteral("history.list.prev"),
+                                                         QStringLiteral("history.list.next"));
+    QCOMPARE(top.cells[0].role, QStringLiteral("label"));
+    QVERIFY(top.cells[0].actions.isEmpty());
+    QVERIFY(!top.cells[2].actions.isEmpty());
 }
 
 QObject* createScrollBarTest()

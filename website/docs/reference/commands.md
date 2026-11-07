@@ -161,10 +161,10 @@ XML `mouseMoveByDirection` is the compass form of the nudge commands.
 | `compose.openFiles` / `compose.exportBoard` / `compose.importChoose` | Open File Explorer over Speak and show the keyboard layer so the file name can be typed. Closing returns to the layer that was showing. |
 | `compose.importFile` | **Import**. Saves the open pages, hides the other boards, and leaves the main dock up. Shows the Windows open dialog beside the boards, with `qwerty_file`. Keys type into the dialog. Closing it restores those pages. The chosen JSON file replaces the boards. |
 | `compose.exportFile` | **Export**. Same hold, with the Windows save dialog. Writes an `aac-workspace` v1 file. |
-| `compose.browserPrev` / `compose.browserForward` / `compose.browserUp` | Back, forward, or the parent folder. A path chip runs `compose.browserGoto.<i>`. |
+| `compose.browserPrev` / `compose.browserForward` / `compose.browserUp` | Back, forward, or the parent folder. A path crumb runs `compose.browserGoto.<i>`. A Places entry runs `compose.browserPlace.<i>`. |
 | `compose.browserSave` | **Export**. Asks Yes/No, then writes an `aac-workspace` v1 file using the name in the text box. |
 | `compose.browserBack` | Close File Explorer. |
-| `compose.importPick.<i>` / `compose.importPage.<n>` / `compose.fileRow.<n>` | Open folder `i` or select that JSON file (no read yet), move the tile window by `n` pages, or move it by `n` rows. |
+| `compose.importPick.<i>` / `compose.importPage.<n>` / `compose.fileRow.<n>` | Open folder `i` or select that JSON file (no read yet), move the list by `n` pages, or move it by `n` rows. |
 | `compose.fileYes` / `compose.fileNo` | Accept or dismiss the File Explorer confirm. Yes is the only step that reads or writes the file. |
 | `compose.importMerge` / `compose.importReplace` | **Merge**, or **Import** (replace the board and apply model, speed, pitch, and volume). Each asks Yes/No before reading the file. |
 | `compose.saveName` / `compose.cancelName` / `compose.deleteName` | Item editor: save, discard, or delete and return. |
@@ -172,7 +172,7 @@ XML `mouseMoveByDirection` is the compass form of the nudge commands.
 | `compose.editColor.<i>` / `compose.editIcon.<i>` | Set color or icon. |
 | `compose.editClearColor` / `compose.editClearIcon` | Clear custom color or icon. |
 | `history.play.<id>` / `history.restore.<id>` / `history.delete.<id>` | Replay, put the phrase back, or drop the row. |
-| `history.list.next` / `.prev` / `history.list.goto.<n>` | History list page/jump (gaze along the track also scrolls). |
+| `history.list.next` / `.prev` / `history.list.goto.<n>` | History list page/jump. After the lock-on ring fills, looking along the track drags the thumb. |
 | `compose.pin` / `compose.cancelAssign` | Empty buffer no-op; otherwise dwell a cell to save the phrase. |
 | `compose.editPins` | Keyboard **Edit** key. Dwell a pin or topic to rename. |
 | `soundboard.edit.<id>` / `soundboard.editTopic.<id>` | Pin / topic item editor. |
@@ -184,12 +184,12 @@ XML `mouseMoveByDirection` is the compass form of the nudge commands.
 | `speech.voice.<id>` | Select a voice (percent-encoded id). |
 | `speech.voicePreview.<id>` / `speech.preview` | Preview without selecting / preview current. |
 | `speech.fav.toggle` / `speech.fav.toggle.<id>` | Favorite the current or named ElevenLabs voice. |
-| `speech.voiceList.next` / `.prev` / `.goto.<n>` | Voice list page/jump. |
+| `speech.voiceList.next` / `.prev` / `.goto.<n>` | Voice list page/jump. After the lock-on ring fills, looking along the track drags the thumb. |
 | `speech.gender.all` / `.female` / `.male` | Voice filter. |
 | `speech.lang.all` / `speech.lang.set.<code>` | Language filter. |
 | `speech.speed.dec` / `.inc` | Nudge `speechSpeed` by 0.1. |
 | `speech.volume.dec` / `.inc` | Nudge `speechVolume` by 0.5 (1–5× clip boost). The voice list uses these. |
-| `volume.dec` / `.inc` | Nudge the Speak output device by 10% on any page. That device is Settings → Speak, or the Windows default when none is chosen. `compose.volume.dec` / `.inc` are the same commands. A slider with `caption="volume"` shows that percent. On Speak, the Actions bottom row is **−**, the slider, and **+**. The slider waits 2 seconds, then the level eases toward where you look at about 20 percent per second. Other sliders follow gaze once their `scanGrace` ends (the Dwell setting when the cell does not set one). |
+| `volume.dec` / `.inc` | Nudge the Speak output device by 10% on any page. That device is Settings → Speak, or the Windows default when none is chosen. `compose.volume.dec` / `.inc` are the same commands. A slider with `caption="volume"` shows that percent. Left and right arrows sit at the ends of the track. Look at the track until its ring fills. Looking at either end moves the thumb there at full speed. A look between the thumb and an end moves it more slowly. Hue, opacity, and list scrollbars use that same ring. Vertical tracks have up and down arrows. |
 
 While `compose` (or a compose live board) is the source page, `Send` and mapping keys are captured into the phrase. See [Actions — Composer capture](actions.md#composer-capture).
 

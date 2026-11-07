@@ -75,6 +75,46 @@ int fontPixelsToFill(const QString& family, int weight, const QString& text, con
     return qMax(minPx, px);
 }
 
+/// `textStyle="row"`: icon on the left, one elided line. An icon with no label is centered.
+bool paintRowStyle(QPainter& p, const PageTarget& t, const QRectF& r, const QColor& fg)
+{
+    if (t.textStyle.compare(QLatin1String("row"), Qt::CaseInsensitive) != 0) {
+        return false;
+    }
+    const qreal padX = qBound(8.0, r.width() * 0.02, 14.0);
+    const QRectF box = r.adjusted(padX, 4.0, -padX, -4.0);
+    if (box.isEmpty()) {
+        return true;
+    }
+    const bool hasIcon = !t.icon.isEmpty();
+    const bool hasText = !t.label.isEmpty();
+    if (!hasIcon && !hasText) {
+        return true;
+    }
+    if (hasIcon && !hasText) {
+        const qreal side = qBound(16.0, qMin(box.width(), box.height()) * 0.55, 28.0);
+        const QRectF iconR(box.center().x() - side / 2.0, box.center().y() - side / 2.0, side,
+                           side);
+        KeySymbols::paint(p, t.icon, iconR, fg);
+        return true;
+    }
+    qreal textLeft = box.left();
+    if (hasIcon) {
+        const qreal side = qBound(16.0, box.height() * 0.62, 28.0);
+        const QRectF iconR(box.left(), box.center().y() - side / 2.0, side, side);
+        KeySymbols::paint(p, t.icon, iconR, fg);
+        textLeft = iconR.right() + 10.0;
+    }
+    QFont nameFont(segoeFamily(), 16, QFont::DemiBold);
+    const QRectF nameR(textLeft, box.top(), qMax(0.0, box.right() - textLeft), box.height());
+    const QString name =
+        QFontMetricsF(nameFont).elidedText(t.label, Qt::ElideRight, qMax(0.0, nameR.width()));
+    p.setPen(fg);
+    p.setFont(nameFont);
+    p.drawText(nameR, int(Qt::AlignLeft | Qt::AlignVCenter), name);
+    return true;
+}
+
 } // namespace
 
 void fillRound(QPainter& p, const QRectF& r, double radius, const QColor& bg)
@@ -141,6 +181,12 @@ void paintLabel(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeCo
 {
     const QString family = segoeFamily();
     const QString ts = t.textStyle.toLower();
+    if (ts == QLatin1String("row")) {
+        const QColor fill = theme.resolveFill(t.chrome.background.token, canvas, false, false);
+        const QColor fg = theme.readableForeground(fill, t.chrome.foreground.token, canvas);
+        paintRowStyle(p, t, r, fg);
+        return;
+    }
     const QRectF pad = phrasePad(r);
     if (pad.isEmpty()) {
         return;
@@ -176,6 +222,13 @@ void paintLabel(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeCo
     QColor titleFg = theme.readableForeground(fill, t.chrome.foreground.token, canvas);
     if (ts == QLatin1String("caption") && t.chrome.foreground.token.trimmed().isEmpty()) {
         titleFg = theme.textSecondary;
+    }
+    if (t.label.isEmpty() && t.caption.isEmpty() && !t.icon.isEmpty()) {
+        const qreal side = qBound(16.0, qMin(pad.width(), pad.height()) * 0.55, 28.0);
+        const QRectF iconR(pad.center().x() - side / 2.0, pad.center().y() - side / 2.0, side,
+                           side);
+        KeySymbols::paint(p, t.icon, iconR, titleFg);
+        return;
     }
     if (t.caption.isEmpty()) {
         const bool phraseInk =
@@ -250,6 +303,9 @@ void paintIconAndText(QPainter& p, const PageTarget& t, const QRectF& r, const Q
                       const ThemeColors& theme)
 {
     Q_UNUSED(theme);
+    if (paintRowStyle(p, t, r, fg)) {
+        return;
+    }
     const QString family = segoeFamily();
     const bool hasText = !t.label.isEmpty();
     const bool hasIcon = !t.icon.isEmpty();
@@ -663,13 +719,12 @@ void paintTarget(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeC
                  : ThemeColors::contrastOn(fillForFg);
     }
     const QString role = t.role.toLower();
+    const bool scrubbing = !live.sliderScrubId.isEmpty()
+                           && (sessionKey(t) == live.sliderScrubId || t.id == live.sliderScrubId
+                               || t.id.endsWith(QLatin1Char('/') + live.sliderScrubId));
     if (role == QLatin1String("slider")) {
         paintSurface(p, r, t.chrome, theme, glass, false, false, false, false, canvas);
         const QString channel = t.caption.isEmpty() ? t.id : t.caption;
-        const bool scrubbing =
-            !live.sliderScrubId.isEmpty()
-            && (sessionKey(t) == live.sliderScrubId || t.id == live.sliderScrubId
-                || t.id.endsWith(QLatin1Char('/') + live.sliderScrubId));
         SliderTrack::paint(p, r, theme, vis, live.previewColor, channel, t.label, hovered, progress,
                            scrubbing, live.sliderScrubT, live.sliderScrubValue,
                            live.sliderScrubProgress);
@@ -677,7 +732,8 @@ void paintTarget(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeC
         ColorField::paint(p, r, live.previewColor);
     } else if (role == QLatin1String("scrollbar")) {
         paintSurface(p, r, t.chrome, theme, glass, false, false, false, false, canvas);
-        ScrollBar::paint(p, r, theme, ScrollBar::parseSpec(t.caption));
+        ScrollBar::paint(p, r, theme, ScrollBar::parseSpec(t.caption), -1.0, vis,
+                         scrubbing ? live.sliderScrubProgress : 0.0);
     } else if (role == QLatin1String("preview")) {
         SliderTrack::paintPreview(p, r, radius, live.previewColor);
         paintLabel(p, t, r, theme, canvas);

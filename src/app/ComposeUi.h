@@ -1,6 +1,7 @@
 #pragma once
 
 #include "assist/ComposeBuffer.h"
+#include "assist/GazeTrack.h"
 #include "assist/SoundboardStore.h"
 #include "assist/VoiceCatalog.h"
 #include "assist/VoiceStyles.h"
@@ -134,12 +135,14 @@ public:
     bool openFiles(QString* error = nullptr);
     bool pickImportFile(int index, QString* error = nullptr);
     void pageImportFiles(int delta);
-    /// Move the File Explorer tile window by `rows`. One row is one tile row.
+    /// Move the File Explorer list by `rows`. One row is one file.
     void scrollFileRows(int rows);
     bool browserUp(QString* error = nullptr);
     bool browserPrev(QString* error = nullptr);
     bool browserForward(QString* error = nullptr);
     bool browserGoto(int index, QString* error = nullptr);
+    /// Open a Places entry. Empty path is This PC.
+    bool browserPlace(int index, QString* error = nullptr);
     bool browserSave(QString* error = nullptr);
     void browserBack();
     /// Yes on the File Explorer confirm row. Reads or writes only here.
@@ -164,7 +167,7 @@ public:
     void historyGoto(int offset);
     void onHistoryReady(const QString& phrase, const QString& backend, const QString& modelId,
                         const QString& voiceId, const QString& clipPath);
-    /// Gaze-follow the history / voices scrollbar (passive track, not a dwell cell).
+    /// Drag the history, voices, or files scrollbar after the lock-on ring.
     void onGaze(const GazePoint& point);
 
 private:
@@ -287,7 +290,7 @@ private:
     bool m_boardNoteKeep = false;
     mutable QStringList m_browserEntries;
     mutable bool m_browserFresh = false;
-    /// First tile index. Snapped to a whole row.
+    /// First visible File Explorer row.
     int m_fileOffset = 0;
     FileConfirm m_fileConfirm = FileConfirm::None;
     /// Speak layers under File Explorer. Restored when it closes.
@@ -320,8 +323,8 @@ private:
     bool m_predictWarned = false;
     InvalidGazeGrace m_listScrollGrace;
     QElapsedTimer m_listScrollClock;
-    qint64 m_listScrollEngageAtMs = -1;
-    double m_listScrollT = 0.0;
+    GazeTrack::Lock m_listScrollLock;
+    GazeTrack::Drag m_listScrollDrag;
 };
 
 } // namespace gazer

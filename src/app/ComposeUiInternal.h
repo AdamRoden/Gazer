@@ -15,6 +15,8 @@ namespace gazer::compose_detail {
 constexpr int kOverlayListRows = 10;
 constexpr int kOverlayBodyCols = 20;
 constexpr int kOverlayListColSpan = 19;
+/// Scroll column width and the up/down arrow buttons, in pixels.
+constexpr int kScrollChromePx = 72;
 constexpr auto kOverlayScrollTrackId = QLatin1String("sb_track");
 
 inline PageAction commandAction(const QString& name)
@@ -36,6 +38,11 @@ inline PageGrid overlayBody(int row, int colSpan = 8)
     body.rows = 1;
     body.columns = kOverlayBodyCols;
     body.gapPx = 8;
+    body.columnTracks.reserve(kOverlayBodyCols);
+    for (int i = 0; i < kOverlayListColSpan; ++i) {
+        body.columnTracks.push_back(PageTrackSize::starWeight());
+    }
+    body.columnTracks.push_back(PageTrackSize::fromDim(PageDim::pixels(kScrollChromePx)));
     return body;
 }
 
@@ -53,29 +60,51 @@ inline PageGrid overlayList(int columns)
     return list;
 }
 
-/// Full-height gaze scrollbar: look along the track to set list offset.
-inline PageGrid overlayScrollbar(int offset, int visible, int total, const QColor& surface)
+/// Gaze scrollbar with an up button, the track, and a down button.
+/// The track lock-on matches a volume slider (`kTrackLockMs`).
+inline PageGrid overlayScrollbar(int offset, int visible, int total, const QColor& surface,
+                                 const QString& upCommand, const QString& downCommand)
 {
     using SettingsPageBuild::cell;
+    const int maxOff = qMax(0, total - qMax(0, visible));
     PageGrid scroll;
     scroll.id = QStringLiteral("scroll");
     scroll.nested = true;
     scroll.row = 0;
     scroll.col = kOverlayListColSpan;
     scroll.colSpan = 1;
-    scroll.rows = 1;
+    scroll.rows = 3;
     scroll.columns = 1;
-    scroll.gapPx = 0;
+    scroll.gapPx = 6;
     scroll.marginPx = 4;
+    scroll.rowTracks = {PageTrackSize::fromDim(PageDim::pixels(kScrollChromePx)),
+                        PageTrackSize::starWeight(),
+                        PageTrackSize::fromDim(PageDim::pixels(kScrollChromePx))};
     scroll.style.background = surface;
     scroll.style.thickness = PageBox::all(0);
     scroll.style.radius = PageBox::all(16);
-    PageCell track = cell(QString(kOverlayScrollTrackId), {}, 0, 0, {}, QColor(), 1,
+
+    auto endButton = [&](const QString& id, int row, bool on, const QString& command,
+                         const QString& icon) {
+        PageCell button = cell(id, {}, row, 0, on ? command : QString(), surface, 1,
+                               on ? QString() : QStringLiteral("label"), {}, icon);
+        if (!on) {
+            button.style.foreground =
+                ThemeColors::mix(surface, ThemeColors::contrastOn(surface), 0.4);
+        }
+        return button;
+    };
+    scroll.cells.push_back(
+        endButton(QStringLiteral("sb_up"), 0, offset > 0, upCommand, QStringLiteral("ArrowUp")));
+    PageCell track = cell(QString(kOverlayScrollTrackId), {}, 1, 0, {}, QColor(), 1,
                           QStringLiteral("scrollbar"));
     track.caption = ScrollBar::formatSpec(offset, visible, total);
+    track.dwell.scanGrace = kTrackLockMs;
     track.style.thickness = PageBox::all(0);
     track.style.radius = PageBox::all(10);
     scroll.cells.push_back(std::move(track));
+    scroll.cells.push_back(endButton(QStringLiteral("sb_down"), 2, offset < maxOff, downCommand,
+                                    QStringLiteral("ArrowDown")));
     return scroll;
 }
 

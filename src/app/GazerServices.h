@@ -2,6 +2,7 @@
 
 #include "app/ActiveStateResolver.h"
 #include "app/AppSettings.h"
+#include "assist/GazeTrack.h"
 #include "assist/VolumeBoard.h"
 #include "layout/PageTypes.h"
 
@@ -100,8 +101,9 @@ public:
     void panicReset();
     void setInjectPaused(bool on);
     /// Gaze along a `caption="volume"` slider sets the Speak output device
-    /// after that cell's scan grace. The page rebuild is deferred so this
-    /// sample's dwell still sees the old targets.
+    /// after `kTrackLockMs`, or that cell's `scanGrace` when it sets one.
+    /// The thumb then moves with `GazeTrack`.
+    /// The page rebuild is deferred so this sample's dwell still sees the old targets.
     void feedVolumeGaze(const GazePoint& point);
 
 signals:
@@ -118,8 +120,8 @@ private:
     std::unique_ptr<PageCatalog> m_catalog;
     std::unique_ptr<PageSession> m_pages;
     std::unique_ptr<SystemVolume> m_systemVolume;
-    VolumeBoard::Arm m_volumeArm;
-    VolumeBoard::Slew m_volumeSlew;
+    GazeTrack::Lock m_volumeArm;
+    GazeTrack::Drag m_volumeDrag;
     bool m_volumeRefreshQueued = false;
     std::unique_ptr<KeyStateManager> m_keyState;
     std::unique_ptr<InputService> m_input;

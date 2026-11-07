@@ -39,6 +39,14 @@ struct Visual {
 
 [[nodiscard]] Visual visual(const QRectF& cell, bool scrubbing);
 
+/// Travel of the volume handle, same insets as the volume paint.
+struct ValueAxis {
+    double from = 0;
+    double to = 1;
+};
+
+[[nodiscard]] ValueAxis volumeValueAxis(const QRectF& cell);
+
 /// 0–1 along a `caption="volume"` bar. Same insets as the volume paint.
 [[nodiscard]] double volumeFractionAtX(const QRectF& cell, double x);
 

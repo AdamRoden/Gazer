@@ -45,6 +45,8 @@ public:
     void setPreviewColor(const QColor& color);
     /// Live slider thumb. Empty @p id clears it. @p progress is the arming ring.
     void setSliderScrub(const QString& id, double t, double progress);
+    /// Clear the live scrub only when @p id still owns the slot.
+    void releaseSliderScrub(const QString& id);
     void setHeadPreviewImage(QImage image);
     void setCurve(QVector<HeadPoseCurvePoint> points, int selected, double liveIn, bool liveOn);
     void setTargetPhase(const QString& targetKey, int phaseIndex);

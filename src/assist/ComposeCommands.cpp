@@ -197,6 +197,7 @@ void registerComposeCommands(CommandRegistry& commands, ComposeUi& compose)
     bindVoidInt(QStringLiteral("compose.importPage."), &ComposeUi::pageImportFiles);
     bindVoidInt(QStringLiteral("compose.fileRow."), &ComposeUi::scrollFileRows);
     bindInt(QStringLiteral("compose.browserGoto."), &ComposeUi::browserGoto);
+    bindInt(QStringLiteral("compose.browserPlace."), &ComposeUi::browserPlace);
     bindVoidInt(QStringLiteral("compose.removeWord."), &ComposeUi::removeVisibleWord);
     bindVoidInt(QStringLiteral("compose.acceptPrediction."), &ComposeUi::acceptPrediction);
     bindVoidInt(QStringLiteral("compose.moveEndOfWord."), &ComposeUi::moveEndOfWord);
