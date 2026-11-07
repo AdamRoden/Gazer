@@ -17,7 +17,9 @@ Composition root, settings, command dispatch.
 | `ComposeSoundboard.cpp` | Pin/assign, topic rail, soundboard grid, Voice workspace import/export |
 | `ComposeItemEdit.cpp` | Unified name/color/icon editor overlay |
 | `ComposeHistory.cpp` | History replay/restore |
-| `ComposeListScroll.cpp` | Gaze-follow scrollbar on history / voices live boards |
+| `ComposeFiles.cpp` | File Explorer import, merge, export, and confirm |
+| `ComposeFilesWindow.cpp` | File Explorer window (places, list or tile view, footer) |
+| `ComposeListScroll.cpp` | Scrollbar drag on history, voices, and File Explorer (`GazeTrack`) |
 | `GazeRouter` | Gaze sample → session + assist |
 | `ActiveStateResolver` | `visibleWhen` / `activeState` keys (`mod.shift`, …) |
 | `AppSettings` | Persisted prefs. Factory values on the struct; `defaults()` calls `applyTheme()`; spec tables + nudge/display in `.cpp`; JSON overlay in `AppSettingsIo.cpp` (`loadManaged`: backup, schema migrate, restore); Fluent appearance × accent/progress in `AppSettingsTheme.cpp`. Installer wipe policy: `SettingsInstallPolicy.h` |
@@ -25,7 +27,7 @@ Composition root, settings, command dispatch.
 | `SettingsUi.cpp` | Ctor, decorate, live attach, keyboard focus |
 | `SettingsNumpad.cpp` | Numeric editor |
 | `SettingsArrayEditor.cpp` | Standard / rapid dwell-sequence editor |
-| `SettingsColorPicker.cpp` | HSV field + hue/opacity sliders, eyedropper, picker palette swatches |
+| `SettingsColorPicker.cpp` | HSV field + hue/opacity sliders, eyedropper, picker palette swatches. Hue and opacity drag with `GazeTrack`; the field stays absolute |
 | `SettingsHexEditor.cpp` | Hex color pad (6–8 digits, copy/paste) |
 | `SettingsSpeechKey.cpp` | ElevenLabs API-key live board |
 | `SettingsSpeechOutput.cpp` | Speak-page playback device list (`settings.speech.output.*`) |

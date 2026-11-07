@@ -215,7 +215,7 @@ Cells sit in a grid. They do **not** take `shell` or `layers` — they follow th
 | `icon` | Stem of a file in `resources/icons/svg/` (`menu`, `mouseLeftClick`, `keyTab`). Case-insensitive; trailing `Icon` ignored. Unknown names fall back to the label. |
 | `caption` | Secondary line (settings descriptions; scrollbar `offset,visible,total`; volume slider) |
 | `role` | Visual / hit role (see [Roles](#roles)) |
-| `textStyle` | `caption`, `body`, `title`, `section`, `key` — fill the cell with the glyph |
+| `textStyle` | `caption`, `body`, `title`, `section`, `key`. `row` is an icon on the left and one elided line. An icon with no label is centered |
 | `style`, `dwell` | Named ids |
 | `visibleWhen` | Predicate (see [Visibility](#visibility-and-accent)) |
 | `activeState` | Accent when this key is true (see [Visibility](#visibility-and-accent)) |
@@ -240,7 +240,7 @@ Nested `<SubGrid>` occupies a cell span.
 | `swatch` | yes | Round color well |
 | `swatchrect` | yes | Rounded-rectangle color well |
 | `tab` | yes, unless no actions | No actions = current tab (selected, not a target) |
-| `slider` | yes if it has a command | Gaze-follow scrub. Without actions it is passive. A `caption="volume"` slider stays passive; its `scanGrace` elapses before the level follows |
+| `slider` | yes if it has a command | Gaze-follow scrub. Without actions it is passive. A `caption="volume"` slider stays passive. `VolumeBoard` waits `kTrackLockMs` (400 ms), or the cell's `scanGrace` when that is set, before the Speak output level follows |
 | `colorfield` | no | HSV saturation×value square (click-at-gaze on the live color picker) |
 | `headpreview` | no | Live 3D head mesh (same renderer as tray Head preview) |
 | `curvefield` | yes if it has a command | Input→output transfer curve. Caption `in,out;in,out;…` is a fallback; the live host supplies typed points. |

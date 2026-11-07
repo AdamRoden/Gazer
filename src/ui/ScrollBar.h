@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ui/ProgressVisuals.h"
 #include "ui/Theme.h"
 
 #include <QColor>
@@ -46,7 +47,7 @@ struct Visual {
 [[nodiscard]] int offsetAtY(const QRectF& cell, double y, const Spec& spec);
 
 void paint(QPainter& p, const QRectF& cell, const ThemeColors& theme, const Spec& spec,
-           double t = -1.0);
+           double t = -1.0, const ProgressVisuals& pv = {}, double lockProgress = 0.0);
 
 } // namespace ScrollBar
 } // namespace gazer

@@ -129,18 +129,19 @@ When adding a command: register it and add a row here.
 | `compose.openFiles` / `compose.exportBoard` / `compose.importChoose` | Open File Explorer over Speak and show the keyboard layer so the file name can be typed. Closing returns to the layer that was showing |
 | `compose.importFile` | **Import**. Saves the open pages, hides the other boards, and leaves the main dock up. Shows the Windows open dialog beside the boards, with `qwerty_file`. Keys type into the dialog. Closing it restores those pages. The chosen JSON file replaces the boards |
 | `compose.exportFile` | **Export**. Same hold, with the Windows save dialog. Writes an `aac-workspace` v1 file |
-| `compose.browserPrev` / `compose.browserForward` / `compose.browserUp` | Back, forward, or parent folder. A path chip uses `compose.browserGoto.<i>` |
+| `compose.browserPrev` / `compose.browserForward` / `compose.browserUp` | Back, forward, or parent folder. A path crumb uses `compose.browserGoto.<i>`. A Places entry uses `compose.browserPlace.<i>` |
 | `compose.browserSave` | **Export**. Asks Yes/No, then writes a Voice `aac-workspace` v1 JSON file under the name in the text box |
 | `compose.fileYes` / `compose.fileNo` | Accept or dismiss that confirm. Yes is the only step that reads or writes the file. Escape is No |
 | `compose.browserBack` | Close File Explorer |
-| `compose.importPick.<i>` / `compose.importPage.<n>` / `compose.fileRow.<n>` | Open folder `i` or select that JSON file (no read yet), move the tile window by `n` pages, or move it by `n` rows |
+| `compose.fileView.list` / `compose.fileView.tiles` | File Explorer toolbar. List is the detail columns. Tiles is a grid of icons, eight across and four down. The current view is filled |
+| `compose.importPick.<i>` / `compose.importPage.<n>` / `compose.fileRow.<n>` | Open folder `i` or select that JSON file (no read yet), move by `n` pages, or move by `n` rows. A list row is one file. A tile row is eight files |
 | `compose.importMerge` / `compose.importReplace` | **Merge** or **Import**. Each asks Yes/No first. Import replaces the board and also applies model, speed, pitch, and volume |
 | `compose.saveName` / `compose.cancelName` / `compose.deleteName` | Save, discard, or delete the item being edited and return to the board |
 | `compose.editShowColors` / `compose.editShowIcons` | Switch the edit overlay between color chips and icons |
 | `compose.editColor.<i>` / `compose.editIcon.<i>` | Set color or icon on the item being edited |
 | `compose.editClearColor` / `compose.editClearIcon` | Clear custom color or icon on the item being edited |
 | `history.play.<id>` / `history.restore.<id>` / `history.delete.<id>` | Replay, put the phrase back in the buffer, or drop the row |
-| `history.list.next` / `.prev` / `history.list.goto.<n>` | History list: gaze along the track to scroll; commands still page/jump |
+| `history.list.next` / `.prev` / `history.list.goto.<n>` | History list: after the lock-on ring, looking along the track drags the thumb; commands still page/jump |
 | `compose.pin` / `compose.cancelAssign` | Empty buffer no-op; otherwise dwell a cell to save the phrase on the soundboard |
 | `compose.editPins` | Keyboard **Edit** key. Dwell a pin or topic to rename |
 | `soundboard.edit.<id>` | Open the pin item editor |
@@ -154,14 +155,14 @@ When adding a command: register it and add a row here.
 | `speech.voicePreview.<id>` | Prefix; preview that voice without selecting it |
 | `speech.preview` | Preview the current voice |
 | `speech.fav.toggle` / `speech.fav.toggle.<id>` | Favorite the current or named ElevenLabs voice |
-| `speech.voiceList.next` / `.prev` / `.goto.<n>` | Voice list: gaze along the track to scroll; commands still page/jump |
+| `speech.voiceList.next` / `.prev` / `.goto.<n>` | Voice list: after the lock-on ring, looking along the track drags the thumb; commands still page/jump |
 | `speech.gender.all` / `.female` / `.male` | Voice filter |
 | `speech.lang.all` / `speech.lang.set.<code>` | Language filter |
 | `speech.speed.dec` / `.inc` | Nudge `speechSpeed` 0.1 |
 | `speech.volume.dec` / `.inc` | Nudge `speechVolume` 0.5 (1–5× clip boost). The voice list uses these |
-| `volume.dec` / `.inc` | Nudge Windows master volume by 10%. Any page. `compose.volume.dec` / `.inc` are the same commands. Speak → Actions puts **−**, a `role="slider"` `caption="volume"` cell (`scanGrace` 2000 ms), and **+** on the bottom row. After the grace, the level eases toward the gaze point at 20 percent per second. Wide QWERTY follows gaze as soon as its own scan grace ends |
+| `volume.dec` / `.inc` | Nudge the Speak output device by 10%. That device is Settings → Speak, or the Windows default when none is chosen. Any page. `compose.volume.dec` / `.inc` are the same commands. Speak → Actions and the wide keyboard put a left arrow, a `role="slider"` `caption="volume"` cell, and a right arrow at the ends of the track. The ring fills for `kTrackLockMs` (400 ms) before the thumb moves. Speed is measured from the thumb. Looking at either end of the track moves the thumb there at full speed. A look between the thumb and an end moves it more slowly, so it can come back from an end toward the middle. Hue, opacity, and list scrollbars use that same ring, then the same drag. Vertical tracks have up and down arrows |
 
-While `compose` is top (or a compose live board), `Send` and mapping keys (`backspace`, `space`, `enter`, `escape`, modifiers) are captured and never reach the OS. `volume.dec` / `volume.inc` still nudge the Windows endpoint. Caps uses XML `ShowLayers`.
+While `compose` is top (or a compose live board), `Send` and mapping keys (`backspace`, `space`, `enter`, `escape`, modifiers) are captured and never reach the OS. `volume.dec` / `volume.inc` still nudge the Speak output device. Caps uses XML `ShowLayers`.
 
 ## Settings (`SettingsCommands.cpp`)
 

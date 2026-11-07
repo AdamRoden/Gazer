@@ -9,11 +9,13 @@
 #include "ui/PickerPalette.h"
 #include "ui/MaterialPalette.h"
 #include "ui/PageHostWindow.h"
+#include "assist/GazeTrack.h"
 #include "ui/SliderTrack.h"
 #include "ui/Theme.h"
 #include "utils/ScreenGrab.h"
 
 #include <QColor>
+#include <QDateTime>
 #include <QGuiApplication>
 #include <QPoint>
 #include <QScreen>
@@ -337,19 +339,27 @@ PageDocument SettingsUi::buildGenericColorDocument() const
     clickAt.activeState = QStringLiteral("settings.color.pickAtGaze");
     left.cells.push_back(std::move(clickAt));
 
-    left.cells.push_back(cell(QStringLiteral("dec_h"), QStringLiteral("←"), 2, 0,
-                              QStringLiteral("settings.color.nudge.h.dec"), pal.nudge));
-    left.cells.push_back(cell(QStringLiteral("track_h"), QStringLiteral("Hue"), 2, 1, {}, QColor(),
-                              8, QStringLiteral("slider"), QStringLiteral("h")));
-    left.cells.push_back(cell(QStringLiteral("inc_h"), QStringLiteral("→"), 2, 9,
-                              QStringLiteral("settings.color.nudge.h.inc"), pal.nudge));
+    left.cells.push_back(cell(QStringLiteral("dec_h"), {}, 2, 0,
+                              QStringLiteral("settings.color.nudge.h.dec"), pal.nudge, 1, {}, {},
+                              QStringLiteral("ArrowLeft")));
+    PageCell hueTrack = cell(QStringLiteral("track_h"), QStringLiteral("Hue"), 2, 1, {}, QColor(),
+                             8, QStringLiteral("slider"), QStringLiteral("h"));
+    hueTrack.dwell.scanGrace = kTrackLockMs;
+    left.cells.push_back(std::move(hueTrack));
+    left.cells.push_back(cell(QStringLiteral("inc_h"), {}, 2, 9,
+                              QStringLiteral("settings.color.nudge.h.inc"), pal.nudge, 1, {}, {},
+                              QStringLiteral("ArrowRight")));
 
-    left.cells.push_back(cell(QStringLiteral("dec_a"), QStringLiteral("←"), 3, 0,
-                              QStringLiteral("settings.color.nudge.a.dec"), pal.nudge));
-    left.cells.push_back(cell(QStringLiteral("track_a"), QStringLiteral("Opacity"), 3, 1, {},
-                              QColor(), 8, QStringLiteral("slider"), QStringLiteral("a")));
-    left.cells.push_back(cell(QStringLiteral("inc_a"), QStringLiteral("→"), 3, 9,
-                              QStringLiteral("settings.color.nudge.a.inc"), pal.nudge));
+    left.cells.push_back(cell(QStringLiteral("dec_a"), {}, 3, 0,
+                              QStringLiteral("settings.color.nudge.a.dec"), pal.nudge, 1, {}, {},
+                              QStringLiteral("ArrowLeft")));
+    PageCell alphaTrack = cell(QStringLiteral("track_a"), QStringLiteral("Opacity"), 3, 1, {},
+                               QColor(), 8, QStringLiteral("slider"), QStringLiteral("a"));
+    alphaTrack.dwell.scanGrace = kTrackLockMs;
+    left.cells.push_back(std::move(alphaTrack));
+    left.cells.push_back(cell(QStringLiteral("inc_a"), {}, 3, 9,
+                              QStringLiteral("settings.color.nudge.a.inc"), pal.nudge, 1, {}, {},
+                              QStringLiteral("ArrowRight")));
 
     const QString hexShown = QStringLiteral("#%1").arg(hexSeedFromColor(m_colorDraft));
     left.cells.push_back(cell(QStringLiteral("hex"), hexShown, 4, 0,
@@ -492,6 +502,7 @@ void SettingsUi::cancelEyedropper()
     const bool was = m_eyedropActive;
     m_eyedropActive = false;
     restoreEyedropHost();
+    releaseColorSlider();
     if (was && m_color.active && !m_hexActive && !m_numpad.active) {
         refreshColorPicker();
     }
@@ -567,6 +578,7 @@ void SettingsUi::onColorAimMoved(const QPoint& pos)
         return;
     }
     if (m_mouseDwell->isColorSample() || m_eyedropActive) {
+        releaseColorSlider();
         sampleScreenColor(pos);
         m_eyedropActive = false;
         restoreEyedropHost();
@@ -578,7 +590,18 @@ void SettingsUi::onColorAimMoved(const QPoint& pos)
     }
     if (m_mouseDwell->isColorPick() && m_color.active && !m_hexActive && !m_numpad.active) {
         applyPickAt(pos);
+        return;
     }
+    releaseColorSlider();
+}
+
+void SettingsUi::releaseColorSlider()
+{
+    if (PageHostWindow* window = m_pages.window()) {
+        window->releaseSliderScrub(m_colorSliderLock.key);
+    }
+    m_colorSliderLock.clear();
+    m_colorSliderDrag = {};
 }
 
 void SettingsUi::applyPickAt(const QPoint& pos)
@@ -604,7 +627,37 @@ void SettingsUi::applyPickAt(const QPoint& pos)
         }
     }
 
+    auto dragSlider = [&](const PageTarget& slider, const QString& channel, int maxValue) {
+        const qint64 now = QDateTime::currentMSecsSinceEpoch();
+        const QString id = sessionKey(slider);
+        if (m_colorSliderLock.key != id) {
+            m_colorSliderDrag = {};
+        }
+        const int grace = slider.dwell.scanGrace.value_or(kTrackLockMs);
+        const double progress = m_colorSliderLock.arm(id, now, grace);
+        const bool ready = progress >= 1.0;
+        const int current = colorShownValue(channel);
+        const double shownT = double(current) / double(qMax(1, maxValue));
+        if (m_pages.window()) {
+            m_pages.window()->setSliderScrub(id, shownT, ready ? 0.0 : progress);
+        }
+        if (!ready) {
+            return;
+        }
+        const SliderTrack::Visual geom = SliderTrack::visual(cellOf(slider), false);
+        const double span = qMax(1.0, geom.valueRight - geom.valueLeft);
+        const double thumb = geom.valueLeft + span * shownT;
+        const double pos = GazeTrack::moveThumb(m_colorSliderDrag, gaze.x(), thumb, geom.valueLeft,
+                                                geom.valueRight, now);
+        const int next = qBound(0, qRound((pos - geom.valueLeft) / span * double(maxValue)), maxValue);
+        if (next == current) {
+            return;
+        }
+        applyColorShownValue(channel, next);
+        refreshColorPicker();
+    };
     if (field && cellOf(*field).contains(gaze)) {
+        releaseColorSlider();
         const ColorField::Visual geom = ColorField::visual(cellOf(*field));
         double s01 = 0.0, v01 = 0.0;
         geom.svAt(gaze, &s01, &v01);
@@ -618,17 +671,14 @@ void SettingsUi::applyPickAt(const QPoint& pos)
         return;
     }
     if (hue && cellOf(*hue).contains(gaze)) {
-        const double t = SliderTrack::visual(cellOf(*hue), false).tAtX(gaze.x());
-        applyColorShownValue(QStringLiteral("h"), qRound(t * 359.0));
-        refreshColorPicker();
+        dragSlider(*hue, QStringLiteral("h"), 359);
         return;
     }
     if (alpha && cellOf(*alpha).contains(gaze)) {
-        const double t = SliderTrack::visual(cellOf(*alpha), false).tAtX(gaze.x());
-        applyColorShownValue(QStringLiteral("a"), qRound(t * 100.0));
-        refreshColorPicker();
+        dragSlider(*alpha, QStringLiteral("a"), 100);
         return;
     }
+    releaseColorSlider();
     if (!swatch) {
         return;
     }

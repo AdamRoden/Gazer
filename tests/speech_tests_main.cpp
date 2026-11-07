@@ -18,6 +18,7 @@ QObject* createSoundboardStoreTest();
 QObject* createSpeechHistoryTest();
 QObject* createAudioGainTest();
 QObject* createAudioOutputTest();
+QObject* createSystemVolumeTest();
 QObject* createSpeechStreamTest();
 
 namespace {
@@ -70,6 +71,8 @@ int main(int argc, char** argv)
     runSuite("AudioGainTest", gain.get(), false);
     std::unique_ptr<QObject> output(createAudioOutputTest());
     runSuite("AudioOutputTest", output.get(), false);
+    std::unique_ptr<QObject> volume(createSystemVolumeTest());
+    runSuite("SystemVolumeTest", volume.get(), false);
     std::unique_ptr<QObject> stream(createSpeechStreamTest());
     runSuite("SpeechStreamTest", stream.get(), false);
     return status;

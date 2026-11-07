@@ -1,5 +1,7 @@
 #include "ui/ScrollBar.h"
 
+#include "ui/ProgressPaint.h"
+
 #include <QPainter>
 #include <QPen>
 #include <QStringList>
@@ -28,7 +30,7 @@ Visual visual(const QRectF& cell, const Spec& spec, double t)
 {
     Visual g;
     const double u = t >= 0.0 ? qBound(0.0, t, 1.0) : spec.t();
-    const double w = qBound(8.0, cell.width() * 0.36, 22.0);
+    const double w = qBound(10.0, cell.width() * 0.42, 28.0);
     const double insetY = qBound(6.0, cell.height() * 0.04, 12.0);
     g.track = QRectF(cell.center().x() - w * 0.5, cell.top() + insetY, w,
                      qMax(w, cell.height() - insetY * 2.0));
@@ -52,7 +54,8 @@ int offsetAtY(const QRectF& cell, double y, const Spec& spec)
     return qBound(0, int(qRound(visual(cell, spec).tAtY(y) * double(max))), max);
 }
 
-void paint(QPainter& p, const QRectF& cell, const ThemeColors& theme, const Spec& spec, double t)
+void paint(QPainter& p, const QRectF& cell, const ThemeColors& theme, const Spec& spec, double t,
+          const ProgressVisuals& pv, double lockProgress)
 {
     const Visual g = visual(cell, spec, t);
     QColor well = theme.bgMain.isValid() ? theme.bgMain : QColor(24, 24, 26);
@@ -69,6 +72,17 @@ void paint(QPainter& p, const QRectF& cell, const ThemeColors& theme, const Spec
     p.setBrush(Qt::NoBrush);
     p.setPen(QPen(QColor(255, 255, 255, 70), 1.1));
     p.drawRoundedRect(g.track.adjusted(0.5, 0.5, -0.5, -0.5), radius, radius);
+
+    if (lockProgress > 0.01 && !g.thumb.isEmpty()) {
+        const double d = qBound(18.0, g.thumb.width() + 10.0, 36.0);
+        const QPointF c = g.thumb.center();
+        const QRectF ring(c.x() - d * 0.5, c.y() - d * 0.5, d, d);
+        p.setBrush(well);
+        p.setPen(QPen(Qt::white, 2.2));
+        p.drawEllipse(ring);
+        paintProgress(p, ring.adjusted(-3.0, -3.0, 3.0, 3.0), lockProgress, pv,
+                      ProgressShape::Ellipse);
+    }
 }
 
 } // namespace ScrollBar

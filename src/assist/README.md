@@ -6,6 +6,7 @@ Gaze tools on top of the page session.
 |------|------|
 | `AssistSession` / `AssistCommands` | Tool lifetime + look-to maps, mag, ComboMouse, dwell-move builtins |
 | `LookToMaps` / `LookToScroll` / `LookToOverlay` / `LookToMap.h` / `LtsSpeed.h` / `LtsIndicator.h` / `LtsScrollMode.h` / `LtsMenu.h` | Four analog gaze maps (scroll, mouse, left stick, right stick). Each has its own origin, deadzone, 0–100% ramp, 100% outside the ramp until an optional outer deadzone, and an optional hub pie. Live HUD is the stretching orb; ring-editor Preview is a separate overlay owned by `LookToMaps`. All four can run at once. |
+| `GazeTrack.h` | Shared slider and scrollbar drag, plus `GazeTrack::Lock`, the arm clock those tracks share. After the lock-on ring (`kTrackLockMs`, or the cell's `scanGrace` when set), the thumb stays put until gaze leaves it by 40 px. Speed ramps from the thumb to the end of the track in that direction, so either end is full speed (3 notches/s) and a look partway is slower. The rest band shrinks when the thumb is already near that end. Volume, list scrollbars, and the color hue/opacity tracks use it. Look-to-scroll defaults stay put. The head-pose curve and the color field stay absolute. |
 | `HeadPoseMapper` | Analog maps from tracker head pose (settings-backed). Pauses mouse/scroll/joy/commands while gaze is on Gazer boards. Gaze offset is not applied to board hit-tests. |
 | `ComboMouse` / `ComboMouseHit.h` / `PieOverlay` | Directional mouse pad. Shared command pie (ComboMouse + LTS) |
 | `MouseDwellMove` | Dwell to warp cursor. Overlays in `MouseDwellMove_p.h`; mag-pick in `MouseDwellMoveMag.cpp` |
@@ -22,7 +23,7 @@ Gaze tools on top of the page session.
 | `ClipBoost` | Decode clip → Int16 WAV with `AudioGain`. Not a player. |
 | `AudioGain` | Int16 PCM scale + clamp for clip boost (1–5×) |
 | `AudioOutput` | Playback-device list and the saved `speechOutputId`. Empty id is the Windows default. SAPI matches the endpoint id on the classic audio-output token |
-| `SystemVolume` / `VolumeBoard` | WASAPI default-device master volume (0–100, step 10). The shell owns the endpoint. `VolumeBoard` stamps any `caption="volume"` slider and maps gaze on it. The slider stays passive. Its `scanGrace` (settings grace when unset) elapses before the endpoint moves; the arming ring is the slider scrub. The label refresh waits until the current gaze sample has been classified. |
+| `SystemVolume` / `VolumeBoard` | WASAPI master volume of the Speak playback device (0–100, step 10). The device is `AudioOutput::resolveDevice` (`speechOutputId`). Empty id is the Windows default. A missing device follows that default until `QMediaDevices::audioOutputsChanged`. The shell owns the endpoint. `VolumeBoard` stamps any `caption="volume"` slider and maps gaze on it. The slider stays passive. `GazeTrack::Lock` waits `kTrackLockMs` (or the cell's `scanGrace` when set) before `GazeTrack` may drag the level; the arming ring is the slider scrub. The label refresh waits until the current gaze sample has been classified. |
 | `ComposeBuffer` | Composer phrase, caret, chips, undo (800 ms coalesce). `load()` replaces the phrase and drops history for name-edit. No UI. |
 | `ComposeCommands` | `compose.*` / `speech.*` builtins and prefixes |
 | `VoiceCatalog` | Parse/filter/sort ElevenLabs voice cache. No network. |

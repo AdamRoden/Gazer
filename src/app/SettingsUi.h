@@ -1,6 +1,7 @@
 #pragma once
 
 #include "app/AppSettings.h"
+#include "assist/GazeTrack.h"
 #include "assist/LookToMap.h"
 #include "assist/GazeDwellTracker.h"
 #include "core/GazePoint.h"
@@ -140,6 +141,7 @@ private:
     void restoreEyedropHost();
     void sampleScreenColor(const QPoint& pos);
     void applyPickAt(const QPoint& pos);
+    void releaseColorSlider();
     [[nodiscard]] int colorShownValue(const QString& channel) const;
     bool applyColorShownValue(const QString& channel, int value);
     void themeSetAssignPrimary(bool primary);
@@ -299,6 +301,8 @@ private:
     QHash<QString, QColor> m_colorPending;
     QColor m_colorDraft;
     int m_colorA = 255;
+    GazeTrack::Drag m_colorSliderDrag;
+    GazeTrack::Lock m_colorSliderLock;
     bool m_eyedropActive = false;
     bool m_eyedropHostHidden = false;
 

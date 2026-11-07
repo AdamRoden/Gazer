@@ -9,7 +9,7 @@ Host surface, board paint, overlays, theme.
 | `SliderTrack` | Settings color/opacity slider geometry. Channel `volume` is a compact master-volume bar (percent in the cell label). |
 | `ColorField` | HSV saturation×value square (`role="colorfield"`). Handle from `previewColor`. |
 | `PoseChart` | Input→output transfer curve (`role="curvefield"`). `role="headpreview"` is a blit of `HeadPreviewRenderer`, not PoseChart. |
-| `ScrollBar` | Vertical gaze scrollbar (`role="scrollbar"`, caption `offset,visible,total`). Composer history / voices lists. |
+| `ScrollBar` | Vertical gaze scrollbar (`role="scrollbar"`, caption `offset,visible,total`). History, voices, and File Explorer, with up and down arrows at the ends. A lock-on ring fills for `kTrackLockMs` (same as a volume slider), then `GazeTrack` drags the thumb, with either end of the track at full speed. | |
 | `Theme` / `ThemeScheme` / `MaterialPalette` / `ColorSwatches` / `PickerPalette` / `PickStyle` | Palettes, `bg*`/`accent*` tone stops, `red05`…`neutral95` picker tokens, Material shade generator, composer chips, picker swatches, pick-window flags |
 | `KeySymbols` | Cell/zone icons from `resources/icons/svg/*.svg` (stem = `icon` name). Catalog source: Material Symbols Rounded (`resources/icons/README.md`) |
 | `GlassBackdrop` | Frosted blur (no WDA toggle on the live host; recapture on geometry/underlay only) |

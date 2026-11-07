@@ -37,37 +37,8 @@ void stamp(PageDocument& doc, int percent)
     }
 }
 
-int stepToward(int current, int target, qint64 nowMs, double perSec, Slew* slew)
-{
-    const int clamped = SystemVolume::clampPercent(current);
-    const int goal = SystemVolume::clampPercent(target);
-    if (!slew || perSec <= 0.0) {
-        return goal;
-    }
-    if (slew->atMs < 0) {
-        slew->atMs = nowMs;
-        slew->credit = 0;
-        return clamped;
-    }
-    const qint64 dt = qBound(qint64(0), nowMs - slew->atMs, qint64(200));
-    slew->atMs = nowMs;
-    if (clamped == goal) {
-        slew->credit = 0;
-        return clamped;
-    }
-    slew->credit += perSec * static_cast<double>(dt) / 1000.0;
-    const int room = static_cast<int>(slew->credit);
-    if (room <= 0) {
-        return clamped;
-    }
-    const int step = qBound(-room, goal - clamped, room);
-    slew->credit -= qAbs(step);
-    return clamped + step;
-}
-
 std::optional<Gaze> at(const QVector<PageTarget>& targets, const QVector<PageGridPaint>& grids,
-                       double drawerScale, const QPointF& gaze, qint64 nowMs, int fallbackGraceMs,
-                       Arm* arm)
+                       double drawerScale, const QPointF& gaze, qint64 nowMs, GazeTrack::Lock* arm)
 {
     if (!arm) {
         return std::nullopt;
@@ -89,28 +60,21 @@ std::optional<Gaze> at(const QVector<PageTarget>& targets, const QVector<PageGri
             continue;
         }
         if (!isVolumeSlider(t.role, t.caption)) {
-            *arm = {};
             return std::nullopt;
         }
         const QString key = sessionKey(t);
-        const int grace = t.dwell.scanGrace.value_or(qMax(0, fallbackGraceMs));
-        if (arm->key != key) {
-            arm->key = key;
-            arm->sinceMs = nowMs;
-        }
-        const qint64 elapsed = qMax(qint64(0), nowMs - arm->sinceMs);
+        const int grace = t.dwell.scanGrace.value_or(kTrackLockMs);
+        const double progress = arm->arm(key, nowMs, grace);
+        const SliderTrack::ValueAxis axis = SliderTrack::volumeValueAxis(cell);
         Gaze out;
         out.key = key;
-        if (grace <= 0 || elapsed >= grace) {
-            out.arm = 1;
-            out.percent = SystemVolume::clampPercent(
-                qRound(SliderTrack::volumeFractionAtX(cell, gaze.x()) * 100.0));
-        } else {
-            out.arm = static_cast<double>(elapsed) / static_cast<double>(grace);
-        }
+        out.gazePx = gaze.x();
+        out.track0 = axis.from;
+        out.track1 = axis.to;
+        out.ready = progress >= 1.0;
+        out.arm = progress;
         return out;
     }
-    *arm = {};
     return std::nullopt;
 }
 

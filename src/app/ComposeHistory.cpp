@@ -231,7 +231,9 @@ PageDocument ComposeUi::buildHistoryDocument()
                                   QStringLiteral("delete")));
     }
     body.subGrids.push_back(std::move(list));
-    body.subGrids.push_back(overlayScrollbar(start, kOverlayListRows, items.size(), key));
+    body.subGrids.push_back(overlayScrollbar(start, kOverlayListRows, items.size(), key,
+                                            QStringLiteral("history.list.prev"),
+                                            QStringLiteral("history.list.next")));
     grid.subGrids.push_back(std::move(body));
     return doc;
 }

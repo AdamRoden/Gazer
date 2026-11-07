@@ -1,10 +1,14 @@
 #pragma once
 
 #include <QObject>
+#include <QString>
 
 namespace gazer {
 
-/// Default-playback-device master volume (WASAPI). GUI thread.
+/// Master volume for the Speak playback device (WASAPI `IAudioEndpointVolume`).
+/// The device comes from `AudioOutput::resolveDevice` (`speechOutputId`).
+/// An empty key is the Windows default. A missing device follows that default
+/// until it returns. GUI thread.
 class SystemVolume final : public QObject {
     Q_OBJECT
 
@@ -15,6 +19,12 @@ public:
 
     explicit SystemVolume(QObject* parent = nullptr);
     ~SystemVolume() override;
+
+    /// Bind `speechOutputId`. Empty selects the Windows default. True when an
+    /// endpoint is open. `changed` fires when the bound endpoint changes.
+    bool setDeviceKey(const QString& key);
+    /// Id of the endpoint currently controlled. Empty when none is open.
+    [[nodiscard]] QString boundEndpointId() const { return m_boundEndpointId; }
 
     [[nodiscard]] int percent() const;
     [[nodiscard]] bool muted() const;
@@ -38,9 +48,21 @@ private slots:
 
 private:
     friend class SystemVolumeNotify;
+    bool ensureEnumerator();
+    /// Open an endpoint when none is open. An open endpoint stays put.
     bool ensureEndpoint();
+    /// Open the resolved device, swapping only when its id differs.
+    bool retarget();
+    /// `retarget` and emit `changed` when the bound endpoint differs.
+    bool bindCurrent();
     void releaseEndpoint();
+    void releaseEnumerator();
+    void noteFollow(bool fellBack);
 
+    QString m_deviceKey;
+    QString m_boundEndpointId;
+    bool m_fallbackLogged = false;
+    bool m_comInited = false;
     void* m_enumerator = nullptr; // IMMDeviceEnumerator*
     void* m_endpoint = nullptr;   // IAudioEndpointVolume*
     void* m_notify = nullptr;     // SystemVolumeNotify*

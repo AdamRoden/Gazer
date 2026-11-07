@@ -384,8 +384,12 @@ struct PagePhase {
     return usesRapidDwell(actions);
 }
 
+/// Lock-on time for a slider or scrollbar. Gaze stays this long, the ring fills,
+/// then `GazeTrack` may move the thumb. A cell `scanGrace` overrides it.
+inline constexpr int kTrackLockMs = 400;
+
 /// Master-volume track (`role="slider"` `caption="volume"`). Passive to dwell.
-/// `VolumeBoard` reads `scanGrace` as how long gaze must stay before the level follows.
+/// `VolumeBoard` uses `kTrackLockMs` when the cell omits `scanGrace`.
 [[nodiscard]] inline bool isVolumeSlider(const QString& role, const QString& caption)
 {
     return role.compare(QLatin1String("slider"), Qt::CaseInsensitive) == 0

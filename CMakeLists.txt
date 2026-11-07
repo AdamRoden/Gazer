@@ -68,6 +68,7 @@ set(GAZER_SOURCES
     src/app/ComposeStyles.cpp
     src/app/ComposeHistory.cpp
     src/app/ComposeFiles.cpp
+    src/app/ComposeFilesWindow.cpp
     src/app/ComposeFileDialog.cpp
     src/app/OsFileDialog.cpp
     src/app/ComposeListScroll.cpp
@@ -613,8 +614,10 @@ add_executable(GazerSpeechTests
     tests/SpeechHistoryTest.cpp
     tests/AudioGainTest.cpp
     tests/AudioOutputTest.cpp
+    tests/SystemVolumeTest.cpp
     tests/SpeechStreamTest.cpp
     src/assist/AudioOutput.cpp
+    src/assist/SystemVolume.cpp
     src/assist/ElevenRequest.cpp
     src/assist/VoiceStyles.cpp
     src/assist/WsFrame.cpp
@@ -628,6 +631,9 @@ add_executable(GazerSpeechTests
 )
 target_include_directories(GazerSpeechTests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(GazerSpeechTests PRIVATE Qt6::Core Qt6::Gui Qt6::Network Qt6::Multimedia Qt6::Test)
+if(WIN32)
+    target_link_libraries(GazerSpeechTests PRIVATE ole32 uuid)
+endif()
 add_test(NAME GazerSpeechTests COMMAND GazerSpeechTests)
 
 add_executable(GazerPredictTests
