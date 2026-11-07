@@ -15,10 +15,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Qt 6.11.1 MinGW
+      # aqtinstall 3.3.0 is the newest release on PyPI. It still looks for the
+      # pre-6.11 nested path qt6_611x/qt6_611x/Updates.xml, which Qt no longer
+      # publishes. The layout fix is only on unreleased aqt git, so CI pins
+      # 6.10.3 win64_mingw, the newest desktop MinGW kit that 3.3.0 can fetch.
+      # Local builds can still use 6.11.1.
+      - name: Install Qt 6.10.3 MinGW
         uses: jurplel/install-qt-action@v4
         with:
-          version: "6.11.1"
+          version: "6.10.3"
           host: windows
           target: desktop
           arch: win64_mingw
