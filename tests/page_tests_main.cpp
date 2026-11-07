@@ -6,6 +6,8 @@
 #include <QStringList>
 #include <QTest>
 #include <QTextStream>
+
+#include <cstdio>
 #include <memory>
 
 Q_LOGGING_CATEGORY(lcGazer, "gazer")
@@ -70,12 +72,20 @@ int main(int argc, char** argv)
     QCoreApplication app(argc, argv);
     int status = 0;
     const QStringList rest = argsWithoutDashO(argc, argv);
-    QFile suiteLog(QDir::temp().filePath(QStringLiteral("GazerPageTests-suites.txt")));
+    // Next to the exe (the build dir in CI) so the windows-test-logs artifact
+    // can collect it. Temp is outside that upload.
+    const QString suitePath =
+        QCoreApplication::applicationDirPath() + QStringLiteral("/GazerPageTests-suites.txt");
+    QFile suiteLog(suitePath);
     (void)suiteLog.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text);
     auto runSuite = [&](const char* name, QObject* obj, bool first) {
         const int s = first ? QTest::qExec(obj, argc, argv) : QTest::qExec(obj, rest);
         QTextStream(&suiteLog) << name << ' ' << s << '\n';
         suiteLog.flush();
+        if (s != 0) {
+            fprintf(stderr, "GazerPageTests suite %s failed status=%d\n", name, s);
+            fflush(stderr);
+        }
         status |= s;
     };
     std::unique_ptr<QObject> pages(createPageLoaderTest());
@@ -144,5 +154,7 @@ int main(int argc, char** argv)
     runSuite("SettingsInstallPolicyTest", installPolicy.get(), false);
     std::unique_ptr<QObject> tracking(createTrackingWatchTest());
     runSuite("TrackingWatchTest", tracking.get(), false);
+    fprintf(stderr, "GazerPageTests overall=%d log=%s\n", status, qPrintable(suitePath));
+    fflush(stderr);
     return status;
 }

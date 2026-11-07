@@ -62,7 +62,13 @@ jobs:
         shell: pwsh
         run: |
           ctest --test-dir build --output-on-failure --output-log build/ctest.log --no-tests=error
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $code = $LASTEXITCODE
+          $suite = "build/GazerPageTests-suites.txt"
+          if (Test-Path $suite) {
+            Write-Host "---- GazerPageTests suites ----"
+            Get-Content $suite
+          }
+          if ($code -ne 0) { exit $code }
 
       - name: Upload failure logs
         if: failure()
@@ -72,6 +78,7 @@ jobs:
           if-no-files-found: warn
           path: |
             build/ctest.log
+            build/GazerPageTests-suites.txt
             build/Testing/**
             build/CMakeFiles/CMakeConfigureLog.yaml
             build/CMakeCache.txt

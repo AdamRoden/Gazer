@@ -650,6 +650,14 @@ target_compile_definitions(GazerPredictTests PRIVATE
 target_link_libraries(GazerPredictTests PRIVATE Qt6::Core Qt6::Test)
 add_test(NAME GazerPredictTests COMMAND GazerPredictTests)
 
+# Qt sets CMAKE_WIN32_EXECUTABLE ON, so these become GUI programs with no
+# console. QTest then writes into the void and ctest --output-on-failure
+# records an empty log for both passes and failures.
+if(WIN32)
+    set_target_properties(GazerPageTests GazerDwellTests GazerSpeechTests GazerPredictTests
+        PROPERTIES WIN32_EXECUTABLE FALSE)
+endif()
+
 add_executable(BuildPredictModel
     tools/build-predict-model.cpp
     src/predict/PredictModel.cpp
