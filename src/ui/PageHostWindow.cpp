@@ -186,9 +186,20 @@ void PageHostWindow::paintScene(QPainter& p, ChromePass pass)
         if (!live && g.chrome.hasBlur()) {
             return;
         }
+        const QRectF drawn = g.shape.isValid() ? g.shape : g.visual;
         const QRectF r =
-            PageHit::mapDrawer(g.drawerMotion, g.visual, xf, m_drawerScale).translated(-origin);
+            PageHit::mapDrawer(g.drawerMotion, drawn, xf, m_drawerScale).translated(-origin);
+        const bool slice = g.shape.isValid();
+        if (slice) {
+            p.save();
+            const QRectF cut =
+                PageHit::mapDrawer(g.drawerMotion, g.visual, xf, m_drawerScale).translated(-origin);
+            p.setClipRect(cut, Qt::IntersectClip);
+        }
         BoardPaint::paintSurface(p, r, g.chrome, m_theme, glass, true, false, false, false, canvas);
+        if (slice) {
+            p.restore();
+        }
     };
     auto paintTarget = [&](const PageTarget& t, const QColor& canvas) {
         if (!live && t.chrome.hasBlur()) {
@@ -219,8 +230,16 @@ void PageHostWindow::paintScene(QPainter& p, ChromePass pass)
         if (t.kind == PageTarget::Kind::Zone && t.geom.hidesUntilProgress() && !showProgress) {
             return;
         }
-        const QRectF content = mapRect(t, t.kind == PageTarget::Kind::Zone ? t.geom.visual
-                                                                          : t.geom.contentOnScreen());
+        const QRectF contentBox = t.shape.isValid()
+                                      ? t.shape
+                                      : (t.kind == PageTarget::Kind::Zone ? t.geom.visual
+                                                                         : t.geom.contentOnScreen());
+        const QRectF content = mapRect(t, contentBox);
+        const bool slice = t.shape.isValid();
+        if (slice) {
+            p.save();
+            p.setClipRect(mapRect(t, t.geom.contentOnScreen()), Qt::IntersectClip);
+        }
         if (!content.isEmpty()) {
             BoardPaint::Live extras = m_live;
             if (!live) {
@@ -232,6 +251,9 @@ void PageHostWindow::paintScene(QPainter& p, ChromePass pass)
             const QRectF strip = mapRect(t, t.geom.progressZone);
             BoardPaint::paintTarget(p, vis, strip, m_theme, canvas, glass, hovered, progress,
                                     flashing, active, m_progress, m_live, locked);
+        }
+        if (slice) {
+            p.restore();
         }
     };
     // Back-to-front: each page as one layer (grids + cells + zones). Attached

@@ -48,6 +48,8 @@ struct PageTarget {
     int phaseIndex = -1;
     PageDetectorGeom geom;
     bool actionLoop = false;
+    /// Full cell rect when `geom` is the visible slice of a scrolled grid. Empty paints `geom`.
+    QRectF shape;
 };
 
 [[nodiscard]] inline QString sessionKey(const PageTarget& t)
@@ -79,6 +81,8 @@ struct PageGridPaint {
     bool drawerMotion = false;
     bool shell = false;
     bool master = false;
+    /// Full grid rect when `visual` is the visible slice of a scrolled grid. Empty paints `visual`.
+    QRectF shape;
 };
 
 namespace PageHit {

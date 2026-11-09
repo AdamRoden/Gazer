@@ -5,10 +5,11 @@
   <Style id="join" background="transparent" thickness="0" radius="0"/>
   <Style id="joinLeft" background="transparent" thickness="0" radius="10,0,0,10"/>
   <Style id="joinRight" background="transparent" thickness="0" radius="0,10,10,0"/>
-  <Grid id="board" desktopMode="true" rows="2" columns="16" anchor="Top" offset="0,0" size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" gap="16" margin="12" radius="16"
-        rowHeights="96,*">
-    <Cell id="page_title" row="0" col="0" colSpan="16" label="Place" caption="Click placement and ComboMouse" role="label" textStyle="title" style="plain"/>
-    <SubGrid id="sec_place" row="1" col="0" colSpan="8" rows="5" columns="1" rowHeights="*,2*,2*,2*,2*" gap="6" margin="6" style="group">
+  <Grid id="board" desktopMode="true" rows="2" columns="2" anchor="Top" offset="0,0" size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" gap="12" margin="12" radius="16"
+        rowHeights="96,*" columnWidths="*,72">
+    <Cell id="page_title" row="0" col="0" colSpan="2" label="Place" caption="Click placement and ComboMouse" role="label" textStyle="title" style="plain"/>
+    <SubGrid id="scroller" row="1" col="0" scroll="true" rows="2" columns="1" rowHeights="480,584" gap="12" margin="0">
+    <SubGrid id="sec_place" row="0" col="0" rows="5" columns="1" rowHeights="48,96,96,96,96" gap="8" margin="8" style="group">
       <Cell id="h_place" row="0" col="0" label="Place" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_pd" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="pd_label" row="0" col="0" label="Pointer dwell" caption="Dwell to place the cursor." role="label" style="plain"/>
@@ -41,8 +42,7 @@
         <Cell id="test_move" row="0" col="1" icon="mouseMove" label="Move to…" activeState="mouseMoveToGaze" command="mouseMoveToGaze"/>
       </SubGrid>
     </SubGrid>
-
-    <SubGrid id="sec_combo" row="1" col="8" colSpan="8" rows="6" columns="1" rowHeights="*,2*,2*,2*,2*,2*" gap="6" margin="6" style="group">
+    <SubGrid id="sec_combo" row="1" col="0" rows="6" columns="1" rowHeights="48,96,96,96,96,96" gap="8" margin="8" style="group">
       <Cell id="h_combo" row="0" col="0" label="ComboMouse" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_combo_inner" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="ci_l" row="0" col="0" label="Inner radius" caption="Inner edge of the drift ring." role="label" style="plain"/>
@@ -82,6 +82,12 @@
         <Cell id="combo_on_l" row="0" col="0" label="Try" caption="Dwell to place, then drift and click from the pie." role="label" style="plain"/>
         <Cell id="combo_on" row="0" col="1" label="ComboMouse" icon="comboMouse" role="toggle" activeState="comboMouse" style="join" command="toggleComboMouse"/>
       </SubGrid>
+    </SubGrid>
+    </SubGrid>
+    <SubGrid id="page_scroll" row="1" col="1" rows="3" columns="1" rowHeights="72,*,72" gap="6" margin="0" style="group">
+      <Cell id="set_scroll_up" row="0" col="0" icon="ArrowUp" role="scrollUp" command="settings.scroll.up"/>
+      <Cell id="set_scroll_track" row="1" col="0" role="scrollbar" caption="0,1,1" scanGrace="400"/>
+      <Cell id="set_scroll_down" row="2" col="0" icon="ArrowDown" role="scrollDown" command="settings.scroll.down"/>
     </SubGrid>
   </Grid>
 </Page>

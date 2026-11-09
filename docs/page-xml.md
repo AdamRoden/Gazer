@@ -172,7 +172,8 @@ A Grid is a placed rectangle of rows and columns. `SubGrid` occupies a parent ce
 | `desktopMode` | `true` = virtual desktop bounds; else current screen |
 | `rows`, `columns` | Cell mesh |
 | `gap`, `margin` | Pixels between cells / inside the grid |
-| `rowHeights`, `columnWidths` | Per-track sizes, XAML GridLength-style. Integer token = pixels (`80`, `80px`). `*` / `2*` share leftover space after fixed tracks. Also accepts dim tokens (`0.25`, `1/4`, `0.25h`, `A_ScreenHeight/20`, `clamp(...)`). Missing tracks are `*`. Pixel tracks that overflow the inner size scale down together. Equal rows/columns when the matching attribute is omitted. |
+| `rowHeights`, `columnWidths` | Per-track sizes, XAML GridLength-style. Integer token = pixels (`80`, `80px`). `*` / `2*` share leftover space after fixed tracks. Also accepts dim tokens (`0.25`, `1/4`, `0.25h`, `A_ScreenHeight/20`, `clamp(...)`). Missing tracks are `*`. Pixel tracks that overflow the inner size scale down together, unless `scroll="true"`. Equal rows/columns when the matching attribute is omitted. |
+| `scroll` | `true` keeps fixed tracks at their authored size and clips children to the slot. The runtime pixel shift is not saved. A sibling column that holds scroll chrome (`scrollbar`, `scrollUp`, or `scrollDown`) is given no width when the content fits. |
 | `drawerMotion` | Scale animation when shown/hidden as the master drawer |
 | `shell` | Always-on-top layer (dock chrome). Cells inherit shell from their grid. |
 | `autoClose` | Idle-close this grid |
@@ -195,7 +196,7 @@ A Grid is a placed rectangle of rows and columns. `SubGrid` occupies a parent ce
   …
 </Grid>
 
-<SubGrid id="body" row="1" col="0" colSpan="16" src="main_settings_dwell" grid="board"/>
+<SubGrid id="body" row="1" col="1" src="main_settings_dwell" grid="board"/>
 ```
 
 `src` is resolved at collect/rebuild, not flattened into the host AST. Style and dwell on the inlined cells still come from the fragment page. Live targets keep the fragment's page id (`main_settings_dwell/dwell_edit`). `HostPage` changes `src` on the live host; `OpenPage` of the fragment still attaches it as a full board (editor F5).
@@ -245,7 +246,8 @@ Nested `<SubGrid>` occupies a cell span.
 | `headpreview` | no | Live 3D head mesh (same renderer as tray Head preview) |
 | `curvefield` | yes if it has a command | Input→output transfer curve. Caption `in,out;in,out;…` is a fallback; the live host supplies typed points. |
 | `label`, `value`, `display`, `preview` | no | Text / preview only |
-| `scrollbar` | no | Vertical gaze track. Caption `offset,visible,total`. Looking along it scrolls. |
+| `scrollbar` | no | Vertical gaze track beside a `scroll="true"` grid. Caption `offset,visible,total` is filled from that grid. Looking along it scrolls. |
+| `scrollUp`, `scrollDown` | yes | End buttons of that track. At the end of the range they are not targets. |
 
 ---
 

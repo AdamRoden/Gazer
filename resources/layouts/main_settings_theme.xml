@@ -5,12 +5,12 @@
   <Style id="join" background="transparent" thickness="0" radius="0"/>
   <Style id="joinLeft" background="transparent" thickness="0" radius="10,0,0,10"/>
   <Style id="joinRight" background="transparent" thickness="0" radius="0,10,10,0"/>
-  <Grid id="board" desktopMode="true" rows="9" columns="16" anchor="Top" offset="0,0" size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" gap="6" margin="12" radius="16"
-        rowHeights="96,*,*,*,*,*,*,*,*">
-    <Cell id="page_title" row="0" col="0" colSpan="16" label="Theme" caption="Background, accent, and progress" role="label" textStyle="title" style="plain"/>
-    <SubGrid id="theme_columns" row="1" col="0" rowSpan="7" colSpan="16" rows="1" columns="2" gap="16">
+  <Grid id="board" desktopMode="true" rows="2" columns="2" anchor="Top" offset="0,0" size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" gap="12" margin="12" radius="16"
+        rowHeights="96,*" columnWidths="*,72">
+    <Cell id="page_title" row="0" col="0" colSpan="2" label="Theme" caption="Background, accent, and progress" role="label" textStyle="title" style="plain"/>
+    <SubGrid id="scroller" row="1" col="0" scroll="true" rows="2" columns="1" rowHeights="552,640" gap="12" margin="0">
 
-      <SubGrid id="sec_surfaces" row="0" col="0" rows="6" columns="2" rowHeights="0.5*,1.5*,1.5*,1.5*,1.5*,1.5*" columnWidths="1*,3*" gap="8" margin="8" style="group">
+      <SubGrid id="sec_surfaces" row="0" col="0" rows="6" columns="2" rowHeights="48,96,80,80,96,96" columnWidths="1*,3*" gap="8" margin="8" style="group">
         <Cell id="h_surfaces" row="0" col="0" colSpan="2" label="Background" role="label" textStyle="section" style="plain"/>
         <Cell id="theme_l_d" row="1" col="0" label="Theme" role="label" style="plain"/>
         <SubGrid id="row_appearance" row="1" col="1" rows="1" columns="2" gap="0" style="row">
@@ -57,7 +57,7 @@
         </SubGrid>
       </SubGrid>
 
-      <SubGrid id="sec_accents" row="0" col="1" rows="10" columns="2" rowHeights="*,1.5*,*,1.15*,1.15*,1.15*,1.15*,1.15*,1.15*,1.15*" columnWidths="1*,4*" gap="8" margin="8" style="group">
+      <SubGrid id="sec_accents" row="1" col="0" rows="9" columns="2" rowHeights="48,80,48,64,64,64,64,64,64" columnWidths="1*,4*" gap="8" margin="8" style="group">
         <Cell id="h_accents" row="0" col="0" colSpan="2" label="Accent Colors" role="label" textStyle="section" style="plain"/>
         <SubGrid id="row_primary" row="1" col="0" colSpan="2" rows="1" columns="4" gap="8" style="row">
           <Cell id="pc" row="0" col="0" label="Highlight" role="label" style="plain"/>
@@ -139,6 +139,11 @@
           <Cell id="pal_tertiary2_1" row="0" col="8" style="joinRight" command="settings.theme.shade.tertiary2.1"/>
         </SubGrid>
       </SubGrid>
+    </SubGrid>
+    <SubGrid id="page_scroll" row="1" col="1" rows="3" columns="1" rowHeights="72,*,72" gap="6" margin="0" style="group">
+      <Cell id="set_scroll_up" row="0" col="0" icon="ArrowUp" role="scrollUp" command="settings.scroll.up"/>
+      <Cell id="set_scroll_track" row="1" col="0" role="scrollbar" caption="0,1,1" scanGrace="400"/>
+      <Cell id="set_scroll_down" row="2" col="0" icon="ArrowDown" role="scrollDown" command="settings.scroll.down"/>
     </SubGrid>
   </Grid>
 </Page>

@@ -4,6 +4,7 @@
 #include "layout/PageDim.h"
 #include "layout/PageResolve.h"
 #include "layout/RoundBox.h"
+#include "layout/ScrollCaption.h"
 
 #include <QHash>
 #include <QStringList>
@@ -70,6 +71,10 @@ void accumulateGrid(const PageGrid& grid, const QRectF& bounds, const QVector<in
     if (!bounds.isEmpty()) {
         u = u.isEmpty() ? bounds : u.united(bounds);
     }
+    // Scrolled children keep their authored size and extend past the slot.
+    if (grid.scroll) {
+        return;
+    }
     for (const PageGrid& sub : grid.subGrids) {
         const QRectF slot =
             cellRect(grid, bounds, sub.row, sub.col, sub.rowSpan, sub.colSpan, metrics);
@@ -121,19 +126,30 @@ bool tabTargetsSrc(const PageCell& cell, const QString& src)
 }
 
 void pushGridPaint(QVector<PageGridPaint>* grids, const QRectF& bounds, const PageChrome& chrome,
-                   const QString& pageId, const QString& gridId, bool drawer, bool shell)
+                   const QString& pageId, const QString& gridId, bool drawer, bool shell,
+                   const QRectF& shape = {})
 {
     if (!grids) {
         return;
     }
     PageGridPaint gp;
     gp.visual = bounds;
+    gp.shape = shape;
     gp.chrome = chrome;
     gp.pageId = pageId;
     gp.gridId = gridId;
     gp.drawerMotion = drawer;
     gp.shell = shell;
     grids->push_back(std::move(gp));
+}
+
+[[nodiscard]] bool slicedByClip(const QRectF& full, const QRectF& shown, const QRectF& clip)
+{
+    if (!clip.isValid() || shown.isEmpty()) {
+        return false;
+    }
+    return qAbs(shown.top() - full.top()) > 0.5 || qAbs(shown.height() - full.height()) > 0.5
+           || qAbs(shown.left() - full.left()) > 0.5 || qAbs(shown.width() - full.width()) > 0.5;
 }
 
 struct WalkEnv {
@@ -146,6 +162,8 @@ struct WalkEnv {
     const QHash<QString, const PageDocument*>* fragments = nullptr;
     QStringList* chain = nullptr;
     const QVector<int>* drawerLayers = nullptr;
+    /// Set while walking the sibling that holds scroll chrome for a scrolled child.
+    const PageDimParse::ScrollMetrics* scrollChrome = nullptr;
 
     [[nodiscard]] bool keepsDrawer(const PageGrid& g) const
     {
@@ -154,9 +172,37 @@ struct WalkEnv {
     }
 };
 
+[[nodiscard]] QRectF clipped(const QRectF& rect, const QRectF& clip)
+{
+    return clip.isValid() ? rect.intersected(clip) : rect;
+}
+
+[[nodiscard]] bool roleIs(const QString& role, const char* name)
+{
+    return role.compare(QLatin1String(name), Qt::CaseInsensitive) == 0;
+}
+
+void stampScrollChrome(PageTarget& t, const PageDimParse::ScrollMetrics& metrics)
+{
+    if (roleIs(t.role, "scrollbar")) {
+        t.caption = scrollCaption(metrics.offset, metrics.visible, metrics.total);
+        return;
+    }
+    const int maxOff = qMax(0, metrics.total - qMax(0, metrics.visible));
+    const bool idle = (roleIs(t.role, "scrollUp") && metrics.offset <= 0)
+                      || (roleIs(t.role, "scrollDown") && metrics.offset >= maxOff);
+    if (!idle) {
+        return;
+    }
+    t.interactive = false;
+    t.actions.clear();
+    t.phases.clear();
+    t.role = QStringLiteral("label");
+}
+
 void walkGrid(const PageDocument& page, const PageGrid& grid, const QRectF& bounds, WalkEnv& env,
               const QVector<int>& shownLayers, bool shell, bool drawerMotion, bool asNested,
-              const QString& currentSrc)
+              const QString& currentSrc, const QRectF& clip)
 {
     if (!layersVisible(grid.layers, shownLayers) && !env.keepsDrawer(grid)) {
         return;
@@ -166,9 +212,16 @@ void walkGrid(const PageDocument& page, const PageGrid& grid, const QRectF& boun
     const bool drawer = drawerMotion || grid.drawerMotion;
     const PageChrome gridChrome = PageResolve::gridStyle(page, grid.styleId, grid.style);
 
+    const QRectF visibleBounds = clipped(bounds, clip);
+    if (clip.isValid() && visibleBounds.isEmpty()) {
+        return;
+    }
+    const QRectF gridShape = slicedByClip(bounds, visibleBounds, clip) ? bounds : QRectF();
+
     if (!grid.src.isEmpty()) {
         if (grid.style.hasAny() || !grid.styleId.isEmpty()) {
-            pushGridPaint(env.grids, bounds, gridChrome, page.id, grid.id, drawer, layer);
+            pushGridPaint(env.grids, visibleBounds, gridChrome, page.id, grid.id, drawer, layer,
+                          gridShape);
         }
         if (!env.fragments || !env.chain || env.chain->contains(grid.src)) {
             return;
@@ -180,27 +233,49 @@ void walkGrid(const PageDocument& page, const PageGrid& grid, const QRectF& boun
         }
         const bool sourcedStyled = sourced->style.hasAny() || !sourced->styleId.isEmpty();
         if (!sourcedStyled) {
-            pushGridPaint(env.grids, bounds,
+            pushGridPaint(env.grids, visibleBounds,
                           PageResolve::gridStyle(*frag, sourced->styleId, sourced->style),
-                          frag->id, sourced->id, drawer, layer);
+                          frag->id, sourced->id, drawer, layer, gridShape);
         }
         env.chain->push_back(grid.src);
         walkGrid(*frag, *sourced, bounds, env, normalizedLayers(frag->showLayers), layer, drawer,
-                 true, PageCompose::firstSrc(*frag));
+                 true, PageCompose::firstSrc(*frag), clip);
         env.chain->pop_back();
         return;
     }
 
     if (env.grids && (!asNested || grid.style.hasAny() || !grid.styleId.isEmpty())) {
-        pushGridPaint(env.grids, bounds, gridChrome, page.id, grid.id, drawer, layer);
+        pushGridPaint(env.grids, visibleBounds, gridChrome, page.id, grid.id, drawer, layer,
+                      gridShape);
+    }
+
+    // A scroll grid's children are shifted by scrollOffset and may sit outside the slot.
+    // Clip paints and hits to the slot, but keep laying children out in the full slot
+    // so their own tracks are not scaled down to the visible slice.
+    const QRectF childClip = grid.scroll ? visibleBounds : clip;
+
+    std::optional<PageDimParse::ScrollFit> fit;
+    if (!grid.scroll) {
+        fit = PageDimParse::scrollFit(grid, bounds, env.screen.size());
+    }
+    PageGrid fitted;
+    const PageGrid* placed = &grid;
+    if (fit && fit->columns) {
+        fitted = grid;
+        fitted.columnTracks = *fit->columns;
+        placed = &fitted;
     }
 
     for (const PageCell& cell : grid.cells) {
         if (!evalVisibleWhen(cell.visibleWhen, env.props)) {
             continue;
         }
-        const QRectF visual = cellRect(grid, bounds, cell.row, cell.col, cell.rowSpan,
-                                       cell.colSpan, env.screen.size());
+        const QRectF full = PageDimParse::cellRect(*placed, bounds, cell.row, cell.col, cell.rowSpan,
+                                                   cell.colSpan, env.screen.size());
+        const QRectF visual = clipped(full, childClip);
+        if (visual.isEmpty()) {
+            continue;
+        }
         const bool currentTab = tabTargetsSrc(cell, currentSrc);
         PageTarget t;
         t.kind = PageTarget::Kind::Cell;
@@ -230,16 +305,30 @@ void walkGrid(const PageDocument& page, const PageGrid& grid, const QRectF& boun
         }
         t.actionLoop = cell.actionLoop;
         t.geom = PageDetector::cell(visual, env.screen);
+        if (slicedByClip(full, visual, childClip)) {
+            t.shape = full;
+        }
+        if (env.scrollChrome) {
+            stampScrollChrome(t, *env.scrollChrome);
+        }
         env.out.push_back(t);
     }
 
-    for (const PageGrid& sub : grid.subGrids) {
+    for (int i = 0; i < grid.subGrids.size(); ++i) {
+        const PageGrid& sub = grid.subGrids[i];
         if (!layersVisible(sub.layers, shownLayers) && !env.keepsDrawer(sub)) {
             continue;
         }
-        const QRectF slot = cellRect(grid, bounds, sub.row, sub.col, sub.rowSpan, sub.colSpan,
-                                     env.screen.size());
-        walkGrid(page, sub, slot, env, shownLayers, layer, drawer, true, currentSrc);
+        const QRectF slot = PageDimParse::cellRect(*placed, bounds, sub.row, sub.col, sub.rowSpan,
+                                                   sub.colSpan, env.screen.size());
+        if (childClip.isValid() && slot.intersected(childClip).isEmpty()) {
+            continue;
+        }
+        WalkEnv childEnv = env;
+        if (fit && fit->chrome.contains(i)) {
+            childEnv.scrollChrome = &fit->metrics;
+        }
+        walkGrid(page, sub, slot, childEnv, shownLayers, layer, drawer, true, currentSrc, childClip);
     }
 }
 
@@ -262,7 +351,7 @@ QVector<PageTarget> collect(const PageDocument& page, const PageFrame& frame,
         WalkEnv env{screen, props, dwellSuspended, includeDrawerMotion, piece, grids, fragments,
                     &chain, drawerLayers};
         walkGrid(page, g, gridBounds(g, frame), env, shown, g.shell, g.drawerMotion, false,
-                 PageCompose::firstSrc(page));
+                 PageCompose::firstSrc(page), QRectF());
         for (PageTarget& t : piece) {
             (t.shell ? shell : rest).push_back(std::move(t));
         }

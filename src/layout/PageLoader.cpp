@@ -502,7 +502,8 @@ bool readGrid(QXmlStreamReader& xml, PageGrid& grid, bool nested, QString* error
         return true;
     };
     if (!takeBool(QStringLiteral("drawerMotion"), &grid.drawerMotion)
-        || !takeBool(QStringLiteral("autoClose"), &grid.autoClose)) {
+        || !takeBool(QStringLiteral("autoClose"), &grid.autoClose)
+        || !takeBool(QStringLiteral("scroll"), &grid.scroll)) {
         return false;
     }
     if (!parseLayersAttr(a, grid.layers, error)) {

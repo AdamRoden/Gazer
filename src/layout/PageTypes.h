@@ -483,6 +483,10 @@ struct PageGrid {
     QVector<PageTrackSize> columnTracks;
     bool drawerMotion = false;
     bool autoClose = false;
+    /// Fixed tracks keep their pixel size when they overflow this grid. Children clip to the slot.
+    /// `scrollOffset` is a runtime pixel shift and is not written back to XML.
+    bool scroll = false;
+    int scrollOffset = 0;
     /// Membership in page layers (`layers="1,2"`). Default `{1}`.
     QVector<int> layers{1};
     /// Root chrome: painted and hit above every non-shell Grid/Zone.

@@ -149,6 +149,10 @@ void SettingsUi::registerCommands()
         notifyStatus(QStringLiteral("Audio devices updated"));
         return true;
     });
+    m_commands.registerBuiltin(QStringLiteral("settings.scroll.up"),
+                               [this](QString*) { return settingsScrollBy(-1); });
+    m_commands.registerBuiltin(QStringLiteral("settings.scroll.down"),
+                               [this](QString*) { return settingsScrollBy(1); });
     m_commands.registerPrefix(
         QStringLiteral("settings.speech.output."),
         [this](const CommandRegistry::Invocation& inv, QString* error) {

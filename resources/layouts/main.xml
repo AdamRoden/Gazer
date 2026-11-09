@@ -36,7 +36,7 @@
     <Cell id="open_more" row="0" col="0" label="More" icon="moreHoriz">
       <ShowLayers value="4"/>
     </Cell>
-    <Cell id="open_settings" row="0" col="1" label="Settings" icon="settings" openPage="main_settings"/>
+    <Cell id="open_settings" row="0" col="1" label="Settings" icon="settings" openPage="main_settings_host"/>
     <Cell id="close_all" row="0" col="2" label="Close All" icon="CloseAll">
       <CloseAllPages/>
     </Cell>

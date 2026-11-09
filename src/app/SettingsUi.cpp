@@ -432,6 +432,7 @@ void SettingsUi::decoratePage(PageDocument& doc)
     if (doc.id == QLatin1String("main_settings_head_pose")) {
         decorateHeadPosePage(doc);
     }
+    stampSettingsScroll(doc);
 }
 
 } // namespace gazer

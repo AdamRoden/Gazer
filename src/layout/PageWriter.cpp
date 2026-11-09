@@ -225,6 +225,7 @@ void writeGrid(QXmlStreamWriter& xml, const PageGrid& grid)
     }
     attrBool(xml, QStringLiteral("drawerMotion"), grid.drawerMotion, false);
     attrBool(xml, QStringLiteral("autoClose"), grid.autoClose, false);
+    attrBool(xml, QStringLiteral("scroll"), grid.scroll, false);
     attrLayers(xml, QStringLiteral("layers"), grid.layers);
     attrBool(xml, QStringLiteral("shell"), grid.shell, false);
     attr(xml, QStringLiteral("style"), grid.styleId);

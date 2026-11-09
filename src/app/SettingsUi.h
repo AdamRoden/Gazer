@@ -9,6 +9,7 @@
 #include "layout/PageTypes.h"
 
 #include <QColor>
+#include <QElapsedTimer>
 #include <QHash>
 #include <QMetaObject>
 #include <QPoint>
@@ -31,7 +32,7 @@ class VigemInstaller;
 /// Settings boards: live value decoration, numeric editor, color picker, settings commands.
 /// Implementations: SettingsUi.cpp (shared), SettingsNumpad, SettingsArrayEditor,
 /// SettingsColorPicker, SettingsHexEditor, SettingsSpeechKey, SettingsSpeechOutput,
-/// SettingsSliderGaze,
+/// SettingsSliderGaze, SettingsScroll,
 /// SettingsCommands, SettingsHeadPose.
 class SettingsUi {
 public:
@@ -66,7 +67,7 @@ public:
     void decoratePage(PageDocument& doc);
     /// Store the validated key, or surface the HTTP/DPAPI error. Returns true if stored.
     [[nodiscard]] bool onSpeechKeyValidated(bool ok, const QString& error);
-    /// Head-pose curve gaze-scrub while that editor is open.
+    /// Head-pose curve gaze-scrub while that editor is open, and settings-page scroll.
     void onGaze(const GazePoint& point);
     /// Drop a head-pose editor when that settings page is no longer showing.
     void onSessionChanged();
@@ -213,6 +214,10 @@ private:
     void syncLookToPreview();
 
     void decorateSpeechOutput(PageDocument& doc);
+    void stampSettingsScroll(PageDocument& doc);
+    void feedSettingsScroll(const GazePoint& point);
+    void stopSettingsScroll();
+    [[nodiscard]] bool settingsScrollBy(int dir);
     void fillSpeechOutputList(PageGrid& host);
     [[nodiscard]] bool selectSpeechOutput(const QString& encoded, QString* error);
 
@@ -313,6 +318,12 @@ private:
     QString m_keyBuffer;
     QMetaObject::Connection m_editorKeyConn;
     std::unique_ptr<QObject> m_audioWatch;
+
+    QHash<QString, int> m_settingsScroll;
+    GazeTrack::Drag m_settingsScrollDrag;
+    GazeTrack::Lock m_settingsScrollLock;
+    InvalidGazeGrace m_settingsScrollGrace;
+    QElapsedTimer m_settingsScrollClock;
 };
 
 } // namespace gazer

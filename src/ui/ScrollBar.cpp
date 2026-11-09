@@ -1,5 +1,6 @@
 #include "ui/ScrollBar.h"
 
+#include "layout/ScrollCaption.h"
 #include "ui/ProgressPaint.h"
 
 #include <QPainter>
@@ -23,7 +24,7 @@ Spec parseSpec(const QString& caption)
 
 QString formatSpec(int offset, int visible, int total)
 {
-    return QStringLiteral("%1,%2,%3").arg(offset).arg(visible).arg(total);
+    return scrollCaption(offset, visible, total);
 }
 
 Visual visual(const QRectF& cell, const Spec& spec, double t)

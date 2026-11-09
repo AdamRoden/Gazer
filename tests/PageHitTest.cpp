@@ -2,6 +2,7 @@
 #include "layout/PageDim.h"
 #include "layout/PageHit.h"
 #include "layout/PageLoader.h"
+#include "layout/PageWriter.h"
 #include "layout/RoundBox.h"
 
 #include <QVariantMap>
@@ -42,6 +43,8 @@ private slots:
     void cellRectPixelTracks();
     void cellRectColumnStars();
     void cellRectPixelOverflowScalesDown();
+    void scrollGridKeepsRowSizeAndClips();
+    void scrollColumnHidesWhenContentFits();
     void cellRectExpressionTrackUsesScreen();
     void drawerMapIsIdentityAtFullScale();
     void drawerMapShrinksAboutBottom();
@@ -438,6 +441,100 @@ void PageHitTest::cellRectPixelOverflowScalesDown()
     const QRectF board(0, 0, 50, 50);
     QCOMPARE(PageHit::cellRect(g, board, 0, 0, 1, 1), QRectF(0, 0, 50, 25));
     QCOMPARE(PageHit::cellRect(g, board, 1, 0, 1, 1), QRectF(0, 25, 50, 25));
+}
+
+void PageHitTest::scrollGridKeepsRowSizeAndClips()
+{
+    PageFrame frame;
+    frame.screen = QRectF(0, 0, 800, 600);
+    frame.desktop = frame.screen;
+    PageDocument doc;
+    QString err;
+    QVERIFY2(PageLoader::loadFromXml(R"xml(
+<Page id="scrollpage">
+  <Grid id="board" rows="1" columns="2" size="200,100" columnWidths="*,40" gap="0" margin="0">
+    <SubGrid id="scroller" row="0" col="0" scroll="true" rows="3" columns="1" rowHeights="80,80,80" gap="0" margin="0">
+      <Cell id="a" row="0" col="0" label="A"/>
+      <Cell id="b" row="1" col="0" label="B"/>
+      <Cell id="c" row="2" col="0" label="C"/>
+    </SubGrid>
+    <SubGrid id="page_scroll" row="0" col="1" rows="2" columns="1" rowHeights="40,*" gap="0" margin="0">
+      <Cell id="set_scroll_up" row="0" col="0" label="Up" role="scrollUp" command="settings.scroll.up"/>
+      <Cell id="set_scroll_track" row="1" col="0" role="scrollbar" caption="0,1,1"/>
+    </SubGrid>
+  </Grid>
+</Page>
+)xml",
+                                     doc, &err),
+             qPrintable(err));
+    QVERIFY(doc.findGrid(QStringLiteral("scroller"))->scroll);
+    doc.findGrid(QStringLiteral("scroller"))->scrollOffset = 80;
+    const QByteArray saved = PageWriter::toBytes(doc);
+    QVERIFY(saved.contains("scroll=\"true\""));
+    QVERIFY(!saved.contains("scrollOffset"));
+    PageDocument round;
+    QVERIFY2(PageLoader::loadFromXml(saved, round, &err), qPrintable(err));
+    QVERIFY(round.findGrid(QStringLiteral("scroller"))->scroll);
+    QCOMPARE(round.findGrid(QStringLiteral("scroller"))->scrollOffset, 0);
+
+    QVector<PageTarget> targets = PageHit::collect(doc, frame);
+    const PageTarget* a = targetById(targets, QStringLiteral("a"));
+    const PageTarget* b = targetById(targets, QStringLiteral("b"));
+    const PageTarget* c = targetById(targets, QStringLiteral("c"));
+    QVERIFY(!a);
+    QVERIFY(b);
+    QVERIFY(c);
+    QCOMPARE(b->geom.visual.top(), 0.0);
+    QCOMPARE(b->geom.visual.height(), 80.0);
+    QCOMPARE(c->geom.visual.height(), 20.0);
+    const PageTarget* track = targetById(targets, QStringLiteral("set_scroll_track"));
+    QVERIFY(track);
+    QCOMPARE(track->caption, QStringLiteral("80,100,240"));
+    const PageTarget* up = targetById(targets, QStringLiteral("set_scroll_up"));
+    QVERIFY(up);
+    QVERIFY(up->interactive);
+
+    doc.findGrid(QStringLiteral("scroller"))->scrollOffset = 0;
+    targets = PageHit::collect(doc, frame);
+    a = targetById(targets, QStringLiteral("a"));
+    c = targetById(targets, QStringLiteral("c"));
+    QVERIFY(a);
+    QCOMPARE(a->geom.visual.height(), 80.0);
+    QVERIFY(!c);
+    up = targetById(targets, QStringLiteral("set_scroll_up"));
+    QVERIFY(up);
+    QVERIFY(!up->interactive);
+    QCOMPARE(targetById(targets, QStringLiteral("set_scroll_track"))->caption,
+             QStringLiteral("0,100,240"));
+}
+
+void PageHitTest::scrollColumnHidesWhenContentFits()
+{
+    PageFrame frame;
+    frame.screen = QRectF(0, 0, 800, 600);
+    frame.desktop = frame.screen;
+    PageDocument doc;
+    QString err;
+    QVERIFY2(PageLoader::loadFromXml(R"xml(
+<Page id="scrollpage">
+  <Grid id="board" rows="1" columns="2" size="200,100" columnWidths="*,40" gap="0" margin="0">
+    <SubGrid id="scroller" row="0" col="0" scroll="true" rows="1" columns="1" rowHeights="40" gap="0" margin="0">
+      <Cell id="a" row="0" col="0" label="A"/>
+    </SubGrid>
+    <SubGrid id="page_scroll" row="0" col="1" rows="1" columns="1">
+      <Cell id="set_scroll_track" row="0" col="0" role="scrollbar"/>
+    </SubGrid>
+  </Grid>
+</Page>
+)xml",
+                                     doc, &err),
+             qPrintable(err));
+    const QVector<PageTarget> targets = PageHit::collect(doc, frame);
+    QVERIFY(!targetById(targets, QStringLiteral("set_scroll_track")));
+    const PageTarget* a = targetById(targets, QStringLiteral("a"));
+    QVERIFY(a);
+    QCOMPARE(a->geom.visual.width(), 200.0);
+    QCOMPARE(a->geom.visual.height(), 40.0);
 }
 
 void PageHitTest::cellRectExpressionTrackUsesScreen()

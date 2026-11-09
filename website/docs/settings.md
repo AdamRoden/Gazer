@@ -1,8 +1,8 @@
 # Settings
 
-Drawer **Settings** (`main_settings`) is a hub of live pages. There are no desktop dialogs for these prefs.
+Drawer **Settings** opens `main_settings_host`: a category list on the left and the board on the right. **Close** leaves settings. There are no desktop dialogs for these prefs.
 
-The hub and the tab bar are the same eight boards. **Done** on the tab bar closes settings.
+`main_settings` is the same eight boards as tiles. The drawer skips that page.
 
 | Board | What you change |
 |-------|-----------------|

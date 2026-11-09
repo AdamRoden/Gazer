@@ -9,6 +9,8 @@
 #include <QString>
 #include <QStringView>
 
+#include <optional>
+
 namespace gazer {
 
 namespace PageDimParse {
@@ -30,6 +32,29 @@ namespace PageDimParse {
 /// @p screen feeds `A_ScreenWidth` / `A_ScreenHeight`. Empty uses `bounds`.
 [[nodiscard]] QRectF placeRect(const QRectF& bounds, PageAnchor anchor, const PageDimPair& offset,
                                const PageDimPair& size, const QSizeF& screen = {});
+
+/// Natural height of a grid whose fixed tracks are not scaled down to the slot.
+struct ScrollMetrics {
+    int offset = 0;
+    int visible = 0;
+    int total = 0;
+};
+
+/// `offset` is `grid.scrollOffset` clamped to `total - visible`. `visible` is the slot height.
+[[nodiscard]] ScrollMetrics scrollMetrics(const PageGrid& grid, const QRectF& slot,
+                                          const QSizeF& screen = {});
+
+/// First `scroll="true"` child, the sibling subgrids that hold scroll chrome
+/// (`scrollbar`, `scrollUp`, `scrollDown`), and column tracks with those
+/// siblings' columns set to 0 when the child fits. nullopt when there is nothing to do.
+struct ScrollFit {
+    ScrollMetrics metrics;
+    QVector<int> chrome;
+    std::optional<QVector<PageTrackSize>> columns;
+};
+
+[[nodiscard]] std::optional<ScrollFit> scrollFit(const PageGrid& grid, const QRectF& slot,
+                                                 const QSizeF& screen = {});
 
 /// Grid cell box inside @p gridRect. Empty @p screen uses @p gridRect (same as placeRect).
 [[nodiscard]] QRectF cellRect(const PageGrid& grid, const QRectF& gridRect, int row, int col,

@@ -5,15 +5,15 @@
   <Style id="join" background="transparent" thickness="0" radius="0"/>
   <Style id="joinLeft" background="transparent" thickness="0" radius="10,0,0,10"/>
   <Style id="joinRight" background="transparent" thickness="0" radius="0,10,10,0"/>
-  <Grid id="board" desktopMode="true" rows="9" columns="16" anchor="Top" offset="0,0"
+  <Grid id="board" desktopMode="true" rows="3" columns="16" anchor="Top" offset="0,0"
         size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" gap="6" margin="12" radius="16"
-        rowHeights="96,*,*,*,*,*,*,*,*">
+        rowHeights="96,640,*">
     <Cell id="page_title" row="0" col="0" colSpan="16" label="Head pose"
           caption="Map yaw, pitch, roll, and position to pointer, scroll, gaze, pad, or a command"
           role="label" textStyle="title" style="plain"/>
 
-    <SubGrid id="sec_preview" row="1" col="0" colSpan="8" rowSpan="8" rows="3" columns="1"
-             rowHeights="4*,*,3*" gap="6" margin="6" style="group">
+    <SubGrid id="sec_preview" row="1" col="0" colSpan="8" rows="3" columns="1"
+             rowHeights="300,72,240" gap="6" margin="6" style="group">
       <Cell id="head_preview" row="0" col="0" label="Head Preview" role="headpreview" style="plain"/>
       <SubGrid id="row_master" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="hp_enable" row="0" col="0" label="Enable" role="toggle" activeState="headPose.enabled"
@@ -24,7 +24,7 @@
       <Cell id="pose_curve" row="2" col="0" label="in → out" role="curvefield"/>
     </SubGrid>
 
-    <SubGrid id="sec_maps" row="1" col="8" colSpan="8" rowSpan="8" rows="1" columns="1"
+    <SubGrid id="sec_maps" row="1" col="8" colSpan="8" rows="1" columns="1"
              gap="6" margin="6" style="group">
       <Cell id="maps_placeholder" row="0" col="0" label="Axes" role="label" style="plain"/>
     </SubGrid>

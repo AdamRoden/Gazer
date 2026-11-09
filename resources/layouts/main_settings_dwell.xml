@@ -6,10 +6,10 @@
   <Style id="joinLeft" background="transparent" thickness="0" radius="10,0,0,10"/>
   <Style id="joinRight" background="transparent" thickness="0" radius="0,10,10,0"/>
   <Grid id="board" desktopMode="true" rows="4" columns="16" anchor="Top" offset="0,0" size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" gap="6" margin="12" radius="16"
-        rowHeights="96,1.55*,2.05*,1.7*">
+        rowHeights="96,208,286,208">
     <Cell id="page_title" row="0" col="0" colSpan="16" label="Dwell" caption="Presets, sequences, likely keys, grace, and progress" role="label" textStyle="title" style="plain"/>
 
-    <SubGrid id="sec_presets" row="1" col="0" colSpan="16" rows="3" columns="1" rowHeights="*,2*,2*" gap="6" margin="6" style="group">
+    <SubGrid id="sec_presets" row="1" col="0" colSpan="16" rows="3" columns="1" rowHeights="40,72,72" gap="6" margin="6" style="group">
       <Cell id="h_presets" row="0" col="0" label="Presets" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_preset" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="p_label" row="0" col="0" label="Quick packages" caption="Slow, Normal, Fast, or Custom." role="label" style="plain"/>
@@ -29,7 +29,7 @@
       </SubGrid>
     </SubGrid>
 
-    <SubGrid id="sec_dwell" row="2" col="0" colSpan="16" rows="4" columns="1" rowHeights="*,2*,2*,2*" gap="6" margin="6" style="group">
+    <SubGrid id="sec_dwell" row="2" col="0" colSpan="16" rows="4" columns="1" rowHeights="40,72,72,72" gap="6" margin="6" style="group">
       <Cell id="h_dwell" row="0" col="0" label="Dwell" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_dwell" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="dwell_label" row="0" col="0" label="Standard" caption="Settings, navigation, mouse, AHK, and composer word chips. Last step repeats." role="label" style="plain"/>
@@ -57,7 +57,7 @@
     </SubGrid>
 
     <SubGrid id="sec_fine" row="3" col="0" colSpan="16" rows="1" columns="2" gap="16">
-      <SubGrid id="sec_grace" row="0" col="0" rows="3" columns="1" rowHeights="*,2*,2*" gap="6" margin="6" style="group">
+      <SubGrid id="sec_grace" row="0" col="0" rows="3" columns="1" rowHeights="40,72,72" gap="6" margin="6" style="group">
         <Cell id="h_grace" row="0" col="0" label="Grace" role="label" textStyle="section" style="plain"/>
         <SubGrid id="row_scan" row="1" col="0" rows="1" columns="2" gap="6" style="row">
           <Cell id="scan_label" row="0" col="0" label="Scan grace" caption="Time on-target before dwell starts." role="label" style="plain"/>
@@ -78,7 +78,7 @@
           </SubGrid>
         </SubGrid>
       </SubGrid>
-      <SubGrid id="sec_progress" row="0" col="1" rows="3" columns="1" rowHeights="*,2*,2*" gap="6" margin="6" style="group">
+      <SubGrid id="sec_progress" row="0" col="1" rows="3" columns="1" rowHeights="40,72,72" gap="6" margin="6" style="group">
         <Cell id="h_prog" row="0" col="0" label="Progress" role="label" textStyle="section" style="plain"/>
         <SubGrid id="row_bp" row="1" col="0" rows="1" columns="2" gap="6" style="row">
           <Cell id="bp_label" row="0" col="0" label="Buttons" caption="Dwell styles on board cells." role="label" style="plain"/>

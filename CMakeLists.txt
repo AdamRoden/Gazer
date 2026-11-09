@@ -54,6 +54,7 @@ set(GAZER_SOURCES
     src/app/SettingsSpeechKey.cpp
     src/app/SettingsSpeechOutput.cpp
     src/app/SettingsSliderGaze.cpp
+    src/app/SettingsScroll.cpp
     src/app/SettingsCommands.cpp
     src/app/SettingsHeadPose.cpp
     src/app/SettingsLookTo.cpp
@@ -77,6 +78,7 @@ set(GAZER_SOURCES
     src/core/TrackerTobii.cpp
     src/core/StreamEngineLib.cpp
     src/layout/PageDim.cpp
+    src/layout/PageDimMesh.cpp
     src/layout/PageActionParse.cpp
     src/layout/PageActionParseFields.cpp
     src/layout/PageLoader.cpp
@@ -483,6 +485,7 @@ install(DIRECTORY resources/ DESTINATION bin/resources)
 enable_testing()
 set(GAZER_PAGE_TEST_LIB
     src/layout/PageDim.cpp
+    src/layout/PageDimMesh.cpp
     src/layout/PageActionParse.cpp
     src/layout/PageActionParseFields.cpp
     src/layout/PageLoader.cpp

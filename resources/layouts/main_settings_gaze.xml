@@ -5,10 +5,11 @@
   <Style id="join" background="transparent" thickness="0" radius="0"/>
   <Style id="joinLeft" background="transparent" thickness="0" radius="10,0,0,10"/>
   <Style id="joinRight" background="transparent" thickness="0" radius="0,10,10,0"/>
-  <Grid id="board" desktopMode="true" rows="2" columns="16" anchor="Top" offset="0,0" size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" gap="16" margin="12" radius="16"
-        rowHeights="96,*">
-    <Cell id="page_title" row="0" col="0" colSpan="16" label="Gaze" caption="Follow, lens, and look-to maps" role="label" textStyle="title" style="plain"/>
-    <SubGrid id="sec_gaze" row="1" col="0" colSpan="8" rows="5" columns="1" rowHeights="*,2*,2*,2*,2*" gap="6" margin="6" style="group">
+  <Grid id="board" desktopMode="true" rows="2" columns="2" anchor="Top" offset="0,0" size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" gap="12" margin="12" radius="16"
+        rowHeights="96,*" columnWidths="*,72">
+    <Cell id="page_title" row="0" col="0" colSpan="2" label="Gaze" caption="Follow, lens, and look-to maps" role="label" textStyle="title" style="plain"/>
+    <SubGrid id="scroller" row="1" col="0" scroll="true" rows="2" columns="1" rowHeights="480,560" gap="12" margin="0">
+    <SubGrid id="sec_gaze" row="0" col="0" rows="5" columns="1" rowHeights="48,96,96,96,96" gap="8" margin="8" style="group">
       <Cell id="h_gaze" row="0" col="0" label="Gaze" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_follow" row="1" col="0" rows="1" columns="2" gap="6" style="row">
         <Cell id="f_l" row="0" col="0" label="Gaze follow" caption="Reticle, gaze mouse, and live lens." role="label" style="plain"/>
@@ -43,8 +44,7 @@
         </SubGrid>
       </SubGrid>
     </SubGrid>
-
-    <SubGrid id="sec_look" row="1" col="8" colSpan="8" rows="6" columns="1" rowHeights="*,2*,2*,2*,2*,2*" gap="6" margin="6" style="group">
+    <SubGrid id="sec_look" row="1" col="0" rows="6" columns="1" rowHeights="48,96,96,96,96,72" gap="8" margin="8" style="group">
       <Cell id="h_look" row="0" col="0" label="Look-to maps" role="label" textStyle="section" style="plain"/>
       <SubGrid id="row_scroll" row="1" col="0" rows="1" columns="3" gap="6" style="row">
         <Cell id="scroll_l" row="0" col="0" label="Scroll" caption="Wheel from gaze vs the origin." icon="lookToScroll" role="label" style="plain"/>
@@ -67,6 +67,12 @@
         <Cell id="rstick_edit" row="0" col="2" icon="editSquare" label="Edit" style="joinRight" command="lookTo.edit.rightStick"/>
       </SubGrid>
       <Cell id="look_hint" row="5" col="0" label="Each map has its own origin and rings. All four can run at once." role="label" style="plain"/>
+    </SubGrid>
+    </SubGrid>
+    <SubGrid id="page_scroll" row="1" col="1" rows="3" columns="1" rowHeights="72,*,72" gap="6" margin="0" style="group">
+      <Cell id="set_scroll_up" row="0" col="0" icon="ArrowUp" role="scrollUp" command="settings.scroll.up"/>
+      <Cell id="set_scroll_track" row="1" col="0" role="scrollbar" caption="0,1,1" scanGrace="400"/>
+      <Cell id="set_scroll_down" row="2" col="0" icon="ArrowDown" role="scrollDown" command="settings.scroll.down"/>
     </SubGrid>
   </Grid>
 </Page>

@@ -168,7 +168,8 @@ void LayoutEditorProperties::fillLeafIdentity(QFormLayout* form, const PageLeaf&
                  QStringLiteral("toggle"), QStringLiteral("choice"), QStringLiteral("swatch"),
                  QStringLiteral("swatchrect"),
                  QStringLiteral("slider"), QStringLiteral("preview"),
-                 QStringLiteral("scrollbar")},
+                 QStringLiteral("scrollbar"), QStringLiteral("scrollUp"),
+                 QStringLiteral("scrollDown")},
                 item.role, [this](const QString& t) {
                     applyItem([&](PageLeaf& it) { it.role = t; }, QStringLiteral("Role"));
                 });
