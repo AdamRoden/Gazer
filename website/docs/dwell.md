@@ -19,11 +19,11 @@ Two sequences share scan grace:
 | **Rapid** | `Send`, composer typing, modifiers, mapping keys (`backspace`, `space`, `enter`, …), `compose.backspace` / `compose.deleteWord` |
 | **Standard** | Settings, navigation, mouse, AHK, Run, assist toggles, composer word chips, `quitApp`, editor / preview |
 
-Both live under Settings → **Dwell** (Slow / Normal / Fast / Custom). Per-cell XML can override `scanGrace`, `dwellGrace`, and `activation`.
+Both live under Settings → **Dwell** (Slow / Normal / Fast / Custom). Those presets also set pointer dwell, zoom dwell, and blink grace. Scan grace is not part of a preset. Per-cell XML can override `scanGrace`, `dwellGrace`, and `activation`.
 
 ## Likely keys
 
-**Likely keys** (Settings → **Dwell**, under Rapid) pulls the dwell target toward the next character you probably want, and shortens that key’s rapid steps. After `t`, `h` is easier to land than `g` or `j`. After a finished word, Space is easier than the letters beside it. The pull learns from what you type on every keyboard. `0` turns it off.
+**Likely keys** (Settings → **Dwell**) pulls the dwell target toward the next character you probably want, and shortens that key’s rapid steps. After `t`, `h` is easier to land than `g` or `j`. After a finished word, Space is easier than the letters beside it. The pull learns from what you type on every keyboard. `0` turns it off.
 
 The gaze marker stays on the measured point. The center of a key always wins, and Shift, Backspace, Enter, and the other non-character keys keep their real bounds. A per-cell `activation` sequence keeps the times written in the layout.
 
@@ -37,4 +37,4 @@ The gaze marker stays on the measured point. The center of a key always wins, an
 
 When pages overlap, the topmost page’s grid is opaque: gaze and paint do not fall through. Shell zones (dock chips) still win over everything. A cell on a buried grid does not come forward when dwelled; only the unoccluded part hit-tests.
 
-Progress shape (radial, pie, fill directions) is Settings → **Dwell**.
+Button progress (radial, pie, fill) is Settings → **Dwell**. Pointer progress is Settings → **Pointer**.

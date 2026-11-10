@@ -3,6 +3,7 @@
 #include "layout/PageEdit.h"
 #include "layout/PageHit.h"
 #include "layout/PageLoader.h"
+#include "layout/PageResolve.h"
 
 #include <QFile>
 #include <QHash>
@@ -36,6 +37,57 @@ bool loadLayout(const QString& id, PageDocument& doc, QString* err)
     return PageLoader::loadFromFile(layoutPath(id), doc, err);
 }
 
+bool paintsOwnShape(const QString& role)
+{
+    const QString r = role.toLower();
+    return r == QLatin1String("swatch") || r == QLatin1String("swatchrect")
+           || r == QLatin1String("scrollbar") || r == QLatin1String("curvefield")
+           || r == QLatin1String("headpreview") || r == QLatin1String("label")
+           || r == QLatin1String("value") || r == QLatin1String("display");
+}
+
+bool nearPx(double a, double b)
+{
+    return qAbs(a - b) < 0.01;
+}
+
+QString buttonCornerProblem(const PageDocument& doc, const PageGrid& grid)
+{
+    for (const PageCell& cell : grid.cells) {
+        if (paintsOwnShape(cell.role) || (cell.actions.isEmpty() && cell.phases.isEmpty())) {
+            continue;
+        }
+        const QString style = cell.styleId;
+        const bool allowed = style == QLatin1String("button") || style == QLatin1String("join")
+                             || style == QLatin1String("joinLeft")
+                             || style == QLatin1String("joinRight");
+        if (!allowed) {
+            return doc.id + QStringLiteral(" ") + cell.id + QStringLiteral(" style='") + style
+                   + QStringLiteral("'");
+        }
+        const PageBox radius = PageResolve::style(doc, style, cell.style).resolvedRadius();
+        const bool left = style == QLatin1String("joinLeft");
+        const bool right = style == QLatin1String("joinRight");
+        const bool mid = style == QLatin1String("join");
+        const double expectTl = mid ? 0.0 : (left ? 10.0 : (right ? 0.0 : 10.0));
+        const double expectTr = mid ? 0.0 : (right ? 10.0 : (left ? 0.0 : 10.0));
+        const double expectBr = mid ? 0.0 : (right ? 10.0 : (left ? 0.0 : 10.0));
+        const double expectBl = mid ? 0.0 : (left ? 10.0 : (right ? 0.0 : 10.0));
+        if (!nearPx(radius.at(0), expectTl) || !nearPx(radius.at(1), expectTr)
+            || !nearPx(radius.at(2), expectBr) || !nearPx(radius.at(3), expectBl)) {
+            return doc.id + QStringLiteral(" ") + cell.id + QStringLiteral(" radius ")
+                   + radius.toToken();
+        }
+    }
+    for (const PageGrid& child : grid.subGrids) {
+        const QString problem = buttonCornerProblem(doc, child);
+        if (!problem.isEmpty()) {
+            return problem;
+        }
+    }
+    return {};
+}
+
 } // namespace
 
 class SettingsLayoutTest final : public QObject {
@@ -60,13 +112,13 @@ private slots:
     void zoomAndSetupHoldSession();
     void gazeOmitsSplash();
     void hostInlinesDwellBody();
+    void buttonCornersMatch();
 };
 
 void SettingsLayoutTest::pagesAnchorTop()
 {
     const QStringList ids = {QStringLiteral("main_settings_dwell"),
-                             QStringLiteral("main_settings_zoom"),
-                             QStringLiteral("main_settings_place"),
+                             QStringLiteral("main_settings_pointer"),
                              QStringLiteral("main_settings_gaze"),
                              QStringLiteral("main_settings_speak"),
                              QStringLiteral("main_settings_theme"),
@@ -121,8 +173,8 @@ void SettingsLayoutTest::settingsHostUsesSidebar()
     QVERIFY(!doc.findCell(QStringLiteral("tab_done")));
     QVERIFY(tabs);
     QCOMPARE(tabs->columns, 1);
-    QCOMPARE(tabs->rows, 9);
-    QCOMPARE(tabs->cells.size(), 8);
+    QCOMPARE(tabs->rows, 8);
+    QCOMPARE(tabs->cells.size(), 7);
     QCOMPARE(PageDimParse::token(doc.grids[0].columnTracks[0]), QStringLiteral("248"));
     int tabRoles = 0;
     for (const PageCell& c : tabs->cells) {
@@ -130,14 +182,13 @@ void SettingsLayoutTest::settingsHostUsesSidebar()
         QCOMPARE(c.col, 0);
         ++tabRoles;
     }
-    QCOMPARE(tabRoles, 8);
+    QCOMPARE(tabRoles, 7);
     QCOMPARE(doc.findCell(QStringLiteral("host_title"))->label, QStringLiteral("Settings"));
     QCOMPARE(doc.findCell(QStringLiteral("tab_dwell"))->actions[0].targetId,
              QStringLiteral("main_settings_dwell"));
-    QCOMPARE(doc.findCell(QStringLiteral("tab_zoom"))->actions[0].targetId,
-             QStringLiteral("main_settings_zoom"));
-    QCOMPARE(doc.findCell(QStringLiteral("tab_place"))->actions[0].targetId,
-             QStringLiteral("main_settings_place"));
+    QCOMPARE(doc.findCell(QStringLiteral("tab_pointer"))->actions[0].targetId,
+             QStringLiteral("main_settings_pointer"));
+    QVERIFY(!doc.findCell(QStringLiteral("tab_place")));
     QCOMPARE(doc.findCell(QStringLiteral("tab_gaze"))->actions[0].targetId,
              QStringLiteral("main_settings_gaze"));
     QCOMPARE(doc.findCell(QStringLiteral("tab_head"))->actions[0].targetId,
@@ -148,7 +199,6 @@ void SettingsLayoutTest::settingsHostUsesSidebar()
              QStringLiteral("main_settings_theme"));
     QCOMPARE(doc.findCell(QStringLiteral("tab_setup"))->actions[0].targetId,
              QStringLiteral("main_settings_setup"));
-    QVERIFY(!doc.findCell(QStringLiteral("tab_pointer")));
     QVERIFY(!doc.findCell(QStringLiteral("tab_look")));
     QVERIFY(!doc.findCell(QStringLiteral("tab_advanced")));
     QVERIFY(!doc.findCell(QStringLiteral("tab_speed")));
@@ -160,12 +210,20 @@ void SettingsLayoutTest::timingRowsStayCompact()
     PageDocument doc;
     QString err;
     QVERIFY2(loadLayout(QStringLiteral("main_settings_dwell"), doc, &err), qPrintable(err));
+    QCOMPARE(doc.findGrid(QStringLiteral("board"))->rows, 2);
+    QCOMPARE(PageDimParse::tokenList(doc.grids[0].rowTracks), QStringLiteral("96,*"));
+    const PageGrid* scroller = doc.findGrid(QStringLiteral("scroller"));
+    QVERIFY(scroller);
+    QVERIFY(scroller->scroll);
+    QCOMPARE(scroller->rows, 5);
+    QCOMPARE(PageDimParse::tokenList(scroller->rowTracks),
+             QStringLiteral("272,272,168,272,168"));
     const PageGrid* dwell = doc.findGrid(QStringLiteral("sec_dwell"));
     QVERIFY(dwell);
     QCOMPARE(dwell->styleId, QStringLiteral("group"));
-    QCOMPARE(dwell->rows, 4);
-    QCOMPARE(PageDimParse::tokenList(dwell->rowTracks), QStringLiteral("40,72,72,72"));
-    QCOMPARE(PageDimParse::tokenList(doc.grids[0].rowTracks), QStringLiteral("96,208,286,208"));
+    QCOMPARE(dwell->rows, 3);
+    QCOMPARE(dwell->row, 1);
+    QCOMPARE(PageDimParse::tokenList(dwell->rowTracks), QStringLiteral("48,96,96"));
     const PageGrid* standard = doc.findGrid(QStringLiteral("row_dwell"));
     QVERIFY(standard);
     QCOMPARE(standard->styleId, QStringLiteral("row"));
@@ -174,6 +232,11 @@ void SettingsLayoutTest::timingRowsStayCompact()
     const PageGrid* boost = doc.findGrid(QStringLiteral("row_rapid_dwell"));
     QVERIFY(boost);
     QCOMPARE(boost->row, 2);
+    const PageGrid* keys = doc.findGrid(QStringLiteral("sec_keys"));
+    QVERIFY(keys);
+    QCOMPARE(keys->rows, 2);
+    QCOMPARE(keys->row, 2);
+    QCOMPARE(PageDimParse::tokenList(keys->rowTracks), QStringLiteral("48,96"));
 
     PageFrame frame;
     frame.screen = QRectF(0, 0, 1920, 1080);
@@ -185,9 +248,9 @@ void SettingsLayoutTest::timingRowsStayCompact()
     QVERIFY(header);
     QVERIFY(desc);
     QVERIFY(gravity);
-    QVERIFY(qAbs(header->geom.visual.height() - 40.0) < 1.5);
-    QVERIFY(qAbs(desc->geom.visual.height() - 72.0) < 1.5);
-    QVERIFY(gravity->geom.visual.bottom() < 900.0);
+    QVERIFY(qAbs(header->geom.visual.height() - 48.0) < 1.5);
+    QVERIFY(qAbs(desc->geom.visual.height() - 96.0) < 1.5);
+    QVERIFY(qAbs(gravity->geom.visual.height() - 96.0) < 1.5);
 }
 
 void SettingsLayoutTest::stepperWidths()
@@ -264,20 +327,10 @@ void SettingsLayoutTest::overlayIdsAreUnique()
     QVERIFY(seen.contains(QStringLiteral("lts_on")));
     QVERIFY(seen.contains(QStringLiteral("mouse_on")));
     QVERIFY(seen.contains(QStringLiteral("magnifier")));
-    QVERIFY(!seen.contains(QStringLiteral("combo_on")));
+    QVERIFY(seen.contains(QStringLiteral("combo_on")));
+    QVERIFY(seen.contains(QStringLiteral("row_combo_style")));
     QVERIFY(!seen.contains(QStringLiteral("splash_on")));
-
-    PageDocument place;
-    QVERIFY2(loadLayout(QStringLiteral("main_settings_place"), place, &err), qPrintable(err));
-    const QStringList placeIds = PageEdit::allIds(place);
-    QSet<QString> placeSeen;
-    for (const QString& id : placeIds) {
-        QVERIFY2(!placeSeen.contains(id), qPrintable(id));
-        placeSeen.insert(id);
-    }
-    QVERIFY(placeSeen.contains(QStringLiteral("row_combo_style")));
-    QVERIFY(placeSeen.contains(QStringLiteral("combo_on")));
-    QVERIFY(placeSeen.contains(QStringLiteral("pd_val")));
+    QVERIFY(!seen.contains(QStringLiteral("pd_val")));
 }
 
 void SettingsLayoutTest::speakAndHeadBoards()
@@ -328,9 +381,15 @@ void SettingsLayoutTest::presetsComeFirst()
     QVERIFY(presets);
     QVERIFY(dwell);
     QVERIFY(presets->row < dwell->row);
+    QCOMPARE(doc.findCell(QStringLiteral("h_dwell"))->label, QStringLiteral("Sequences"));
+    QCOMPARE(doc.findCell(QStringLiteral("p_label"))->caption,
+             QStringLiteral("Slow, Normal, Fast, or Custom. Also sets pointer dwell, zoom dwell, "
+                            "and blink grace."));
     QCOMPARE(doc.findGrid(QStringLiteral("row_dwell"))->row, 1);
     QCOMPARE(doc.findGrid(QStringLiteral("row_rapid_dwell"))->row, 2);
-    QCOMPARE(doc.findGrid(QStringLiteral("row_key_gravity"))->row, 3);
+    QCOMPARE(doc.findGrid(QStringLiteral("sec_keys"))->row, 2);
+    QCOMPARE(doc.findGrid(QStringLiteral("row_key_gravity"))->row, 1);
+    QVERIFY(!doc.findGrid(QStringLiteral("sec_fine")));
     QCOMPARE(doc.findCell(QStringLiteral("dwell_label"))->label, QStringLiteral("Standard"));
     QCOMPARE(doc.findCell(QStringLiteral("rapid_dwell_label"))->label, QStringLiteral("Rapid"));
     QCOMPARE(doc.findCell(QStringLiteral("gravity_label"))->label, QStringLiteral("Likely keys"));
@@ -348,27 +407,24 @@ void SettingsLayoutTest::presetsComeFirst()
 void SettingsLayoutTest::zoomPlaceAndGazeAreBoards()
 {
     PageDocument zoom;
-    PageDocument place;
     PageDocument gaze;
     PageDocument dwell;
     QString err;
-    QVERIFY2(loadLayout(QStringLiteral("main_settings_zoom"), zoom, &err), qPrintable(err));
-    QVERIFY2(loadLayout(QStringLiteral("main_settings_place"), place, &err),
-             qPrintable(err));
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_pointer"), zoom, &err), qPrintable(err));
     QVERIFY2(loadLayout(QStringLiteral("main_settings_gaze"), gaze, &err), qPrintable(err));
     QVERIFY2(loadLayout(QStringLiteral("main_settings_dwell"), dwell, &err), qPrintable(err));
-    QCOMPARE(zoom.findCell(QStringLiteral("page_title"))->label, QStringLiteral("Zoom"));
-    QCOMPARE(place.findCell(QStringLiteral("page_title"))->label, QStringLiteral("Place"));
+    QCOMPARE(zoom.findCell(QStringLiteral("page_title"))->label, QStringLiteral("Pointer"));
     QCOMPARE(gaze.findCell(QStringLiteral("page_title"))->label, QStringLiteral("Gaze"));
     QCOMPARE(zoom.findCell(QStringLiteral("zl_val"))->settingKey, QStringLiteral("pickZoom"));
     QCOMPARE(zoom.findCell(QStringLiteral("zs_val"))->settingKey, QStringLiteral("pickWindowPx"));
     QCOMPARE(zoom.findCell(QStringLiteral("zd_val"))->settingKey, QStringLiteral("magPickDwellMs"));
     QVERIFY(!zoom.findCell(QStringLiteral("fsd_val")));
     QVERIFY(!zoom.findCell(QStringLiteral("fsh_val")));
-    QVERIFY(zoom.findCell(QStringLiteral("zi_cur")));
-    QVERIFY(zoom.findCell(QStringLiteral("zi_dot")));
-    QVERIFY(zoom.findCell(QStringLiteral("zi_xh")));
-    QVERIFY(zoom.findCell(QStringLiteral("zi_gz")));
+    QVERIFY(!zoom.findCell(QStringLiteral("zi_cur")));
+    QVERIFY(!zoom.findCell(QStringLiteral("zi_dot")));
+    QVERIFY(!zoom.findCell(QStringLiteral("zi_xh")));
+    QVERIFY(!zoom.findCell(QStringLiteral("zi_gz")));
+    QCOMPARE(zoom.findGrid(QStringLiteral("sec_magnify"))->rows, 8);
     QVERIFY(zoom.findCell(QStringLiteral("test_move")));
     QVERIFY(!zoom.findCell(QStringLiteral("zm_none")));
     QCOMPARE(zoom.findCell(QStringLiteral("zm_pre"))->role, QStringLiteral("toggle"));
@@ -379,34 +435,65 @@ void SettingsLayoutTest::zoomPlaceAndGazeAreBoards()
     QVERIFY(!gaze.findCell(QStringLiteral("test_move")));
     QVERIFY(zoom.findGrid(QStringLiteral("scroller"))->scroll);
     QCOMPARE(zoom.findGrid(QStringLiteral("scroller"))->columns, 1);
+    QCOMPARE(zoom.findGrid(QStringLiteral("scroller"))->rows, 2);
+    QCOMPARE(PageDimParse::tokenList(zoom.findGrid(QStringLiteral("scroller"))->rowTracks),
+             QStringLiteral("584,792"));
     QVERIFY(zoom.findGrid(QStringLiteral("page_scroll")));
     QVERIFY(!zoom.findGrid(QStringLiteral("cols")));
-    QVERIFY(place.findGrid(QStringLiteral("scroller"))->scroll);
-    QVERIFY(!place.findGrid(QStringLiteral("col_place")));
-    QVERIFY(!place.findGrid(QStringLiteral("col_combo")));
-    QCOMPARE(place.findGrid(QStringLiteral("sec_combo"))->row, 1);
+    QVERIFY(!zoom.findGrid(QStringLiteral("sec_combo")));
+    QVERIFY(!zoom.findGrid(QStringLiteral("sec_zoom")));
+    QVERIFY(!zoom.findGrid(QStringLiteral("sec_window")));
+    QVERIFY(!zoom.findCell(QStringLiteral("combo_on")));
+    QCOMPARE(zoom.findGrid(QStringLiteral("sec_place"))->row, 0);
+    QCOMPARE(zoom.findGrid(QStringLiteral("sec_magnify"))->row, 1);
     QVERIFY(gaze.findGrid(QStringLiteral("scroller"))->scroll);
+    QCOMPARE(gaze.findGrid(QStringLiteral("scroller"))->rows, 4);
+    QCOMPARE(PageDimParse::tokenList(gaze.findGrid(QStringLiteral("scroller"))->rowTracks),
+             QStringLiteral("376,376,480,584"));
     QVERIFY(!gaze.findGrid(QStringLiteral("col_gaze")));
     QVERIFY(!gaze.findGrid(QStringLiteral("col_look")));
-    QCOMPARE(gaze.findGrid(QStringLiteral("sec_look"))->row, 1);
-    QCOMPARE(gaze.findCell(QStringLiteral("look_hint"))->row, 5);
-    QCOMPARE(place.findCell(QStringLiteral("pd_val"))->settingKey,
+    QCOMPARE(gaze.findGrid(QStringLiteral("sec_follow"))->row, 0);
+    QCOMPARE(gaze.findGrid(QStringLiteral("sec_lens"))->row, 1);
+    QCOMPARE(gaze.findGrid(QStringLiteral("sec_look"))->row, 2);
+    QCOMPARE(gaze.findCell(QStringLiteral("look_hint"))->row, 0);
+    QCOMPARE(gaze.findCell(QStringLiteral("look_hint"))->textStyle, QStringLiteral("caption"));
+    QCOMPARE(gaze.findGrid(QStringLiteral("row_mouse"))->columns, 2);
+    QCOMPARE(gaze.findGrid(QStringLiteral("act_mouse"))->columns, 2);
+    QCOMPARE(gaze.findGrid(QStringLiteral("act_mouse"))->gapPx, 0);
+    QCOMPARE(gaze.findGrid(QStringLiteral("sec_combo"))->row, 3);
+    QCOMPARE(zoom.findCell(QStringLiteral("pd_val"))->settingKey,
              QStringLiteral("mouseMoveDwellMs"));
-    QCOMPARE(place.findCell(QStringLiteral("pg_val"))->settingKey,
+    QCOMPARE(zoom.findCell(QStringLiteral("pg_val"))->settingKey,
              QStringLiteral("mouseMoveSelectTimeoutMs"));
-    QVERIFY(place.findCell(QStringLiteral("pi_cur")));
-    QVERIFY(place.findCell(QStringLiteral("pi_dot")));
-    QVERIFY(place.findCell(QStringLiteral("pi_xh")));
-    QVERIFY(place.findCell(QStringLiteral("test_move")));
-    QCOMPARE(place.findCell(QStringLiteral("test_label"))->label, QStringLiteral("Try"));
-    QCOMPARE(place.findGrid(QStringLiteral("row_test"))->row, 4);
-    QCOMPARE(place.findCell(QStringLiteral("combo_on_l"))->label, QStringLiteral("Try"));
-    QCOMPARE(place.findGrid(QStringLiteral("row_combo_on"))->row, 5);
-    QCOMPARE(place.findGrid(QStringLiteral("row_combo_inner"))->row, 1);
-    QVERIFY(place.findCell(QStringLiteral("combo_on")));
-    QVERIFY(!place.findCell(QStringLiteral("pp_r")));
-    QVERIFY(!place.findCell(QStringLiteral("bp_r")));
-    QVERIFY(!place.findCell(QStringLiteral("zi_gz")));
+    QVERIFY(zoom.findCell(QStringLiteral("pi_cur")));
+    QVERIFY(zoom.findCell(QStringLiteral("pi_dot")));
+    QVERIFY(zoom.findCell(QStringLiteral("pi_xh")));
+    QVERIFY(zoom.findCell(QStringLiteral("test_move")));
+    QCOMPARE(zoom.findCell(QStringLiteral("test_label"))->label, QStringLiteral("Try"));
+    QCOMPARE(zoom.findGrid(QStringLiteral("row_test"))->row, 1);
+    QCOMPARE(zoom.findGrid(QStringLiteral("row_mode"))->columns, 2);
+    QCOMPARE(zoom.findCell(QStringLiteral("zs_full"))->col, 1);
+    QCOMPARE(zoom.findCell(QStringLiteral("zs_full"))->styleId, QStringLiteral("button"));
+    QCOMPARE(zoom.findCell(QStringLiteral("zs_full_l"))->caption,
+             QStringLiteral("Use the short side of the screen."));
+    QVERIFY(!zoom.findCell(QStringLiteral("zs_label"))->caption.contains(
+        QStringLiteral("full"), Qt::CaseInsensitive));
+    QCOMPARE(zoom.findGrid(QStringLiteral("act_zs"))->columns, 9);
+    QVERIFY(zoom.findCell(QStringLiteral("zs_edit")));
+    QCOMPARE(gaze.findCell(QStringLiteral("combo_on_l"))->label, QStringLiteral("Try"));
+    QCOMPARE(gaze.findGrid(QStringLiteral("row_combo_on"))->row, 1);
+    QCOMPARE(gaze.findGrid(QStringLiteral("row_combo_inner"))->row, 2);
+    QVERIFY(gaze.findCell(QStringLiteral("combo_on")));
+    QCOMPARE(zoom.findCell(QStringLiteral("pp_r"))->role, QStringLiteral("toggle"));
+    QCOMPARE(zoom.findGrid(QStringLiteral("row_pg"))->row, 3);
+    QCOMPARE(zoom.findGrid(QStringLiteral("row_pp"))->row, 4);
+    QCOMPARE(zoom.findGrid(QStringLiteral("act_pp"))->columns, 3);
+    QCOMPARE(zoom.findCell(QStringLiteral("pp_label"))->caption,
+             QStringLiteral("What you see while placing the cursor."));
+    QVERIFY(!zoom.findCell(QStringLiteral("bp_r")));
+    QVERIFY(!dwell.findCell(QStringLiteral("pp_r")));
+    QVERIFY(!gaze.findCell(QStringLiteral("test_move")));
+    QVERIFY(!gaze.findCell(QStringLiteral("zl_val")));
 }
 
 void SettingsLayoutTest::choiceAndToggleRoles()
@@ -582,7 +669,10 @@ void SettingsLayoutTest::themeHasHoverRow()
     QVERIFY2(loadLayout(QStringLiteral("main_settings_dwell"), doc, &err), qPrintable(err));
     QVERIFY(!doc.findCell(QStringLiteral("bp_b")));
     QVERIFY(!doc.findCell(QStringLiteral("pp_b")));
+    QVERIFY(!doc.findCell(QStringLiteral("pp_r")));
     QCOMPARE(doc.findGrid(QStringLiteral("act_bp"))->columns, 3);
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_pointer"), doc, &err), qPrintable(err));
+    QVERIFY(!doc.findCell(QStringLiteral("pp_b")));
     QCOMPARE(doc.findGrid(QStringLiteral("act_pp"))->columns, 3);
 }
 
@@ -591,21 +681,24 @@ void SettingsLayoutTest::dwellKeepsGraceOnPage()
     PageDocument doc;
     QString err;
     QVERIFY2(loadLayout(QStringLiteral("main_settings_dwell"), doc, &err), qPrintable(err));
-    QCOMPARE(doc.findGrid(QStringLiteral("board"))->rows, 4);
+    QCOMPARE(doc.findGrid(QStringLiteral("board"))->rows, 2);
+    QVERIFY(doc.findGrid(QStringLiteral("scroller"))->scroll);
     QVERIFY(!doc.findCell(QStringLiteral("open_advanced")));
     QVERIFY(!doc.findCell(QStringLiteral("pd_val")));
     QVERIFY(!doc.findCell(QStringLiteral("zd_val")));
+    QVERIFY(!doc.findCell(QStringLiteral("pp_r")));
+    QVERIFY(!doc.findGrid(QStringLiteral("row_pp")));
     QCOMPARE(doc.findCell(QStringLiteral("scan_val"))->settingKey, QStringLiteral("scanGraceMs"));
     QCOMPARE(doc.findCell(QStringLiteral("grace_val"))->settingKey, QStringLiteral("dwellGraceMs"));
     QCOMPARE(doc.findGrid(QStringLiteral("row_scan"))->row, 1);
     QCOMPARE(doc.findGrid(QStringLiteral("row_grace"))->row, 2);
     QCOMPARE(doc.findGrid(QStringLiteral("sec_grace"))->rows, 3);
+    QCOMPARE(doc.findGrid(QStringLiteral("sec_grace"))->row, 3);
     QCOMPARE(doc.findGrid(QStringLiteral("row_bp"))->row, 1);
-    QCOMPARE(doc.findGrid(QStringLiteral("row_pp"))->row, 2);
+    QCOMPARE(doc.findGrid(QStringLiteral("sec_progress"))->rows, 2);
     QCOMPARE(doc.findGrid(QStringLiteral("act_bp"))->columns, 3);
-    QCOMPARE(doc.findGrid(QStringLiteral("act_pp"))->columns, 3);
     QCOMPARE(doc.findCell(QStringLiteral("bp_r"))->role, QStringLiteral("toggle"));
-    QCOMPARE(doc.findCell(QStringLiteral("pp_r"))->role, QStringLiteral("toggle"));
+    QCOMPARE(doc.findCell(QStringLiteral("h_prog"))->label, QStringLiteral("Button progress"));
     QVERIFY(!doc.findCell(QStringLiteral("bp_b")));
     QVERIFY(!doc.findCell(QStringLiteral("pp_b")));
     QVERIFY(!doc.findGrid(QStringLiteral("tabs")));
@@ -617,7 +710,7 @@ void SettingsLayoutTest::zoomAndSetupHoldSession()
     PageDocument setup;
     PageDocument gaze;
     QString err;
-    QVERIFY2(loadLayout(QStringLiteral("main_settings_zoom"), zoom, &err), qPrintable(err));
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_pointer"), zoom, &err), qPrintable(err));
     QVERIFY2(loadLayout(QStringLiteral("main_settings_setup"), setup, &err), qPrintable(err));
     QVERIFY2(loadLayout(QStringLiteral("main_settings_gaze"), gaze, &err), qPrintable(err));
     QCOMPARE(zoom.findCell(QStringLiteral("zd_val"))->settingKey,
@@ -671,7 +764,7 @@ void SettingsLayoutTest::gazeOmitsSplash()
     QVERIFY(doc.findCell(QStringLiteral("lstick_on")));
     QVERIFY(doc.findCell(QStringLiteral("rstick_on")));
     QVERIFY(doc.findCell(QStringLiteral("look_hint")));
-    QVERIFY(!doc.findCell(QStringLiteral("combo_on")));
+    QVERIFY(doc.findCell(QStringLiteral("combo_on")));
 }
 
 void SettingsLayoutTest::adminCaptureModes()
@@ -712,11 +805,16 @@ void SettingsLayoutTest::adminCaptureModes()
     QCOMPARE(speak.findCell(QStringLiteral("key_edit"))->actions[0].command,
              QStringLiteral("settings.speech.editKey"));
     QCOMPARE(speak.findGrid(QStringLiteral("sec_speech"))->row, 1);
-    QCOMPARE(speak.findGrid(QStringLiteral("sec_speech"))->rows, 5);
+    QCOMPARE(speak.findGrid(QStringLiteral("sec_speech"))->rows, 6);
     QCOMPARE(speak.findGrid(QStringLiteral("row_key"))->row, 1);
     QCOMPARE(speak.findGrid(QStringLiteral("row_eng"))->row, 2);
     QCOMPARE(speak.findGrid(QStringLiteral("row_spd"))->row, 3);
-    QCOMPARE(speak.findGrid(QStringLiteral("row_predict"))->row, 4);
+    QCOMPARE(speak.findGrid(QStringLiteral("row_vol"))->row, 4);
+    QCOMPARE(speak.findGrid(QStringLiteral("row_predict"))->row, 5);
+    QCOMPARE(speak.findCell(QStringLiteral("spd_edit"))->actions[0].command,
+             QStringLiteral("settings.edit.speechSpeed"));
+    QCOMPARE(speak.findCell(QStringLiteral("vol_edit"))->actions[0].command,
+             QStringLiteral("settings.edit.speechVolume"));
     QCOMPARE(speak.findCell(QStringLiteral("predict_on"))->role, QStringLiteral("toggle"));
     QCOMPARE(speak.findCell(QStringLiteral("predict_on"))->actions[0].command,
              QStringLiteral("settings.speech.predictions.toggle"));
@@ -754,7 +852,7 @@ void SettingsLayoutTest::hostInlinesDwellBody()
     const QVector<PageTarget> t =
         PageHit::collect(host, frame, {}, false, &grids, false, std::nullopt, &ptrs);
     const PageTarget* tab = targetById(t, QStringLiteral("tab_dwell"));
-    const PageTarget* tabZoom = targetById(t, QStringLiteral("tab_zoom"));
+    const PageTarget* tabZoom = targetById(t, QStringLiteral("tab_pointer"));
     const PageTarget* dwell = targetById(t, QStringLiteral("dwell_edit"));
     QVERIFY(tab);
     QVERIFY(tabZoom);
@@ -771,33 +869,58 @@ void SettingsLayoutTest::hostInlinesDwellBody()
     QVERIFY(tab->geom.visual.center().y() < dwell->geom.visual.center().y());
     const PageTarget* hitTab = PageHit::at(t, tabZoom->geom.visual.center(), 1.0, {}, grids);
     QVERIFY(hitTab);
-    QCOMPARE(hitTab->id, QStringLiteral("tab_zoom"));
+    QCOMPARE(hitTab->id, QStringLiteral("tab_pointer"));
     const PageTarget* hitBody = PageHit::at(t, dwell->geom.visual.center(), 1.0, {}, grids);
     QVERIFY(hitBody);
     QCOMPARE(hitBody->id, QStringLiteral("dwell_edit"));
 
     PageDocument zoom;
-    QVERIFY2(loadLayout(QStringLiteral("main_settings_zoom"), zoom, &err), qPrintable(err));
+    QVERIFY2(loadLayout(QStringLiteral("main_settings_pointer"), zoom, &err), qPrintable(err));
     PageGrid* body = host.findGrid(QStringLiteral("body"));
     QVERIFY(body);
-    body->src = QStringLiteral("main_settings_zoom");
+    body->src = QStringLiteral("main_settings_pointer");
     QHash<QString, PageDocument> zoomed;
     zoomed.insert(zoom.id, zoom);
     const auto zoomPtrs = PageCompose::pointers(zoomed);
     const QVector<PageTarget> zt =
         PageHit::collect(host, frame, {}, false, nullptr, false, std::nullopt, &zoomPtrs);
-    const PageTarget* onZoom = targetById(zt, QStringLiteral("tab_zoom"));
-    const PageTarget* onPlace = targetById(zt, QStringLiteral("tab_place"));
+    const PageTarget* onZoom = targetById(zt, QStringLiteral("tab_pointer"));
+    const PageTarget* onGaze = targetById(zt, QStringLiteral("tab_gaze"));
     const PageTarget* zd = targetById(zt, QStringLiteral("zd_val"));
     QVERIFY(onZoom);
-    QVERIFY(onPlace);
+    QVERIFY(onGaze);
     QVERIFY(zd);
+    QVERIFY(!targetById(zt, QStringLiteral("tab_place")));
     QVERIFY(!onZoom->interactive);
     QVERIFY(onZoom->actions.isEmpty());
-    QVERIFY(onPlace->interactive);
-    QCOMPARE(zd->pageId, QStringLiteral("main_settings_zoom"));
+    QVERIFY(onGaze->interactive);
+    QCOMPARE(zd->pageId, QStringLiteral("main_settings_pointer"));
     QVERIFY(onZoom->geom.visual.right() < zd->geom.visual.left());
     QVERIFY(onZoom->geom.visual.center().y() < zd->geom.visual.center().y());
+}
+
+void SettingsLayoutTest::buttonCornersMatch()
+{
+    const QStringList ids = {QStringLiteral("main_settings_host"),
+                             QStringLiteral("main_settings_dwell"),
+                             QStringLiteral("main_settings_pointer"),
+                             QStringLiteral("main_settings_gaze"),
+                             QStringLiteral("main_settings_head_pose"),
+                             QStringLiteral("main_settings_speak"),
+                             QStringLiteral("main_settings_theme"),
+                             QStringLiteral("main_settings_setup")};
+    for (const QString& id : ids) {
+        PageDocument doc;
+        QString err;
+        QVERIFY2(loadLayout(id, doc, &err), qPrintable(err));
+        QVERIFY(doc.styles.contains(QStringLiteral("button")));
+        QCOMPARE(doc.styles.value(QStringLiteral("button")).radius->toToken(),
+                 QStringLiteral("10"));
+        for (const PageGrid& grid : doc.grids) {
+            const QString problem = buttonCornerProblem(doc, grid);
+            QVERIFY2(problem.isEmpty(), qPrintable(problem));
+        }
+    }
 }
 
 QObject* createSettingsLayoutTest()

@@ -230,7 +230,7 @@ Patterns — boards generate many concrete names from these:
 | `settings.tracker.auto` / `.mouse` | Tracker pref (restart). |
 | `settings.capture.all` / `.pages` / `.none` | Screen capture. All includes overlays (for documentation). Pages keeps boards and hides look-to, the reticle, and the lens. None hides boards and those overlays. |
 | `settings.vigem.install` / `.refresh` | Download/launch official ViGEmBus setup; re-read bus + client status. |
-| `settings.magPickStyle.*.toggle` / `settings.mousePickStyle.*.toggle` | Pick visuals. Any subset, including none. |
+| `settings.mousePickStyle.*.toggle` | Move-to markers (cursor, dot, crosshair). Any subset, including none. The zoom region uses the same set. |
 | `settings.pickWindow.round` / `.square` | Zoom window shape. |
 | `settings.pickCenter.gaze` / `.screen` | Zoom window at gaze or screen center. |
 | `settings.nudge.themeSaturation.dec` / `.inc` | Saturation 20–100 in five steps. |

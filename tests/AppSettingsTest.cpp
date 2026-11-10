@@ -83,7 +83,6 @@ void AppSettingsTest::factoryUsesDomainConstants()
     QCOMPARE(s.keyGravity, 55);
     QCOMPARE(s.displayValue(QStringLiteral("keyGravity")), QStringLiteral("55"));
     QVERIFY(s.showSplash);
-    QCOMPARE(s.magPickStyle, PickStyle::kDefaultMagPick);
     QCOMPARE(s.mousePickStyle, PickStyle::kDefaultMousePick);
     QCOMPARE(s.comboInnerRadiusPx, ComboMouseHit::kDefaultInnerRadiusPx);
     QCOMPARE(s.comboSharedRadiusPx, ComboMouseHit::kDefaultSharedRadiusPx);
@@ -894,23 +893,17 @@ void AppSettingsTest::indicatorSetsMayBeEmpty()
     s.progress.pie = false;
     s.progress.fillBackground = false;
     s.mouseProgress = s.progress;
-    s.magPickStyle = 0;
     s.mousePickStyle = 0;
     s.clamp();
     QVERIFY(!s.progress.any());
     QVERIFY(!s.mouseProgress.any());
-    QCOMPARE(s.magPickStyle, 0);
     QCOMPARE(s.mousePickStyle, 0);
-    QCOMPARE(s.displayValue(QStringLiteral("magPickStyle")), QStringLiteral("None"));
     QCOMPARE(s.displayValue(QStringLiteral("mousePickStyle")), QStringLiteral("None"));
 
-    s.magPickStyle = int(PickStyle::GazeIndicator) | 0x100;
-    s.mousePickStyle = int(PickStyle::GazeIndicator);
+    s.mousePickStyle = int(PickStyle::Dot) | 0x100;
     s.clamp();
-    QCOMPARE(s.magPickStyle, int(PickStyle::GazeIndicator));
-    QCOMPARE(s.mousePickStyle, 0);
+    QCOMPARE(s.mousePickStyle, int(PickStyle::Dot));
 
-    s.magPickStyle = 0;
     s.mousePickStyle = int(PickStyle::Dot);
     QTemporaryDir dir;
     QVERIFY(dir.isValid());
@@ -920,7 +913,6 @@ void AppSettingsTest::indicatorSetsMayBeEmpty()
     QVERIFY(loaded.loadFromFile(path));
     QVERIFY(!loaded.progress.any());
     QVERIFY(!loaded.mouseProgress.any());
-    QCOMPARE(loaded.magPickStyle, 0);
     QCOMPARE(loaded.mousePickStyle, int(PickStyle::Dot));
 }
 

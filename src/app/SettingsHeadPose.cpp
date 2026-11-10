@@ -144,7 +144,7 @@ QString mapStatusCaption(const HeadPoseMap& m)
     return caption;
 }
 
-void roundCell(PageCell& c, double radius = 8.0)
+void roundCell(PageCell& c, double radius = 10.0)
 {
     c.styleId = QStringLiteral("plain");
     c.style.thickness = PageBox::all(0.0);

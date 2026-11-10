@@ -75,7 +75,7 @@ When dwell **ends** (look away or at another cell, after blink grace), the host 
 | `MouseMoveToPoint` | `[relative,]x,y` | Warp (or relative-move) now. Dim tokens allowed. |
 | `OpenPage` | `targetId[, true]` | Attach that catalog page. `true` saves a breadcrumb for **GoBack**. |
 | `TogglePage` | `targetId[, true]` | Open if that id is closed; close if it is already attached. |
-| `HostPage` | `fragmentId` or `hostId, fragmentId` | Swap a `src` slot on the source page, or the stack page that embeds it. Two ids name the host. Settings swaps Dwell, Zoom, Place, Gaze, Head, Speak, Theme, and Setup this way. |
+| `HostPage` | `fragmentId` or `hostId, fragmentId` | Swap a `src` slot on the source page, or the stack page that embeds it. Two ids name the host. Settings swaps Dwell, Pointer, Gaze, Head, Speak, Theme, and Setup this way. |
 | `ShowLayers` | `layer[, layer…]` | Replace this page’s visible layer set (`1,2`). |
 | `ClosePage` | (empty) | Close the page that owns the cell (the host, if this cell is in a `src` slot). |
 | `CloseAllPages` / `CloseOtherPages` | (empty) | Drop attached pages (all / except the source). Also disable ComboMouse. |

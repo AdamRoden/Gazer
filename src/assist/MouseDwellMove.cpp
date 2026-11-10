@@ -214,12 +214,6 @@ void MouseDwellMove::setMagPickDwellMs(int ms)
     applyDwellForPhase();
 }
 
-void MouseDwellMove::setMagPickStyle(int flags)
-{
-    m_magPickStyle = PickStyle::sanitizeMag(flags);
-    syncPickOverlayStyle();
-}
-
 void MouseDwellMove::setMousePickStyle(int flags)
 {
     m_mousePickStyle = PickStyle::sanitizeMouse(flags);
@@ -233,20 +227,13 @@ void MouseDwellMove::applyDwellForPhase()
 
 void MouseDwellMove::syncPickOverlayStyle()
 {
+    const int style = PickStyle::sanitizeMouse(m_mousePickStyle);
     if (m_cursor) {
-        m_cursor->setStyle(styleForPhase());
+        m_cursor->setStyle(style);
     }
     if (m_magOverlay) {
-        m_magOverlay->setStyle(PickStyle::sanitizeMouse(m_mousePickStyle));
+        m_magOverlay->setStyle(style);
     }
-}
-
-int MouseDwellMove::styleForPhase() const
-{
-    if (m_phase == Phase::MagRegion) {
-        return PickStyle::sanitizeMag(m_magPickStyle);
-    }
-    return PickStyle::sanitizeMouse(m_mousePickStyle);
 }
 
 void MouseDwellMove::setSelectTimeoutMs(int ms)

@@ -9,11 +9,6 @@
 namespace gazer {
 namespace PickStyle {
 
-int sanitizeMag(int flags)
-{
-    return flags & kMagPickMask;
-}
-
 int sanitizeMouse(int flags)
 {
     return flags & kMousePickMask;
@@ -36,9 +31,6 @@ QString label(int flags)
     if (has(flags, Crosshair)) {
         parts << QStringLiteral("Crosshair");
     }
-    if (has(flags, GazeIndicator)) {
-        parts << QStringLiteral("Gaze");
-    }
     return parts.isEmpty() ? QStringLiteral("None") : parts.join(QStringLiteral(", "));
 }
 
@@ -48,14 +40,6 @@ void paint(QPainter& p, const QPointF& c, int flags, double progress, const Prog
     p.setRenderHint(QPainter::Antialiasing, true);
     const QColor accent = visuals.progressColor.isValid() ? visuals.progressColor
                                                           : ThemeColors::defaultProgressColor();
-
-    if (has(flags, GazeIndicator)) {
-        QColor fill = accent;
-        fill.setAlpha(70);
-        p.setPen(Qt::NoPen);
-        p.setBrush(fill);
-        p.drawEllipse(c, 72.0, 72.0);
-    }
 
     if (has(flags, Crosshair)) {
         p.setPen(QPen(QColor(0, 0, 0, 180), 3.0));
@@ -87,7 +71,7 @@ void paint(QPainter& p, const QPointF& c, int flags, double progress, const Prog
         p.drawPath(path);
     }
 
-    const qreal s = has(flags, GazeIndicator) ? 128.0 : 64.0;
+    const qreal s = 64.0;
     if (progress > 0.01 && visuals.style.any()) {
         paintProgress(p, QRectF(c.x() - s * 0.5, c.y() - s * 0.5, s, s), progress, visuals,
                       ProgressShape::Ellipse);

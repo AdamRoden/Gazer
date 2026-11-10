@@ -35,6 +35,7 @@ void addSettingsChrome(PageDocument& doc)
     put("join", "transparent", PageBox::all(0.0));
     put("joinLeft", "transparent", PageBox::of(10.0, 0.0, 0.0, 10.0));
     put("joinRight", "transparent", PageBox::of(0.0, 10.0, 10.0, 0.0));
+    put("button", "transparent", PageBox::all(10.0));
 }
 
 const char* segmentStyle(int index, int count)
@@ -89,7 +90,7 @@ PageGrid oneToggle(const QString& id, const QString& label, const QString& comma
     g.styleId = QStringLiteral("row");
     PageCell t = cell(id + QStringLiteral("_t"), label, 0, 0, command, {}, 1, QStringLiteral("toggle"));
     t.activeState = active;
-    t.styleId = QStringLiteral("join");
+    t.styleId = QStringLiteral("button");
     g.cells.push_back(t);
     return g;
 }

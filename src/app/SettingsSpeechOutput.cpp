@@ -94,6 +94,11 @@ void SettingsUi::fillSpeechOutputList(PageGrid& host)
     host.rowTracks.clear();
     host.columnTracks.clear();
     host.gapPx = 6;
+    // Empty tracks are stars and were filling the leftover window height.
+    host.rowTracks.reserve(nRows);
+    for (int r = 0; r < nRows; ++r) {
+        host.rowTracks.push_back(PageTrackSize::fromDim(PageDim::pixels(96)));
+    }
 
     for (int i = 0; i < rows.size(); ++i) {
         const Row& row = rows[i];
@@ -110,9 +115,8 @@ void SettingsUi::fillSpeechOutputList(PageGrid& host)
         c.row = i / cols;
         c.col = i % cols;
         c.activeState = cmd;
-        c.styleId = QStringLiteral("plain");
+        c.styleId = QStringLiteral("button");
         c.style.thickness = PageBox::all(1.0);
-        c.style.radius = PageBox::all(12.0);
         PageAction action;
         action.type = PageActionType::Command;
         action.command = cmd;

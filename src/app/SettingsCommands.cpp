@@ -401,22 +401,6 @@ void SettingsUi::registerCommands()
         };
     };
     m_commands.registerBuiltin(
-        QStringLiteral("settings.magPickStyle.cursor.toggle"),
-        togglePick(&AppSettings::magPickStyle, PickStyle::Cursor, PickStyle::kMagPickMask,
-                   "Magnify pick: cursor"));
-    m_commands.registerBuiltin(
-        QStringLiteral("settings.magPickStyle.dot.toggle"),
-        togglePick(&AppSettings::magPickStyle, PickStyle::Dot, PickStyle::kMagPickMask,
-                   "Magnify pick: dot"));
-    m_commands.registerBuiltin(
-        QStringLiteral("settings.magPickStyle.crosshair.toggle"),
-        togglePick(&AppSettings::magPickStyle, PickStyle::Crosshair, PickStyle::kMagPickMask,
-                   "Magnify pick: crosshair"));
-    m_commands.registerBuiltin(
-        QStringLiteral("settings.magPickStyle.gaze.toggle"),
-        togglePick(&AppSettings::magPickStyle, PickStyle::GazeIndicator, PickStyle::kMagPickMask,
-                   "Magnify pick: gaze indicator"));
-    m_commands.registerBuiltin(
         QStringLiteral("settings.mousePickStyle.cursor.toggle"),
         togglePick(&AppSettings::mousePickStyle, PickStyle::Cursor, PickStyle::kMousePickMask,
                    "Mouse pick: cursor"));

@@ -189,7 +189,6 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
         o.value(QStringLiteral("mouseMoveMagPickCenterOnDwell")).toBool(mouseMoveMagPickCenterOnDwell);
     mouseMoveMagPickFullScreen =
         o.value(QStringLiteral("mouseMoveMagPickFullScreen")).toBool(mouseMoveMagPickFullScreen);
-    magPickStyle = o.value(QStringLiteral("magPickStyle")).toInt(magPickStyle);
     mousePickStyle = o.value(QStringLiteral("mousePickStyle")).toInt(mousePickStyle);
     magZoom = o.value(QStringLiteral("magZoom")).toDouble(magZoom);
     magLensSize = o.value(QStringLiteral("magLensSize")).toInt(magLensSize);
@@ -517,7 +516,6 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     o.insert(QStringLiteral("mouseMoveMagPick"), copy.mouseMoveMagPick);
     o.insert(QStringLiteral("mouseMoveMagPickCenterOnDwell"), copy.mouseMoveMagPickCenterOnDwell);
     o.insert(QStringLiteral("mouseMoveMagPickFullScreen"), copy.mouseMoveMagPickFullScreen);
-    o.insert(QStringLiteral("magPickStyle"), copy.magPickStyle);
     o.insert(QStringLiteral("mousePickStyle"), copy.mousePickStyle);
     o.insert(QStringLiteral("magZoom"), copy.magZoom);
     o.insert(QStringLiteral("magLensSize"), copy.magLensSize);

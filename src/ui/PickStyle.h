@@ -9,21 +9,17 @@
 namespace gazer {
 namespace PickStyle {
 
-/// Combinable glyphs for mouse-move / mag-pick targeting.
+/// Combinable glyphs for move-to targeting. The zoom region uses the same set.
 enum Flag : int {
     None = 0,
     Cursor = 1 << 0,
     Dot = 1 << 1,
     Crosshair = 1 << 2,
-    GazeIndicator = 1 << 4,
 };
 
-constexpr int kMagPickMask = Cursor | Dot | Crosshair | GazeIndicator;
 constexpr int kMousePickMask = Cursor | Dot | Crosshair;
-constexpr int kDefaultMagPick = Cursor;
 constexpr int kDefaultMousePick = Cursor;
 
-[[nodiscard]] int sanitizeMag(int flags);
 [[nodiscard]] int sanitizeMouse(int flags);
 
 [[nodiscard]] bool has(int flags, Flag f);

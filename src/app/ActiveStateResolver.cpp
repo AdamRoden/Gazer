@@ -303,16 +303,6 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
         {"settings.dwell.custom", [](const AppSettings& s) { return s.dwellPreset() == 3; }},
         {"settings.flash.custom.toggle", [](const AppSettings& s) { return s.flashCustom; }},
         {"settings.hover.custom.toggle", [](const AppSettings& s) { return s.hoverCustom; }},
-        {"settings.magPickStyle.cursor.toggle",
-         [](const AppSettings& s) { return PickStyle::has(s.magPickStyle, PickStyle::Cursor); }},
-        {"settings.magPickStyle.dot.toggle",
-         [](const AppSettings& s) { return PickStyle::has(s.magPickStyle, PickStyle::Dot); }},
-        {"settings.magPickStyle.crosshair.toggle",
-         [](const AppSettings& s) { return PickStyle::has(s.magPickStyle, PickStyle::Crosshair); }},
-        {"settings.magPickStyle.gaze.toggle",
-         [](const AppSettings& s) {
-             return PickStyle::has(s.magPickStyle, PickStyle::GazeIndicator);
-         }},
         {"settings.mousePickStyle.cursor.toggle",
          [](const AppSettings& s) { return PickStyle::has(s.mousePickStyle, PickStyle::Cursor); }},
         {"settings.mousePickStyle.dot.toggle",

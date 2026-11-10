@@ -1,19 +1,19 @@
 <Page id="main_settings_host" name="Settings" radius="16">
   <Style id="tabbar" background="bg95" thickness="0" radius="12"/>
   <Style id="plain" background="transparent" thickness="0" radius="0"/>
+  <Style id="button" background="transparent" thickness="0" radius="10"/>
   <Grid id="board" desktopMode="true" rows="2" columns="2" anchor="Top" offset="0,0"
         size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight"
         rowHeights="96,*" columnWidths="248,*" gap="12" margin="16" radius="16">
     <Cell id="host_title" row="0" col="0" label="Settings" role="label" textStyle="title" style="plain"/>
-    <SubGrid id="tabs" row="1" col="0" rows="9" columns="1" rowHeights="72,72,72,72,72,72,72,72,*" gap="6" margin="8" style="tabbar">
-      <Cell id="tab_dwell" row="0" col="0" label="Dwell" icon="timer" role="tab" textStyle="row" hostPage="main_settings_dwell"/>
-      <Cell id="tab_zoom" row="1" col="0" label="Zoom" icon="ZoomSettings" role="tab" textStyle="row" hostPage="main_settings_zoom"/>
-      <Cell id="tab_place" row="2" col="0" label="Place" icon="mouseMove" role="tab" textStyle="row" hostPage="main_settings_place"/>
-      <Cell id="tab_gaze" row="3" col="0" label="Gaze" icon="eye" role="tab" textStyle="row" hostPage="main_settings_gaze"/>
-      <Cell id="tab_head" row="4" col="0" label="Head" icon="HeadPreview" role="tab" textStyle="row" hostPage="main_settings_head_pose"/>
-      <Cell id="tab_speak" row="5" col="0" label="Speak" icon="Speak" role="tab" textStyle="row" hostPage="main_settings_speak"/>
-      <Cell id="tab_theme" row="6" col="0" label="Theme" icon="palette" role="tab" textStyle="row" hostPage="main_settings_theme"/>
-      <Cell id="tab_setup" row="7" col="0" label="Setup" icon="settings" role="tab" textStyle="row" hostPage="main_settings_setup"/>
+    <SubGrid id="tabs" row="1" col="0" rows="8" columns="1" rowHeights="72,72,72,72,72,72,72,*" gap="6" margin="8" style="tabbar">
+      <Cell id="tab_dwell" row="0" col="0" label="Dwell" icon="timer" role="tab" textStyle="row" style="button" hostPage="main_settings_dwell"/>
+      <Cell id="tab_pointer" row="1" col="0" label="Pointer" icon="mouseMove" role="tab" textStyle="row" style="button" hostPage="main_settings_pointer"/>
+      <Cell id="tab_gaze" row="2" col="0" label="Gaze" icon="eye" role="tab" textStyle="row" style="button" hostPage="main_settings_gaze"/>
+      <Cell id="tab_head" row="3" col="0" label="Head" icon="HeadPreview" role="tab" textStyle="row" style="button" hostPage="main_settings_head_pose"/>
+      <Cell id="tab_speak" row="4" col="0" label="Speak" icon="Speak" role="tab" textStyle="row" style="button" hostPage="main_settings_speak"/>
+      <Cell id="tab_theme" row="5" col="0" label="Theme" icon="palette" role="tab" textStyle="row" style="button" hostPage="main_settings_theme"/>
+      <Cell id="tab_setup" row="6" col="0" label="Setup" icon="settings" role="tab" textStyle="row" style="button" hostPage="main_settings_setup"/>
     </SubGrid>
     <SubGrid id="body" row="0" col="1" rowSpan="2" src="main_settings_dwell" grid="board"/>
   </Grid>

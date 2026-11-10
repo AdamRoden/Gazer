@@ -363,7 +363,6 @@ void AppSettings::clamp()
     clampLookToMapSettings(LookToDest::RightStick, lookToRightStick);
     themeSaturation = snapThemeSaturation(themeSaturation);
     themeBrightness = qBound(kThemeBrightnessMin, themeBrightness, kThemeBrightnessMax);
-    magPickStyle = PickStyle::sanitizeMag(magPickStyle);
     mousePickStyle = PickStyle::sanitizeMouse(mousePickStyle);
     trackerPref = qBound(0, trackerPref, 1);
     speechPitch = qBound(0.5, speechPitch, 2.0);
@@ -668,9 +667,6 @@ QString AppSettings::displayValue(const QString& key) const
     }
     if (key == QLatin1String("ltsScrollMode")) {
         return QLatin1String(ltsScrollModeName(lookToScroll.axisMode));
-    }
-    if (key == QLatin1String("magPickStyle")) {
-        return PickStyle::label(magPickStyle);
     }
     if (key == QLatin1String("mousePickStyle")) {
         return PickStyle::label(mousePickStyle);

@@ -301,13 +301,13 @@ No value. Restores the last breadcrumb. Fails with a toast if the stack is empty
 
 - Finds a grid with `src="…"` on the host (the source page when `hostId` is omitted, or the stack page that embeds that source; or the named catalog page, attaching it if needed).
 - Sets the slot to `fragmentId` and rebuilds. The fragment’s cells keep the fragment page id as their live target (`main_settings_dwell/dwell_edit`).
-- Settings uses this to swap Dwell, Zoom, Place, Gaze, Head, Speak, Theme, and Setup into one frame. It does **not** stack a second opaque page.
+- Settings uses this to swap Dwell, Pointer, Gaze, Head, Speak, Theme, and Setup into one frame. It does **not** stack a second opaque page.
 
 ```xml
 <Cell label="Keyboard" openPage="qwerty_main"/>
 <Cell label="Wide" openPage="uw_qwerty, true"/>
 <Cell label="Dwell" hostPage="main_settings_host, main_settings_dwell"/>
-<Cell label="Zoom" hostPage="main_settings_host, main_settings_zoom"/>
+<Cell label="Pointer" hostPage="main_settings_host, main_settings_pointer"/>
 <Cell label="Done" closePage="true"/>
 <GoBack/>
 ```

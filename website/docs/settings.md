@@ -4,10 +4,9 @@ Drawer **Settings** opens `main_settings_host`. The top row is **Settings** besi
 
 | Board | What you change |
 |-------|-----------------|
-| **Dwell** | Slow / Normal / Fast / Custom. Standard and rapid sequences. Likely keys pulls rapid character keys toward what you tend to type next. Scan grace, blink grace, button progress, and pointer progress (ring, pie, fill). |
-| **Zoom** | Magnify pick, zoom dwell, window level / size / fill / shape / position, region markers, and Move to…. |
-| **Place** | Pointer dwell, pointer grace, final-pick markers, Move to…, and ComboMouse radii and colors. |
-| **Gaze** | Gaze follow (slow / sticky / smooth / snappy), show gaze, gaze mouse, the live lens, and the four look-to maps. |
+| **Dwell** | Slow / Normal / Fast / Custom. Presets also set pointer dwell, zoom dwell, and blink grace. Standard and rapid sequences. Likely keys pulls rapid character keys toward what you tend to type next. Scan grace, blink grace, and button progress (ring, pie, fill). |
+| **Pointer** | Place: Move to…, pointer dwell, pointer grace, pointer progress, and final-pick markers. Those markers also show while choosing the zoom region. Magnify: magnify pick, zoom dwell, zoom level, zoom size, fill screen, shape, and position. |
+| **Gaze** | Follow (slow / sticky / smooth / snappy, show gaze, gaze mouse). Lens (on, zoom, size). The four look-to maps. ComboMouse radii and colors. |
 | **Head** | Analog head-pose maps (yaw / pitch / roll / x / y / z → commands or a virtual pad). |
 | **Speak** | Composer voice: API key, SAPI or ElevenLabs model, speed, boost, word predictions, and the playback device. Volume sliders and +/− use that device. The voice library stays on the Speak board. |
 | **Theme** | Light / dark, brightness, tint family, accent, progress color, saturation, custom palette, hover, and flash. |

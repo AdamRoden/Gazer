@@ -21,4 +21,4 @@ All four look-to maps can run at once, each with its own origin and rings. Tune 
 
 Scroll-map peak speeds: 0.5–8 notches/sec (`lts.speed.slower` / `.faster`). Overlay z-order (front → back): reticle, live lens, mag-pick, other assist overlays, then the page host.
 
-The live lens and look-to maps are Settings → **Gaze**. The zoom window and region markers are Settings → **Zoom**. ComboMouse and placing a click are Settings → **Place**. Command names for these tools: [Commands](reference/commands.md#assist). Zoom tokens on XML click-at-gaze cells: [Actions](reference/actions.md#move-to-gaze-and-click-at-gaze).
+The live lens, look-to maps, and ComboMouse are Settings → **Gaze**. The zoom window and click placement are Settings → **Pointer**. The zoom region uses the same markers as the final pick. Command names for these tools: [Commands](reference/commands.md#assist). Zoom tokens on XML click-at-gaze cells: [Actions](reference/actions.md#move-to-gaze-and-click-at-gaze).

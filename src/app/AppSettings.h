@@ -71,8 +71,7 @@ struct AppSettings {
     QString hoverColor = QStringLiteral("#99FF473D");
     int hoverBorderWeight = 4;
     bool hoverCustom = false;
-    /// PickStyle flags: first dwell (region) and final click/move dwell.
-    int magPickStyle = 1;   // Cursor
+    /// PickStyle flags for the move-to marker. Zoom region and final click share this.
     int mousePickStyle = 1; // Cursor
     /// Custom flash color. Off uses the item foreground at flashForegroundOpacity.
     bool flashCustom = false;

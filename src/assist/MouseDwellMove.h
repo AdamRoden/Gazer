@@ -112,7 +112,6 @@ public:
 
     void setDwellMs(int ms);
     void setMagPickDwellMs(int ms);
-    void setMagPickStyle(int flags);
     void setMousePickStyle(int flags);
     /// Timeout plus the current phase's dwell. 0 when timeout is off.
     [[nodiscard]] static int selectDeadlineBudgetMs(int timeoutMs, int phaseDwellMs)
@@ -176,7 +175,6 @@ private:
     [[nodiscard]] bool isCursorMoveFamily() const;
     void applyDwellForPhase();
     void syncPickOverlayStyle();
-    [[nodiscard]] int styleForPhase() const;
     static const char* purposeName(ArmPurpose purpose);
 
     bool m_armed = false;
@@ -185,7 +183,6 @@ private:
     ArmZoom m_armZoom;
     int m_moveDwellMs = 700;
     int m_magPickDwellMs = 700;
-    int m_magPickStyle = 1;
     int m_mousePickStyle = 1;
     bool m_magPickEnabled = false;
     bool m_magPickCenterOnDwell = true;
