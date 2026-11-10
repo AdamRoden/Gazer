@@ -5,9 +5,12 @@
   <Style id="join" background="transparent" thickness="0" radius="0"/>
   <Style id="joinLeft" background="transparent" thickness="0" radius="10,0,0,10"/>
   <Style id="joinRight" background="transparent" thickness="0" radius="0,10,10,0"/>
-  <Grid id="board" desktopMode="true" rows="6" columns="16" anchor="Top" offset="0,0" size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" gap="6" margin="12" radius="16"
+  <Grid id="board" desktopMode="true" rows="6" columns="16" anchor="Top" offset="0,0" size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" gap="6" margin="0" radius="16"
         rowHeights="96,130,130,146,130,302">
-    <Cell id="page_title" row="0" col="0" colSpan="16" label="Setup" caption="Tracker, pad, capture, session, and logs" role="label" textStyle="title" style="plain"/>
+    <SubGrid id="titlebar" row="0" col="0" colSpan="16" rows="1" columns="2" columnWidths="*,160" gap="8" margin="0" style="plain">
+      <Cell id="page_title" row="0" col="0" label="Setup" caption="Tracker, pad, capture, session, and logs" role="label" textStyle="title" style="plain"/>
+      <Cell id="tab_done" row="0" col="1" label="Close" icon="keyboardHide" textStyle="row" closeAllPages="true"/>
+    </SubGrid>
 
     <SubGrid id="sec_tr" row="1" col="0" colSpan="16" rows="2" columns="1" rowHeights="40,72" gap="6" margin="6" style="group">
       <Cell id="h_tr" row="0" col="0" label="Tracker" role="label" textStyle="section" style="plain"/>

@@ -5,9 +5,12 @@
   <Style id="join" background="transparent" thickness="0" radius="0"/>
   <Style id="joinLeft" background="transparent" thickness="0" radius="10,0,0,10"/>
   <Style id="joinRight" background="transparent" thickness="0" radius="0,10,10,0"/>
-  <Grid id="board" desktopMode="true" rows="2" columns="2" anchor="Top" offset="0,0" size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" gap="12" margin="12" radius="16"
+  <Grid id="board" desktopMode="true" rows="2" columns="2" anchor="Top" offset="0,0" size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" gap="12" margin="0" radius="16"
         rowHeights="96,*" columnWidths="*,72">
-    <Cell id="page_title" row="0" col="0" colSpan="2" label="Theme" caption="Background, accent, and progress" role="label" textStyle="title" style="plain"/>
+    <SubGrid id="titlebar" row="0" col="0" colSpan="2" rows="1" columns="2" columnWidths="*,160" gap="8" margin="0" style="plain">
+      <Cell id="page_title" row="0" col="0" label="Theme" caption="Background, accent, and progress" role="label" textStyle="title" style="plain"/>
+      <Cell id="tab_done" row="0" col="1" label="Close" icon="keyboardHide" textStyle="row" closeAllPages="true"/>
+    </SubGrid>
     <SubGrid id="scroller" row="1" col="0" scroll="true" rows="2" columns="1" rowHeights="552,640" gap="12" margin="0">
 
       <SubGrid id="sec_surfaces" row="0" col="0" rows="6" columns="2" rowHeights="48,96,80,80,96,96" columnWidths="1*,3*" gap="8" margin="8" style="group">

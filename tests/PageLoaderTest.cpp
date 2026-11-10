@@ -451,11 +451,14 @@ void PageLoaderTest::loadConvertedBoards()
         QVERIFY2(PageLoader::loadFromFile(path, doc, &err), qPrintable(err));
         QCOMPARE(doc.id, id);
         QVERIFY(!doc.grids.isEmpty());
-        QVERIFY(!doc.grids[0].cells.isEmpty());
         if (id == QLatin1String("main_settings_dwell")) {
+            QVERIFY(doc.findCell(QStringLiteral("page_title")));
+            QVERIFY(doc.findCell(QStringLiteral("tab_done")));
             QCOMPARE(doc.grids[0].anchor, PageAnchor::Top);
             QVERIFY(!doc.grids[0].style.background.isSet());
             QVERIFY(!doc.findGrid(QStringLiteral("tabs")));
+        } else {
+            QVERIFY(!doc.grids[0].cells.isEmpty());
         }
     }
 }

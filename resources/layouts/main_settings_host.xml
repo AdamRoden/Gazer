@@ -3,11 +3,8 @@
   <Style id="plain" background="transparent" thickness="0" radius="0"/>
   <Grid id="board" desktopMode="true" rows="2" columns="2" anchor="Top" offset="0,0"
         size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight"
-        rowHeights="56,*" columnWidths="248,*" gap="12" margin="16" radius="16">
-    <SubGrid id="titlebar" row="0" col="0" colSpan="2" rows="1" columns="2" columnWidths="*,160" gap="8" style="plain">
-      <Cell id="host_title" row="0" col="0" label="Settings" role="label" textStyle="title" style="plain"/>
-      <Cell id="tab_done" row="0" col="1" label="Close" icon="keyboardHide" textStyle="row" closeAllPages="true"/>
-    </SubGrid>
+        rowHeights="96,*" columnWidths="248,*" gap="12" margin="16" radius="16">
+    <Cell id="host_title" row="0" col="0" label="Settings" role="label" textStyle="title" style="plain"/>
     <SubGrid id="tabs" row="1" col="0" rows="9" columns="1" rowHeights="72,72,72,72,72,72,72,72,*" gap="6" margin="8" style="tabbar">
       <Cell id="tab_dwell" row="0" col="0" label="Dwell" icon="timer" role="tab" textStyle="row" hostPage="main_settings_dwell"/>
       <Cell id="tab_zoom" row="1" col="0" label="Zoom" icon="ZoomSettings" role="tab" textStyle="row" hostPage="main_settings_zoom"/>
@@ -18,6 +15,6 @@
       <Cell id="tab_theme" row="6" col="0" label="Theme" icon="palette" role="tab" textStyle="row" hostPage="main_settings_theme"/>
       <Cell id="tab_setup" row="7" col="0" label="Setup" icon="settings" role="tab" textStyle="row" hostPage="main_settings_setup"/>
     </SubGrid>
-    <SubGrid id="body" row="1" col="1" src="main_settings_dwell" grid="board"/>
+    <SubGrid id="body" row="0" col="1" rowSpan="2" src="main_settings_dwell" grid="board"/>
   </Grid>
 </Page>

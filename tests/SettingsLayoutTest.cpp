@@ -91,6 +91,12 @@ void SettingsLayoutTest::pagesAnchorTop()
         QCOMPARE(title->row, 0);
         QCOMPARE(title->role, QStringLiteral("label"));
         QCOMPARE(title->textStyle, QStringLiteral("title"));
+        const PageCell* done = doc.findCell(QStringLiteral("tab_done"));
+        QVERIFY(done);
+        QCOMPARE(done->row, 0);
+        QCOMPARE(done->col, 1);
+        QCOMPARE(done->label, QStringLiteral("Close"));
+        QVERIFY(done->isInteractive());
         QVERIFY(!doc.grids[0].rowTracks.isEmpty());
         QCOMPARE(PageDimParse::token(doc.grids[0].rowTracks[0]), QStringLiteral("96"));
         QCOMPARE(doc.styles.value(QStringLiteral("group")).resolvedRadius().first(), 16.0);
@@ -106,7 +112,13 @@ void SettingsLayoutTest::settingsHostUsesSidebar()
     const PageGrid* tabs = doc.findGrid(QStringLiteral("tabs"));
     QVERIFY(doc.findGrid(QStringLiteral("body")));
     QCOMPARE(doc.findGrid(QStringLiteral("body"))->src, QStringLiteral("main_settings_dwell"));
+    QCOMPARE(doc.findGrid(QStringLiteral("body"))->row, 0);
     QCOMPARE(doc.findGrid(QStringLiteral("body"))->col, 1);
+    QCOMPARE(doc.findGrid(QStringLiteral("body"))->rowSpan, 2);
+    QCOMPARE(PageDimParse::token(doc.grids[0].rowTracks[0]), QStringLiteral("96"));
+    QCOMPARE(doc.findCell(QStringLiteral("host_title"))->row, 0);
+    QCOMPARE(doc.findCell(QStringLiteral("host_title"))->col, 0);
+    QVERIFY(!doc.findCell(QStringLiteral("tab_done")));
     QVERIFY(tabs);
     QCOMPARE(tabs->columns, 1);
     QCOMPARE(tabs->rows, 9);
@@ -119,11 +131,6 @@ void SettingsLayoutTest::settingsHostUsesSidebar()
         ++tabRoles;
     }
     QCOMPARE(tabRoles, 8);
-    const PageCell* done = doc.findCell(QStringLiteral("tab_done"));
-    QVERIFY(done);
-    QVERIFY(done->isInteractive());
-    QCOMPARE(done->label, QStringLiteral("Close"));
-    QCOMPARE(done->col, 1);
     QCOMPARE(doc.findCell(QStringLiteral("host_title"))->label, QStringLiteral("Settings"));
     QCOMPARE(doc.findCell(QStringLiteral("tab_dwell"))->actions[0].targetId,
              QStringLiteral("main_settings_dwell"));

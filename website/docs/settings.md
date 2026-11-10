@@ -1,6 +1,6 @@
 # Settings
 
-Drawer **Settings** opens `main_settings_host`: a category list on the left and the board on the right. **Close** leaves settings. There are no desktop dialogs for these prefs.
+Drawer **Settings** opens `main_settings_host`. The top row is **Settings** beside the page name, with **Close** on the right. Categories stay in a list on the left. There are no desktop dialogs for these prefs.
 
 `main_settings` is the same eight boards as tiles. The drawer skips that page.
 

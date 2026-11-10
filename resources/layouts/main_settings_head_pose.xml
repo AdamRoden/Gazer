@@ -6,11 +6,14 @@
   <Style id="joinLeft" background="transparent" thickness="0" radius="10,0,0,10"/>
   <Style id="joinRight" background="transparent" thickness="0" radius="0,10,10,0"/>
   <Grid id="board" desktopMode="true" rows="3" columns="16" anchor="Top" offset="0,0"
-        size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" gap="6" margin="12" radius="16"
+        size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" gap="6" margin="0" radius="16"
         rowHeights="96,640,*">
-    <Cell id="page_title" row="0" col="0" colSpan="16" label="Head pose"
-          caption="Map yaw, pitch, roll, and position to pointer, scroll, gaze, pad, or a command"
-          role="label" textStyle="title" style="plain"/>
+    <SubGrid id="titlebar" row="0" col="0" colSpan="16" rows="1" columns="2" columnWidths="*,160" gap="8" margin="0" style="plain">
+      <Cell id="page_title" row="0" col="0" label="Head pose"
+            caption="Map yaw, pitch, roll, and position to pointer, scroll, gaze, pad, or a command"
+            role="label" textStyle="title" style="plain"/>
+      <Cell id="tab_done" row="0" col="1" label="Close" icon="keyboardHide" textStyle="row" closeAllPages="true"/>
+    </SubGrid>
 
     <SubGrid id="sec_preview" row="1" col="0" colSpan="8" rows="3" columns="1"
              rowHeights="300,72,240" gap="6" margin="6" style="group">
