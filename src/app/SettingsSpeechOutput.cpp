@@ -29,6 +29,8 @@ QString outputCaption(const AppSettings& settings)
     return QStringLiteral("%1 is not connected. Using the Windows default for now.").arg(saved);
 }
 
+constexpr int kOutputRowPx = 96;
+
 } // namespace
 
 void SettingsUi::decorateSpeechOutput(PageDocument& doc)
@@ -79,25 +81,17 @@ void SettingsUi::fillSpeechOutputList(PageGrid& host)
         rows.push_back(missing);
     }
 
-    int cols = 1;
-    if (rows.size() > 8) {
-        cols = 2;
-    }
-    if (rows.size() > 16) {
-        cols = 3;
-    }
-    const int nRows = (rows.size() + cols - 1) / cols;
+    const int nRows = rows.size();
     host.rows = nRows;
-    host.columns = cols;
+    host.columns = 1;
     host.cells.clear();
     host.subGrids.clear();
     host.rowTracks.clear();
     host.columnTracks.clear();
     host.gapPx = 6;
-    // Empty tracks are stars and were filling the leftover window height.
     host.rowTracks.reserve(nRows);
     for (int r = 0; r < nRows; ++r) {
-        host.rowTracks.push_back(PageTrackSize::fromDim(PageDim::pixels(96)));
+        host.rowTracks.push_back(PageTrackSize::fromDim(PageDim::pixels(kOutputRowPx)));
     }
 
     for (int i = 0; i < rows.size(); ++i) {
@@ -112,8 +106,8 @@ void SettingsUi::fillSpeechOutputList(PageGrid& host)
         c.label = row.label;
         c.caption = row.caption;
         c.role = QStringLiteral("choice");
-        c.row = i / cols;
-        c.col = i % cols;
+        c.row = i;
+        c.col = 0;
         c.activeState = cmd;
         c.styleId = QStringLiteral("button");
         c.style.thickness = PageBox::all(1.0);

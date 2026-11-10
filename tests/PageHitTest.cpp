@@ -44,6 +44,7 @@ private slots:
     void cellRectColumnStars();
     void cellRectPixelOverflowScalesDown();
     void scrollGridKeepsRowSizeAndClips();
+    void scrollStarRowKeepsChildHeight();
     void scrollColumnHidesWhenContentFits();
     void cellRectExpressionTrackUsesScreen();
     void drawerMapIsIdentityAtFullScale();
@@ -506,6 +507,44 @@ void PageHitTest::scrollGridKeepsRowSizeAndClips()
     QVERIFY(!up->interactive);
     QCOMPARE(targetById(targets, QStringLiteral("set_scroll_track"))->caption,
              QStringLiteral("0,100,240"));
+}
+
+void PageHitTest::scrollStarRowKeepsChildHeight()
+{
+    PageFrame frame;
+    frame.screen = QRectF(0, 0, 800, 600);
+    frame.desktop = frame.screen;
+    PageDocument doc;
+    QString err;
+    QVERIFY2(PageLoader::loadFromXml(R"xml(
+<Page id="scrollpage">
+  <Grid id="board" rows="1" columns="2" size="200,100" columnWidths="*,40" gap="0" margin="0">
+    <SubGrid id="scroller" row="0" col="0" scroll="true" rows="2" columns="1" rowHeights="80,*" gap="0" margin="0">
+      <Cell id="head" row="0" col="0" label="H"/>
+      <SubGrid id="sec" row="1" col="0" rows="2" columns="1" rowHeights="40,*" gap="0" margin="0">
+        <Cell id="title" row="0" col="0" label="T"/>
+        <SubGrid id="list" row="1" col="0" rows="2" columns="1" rowHeights="96,96" gap="0" margin="0">
+          <Cell id="d0" row="0" col="0" label="D0"/>
+          <Cell id="d1" row="1" col="0" label="D1"/>
+        </SubGrid>
+      </SubGrid>
+    </SubGrid>
+    <SubGrid id="page_scroll" row="0" col="1" rows="1" columns="1">
+      <Cell id="set_scroll_track" row="0" col="0" role="scrollbar" caption="0,1,1"/>
+    </SubGrid>
+  </Grid>
+</Page>
+)xml",
+                                     doc, &err),
+             qPrintable(err));
+    doc.findGrid(QStringLiteral("scroller"))->scrollOffset = 120;
+    const QVector<PageTarget> targets = PageHit::collect(doc, frame);
+    const PageTarget* d0 = targetById(targets, QStringLiteral("d0"));
+    QVERIFY(d0);
+    QCOMPARE(d0->geom.visual.top(), 0.0);
+    QCOMPARE(d0->geom.visual.height(), 96.0);
+    QCOMPARE(targetById(targets, QStringLiteral("set_scroll_track"))->caption,
+             QStringLiteral("120,100,312"));
 }
 
 void PageHitTest::scrollColumnHidesWhenContentFits()

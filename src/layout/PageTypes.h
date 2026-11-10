@@ -483,7 +483,8 @@ struct PageGrid {
     QVector<PageTrackSize> columnTracks;
     bool drawerMotion = false;
     bool autoClose = false;
-    /// Fixed tracks keep their pixel size when they overflow this grid. Children clip to the slot.
+    /// Fixed tracks keep their pixel size when they overflow this grid. A star row is the
+    /// natural height of the subgrid in that row. Children clip to the slot.
     /// `scrollOffset` is a runtime pixel shift and is not written back to XML.
     bool scroll = false;
     int scrollOffset = 0;

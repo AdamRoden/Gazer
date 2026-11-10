@@ -90,13 +90,8 @@ bool ComposeUi::beginNameEdit(NameEditKind kind, const QString& target, const QS
     if (kind == NameEditKind::None) {
         return false;
     }
-    if (m_styleNaming) {
-        m_styleNaming = false;
-        m_buffer.load(m_nameEditBackup);
-        if (m_typing) {
-            m_typing->adoptPhrase(m_buffer.text(), m_buffer.caret());
-        }
-        m_nameEditBackup.clear();
+    if (borrowingPhrase()) {
+        endBorrowedPhrase();
     }
     if (nameEditing()) {
         endNameEdit(true);
@@ -132,8 +127,8 @@ void ComposeUi::finishItemEditor(bool restorePhrase)
 
 void ComposeUi::cancelNameEdit()
 {
-    if (m_styleNaming) {
-        cancelStyleName();
+    if (borrowingPhrase()) {
+        cancelBorrowedPhrase();
         return;
     }
     if (!nameEditing() && !hasLive(kItemEditLiveId)) {
@@ -239,8 +234,8 @@ PageDocument ComposeUi::buildItemEditDocument() const
 
 bool ComposeUi::saveNameEdit(QString* error)
 {
-    if (m_styleNaming) {
-        return saveStyleName(error);
+    if (borrowingPhrase()) {
+        return saveBorrowedPhrase(error);
     }
     if (!nameEditing()) {
         return true;
@@ -283,7 +278,7 @@ bool ComposeUi::saveNameEdit(QString* error)
 
 bool ComposeUi::deleteNameEdit(QString* error)
 {
-    if (m_styleNaming) {
+    if (borrowingPhrase()) {
         return true;
     }
     if (!nameEditCanDelete()) {

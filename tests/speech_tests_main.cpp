@@ -20,6 +20,7 @@ QObject* createAudioGainTest();
 QObject* createAudioOutputTest();
 QObject* createSystemVolumeTest();
 QObject* createSpeechStreamTest();
+QObject* createPcmFxTest();
 
 namespace {
 
@@ -75,5 +76,7 @@ int main(int argc, char** argv)
     runSuite("SystemVolumeTest", volume.get(), false);
     std::unique_ptr<QObject> stream(createSpeechStreamTest());
     runSuite("SpeechStreamTest", stream.get(), false);
+    std::unique_ptr<QObject> fx(createPcmFxTest());
+    runSuite("PcmFxTest", fx.get(), false);
     return status;
 }

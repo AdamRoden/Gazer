@@ -90,7 +90,7 @@ bool ComposeUi::nameEditing() const
 
 bool ComposeUi::capturingPhrase() const
 {
-    return nameEditing() || m_styleNaming;
+    return nameEditing() || borrowingPhrase();
 }
 
 bool ComposeUi::hasLive(QLatin1String id) const
@@ -190,7 +190,7 @@ void ComposeUi::insertText(QStringView chars)
     }
     QStringView text = chars;
     QString capped;
-    if (m_styleNaming) {
+    if (borrowingPhrase()) {
         const int room = VoiceStyles::kNameMax - m_buffer.text().size();
         if (room <= 0) {
             return;
@@ -207,6 +207,9 @@ void ComposeUi::insertText(QStringView chars)
 void ComposeUi::handleSend(const PageAction& a)
 {
     if (handleFileSend(a)) {
+        return;
+    }
+    if (handleVoiceQuerySend(a)) {
         return;
     }
     const QString top = m_pages.topPageId();
@@ -236,8 +239,8 @@ void ComposeUi::handleCapturedCommand(const QString& command)
             stopSpeech();
             return;
         }
-        if (m_styleNaming) {
-            cancelStyleName();
+        if (borrowingPhrase()) {
+            cancelBorrowedPhrase();
             return;
         }
         if (nameEditing()) {
@@ -252,8 +255,7 @@ void ComposeUi::handleCapturedCommand(const QString& command)
             finishItemEditor(true);
             return;
         }
-        if (top == kVoicesLiveId) {
-            m_pages.closePage(QString(kVoicesLiveId));
+        if (handleVoicesEscape()) {
             return;
         }
         if (top == kHistoryLiveId) {
@@ -269,6 +271,9 @@ void ComposeUi::handleCapturedCommand(const QString& command)
     if (handleFileCommand(c)) {
         return;
     }
+    if (handleVoiceQueryCommand(c)) {
+        return;
+    }
     if (capturingPhrase()) {
         if (c == QLatin1String("backspace") || c == QLatin1String("compose.backspace")) {
             backspace();
@@ -280,8 +285,8 @@ void ComposeUi::handleCapturedCommand(const QString& command)
         }
         if (c == QLatin1String("enter")) {
             QString err;
-            if (m_styleNaming) {
-                saveStyleName(&err);
+            if (borrowingPhrase()) {
+                saveBorrowedPhrase(&err);
             } else {
                 saveNameEdit(&err);
             }
@@ -307,15 +312,10 @@ void ComposeUi::handleCapturedCommand(const QString& command)
 
 void ComposeUi::abandonClosedSession()
 {
-    if (m_styleNaming) {
-        m_styleNaming = false;
-        m_buffer.load(m_nameEditBackup);
-        if (m_typing) {
-            m_typing->adoptPhrase(m_buffer.text(), m_buffer.caret());
-        }
+    if (borrowingPhrase()) {
+        endBorrowedPhrase();
         m_nameEdit = NameEditKind::None;
         m_editId.clear();
-        m_nameEditBackup.clear();
     } else if (nameEditing()) {
         endNameEdit(true);
     } else {
@@ -329,6 +329,8 @@ void ComposeUi::abandonClosedSession()
     m_editIcon.clear();
     m_styleEditor = false;
     m_stylePage = 0;
+    m_tagPage = 0;
+    clearVoiceQuery();
     stopListScroll();
     closeItemEdit();
     m_composeAuthored = {};
@@ -357,8 +359,8 @@ bool ComposeUi::openCompose(QString* error)
 
 bool ComposeUi::speakOrStop(QString* error)
 {
-    if (m_styleNaming) {
-        return saveStyleName(error);
+    if (borrowingPhrase()) {
+        return saveBorrowedPhrase(error);
     }
     if (nameEditing()) {
         return saveNameEdit(error);
@@ -518,6 +520,14 @@ void ComposeUi::nudgeSpeed(int dir)
     apply();
 }
 
+void ComposeUi::nudgePitch(int dir)
+{
+    if (!m_settings.nudge(QStringLiteral("speechPitch"), dir)) {
+        return;
+    }
+    apply();
+}
+
 void ComposeUi::nudgeVolume(int dir)
 {
     if (!m_settings.nudge(QStringLiteral("speechVolume"), dir)) {
@@ -552,6 +562,7 @@ void ComposeUi::decoratePage(PageDocument& doc) const
         stampChips(doc);
     }
     stampStyleLayer(doc);
+    stampTagLayer(doc);
 
     auto paint = [&](PageGrid& g, auto& self) -> void {
         for (PageCell& c : g.cells) {
@@ -825,15 +836,18 @@ void ComposeUi::stampChips(PageDocument& doc) const
 
 void ComposeUi::presentNamingPhrase(PageCell& cell) const
 {
-    const int cap = m_styleNaming ? VoiceStyles::kNameMax : 24;
+    const int cap = borrowingPhrase() ? VoiceStyles::kNameMax : 24;
     const QString raw = m_buffer.text().trimmed();
     cell.label = ellipsis(raw, cap);
     const int visLen = qMin(raw.size(), cap);
     cell.caretIndex = qBound(0, qBound(0, m_buffer.caret(), visLen), cell.label.size());
     cell.selectionStart = -1;
     cell.selectionEnd = -1;
-    cell.caption = m_styleNaming ? QStringLiteral("Type a style name, then Save")
-                                 : QStringLiteral("Type a name, then Save");
+    cell.caption = m_borrowed == BorrowedPhrase::Tag
+                       ? QStringLiteral("Type a tag, then Save")
+                   : m_borrowed == BorrowedPhrase::Style
+                       ? QStringLiteral("Type a style name, then Save")
+                       : QStringLiteral("Type a name, then Save");
     cell.textStyle = QStringLiteral("title");
     cell.role = QStringLiteral("display");
 }
@@ -862,7 +876,7 @@ void ComposeUi::stampComposerChrome(PageDocument& doc) const
         keys->row = 0;
         keys->rowSpan = 3;
         keys->cells.clear();
-        if (m_styleNaming) {
+        if (borrowingPhrase()) {
             PageCell clear = cell(QStringLiteral("clear"), QStringLiteral("Clear"), 0, keyCol,
                                   QStringLiteral("compose.clear"), surface, keyColSpan);
             clear.styleId = styleId;
@@ -967,8 +981,12 @@ void ComposeUi::syncClosedOverlays()
         stopListScroll();
     } else if (m_listScroll == ListScroll::Voices && !hasLive(kVoicesLiveId)) {
         stopListScroll();
+        clearVoiceQuery();
     } else if (m_listScroll == ListScroll::Files && !hasLive(kFilesLiveId)) {
         stopListScroll();
+    }
+    if (!hasLive(kVoicesLiveId)) {
+        clearVoiceQuery();
     }
     if (nameEditing() && !hasLive(kItemEditLiveId)) {
         finishItemEditor(true);

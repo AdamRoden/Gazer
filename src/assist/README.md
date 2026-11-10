@@ -28,9 +28,11 @@ Gaze tools on top of the page session.
 | `ComposeCommands` | `compose.*` / `speech.*` builtins and prefixes |
 | `VoiceCatalog` | Parse/filter/sort ElevenLabs voice cache. No network. |
 | `SoundboardStore` | `boards.json` + `clips/`. Starters, assign, clip import, eviction. |
-| `PcmStreamPlayer` | GUI-thread `QAudioSink` for live int16 PCM. Speed resamples; boost uses `AudioGain`. |
+| `PcmStreamPlayer` | GUI-thread `QAudioSink` for live int16 PCM. Identity playback is rate 1. Boost uses `AudioGain`. |
+| `PcmFx` | Pitch resample, then pitch-preserving speed. Used when either is not 1, before History stores the clip. |
 | `SpeechHistory` | Last 50 composed utterances (`history.json` + optional WAV or MPEG). |
-| `ElevenRequest` | ElevenLabs request policy (v4 Turbo, tags kept, local speed). No network. |
+| `ElevenRequest` | ElevenLabs request policy (v4 Turbo, breath tags, local speed and pitch). No network. |
 | `SpeechSecrets` | DPAPI ElevenLabs API key (`secrets/eleven.dpapi`) |
-| `DialogueSocket` | v4 Turbo text-to-dialogue WebSocket. PCM chunks, abortable. Upgrade and server JSON parse without a socket. |
-| `ElevenClient` | GUI-thread HTTP GET `/v1/voices` (15 s). Speech forwards to `DialogueSocket`. |
+| `DialogueSocket` | v4 Turbo text-to-dialogue WebSocket for one untagged identity phrase. PCM chunks, abortable. |
+| `ElevenHttp` | One HTTP PCM stream per breath, prefetching the next. Used for tagged phrases and for baked speed or pitch. |
+| `ElevenClient` | GUI-thread `GET /v2/voices` (account, then defaults, 15 s per page). Cache field `catalog` is `v2`. Speech goes to `DialogueSocket` or `ElevenHttp`. |

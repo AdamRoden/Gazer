@@ -89,6 +89,9 @@ public:
     void toggleStyleFavorite(const QString& encoded);
     void trashStyle(const QString& encoded);
     void beginStyleName();
+    void insertSavedTag(const QString& encoded);
+    void pageTags(int delta);
+    void beginTagName();
     void removeVisibleWord(int slot);
     void acceptPrediction(int slot);
     void moveEndOfWord(int slot);
@@ -109,7 +112,10 @@ public:
     void voicesGoto(int offset);
     void setGenderFilter(const QString& gender);
     void setLangFilter(const QString& language);
+    void toggleLangBrowse();
+    void toggleVoiceSearch();
     void nudgeSpeed(int dir);
+    void nudgePitch(int dir);
     void nudgeVolume(int dir);
 
     bool pin(QString* error = nullptr);
@@ -174,8 +180,18 @@ public:
 
 private:
     [[nodiscard]] bool isCapturing(const QString& sourcePageId) const;
-    /// Phrase buffer holds a topic, pin, or style name.
+    /// Phrase buffer holds a topic, pin, style, or tag name.
     [[nodiscard]] bool capturingPhrase() const;
+    [[nodiscard]] bool borrowingPhrase() const;
+    /// Put the phrase back. Does not change the keyboard layer.
+    void endBorrowedPhrase();
+    /// Put the phrase back and return to the style or tag layer.
+    void cancelBorrowedPhrase();
+    bool saveBorrowedPhrase(QString* error);
+    [[nodiscard]] bool handleVoiceQuerySend(const PageAction& action);
+    [[nodiscard]] bool handleVoiceQueryCommand(const QString& command);
+    [[nodiscard]] bool handleVoicesEscape();
+    void clearVoiceQuery();
     void handleSend(const PageAction& a);
     void handleCapturedCommand(const QString& command);
     void insertText(QStringView chars);
@@ -192,6 +208,7 @@ private:
     void fillTopicsMode(PageDocument& doc) const;
     void stampChips(PageDocument& doc) const;
     void stampStyleLayer(PageDocument& doc) const;
+    void stampTagLayer(PageDocument& doc) const;
     void ensureBrowserEntries() const;
     [[nodiscard]] bool editingFileName() const;
     /// Phrase buffer, or the file name while File Explorer is the top page.
@@ -226,6 +243,9 @@ private:
     void showComposeLayer(int layer);
     bool saveStyleName(QString* error = nullptr);
     void cancelStyleName();
+    bool saveTagName(QString* error = nullptr);
+    void cancelTagName();
+    void exitVoiceSearch();
     void storeStyleCatalog(const VoiceStyles::Catalog& catalog);
     [[nodiscard]] VoiceStyles::Catalog styleCatalog() const;
     bool importPending(bool replace, QString* error);
@@ -305,9 +325,16 @@ private:
     ComposeBuffer m_fileName;
     int m_historyPage = 0;
     bool m_styleEditor = false;
-    /// Keyboard capture for a new style name. Leaves Interaction::NameEdit alone.
-    bool m_styleNaming = false;
+    /// Phrase buffer is borrowed for a style or tag name. The two never overlap.
+    enum class BorrowedPhrase { None, Style, Tag };
+    BorrowedPhrase m_borrowed = BorrowedPhrase::None;
+    int m_borrowCaret = 0;
+    int m_tagPage = 0;
     int m_stylePage = 0;
+    /// Voice-list name query. Typed on the Speak keyboard, not into the phrase.
+    bool m_voiceSearch = false;
+    bool m_langBrowse = false;
+    QString m_voiceQuery;
     /// Styles shown on one editor page: 2 rows × 3 columns.
     static constexpr int kStyleEditorPage = 6;
     enum class ListScroll { None, History, Voices, Files };

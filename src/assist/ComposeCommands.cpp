@@ -178,6 +178,12 @@ void registerComposeCommands(CommandRegistry& commands, ComposeUi& compose)
         compose.beginStyleName();
         return true;
     });
+    commands.registerBuiltin(QStringLiteral("compose.beginTagName"), [&compose](QString*) {
+        compose.beginTagName();
+        return true;
+    });
+    bindVoidId(QStringLiteral("compose.insertTag."), &ComposeUi::insertSavedTag);
+    bindVoidInt(QStringLiteral("compose.tagPage."), &ComposeUi::pageTags);
     bindId(QStringLiteral("soundboard.edit."), &ComposeUi::openPinEdit);
     bindId(QStringLiteral("soundboard.editTopic."), &ComposeUi::openTopicEdit);
     bindId(QStringLiteral("soundboard.play."), &ComposeUi::playSoundboard);
@@ -262,12 +268,28 @@ void registerComposeCommands(CommandRegistry& commands, ComposeUi& compose)
         compose.setLangFilter({});
         return true;
     });
+    commands.registerBuiltin(QStringLiteral("speech.lang.browse"), [&compose](QString*) {
+        compose.toggleLangBrowse();
+        return true;
+    });
+    commands.registerBuiltin(QStringLiteral("speech.voiceSearch"), [&compose](QString*) {
+        compose.toggleVoiceSearch();
+        return true;
+    });
     commands.registerBuiltin(QStringLiteral("speech.speed.dec"), [&compose](QString*) {
         compose.nudgeSpeed(-1);
         return true;
     });
     commands.registerBuiltin(QStringLiteral("speech.speed.inc"), [&compose](QString*) {
         compose.nudgeSpeed(1);
+        return true;
+    });
+    commands.registerBuiltin(QStringLiteral("speech.pitch.dec"), [&compose](QString*) {
+        compose.nudgePitch(-1);
+        return true;
+    });
+    commands.registerBuiltin(QStringLiteral("speech.pitch.inc"), [&compose](QString*) {
+        compose.nudgePitch(1);
         return true;
     });
     commands.registerBuiltin(QStringLiteral("speech.volume.dec"), [&compose](QString*) {

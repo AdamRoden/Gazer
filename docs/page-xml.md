@@ -173,7 +173,7 @@ A Grid is a placed rectangle of rows and columns. `SubGrid` occupies a parent ce
 | `rows`, `columns` | Cell mesh |
 | `gap`, `margin` | Pixels between cells / inside the grid |
 | `rowHeights`, `columnWidths` | Per-track sizes, XAML GridLength-style. Integer token = pixels (`80`, `80px`). `*` / `2*` share leftover space after fixed tracks. Also accepts dim tokens (`0.25`, `1/4`, `0.25h`, `A_ScreenHeight/20`, `clamp(...)`). Missing tracks are `*`. Pixel tracks that overflow the inner size scale down together, unless `scroll="true"`. Equal rows/columns when the matching attribute is omitted. |
-| `scroll` | `true` keeps fixed tracks at their authored size and clips children to the slot. The runtime pixel shift is not saved. A sibling column that holds scroll chrome (`scrollbar`, `scrollUp`, or `scrollDown`) is given no width when the content fits. |
+| `scroll` | `true` keeps fixed tracks at their authored size and clips children to the slot. A star row is the natural height of the subgrid in that row, so it is not shrunk to the leftover viewport. The runtime pixel shift is not saved. A sibling column that holds scroll chrome (`scrollbar`, `scrollUp`, or `scrollDown`) is given no width when the content fits. |
 | `drawerMotion` | Scale animation when shown/hidden as the master drawer |
 | `shell` | Always-on-top layer (dock chrome). Cells inherit shell from their grid. |
 | `autoClose` | Idle-close this grid |

@@ -2,6 +2,7 @@
 
 #include <QByteArray>
 #include <QString>
+#include <QStringList>
 #include <QStringView>
 
 namespace gazer {
@@ -14,7 +15,7 @@ inline constexpr int kVoicesTimeoutMs = 15000;
 
 inline constexpr QStringView kModelSapi = u"sapi";
 inline constexpr QStringView kModelTurbo = u"eleven_v4_turbo";
-inline constexpr QStringView kVoicesUrl = u"https://api.elevenlabs.io/v1/voices";
+inline constexpr QStringView kVoicesUrl = u"https://api.elevenlabs.io/v2/voices";
 
 struct Prepared {
     QString modelId; // sapi or eleven_v4_turbo
@@ -40,7 +41,18 @@ struct Prepared {
 /// alone when it already starts with that tag (ignoring leading space).
 [[nodiscard]] QString applyStandingTag(QStringView phrase, QStringView tag);
 
-/// Build speak pieces. v4 Turbo keeps audio tags and applies speed on playback.
+/// One request per breath when a standing style or an inline `[tag]` is present.
+/// Untagged text stays one string. The standing style and any tags at the start
+/// of the line are repeated on every breath. A tag written later stays on that
+/// breath. Decimals, clock times, domains, and commas inside brackets stay whole.
+[[nodiscard]] QStringList taggedSends(QStringView phrase, QStringView tag);
+
+/// ElevenLabs key handoff. The approval page copies an `sk_` key. The code is
+/// not exchanged. `challenge` and `state` are base64url.
+[[nodiscard]] QString keyHandoffUrl(QStringView challenge, QStringView state);
+[[nodiscard]] QString keyQuickstartUrl();
+
+/// Build speak pieces. v4 Turbo keeps audio tags. Speed and pitch stay local.
 /// SAPI text has brackets stripped. Desired speed is clamped to 0.25–4.
 [[nodiscard]] Prepared prepareSpeakRequest(QStringView phrase, QStringView selectedModel,
                                            double speed);

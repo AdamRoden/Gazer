@@ -73,6 +73,62 @@ struct Mesh {
     [[nodiscard]] bool valid() const { return !colSizes.isEmpty() && !rowSizes.isEmpty(); }
 };
 
+double trackPixels(const PageTrackSize& track, const QSizeF& screen)
+{
+    if (track.isStar() || !track.dim.isSet()) {
+        return 0.0;
+    }
+    const double sw = screen.width() > 0.0 ? screen.width() : 0.0;
+    const double sh = screen.height() > 0.0 ? screen.height() : 0.0;
+    const double axis = sh > 0.0 ? sh : 1.0;
+    return qMax(0.0, track.dim.resolve(axis, axis, sw, sh));
+}
+
+double naturalGridHeight(const PageGrid& grid, const QSizeF& screen);
+
+// A star row in a scrolling grid is the subgrid placed there. Cells have no
+// intrinsic height, and a rowSpan other than 1 is left to the slot.
+double starRowNatural(const PageGrid& grid, int row, const QSizeF& screen)
+{
+    double h = 0.0;
+    for (const PageGrid& sub : grid.subGrids) {
+        if (sub.row != row || sub.rowSpan != 1) {
+            continue;
+        }
+        h = qMax(h, naturalGridHeight(sub, screen));
+    }
+    return h;
+}
+
+double naturalGridHeight(const PageGrid& grid, const QSizeF& screen)
+{
+    const int rows = qMax(1, grid.rows);
+    const int gap = qMax(0, grid.gapPx);
+    const int margin = qMax(0, grid.marginPx);
+    const QVector<PageTrackSize> tracks = padTracks(grid.rowTracks, rows);
+    double sum = 0.0;
+    for (int r = 0; r < rows; ++r) {
+        sum += tracks[r].isStar() ? starRowNatural(grid, r, screen) : trackPixels(tracks[r], screen);
+    }
+    return margin * 2.0 + gap * (rows - 1) + sum;
+}
+
+// Star rows become fixed pixel tracks of that natural height, then share the
+// same keep-fixed pass as authored pixel rows. They do not take leftover
+// viewport space, and they do not collapse when the fixed rows already fill it.
+QVector<double> scrollRowSizes(const PageGrid& grid, double inner, const QSizeF& screen)
+{
+    const int rows = qMax(1, grid.rows);
+    QVector<PageTrackSize> tracks = padTracks(grid.rowTracks, rows);
+    for (int r = 0; r < rows; ++r) {
+        if (!tracks[r].isStar()) {
+            continue;
+        }
+        tracks[r] = PageTrackSize::fromDim(PageDim::pixels(starRowNatural(grid, r, screen)));
+    }
+    return resolveTracks(tracks, inner, inner, inner, screen, true);
+}
+
 double scrollContentHeight(const PageGrid& grid, const QRectF& slot, const QSizeF& screen)
 {
     const int rows = qMax(1, grid.rows);
@@ -87,8 +143,7 @@ double scrollContentHeight(const PageGrid& grid, const QRectF& slot, const QSize
     }
     const QSizeF metrics(screen.width() > 0.0 ? screen.width() : slot.width(),
                          screen.height() > 0.0 ? screen.height() : slot.height());
-    const QVector<double> sizes =
-        resolveTracks(padTracks(grid.rowTracks, rows), inner, inner, inner, metrics, true);
+    const QVector<double> sizes = scrollRowSizes(grid, inner, metrics);
     double sum = 0.0;
     for (double s : sizes) {
         sum += s;
@@ -115,12 +170,14 @@ Mesh gridMesh(const PageGrid& grid, const QRectF& gridRect, const QSizeF& screen
     m.originY = gridRect.top() + margin;
     m.colSizes =
         resolveTracks(padTracks(grid.columnTracks, cols), innerW, innerW, innerH, metrics, grid.scroll);
-    m.rowSizes = resolveTracks(padTracks(grid.rowTracks, rows), innerH, innerH, innerH, metrics,
-                               grid.scroll);
     if (grid.scroll) {
+        m.rowSizes = scrollRowSizes(grid, innerH, metrics);
         const double total = scrollContentHeight(grid, gridRect, metrics);
         const int maxOff = qMax(0, qRound(total) - qRound(gridRect.height()));
         m.originY -= qBound(0, grid.scrollOffset, maxOff);
+    } else {
+        m.rowSizes = resolveTracks(padTracks(grid.rowTracks, rows), innerH, innerH, innerH, metrics,
+                                   false);
     }
     return m;
 }

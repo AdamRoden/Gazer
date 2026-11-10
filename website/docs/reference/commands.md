@@ -142,7 +142,7 @@ XML `mouseMoveByDirection` is the compass form of the nudge commands.
 |---------|----------------|
 | `compose.open` | Open `compose.xml`. |
 | `compose.speak` | Speak the buffer, or stop if busy. |
-| `compose.stop` | Abort Eleven POST, stop clip, stop SAPI. |
+| `compose.stop` | Abort the ElevenLabs stream, stop the clip, stop SAPI. |
 | `compose.clear` / `compose.undo` / `compose.redo` | Buffer. |
 | `compose.backspace` / `compose.deleteWord` | Edit (rapid dwell). |
 | `compose.removeWord.<i>` | Prefix; `i` is chip slot 0–11. Pager slots are not words. |
@@ -156,6 +156,9 @@ XML `mouseMoveByDirection` is the compass form of the nudge commands.
 | `compose.favStyle.<name>` / `compose.trashStyle.<name>` | Star or remove a style. Trashing the standing style clears it. |
 | `compose.stylePage.<n>` | Move the style editor by `n` pages. |
 | `compose.beginStyleName` | Type a new style on the keyboard. Save adds it, already starred. |
+| `compose.insertTag.<name>` | Insert `[name]` at the caret and return to Actions. `name` is percent-encoded. |
+| `compose.tagPage.<n>` | Move the saved-tag page by `n`. |
+| `compose.beginTagName` | Type a new tag on the keyboard. Save inserts it and keeps it in the saved list. |
 | `compose.openFiles` / `compose.exportBoard` / `compose.importChoose` | Open File Explorer over Speak and show the keyboard layer so the file name can be typed. Closing returns to the layer that was showing. |
 | `compose.importFile` | **Import**. Saves the open pages, hides the other boards, and leaves the main dock up. Shows the Windows open dialog beside the boards, with `qwerty_file`. Keys type into the dialog. Closing it restores those pages. The chosen JSON file replaces the boards. |
 | `compose.exportFile` | **Export**. Same hold, with the Windows save dialog. Writes an `aac-workspace` v1 file. |
@@ -185,8 +188,10 @@ XML `mouseMoveByDirection` is the compass form of the nudge commands.
 | `speech.fav.toggle` / `speech.fav.toggle.<id>` | Favorite the current or named ElevenLabs voice. |
 | `speech.voiceList.next` / `.prev` / `.goto.<n>` | Voice list page/jump. After the lock-on ring fills, looking along the track drags the thumb. |
 | `speech.gender.all` / `.female` / `.male` | Voice filter. |
-| `speech.lang.all` / `speech.lang.set.<code>` | Language filter. |
+| `speech.lang.all` / `speech.lang.set.<code>` / `speech.lang.browse` | Language filter. Browse lists every language. |
+| `speech.voiceSearch` | Search voice names. The list shortens so the Speak keyboard can type the query. |
 | `speech.speed.dec` / `.inc` | Nudge `speechSpeed` by 0.1. |
+| `speech.pitch.dec` / `.inc` | Nudge `speechPitch` by 0.1 (0.5–2, ElevenLabs only). |
 | `speech.volume.dec` / `.inc` | Nudge `speechVolume` by 0.5 (1–5× clip boost). The voice list uses these. |
 | `volume.dec` / `.inc` | Nudge the Speak output device by 10% on any page. That device is Settings → Speak, or the Windows default when none is chosen. `compose.volume.dec` / `.inc` are the same commands. A slider with `caption="volume"` shows that percent. Left and right arrows sit at the ends of the track. Look at the track until its ring fills. Looking at either end moves the thumb there at full speed. A look between the thumb and an end moves it more slowly. Hue, opacity, and list scrollbars use that same ring. Vertical tracks have up and down arrows. |
 
@@ -218,8 +223,10 @@ Patterns — boards generate many concrete names from these:
 | `settings.hover.custom.toggle` | Custom hover outline (off = progress color). |
 | `settings.progress.*.toggle` / `settings.mouseProgress.*.toggle` | Progress bits (radial / pie / fill). Any subset, including none. |
 | `settings.session.autoCollapse.toggle` / `.startDocked.toggle` / `.showSplash.toggle` / `.showSplash.play` / `.layoutAutoClose.toggle` | Session. |
-| `settings.speech.editKey` / `.clearKey` | Paste-from-clipboard API-key board / wipe DPAPI. |
-| `settings.speech.key.paste` / `.save` / `.cancel` / `.clear` | Key board. |
+| `settings.speech.linkKey` | **Create key** on the key board. Clears the clipboard, closes Settings, and shows Click and Cancel above the taskbar. Click is a left click at gaze for Authorize. A valid `sk_` key on the clipboard after that click is saved, and Settings returns to Speak. |
+| `settings.speech.linkCancel` | Leave the create-key page and reopen Settings on Speak. |
+| `settings.speech.editKey` / `.clearKey` | Open the key board / wipe the stored key. |
+| `settings.speech.key.paste` / `.save` / `.cancel` / `.clear` | Key board. Clear deletes the stored key. Save stores a valid key, or an empty key, and closes. |
 | `settings.speech.predictions.toggle` | Turn word suggestions on the Speak page on or off. |
 | `settings.speech.output.<id>` | Play speech on that device. An empty id follows the Windows default. `<id>` is the percent-encoded device key. |
 | `settings.speech.output.refresh` | Rescan playback devices on the Speak page. |

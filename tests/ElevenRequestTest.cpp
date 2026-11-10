@@ -27,6 +27,8 @@ private slots:
     void dialogueMessages();
     void voicesCacheRoundTrip();
     void voicesCacheTtl();
+    void taggedBreaths();
+    void keyHandoffUrlNamesClipboard();
 };
 
 void ElevenRequestTest::normalizeAliasesAndUnknown()
@@ -129,7 +131,7 @@ void ElevenRequestTest::dialogueMessages()
         QStringLiteral("wss://api.elevenlabs.io/v1/text-to-dialogue/stream-input?")));
     QVERIFY(url.contains(QStringLiteral("model_id=eleven_v4_turbo")));
     QVERIFY(url.contains(QStringLiteral("output_format=pcm_24000")));
-    QCOMPARE(QString(kVoicesUrl), QStringLiteral("https://api.elevenlabs.io/v1/voices"));
+    QCOMPARE(QString(kVoicesUrl), QStringLiteral("https://api.elevenlabs.io/v2/voices"));
     QCOMPARE(kSpeakTimeoutMs, 25000);
     QCOMPARE(kVoicesTimeoutMs, 15000);
 
@@ -166,6 +168,7 @@ void ElevenRequestTest::voicesCacheRoundTrip()
     QVERIFY(!ElevenClient::writeVoicesCacheAt(path, QByteArrayLiteral("{\"ok\":true}"), now));
     const QJsonObject cache = ElevenClient::readVoicesCacheAt(path);
     QCOMPARE(cache.value(QStringLiteral("fetchedAt")).toString(), now.toUTC().toString(Qt::ISODate));
+    QCOMPARE(cache.value(QStringLiteral("catalog")).toString(), QStringLiteral("v2"));
     const QJsonArray voices = cache.value(QStringLiteral("voices")).toArray();
     QCOMPARE(voices.size(), 1);
     QCOMPARE(voices.at(0).toObject().value(QStringLiteral("voice_id")).toString(),
@@ -179,10 +182,70 @@ void ElevenRequestTest::voicesCacheTtl()
     const QDateTime now =
         QDateTime::fromString(QStringLiteral("2026-09-03T12:00:00Z"), Qt::ISODate);
     cache.insert(QStringLiteral("fetchedAt"), now.toUTC().toString(Qt::ISODate));
+    cache.insert(QStringLiteral("catalog"), QStringLiteral("v2"));
     cache.insert(QStringLiteral("voices"), QJsonArray());
     QVERIFY(ElevenClient::voicesCacheFresh(cache, now.addSecs(3600)));
     QVERIFY(!ElevenClient::voicesCacheFresh(cache, now.addSecs(25 * 3600)));
+    cache.remove(QStringLiteral("catalog"));
+    QVERIFY(!ElevenClient::voicesCacheFresh(cache, now.addSecs(3600)));
     QVERIFY(!ElevenClient::voicesCacheFresh(QJsonObject{}, now));
+}
+
+void ElevenRequestTest::taggedBreaths()
+{
+    auto sends = [](const char* phrase, const char* tag) {
+        return taggedSends(QString::fromUtf8(phrase), QString::fromUtf8(tag));
+    };
+    QCOMPARE(sends("Hello, how are you?", ""),
+             QStringList{QStringLiteral("Hello, how are you?")});
+    QCOMPARE(sends("Hello, how are you? I am here.", "happy"),
+             QStringList({QStringLiteral("[happy] Hello,"), QStringLiteral("[happy] how are you?"),
+                          QStringLiteral("[happy] I am here.")}));
+    QCOMPARE(sends("Hello there", "whisper"),
+             QStringList{QStringLiteral("[whisper] Hello there")});
+    QCOMPARE(sends("[happy] Hello, there.", "happy"),
+             QStringList({QStringLiteral("[happy] Hello,"), QStringLiteral("[happy] there.")}));
+    QCOMPARE(sends("[whisper] Hello, there. [loud] Bye, friend.", ""),
+             QStringList({QStringLiteral("[whisper] Hello,"), QStringLiteral("[whisper] there."),
+                          QStringLiteral("[loud] Bye,"), QStringLiteral("[whisper] friend.")}));
+    QCOMPARE(sends("[whisper] Hello, there.", "happy"),
+             QStringList({QStringLiteral("[happy] [whisper] Hello,"),
+                          QStringLiteral("[happy] [whisper] there.")}));
+    QCOMPARE(sends("Pay [laughs] now. Next.", "happy"),
+             QStringList({QStringLiteral("[happy] Pay [laughs] now."),
+                          QStringLiteral("[happy] Next.")}));
+    QCOMPARE(sends("Hello. [sighs] There. Again.", "happy"),
+             QStringList({QStringLiteral("[happy] Hello."), QStringLiteral("[happy] [sighs] There."),
+                          QStringLiteral("[happy] Again.")}));
+    QCOMPARE(sends("Hello. [sighs]", "happy"),
+             QStringList{QStringLiteral("[happy] Hello. [sighs]")});
+    QCOMPARE(sends("Pay 1,000.50 today, thanks.", "happy"),
+             QStringList({QStringLiteral("[happy] Pay 1,000.50 today,"),
+                          QStringLiteral("[happy] thanks.")}));
+    QCOMPARE(sends("Meet at 3:30, please.", "happy"),
+             QStringList({QStringLiteral("[happy] Meet at 3:30,"), QStringLiteral("[happy] please.")}));
+    QCOMPARE(sends("Visit example.com, please.", "happy"),
+             QStringList({QStringLiteral("[happy] Visit example.com,"),
+                          QStringLiteral("[happy] please.")}));
+    QCOMPARE(sends("So did I. Then I left.", "happy"),
+             QStringList({QStringLiteral("[happy] So did I."), QStringLiteral("[happy] Then I left.")}));
+    QCOMPARE(sends("Wait... what?", "happy"),
+             QStringList({QStringLiteral("[happy] Wait..."), QStringLiteral("[happy] what?")}));
+    QCOMPARE(sends("Wait \u2014 what?", "happy"),
+             QStringList({QStringLiteral("[happy] Wait \u2014"), QStringLiteral("[happy] what?")}));
+    QCOMPARE(sends("Hello\nthere.", "happy"),
+             QStringList({QStringLiteral("[happy] Hello"), QStringLiteral("[happy] there.")}));
+    QCOMPARE(sends("[low, slow] Hello, there.", ""),
+             QStringList({QStringLiteral("[low, slow] Hello,"), QStringLiteral("[low, slow] there.")}));
+}
+
+void ElevenRequestTest::keyHandoffUrlNamesClipboard()
+{
+    const QString url = keyHandoffUrl(QStringLiteral("chal"), QStringLiteral("st"));
+    QVERIFY(url.contains(QStringLiteral("client_id=c9c18126-5718-406a-8a12-21b69e5a888d")));
+    QVERIFY(url.contains(QStringLiteral("key_handoff=clipboard")));
+    QVERIFY(url.contains(QStringLiteral("localhost:8484")));
+    QVERIFY(keyQuickstartUrl().contains(QStringLiteral("quickstart=true")));
 }
 
 QObject* createElevenRequestTest()

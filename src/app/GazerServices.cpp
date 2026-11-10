@@ -215,11 +215,9 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
     m_headPose->setNotifyFn([this](const QString& msg) { notifyStatus(msg); });
     m_lookToMaps->setNotifyFn([this](const QString& msg) { notifyStatus(msg); });
     connect(m_mouseDwellMove.get(), &MouseDwellMove::movedTo, this,
-            [this](QPoint pos) { m_settingsUi->onColorAimMoved(pos); });
+            [this](QPoint pos) { m_settingsUi->onDwellMoveMoved(pos); });
     connect(m_mouseDwellMove.get(), &MouseDwellMove::armedChanged, this, [this](bool armed) {
-        if (!armed) {
-            m_settingsUi->cancelEyedropper();
-        }
+        m_settingsUi->onDwellMoveArmed(armed);
     });
 
     m_pages->setDecorate([this](PageDocument& doc) {

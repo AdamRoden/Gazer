@@ -14,6 +14,7 @@ constexpr auto kLiveArray = "settings_array_live";
 constexpr auto kLiveColor = "settings_color_live";
 constexpr auto kLiveHex = "settings_hex_live";
 constexpr auto kLiveSpeechKey = "settings_speech_key_live";
+constexpr auto kLiveSpeechLink = "settings_speech_link_live";
 constexpr auto kLiveLookToMap = "lookto_map_live";
 
 constexpr int kMaxArraySteps = AppSettings::kMaxDwellSequenceSteps;

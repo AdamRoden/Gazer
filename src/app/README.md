@@ -12,8 +12,9 @@ Composition root, settings, command dispatch.
 | `GuardApp` | `Gazer.exe --guard`: heartbeat watchdog, crash-loop rescue board, Pause hotkey |
 | `CommandRegistry` | Builtin names, then mapping profile. Prefix handlers. `compose.*` / `speech.*` / `soundboard.*` / `history.*` / `settings.*` / `headPose.*` skip the Cmd toast. Catalog: `Commands.md` |
 | `ComposeUi` | Gaze composer capture (`tryHandle`), decorate live values, stamp chrome. Composer Speak is `SpeakKind::Composed` (Eleven when configured). Helpers: `ComposeUiInternal.h` |
-| `ComposeVoices.cpp` | Voice catalog (model + speed + boost) |
+| `ComposeVoices.cpp` | Voice catalog (model, speed, pitch, name search, languages) |
 | `ComposeStyles.cpp` | Standing style picker, editor, and keyboard naming |
+| `ComposeTags.cpp` | Insert-tag page and keyboard naming |
 | `ComposeSoundboard.cpp` | Pin/assign, topic rail, soundboard grid, Voice workspace import/export |
 | `ComposeItemEdit.cpp` | Unified name/color/icon editor overlay |
 | `ComposeHistory.cpp` | History replay/restore |
@@ -29,8 +30,8 @@ Composition root, settings, command dispatch.
 | `SettingsArrayEditor.cpp` | Standard / rapid dwell-sequence editor |
 | `SettingsColorPicker.cpp` | HSV field + hue/opacity sliders, eyedropper, picker palette swatches. Hue and opacity drag with `GazeTrack`; the field stays absolute |
 | `SettingsHexEditor.cpp` | Hex color pad (6–8 digits, copy/paste) |
-| `SettingsSpeechKey.cpp` | ElevenLabs API-key live board |
-| `SettingsSpeechOutput.cpp` | Speak-page playback device list (`settings.speech.output.*`) |
+| `SettingsSpeechKey.cpp` | ElevenLabs key board. Create key closes Settings and shows Click / Cancel |
+| `SettingsSpeechOutput.cpp` | Speak-page playback devices, one 96px row each, on the page scroller (`settings.speech.output.*`) |
 | `SettingsSliderGaze.cpp` | Head-pose curve gaze-scrub |
 | `SettingsCommands.cpp` | `settings.*` builtins |
 | `SettingsHeadPose.cpp` | Head-pose axis list and in-column editor (`headPose.*`) |

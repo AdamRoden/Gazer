@@ -54,6 +54,8 @@ void VoiceCatalogTest::parseAndFilter()
     const QStringList chips = VoiceCatalog::languageChips(all, 2);
     QCOMPARE(chips.size(), 2);
     QCOMPARE(chips[0], QStringLiteral("en"));
+    QCOMPARE(VoiceCatalog::languages(all),
+             QStringList({QStringLiteral("de"), QStringLiteral("en"), QStringLiteral("es")}));
 }
 
 void VoiceCatalogTest::favoritesSortAndPage()

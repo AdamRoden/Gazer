@@ -1078,6 +1078,7 @@ void SettingsUi::discardHeadPoseEditor()
 
 void SettingsUi::onSessionChanged()
 {
+    abandonLinkPageIfClosed();
     stopSettingsScroll();
     if (m_pages.showsPage(QString(kHeadPosePageId))) {
         return;

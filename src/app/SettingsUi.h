@@ -72,6 +72,10 @@ public:
     /// Drop a head-pose editor when that settings page is no longer showing.
     void onSessionChanged();
     void onColorAimMoved(const QPoint& pos);
+    /// Cursor arrival from mouse dwell. A link-page click records the landing; otherwise this samples color.
+    void onDwellMoveMoved(const QPoint& pos);
+    /// Mouse-dwell arm changes. Disarm ends an eyedropper and, on the link page, a gaze click.
+    void onDwellMoveArmed(bool armed);
     void cancelEyedropper();
     [[nodiscard]] QString colorPickerKey() const { return m_colorPickerKey; }
 
@@ -221,6 +225,22 @@ private:
     void fillSpeechOutputList(PageGrid& host);
     [[nodiscard]] bool selectSpeechOutput(const QString& encoded, QString* error);
 
+    [[nodiscard]] bool linkSpeechKey(QString* error = nullptr);
+    /// Drop the in-flight Create-key attempt: flags, generation, gaze click, and the handoff listener.
+    void endLinkAttempt();
+    void stopKeyHandoff();
+    void closeSettingsForLink();
+    void returnToSpeakSettings();
+    void startLinkBrowser();
+    void refreshLinkPage();
+    [[nodiscard]] PageDocument buildLinkDocument() const;
+    void cancelLinkPage();
+    void noteLinkClickArmed();
+    void finishLinkClick();
+    void scheduleLinkVerify();
+    void pollLinkClipboard(int gen, int attempt);
+    void finishLinkVerified();
+    void abandonLinkPageIfClosed();
     [[nodiscard]] bool openSpeechKeyBoard(QString* error = nullptr);
     void refreshSpeechKeyBoard();
     [[nodiscard]] PageDocument buildSpeechKeyDocument() const;
@@ -315,7 +335,19 @@ private:
     QString m_hexBuffer;
     LiveBoard m_key;
     bool m_keyChecking = false;
+    /// Set while a Link-page clipboard check is in flight (paste board may be closed).
+    bool m_keyLink = false;
     QString m_keyBuffer;
+    /// Authorize page: Cancel, or a left click at gaze, then a clipboard check.
+    LiveBoard m_keyLinkPage;
+    bool m_keyClickArmed = false;
+    bool m_keyClickLanded = false;
+    int m_linkVerifyGen = 0;
+    /// `m_linkVerifyGen` captured when the link page called `validateApiKey`.
+    int m_linkCheckGen = -1;
+    QString m_keyLinkStatus;
+    /// Localhost key-handoff listener. Owning it cancels the previous timeout.
+    QObject* m_handoff = nullptr;
     QMetaObject::Connection m_editorKeyConn;
     std::unique_ptr<QObject> m_audioWatch;
 

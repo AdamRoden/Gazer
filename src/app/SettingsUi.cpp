@@ -52,7 +52,12 @@ SettingsUi::SettingsUi(AppSettings& settings, CommandRegistry& commands, PageSes
                      Qt::QueuedConnection);
 }
 
-SettingsUi::~SettingsUi() = default;
+SettingsUi::~SettingsUi()
+{
+    QObject* handoff = m_handoff;
+    m_handoff = nullptr;
+    delete handoff;
+}
 
 void SettingsUi::notifyStatus(const QString& msg)
 {

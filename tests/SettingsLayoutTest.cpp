@@ -340,6 +340,8 @@ void SettingsLayoutTest::speakAndHeadBoards()
     QVERIFY2(loadLayout(QStringLiteral("main_settings_speak"), speak, &err), qPrintable(err));
     QCOMPARE(speak.findCell(QStringLiteral("speed_value"))->settingKey,
              QStringLiteral("speechSpeed"));
+    QCOMPARE(speak.findCell(QStringLiteral("pitch_value"))->settingKey,
+             QStringLiteral("speechPitch"));
     QCOMPARE(speak.findCell(QStringLiteral("volume_value"))->settingKey,
              QStringLiteral("speechVolume"));
     PageDocument host;
@@ -802,15 +804,22 @@ void SettingsLayoutTest::adminCaptureModes()
     QVERIFY(!setup.findGrid(QStringLiteral("tabs")));
 
     QVERIFY2(loadLayout(QStringLiteral("main_settings_speak"), speak, &err), qPrintable(err));
+    QCOMPARE(speak.findCell(QStringLiteral("key_edit"))->label, QStringLiteral("Edit"));
     QCOMPARE(speak.findCell(QStringLiteral("key_edit"))->actions[0].command,
              QStringLiteral("settings.speech.editKey"));
-    QCOMPARE(speak.findGrid(QStringLiteral("sec_speech"))->row, 1);
-    QCOMPARE(speak.findGrid(QStringLiteral("sec_speech"))->rows, 6);
+    QVERIFY(!speak.findCell(QStringLiteral("key_link")));
+    QVERIFY(speak.findGrid(QStringLiteral("scroller"))->scroll);
+    QCOMPARE(speak.findGrid(QStringLiteral("scroller"))->rows, 2);
+    QCOMPARE(speak.findGrid(QStringLiteral("sec_speech"))->row, 0);
+    QCOMPARE(speak.findGrid(QStringLiteral("sec_speech"))->rows, 7);
     QCOMPARE(speak.findGrid(QStringLiteral("row_key"))->row, 1);
     QCOMPARE(speak.findGrid(QStringLiteral("row_eng"))->row, 2);
     QCOMPARE(speak.findGrid(QStringLiteral("row_spd"))->row, 3);
-    QCOMPARE(speak.findGrid(QStringLiteral("row_vol"))->row, 4);
-    QCOMPARE(speak.findGrid(QStringLiteral("row_predict"))->row, 5);
+    QCOMPARE(speak.findGrid(QStringLiteral("row_pitch"))->row, 4);
+    QCOMPARE(speak.findGrid(QStringLiteral("row_vol"))->row, 5);
+    QCOMPARE(speak.findGrid(QStringLiteral("row_predict"))->row, 6);
+    QCOMPARE(speak.findCell(QStringLiteral("pit_edit"))->actions[0].command,
+             QStringLiteral("settings.edit.speechPitch"));
     QCOMPARE(speak.findCell(QStringLiteral("spd_edit"))->actions[0].command,
              QStringLiteral("settings.edit.speechSpeed"));
     QCOMPARE(speak.findCell(QStringLiteral("vol_edit"))->actions[0].command,
@@ -822,9 +831,15 @@ void SettingsLayoutTest::adminCaptureModes()
     QVERIFY(speak.findCell(QStringLiteral("m_turbo")));
     QCOMPARE(speak.findCell(QStringLiteral("m_turbo"))->actions[0].command,
              QStringLiteral("settings.speech.model.eleven_v4_turbo"));
-    QCOMPARE(speak.findGrid(QStringLiteral("sec_output"))->row, 2);
+    QCOMPARE(speak.findGrid(QStringLiteral("sec_output"))->row, 1);
     QCOMPARE(speak.findGrid(QStringLiteral("sec_output"))->col, 0);
-    QCOMPARE(speak.grids[0].columns, 1);
+    QCOMPARE(speak.grids[0].columns, 2);
+    QCOMPARE(PageDimParse::tokenList(speak.grids[0].columnTracks), QStringLiteral("*,72"));
+    QVERIFY(speak.findGrid(QStringLiteral("page_scroll")));
+    QCOMPARE(speak.findCell(QStringLiteral("set_scroll_up"))->actions[0].command,
+             QStringLiteral("settings.scroll.up"));
+    QCOMPARE(speak.findCell(QStringLiteral("set_scroll_down"))->actions[0].command,
+             QStringLiteral("settings.scroll.down"));
     QVERIFY(speak.findGrid(QStringLiteral("out_list")));
     QCOMPARE(speak.findCell(QStringLiteral("h_output"))->label, QStringLiteral("Output"));
     QCOMPARE(speak.findCell(QStringLiteral("out_refresh"))->actions[0].command,

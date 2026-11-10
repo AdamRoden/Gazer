@@ -241,6 +241,8 @@ constexpr DoubleSpec kDoubleSpecs[] = {
 
     {"speechSpeed", "Speech speed", "ElevenLabs and SAPI speed (0.5–2).", "",
      &AppSettings::speechSpeed, 0.5, 2.0, 0.1, 2},
+    {"speechPitch", "Speech pitch", "ElevenLabs pitch (0.5–2). Speed keeps this pitch.", "",
+     &AppSettings::speechPitch, 0.5, 2.0, 0.1, 1},
     {"speechVolume", "Speech boost", "Make composer voices louder (1–5×). Applies to ElevenLabs clips.",
      "×", &AppSettings::speechVolume, 1.0, 5.0, 0.5, 1},
 };

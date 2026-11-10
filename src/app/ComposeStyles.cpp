@@ -155,7 +155,10 @@ void ComposeUi::trashStyle(const QString& encoded)
 
 void ComposeUi::beginStyleName()
 {
-    if (!m_styleNaming) {
+    if (m_borrowed == BorrowedPhrase::Tag) {
+        endBorrowedPhrase();
+    }
+    if (m_borrowed != BorrowedPhrase::Style) {
         if (nameEditing()) {
             finishItemEditor(true);
         } else if (hasLive(kItemEditLiveId)) {
@@ -165,7 +168,7 @@ void ComposeUi::beginStyleName()
             m_interaction = Interaction::Use;
         }
         m_nameEditBackup = m_buffer.text();
-        m_styleNaming = true;
+        m_borrowed = BorrowedPhrase::Style;
         m_editId.clear();
         m_editIcons = false;
         m_editColor.clear();
@@ -179,7 +182,7 @@ void ComposeUi::beginStyleName()
 
 bool ComposeUi::saveStyleName(QString* error)
 {
-    if (!m_styleNaming) {
+    if (m_borrowed != BorrowedPhrase::Style) {
         return true;
     }
     const QString name = m_buffer.text().trimmed();
@@ -204,7 +207,7 @@ bool ComposeUi::saveStyleName(QString* error)
     }
     m_styleEditor = true;
     m_stylePage = qMax(0, (added.catalog.styles.size() - 1) / kStyleEditorPage);
-    m_styleNaming = false;
+    m_borrowed = BorrowedPhrase::None;
     m_buffer.load(m_nameEditBackup);
     if (m_typing) {
         m_typing->adoptPhrase(m_buffer.text(), m_buffer.caret());
@@ -219,18 +222,10 @@ bool ComposeUi::saveStyleName(QString* error)
 
 void ComposeUi::cancelStyleName()
 {
-    if (!m_styleNaming) {
+    if (m_borrowed != BorrowedPhrase::Style) {
         return;
     }
-    m_styleNaming = false;
-    m_styleEditor = true;
-    m_buffer.load(m_nameEditBackup);
-    if (m_typing) {
-        m_typing->adoptPhrase(m_buffer.text(), m_buffer.caret());
-    }
-    m_nameEditBackup.clear();
-    rebuildBoard();
-    showComposeLayer(6);
+    cancelBorrowedPhrase();
 }
 
 void ComposeUi::stampStyleLayer(PageDocument& doc) const

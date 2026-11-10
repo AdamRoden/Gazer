@@ -25,6 +25,8 @@ struct Voice {
                                     const QString& language);
 void sortFavoritesFirst(QVector<Voice>* voices, const QStringList& favoriteIds);
 [[nodiscard]] QStringList languageChips(const QVector<Voice>& voices, int maxChips = kLangChips);
+/// Every language code in the catalog, A–Z.
+[[nodiscard]] QStringList languages(const QVector<Voice>& voices);
 [[nodiscard]] QVector<Voice> page(const QVector<Voice>& voices, int pageIndex, int* pageCount);
 [[nodiscard]] QString encodeId(const QString& id);
 [[nodiscard]] QString decodeId(const QString& encoded);

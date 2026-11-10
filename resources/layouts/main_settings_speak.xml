@@ -6,57 +6,73 @@
   <Style id="joinLeft" background="transparent" thickness="0" radius="10,0,0,10"/>
   <Style id="joinRight" background="transparent" thickness="0" radius="0,10,10,0"/>
   <Style id="button" background="transparent" thickness="0" radius="10"/>
-  <Grid id="board" desktopMode="true" rows="3" columns="1" anchor="Top" offset="0,0" size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" gap="12" margin="0" radius="16"
-        rowHeights="96,584,*">
-    <SubGrid id="titlebar" row="0" col="0" rows="1" columns="2" columnWidths="*,160" gap="8" margin="0" style="plain">
+  <Grid id="board" desktopMode="true" rows="2" columns="2" anchor="Top" offset="0,0" size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" gap="12" margin="0" radius="16"
+        rowHeights="96,*" columnWidths="*,72">
+    <SubGrid id="titlebar" row="0" col="0" colSpan="2" rows="1" columns="2" columnWidths="*,160" gap="8" margin="0" style="plain">
       <Cell id="page_title" row="0" col="0" label="Speak" caption="Voice and playback" role="label" textStyle="title" style="plain"/>
       <Cell id="tab_done" row="0" col="1" label="Close" icon="keyboardHide" textStyle="row" style="button" closeAllPages="true"/>
     </SubGrid>
-    <SubGrid id="sec_speech" row="1" col="0" rows="6" columns="1" rowHeights="48,96,96,96,96,96" gap="8" margin="8" style="group">
-      <Cell id="h_speech" row="0" col="0" label="Speech" role="label" textStyle="section" style="plain"/>
-      <SubGrid id="row_key" row="1" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="key_l" row="0" col="0" label="API key" caption="ElevenLabs key for the composer. Stored on this PC." role="label" style="plain"/>
-        <SubGrid id="act_key" row="0" col="1" rows="1" columns="2" columnWidths="*,160" gap="6" style="row">
-          <Cell id="key_status" row="0" col="0" label="No API key" role="value" style="plain"/>
-          <Cell id="key_edit" row="0" col="1" label="Paste key" icon="contentPaste" style="button" command="settings.speech.editKey"/>
+    <SubGrid id="scroller" row="1" col="0" scroll="true" rows="2" columns="1" rowHeights="688,*" gap="12" margin="0">
+      <SubGrid id="sec_speech" row="0" col="0" rows="7" columns="1" rowHeights="48,96,96,96,96,96,96" gap="8" margin="8" style="group">
+        <Cell id="h_speech" row="0" col="0" label="Speech" role="label" textStyle="section" style="plain"/>
+        <SubGrid id="row_key" row="1" col="0" rows="1" columns="2" gap="6" style="row">
+          <Cell id="key_l" row="0" col="0" label="API key" caption="ElevenLabs key for the composer. Stored on this PC." role="label" style="plain"/>
+          <SubGrid id="act_key" row="0" col="1" rows="1" columns="2" columnWidths="*,160" gap="6" style="row">
+            <Cell id="key_status" row="0" col="0" label="No API key" role="value" style="plain"/>
+            <Cell id="key_edit" row="0" col="1" label="Edit" icon="editSquare" style="button" command="settings.speech.editKey"/>
+          </SubGrid>
+        </SubGrid>
+        <SubGrid id="row_eng" row="2" col="0" rows="1" columns="2" gap="6" style="row">
+          <Cell id="eng_l" row="0" col="0" label="Composer voice" caption="v4 Turbo streams as soon as audio is ready. XML Speak stays SAPI." role="label" style="plain"/>
+          <SubGrid id="act_eng" row="0" col="1" rows="1" columns="2" gap="0" style="row">
+            <Cell id="m_sapi" row="0" col="0" label="SAPI" role="choice" activeState="settings.speech.model.sapi" style="joinLeft" command="settings.speech.model.sapi"/>
+            <Cell id="m_turbo" row="0" col="1" label="v4 Turbo" role="choice" activeState="settings.speech.model.eleven_v4_turbo" style="joinRight" command="settings.speech.model.eleven_v4_turbo"/>
+          </SubGrid>
+        </SubGrid>
+        <SubGrid id="row_spd" row="3" col="0" rows="1" columns="2" gap="6" style="row">
+          <Cell id="spd_l" row="0" col="0" label="Speed" caption="0.5–2.0 for ElevenLabs and SAPI." role="label" style="plain"/>
+          <SubGrid id="act_spd" row="0" col="1" rows="1" columns="9" gap="0" style="row">
+            <Cell id="spd_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.speechSpeed.dec"/>
+            <Cell id="speed_value" row="0" col="2" colSpan="3" label="1.0" role="value" settingKey="speechSpeed" style="join"/>
+            <Cell id="spd_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.speechSpeed.inc"/>
+            <Cell id="spd_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.speechSpeed"/>
+          </SubGrid>
+        </SubGrid>
+        <SubGrid id="row_pitch" row="4" col="0" rows="1" columns="2" gap="6" style="row">
+          <Cell id="pit_l" row="0" col="0" label="Pitch" caption="0.5–2. ElevenLabs only. Speed keeps the pitch." role="label" style="plain"/>
+          <SubGrid id="act_pit" row="0" col="1" rows="1" columns="9" gap="0" style="row">
+            <Cell id="pit_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.speechPitch.dec"/>
+            <Cell id="pitch_value" row="0" col="2" colSpan="3" label="1.0" role="value" settingKey="speechPitch" style="join"/>
+            <Cell id="pit_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.speechPitch.inc"/>
+            <Cell id="pit_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.speechPitch"/>
+          </SubGrid>
+        </SubGrid>
+        <SubGrid id="row_vol" row="5" col="0" rows="1" columns="2" gap="6" style="row">
+          <Cell id="vol_l" row="0" col="0" label="Boost" caption="1–5× louder for ElevenLabs clips." role="label" style="plain"/>
+          <SubGrid id="act_vol" row="0" col="1" rows="1" columns="9" gap="0" style="row">
+            <Cell id="vol_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.speechVolume.dec"/>
+            <Cell id="volume_value" row="0" col="2" colSpan="3" label="1.0×" role="value" settingKey="speechVolume" style="join"/>
+            <Cell id="vol_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.speechVolume.inc"/>
+            <Cell id="vol_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.speechVolume"/>
+          </SubGrid>
+        </SubGrid>
+        <SubGrid id="row_predict" row="6" col="0" rows="1" columns="2" gap="6" style="row">
+          <Cell id="predict_l" row="0" col="0" label="Word predictions" caption="Suggestions above the phrase. Dwell a word to insert it." role="label" style="plain"/>
+          <Cell id="predict_on" row="0" col="1" label="On" role="toggle" activeState="settings.speech.predictions.toggle" style="button" command="settings.speech.predictions.toggle"/>
         </SubGrid>
       </SubGrid>
-      <SubGrid id="row_eng" row="2" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="eng_l" row="0" col="0" label="Composer voice" caption="v4 Turbo streams as soon as audio is ready. XML Speak stays SAPI." role="label" style="plain"/>
-        <SubGrid id="act_eng" row="0" col="1" rows="1" columns="2" gap="0" style="row">
-          <Cell id="m_sapi" row="0" col="0" label="SAPI" role="choice" activeState="settings.speech.model.sapi" style="joinLeft" command="settings.speech.model.sapi"/>
-          <Cell id="m_turbo" row="0" col="1" label="v4 Turbo" role="choice" activeState="settings.speech.model.eleven_v4_turbo" style="joinRight" command="settings.speech.model.eleven_v4_turbo"/>
+      <SubGrid id="sec_output" row="1" col="0" rows="2" columns="1" rowHeights="96,*" gap="8" margin="8" style="group">
+        <SubGrid id="row_output" row="0" col="0" rows="1" columns="2" columnWidths="*,160" gap="6" style="row">
+          <Cell id="h_output" row="0" col="0" label="Output" caption="Where speech is heard." role="label" textStyle="section" style="plain"/>
+          <Cell id="out_refresh" row="0" col="1" label="Refresh" icon="restart" style="button" command="settings.speech.output.refresh"/>
         </SubGrid>
-      </SubGrid>
-      <SubGrid id="row_spd" row="3" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="spd_l" row="0" col="0" label="Speed" caption="0.5–2.0 for ElevenLabs and SAPI." role="label" style="plain"/>
-        <SubGrid id="act_spd" row="0" col="1" rows="1" columns="9" gap="0" style="row">
-          <Cell id="spd_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.speechSpeed.dec"/>
-          <Cell id="speed_value" row="0" col="2" colSpan="3" label="1.0" role="value" settingKey="speechSpeed" style="join"/>
-          <Cell id="spd_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.speechSpeed.inc"/>
-          <Cell id="spd_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.speechSpeed"/>
-        </SubGrid>
-      </SubGrid>
-      <SubGrid id="row_vol" row="4" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="vol_l" row="0" col="0" label="Boost" caption="1–5× louder for ElevenLabs clips." role="label" style="plain"/>
-        <SubGrid id="act_vol" row="0" col="1" rows="1" columns="9" gap="0" style="row">
-          <Cell id="vol_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.speechVolume.dec"/>
-          <Cell id="volume_value" row="0" col="2" colSpan="3" label="1.0×" role="value" settingKey="speechVolume" style="join"/>
-          <Cell id="vol_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.speechVolume.inc"/>
-          <Cell id="vol_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.speechVolume"/>
-        </SubGrid>
-      </SubGrid>
-      <SubGrid id="row_predict" row="5" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="predict_l" row="0" col="0" label="Word predictions" caption="Suggestions above the phrase. Dwell a word to insert it." role="label" style="plain"/>
-        <Cell id="predict_on" row="0" col="1" label="On" role="toggle" activeState="settings.speech.predictions.toggle" style="button" command="settings.speech.predictions.toggle"/>
+        <SubGrid id="out_list" row="1" col="0" rows="1" columns="1" gap="6" style="row"/>
       </SubGrid>
     </SubGrid>
-    <SubGrid id="sec_output" row="2" col="0" rows="2" columns="1" rowHeights="96,*" gap="8" margin="8" style="group">
-      <SubGrid id="row_output" row="0" col="0" rows="1" columns="2" columnWidths="*,160" gap="6" style="row">
-        <Cell id="h_output" row="0" col="0" label="Output" caption="Where speech is heard." role="label" textStyle="section" style="plain"/>
-        <Cell id="out_refresh" row="0" col="1" label="Refresh" icon="restart" style="button" command="settings.speech.output.refresh"/>
-      </SubGrid>
-      <SubGrid id="out_list" row="1" col="0" rows="1" columns="1" gap="6" style="row"/>
+    <SubGrid id="page_scroll" row="1" col="1" rows="3" columns="1" rowHeights="72,*,72" gap="6" margin="0" style="group">
+      <Cell id="set_scroll_up" row="0" col="0" icon="ArrowUp" role="scrollUp" style="button" command="settings.scroll.up"/>
+      <Cell id="set_scroll_track" row="1" col="0" role="scrollbar" caption="0,1,1" scanGrace="400"/>
+      <Cell id="set_scroll_down" row="2" col="0" icon="ArrowDown" role="scrollDown" style="button" command="settings.scroll.down"/>
     </SubGrid>
   </Grid>
 </Page>

@@ -28,6 +28,9 @@ using compose_detail::overlayScrollbar;
 bool ComposeUi::openVoices(QString* error)
 {
     m_voicePage = 0;
+    m_voiceSearch = false;
+    m_voiceQuery.clear();
+    m_langBrowse = false;
     requestCatalogIfNeeded();
     return presentLive(QString(kVoicesLiveId), buildVoicesDocument(), error);
 }
@@ -84,6 +87,17 @@ QVector<VoiceCatalog::Voice> ComposeUi::filteredVoices() const
 {
     auto all = currentVoices();
     auto filtered = VoiceCatalog::filter(all, m_genderFilter, m_settings.speechLangFilter);
+    const QString query = m_voiceQuery.trimmed();
+    if (!query.isEmpty()) {
+        QVector<VoiceCatalog::Voice> named;
+        named.reserve(filtered.size());
+        for (const VoiceCatalog::Voice& v : filtered) {
+            if (v.name.contains(query, Qt::CaseInsensitive)) {
+                named.push_back(v);
+            }
+        }
+        filtered = std::move(named);
+    }
     if (elevenMode()) {
         VoiceCatalog::sortFavoritesFirst(&filtered, m_settings.elevenFavoriteVoiceIds);
     }
@@ -179,8 +193,119 @@ void ComposeUi::setLangFilter(const QString& language)
         lang.clear();
     }
     m_settings.speechLangFilter = lang;
+    m_langBrowse = false;
     m_voicePage = 0;
     apply();
+}
+
+void ComposeUi::toggleLangBrowse()
+{
+    m_langBrowse = !m_langBrowse;
+    if (m_langBrowse) {
+        m_voiceSearch = false;
+        m_voiceQuery.clear();
+    }
+    m_voicePage = 0;
+    rebuildVoices();
+}
+
+void ComposeUi::toggleVoiceSearch()
+{
+    m_voiceSearch = !m_voiceSearch;
+    m_langBrowse = false;
+    if (!m_voiceSearch) {
+        m_voiceQuery.clear();
+    } else {
+        showComposeLayer(1);
+    }
+    m_voicePage = 0;
+    rebuildVoices();
+}
+
+void ComposeUi::exitVoiceSearch()
+{
+    if (!m_voiceSearch && m_voiceQuery.isEmpty()) {
+        return;
+    }
+    m_voiceSearch = false;
+    m_voiceQuery.clear();
+    m_voicePage = 0;
+    rebuildVoices();
+}
+
+bool ComposeUi::handleVoiceQuerySend(const PageAction& action)
+{
+    if (!m_voiceSearch || !hasLive(kVoicesLiveId)) {
+        return false;
+    }
+    const QString key = action.sendKey.trimmed();
+    QString add;
+    if (key.size() == 1) {
+        add = key;
+    } else if (key.compare(QLatin1String("space"), Qt::CaseInsensitive) == 0) {
+        add = QStringLiteral(" ");
+    }
+    if (!add.isEmpty() && m_voiceQuery.size() < 40) {
+        m_voiceQuery += add.left(40 - m_voiceQuery.size());
+        m_voicePage = 0;
+        rebuildVoices();
+    }
+    return true;
+}
+
+bool ComposeUi::handleVoiceQueryCommand(const QString& command)
+{
+    if (!m_voiceSearch || !hasLive(kVoicesLiveId)) {
+        return false;
+    }
+    if (command == QLatin1String("backspace") || command == QLatin1String("compose.backspace")) {
+        if (!m_voiceQuery.isEmpty()) {
+            m_voiceQuery.chop(1);
+            m_voicePage = 0;
+            rebuildVoices();
+        }
+        return true;
+    }
+    if (command == QLatin1String("space")) {
+        if (m_voiceQuery.size() < 40) {
+            m_voiceQuery += QLatin1Char(' ');
+            m_voicePage = 0;
+            rebuildVoices();
+        }
+        return true;
+    }
+    if (command == QLatin1String("enter")) {
+        exitVoiceSearch();
+    }
+    return true;
+}
+
+bool ComposeUi::handleVoicesEscape()
+{
+    if (m_voiceSearch && hasLive(kVoicesLiveId)) {
+        exitVoiceSearch();
+        return true;
+    }
+    const QString top = m_pages.topPageId();
+    if (m_langBrowse && top == kVoicesLiveId) {
+        m_langBrowse = false;
+        m_voicePage = 0;
+        rebuildVoices();
+        return true;
+    }
+    if (top == kVoicesLiveId) {
+        clearVoiceQuery();
+        m_pages.closePage(QString(kVoicesLiveId));
+        return true;
+    }
+    return false;
+}
+
+void ComposeUi::clearVoiceQuery()
+{
+    m_voiceSearch = false;
+    m_voiceQuery.clear();
+    m_langBrowse = false;
 }
 
 PageDocument ComposeUi::buildVoicesDocument()
@@ -190,8 +315,9 @@ PageDocument ComposeUi::buildVoicesDocument()
     doc.id = QString(kVoicesLiveId);
     doc.name = QStringLiteral("Voices");
     const ThemeColors theme = m_settings.resolvedTheme();
-    initTopOverlay(doc, 10, 3, {1.0, 1.0, 10.0}, 8, 16, theme, QStringLiteral("A_ScreenHeight"),
-                   speakBoardWidth());
+    const QString height = m_voiceSearch ? QStringLiteral("A_ScreenHeight/12*5+8")
+                                         : QStringLiteral("A_ScreenHeight");
+    initTopOverlay(doc, 10, 3, {1.0, 1.0, 10.0}, 8, 16, theme, height, speakBoardWidth());
     PageGrid& grid = doc.grids[0];
     const QColor key = theme.defaultCell();
     const QColor accent = theme.accent.isValid() ? theme.accent : QColor(80, 160, 220);
@@ -242,19 +368,71 @@ PageDocument ComposeUi::buildVoicesDocument()
     chip(QStringLiteral("g_m"), QStringLiteral("Male"), 2, QStringLiteral("speech.gender.male"),
          g == QLatin1String("male"));
 
+    grid.cells.push_back(cell(QStringLiteral("pit_dec"), QStringLiteral("\u2212"), 1, 3,
+                              QStringLiteral("speech.pitch.dec"), key));
+    grid.cells.push_back(cell(QStringLiteral("pit_val"),
+                              QString::number(m_settings.speechPitch, 'f', 1), 1, 4, {}, value, 1,
+                              QStringLiteral("value")));
+    grid.cells.push_back(cell(QStringLiteral("pit_inc"), QStringLiteral("+"), 1, 5,
+                              QStringLiteral("speech.pitch.inc"), key));
     const QString lang = m_settings.speechLangFilter;
-    chip(QStringLiteral("l_all"), QStringLiteral("All lang"), 3, QStringLiteral("speech.lang.all"),
-         lang.isEmpty());
-    const QStringList langs = VoiceCatalog::languageChips(currentVoices(), VoiceCatalog::kLangChips);
-    for (int i = 0; i < VoiceCatalog::kLangChips; ++i) {
-        if (i >= langs.size()) {
-            grid.cells.push_back(cell(QStringLiteral("l_%1").arg(i), {}, 1, 4 + i, {}, value, 1,
-                                      QStringLiteral("label")));
-            continue;
+    PageCell langBtn =
+        cell(QStringLiteral("lang_browse"), lang.isEmpty() ? QStringLiteral("Language") : lang, 1,
+             6, QStringLiteral("speech.lang.browse"), m_langBrowse ? accent : key, 2);
+    grid.cells.push_back(std::move(langBtn));
+    const QString query = m_voiceQuery.trimmed();
+    PageCell search = cell(QStringLiteral("voice_search"),
+                           query.isEmpty() ? QStringLiteral("Search") : query, 1, 8,
+                           QStringLiteral("speech.voiceSearch"), m_voiceSearch ? accent : key, 2);
+    grid.cells.push_back(std::move(search));
+
+    if (m_langBrowse) {
+        QStringList codes = VoiceCatalog::languages(currentVoices());
+        if (!query.isEmpty()) {
+            QStringList matched;
+            for (const QString& code : codes) {
+                if (code.contains(query, Qt::CaseInsensitive)) {
+                    matched.push_back(code);
+                }
+            }
+            codes = matched;
         }
-        const QString code = langs[i];
-        chip(QStringLiteral("l_%1").arg(i), code, 4 + i,
-             QStringLiteral("speech.lang.set.%1").arg(code), lang == code);
+        QStringList rows;
+        if (query.isEmpty() || QLatin1String("all").contains(query, Qt::CaseInsensitive)) {
+            rows.push_back(QString());
+        }
+        rows += codes;
+        const int maxOffset = qMax(0, rows.size() - kOverlayListRows);
+        m_voicePage = qBound(0, m_voicePage, maxOffset);
+        const int start = m_voicePage;
+        PageGrid body = overlayBody(2, 10);
+        PageGrid list = overlayList(7);
+        for (int i = 0; i < kOverlayListRows; ++i) {
+            const int idx = start + i;
+            list.cells.push_back(cell(QStringLiteral("f_%1").arg(i), {}, i, 0, {}, value, 1,
+                                      QStringLiteral("label")));
+            if (idx >= rows.size()) {
+                list.cells.push_back(cell(QStringLiteral("v_%1").arg(i), {}, i, 1, {}, value, 5,
+                                          QStringLiteral("label")));
+            } else if (rows.at(idx).isEmpty()) {
+                list.cells.push_back(cell(QStringLiteral("v_%1").arg(i), QStringLiteral("All"), i,
+                                          1, QStringLiteral("speech.lang.all"),
+                                          lang.isEmpty() ? accent : key, 5));
+            } else {
+                const QString code = rows.at(idx);
+                list.cells.push_back(cell(QStringLiteral("v_%1").arg(i), code, i, 1,
+                                          QStringLiteral("speech.lang.set.%1").arg(code),
+                                          lang == code ? accent : key, 5));
+            }
+            list.cells.push_back(cell(QStringLiteral("p_%1").arg(i), {}, i, 6, {}, value, 1,
+                                      QStringLiteral("label")));
+        }
+        body.subGrids.push_back(std::move(list));
+        body.subGrids.push_back(overlayScrollbar(start, kOverlayListRows, rows.size(), key,
+                                                QStringLiteral("speech.voiceList.prev"),
+                                                QStringLiteral("speech.voiceList.next")));
+        grid.subGrids.push_back(std::move(body));
+        return doc;
     }
 
     const auto filtered = filteredVoices();
@@ -275,8 +453,12 @@ PageDocument ComposeUi::buildVoicesDocument()
                       .arg(qMin(start + kOverlayListRows, filtered.size()))
                       .arg(filtered.size());
     }
-    grid.cells.push_back(cell(QStringLiteral("caption"), caption, 1, 6, {}, value, 4,
-                              QStringLiteral("value")));
+    for (PageCell& c : grid.cells) {
+        if (c.id == QLatin1String("lang_browse")) {
+            c.caption = caption;
+            break;
+        }
+    }
 
     PageGrid body = overlayBody(2, 10);
     PageGrid list = overlayList(7);

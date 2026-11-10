@@ -837,7 +837,7 @@ void PageLoaderTest::loadComposePage()
     QCOMPARE(doc.findGrid(QStringLiteral("keys"))->columns, 120);
     QCOMPARE(doc.findGrid(QStringLiteral("keys"))->cells.size(), 36);
     QCOMPARE(doc.findGrid(QStringLiteral("board"))->layers,
-             (QVector<int>{1, 2, 3, 4, 5, 6}));
+             (QVector<int>{1, 2, 3, 4, 5, 6, 7}));
     QCOMPARE(doc.findGrid(QStringLiteral("keys"))->layers, QVector<int>({1}));
     QCOMPARE(doc.findGrid(QStringLiteral("keys_shift"))->layers, QVector<int>({2}));
     QCOMPARE(doc.findGrid(QStringLiteral("keys_sym"))->layers, QVector<int>({3}));
@@ -858,13 +858,13 @@ void PageLoaderTest::loadComposePage()
     QVERIFY(!doc.findCell(QStringLiteral("vol_back")));
     QVERIFY(!doc.findCell(QStringLiteral("cmd_clear")));
     QVERIFY(!doc.findCell(QStringLiteral("cmd_volume")));
-    QCOMPARE(doc.findGrid(QStringLiteral("keys_cmd"))->columns, 6);
+    QCOMPARE(doc.findGrid(QStringLiteral("keys_cmd"))->columns, 7);
     QCOMPARE(doc.findCell(QStringLiteral("cmd_import"))->row, 0);
     QCOMPARE(doc.findCell(QStringLiteral("cmd_import"))->col, 5);
     QCOMPARE(doc.findCell(QStringLiteral("cmd_import"))->actions[0].command,
              QStringLiteral("compose.importFile"));
-    QCOMPARE(doc.findCell(QStringLiteral("cmd_export"))->row, 1);
-    QCOMPARE(doc.findCell(QStringLiteral("cmd_export"))->col, 5);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_export"))->row, 0);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_export"))->col, 6);
     QCOMPARE(doc.findCell(QStringLiteral("cmd_export"))->actions[0].command,
              QStringLiteral("compose.exportFile"));
     const PageGrid* keysCmd = doc.findGrid(QStringLiteral("keys_cmd"));
@@ -905,7 +905,7 @@ void PageLoaderTest::loadComposePage()
              QStringLiteral("volume.inc"));
     QCOMPARE(doc.findCell(QStringLiteral("cmd_files"))->row, 2);
     QCOMPARE(doc.findCell(QStringLiteral("cmd_files"))->col, 4);
-    QCOMPARE(doc.findCell(QStringLiteral("cmd_files"))->colSpan, 2);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_files"))->colSpan, 3);
     QCOMPARE(doc.findCell(QStringLiteral("cmd_files"))->actions[0].command,
              QStringLiteral("compose.openFiles"));
     QVERIFY(!doc.findCell(QStringLiteral("topic_new")));
@@ -935,7 +935,7 @@ void PageLoaderTest::loadComposePage()
     QVERIFY(!doc.findCell(QStringLiteral("voices")));
     QVERIFY(!doc.findCell(QStringLiteral("history")));
     QCOMPARE(doc.findGrid(QStringLiteral("phrase"))->col, 1);
-    const QVector<int> allLayers{1, 2, 3, 4, 5, 6};
+    const QVector<int> allLayers{1, 2, 3, 4, 5, 6, 7};
     QCOMPARE(doc.findGrid(QStringLiteral("compose"))->layers, allLayers);
     QCOMPARE(doc.findGrid(QStringLiteral("edit_keys"))->layers, allLayers);
     QCOMPARE(doc.findGrid(QStringLiteral("phrase"))->layers, allLayers);
@@ -974,10 +974,23 @@ void PageLoaderTest::loadComposePage()
     QCOMPARE(doc.findCell(QStringLiteral("cmd_style"))->actions[0].type, PageActionType::ShowLayers);
     QCOMPARE(doc.findCell(QStringLiteral("cmd_style"))->actions[0].layers, QVector<int>({6}));
     QCOMPARE(doc.findGrid(QStringLiteral("keys_style"))->layers, QVector<int>({6}));
+    QVERIFY(doc.findCell(QStringLiteral("cmd_tag")));
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_tag"))->label, QStringLiteral("Insert tag"));
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_tag"))->row, 1);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_tag"))->col, 0);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_tag"))->colSpan, 1);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_tag"))->actions[0].type, PageActionType::ShowLayers);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_tag"))->actions[0].layers, QVector<int>({7}));
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_undo"))->col, 1);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_style"))->col, 5);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_style"))->colSpan, 2);
+    QCOMPARE(doc.findGrid(QStringLiteral("keys_tags"))->rows, 3);
+    QCOMPARE(doc.findGrid(QStringLiteral("keys_tags"))->columns, 6);
+    QCOMPARE(doc.findGrid(QStringLiteral("keys_tags"))->layers, QVector<int>({7}));
     QVERIFY(!doc.findCell(QStringLiteral("tags")));
     QCOMPARE(doc.findCell(QStringLiteral("sym"))->icon, QStringLiteral("numbers"));
     for (const char* gid : {"keys", "keys_shift", "keys_sym", "keys_sym_shift", "keys_cmd",
-                            "keys_style", "edit_keys", "speak_keys"}) {
+                            "keys_style", "keys_tags", "edit_keys", "speak_keys"}) {
         const PageGrid* g = doc.findGrid(QLatin1String(gid));
         QVERIFY2(g, gid);
         for (const PageCell& c : g->cells) {

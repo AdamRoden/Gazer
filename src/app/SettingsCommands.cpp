@@ -128,6 +128,12 @@ void SettingsUi::registerCommands()
 
     m_commands.registerBuiltin(QStringLiteral("settings.speech.editKey"),
                                [this](QString* e) { return openSpeechKeyBoard(e); });
+    m_commands.registerBuiltin(QStringLiteral("settings.speech.linkKey"),
+                               [this](QString* e) { return linkSpeechKey(e); });
+    m_commands.registerBuiltin(QStringLiteral("settings.speech.linkCancel"), [this](QString*) {
+        cancelLinkPage();
+        return true;
+    });
     m_commands.registerBuiltin(QStringLiteral("settings.speech.clearKey"),
                                [this](QString* e) { return clearSpeechKey(e); });
     m_commands.registerBuiltin(QStringLiteral("settings.speech.key.save"),

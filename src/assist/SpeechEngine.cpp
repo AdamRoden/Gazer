@@ -3,6 +3,7 @@
 #include "app/AppSettings.h"
 #include "assist/ClipPlayer.h"
 #include "assist/ElevenClient.h"
+#include "assist/PcmFx.h"
 #include "assist/PcmStreamPlayer.h"
 #include "assist/PcmWav.h"
 #include "assist/SpeechSecrets.h"
@@ -255,13 +256,14 @@ void SpeechEngine::startEleven(const QString& phrase, const QString& voiceId)
 
     m_lastBackend = Backend::Eleven;
     m_elevenGen = m_generation;
-    const QString elevenText =
-        ElevenRequest::applyStandingTag(phrase, m_settings.speechStyle);
-    m_pendingPrep = ElevenRequest::prepareSpeakRequest(elevenText, m_settings.speechModel,
+    m_pendingPrep = ElevenRequest::prepareSpeakRequest(phrase, m_settings.speechModel,
                                                        m_settings.speechSpeed);
+    m_pendingSends = ElevenRequest::taggedSends(phrase, m_settings.speechStyle);
     m_pendingSpoken = ElevenRequest::stripInlineTags(phrase);
     m_pendingVoiceId = voiceId;
     m_retried429 = false;
+    m_bake = !PcmFx::isIdentity(m_pendingPrep.localSpeed, m_settings.speechPitch);
+    m_useHttp = m_bake || m_pendingSends.size() > 1;
 
     if (!ElevenRequest::isElevenModel(m_pendingPrep.modelId)) {
         speakSapi(m_pendingSpoken);
@@ -275,8 +277,27 @@ void SpeechEngine::startEleven(const QString& phrase, const QString& voiceId)
     m_heardAudio = false;
     emit statusChanged();
 
-    GAZER_INFO << "ElevenLabs speak model" << m_pendingPrep.modelId << "voice" << voiceId;
-    m_eleven.startSpeech(key, voiceId, m_pendingPrep.text);
+    GAZER_INFO << "ElevenLabs speak model" << m_pendingPrep.modelId << "voice" << voiceId
+               << "breaths" << m_pendingSends.size() << "http" << m_useHttp;
+    beginElevenTransport();
+}
+
+void SpeechEngine::beginElevenTransport()
+{
+    QString key;
+    if (!m_secrets.load(&key) || key.trimmed().isEmpty()) {
+        endElevenAttempt(false, {});
+        return;
+    }
+    if (!m_heardAudio) {
+        m_pcm.clear();
+    }
+    if (m_useHttp) {
+        m_eleven.startPhrases(key, m_pendingVoiceId, m_pendingSends);
+    } else {
+        const QString text = m_pendingSends.isEmpty() ? QString() : m_pendingSends.front();
+        m_eleven.startSpeech(key, m_pendingVoiceId, text);
+    }
 }
 
 void SpeechEngine::fallbackSapi(const QString& spoken)
@@ -458,9 +479,12 @@ void SpeechEngine::onSpeechChunk(const QByteArray& pcm)
     const QByteArray chunk = pcm.left(room);
     m_pcm.append(chunk);
     m_elevenFails = 0;
+    if (m_bake) {
+        return;
+    }
     if (!m_pcmPlayer->isPlaying()) {
-        if (!m_pcmPlayer->start(PcmWav::kSampleRate, m_pendingPrep.localSpeed,
-                                m_settings.speechVolume, m_settings.speechOutputId)) {
+        if (!m_pcmPlayer->start(PcmWav::kSampleRate, 1.0, m_settings.speechVolume,
+                                m_settings.speechOutputId)) {
             m_eleven.abortSpeech();
             m_pcm.clear();
             GAZER_WARN << "PcmStreamPlayer unavailable; SAPI fallback";
@@ -481,6 +505,36 @@ void SpeechEngine::onSpeechChunk(const QByteArray& pcm)
 
 void SpeechEngine::onSpeechStreamEnded()
 {
+    if (!elevenLive()) {
+        return;
+    }
+    if (!m_bake) {
+        endElevenAttempt(true, {});
+        return;
+    }
+    m_pcm = PcmFx::apply(m_pcm, PcmWav::kSampleRate, m_pendingPrep.localSpeed,
+                         m_settings.speechPitch);
+    if (m_pcm.size() < 2) {
+        m_pcm.clear();
+        endElevenAttempt(false, {});
+        return;
+    }
+    if (!m_pcmPlayer->start(PcmWav::kSampleRate, 1.0, m_settings.speechVolume,
+                            m_settings.speechOutputId)) {
+        m_pcm.clear();
+        GAZER_WARN << "PcmStreamPlayer unavailable; SAPI fallback";
+        endElevenAttempt(false, {});
+        return;
+    }
+    m_pcmPlayer->push(m_pcm);
+    if (!m_pcmPlayer->isPlaying()) {
+        m_pcm.clear();
+        endElevenAttempt(false, {});
+        return;
+    }
+    m_heardAudio = true;
+    m_status.speaking = true;
+    emit statusChanged();
     endElevenAttempt(true, {});
 }
 
@@ -525,7 +579,7 @@ void SpeechEngine::onSpeechFailed(int httpStatus, const QString& error, int retr
                 endElevenAttempt(false, {});
                 return;
             }
-            m_eleven.startSpeech(key, m_pendingVoiceId, m_pendingPrep.text);
+            beginElevenTransport();
         });
         return;
     }

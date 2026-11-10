@@ -140,6 +140,18 @@ QStringList languageChips(const QVector<Voice>& voices, int maxChips)
     return out;
 }
 
+QStringList languages(const QVector<Voice>& voices)
+{
+    QStringList out;
+    for (const Voice& v : voices) {
+        if (!v.language.isEmpty() && !out.contains(v.language)) {
+            out.push_back(v.language);
+        }
+    }
+    std::sort(out.begin(), out.end());
+    return out;
+}
+
 QVector<Voice> page(const QVector<Voice>& voices, int pageIndex, int* pageCount)
 {
     const int pages = qMax(1, (voices.size() + kPageSize - 1) / kPageSize);

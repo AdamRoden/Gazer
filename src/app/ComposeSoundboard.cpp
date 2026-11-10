@@ -180,8 +180,8 @@ void ComposeUi::fillTopicsMode(PageDocument& doc) const
 
 bool ComposeUi::pin(QString* error)
 {
-    if (m_styleNaming) {
-        return saveStyleName(error);
+    if (borrowingPhrase()) {
+        return saveBorrowedPhrase(error);
     }
     if (nameEditing()) {
         return saveNameEdit(error);
@@ -199,8 +199,8 @@ bool ComposeUi::pin(QString* error)
 
 void ComposeUi::cancelAssign()
 {
-    if (m_styleNaming) {
-        cancelStyleName();
+    if (borrowingPhrase()) {
+        cancelBorrowedPhrase();
         return;
     }
     if (nameEditing()) {
@@ -217,7 +217,7 @@ void ComposeUi::cancelAssign()
 
 bool ComposeUi::editPins()
 {
-    if (m_styleNaming) {
+    if (borrowingPhrase()) {
         return true;
     }
     if (editMode()) {

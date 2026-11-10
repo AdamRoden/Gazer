@@ -67,6 +67,7 @@ set(GAZER_SOURCES
     src/app/ComposeSoundboard.cpp
     src/app/ComposeItemEdit.cpp
     src/app/ComposeStyles.cpp
+    src/app/ComposeTags.cpp
     src/app/ComposeHistory.cpp
     src/app/ComposeFiles.cpp
     src/app/ComposeFilesWindow.cpp
@@ -130,6 +131,8 @@ set(GAZER_SOURCES
     src/assist/ComposeBuffer.cpp
     src/assist/SpeechSecrets.cpp
     src/assist/ElevenClient.cpp
+    src/assist/ElevenHttp.cpp
+    src/assist/PcmFx.cpp
     src/predict/PredictModel.cpp
     src/predict/PredictBeam.cpp
     src/predict/PredictScore.cpp
@@ -281,6 +284,8 @@ set(GAZER_HEADERS
     src/layout/KeyGravity.h
     src/assist/SpeechSecrets.h
     src/assist/ElevenClient.h
+    src/assist/ElevenHttp.h
+    src/assist/PcmFx.h
     src/assist/AhkLauncher.h
     src/assist/ChildProcess.h
     src/assist/SidecarHost.h
@@ -593,6 +598,7 @@ add_executable(GazerSpeechTests
     tests/AudioOutputTest.cpp
     tests/SystemVolumeTest.cpp
     tests/SpeechStreamTest.cpp
+    tests/PcmFxTest.cpp
     src/assist/AudioOutput.cpp
     src/assist/SystemVolume.cpp
     src/assist/ElevenRequest.cpp
@@ -605,6 +611,8 @@ add_executable(GazerSpeechTests
     src/assist/SoundboardWorkspace.cpp
     src/assist/SpeechHistory.cpp
     src/assist/ElevenClient.cpp
+    src/assist/ElevenHttp.cpp
+    src/assist/PcmFx.cpp
 )
 target_include_directories(GazerSpeechTests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(GazerSpeechTests PRIVATE Qt6::Core Qt6::Gui Qt6::Network Qt6::Multimedia Qt6::Test)

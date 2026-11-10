@@ -5,6 +5,7 @@
 
 #include <QObject>
 #include <QString>
+#include <QStringList>
 
 namespace gazer {
 
@@ -63,6 +64,7 @@ private:
     void setIdle();
     void speakSapi(const QString& spoken);
     void startEleven(const QString& phrase, const QString& voiceId);
+    void beginElevenTransport();
     void fallbackSapi(const QString& spoken);
     bool writeWavTemp(const QByteArray& pcm, QString* pathOut);
     [[nodiscard]] bool elevenLive() const;
@@ -112,6 +114,9 @@ private:
     QString m_pendingSpoken;
     QString m_pendingVoiceId;
     ElevenRequest::Prepared m_pendingPrep;
+    QStringList m_pendingSends;
+    bool m_bake = false;
+    bool m_useHttp = false;
     LastClip m_lastClip;
     QByteArray m_pcm;
     QString m_tmpClip;
