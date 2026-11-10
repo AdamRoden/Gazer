@@ -10,7 +10,6 @@ Opened from the drawer **Assist** page (`example_assist`) or the mouse pad.
 | Move mouse (dwell) | `mouseMoveToGaze` | Arm, then dwell a screen point. |
 | Gaze click loop | `mouseMoveToGazeClickLoop` | Sticky dwell-move then click. |
 | Magnify pick | `toggleMouseMoveMagPick` | Static zoom window for the pick. |
-| Foresight | `toggleMouseMoveForesight` | Remember a desktop dwell and zoom that point when Move-to arms. |
 | Look to scroll | `lookToScroll` (`toggleLookToScroll`) | Place an origin, then scroll from gaze vs a circular deadzone. Optional hub pie for speed, axis, reset, quit. |
 | Look to mouse | `lookToMouse` | Same analog disk, driving pointer velocity. |
 | Look to left / right stick | `lookToLeftStick` / `lookToRightStick` | Same analog disk, driving a virtual Xbox stick (ViGEm). Also on the [Gamepad](gamepad.md) board. |
@@ -22,4 +21,4 @@ All four look-to maps can run at once, each with its own origin and rings. Tune 
 
 Scroll-map peak speeds: 0.5–8 notches/sec (`lts.speed.slower` / `.faster`). Overlay z-order (front → back): reticle, live lens, mag-pick, other assist overlays, then the page host.
 
-The live lens and look-to maps are Settings → **Gaze**. The zoom window, foresight, and region markers are Settings → **Zoom**. ComboMouse and placing a click are Settings → **Place**. Command names for these tools: [Commands](reference/commands.md#assist). Zoom tokens on XML click-at-gaze cells: [Actions](reference/actions.md#move-to-gaze-and-click-at-gaze).
+The live lens and look-to maps are Settings → **Gaze**. The zoom window and region markers are Settings → **Zoom**. ComboMouse and placing a click are Settings → **Place**. Command names for these tools: [Commands](reference/commands.md#assist). Zoom tokens on XML click-at-gaze cells: [Actions](reference/actions.md#move-to-gaze-and-click-at-gaze).

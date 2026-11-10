@@ -223,11 +223,9 @@ Arming again while that purpose is already armed **cancels** it.
 
 | Token | What happens |
 |-------|----------------|
-| (empty) / `default` | Follow Settings → Zoom (mag-pick on/off, foresight, zoom). |
+| (empty) / `default` | Follow Settings → Zoom (mag-pick on/off and zoom). |
 | `0` | Dwell-move with **no** magnify window. |
 | `2` … `6` (any positive integer) | Force that zoom factor for this arm. |
-| `-1` | Foresight: remember a desktop dwell, then zoom that point when Move-to arms. |
-| `-2` | Foresight plus the bonus second zoom. |
 
 ```xml
 <Cell label="Move" mouseMoveToGaze=""/>

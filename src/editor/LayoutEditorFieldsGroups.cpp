@@ -331,7 +331,7 @@ void addActionFields(PropertyBinder& b, QFormLayout* form, const PageAction& act
     }
     auto zoomCombo = [&]() {
         b.note(form, QStringLiteral("default = Settings mag-pick. 0 = dwell-move, no magnify. "
-                                   "N = N× zoom. −1 = foresight. −2 = foresight + bonus zoom."));
+                                   "N = N× zoom."));
         const QString z = pageActionZoomText(action);
         QStringList zs = pageActionZoomChoices();
         if (!zs.contains(z)) {

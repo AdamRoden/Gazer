@@ -89,7 +89,6 @@ void GazeRouter::dispatch(const GazePoint& point)
         m_comboMouse->onGaze(assist, dwellOff || (pauseBackgroundAssist && !overCombo));
     }
     if (m_mouseDwell) {
-        m_mouseDwell->onBackgroundGaze(assist, overBoard || hit.overMaster || overSplash);
         const bool pauseAim =
             dwellOff || overSplash || (hit.overMaster && !overFrontOverlay);
         m_mouseDwell->setPaused(pauseAim);

@@ -44,10 +44,6 @@ MouseDwellMove::ArmZoom armZoomFrom(const PageAction& a)
         return MouseDwellMove::ArmZoom::direct();
     case PageZoomMode::Level:
         return MouseDwellMove::ArmZoom::at(double(a.zoomLevel));
-    case PageZoomMode::Foresight:
-        return MouseDwellMove::ArmZoom::foresight();
-    case PageZoomMode::ForesightBonus:
-        return MouseDwellMove::ArmZoom::foresightBonus();
     case PageZoomMode::Settings:
         break;
     }

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "assist/ForesightMemory.h"
 #include "assist/GazeDwellTracker.h"
 #include "assist/MagLayout.h"
 #include "core/GazePoint.h"
@@ -19,9 +18,8 @@
 
 namespace gazer {
 
-/// Dwell gaze to warp the OS cursor. Optional static magnify pick and Foresight
-/// (remember a recent desktop dwell and magnify immediately).
-/// Look↕Scroll placement always uses direct dwell (never mag-pick / foresight).
+/// Dwell gaze to warp the OS cursor. Optional static magnify pick.
+/// Look↕Scroll placement always uses direct dwell (never mag-pick).
 class MouseDwellMove final : public QObject {
     Q_OBJECT
 
@@ -42,7 +40,7 @@ public:
     ~MouseDwellMove() override;
 
     struct ArmZoom {
-        enum class Kind { Settings, Direct, Level, Foresight, ForesightBonus };
+        enum class Kind { Settings, Direct, Level };
         Kind kind = Kind::Settings;
         double level = 0.0;
 
@@ -52,8 +50,6 @@ public:
         static ArmZoom settings() { return {}; }
         static ArmZoom direct() { return {Kind::Direct, 0.0}; }
         static ArmZoom at(double n) { return {Kind::Level, n}; }
-        static ArmZoom foresight() { return {Kind::Foresight, 0.0}; }
-        static ArmZoom foresightBonus() { return {Kind::ForesightBonus, 0.0}; }
 
         [[nodiscard]] bool operator==(const ArmZoom& o) const
         {
@@ -67,43 +63,10 @@ public:
                 return false;
             case Kind::Level:
                 return level > 0.0;
-            case Kind::Foresight:
-            case Kind::ForesightBonus:
-                return true;
             case Kind::Settings:
                 break;
             }
             return settingsEnabled;
-        }
-
-        [[nodiscard]] bool wantsForesight(bool settingsEnabled) const
-        {
-            switch (kind) {
-            case Kind::Foresight:
-            case Kind::ForesightBonus:
-                return true;
-            case Kind::Settings:
-                return settingsEnabled;
-            case Kind::Direct:
-            case Kind::Level:
-                break;
-            }
-            return false;
-        }
-
-        [[nodiscard]] bool wantsBonus(bool settingsBonus) const
-        {
-            switch (kind) {
-            case Kind::ForesightBonus:
-                return true;
-            case Kind::Settings:
-                return settingsBonus;
-            case Kind::Foresight:
-            case Kind::Direct:
-            case Kind::Level:
-                break;
-            }
-            return false;
         }
 
         [[nodiscard]] double resolvedLevel(double fallback) const
@@ -178,14 +141,6 @@ public:
     void setMagPickFullScreen(bool on);
     [[nodiscard]] bool isMagPickFullScreen() const { return m_magPickFullScreen; }
 
-    void setForesightEnabled(bool enabled);
-    [[nodiscard]] bool isForesightEnabled() const { return m_foresight.isEnabled(); }
-    void setForesightDwellMs(int ms);
-    void setForesightHoldMs(int ms);
-    void setForesightSecondZoom(bool on);
-    [[nodiscard]] bool isForesightSecondZoom() const { return m_ForesightSecondZoom; }
-
-    void onBackgroundGaze(const GazePoint& point, bool overUi);
     void onGaze(const GazePoint& point);
 
 signals:
@@ -203,10 +158,8 @@ private:
     void hideUi();
     void setPhase(Phase phase);
     void startAimPhase();
-    [[nodiscard]] bool beginMagPick(const MagPresentation& spec, bool outsideSelectsNewRegion);
+    [[nodiscard]] bool beginMagPick(const MagPresentation& spec);
     [[nodiscard]] MagPresentation makePreClickSpec(const QPoint& center) const;
-    [[nodiscard]] MagPresentation makeForesightSpec(const QPoint& srcCenter,
-                                                    const QPoint& destCenter, int destSide) const;
     [[nodiscard]] int destSideFor(QScreen* screen) const;
     [[nodiscard]] QPoint mapDisplayToSource(const QPointF& gaze) const;
     [[nodiscard]] bool gazeInZoomWindow(const QPointF& gaze) const;
@@ -221,8 +174,6 @@ private:
     [[nodiscard]] bool selectTimedOut(qint64 nowMs) const;
     [[nodiscard]] bool useMagPickThisArm() const;
     [[nodiscard]] bool isCursorMoveFamily() const;
-    [[nodiscard]] bool armWantsForesight() const;
-    [[nodiscard]] bool armWantsBonusZoom() const;
     void applyDwellForPhase();
     void syncPickOverlayStyle();
     [[nodiscard]] int styleForPhase() const;
@@ -239,7 +190,6 @@ private:
     bool m_magPickEnabled = false;
     bool m_magPickCenterOnDwell = true;
     bool m_magPickFullScreen = false;
-    bool m_ForesightSecondZoom = false;
     double m_pickZoom = 4.0;
     int m_pickWindowPx = 880;
     bool m_pickWindowRound = false;
@@ -260,10 +210,7 @@ private:
     QRect m_magSourceRect;
     QRect m_magDisplayRect;
     MagPresentation m_mag;
-    bool m_outsideSelectsNewRegion = false;
     bool m_magGazeInside = true;
-
-    ForesightMemory m_foresight;
 
     std::unique_ptr<CursorOverlay> m_cursor;
     std::unique_ptr<MagPickOverlay> m_magOverlay;

@@ -240,12 +240,6 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
     if (key == QLatin1String("mouseMoveMagPickFullScreen")) {
         return ctx.settings && ctx.settings->mouseMoveMagPickFullScreen;
     }
-    if (key == QLatin1String("mouseMoveForesight")) {
-        return ctx.settings && ctx.settings->mouseMoveForesight;
-    }
-    if (key == QLatin1String("mouseMoveForesightSecondZoom")) {
-        return ctx.settings && ctx.settings->mouseMoveForesightSecondZoom;
-    }
     if (key == QLatin1String("magnifier")) {
         return ctx.magnifier && ctx.magnifier->isEnabledLens();
     }

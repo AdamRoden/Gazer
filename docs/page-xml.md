@@ -366,7 +366,6 @@ A cell or zone may have **one** action attribute. Multiple actions use child ele
 <MouseLeftClickAtGaze/>
 <MouseLeftClickAtGaze value="0"/>
 <MouseLeftClickAtGaze value="4"/>
-<MouseLeftClickAtGaze value="-1"/>
 <MouseMoveToGaze/>
 <MouseMoveByDirection value="n"/>
 <MouseMoveByDirection value="se,40"/>
@@ -389,7 +388,7 @@ A cell or zone may have **one** action attribute. Multiple actions use child ele
 |------|---------|
 | `Send` | `key[, Down\|Up[, durationMs]]` — tap if edge omitted; duration (ms) is a timed hold and is used only when Edge is omitted. A comma key is `send=","` (a leading comma is the key, not a separator). Named virtual-keys (`Enter`, `Tab`, `F1`…`F12`, arrows, modifiers, OEM) and US punctuation mapping: [website Actions — Send](../website/docs/reference/actions.md#send). |
 | `MouseLeftClick` / `MouseMiddleClick` / `MouseRightClick` | type: `default` / `double` / `down` / `up` / `toggle` (omit for a default click) |
-| `MouseLeftClickAtGaze` / `MouseMiddleClickAtGaze` / `MouseRightClickAtGaze` | zoom: omit/`default` = Settings → Zoom; `0` = dwell-move, no magnify; `N` = N× zoom; `-1` = foresight; `-2` = foresight with bonus zoom |
+| `MouseLeftClickAtGaze` / `MouseMiddleClickAtGaze` / `MouseRightClickAtGaze` | zoom: omit/`default` = Settings → Zoom; `0` = dwell-move, no magnify; `N` = N× zoom |
 | `MouseMoveToGaze` | same zoom tokens as click-at-gaze |
 | `MouseMoveByDirection` | `n`/`s`/`e`/`w`/`ne`/`nw`/`se`/`sw`[, amount px] — amount omitted uses the mouse-assist step |
 | `MouseMoveToPoint` | `x,y` screen coords (dim tokens allowed) |
@@ -573,22 +572,20 @@ Python is not bundled (`python` / `python3` / `py -3` on PATH, or `GAZER_PYTHON`
       mouseLeftClickAtGaze=""/>
 ```
 
-### Settings-style layout
+### Settings host
+
+The drawer opens `resources/layouts/main_settings_host.xml`. Category tabs call `HostPage` with one id, which sets `src` on the body slot. Each `main_settings_*` board is also a full page on its own.
 
 ```xml
-<Page id="main_settings" name="Settings" radius="16">
-  <Style id="plain" background="#00000000" thickness="0" radius="0"/>
-  <Grid id="board" desktopMode="true" rows="2" columns="3"
-        anchor="Top" offset="0,0"
+<Page id="main_settings_host" name="Settings" radius="16">
+  <Grid id="board" desktopMode="true" rows="2" columns="2" anchor="Top" offset="0,0"
         size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight"
-        gap="72" margin="90" rowHeights="*,2*">
-    <Cell id="page_title" row="0" col="0" colSpan="3"
-          label="Settings" role="label" textStyle="title" style="plain"/>
-    <Cell id="open_dwell" row="1" col="0"
-          label="Dwell" caption="Presets, grace, and progress"
-          icon="timer" hostPage="main_settings_host, main_settings_dwell"/>
-    <Cell id="done" row="1" col="1" label="Done" icon="keyboardHide"
-          closePage="true"/>
+        rowHeights="96,*" columnWidths="248,*">
+    <Cell id="host_title" row="0" col="0" label="Settings" role="label" textStyle="title"/>
+    <SubGrid id="tabs" row="1" col="0" rows="9" columns="1">
+      <Cell id="tab_dwell" row="0" col="0" label="Dwell" role="tab" hostPage="main_settings_dwell"/>
+    </SubGrid>
+    <SubGrid id="body" row="0" col="1" rowSpan="2" src="main_settings_dwell" grid="board"/>
   </Grid>
 </Page>
 ```

@@ -106,8 +106,6 @@ After any of them, a **500 ms** hold runs before a new dwell can start. `suspend
 | `toggleMouseMoveMagPick` | Settings: magnify pick on/off. |
 | `toggleMouseMoveMagPickCenter` | Mag-pick center on dwell vs screen. |
 | `toggleMouseMoveMagPickFullScreen` | Mag-pick full-screen zoom. |
-| `toggleMouseMoveForesight` | Foresight on/off. |
-| `toggleMouseMoveForesightSecondZoom` | Second zoom inside foresight. |
 
 XML click-at-gaze actions can pin a zoom token per cell; these commands use Settings.
 

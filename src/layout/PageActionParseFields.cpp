@@ -157,18 +157,12 @@ bool parseZoomSpec(const QString& tok, PageAction& out, QString* error)
     if (z == 0) {
         out.zoomMode = PageZoomMode::Off;
         out.zoomLevel = 0;
-    } else if (z == -1) {
-        out.zoomMode = PageZoomMode::Foresight;
-        out.zoomLevel = 0;
-    } else if (z == -2) {
-        out.zoomMode = PageZoomMode::ForesightBonus;
-        out.zoomLevel = 0;
     } else if (z > 0) {
         out.zoomMode = PageZoomMode::Level;
         out.zoomLevel = z;
     } else {
         if (error) {
-            *error = QStringLiteral("Zoom must be default, -2, -1, 0, or a positive zoom");
+            *error = QStringLiteral("Zoom must be default, 0, or a positive zoom");
         }
         return false;
     }
@@ -603,10 +597,6 @@ QString zoomSpecText(const PageAction& a)
     switch (a.zoomMode) {
     case PageZoomMode::Off:
         return QStringLiteral("0");
-    case PageZoomMode::Foresight:
-        return QStringLiteral("-1");
-    case PageZoomMode::ForesightBonus:
-        return QStringLiteral("-2");
     case PageZoomMode::Level:
         return QString::number(a.zoomLevel);
     case PageZoomMode::Settings:

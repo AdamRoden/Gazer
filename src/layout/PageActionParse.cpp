@@ -320,9 +320,9 @@ QString pageActionZoomText(const PageAction& a)
 
 QStringList pageActionZoomChoices()
 {
-    return {QStringLiteral("default"), QStringLiteral("0"), QStringLiteral("-1"),
-            QStringLiteral("-2"),      QStringLiteral("2"), QStringLiteral("3"),
-            QStringLiteral("4"),       QStringLiteral("5"), QStringLiteral("6")};
+    return {QStringLiteral("default"), QStringLiteral("0"), QStringLiteral("2"),
+            QStringLiteral("3"),       QStringLiteral("4"), QStringLiteral("5"),
+            QStringLiteral("6")};
 }
 
 bool applyPageActionZoom(PageAction& a, const QString& token, QString* error)

@@ -52,7 +52,7 @@ Catalog id = filename stem under `resources/layouts/`. User copies in `%AppData%
 | Id | Kind |
 |----|------|
 | `main` | Root dock + drawer + quit |
-| `main_settings_host` / `main_settings_*` | Settings. The drawer opens the host. The top row is Settings, the page name, and Close. Categories are on the left. `main_settings` is the tile hub. |
+| `main_settings_host` / `main_settings_*` | Settings. The drawer opens the host. The top row is Settings, the page name, and Close. Categories are on the left. |
 | `compose` | Gaze composer (phrase, chips, soundboard, keyboard) |
 | `example_keyboard` | Compact keyboard (layers: letters, shift, symbols, symbols+shift) |
 | `example_mouse` | Mouse pad |

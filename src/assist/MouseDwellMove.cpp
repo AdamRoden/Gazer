@@ -78,20 +78,6 @@ void MouseDwellMove::setPhase(Phase phase)
     }
 }
 
-bool MouseDwellMove::armWantsForesight() const
-{
-    if (m_purpose == ArmPurpose::LookToScrollPlace
-        || m_purpose == ArmPurpose::ComboMousePlace) {
-        return false;
-    }
-    return m_armZoom.wantsForesight(m_foresight.isEnabled());
-}
-
-bool MouseDwellMove::armWantsBonusZoom() const
-{
-    return m_armZoom.wantsBonus(m_ForesightSecondZoom);
-}
-
 bool MouseDwellMove::isCursorMoveFamily() const
 {
     switch (m_purpose) {
@@ -242,11 +228,7 @@ void MouseDwellMove::setMousePickStyle(int flags)
 
 void MouseDwellMove::applyDwellForPhase()
 {
-    const bool choosingRegion = m_phase == Phase::MagRegion
-                                || (m_phase == Phase::MagPoint && m_outsideSelectsNewRegion
-                                    && useMagPickThisArm()
-                                    && (!m_magGazeInside || armWantsBonusZoom()));
-    m_dwell.setDwellMs(choosingRegion ? m_magPickDwellMs : m_moveDwellMs);
+    m_dwell.setDwellMs(m_phase == Phase::MagRegion ? m_magPickDwellMs : m_moveDwellMs);
 }
 
 void MouseDwellMove::syncPickOverlayStyle()
@@ -370,26 +352,6 @@ void MouseDwellMove::setMagPickFullScreen(bool on)
     m_magPickFullScreen = on;
 }
 
-void MouseDwellMove::setForesightEnabled(bool enabled)
-{
-    m_foresight.setEnabled(enabled);
-}
-
-void MouseDwellMove::setForesightDwellMs(int ms)
-{
-    m_foresight.setDwellMs(ms);
-}
-
-void MouseDwellMove::setForesightHoldMs(int ms)
-{
-    m_foresight.setHoldMs(ms);
-}
-
-void MouseDwellMove::setForesightSecondZoom(bool on)
-{
-    m_ForesightSecondZoom = on;
-}
-
 void MouseDwellMove::resetDwell()
 {
     m_dwell.reset();
@@ -406,14 +368,6 @@ void MouseDwellMove::hideUi()
     if (m_magOverlay) {
         m_magOverlay->hide();
     }
-}
-
-void MouseDwellMove::onBackgroundGaze(const GazePoint& point, bool overUi)
-{
-    if (m_armed) {
-        return;
-    }
-    m_foresight.sample(point, overUi, m_clock.elapsed());
 }
 
 void MouseDwellMove::placeCursor(const QPoint& target)
@@ -514,7 +468,7 @@ void MouseDwellMove::onGazeAim(const QPointF& g, double dtSec)
 
     const QPoint target(qRound(m_dwell.commitPos().x()), qRound(m_dwell.commitPos().y()));
     if (m_phase == Phase::MagRegion) {
-        if (!beginMagPick(makePreClickSpec(target), /*outsideSelectsNewRegion=*/false)) {
+        if (!beginMagPick(makePreClickSpec(target))) {
             GAZER_WARN << "MouseDwellMove pre-click zoom failed — placing directly";
             placeCursor(target);
         }

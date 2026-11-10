@@ -35,42 +35,13 @@ MagPresentation MouseDwellMove::makePreClickSpec(const QPoint& center) const
     return spec;
 }
 
-MagPresentation MouseDwellMove::makeForesightSpec(const QPoint& srcCenter, const QPoint& destCenter,
-                                                 int destSide) const
-{
-    MagPresentation spec;
-    spec.srcCenter = srcCenter;
-    spec.destCenter = destCenter;
-    spec.zoom = m_armZoom.resolvedLevel(m_pickZoom);
-    spec.destSide = destSide;
-    return spec;
-}
-
 void MouseDwellMove::startAimPhase()
 {
-    m_outsideSelectsNewRegion = false;
     m_mag = {};
-    if (m_purpose != ArmPurpose::LookToScrollPlace
-        && m_purpose != ArmPurpose::ComboMousePlace && armWantsForesight()) {
-        if (const auto fs = m_foresight.peek(m_clock.elapsed())) {
-            QScreen* screen = QGuiApplication::screenAt(*fs);
-            if (!screen) {
-                screen = QGuiApplication::primaryScreen();
-            }
-            const int side = screen ? destSideFor(screen) : 0;
-            if (side >= 80
-                && beginMagPick(makeForesightSpec(*fs, *fs, side), /*outsideSelectsNewRegion=*/true)) {
-                m_foresight.clear();
-                return;
-            }
-            GAZER_WARN << "MouseDwellMove foresight zoom failed — falling back";
-            m_foresight.clear();
-        }
-    }
     setPhase(useMagPickThisArm() ? Phase::MagRegion : Phase::Direct);
 }
 
-bool MouseDwellMove::beginMagPick(const MagPresentation& spec, bool outsideSelectsNewRegion)
+bool MouseDwellMove::beginMagPick(const MagPresentation& spec)
 {
     QScreen* screen = QGuiApplication::screenAt(spec.destCenter);
     if (!screen) {
@@ -103,22 +74,12 @@ bool MouseDwellMove::beginMagPick(const MagPresentation& spec, bool outsideSelec
 
     m_mag = spec;
     m_mag.destSide = dest.width();
-    m_outsideSelectsNewRegion = outsideSelectsNewRegion;
     m_magSourceRect = src;
     m_magDisplayRect = dest;
     m_magPixmap = grab.scaled(dest.size(), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
     m_magGazeInside = true;
 
-    QString hint = QStringLiteral("Dwell to pick point (static zoom)");
-    if (outsideSelectsNewRegion) {
-        if (useMagPickThisArm() && armWantsBonusZoom()) {
-            hint = QStringLiteral("Foresight — dwell inside to zoom again, outside for a new region");
-        } else if (useMagPickThisArm()) {
-            hint = QStringLiteral("Foresight — dwell inside to place, outside for pre-click zoom");
-        } else {
-            hint = QStringLiteral("Foresight — dwell inside to place");
-        }
-    }
+    const QString hint = QStringLiteral("Dwell to pick point (static zoom)");
 
     if (m_cursor) {
         m_cursor->hide();
@@ -205,33 +166,10 @@ void MouseDwellMove::onGazeInZoom(const QPointF& g, double dtSec)
     }
 
     if (!inside) {
-        if (!m_outsideSelectsNewRegion) {
-            resetDwell();
-            if (m_magOverlay) {
-                m_magOverlay->setProgress(0.0);
-                m_magOverlay->clearPick();
-            }
-            return;
-        }
-        const bool done = m_dwell.sample(g, dtSec);
-        emit progressChanged(m_dwell.progress());
-        if (m_cursor) {
-            m_cursor->setProgress(m_dwell.progress());
-            m_cursor->placeCenter(
-                QPoint(qRound(m_dwell.commitPos().x()), qRound(m_dwell.commitPos().y())));
-        }
-        if (!done) {
-            return;
-        }
-        const QPoint outside(qRound(m_dwell.commitPos().x()), qRound(m_dwell.commitPos().y()));
-        if (m_magPickEnabled) {
-            if (!beginMagPick(makePreClickSpec(outside), /*outsideSelectsNewRegion=*/false)) {
-                GAZER_WARN << "MouseDwellMove outside pre-click zoom failed";
-                resetDwell();
-                placeCursor(outside);
-            }
-        } else {
-            placeCursor(outside);
+        resetDwell();
+        if (m_magOverlay) {
+            m_magOverlay->setProgress(0.0);
+            m_magOverlay->clearPick();
         }
         return;
     }
@@ -249,18 +187,7 @@ void MouseDwellMove::onGazeInZoom(const QPointF& g, double dtSec)
     if (!done) {
         return;
     }
-
-    if (m_outsideSelectsNewRegion && useMagPickThisArm() && armWantsBonusZoom()) {
-        const int side = m_mag.destSide > 0 ? m_mag.destSide
-                                            : destSideFor(QGuiApplication::primaryScreen());
-        if (!beginMagPick(makeForesightSpec(mapDisplayToSource(follow),
-                                            QPoint(qRound(follow.x()), qRound(follow.y())), side),
-                          /*outsideSelectsNewRegion=*/false)) {
-            finishMagPoint(follow);
-        }
-    } else {
-        finishMagPoint(follow);
-    }
+    finishMagPoint(follow);
 }
 
 } // namespace gazer

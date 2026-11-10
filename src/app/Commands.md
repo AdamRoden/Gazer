@@ -84,8 +84,6 @@ When adding a command: register it and add a row here.
 | `toggleMouseMoveMagPick` | Settings: magnify pick |
 | `toggleMouseMoveMagPickCenter` | Mag-pick center on dwell vs screen |
 | `toggleMouseMoveMagPickFullScreen` | Mag-pick full-screen zoom |
-| `toggleMouseMoveForesight` | Foresight on/off |
-| `toggleMouseMoveForesightSecondZoom` | Second zoom inside foresight |
 
 ## Input / loops (`GazerServices.cpp`)
 

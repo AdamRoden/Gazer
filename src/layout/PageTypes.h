@@ -272,7 +272,7 @@ enum class PageActionType {
 
 enum class PageVerb { Open, Close, Toggle };
 enum class PageNavScope { Id, All, Self, Others };
-enum class PageZoomMode { Off, Settings, Level, Foresight, ForesightBonus };
+enum class PageZoomMode { Off, Settings, Level };
 enum class PageMoveMode { Gaze, Absolute, Relative, Direction };
 enum class PageClickKind { Default, Double, Down, Up, Toggle };
 enum class PageRunKind { Python, Ahk };

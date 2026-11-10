@@ -2,12 +2,10 @@
 
 Drawer **Settings** opens `main_settings_host`. The top row is **Settings** beside the page name, with **Close** on the right. Categories stay in a list on the left. There are no desktop dialogs for these prefs.
 
-`main_settings` is the same eight boards as tiles. The drawer skips that page.
-
 | Board | What you change |
 |-------|-----------------|
 | **Dwell** | Slow / Normal / Fast / Custom. Standard and rapid sequences. Likely keys pulls rapid character keys toward what you tend to type next. Scan grace, blink grace, button progress, and pointer progress (ring, pie, fill). |
-| **Zoom** | Magnify pick, foresight, repeat zoom, zoom dwell, foresight dwell and hold, window level / size / fill / shape / position, region markers, and Move to…. |
+| **Zoom** | Magnify pick, zoom dwell, window level / size / fill / shape / position, region markers, and Move to…. |
 | **Place** | Pointer dwell, pointer grace, final-pick markers, Move to…, and ComboMouse radii and colors. |
 | **Gaze** | Gaze follow (slow / sticky / smooth / snappy), show gaze, gaze mouse, the live lens, and the four look-to maps. |
 | **Head** | Analog head-pose maps (yaw / pitch / roll / x / y / z → commands or a virtual pad). |

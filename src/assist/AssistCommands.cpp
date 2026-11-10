@@ -475,27 +475,6 @@ void registerAssistCommands(AssistCommandContext& ctx)
                        : QStringLiteral("Mag-pick: full-screen zoom OFF"));
             return true;
         });
-    commands->registerBuiltin(
-        QStringLiteral("toggleMouseMoveForesight"),
-        [settings, mouseDwell, applySettings, notify](QString*) {
-            settings->mouseMoveForesight = !settings->mouseMoveForesight;
-            mouseDwell->setForesightEnabled(settings->mouseMoveForesight);
-            applySettings(true);
-            notify(settings->mouseMoveForesight ? QStringLiteral("Foresight ON")
-                                                : QStringLiteral("Foresight OFF"));
-            return true;
-        });
-    commands->registerBuiltin(
-        QStringLiteral("toggleMouseMoveForesightSecondZoom"),
-        [settings, mouseDwell, applySettings, notify](QString*) {
-            settings->mouseMoveForesightSecondZoom = !settings->mouseMoveForesightSecondZoom;
-            mouseDwell->setForesightSecondZoom(settings->mouseMoveForesightSecondZoom);
-            applySettings(true);
-            notify(settings->mouseMoveForesightSecondZoom
-                       ? QStringLiteral("Foresight second ON")
-                       : QStringLiteral("Foresight second OFF"));
-            return true;
-        });
 
     mouseAssist->registerCommands(*commands);
 }

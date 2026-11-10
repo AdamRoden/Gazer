@@ -69,7 +69,7 @@ When dwell **ends** (look away or at another cell, after blink grace), the host 
 | `Send` | `key[, Down\|Up[, durationMs]]` | Type a key into the focused window (`q`, `,`, `Enter`, `a,500`). A comma key is `send=","`. Named keys, Shifted punctuation, and composer capture: [Send](reference/actions.md#send). |
 | `Command` | builtin or mapping name | Look up `toggleLookToScroll`, `backspace`, `settings.dwell.fast`, `gamepad.a`, … Exact builtin, then prefix, then `default.json`. [Commands](reference/commands.md). |
 | `MouseLeftClick` (also Middle / Right) | `default` / `double` / `down` / `up` / `toggle` | Click or hold at the **current** cursor. Empty value is a default click. |
-| `MouseMoveToGaze` | zoom: empty / `0` / `N` / `-1` / `-2` | Arm dwell-move. Next desktop dwell warps the cursor. Empty follows Settings → Zoom. |
+| `MouseMoveToGaze` | zoom: empty / `0` / `N` | Arm dwell-move. Next desktop dwell warps the cursor. Empty follows Settings → Zoom. |
 | `MouseLeftClickAtGaze` (also Middle / Right) | same zoom tokens | Arm dwell-move, then one click. |
 | `MouseMoveByDirection` | `n`/`s`/`e`/`w`/`ne`/`nw`/`se`/`sw`[, px] | Nudge now. Omitted amount uses the mouse-assist step. |
 | `MouseMoveToPoint` | `[relative,]x,y` | Warp (or relative-move) now. Dim tokens allowed. |

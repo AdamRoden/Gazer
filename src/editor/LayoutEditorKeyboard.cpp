@@ -160,7 +160,7 @@ PageDocument makeTemplateDocument(EditorTemplate tmpl, const QString& id, const 
                                     QStringLiteral("Assist"), QStringLiteral("Settings")};
         const QStringList pages = {QStringLiteral("uw_qwerty"), QStringLiteral("example_mouse"),
                                    QStringLiteral("example_assist"),
-                                   QStringLiteral("main_settings")};
+                                   QStringLiteral("main_settings_host")};
         const QStringList icons = {QStringLiteral("keyboardKeys"), QStringLiteral("mouse"),
                                    QStringLiteral("ideas"), QStringLiteral("settings")};
         for (int i = 0; i < labels.size(); ++i) {

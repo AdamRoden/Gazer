@@ -579,10 +579,6 @@ void GazerServices::applySettings(bool persist)
     m_mouseDwellMove->setMagPickEnabled(m_settings.mouseMoveMagPick);
     m_mouseDwellMove->setMagPickCenterOnDwell(m_settings.mouseMoveMagPickCenterOnDwell);
     m_mouseDwellMove->setMagPickFullScreen(m_settings.mouseMoveMagPickFullScreen);
-    m_mouseDwellMove->setForesightEnabled(m_settings.mouseMoveForesight);
-    m_mouseDwellMove->setForesightDwellMs(m_settings.mouseMoveForesightDwellMs);
-    m_mouseDwellMove->setForesightHoldMs(m_settings.mouseMoveForesightHoldMs);
-    m_mouseDwellMove->setForesightSecondZoom(m_settings.mouseMoveForesightSecondZoom);
     m_mouseDwellMove->setPickZoom(m_settings.pickZoom);
     m_mouseDwellMove->setPickWindowPx(m_settings.pickWindowPx);
     m_mouseDwellMove->setPickWindowRound(m_settings.pickWindowRound);

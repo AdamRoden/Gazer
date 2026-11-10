@@ -50,7 +50,7 @@ Version **0.6.8**. License: [GPL-3.0](https://github.com/AdamRoden/Gazer/blob/ma
 
 -   :material-magnify: __Assist__
 
-    Live magnifier, gaze reticle, gaze-follows-cursor, look-to-scroll, mag-pick zoom, foresight.
+    Live magnifier, gaze reticle, gaze-follows-cursor, look-to-scroll, mag-pick zoom.
 
 -   :material-microphone: __Speech__
 

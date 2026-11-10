@@ -49,7 +49,7 @@ private slots:
     void valueLabelKeepsKey();
     void ltsHasNoMaxSpeedOrPlaceCursor();
     void overlayIdsAreUnique();
-    void hubOpensBasicBoards();
+    void speakAndHeadBoards();
     void adminCaptureModes();
     void presetsComeFirst();
     void zoomPlaceAndGazeAreBoards();
@@ -280,48 +280,9 @@ void SettingsLayoutTest::overlayIdsAreUnique()
     QVERIFY(placeSeen.contains(QStringLiteral("pd_val")));
 }
 
-void SettingsLayoutTest::hubOpensBasicBoards()
+void SettingsLayoutTest::speakAndHeadBoards()
 {
-    PageDocument doc;
     QString err;
-    QVERIFY2(loadLayout(QStringLiteral("main_settings"), doc, &err), qPrintable(err));
-    QCOMPARE(doc.id, QStringLiteral("main_settings"));
-    QCOMPARE(doc.grids[0].anchor, PageAnchor::Top);
-    QCOMPARE(PageDimParse::token(doc.grids[0].size.x),
-             QStringLiteral("clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth)"));
-    QCOMPARE(PageDimParse::token(doc.grids[0].size.y), QStringLiteral("A_ScreenHeight"));
-    const QStringList pages = {QStringLiteral("main_settings_dwell"),
-                               QStringLiteral("main_settings_zoom"),
-                               QStringLiteral("main_settings_place"),
-                               QStringLiteral("main_settings_gaze"),
-                               QStringLiteral("main_settings_head_pose"),
-                               QStringLiteral("main_settings_speak"),
-                               QStringLiteral("main_settings_theme"),
-                               QStringLiteral("main_settings_setup")};
-    QSet<QString> opened;
-    QCOMPARE(doc.grids[0].columns, 4);
-    QVERIFY(!doc.findCell(QStringLiteral("done")));
-    QVERIFY(!doc.findCell(QStringLiteral("open_advanced")));
-    QVERIFY(!doc.findCell(QStringLiteral("open_pointer")));
-    QVERIFY(!doc.findCell(QStringLiteral("open_look")));
-    for (const PageGrid& g : doc.grids) {
-        for (const PageCell& c : g.cells) {
-            for (const PageAction& a : c.actions) {
-                if (a.type == PageActionType::HostPage) {
-                    opened.insert(a.targetId);
-                    QCOMPARE(a.hostId, QStringLiteral("main_settings_host"));
-                }
-            }
-        }
-    }
-    for (const QString& id : pages) {
-        QVERIFY2(opened.contains(id), qPrintable(id));
-    }
-    QCOMPARE(opened.size(), 8);
-    QVERIFY(!opened.contains(QStringLiteral("main_settings_pointer")));
-    QVERIFY(!opened.contains(QStringLiteral("main_settings_look")));
-    QVERIFY(!opened.contains(QStringLiteral("main_settings_indicators")));
-    QVERIFY(!opened.contains(QStringLiteral("main_settings_tools")));
     PageDocument speak;
     QVERIFY2(loadLayout(QStringLiteral("main_settings_speak"), speak, &err), qPrintable(err));
     QCOMPARE(speak.findCell(QStringLiteral("speed_value"))->settingKey,
@@ -402,10 +363,8 @@ void SettingsLayoutTest::zoomPlaceAndGazeAreBoards()
     QCOMPARE(zoom.findCell(QStringLiteral("zl_val"))->settingKey, QStringLiteral("pickZoom"));
     QCOMPARE(zoom.findCell(QStringLiteral("zs_val"))->settingKey, QStringLiteral("pickWindowPx"));
     QCOMPARE(zoom.findCell(QStringLiteral("zd_val"))->settingKey, QStringLiteral("magPickDwellMs"));
-    QCOMPARE(zoom.findCell(QStringLiteral("fsd_val"))->settingKey,
-             QStringLiteral("mouseMoveForesightDwellMs"));
-    QCOMPARE(zoom.findCell(QStringLiteral("fsh_val"))->settingKey,
-             QStringLiteral("mouseMoveForesightHoldMs"));
+    QVERIFY(!zoom.findCell(QStringLiteral("fsd_val")));
+    QVERIFY(!zoom.findCell(QStringLiteral("fsh_val")));
     QVERIFY(zoom.findCell(QStringLiteral("zi_cur")));
     QVERIFY(zoom.findCell(QStringLiteral("zi_dot")));
     QVERIFY(zoom.findCell(QStringLiteral("zi_xh")));
@@ -413,8 +372,8 @@ void SettingsLayoutTest::zoomPlaceAndGazeAreBoards()
     QVERIFY(zoom.findCell(QStringLiteral("test_move")));
     QVERIFY(!zoom.findCell(QStringLiteral("zm_none")));
     QCOMPARE(zoom.findCell(QStringLiteral("zm_pre"))->role, QStringLiteral("toggle"));
-    QCOMPARE(zoom.findCell(QStringLiteral("zm_fs"))->role, QStringLiteral("toggle"));
-    QCOMPARE(zoom.findCell(QStringLiteral("zm_fs2"))->role, QStringLiteral("toggle"));
+    QVERIFY(!zoom.findCell(QStringLiteral("zm_fs")));
+    QVERIFY(!zoom.findCell(QStringLiteral("zm_fs2")));
     QVERIFY(!dwell.findCell(QStringLiteral("zd_val")));
     QVERIFY(!gaze.findCell(QStringLiteral("zl_val")));
     QVERIFY(!gaze.findCell(QStringLiteral("test_move")));
@@ -661,8 +620,9 @@ void SettingsLayoutTest::zoomAndSetupHoldSession()
     QVERIFY2(loadLayout(QStringLiteral("main_settings_zoom"), zoom, &err), qPrintable(err));
     QVERIFY2(loadLayout(QStringLiteral("main_settings_setup"), setup, &err), qPrintable(err));
     QVERIFY2(loadLayout(QStringLiteral("main_settings_gaze"), gaze, &err), qPrintable(err));
-    QCOMPARE(zoom.findCell(QStringLiteral("fsh_val"))->settingKey,
-             QStringLiteral("mouseMoveForesightHoldMs"));
+    QCOMPARE(zoom.findCell(QStringLiteral("zd_val"))->settingKey,
+             QStringLiteral("magPickDwellMs"));
+    QVERIFY(!zoom.findCell(QStringLiteral("fsh_val")));
     QVERIFY(!zoom.findCell(QStringLiteral("aci_val")));
     QVERIFY(!zoom.findCell(QStringLiteral("splash_on")));
     QCOMPARE(setup.findCell(QStringLiteral("aci_val"))->settingKey,

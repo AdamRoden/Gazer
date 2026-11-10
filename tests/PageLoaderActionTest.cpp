@@ -87,6 +87,9 @@ namespace {
 
 bool loadOneAction(const QByteArray& actionXml, PageAction& out, QString* err)
 {
+    if (err) {
+        err->clear();
+    }
     const QByteArray xml = QByteArray("<Page id=\"p\"><Grid id=\"g\"><Cell id=\"c\">") + actionXml
                            + QByteArray("</Cell></Grid></Page>");
     PageDocument doc;
@@ -260,15 +263,10 @@ void PageLoaderActionTest::parseSpecificActionElements()
              qPrintable(err));
     QCOMPARE(a.button.toLower(), QStringLiteral("right"));
     QCOMPARE(a.clickKind, PageClickKind::Double);
-    QVERIFY2(loadOneAction(QByteArray("<MouseLeftClickAtGaze value=\"-1\"/>"), a, &err),
-             qPrintable(err));
-    QCOMPARE(a.type, PageActionType::MoveAndClick);
-    QCOMPARE(a.button.toLower(), QStringLiteral("left"));
-    QCOMPARE(a.zoomMode, PageZoomMode::Foresight);
-    QVERIFY2(loadOneAction(QByteArray("<MouseMiddleClickAtGaze value=\"-2\"/>"), a, &err),
-             qPrintable(err));
-    QCOMPARE(a.button.toLower(), QStringLiteral("middle"));
-    QCOMPARE(a.zoomMode, PageZoomMode::ForesightBonus);
+    QVERIFY(!loadOneAction(QByteArray("<MouseLeftClickAtGaze value=\"-1\"/>"), a, &err));
+    QVERIFY(err.contains(QStringLiteral("Zoom")));
+    QVERIFY(!loadOneAction(QByteArray("<MouseMiddleClickAtGaze value=\"-2\"/>"), a, &err));
+    QVERIFY(err.contains(QStringLiteral("Zoom")));
     QVERIFY2(loadOneAction(QByteArray("<MouseMoveToGaze value=\"0\"/>"), a, &err),
              qPrintable(err));
     QCOMPARE(a.type, PageActionType::Move);
@@ -310,10 +308,10 @@ void PageLoaderActionTest::parseMoveVariants()
         QVERIFY(xml.contains(QStringLiteral("mouseMoveToGaze=\"0\""))
                 || xml.contains(QStringLiteral("MouseMoveToGaze")));
     }
-    QVERIFY2(loadOneAction(QByteArray("<Move value=\"gaze, -1\"/>"), a, &err), qPrintable(err));
-    QCOMPARE(a.zoomMode, PageZoomMode::Foresight);
-    QVERIFY2(loadOneAction(QByteArray("<Move value=\"gaze, -2\"/>"), a, &err), qPrintable(err));
-    QCOMPARE(a.zoomMode, PageZoomMode::ForesightBonus);
+    QVERIFY(!loadOneAction(QByteArray("<Move value=\"gaze, -1\"/>"), a, &err));
+    QVERIFY(err.contains(QStringLiteral("Zoom")));
+    QVERIFY(!loadOneAction(QByteArray("<Move value=\"gaze, -2\"/>"), a, &err));
+    QVERIFY(err.contains(QStringLiteral("Zoom")));
     QVERIFY2(loadOneAction(QByteArray("<Move value=\"gaze, 4\"/>"), a, &err), qPrintable(err));
     QCOMPARE(a.moveMode, PageMoveMode::Gaze);
     QCOMPARE(a.zoomMode, PageZoomMode::Level);

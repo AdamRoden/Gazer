@@ -106,7 +106,7 @@ A cell may have one action **attribute** (`send="q"`) or several **child element
 | `Send` | `KeyStateManager`: tap (`activate`), `Down` / `Up`, or timed `hold`. Modifiers cycle Up → Down → LockedDown. US punctuation maps through `KeyGlyphs` (transient Shift). Named keys in `KeyboardInjector`. |
 | `Command` | `CommandRegistry`: exact builtin, longest prefix, then `resources/mappings/default.json` (`keyTap`, `keyCombo`, `gamepadButton`, …). |
 | `MouseLeftClick` / Middle / Right | Click / double / down / up / toggle at the current cursor. |
-| `MouseMoveToGaze` / `Mouse*ClickAtGaze` | Arm `MouseDwellMove` (zoom: Settings / `0` / `N` / `-1` / `-2`). |
+| `MouseMoveToGaze` / `Mouse*ClickAtGaze` | Arm `MouseDwellMove` (zoom: Settings / `0` / `N`). |
 | `MouseMoveByDirection` / `MouseMoveToPoint` | Nudge or warp now. |
 | `OpenPage` / `TogglePage` / `ClosePage` / `CloseAllPages` / `CloseOtherPages` / `HostPage` / `GoBack` | `PageSession::applyNav`. Close All / Close Other also disable ComboMouse. |
 | `ShowLayers` | Replace the source page’s visible layer set (root if that page just closed). |

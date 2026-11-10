@@ -8,16 +8,14 @@
   <Grid id="board" desktopMode="true" rows="2" columns="2" anchor="Top" offset="0,0" size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" gap="12" margin="0" radius="16"
         rowHeights="96,*" columnWidths="*,72">
     <SubGrid id="titlebar" row="0" col="0" colSpan="2" rows="1" columns="2" columnWidths="*,160" gap="8" margin="0" style="plain">
-      <Cell id="page_title" row="0" col="0" label="Zoom" caption="Zoom window, foresight, and markers" role="label" textStyle="title" style="plain"/>
+      <Cell id="page_title" row="0" col="0" label="Zoom" caption="Zoom window and markers" role="label" textStyle="title" style="plain"/>
       <Cell id="tab_done" row="0" col="1" label="Close" icon="keyboardHide" textStyle="row" closeAllPages="true"/>
     </SubGrid>
-    <SubGrid id="scroller" row="1" col="0" scroll="true" rows="4" columns="1" rowHeights="480,480,168,168" gap="12" margin="0">
-      <SubGrid id="sec_zoom" row="0" col="0" rows="5" columns="1" rowHeights="48,96,96,96,96" gap="8" margin="8" style="group">
+    <SubGrid id="scroller" row="1" col="0" scroll="true" rows="4" columns="1" rowHeights="272,480,168,168" gap="12" margin="0">
+      <SubGrid id="sec_zoom" row="0" col="0" rows="3" columns="1" rowHeights="48,96,96" gap="8" margin="8" style="group">
         <Cell id="h_zoom" row="0" col="0" label="Zoom" role="label" textStyle="section" style="plain"/>
-        <SubGrid id="row_mode" row="1" col="0" rows="1" columns="3" gap="0" style="row">
-          <Cell id="zm_pre" row="0" col="0" icon="ZoomConfirm" label="Magnify pick" role="toggle" activeState="mouseMoveMagPick" style="joinLeft" command="toggleMouseMoveMagPick"/>
-          <Cell id="zm_fs" row="0" col="1" icon="ZoomReset" label="Foresight" role="toggle" activeState="mouseMoveForesight" style="join" command="toggleMouseMoveForesight"/>
-          <Cell id="zm_fs2" row="0" col="2" icon="ZoomRepeat" label="Repeat Zoom" role="toggle" activeState="mouseMoveForesightSecondZoom" style="joinRight" command="toggleMouseMoveForesightSecondZoom"/>
+        <SubGrid id="row_mode" row="1" col="0" rows="1" columns="1" gap="0" style="row">
+          <Cell id="zm_pre" row="0" col="0" icon="ZoomConfirm" label="Magnify pick" role="toggle" activeState="mouseMoveMagPick" command="toggleMouseMoveMagPick"/>
         </SubGrid>
         <SubGrid id="row_zd" row="2" col="0" rows="1" columns="2" gap="6" style="row">
           <Cell id="zd_label" row="0" col="0" label="Zoom dwell" caption="Dwell to choose the zoom region." role="label" style="plain"/>
@@ -26,24 +24,6 @@
             <Cell id="zd_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="magPickDwellMs" style="join"/>
             <Cell id="zd_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.magPickDwellMs.inc"/>
             <Cell id="zd_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.magPickDwellMs"/>
-          </SubGrid>
-        </SubGrid>
-        <SubGrid id="row_fsd" row="3" col="0" rows="1" columns="2" gap="6" style="row">
-          <Cell id="fsd_label" row="0" col="0" label="Foresight dwell" caption="Gaze this long to store a point." role="label" style="plain"/>
-          <SubGrid id="act_fsd" row="0" col="1" rows="1" columns="9" gap="0" style="row">
-            <Cell id="fsd_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.mouseMoveForesightDwellMs.dec"/>
-            <Cell id="fsd_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="mouseMoveForesightDwellMs" style="join"/>
-            <Cell id="fsd_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.mouseMoveForesightDwellMs.inc"/>
-            <Cell id="fsd_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.mouseMoveForesightDwellMs"/>
-          </SubGrid>
-        </SubGrid>
-        <SubGrid id="row_fsh" row="4" col="0" rows="1" columns="2" gap="6" style="row">
-          <Cell id="fsh_label" row="0" col="0" label="Foresight hold" caption="How long a stored point lasts." role="label" style="plain"/>
-          <SubGrid id="act_fsh" row="0" col="1" rows="1" columns="9" gap="0" style="row">
-            <Cell id="fsh_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.mouseMoveForesightHoldMs.dec"/>
-            <Cell id="fsh_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="mouseMoveForesightHoldMs" style="join"/>
-            <Cell id="fsh_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.mouseMoveForesightHoldMs.inc"/>
-            <Cell id="fsh_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.mouseMoveForesightHoldMs"/>
           </SubGrid>
         </SubGrid>
       </SubGrid>

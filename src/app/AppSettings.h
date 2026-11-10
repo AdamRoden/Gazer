@@ -59,15 +59,6 @@ struct AppSettings {
     bool mouseMoveMagPickFullScreen = false;
     /// Inscribe the static zoom window in a circle (else a square).
     bool pickWindowRound = false;
-    /// Remember a desktop dwell and immediately magnify that point when Move-to arms.
-    bool mouseMoveForesight = false;
-    /// Hold gaze this long (ms) to store a foresight point.
-    int mouseMoveForesightDwellMs = 400;
-    /// How long a stored foresight point stays valid (ms).
-    int mouseMoveForesightHoldMs = 2000;
-    /// When foresight and pre-click zoom both apply: a second zoom inside the
-    /// foresight region. Off = place the cursor if the pick is inside foresight.
-    bool mouseMoveForesightSecondZoom = false;
     /// Gaze follow for the live lens, gaze→mouse, and reticle (not mag-pick or dwell-move).
     GazeFollowProfile magFollowProfile = GazeFollowProfile::Sticky;
 
@@ -90,10 +81,10 @@ struct AppSettings {
     QString flashColor = QStringLiteral("#FFFFFF");
     int flashMs = 60;
 
-    // --- Live lens (assistant magnifier; not used by pre-click / foresight) ---
+    // --- Live lens (assistant magnifier; not used by pre-click zoom) ---
     double magZoom = 2.0;
     int magLensSize = 400;
-    /// Static pick zoom shared by pre-click and foresight (not the live lens).
+    /// Static pick zoom for pre-click magnify (not the live lens).
     double pickZoom = 4.0;
     int pickWindowPx = 600;
 

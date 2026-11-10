@@ -189,13 +189,6 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
         o.value(QStringLiteral("mouseMoveMagPickCenterOnDwell")).toBool(mouseMoveMagPickCenterOnDwell);
     mouseMoveMagPickFullScreen =
         o.value(QStringLiteral("mouseMoveMagPickFullScreen")).toBool(mouseMoveMagPickFullScreen);
-    mouseMoveForesight = o.value(QStringLiteral("mouseMoveForesight")).toBool(mouseMoveForesight);
-    mouseMoveForesightDwellMs =
-        o.value(QStringLiteral("mouseMoveForesightDwellMs")).toInt(mouseMoveForesightDwellMs);
-    mouseMoveForesightHoldMs =
-        o.value(QStringLiteral("mouseMoveForesightHoldMs")).toInt(mouseMoveForesightHoldMs);
-    mouseMoveForesightSecondZoom =
-        o.value(QStringLiteral("mouseMoveForesightSecondZoom")).toBool(mouseMoveForesightSecondZoom);
     magPickStyle = o.value(QStringLiteral("magPickStyle")).toInt(magPickStyle);
     mousePickStyle = o.value(QStringLiteral("mousePickStyle")).toInt(mousePickStyle);
     magZoom = o.value(QStringLiteral("magZoom")).toDouble(magZoom);
@@ -524,10 +517,6 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     o.insert(QStringLiteral("mouseMoveMagPick"), copy.mouseMoveMagPick);
     o.insert(QStringLiteral("mouseMoveMagPickCenterOnDwell"), copy.mouseMoveMagPickCenterOnDwell);
     o.insert(QStringLiteral("mouseMoveMagPickFullScreen"), copy.mouseMoveMagPickFullScreen);
-    o.insert(QStringLiteral("mouseMoveForesight"), copy.mouseMoveForesight);
-    o.insert(QStringLiteral("mouseMoveForesightDwellMs"), copy.mouseMoveForesightDwellMs);
-    o.insert(QStringLiteral("mouseMoveForesightHoldMs"), copy.mouseMoveForesightHoldMs);
-    o.insert(QStringLiteral("mouseMoveForesightSecondZoom"), copy.mouseMoveForesightSecondZoom);
     o.insert(QStringLiteral("magPickStyle"), copy.magPickStyle);
     o.insert(QStringLiteral("mousePickStyle"), copy.mousePickStyle);
     o.insert(QStringLiteral("magZoom"), copy.magZoom);

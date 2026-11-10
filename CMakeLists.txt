@@ -306,7 +306,6 @@ set(GAZER_HEADERS
     src/assist/GazeDwellTracker.h
     src/assist/GazeFollowProfile.h
     src/assist/GazeFollowStickiness.h
-    src/assist/ForesightMemory.h
     src/assist/MagLayout.h
     src/ui/PreviewWindow.h
     src/ui/HeadPreviewRenderer.h
