@@ -46,8 +46,8 @@ private:
     void syncDwellSuspendOverlay();
 
     void onQuitRequested();
-    void restartGazer();
     void finishExit();
+    void closePagesForLostGaze();
     void startSplash();
     void onSplashFinished();
     void syncSplashChrome();
@@ -80,6 +80,7 @@ private:
     bool m_splashSavedMag = false;
     std::unique_ptr<DwellSuspendOverlay> m_dwellSuspendOverlay;
     std::unique_ptr<TrackingLossOverlay> m_lossOverlay;
+    QTimer m_gazeLossNotice;
     TrackingWatch m_watch;
     QElapsedTimer m_watchClock;
     QTimer m_trackingPoll;

@@ -205,7 +205,7 @@ Patterns, not every generated name:
 | `settings.dwell.slow` / `.normal` / `.fast` / `.custom` | Dwell presets (standard + rapid dwells together) |
 | `settings.dwell.custom.save` / `.restore` | Save or restore Custom timings |
 | `settings.mag.follow.slow` / `.sticky` / `.smooth` / `.snappy` | Gaze follow (indicator, gaze mouse, live lens) |
-| `settings.tracker.auto` / `.mouse` | Tracker pref (restart). A stalled or disconnected Tobii stream releases outputs and stays on Tobii. The loss board says "No gaze detected" and offers Restart or Close. A valid gaze sample dismisses it. It does not switch to the mouse by itself after gaze was live. |
+| `settings.tracker.auto` / `.mouse` | Tracker pref (restart). A running tracker with no gaze for 60 seconds shows "No gaze detected" for 10 seconds, then closes open pages if gaze is still missing. A valid sample dismisses the notice. A disconnect releases outputs and does not show it. It does not switch to the mouse by itself after gaze was live. |
 | `settings.capture.all` / `.pages` / `.none` | Screen capture: all (documentation), boards only, or boards and overlays omitted |
 | `settings.vigem.install` / `.refresh` | Download/launch official ViGEmBus setup; re-read bus + client status |
 | `settings.mousePickStyle.*.toggle` | Move-to markers (cursor, dot, crosshair). Any subset, including none. Zoom region uses the same set |

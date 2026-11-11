@@ -36,15 +36,11 @@ TobiiPumpHealth::Edges TobiiPumpHealth::checkAges(qint64 nowMs)
         return e;
     }
     const qint64 gazeRef = m_gazeSeen ? m_lastGazeMs : m_streamStartMs;
-    const int gazeLimit = m_gazeSeen ? TrackingWatch::kDefaultStreamStaleMs
-                                     : TrackingWatch::kDefaultStartupSilenceMs;
-    if (!m_gazeStaleLatched && nowMs - gazeRef >= gazeLimit) {
+    if (!m_gazeStaleLatched && nowMs - gazeRef >= TrackingWatch::kDefaultGazeAbsentMs) {
         m_gazeStaleLatched = true;
         e.gazeStale = true;
     }
-    // Head is its own stream only while gaze callbacks are still arriving.
-    const bool gazeFresh = m_gazeSeen && (nowMs - m_lastGazeMs) < TrackingWatch::kDefaultStreamStaleMs;
-    if (m_headSubscribed && m_headSeen && gazeFresh && !m_headStaleLatched
+    if (m_headSubscribed && m_headSeen && !m_headStaleLatched
         && nowMs - m_lastHeadMs >= TrackingWatch::kDefaultStreamStaleMs) {
         m_headStaleLatched = true;
         e.headStale = true;

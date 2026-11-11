@@ -41,9 +41,9 @@ Closing overlay pages does not exit. `quitApp` (Quit → Yes) does.
 
 ## If tracking stops
 
-A blink is not a stall. Invalid gaze that keeps arriving, or a stream that goes quiet, waits 10 seconds before it counts as lost. A disconnect is immediate. Gazer then releases keys, repeating actions, look-to and head-stick output, and cancels the dwell that was in progress. It does not switch to the mouse on its own after tracking had been working.
+A blink is not a stall. While the eye tracker is running, invalid gaze or a quiet stream waits 60 seconds before it counts as lost. A disconnect is immediate and does not show the notice. Gazer then releases keys, repeating actions, look-to and head-stick output, and cancels the dwell that was in progress. It does not switch to the mouse on its own.
 
-The board says **No gaze detected** and offers **Restart** and **Close Gazer**. A valid gaze sample hides that board and turns the boards back on. The tray still has **Retry eye tracker** and **Use mouse tracker** for someone using a physical pointer. Head tracking can drop while gaze is still fine; that releases head output and does not cancel board dwell. The next valid head pose takes head control back.
+The notice says **No gaze detected** and stays up for 10 seconds. A valid gaze sample hides it and leaves open pages alone. If gaze is still missing when those 10 seconds end, the notice closes and so do the open pages. The dock chip stays. The tray still has **Retry eye tracker** and **Use mouse tracker**. A quiet head stream releases head output after 10 seconds on its own, including when gaze is also missing, and does not cancel board dwell. The next valid head pose takes head control back.
 
 ## If Gazer freezes
 

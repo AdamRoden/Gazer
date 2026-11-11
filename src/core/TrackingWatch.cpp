@@ -4,18 +4,19 @@
 
 namespace gazer {
 
-void TrackingWatch::keepSustainedPastBlink()
+void TrackingWatch::keepPastBlink(int& ms)
 {
     const int floor = m_blinkGraceMs + 1;
-    if (m_sustainedInvalidMs < floor) {
-        m_sustainedInvalidMs = floor;
+    if (ms < floor) {
+        ms = floor;
     }
 }
 
 void TrackingWatch::setBlinkGraceMs(int ms)
 {
     m_blinkGraceMs = qMax(0, ms);
-    keepSustainedPastBlink();
+    keepPastBlink(m_sustainedInvalidMs);
+    keepPastBlink(m_gazeAbsentMs);
 }
 
 void TrackingWatch::setStreamStaleMs(int ms)
@@ -26,12 +27,13 @@ void TrackingWatch::setStreamStaleMs(int ms)
 void TrackingWatch::setSustainedInvalidMs(int ms)
 {
     m_sustainedInvalidMs = qMax(1, ms);
-    keepSustainedPastBlink();
+    keepPastBlink(m_sustainedInvalidMs);
 }
 
-void TrackingWatch::setStartupSilenceMs(int ms)
+void TrackingWatch::setGazeAbsentMs(int ms)
 {
-    m_startupSilenceMs = qMax(1, ms);
+    m_gazeAbsentMs = qMax(1, ms);
+    keepPastBlink(m_gazeAbsentMs);
 }
 
 void TrackingWatch::noteStreamRunning(qint64 nowMs)
@@ -96,7 +98,7 @@ TrackingWatch::Transition TrackingWatch::onGaze(const GazePoint& point, qint64 n
         m_invalidSinceMs = nowMs;
         return {};
     }
-    if (nowMs - m_invalidSinceMs >= m_sustainedInvalidMs) {
+    if (nowMs - m_invalidSinceMs >= m_gazeAbsentMs) {
         return enterGaze(GazeLossReason::SustainedInvalid);
     }
     return {};
@@ -148,16 +150,12 @@ TrackingWatch::Transition TrackingWatch::poll(qint64 nowMs)
     }
     if (!m_gazeHold) {
         const qint64 ref = m_gazeSeen ? m_lastGazeMs : m_streamStartMs;
-        const int limit = m_gazeSeen ? m_streamStaleMs : m_startupSilenceMs;
-        if (nowMs - ref >= limit) {
+        if (nowMs - ref >= m_gazeAbsentMs) {
             t = enterGaze(GazeLossReason::NoCallbacks);
         }
     }
-    if (!m_gazeHold && !m_headHold && m_hadLiveHead && m_gazeSeen) {
-        const bool gazeFresh = (nowMs - m_lastGazeMs) < m_streamStaleMs;
-        if (gazeFresh && (nowMs - m_lastHeadMs) >= m_streamStaleMs) {
-            t = enterHead();
-        }
+    if (!m_gazeHold && !m_headHold && m_headSeen && (nowMs - m_lastHeadMs) >= m_streamStaleMs) {
+        t = enterHead();
     }
     return t;
 }

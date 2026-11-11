@@ -45,7 +45,6 @@
 
 #include <QApplication>
 #include <QCoreApplication>
-#include <QProcess>
 #include <QPoint>
 #include <QSysInfo>
 #include <QRect>
@@ -57,6 +56,8 @@
 #include <cstdlib>
 
 namespace gazer {
+
+constexpr int kGazeLossNoticeMs = 10000;
 
 Application::Application(QObject* parent)
     : QObject(parent)
@@ -91,6 +92,8 @@ bool Application::initialize()
     m_splash = std::make_unique<SplashOverlay>();
     m_dwellSuspendOverlay = std::make_unique<DwellSuspendOverlay>();
     m_lossOverlay = std::make_unique<TrackingLossOverlay>();
+    m_gazeLossNotice.setSingleShot(true);
+    connect(&m_gazeLossNotice, &QTimer::timeout, this, &Application::closePagesForLostGaze);
     m_stackWatch = std::make_unique<OverlayStackWatch>();
     m_watch.setBlinkGraceMs(m_svc->settings().dwellGraceMs);
     m_watchClock.start();
@@ -133,10 +136,6 @@ bool Application::initialize()
     connect(m_tray.get(), &TrayIcon::quitRequested, this, &Application::onQuitRequested);
     connect(m_tray.get(), &TrayIcon::retryTrackerRequested, this, &Application::retryEyeTracker);
     connect(m_tray.get(), &TrayIcon::useMouseTrackerRequested, this, &Application::useMouseTracker);
-    connect(m_lossOverlay.get(), &TrackingLossOverlay::restartRequested, this,
-            &Application::restartGazer);
-    connect(m_lossOverlay.get(), &TrackingLossOverlay::closeRequested, this,
-            &Application::onQuitRequested);
 
     m_svc->commands().registerBuiltin(
         QStringLiteral("openPageEditor"),
@@ -488,8 +487,12 @@ void Application::applyTrackingTransition(const TrackingWatch::Transition& trans
     if (transition.enteredGazeLoss) {
         GAZER_WARN << "Gaze tracking lost; releasing outputs";
         m_svc->neutralizeForTracking(true);
-        if (m_lossOverlay) {
+        const bool trackerUp = m_tracker && m_tracker->isRunning();
+        const bool gazeAbsent =
+            m_watch.gazeLossReason() != TrackingWatch::GazeLossReason::Disconnected;
+        if (trackerUp && gazeAbsent && m_lossOverlay) {
             m_lossOverlay->showLoss(m_watch.statusText());
+            m_gazeLossNotice.start(kGazeLossNoticeMs);
         }
         updateTrayStatus();
     } else if (transition.enteredHeadLoss) {
@@ -497,6 +500,7 @@ void Application::applyTrackingTransition(const TrackingWatch::Transition& trans
         m_svc->neutralizeForTracking(false);
     }
     if (transition.resumed) {
+        m_gazeLossNotice.stop();
         m_svc->releaseTrackingHold();
         if (m_lossOverlay) {
             m_lossOverlay->hideLoss();
@@ -810,6 +814,19 @@ void Application::rescueReset()
     GAZER_INFO << "rescue.reset";
 }
 
+void Application::closePagesForLostGaze()
+{
+    if (m_lossOverlay) {
+        m_lossOverlay->hideLoss();
+    }
+    if (!m_svc || !m_watch.blocksBoardGaze()) {
+        return;
+    }
+    m_svc->pages().closeAttached();
+    showMasterLayers({1});
+    GAZER_INFO << "No gaze; closed open pages";
+}
+
 void Application::finishExit()
 {
     CrashDump::unregisterRestart();
@@ -817,31 +834,6 @@ void Application::finishExit()
     releaseTracker(m_tracker);
     QApplication::quit();
     QTimer::singleShot(500, []() { std::exit(0); });
-}
-
-void Application::restartGazer()
-{
-    GAZER_INFO << "Restart requested";
-    m_pulse.stop();
-    if (guardIsRunning()) {
-        if (!m_heartbeat || !m_heartbeat->requestRelaunch(m_safeMode)) {
-            GAZER_WARN << "Restart could not ask the guard to relaunch";
-            m_pulse.start();
-            return;
-        }
-    } else {
-        QStringList args;
-        if (m_safeMode) {
-            args << QStringLiteral("--safe");
-        }
-        const QString exe = QCoreApplication::applicationFilePath();
-        if (!QProcess::startDetached(exe, args, QCoreApplication::applicationDirPath())) {
-            GAZER_WARN << "Restart failed to start a new process";
-            m_pulse.start();
-            return;
-        }
-    }
-    finishExit();
 }
 
 void Application::onQuitRequested()

@@ -53,10 +53,11 @@ class TrackingWatchTest final : public QObject {
 
 private slots:
     void blinkDoesNotNeutralize();
-    void defaultsWaitTenSeconds();
+    void defaultsWaitSixtySeconds();
     void sustainedInvalidAfterLiveGazeNeutralizes();
     void noCallbacksAfterSampleNeutralizes();
-    void startupSilenceIsLongerThanAStall();
+    void absenceBeforeFirstSampleUsesGazeAbsent();
+    void quietHeadReleasesBeforeGazeAbsence();
     void disconnectIsImmediate();
     void disconnectStaysBlockedUntilGazeReturns();
     void headLossIsIndependentOfGaze();
@@ -85,36 +86,36 @@ void TrackingWatchTest::blinkDoesNotNeutralize()
     QVERIFY(!watch.blocksBoardGaze());
 }
 
-void TrackingWatchTest::defaultsWaitTenSeconds()
+void TrackingWatchTest::defaultsWaitSixtySeconds()
 {
+    QCOMPARE(TrackingWatch::kDefaultGazeAbsentMs, 60000);
     QCOMPARE(TrackingWatch::kDefaultStreamStaleMs, 10000);
     QCOMPARE(TrackingWatch::kDefaultSustainedInvalidMs, 10000);
-    QCOMPARE(TrackingWatch::kDefaultStartupSilenceMs, 10000);
 
     TrackingWatch watch;
     watch.noteStreamRunning(0);
     QVERIFY(!watch.onGaze(gazeAt(0, true), 0).enteredGazeLoss);
     QVERIFY(!watch.onGaze(gazeAt(50, false), 50).enteredGazeLoss);
-    QVERIFY(!watch.onGaze(gazeAt(50 + 9999, false), 50 + 9999).enteredGazeLoss);
-    const TrackingWatch::Transition lost = watch.onGaze(gazeAt(50 + 10000, false), 50 + 10000);
+    QVERIFY(!watch.onGaze(gazeAt(50 + 59999, false), 50 + 59999).enteredGazeLoss);
+    const TrackingWatch::Transition lost = watch.onGaze(gazeAt(50 + 60000, false), 50 + 60000);
     QVERIFY(lost.enteredGazeLoss);
     QCOMPARE(watch.statusText(), QStringLiteral("No gaze detected"));
-    const TrackingWatch::Transition back = watch.onGaze(gazeAt(50 + 10001, true), 50 + 10001);
+    const TrackingWatch::Transition back = watch.onGaze(gazeAt(50 + 60001, true), 50 + 60001);
     QVERIFY(back.resumed);
     QVERIFY(watch.allowsActivation());
 
     TrackingWatch quiet;
     quiet.noteStreamRunning(0);
     QVERIFY(!quiet.onGaze(gazeAt(0, true), 0).enteredGazeLoss);
-    QVERIFY(!quiet.poll(9999).enteredGazeLoss);
-    QVERIFY(quiet.poll(10000).enteredGazeLoss);
+    QVERIFY(!quiet.poll(59999).enteredGazeLoss);
+    QVERIFY(quiet.poll(60000).enteredGazeLoss);
 }
 
 void TrackingWatchTest::sustainedInvalidAfterLiveGazeNeutralizes()
 {
     TrackingWatch watch;
     watch.setBlinkGraceMs(200);
-    watch.setSustainedInvalidMs(500);
+    watch.setGazeAbsentMs(500);
     watch.noteStreamRunning(0);
     QVERIFY(!watch.onGaze(gazeAt(0, true), 0).enteredGazeLoss);
     QVERIFY(!watch.onGaze(gazeAt(50, false), 50).enteredGazeLoss);
@@ -129,7 +130,7 @@ void TrackingWatchTest::sustainedInvalidAfterLiveGazeNeutralizes()
 void TrackingWatchTest::noCallbacksAfterSampleNeutralizes()
 {
     TrackingWatch watch;
-    watch.setStreamStaleMs(800);
+    watch.setGazeAbsentMs(800);
     watch.noteStreamRunning(0);
     QVERIFY(!watch.onGaze(gazeAt(50, true), 50).enteredGazeLoss);
     QVERIFY(!watch.poll(50 + 799).enteredGazeLoss);
@@ -140,16 +141,36 @@ void TrackingWatchTest::noCallbacksAfterSampleNeutralizes()
     QVERIFY(!watch.poll(50 + 1600).enteredGazeLoss);
 }
 
-void TrackingWatchTest::startupSilenceIsLongerThanAStall()
+void TrackingWatchTest::absenceBeforeFirstSampleUsesGazeAbsent()
 {
     TrackingWatch watch;
     watch.setStreamStaleMs(800);
-    watch.setStartupSilenceMs(3000);
+    watch.setGazeAbsentMs(3000);
     watch.noteStreamRunning(0);
     QVERIFY(!watch.poll(800).enteredGazeLoss);
     const TrackingWatch::Transition lost = watch.poll(3000);
     QVERIFY(lost.enteredGazeLoss);
     QCOMPARE(watch.gazeLossReason(), TrackingWatch::GazeLossReason::NoCallbacks);
+}
+
+void TrackingWatchTest::quietHeadReleasesBeforeGazeAbsence()
+{
+    TrackingWatch watch;
+    watch.noteStreamRunning(0);
+    QVERIFY(!watch.onGaze(gazeAt(100, true), 100).enteredGazeLoss);
+    QVERIFY(!watch.onHead(headAt(100, 1.0), 100).enteredHeadLoss);
+
+    const TrackingWatch::Transition head = watch.poll(100 + TrackingWatch::kDefaultStreamStaleMs);
+    QVERIFY(head.enteredHeadLoss);
+    QVERIFY(!head.enteredGazeLoss);
+    QVERIFY(!watch.blocksBoardGaze());
+    QVERIFY(watch.headHeld());
+
+    const TrackingWatch::Transition gaze = watch.poll(100 + TrackingWatch::kDefaultGazeAbsentMs);
+    QVERIFY(gaze.enteredGazeLoss);
+    QVERIFY(!gaze.enteredHeadLoss);
+    QVERIFY(watch.blocksBoardGaze());
+    QVERIFY(watch.headHeld());
 }
 
 void TrackingWatchTest::disconnectIsImmediate()
@@ -367,19 +388,18 @@ void TrackingWatchTest::pumpNoCallbacksThenDisconnectAndReconnect()
 {
     TobiiPumpHealth pump;
     pump.noteStreamStart(0);
-    QVERIFY(!pump.onWaitTimeout(TrackingWatch::kDefaultStartupSilenceMs - 1).gazeStale);
+    QVERIFY(!pump.onWaitTimeout(TrackingWatch::kDefaultGazeAbsentMs - 1).gazeStale);
 
-    TobiiPumpHealth::Edges startup =
-        pump.onWaitTimeout(TrackingWatch::kDefaultStartupSilenceMs);
+    TobiiPumpHealth::Edges startup = pump.onWaitTimeout(TrackingWatch::kDefaultGazeAbsentMs);
     QVERIFY(startup.gazeStale);
     QVERIFY(!startup.headStale);
-    QVERIFY(!pump.onWaitTimeout(TrackingWatch::kDefaultStartupSilenceMs + 100).gazeStale);
+    QVERIFY(!pump.onWaitTimeout(TrackingWatch::kDefaultGazeAbsentMs + 100).gazeStale);
 
     TobiiPumpHealth live;
     live.noteStreamStart(0);
     live.onGazeCallback(10);
-    QVERIFY(!live.onWaitTimeout(10 + TrackingWatch::kDefaultStreamStaleMs - 1).gazeStale);
-    TobiiPumpHealth::Edges stalled = live.onWaitTimeout(10 + TrackingWatch::kDefaultStreamStaleMs);
+    QVERIFY(!live.onWaitTimeout(10 + TrackingWatch::kDefaultGazeAbsentMs - 1).gazeStale);
+    TobiiPumpHealth::Edges stalled = live.onWaitTimeout(10 + TrackingWatch::kDefaultGazeAbsentMs);
     QVERIFY(stalled.gazeStale);
 
     TobiiPumpHealth drop;
@@ -421,7 +441,12 @@ void TrackingWatchTest::pumpHeadLossWhileGazeContinues()
     both.noteStreamStart(0);
     both.onGazeCallback(100);
     both.onHeadCallback(100);
-    const TobiiPumpHealth::Edges dead = both.onWaitTimeout(100 + TrackingWatch::kDefaultStreamStaleMs);
+    const TobiiPumpHealth::Edges early =
+        both.onWaitTimeout(100 + TrackingWatch::kDefaultStreamStaleMs);
+    QVERIFY(!early.gazeStale);
+    QVERIFY(early.headStale);
+    const TobiiPumpHealth::Edges dead =
+        both.onWaitTimeout(100 + TrackingWatch::kDefaultGazeAbsentMs);
     QVERIFY(dead.gazeStale);
     QVERIFY(!dead.headStale);
 }

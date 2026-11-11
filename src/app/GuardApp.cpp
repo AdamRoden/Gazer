@@ -181,10 +181,6 @@ private:
             return;
         }
 
-        if (spawnIfRelaunchRequested()) {
-            return;
-        }
-
         if (m_state == State::WaitSpawn && m_spawnAt.isValid()
             && m_spawnAt.elapsed() < kSpawnWaitMs) {
             return;
@@ -210,28 +206,11 @@ private:
         spawnHost(false);
     }
 
-    /// One spawn, not a crash. Clears the flag so a later tick does not spawn again.
-    bool spawnIfRelaunchRequested()
-    {
-        const HeartbeatSnapshot snap = m_beat.read();
-        if (!snap.valid || !(snap.flags & HeartbeatFlag::Relaunch)) {
-            return false;
-        }
-        const bool safe = (snap.flags & HeartbeatFlag::RestartSafe) != 0;
-        m_beat.clearRelaunch();
-        GAZER_INFO << "Guard: host requested relaunch";
-        spawnHost(safe);
-        return true;
-    }
-
     void onHung(quint32 pid)
     {
         QString err;
         if (!WinProcess::terminate(pid, &err)) {
             GAZER_WARN << "Guard terminate:" << err;
-        }
-        if (spawnIfRelaunchRequested()) {
-            return;
         }
         noteDeath(pid);
         if (crashLoopTripped(m_deaths, Heartbeat::nowMs())) {

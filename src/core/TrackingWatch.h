@@ -9,20 +9,21 @@ namespace gazer {
 
 /// Distinguishes a blink from a stalled gaze or head stream.
 ///
-/// Invalid gaze that keeps arriving is a blink until `sustainedInvalidMs`.
-/// Invalid head does not refresh the head clock; a brief gap is not a stall,
-/// and a sustained run of invalid head (or no head samples) is.
-/// No gaze samples at all is a stall: `streamStaleMs` after the last sample, or
-/// `startupSilenceMs` if the stream has never delivered one. A disconnect is
-/// immediate. A valid gaze sample clears gaze loss. Head-only loss clears when a
-/// valid head pose returns, so the next stall can neutralize again.
+/// Invalid gaze, a quiet gaze stream, and silence before the first sample all
+/// wait `gazeAbsentMs`. Invalid head does not refresh the head clock; a brief
+/// gap is not a stall, and a sustained run of invalid head (or no head samples)
+/// is its own loss. A disconnect is immediate. A valid gaze sample clears gaze
+/// loss. Head-only loss clears when a valid head pose returns, so the next
+/// stall can neutralize again.
 class TrackingWatch {
 public:
     static constexpr int kDefaultBlinkGraceMs = 200;
+    /// No head samples. Gaze absence uses `kDefaultGazeAbsentMs`.
     static constexpr int kDefaultStreamStaleMs = 10000;
+    /// Invalid head poses. Gaze absence uses `kDefaultGazeAbsentMs`.
     static constexpr int kDefaultSustainedInvalidMs = 10000;
-    /// Silence before the first sample. Same wait as a mid-session stall.
-    static constexpr int kDefaultStartupSilenceMs = 10000;
+    /// Tracker is up and gaze is missing, including before the first sample.
+    static constexpr int kDefaultGazeAbsentMs = 60000;
 
     enum class GazeLossReason { None, NoCallbacks, SustainedInvalid, Disconnected };
 
@@ -35,7 +36,7 @@ public:
     void setBlinkGraceMs(int ms);
     void setStreamStaleMs(int ms);
     void setSustainedInvalidMs(int ms);
-    void setStartupSilenceMs(int ms);
+    void setGazeAbsentMs(int ms);
 
     void noteStreamRunning(qint64 nowMs);
     void noteStreamStopped();
@@ -65,12 +66,12 @@ public:
 private:
     [[nodiscard]] Transition enterGaze(GazeLossReason reason);
     [[nodiscard]] Transition enterHead();
-    void keepSustainedPastBlink();
+    void keepPastBlink(int& ms);
 
     int m_blinkGraceMs = kDefaultBlinkGraceMs;
     int m_streamStaleMs = kDefaultStreamStaleMs;
     int m_sustainedInvalidMs = kDefaultSustainedInvalidMs;
-    int m_startupSilenceMs = kDefaultStartupSilenceMs;
+    int m_gazeAbsentMs = kDefaultGazeAbsentMs;
 
     bool m_running = false;
     qint64 m_streamStartMs = 0;

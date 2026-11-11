@@ -21,9 +21,6 @@ namespace HeartbeatFlag {
 constexpr quint32 CleanShutdown = 1u;
 constexpr quint32 ExclusiveOccluded = 2u;
 constexpr quint32 HostReady = 4u;
-/// Host asked the guard to start a new copy, then exited. Not a crash.
-constexpr quint32 Relaunch = 8u;
-constexpr quint32 RestartSafe = 16u;
 }
 
 /// 3 deaths inside 2 minutes → stop auto-relaunch (crash-loop).
@@ -48,10 +45,6 @@ public:
     /// this process has an open host block. `gazeTickMs` is stored last.
     static void publishGaze(int x, int y, bool valid);
     void setCleanShutdown();
-    /// Ask the guard to spawn a new host. A later pulse does not clear this.
-    /// False when this process has no heartbeat view.
-    [[nodiscard]] bool requestRelaunch(bool safe);
-    void clearRelaunch();
     void setExclusiveOccluded(bool on);
     void setHostReady(bool on);
 
