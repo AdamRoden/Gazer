@@ -189,8 +189,8 @@ void Heartbeat::pulseGui()
         return;
     }
     Block* b = asBlock(m_view);
-    // A pulse after quit must not clear CleanShutdown or look alive to the guard.
-    if (b->flags & HeartbeatFlag::CleanShutdown) {
+    // A pulse after quit or relaunch must not look alive to the guard.
+    if (b->flags & (HeartbeatFlag::CleanShutdown | HeartbeatFlag::Relaunch)) {
         return;
     }
     b->guiTickMs = nowMs();
@@ -230,6 +230,37 @@ void Heartbeat::setCleanShutdown()
     }
     asBlock(m_view)->flags |= HeartbeatFlag::CleanShutdown;
     asBlock(m_view)->flags &= ~HeartbeatFlag::HostReady;
+#endif
+}
+
+bool Heartbeat::requestRelaunch(bool safe)
+{
+#ifdef Q_OS_WIN
+    if (!m_view) {
+        return false;
+    }
+    Block* b = asBlock(m_view);
+    b->flags |= HeartbeatFlag::Relaunch;
+    b->flags &= ~(HeartbeatFlag::HostReady | HeartbeatFlag::CleanShutdown);
+    if (safe) {
+        b->flags |= HeartbeatFlag::RestartSafe;
+    } else {
+        b->flags &= ~HeartbeatFlag::RestartSafe;
+    }
+    return true;
+#else
+    Q_UNUSED(safe);
+    return false;
+#endif
+}
+
+void Heartbeat::clearRelaunch()
+{
+#ifdef Q_OS_WIN
+    if (!m_view) {
+        return;
+    }
+    asBlock(m_view)->flags &= ~(HeartbeatFlag::Relaunch | HeartbeatFlag::RestartSafe);
 #endif
 }
 

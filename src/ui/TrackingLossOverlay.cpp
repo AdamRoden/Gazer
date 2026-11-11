@@ -11,7 +11,6 @@
 namespace gazer {
 
 namespace {
-constexpr int kDwellMs = 900;
 constexpr int kCellW = 220;
 constexpr int kCellH = 120;
 constexpr int kGap = 16;
@@ -26,8 +25,6 @@ TrackingLossOverlay::TrackingLossOverlay(QWidget* parent)
     setAttribute(Qt::WA_TranslucentBackground);
     setAttribute(Qt::WA_ShowWithoutActivating);
     setAttribute(Qt::WA_QuitOnClose, false);
-    m_tick.setInterval(50);
-    connect(&m_tick, &QTimer::timeout, this, &TrackingLossOverlay::tick);
     hide();
 }
 
@@ -41,9 +38,8 @@ TrackingLossOverlay::~TrackingLossOverlay()
 void TrackingLossOverlay::layoutCells()
 {
     m_cells.clear();
-    m_cells.push_back({QStringLiteral("resume"), QStringLiteral("Resume"), {}});
-    m_cells.push_back({QStringLiteral("retry"), QStringLiteral("Retry tracker"), {}});
-    m_cells.push_back({QStringLiteral("mouse"), QStringLiteral("Use mouse"), {}});
+    m_cells.push_back({QStringLiteral("restart"), QStringLiteral("Restart"), {}});
+    m_cells.push_back({QStringLiteral("close"), QStringLiteral("Close Gazer"), {}});
 
     QScreen* screen = QGuiApplication::primaryScreen();
     const QRect desk = screen ? screen->geometry() : QRect(0, 0, 1280, 720);
@@ -63,8 +59,6 @@ void TrackingLossOverlay::showLoss(const QString& status)
 {
     m_status = status;
     if (!isVisible()) {
-        m_hoverId.clear();
-        m_dwell.invalidate();
         m_firing = false;
         layoutCells();
         show();
@@ -73,73 +67,18 @@ void TrackingLossOverlay::showLoss(const QString& status)
             registerOverlayWindow(wh, OverlayLayer::Assist);
         }
         applyOverlayWindowChrome(this, /*overlay=*/true);
-        m_tick.start();
         return;
     }
     update();
-}
-
-void TrackingLossOverlay::setStatus(const QString& status)
-{
-    if (m_status == status) {
-        return;
-    }
-    m_status = status;
-    if (isVisible()) {
-        update();
-    }
 }
 
 void TrackingLossOverlay::hideLoss()
 {
-    m_tick.stop();
-    m_hoverId.clear();
-    m_dwell.invalidate();
-    m_aimValid = false;
+    m_firing = false;
     if (QWindow* wh = windowHandle()) {
         unregisterOverlayWindow(wh);
     }
     hide();
-}
-
-void TrackingLossOverlay::setAimPoint(const QPoint& global, bool valid)
-{
-    m_aim = global;
-    m_aimValid = valid;
-}
-
-void TrackingLossOverlay::tick()
-{
-    if (!m_aimValid) {
-        if (!m_hoverId.isEmpty()) {
-            m_hoverId.clear();
-            m_dwell.invalidate();
-            update();
-        }
-        return;
-    }
-    QString hit;
-    for (const Cell& c : m_cells) {
-        if (c.rect.contains(m_aim)) {
-            hit = c.id;
-            break;
-        }
-    }
-    if (hit != m_hoverId) {
-        m_hoverId = hit;
-        if (hit.isEmpty()) {
-            m_dwell.invalidate();
-        } else {
-            m_dwell.start();
-        }
-        update();
-        return;
-    }
-    if (!hit.isEmpty() && m_dwell.isValid() && m_dwell.elapsed() >= kDwellMs) {
-        m_dwell.invalidate();
-        fire(hit);
-    }
-    update();
 }
 
 void TrackingLossOverlay::fire(const QString& id)
@@ -148,13 +87,10 @@ void TrackingLossOverlay::fire(const QString& id)
         return;
     }
     m_firing = true;
-    m_hoverId.clear();
-    if (id == QLatin1String("resume")) {
-        emit resumeRequested();
-    } else if (id == QLatin1String("retry")) {
-        emit retryRequested();
-    } else if (id == QLatin1String("mouse")) {
-        emit useMouseRequested();
+    if (id == QLatin1String("restart")) {
+        emit restartRequested();
+    } else if (id == QLatin1String("close")) {
+        emit closeRequested();
     }
     m_firing = false;
 }
@@ -187,17 +123,9 @@ void TrackingLossOverlay::paintEvent(QPaintEvent*)
 
     for (const Cell& c : m_cells) {
         const QRect r = c.rect.translated(-pos());
-        const bool hover = c.id == m_hoverId;
         p.setPen(Qt::NoPen);
         p.setBrush(QColor(20, 20, 24, 230));
         p.drawRoundedRect(r, 16, 16);
-        if (hover && m_dwell.isValid()) {
-            const double t = qBound(0.0, double(m_dwell.elapsed()) / double(kDwellMs), 1.0);
-            QRect fill = r.adjusted(8, 8, -8, -8);
-            fill.setWidth(qMax(1, int(fill.width() * t)));
-            p.setBrush(QColor(255, 170, 60, 150));
-            p.drawRoundedRect(fill, 10, 10);
-        }
         p.setPen(Qt::white);
         p.setFont(QFont(QStringLiteral("Segoe UI"), 14, QFont::DemiBold));
         p.drawText(r, Qt::AlignCenter, c.label);

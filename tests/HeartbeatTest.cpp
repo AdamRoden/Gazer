@@ -11,6 +11,7 @@ private slots:
     void crashLoopCountsWindow();
     void hostGuardRoundtrip();
     void cleanShutdownSurvivesPulse();
+    void relaunchSurvivesPulse();
     void publishGazeRoundtrip();
 };
 
@@ -64,6 +65,29 @@ void HeartbeatTest::cleanShutdownSurvivesPulse()
     QVERIFY(s.flags & HeartbeatFlag::CleanShutdown);
     QVERIFY(!(s.flags & HeartbeatFlag::HostReady));
     QCOMPARE(s.guiTickMs, tick);
+#else
+    QSKIP("Windows-only");
+#endif
+}
+
+void HeartbeatTest::relaunchSurvivesPulse()
+{
+#ifdef Q_OS_WIN
+    qputenv("GAZER_HEARTBEAT_MAP", "Local\\GazerHeartbeatTestRelaunch");
+    Heartbeat host;
+    QVERIFY(host.openAsHost());
+    host.pulseGui();
+    QVERIFY(host.requestRelaunch(true));
+    host.pulseGui();
+    const HeartbeatSnapshot s = host.read();
+    QVERIFY(s.flags & HeartbeatFlag::Relaunch);
+    QVERIFY(s.flags & HeartbeatFlag::RestartSafe);
+    QVERIFY(!(s.flags & HeartbeatFlag::HostReady));
+    QVERIFY(!(s.flags & HeartbeatFlag::CleanShutdown));
+    host.clearRelaunch();
+    const HeartbeatSnapshot cleared = host.read();
+    QVERIFY(!(cleared.flags & HeartbeatFlag::Relaunch));
+    QVERIFY(!(cleared.flags & HeartbeatFlag::RestartSafe));
 #else
     QSKIP("Windows-only");
 #endif

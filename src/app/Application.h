@@ -46,6 +46,8 @@ private:
     void syncDwellSuspendOverlay();
 
     void onQuitRequested();
+    void restartGazer();
+    void finishExit();
     void startSplash();
     void onSplashFinished();
     void syncSplashChrome();

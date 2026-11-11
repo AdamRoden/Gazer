@@ -14,16 +14,15 @@ namespace gazer {
 /// and a sustained run of invalid head (or no head samples) is.
 /// No gaze samples at all is a stall: `streamStaleMs` after the last sample, or
 /// `startupSilenceMs` if the stream has never delivered one. A disconnect is
-/// immediate. Gaze loss stays until `resume()`. Head-only loss clears when a
+/// immediate. A valid gaze sample clears gaze loss. Head-only loss clears when a
 /// valid head pose returns, so the next stall can neutralize again.
 class TrackingWatch {
 public:
     static constexpr int kDefaultBlinkGraceMs = 200;
-    static constexpr int kDefaultStreamStaleMs = 800;
-    static constexpr int kDefaultSustainedInvalidMs = 1200;
-    /// Silence before the first sample. Longer than a mid-session stall so
-    /// device startup does not immediately cover the boards.
-    static constexpr int kDefaultStartupSilenceMs = 3000;
+    static constexpr int kDefaultStreamStaleMs = 10000;
+    static constexpr int kDefaultSustainedInvalidMs = 10000;
+    /// Silence before the first sample. Same wait as a mid-session stall.
+    static constexpr int kDefaultStartupSilenceMs = 10000;
 
     enum class GazeLossReason { None, NoCallbacks, SustainedInvalid, Disconnected };
 
@@ -44,27 +43,22 @@ public:
     [[nodiscard]] Transition onGaze(const GazePoint& point, qint64 nowMs);
     [[nodiscard]] Transition onHead(const HeadPose& pose, qint64 nowMs);
     [[nodiscard]] Transition onDisconnect(qint64 nowMs);
-    void onReconnect(qint64 nowMs);
     [[nodiscard]] Transition poll(qint64 nowMs);
     /// Worker already decided the gaze or head stream is stale.
     [[nodiscard]] Transition noteGazeStale(GazeLossReason reason);
     [[nodiscard]] Transition noteHeadStale();
-    /// Remember a failed Retry so the overlay does not stay on "Retrying…".
-    void noteRetryFailed(const QString& reason);
-    void clearRetryFailure();
     [[nodiscard]] Transition resume();
 
     [[nodiscard]] bool blocksBoardGaze() const { return m_gazeHold; }
     [[nodiscard]] bool headHeld() const { return m_headHold; }
     [[nodiscard]] bool lossHold() const { return m_gazeHold || m_headHold; }
     /// False during a gaze hold, or during a head-only hold that has not yet
-    /// seen a valid pose come back. A later gaze sample does not clear gaze loss.
+    /// seen a valid pose come back. A valid gaze sample clears gaze loss.
     [[nodiscard]] bool allowsActivation() const { return !m_gazeHold && !m_headHold; }
     [[nodiscard]] bool hadLiveGaze() const { return m_hadLiveGaze; }
     [[nodiscard]] bool hadLiveHead() const { return m_hadLiveHead; }
     [[nodiscard]] GazeLossReason gazeLossReason() const { return m_gazeReason; }
-    [[nodiscard]] bool reconnectedPendingResume() const { return m_reconnected; }
-    /// The sample that acknowledged Resume must not be dispatched to boards.
+    /// The sample that cleared gaze loss must not be dispatched to boards.
     [[nodiscard]] bool consumeResumeLatch();
     [[nodiscard]] QString statusText() const;
 
@@ -92,12 +86,10 @@ private:
     bool m_hadLiveHead = false;
     bool m_headInvalidOpen = false;
     qint64 m_headInvalidSinceMs = 0;
-    QString m_retryFailure;
 
     bool m_gazeHold = false;
     bool m_headHold = false;
     GazeLossReason m_gazeReason = GazeLossReason::None;
-    bool m_reconnected = false;
     bool m_resumeLatch = false;
 };
 

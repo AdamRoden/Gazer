@@ -45,6 +45,7 @@
 
 #include <QApplication>
 #include <QCoreApplication>
+#include <QProcess>
 #include <QPoint>
 #include <QSysInfo>
 #include <QRect>
@@ -132,18 +133,10 @@ bool Application::initialize()
     connect(m_tray.get(), &TrayIcon::quitRequested, this, &Application::onQuitRequested);
     connect(m_tray.get(), &TrayIcon::retryTrackerRequested, this, &Application::retryEyeTracker);
     connect(m_tray.get(), &TrayIcon::useMouseTrackerRequested, this, &Application::useMouseTracker);
-    connect(m_lossOverlay.get(), &TrackingLossOverlay::resumeRequested, this, [this]() {
-        const TrackingWatch::Transition tr = m_watch.resume();
-        applyTrackingTransition(tr);
-        // Retry-failure board with no gaze/head hold: Resume just dismisses it.
-        if (!tr.resumed && m_lossOverlay && m_lossOverlay->isActive() && !m_watch.lossHold()) {
-            m_lossOverlay->hideLoss();
-        }
-    });
-    connect(m_lossOverlay.get(), &TrackingLossOverlay::retryRequested, this,
-            &Application::retryEyeTracker);
-    connect(m_lossOverlay.get(), &TrackingLossOverlay::useMouseRequested, this,
-            &Application::useMouseTracker);
+    connect(m_lossOverlay.get(), &TrackingLossOverlay::restartRequested, this,
+            &Application::restartGazer);
+    connect(m_lossOverlay.get(), &TrackingLossOverlay::closeRequested, this,
+            &Application::onQuitRequested);
 
     m_svc->commands().registerBuiltin(
         QStringLiteral("openPageEditor"),
@@ -417,28 +410,8 @@ void Application::wireTracker()
         connect(tobii, &TrackerTobii::deviceDisconnected, this, [this]() {
             applyTrackingTransition(m_watch.onDisconnect(watchNow()));
         });
-        connect(tobii, &TrackerTobii::deviceReconnected, this, [this]() {
-            m_watch.onReconnect(watchNow());
-            if (!m_lossOverlay || !m_lossOverlay->isActive()) {
-                return;
-            }
-            if (m_watch.lossHold()) {
-                m_lossOverlay->setStatus(m_watch.statusText());
-            } else {
-                m_lossOverlay->hideLoss();
-            }
-        });
-        connect(tobii, &TrackerTobii::reconnectFailed, this, [this](const QString& reason) {
-            m_watch.noteRetryFailed(reason);
-            if (!m_lossOverlay) {
-                return;
-            }
-            const QString status = m_watch.statusText();
-            if (m_lossOverlay->isActive()) {
-                m_lossOverlay->setStatus(status);
-            } else {
-                m_lossOverlay->showLoss(status);
-            }
+        connect(tobii, &TrackerTobii::reconnectFailed, this, [](const QString& reason) {
+            GAZER_WARN << "Eye tracker retry failed:" << reason;
         });
     }
 
@@ -456,10 +429,7 @@ void Application::onGaze(const gazer::GazePoint& point)
 
     const bool blockedBefore = m_watch.blocksBoardGaze();
     applyTrackingTransition(m_watch.onGaze(point, watchNow()));
-    if (m_lossOverlay && m_lossOverlay->isActive()) {
-        m_lossOverlay->setAimPoint(QPoint(qRound(point.x), qRound(point.y)), point.valid);
-    }
-    // The sample that enters the hold, or the sample that dwells Resume, must
+    // The sample that enters the hold, or the sample that clears it, must
     // not activate a board cell or mapping underneath.
     if (blockedBefore || m_watch.blocksBoardGaze() || m_watch.consumeResumeLatch()) {
         return;
@@ -535,16 +505,11 @@ void Application::applyTrackingTransition(const TrackingWatch::Transition& trans
             m_lossOverlay->hideLoss();
         }
         updateTrayStatus();
-    } else if (m_lossOverlay && m_lossOverlay->isActive()) {
-        m_lossOverlay->setStatus(m_watch.statusText());
     }
 }
 
 void Application::retryEyeTracker()
 {
-    if (m_lossOverlay && m_lossOverlay->isActive()) {
-        m_lossOverlay->setStatus(QStringLiteral("Retrying the eye tracker…"));
-    }
     if (auto* tobii = qobject_cast<TrackerTobii*>(m_tracker.get())) {
         tobii->requestReconnect();
         return;
@@ -570,9 +535,6 @@ void Application::useMouseTracker()
     }
     if (m_watch.lossHold()) {
         applyTrackingTransition(m_watch.resume());
-    } else if (m_lossOverlay) {
-        m_watch.clearRetryFailure();
-        m_lossOverlay->hideLoss();
     }
     updateTrayStatus();
 }
@@ -857,17 +819,47 @@ void Application::rescueReset()
     GAZER_INFO << "rescue.reset";
 }
 
+void Application::finishExit()
+{
+    CrashDump::unregisterRestart();
+    shutdownUi();
+    releaseTracker(m_tracker);
+    QApplication::quit();
+    QTimer::singleShot(500, []() { std::exit(0); });
+}
+
+void Application::restartGazer()
+{
+    GAZER_INFO << "Restart requested";
+    m_pulse.stop();
+    if (guardIsRunning()) {
+        if (!m_heartbeat || !m_heartbeat->requestRelaunch(m_safeMode)) {
+            GAZER_WARN << "Restart could not ask the guard to relaunch";
+            m_pulse.start();
+            return;
+        }
+    } else {
+        QStringList args;
+        if (m_safeMode) {
+            args << QStringLiteral("--safe");
+        }
+        const QString exe = QCoreApplication::applicationFilePath();
+        if (!QProcess::startDetached(exe, args, QCoreApplication::applicationDirPath())) {
+            GAZER_WARN << "Restart failed to start a new process";
+            m_pulse.start();
+            return;
+        }
+    }
+    finishExit();
+}
+
 void Application::onQuitRequested()
 {
     m_pulse.stop();
     if (m_heartbeat) {
         m_heartbeat->setCleanShutdown();
     }
-    CrashDump::unregisterRestart();
-    shutdownUi();
-    releaseTracker(m_tracker);
-    QApplication::quit();
-    QTimer::singleShot(500, []() { std::exit(0); });
+    finishExit();
 }
 
 } // namespace gazer

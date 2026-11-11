@@ -9,4 +9,7 @@ int runGuard(int argc, char** argv);
 /// Start a detached `--guard` if one is not already holding the mutex.
 bool spawnGuardDetached();
 
+/// True when a guard process already holds the mutex.
+bool guardIsRunning();
+
 } // namespace gazer
