@@ -24,6 +24,60 @@ QString trimmedLower(const QString& s)
     return s.trimmed().toLower();
 }
 
+/// @p color drawn over @p behind. A missing or clear color is the backdrop.
+QColor compositeOver(const QColor& color, const QColor& behind)
+{
+    const QColor base = behind.isValid() ? behind : QColor(10, 10, 11);
+    if (!color.isValid() || color.alpha() == 0) {
+        return base;
+    }
+    if (color.alpha() >= 255) {
+        return color;
+    }
+    QColor src = color;
+    src.setAlpha(255);
+    return ThemeColors::mix(base, src, color.alpha() / 255.0);
+}
+
+/// Nearest HSL lightness whose relative luminance matches @p target. Hue,
+/// saturation, and alpha stay.
+QColor recolorToLuminance(const QColor& color, double target)
+{
+    const QColor src = color.isValid() ? color : QColor(0, 0, 0);
+    int h = 0;
+    int s = 0;
+    int a = 255;
+    int ignored = 0;
+    src.getHsl(&h, &s, &ignored, &a);
+    if (h < 0) {
+        h = 0;
+    }
+    auto at = [&](int lightness) {
+        QColor out = QColor::fromHsl(h, s, qBound(0, lightness, 255), a);
+        out.setAlpha(a);
+        return out;
+    };
+    int lo = 0;
+    int hi = 255;
+    while (lo < hi) {
+        const int mid = (lo + hi) / 2;
+        if (ThemeColors::relativeLuminance(at(mid)) < target) {
+            lo = mid + 1;
+        } else {
+            hi = mid;
+        }
+    }
+    int best = lo;
+    if (lo > 0) {
+        const double atLo = std::abs(ThemeColors::relativeLuminance(at(lo)) - target);
+        const double atPrev = std::abs(ThemeColors::relativeLuminance(at(lo - 1)) - target);
+        if (atPrev < atLo) {
+            best = lo - 1;
+        }
+    }
+    return at(best);
+}
+
 } // namespace
 
 int ThemeColors::toneIndex(int weight)
@@ -217,14 +271,7 @@ QColor ThemeColors::readableForeground(const QColor& fill, const QString& author
                                        const QColor& canvas) const
 {
     const QColor behind = canvas.isValid() ? canvas : (bgMain.isValid() ? bgMain : QColor(10, 10, 11));
-    QColor surface = fill;
-    if (!surface.isValid() || surface.alpha() == 0) {
-        surface = behind;
-    } else if (surface.alpha() < 255) {
-        QColor over = surface;
-        over.setAlpha(255);
-        surface = mix(behind, over, fill.alpha() / 255.0);
-    }
+    const QColor surface = compositeOver(fill, behind);
     const QColor judged = shadeTowardBlack(surface, kFgHoldSteps, kFgHoldFromTone);
     auto pick = [&](const QColor& preferred) {
         if (preferred.isValid() && contrastRatio(preferred, judged) >= kReadableContrast) {
@@ -368,21 +415,73 @@ QColor ThemeColors::contrastOn(const QColor& fill)
     return contrastRatio(lightInk, judged) >= contrastRatio(darkInk, judged) ? lightInk : darkInk;
 }
 
-double ThemeColors::contrastRatio(const QColor& a, const QColor& b)
+double ThemeColors::relativeLuminance(const QColor& c)
 {
     auto lin = [](int ch) {
         const double s = ch / 255.0;
         return s <= 0.04045 ? s / 12.92 : std::pow((s + 0.055) / 1.055, 2.4);
     };
-    auto lum = [&](const QColor& c) {
-        const QColor x = c.isValid() ? c : QColor(0, 0, 0);
-        return 0.2126 * lin(x.red()) + 0.7152 * lin(x.green()) + 0.0722 * lin(x.blue());
-    };
-    const double l1 = lum(a);
-    const double l2 = lum(b);
+    const QColor x = c.isValid() ? c : QColor(0, 0, 0);
+    return 0.2126 * lin(x.red()) + 0.7152 * lin(x.green()) + 0.0722 * lin(x.blue());
+}
+
+double ThemeColors::contrastRatio(const QColor& a, const QColor& b)
+{
+    const double l1 = relativeLuminance(a);
+    const double l2 = relativeLuminance(b);
     const double hi = l1 > l2 ? l1 : l2;
     const double lo = l1 > l2 ? l2 : l1;
     return (hi + 0.05) / (lo + 0.05);
+}
+
+double ThemeColors::hslDistance(const QColor& a, const QColor& b)
+{
+    auto parts = [](const QColor& c, int* h, int* s, int* l) {
+        const QColor x = c.isValid() ? c : QColor(0, 0, 0);
+        int alpha = 255;
+        x.getHsl(h, s, l, &alpha);
+    };
+    int h1 = 0;
+    int s1 = 0;
+    int l1 = 0;
+    int h2 = 0;
+    int s2 = 0;
+    int l2 = 0;
+    parts(a, &h1, &s1, &l1);
+    parts(b, &h2, &s2, &l2);
+    const double ds = qAbs(s1 - s2) / 255.0;
+    const double dl = qAbs(l1 - l2) / 255.0;
+    double dh = 0.0;
+    if (h1 >= 0 && h2 >= 0 && s1 > 0 && s2 > 0) {
+        int arc = qAbs(h1 - h2);
+        if (arc > 180) {
+            arc = 360 - arc;
+        }
+        dh = (arc / 180.0) * (qMin(s1, s2) / 255.0);
+    }
+    return dh + ds + dl;
+}
+
+QColor ThemeColors::progressOnFill(const QColor& fill, const QColor& progress,
+                                   const QColor& foreground, const QColor& canvas)
+{
+    if (!progress.isValid()) {
+        return progress;
+    }
+    const QColor surface = compositeOver(fill, canvas);
+    const double distance = hslDistance(progress, surface);
+    if (distance >= kProgressHslDistance) {
+        return progress;
+    }
+    const QColor ink = foreground.isValid() ? compositeOver(foreground, surface) : contrastOn(surface);
+    const double from = relativeLuminance(progress);
+    const double toward = relativeLuminance(ink);
+    if (std::abs(toward - from) < 1e-4) {
+        return progress;
+    }
+    const double closeness = 1.0 - distance / kProgressHslDistance;
+    const double target = from + kProgressLuminanceShift * closeness * (toward - from);
+    return recolorToLuminance(progress, target);
 }
 
 QColor ThemeColors::mix(const QColor& a, const QColor& b, double t)

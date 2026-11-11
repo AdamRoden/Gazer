@@ -661,15 +661,19 @@ void paintThemeCard(QPainter& p, const PageTarget& t, const QRectF& r, const The
 
     if (progress > 0.0 && t.interactive) {
         const PageBox radii = t.chrome.resolvedRadius();
-        ProgressVisuals vis;
-        vis.progressColor = accent;
-        paintProgress(p, r, progress, vis, ProgressShape::RoundedRect, radii);
+        const QColor buttonFill =
+            theme.resolveFill(chrome.background.token, canvas, hovered, active);
+        const QColor ink = ThemeColors::contrastOn(window);
+        ProgressVisuals ring;
+        ring.progressColor = accent;
+        paintProgress(p, r, progress, ring.onFill(buttonFill, ink, canvas),
+                      ProgressShape::RoundedRect, radii);
     }
 }
 
 void paintColorSwatch(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeColors& theme,
                       const QColor& canvas, bool hovered, double progress, bool active,
-                      bool roundedRect)
+                      const ProgressVisuals& pv, const QColor& fg, bool roundedRect)
 {
     const QColor fill = theme.resolveToken(t.chrome.background.token, canvas).value_or(theme.accent);
     if (!fill.isValid() || r.isEmpty()) {
@@ -692,16 +696,14 @@ void paintColorSwatch(QPainter& p, const PageTarget& t, const QRectF& r, const T
     if (well.isEmpty()) {
         return;
     }
-    const QColor ink = theme.text.isValid() ? theme.text : ThemeColors::contrastOn(fill);
+    const QColor ink = fg.isValid() ? fg : ThemeColors::contrastOn(fill);
     const double ringW = active ? qBound(2.0, rad * 0.35, 3.2) : (hovered ? 1.5 : 1.0);
     const QColor ring = active ? ink : ThemeColors::mix(fill, ink, 0.22);
     fillRound(p, well, rad, fill);
     strokeRound(p, well, rad, ring, ringW);
     if (progress > 0.0 && t.interactive) {
-        ProgressVisuals vis;
-        vis.progressColor = theme.accent.isValid() ? theme.accent : ink;
-        paintProgress(p, well.adjusted(-3.0, -3.0, 3.0, 3.0), progress, vis, shape,
-                      PageBox::all(rad));
+        paintProgress(p, well.adjusted(-3.0, -3.0, 3.0, 3.0), progress,
+                      pv.onFill(fill, ink, canvas), shape, PageBox::all(rad));
     }
 }
 
@@ -824,7 +826,7 @@ void paintTarget(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeC
         paintLabel(p, t, r, theme, canvas);
     } else if (role == QLatin1String("swatch") || role == QLatin1String("swatchrect")) {
         const bool on = active && !t.activeState.isEmpty();
-        paintColorSwatch(p, t, r, theme, canvas, hovered, progress, on,
+        paintColorSwatch(p, t, r, theme, canvas, hovered, progress, on, vis, fg,
                          role == QLatin1String("swatchrect"));
     } else {
         const bool on = active && !t.activeState.isEmpty();
@@ -837,8 +839,11 @@ void paintTarget(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeC
         } else {
             paintSurface(p, r, t.chrome, theme, glass, false, hovered, on, t.interactive, canvas);
             if (progress > 0.0 && t.interactive) {
-                paintProgress(p, r, progress, vis.withItemFlash(fg), ProgressShape::RoundedRect,
-                              radii);
+                const QColor buttonFill = theme.resolveFill(t.chrome.background.token, canvas,
+                                                           hovered && t.interactive, on);
+                paintProgress(p, r, progress,
+                              vis.onFill(buttonFill, fg, canvas).withItemFlash(fg),
+                              ProgressShape::RoundedRect, radii);
             }
             if (toggle) {
                 const ToggleGeom geom = toggleGeom(r);

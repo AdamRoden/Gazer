@@ -137,11 +137,27 @@ struct ThemeColors {
 
     /// Readable text color for a fill (light ink held two 10-weight stops past mid).
     [[nodiscard]] static QColor contrastOn(const QColor& fill);
+    /// WCAG relative luminance (0–1). Alpha is ignored.
+    [[nodiscard]] static double relativeLuminance(const QColor& c);
     /// WCAG contrast ratio of two opaque colors (1–21).
     [[nodiscard]] static double contrastRatio(const QColor& a, const QColor& b);
+    /// Sum of normalized HSL gaps (0–3). Hue is the shortest arc / 180°, times the
+    /// lower saturation so a gray has no hue. Saturation and lightness are |Δ| / 255.
+    [[nodiscard]] static double hslDistance(const QColor& a, const QColor& b);
     /// Channel-wise mix. Invalid colors fall back to dark gray / the other side.
     [[nodiscard]] static QColor mix(const QColor& a, const QColor& b, double t);
+    /// When the HSL distance from @p progress to @p fill is below
+    /// @ref kProgressHslDistance, move its luminance toward @p foreground.
+    /// A sum of 0 shifts by @ref kProgressLuminanceShift; the shift falls
+    /// linearly to 0 at the distance limit. Alpha stays. A larger gap is
+    /// returned unchanged. Translucent @p fill is judged over @p canvas.
+    [[nodiscard]] static QColor progressOnFill(const QColor& fill, const QColor& progress,
+                                               const QColor& foreground, const QColor& canvas);
     static constexpr double kReadableContrast = 4.5;
+    /// Progress shifts when hue, saturation, and lightness together are this close.
+    static constexpr double kProgressHslDistance = 0.60;
+    /// Luminance shift at an HSL sum of 0. Scales down to 0 at @ref kProgressHslDistance.
+    static constexpr double kProgressLuminanceShift = 0.8;
 };
 
 constexpr int kThemeSaturationLevels = 5;

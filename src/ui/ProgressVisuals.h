@@ -51,6 +51,17 @@ struct ProgressVisuals {
         return v;
     }
 
+    /// Shift progress and fill toward @p foreground when each is close to @p fill
+    /// in HSL. @p canvas is the page behind a translucent fill.
+    [[nodiscard]] ProgressVisuals onFill(const QColor& fill, const QColor& foreground,
+                                        const QColor& canvas) const
+    {
+        ProgressVisuals v = *this;
+        v.progressColor = ThemeColors::progressOnFill(fill, v.progressColor, foreground, canvas);
+        v.fillColor = ThemeColors::progressOnFill(fill, v.fillColor, foreground, canvas);
+        return v;
+    }
+
     void applyStyle(const ProgressStyle& s) { style = s; }
 
     void setStylesFromCsv(const QString& csv) { style = ProgressStyle::fromCsv(csv); }
