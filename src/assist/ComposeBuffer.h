@@ -58,6 +58,9 @@ public:
     /// Place the caret at the start (`true`) or end of token `index`.
     void moveCaretToTokenEdge(int index, bool atStart);
     void moveCaretToVisibleWordEdge(int slot, bool atStart);
+    /// Select token `index`. The caret stays at the start of that word. No undo step.
+    void selectToken(int index);
+    void selectVisibleWord(int slot);
 
     bool undo();
     bool redo();

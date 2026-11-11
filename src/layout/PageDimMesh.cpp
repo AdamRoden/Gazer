@@ -244,7 +244,52 @@ int trackIndexAt(const QVector<double>& sizes, int gap, double local)
     return false;
 }
 
+QString formatWeight(double v)
+{
+    const qint64 whole = qRound64(v);
+    if (qAbs(v - double(whole)) < 1e-6) {
+        return QString::number(whole);
+    }
+    return QString::number(v, 'g', 12);
+}
+
 } // namespace
+
+std::optional<StarBand> starBandBeforeRow(const PageGrid& grid, int row)
+{
+    const int rows = qMax(1, grid.rows);
+    if (row < 0 || row >= rows) {
+        return std::nullopt;
+    }
+    const QVector<PageTrackSize> tracks = padTracks(grid.rowTracks, rows);
+    double before = 0.0;
+    double total = 0.0;
+    for (int i = 0; i < rows; ++i) {
+        if (!tracks[i].isStar()) {
+            return std::nullopt;
+        }
+        total += tracks[i].star;
+        if (i < row) {
+            before += tracks[i].star;
+        }
+    }
+    if (total <= 0.0) {
+        return std::nullopt;
+    }
+    const int margin = qMax(0, grid.marginPx);
+    const int gap = qMax(0, grid.gapPx);
+    const int trim = 2 * margin + gap * (rows - 1);
+    const int pad = margin + gap * row;
+    StarBand band;
+    band.partsBefore = before;
+    band.parts = total;
+    band.topExpr = QStringLiteral("(A_ScreenHeight-%1)*%2/%3+%4")
+                       .arg(trim)
+                       .arg(formatWeight(before))
+                       .arg(formatWeight(total))
+                       .arg(pad);
+    return band;
+}
 
 ScrollMetrics scrollMetrics(const PageGrid& grid, const QRectF& slot, const QSizeF& screen)
 {

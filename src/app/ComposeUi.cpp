@@ -455,6 +455,12 @@ void ComposeUi::moveStartOfWord(int slot)
     refresh();
 }
 
+void ComposeUi::selectWord(int slot)
+{
+    m_buffer.selectVisibleWord(slot);
+    refresh();
+}
+
 void ComposeUi::selectAll()
 {
     if (capturingPhrase()) {

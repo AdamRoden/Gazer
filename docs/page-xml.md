@@ -444,12 +444,13 @@ Each `<Phase>` takes the same action attribute or child actions as a cell.
 
 ```xml
 <Cell id="chip_0" row="0" col="0">
+  <Phase command="compose.moveStartOfWord.0"/>
+  <Phase command="compose.selectWord.0"/>
   <Phase command="compose.moveEndOfWord.0"/>
-  <Phase command="compose.removeWord.0"/>
 </Cell>
 ```
 
-Composer word chips use this: first dwell moves the caret to the word; a later dwell deletes it.
+Composer word chips use this cycle: the first dwell puts the caret at the start of the word, the next selects the word, and the next clears the selection and puts the caret at the end. The last phase wraps back to the first.
 
 ---
 

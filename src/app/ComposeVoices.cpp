@@ -8,6 +8,7 @@
 #include "assist/SpeechEngine.h"
 #include "assist/SpeechSecrets.h"
 #include "assist/TtsService.h"
+#include "layout/PageDim.h"
 #include "layout/PageSession.h"
 #include "ui/Theme.h"
 
@@ -24,6 +25,44 @@ using compose_detail::kOverlayListRows;
 using compose_detail::overlayBody;
 using compose_detail::overlayList;
 using compose_detail::overlayScrollbar;
+
+namespace {
+
+/// Model row and filter row. Each keeps one star part, matching the full list.
+constexpr int kVoiceChromeRows = 2;
+
+struct VoiceSearchLayout {
+    int listRows = kOverlayListRows;
+    QString height = QStringLiteral("A_ScreenHeight");
+};
+
+VoiceSearchLayout voiceSearchLayout(const PageDocument& authored)
+{
+    VoiceSearchLayout full;
+    if (authored.grids.isEmpty()) {
+        return full;
+    }
+    const PageGrid* keys = authored.findGrid(QStringLiteral("keys"));
+    if (!keys) {
+        return full;
+    }
+    const std::optional<PageDimParse::StarBand> band =
+        PageDimParse::starBandBeforeRow(authored.grids[0], keys->row);
+    if (!band) {
+        return full;
+    }
+    const double body = band->partsBefore - kVoiceChromeRows;
+    const int rows = qRound(body);
+    if (rows < 1 || qAbs(body - rows) > 1e-6) {
+        return full;
+    }
+    VoiceSearchLayout search;
+    search.listRows = rows;
+    search.height = band->topExpr;
+    return search;
+}
+
+} // namespace
 
 bool ComposeUi::openVoices(QString* error)
 {
@@ -301,9 +340,15 @@ PageDocument ComposeUi::buildVoicesDocument()
     doc.id = QString(kVoicesLiveId);
     doc.name = QStringLiteral("Voices");
     const ThemeColors theme = m_settings.resolvedTheme();
-    const QString height = m_voiceSearch ? QStringLiteral("A_ScreenHeight/12*5+8")
-                                         : QStringLiteral("A_ScreenHeight");
-    initTopOverlay(doc, 10, 3, {1.0, 1.0, 10.0}, 8, 16, theme, height, speakBoardWidth());
+    int listRows = kOverlayListRows;
+    QString height = QStringLiteral("A_ScreenHeight");
+    if (m_voiceSearch) {
+        const VoiceSearchLayout search = voiceSearchLayout(m_composeAuthored);
+        listRows = search.listRows;
+        height = search.height;
+    }
+    const QVector<double> rowWeights{1.0, 1.0, double(listRows)};
+    initTopOverlay(doc, 10, 3, rowWeights, 8, 16, theme, height, speakBoardWidth());
     PageGrid& grid = doc.grids[0];
     const QColor key = theme.defaultCell();
     const QColor accent = theme.accent.isValid() ? theme.accent : QColor(80, 160, 220);
@@ -388,12 +433,12 @@ PageDocument ComposeUi::buildVoicesDocument()
             rows.push_back(QString());
         }
         rows += codes;
-        const int maxOffset = qMax(0, rows.size() - kOverlayListRows);
+        const int maxOffset = qMax(0, rows.size() - listRows);
         m_voicePage = qBound(0, m_voicePage, maxOffset);
         const int start = m_voicePage;
         PageGrid body = overlayBody(2, 10);
-        PageGrid list = overlayList(7);
-        for (int i = 0; i < kOverlayListRows; ++i) {
+        PageGrid list = overlayList(7, listRows);
+        for (int i = 0; i < listRows; ++i) {
             const int idx = start + i;
             list.cells.push_back(cell(QStringLiteral("f_%1").arg(i), {}, i, 0, {}, value, 1,
                                       QStringLiteral("label")));
@@ -414,7 +459,7 @@ PageDocument ComposeUi::buildVoicesDocument()
                                       QStringLiteral("label")));
         }
         body.subGrids.push_back(std::move(list));
-        body.subGrids.push_back(overlayScrollbar(start, kOverlayListRows, rows.size(), key,
+        body.subGrids.push_back(overlayScrollbar(start, listRows, rows.size(), key,
                                                 QStringLiteral("speech.voiceList.prev"),
                                                 QStringLiteral("speech.voiceList.next")));
         grid.subGrids.push_back(std::move(body));
@@ -422,7 +467,7 @@ PageDocument ComposeUi::buildVoicesDocument()
     }
 
     const auto filtered = filteredVoices();
-    const int maxOffset = qMax(0, filtered.size() - kOverlayListRows);
+    const int maxOffset = qMax(0, filtered.size() - listRows);
     m_voicePage = qBound(0, m_voicePage, maxOffset);
     const int start = m_voicePage;
     QString caption;
@@ -436,7 +481,7 @@ PageDocument ComposeUi::buildVoicesDocument()
     } else {
         caption = QStringLiteral("%1–%2 of %3")
                       .arg(start + 1)
-                      .arg(qMin(start + kOverlayListRows, filtered.size()))
+                      .arg(qMin(start + listRows, filtered.size()))
                       .arg(filtered.size());
     }
     for (PageCell& c : grid.cells) {
@@ -447,8 +492,8 @@ PageDocument ComposeUi::buildVoicesDocument()
     }
 
     PageGrid body = overlayBody(2, 10);
-    PageGrid list = overlayList(7);
-    for (int i = 0; i < kOverlayListRows; ++i) {
+    PageGrid list = overlayList(7, listRows);
+    for (int i = 0; i < listRows; ++i) {
         const int idx = start + i;
         if (idx >= filtered.size()) {
             list.cells.push_back(cell(QStringLiteral("f_%1").arg(i), {}, i, 0, {}, value, 1,
@@ -487,7 +532,7 @@ PageDocument ComposeUi::buildVoicesDocument()
                                   {}, {}, QStringLiteral("recordVoiceOver")));
     }
     body.subGrids.push_back(std::move(list));
-    body.subGrids.push_back(overlayScrollbar(start, kOverlayListRows, filtered.size(), key,
+    body.subGrids.push_back(overlayScrollbar(start, listRows, filtered.size(), key,
                                             QStringLiteral("speech.voiceList.prev"),
                                             QStringLiteral("speech.voiceList.next")));
     grid.subGrids.push_back(std::move(body));

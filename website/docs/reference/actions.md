@@ -409,12 +409,13 @@ Dwell: **standard**.
 </Cell>
 
 <Cell id="chip_0" row="0" col="0">
+  <Phase command="compose.moveStartOfWord.0"/>
+  <Phase command="compose.selectWord.0"/>
   <Phase command="compose.moveEndOfWord.0"/>
-  <Phase command="compose.removeWord.0"/>
 </Cell>
 ```
 
-Composer word chips use phases: first dwell moves the caret to that word; a later dwell deletes it. After an activation, progress holds full through scan grace before the next step clocks.
+Composer word chips use phases: the first dwell puts the caret at the start of that word, the next selects the word, and the next clears the selection and puts the caret at the end. The last phase wraps back to the first. After an activation, progress holds full through scan grace before the next step clocks.
 
 ---
 

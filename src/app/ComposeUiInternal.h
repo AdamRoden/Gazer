@@ -46,7 +46,7 @@ inline PageGrid overlayBody(int row, int colSpan = 8)
     return body;
 }
 
-inline PageGrid overlayList(int columns)
+inline PageGrid overlayList(int columns, int rows = kOverlayListRows)
 {
     PageGrid list;
     list.id = QStringLiteral("list");
@@ -54,7 +54,7 @@ inline PageGrid overlayList(int columns)
     list.row = 0;
     list.col = 0;
     list.colSpan = kOverlayListColSpan;
-    list.rows = kOverlayListRows;
+    list.rows = rows;
     list.columns = columns;
     list.gapPx = 8;
     return list;

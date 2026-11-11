@@ -18,6 +18,7 @@ private slots:
     void placeRectHeightSquareAtPoint();
     void trackStarAndPixels();
     void trackListClampCsv();
+    void starBandBeforeKeyboardRow();
 };
 
 void PageDimTest::dimPixelsVsProportion()
@@ -203,6 +204,24 @@ void PageDimTest::trackListClampCsv()
     QCOMPARE(tracks[2].star, 2.0);
     QCOMPARE(tracks[3].dim.unit, PageDim::Unit::Expression);
     QCOMPARE(PageDimParse::tokenList(tracks), QStringLiteral("80,*,2*,clamp(40, 20, 80)"));
+}
+
+void PageDimTest::starBandBeforeKeyboardRow()
+{
+    PageGrid board;
+    board.rows = 4;
+    board.marginPx = 16;
+    board.gapPx = 8;
+    board.rowTracks = starTracks({1.0, 3.0, 4.0, 4.0});
+    const std::optional<PageDimParse::StarBand> band = PageDimParse::starBandBeforeRow(board, 3);
+    QVERIFY(band);
+    QCOMPARE(band->partsBefore, 8.0);
+    QCOMPARE(band->parts, 12.0);
+    QCOMPARE(band->topExpr, QStringLiteral("(A_ScreenHeight-56)*8/12+40"));
+
+    board.rowTracks[2] = PageTrackSize::fromDim(PageDim::pixels(80));
+    QVERIFY(!PageDimParse::starBandBeforeRow(board, 3));
+    QVERIFY(!PageDimParse::starBandBeforeRow(board, 4));
 }
 
 QObject* createPageDimTest()

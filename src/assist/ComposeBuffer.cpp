@@ -235,6 +235,26 @@ void ComposeBuffer::moveCaretToVisibleWordEdge(int slot, bool atStart)
     moveCaretToTokenEdge(tokenIndexForVisibleSlot(slot), atStart);
 }
 
+void ComposeBuffer::selectToken(int index)
+{
+    const QVector<Token> toks = tokens();
+    if (index < 0 || index >= toks.size()) {
+        return;
+    }
+    const Token& t = toks[index];
+    if (t.end <= t.start) {
+        return;
+    }
+    m_selA = t.start;
+    m_selB = t.end;
+    m_caret = t.start;
+}
+
+void ComposeBuffer::selectVisibleWord(int slot)
+{
+    selectToken(tokenIndexForVisibleSlot(slot));
+}
+
 bool ComposeBuffer::undo()
 {
     if (m_undo.isEmpty()) {

@@ -108,6 +108,7 @@ public:
     void acceptPrediction(int slot);
     void moveEndOfWord(int slot);
     void moveStartOfWord(int slot);
+    void selectWord(int slot);
     void refresh();
     void refreshLiveBoards();
     /// Refresh the open Speak board after settings change.

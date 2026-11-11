@@ -117,7 +117,8 @@ When adding a command: register it and add a row here.
 | `compose.pageChips.<n>` | Prefix; move the word window by `n` tokens (the chips use ±5) |
 | `compose.selectAll` / `compose.cut` / `compose.copy` / `compose.paste` | Phrase selection and the clipboard. Copy uses the selection, or the whole phrase when nothing is selected. Cut needs a selection |
 | `compose.acceptPrediction.<i>` | Prefix; dwell suggestion `i` above the phrase. Replaces the word being typed, or inserts the next word |
-| `compose.moveEndOfWord.<i>` / `compose.moveStartOfWord.<i>` | Prefix; caret to that chip’s word edge |
+| `compose.moveEndOfWord.<i>` / `compose.moveStartOfWord.<i>` | Prefix; caret to that chip’s word edge. Either move clears a selection |
+| `compose.selectWord.<i>` | Prefix; select that chip’s word. The caret stays at the start of the word |
 | `compose.openVoices` / `compose.openHistory` | Voice list (model, speed, pitch, search, language); history |
 | `compose.applyStyle.<name>` / `compose.clearStyle` | Standing ElevenLabs style. `name` is the percent-encoded display name. Empty clears it. The tag is added on the Eleven request only |
 | `compose.openStyleEditor` / `compose.closeStyleEditor` | Style list editor: every style, with star and trash. Done returns to the favorite picker |
@@ -161,7 +162,7 @@ When adding a command: register it and add a row here.
 | `speech.voiceList.next` / `.prev` / `.goto.<n>` | Voice list: after the lock-on ring, looking along the track drags the thumb; commands still page/jump |
 | `speech.gender.all` / `.female` / `.male` | Voice filter |
 | `speech.lang.all` / `speech.lang.set.<code>` / `speech.lang.browse` | Language filter. Browse replaces the voice list with every language |
-| `speech.voiceSearch` | Type a voice name on the Speak keyboard. The list shrinks so the keys stay visible |
+| `speech.voiceSearch` | Type a voice name on the Speak keyboard. The list covers the phrase and word chips and shows six rows at the full row height, leaving the keys visible |
 | `speech.speed.dec` / `.inc` | Nudge `speechSpeed` 0.1 |
 | `speech.pitch.dec` / `.inc` | Nudge `speechPitch` 0.1 (0.5–2, ElevenLabs only) |
 | `speech.volume.dec` / `.inc` | Nudge `speechVolume` 0.5 (1–5× clip boost). The voice list uses these |

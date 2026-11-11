@@ -23,6 +23,7 @@ private slots:
     void loadReplacesAndDropsHistory();
     void setCaretDoesNotPushUndo();
     void moveCaretToTokenEdge();
+    void selectVisibleWord();
     void replaceRangeIsOneUndoStep();
 };
 
@@ -272,6 +273,51 @@ void ComposeBufferTest::moveCaretToTokenEdge()
     QCOMPARE(b.caret(), 0);
     b.moveCaretToVisibleWordEdge(1, false);
     QCOMPARE(b.caret(), 11);
+}
+
+void ComposeBufferTest::selectVisibleWord()
+{
+    ComposeBuffer b;
+    b.insert(QStringLiteral("hello world"));
+    b.selectVisibleWord(0);
+    QVERIFY(b.hasSelection());
+    QCOMPARE(b.selectedText(), QStringLiteral("hello"));
+    QCOMPARE(b.selectionStart(), 0);
+    QCOMPARE(b.selectionEnd(), 5);
+    QCOMPARE(b.caret(), 0);
+    b.moveCaretToVisibleWordEdge(0, true);
+    QVERIFY(!b.hasSelection());
+    QCOMPARE(b.caret(), 0);
+
+    b.selectVisibleWord(1);
+    QCOMPARE(b.selectedText(), QStringLiteral("world"));
+    QCOMPARE(b.selectionStart(), 6);
+    QCOMPARE(b.selectionEnd(), 11);
+    QCOMPARE(b.caret(), 6);
+    b.selectVisibleWord(99);
+    QCOMPARE(b.selectedText(), QStringLiteral("world"));
+    b.backspace();
+    QCOMPARE(b.text(), QStringLiteral("hello "));
+    QVERIFY(!b.hasSelection());
+
+    ComposeBuffer plain;
+    plain.insert(QStringLiteral("hello world"));
+    plain.selectVisibleWord(0);
+    QVERIFY(plain.undo());
+    QCOMPARE(plain.text(), QString());
+    QVERIFY(!plain.canUndo());
+
+    ComposeBuffer paged;
+    paged.setNowMsForTest(0);
+    for (int i = 0; i < 15; ++i) {
+        paged.setNowMsForTest(i * (ComposeBuffer::kCoalesceMs + 1));
+        paged.insertPadded(QString::number(i));
+    }
+    paged.selectVisibleWord(0);
+    QVERIFY(!paged.hasSelection());
+    paged.selectVisibleWord(1);
+    QCOMPARE(paged.selectedText(), QStringLiteral("5"));
+    QCOMPARE(paged.caret(), paged.selectionStart());
 }
 
 QObject* createComposeBufferTest()

@@ -11,7 +11,7 @@
     <SubGrid id="soundboard" row="1" col="0" rows="3" columns="4" gap="8" margin="8" style="group" layers="1,2,3,4,5,6,7">
       <Cell id="sb_placeholder" row="0" col="0" colSpan="4" role="label"/>
     </SubGrid>
-    <SubGrid id="compose" row="2" col="0" rows="3" columns="3" rowHeights="1.1*,2*,1.35*" columnWidths="1*,14*,1*" gap="8" margin="4" layers="1,2,3,4,5,6,7">
+    <SubGrid id="compose" row="2" col="0" rows="3" columns="3" rowHeights="1.1*,2*,1.1*" columnWidths="1*,14*,1*" gap="8" margin="4" layers="1,2,3,4,5,6,7">
       <SubGrid id="predict" row="0" col="0" colSpan="3" rows="1" columns="1" gap="6" margin="0" layers="1,2,3,4,5,6,7">
         <Cell id="pred_0" row="0" col="0" role="label"/>
       </SubGrid>
@@ -23,52 +23,64 @@
       </SubGrid>
       <SubGrid id="chips" row="2" col="0" colSpan="3" rows="1" columns="13" gap="6" margin="4" layers="1,2,3,4,5,6,7">
         <Cell id="chip_0" row="0" col="0">
+          <Phase command="compose.moveStartOfWord.0"/>
+          <Phase command="compose.selectWord.0"/>
           <Phase command="compose.moveEndOfWord.0"/>
-          <Phase command="compose.removeWord.0"/>
         </Cell>
         <Cell id="chip_1" row="0" col="1">
+          <Phase command="compose.moveStartOfWord.1"/>
+          <Phase command="compose.selectWord.1"/>
           <Phase command="compose.moveEndOfWord.1"/>
-          <Phase command="compose.removeWord.1"/>
         </Cell>
         <Cell id="chip_2" row="0" col="2">
+          <Phase command="compose.moveStartOfWord.2"/>
+          <Phase command="compose.selectWord.2"/>
           <Phase command="compose.moveEndOfWord.2"/>
-          <Phase command="compose.removeWord.2"/>
         </Cell>
         <Cell id="chip_3" row="0" col="3">
+          <Phase command="compose.moveStartOfWord.3"/>
+          <Phase command="compose.selectWord.3"/>
           <Phase command="compose.moveEndOfWord.3"/>
-          <Phase command="compose.removeWord.3"/>
         </Cell>
         <Cell id="chip_4" row="0" col="4">
+          <Phase command="compose.moveStartOfWord.4"/>
+          <Phase command="compose.selectWord.4"/>
           <Phase command="compose.moveEndOfWord.4"/>
-          <Phase command="compose.removeWord.4"/>
         </Cell>
         <Cell id="chip_5" row="0" col="5">
+          <Phase command="compose.moveStartOfWord.5"/>
+          <Phase command="compose.selectWord.5"/>
           <Phase command="compose.moveEndOfWord.5"/>
-          <Phase command="compose.removeWord.5"/>
         </Cell>
         <Cell id="chip_6" row="0" col="6">
+          <Phase command="compose.moveStartOfWord.6"/>
+          <Phase command="compose.selectWord.6"/>
           <Phase command="compose.moveEndOfWord.6"/>
-          <Phase command="compose.removeWord.6"/>
         </Cell>
         <Cell id="chip_7" row="0" col="7">
+          <Phase command="compose.moveStartOfWord.7"/>
+          <Phase command="compose.selectWord.7"/>
           <Phase command="compose.moveEndOfWord.7"/>
-          <Phase command="compose.removeWord.7"/>
         </Cell>
         <Cell id="chip_8" row="0" col="8">
+          <Phase command="compose.moveStartOfWord.8"/>
+          <Phase command="compose.selectWord.8"/>
           <Phase command="compose.moveEndOfWord.8"/>
-          <Phase command="compose.removeWord.8"/>
         </Cell>
         <Cell id="chip_9" row="0" col="9">
+          <Phase command="compose.moveStartOfWord.9"/>
+          <Phase command="compose.selectWord.9"/>
           <Phase command="compose.moveEndOfWord.9"/>
-          <Phase command="compose.removeWord.9"/>
         </Cell>
         <Cell id="chip_10" row="0" col="10">
+          <Phase command="compose.moveStartOfWord.10"/>
+          <Phase command="compose.selectWord.10"/>
           <Phase command="compose.moveEndOfWord.10"/>
-          <Phase command="compose.removeWord.10"/>
         </Cell>
         <Cell id="chip_11" row="0" col="11">
+          <Phase command="compose.moveStartOfWord.11"/>
+          <Phase command="compose.selectWord.11"/>
           <Phase command="compose.moveEndOfWord.11"/>
-          <Phase command="compose.removeWord.11"/>
         </Cell>
         <Cell id="chip_more" row="0" col="12" role="label"/>
       </SubGrid>

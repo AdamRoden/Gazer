@@ -838,6 +838,15 @@ void PageLoaderTest::loadComposePage()
     QCOMPARE(doc.findGrid(QStringLiteral("keys"))->cells.size(), 36);
     QCOMPARE(doc.findGrid(QStringLiteral("board"))->layers,
              (QVector<int>{1, 2, 3, 4, 5, 6, 7}));
+    QCOMPARE(PageDimParse::tokenList(doc.findGrid(QStringLiteral("compose"))->rowTracks),
+             QStringLiteral("1.1*,2*,1.1*"));
+    const PageGrid* keys = doc.findGrid(QStringLiteral("keys"));
+    QVERIFY(keys);
+    const std::optional<PageDimParse::StarBand> band =
+        PageDimParse::starBandBeforeRow(doc.grids[0], keys->row);
+    QVERIFY(band);
+    QCOMPARE(band->partsBefore, 8.0);
+    QCOMPARE(band->topExpr, QStringLiteral("(A_ScreenHeight-56)*8/12+40"));
     QCOMPARE(doc.findGrid(QStringLiteral("keys"))->layers, QVector<int>({1}));
     QCOMPARE(doc.findGrid(QStringLiteral("keys_shift"))->layers, QVector<int>({2}));
     QCOMPARE(doc.findGrid(QStringLiteral("keys_sym"))->layers, QVector<int>({3}));
@@ -1030,6 +1039,14 @@ void PageLoaderTest::loadComposePage()
     QVERIFY(!usesRapidDwell(shift->actions, shift->phases));
     const PageCell* chip = doc.findCell(QStringLiteral("chip_0"));
     QVERIFY(chip);
+    QCOMPARE(chip->phases.size(), 3);
+    QCOMPARE(chip->phases[0].actions[0].command, QStringLiteral("compose.moveStartOfWord.0"));
+    QCOMPARE(chip->phases[1].actions[0].command, QStringLiteral("compose.selectWord.0"));
+    QCOMPARE(chip->phases[2].actions[0].command, QStringLiteral("compose.moveEndOfWord.0"));
+    const PageCell* chip11 = doc.findCell(QStringLiteral("chip_11"));
+    QVERIFY(chip11);
+    QCOMPARE(chip11->phases[1].actions[0].command, QStringLiteral("compose.selectWord.11"));
+    QCOMPARE(chip11->phases[2].actions[0].command, QStringLiteral("compose.moveEndOfWord.11"));
     QVERIFY(!usesRapidDwell(chip->actions, chip->phases));
 }
 

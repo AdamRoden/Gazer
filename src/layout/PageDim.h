@@ -63,5 +63,17 @@ struct ScrollFit {
 [[nodiscard]] QPoint cellIndexAt(const PageGrid& grid, const QRectF& gridRect, const QPointF& pos,
                                  const QSizeF& screen = {});
 
+/// Star tracks above `row` when the grid's outer height is `A_ScreenHeight`.
+/// nullopt when `row` is out of range, a track is not a star, or the weights sum to 0.
+struct StarBand {
+    /// `(A_ScreenHeight-<trim>)*<partsBefore>/<parts>+<pad>`. `trim` is the
+    /// margins and gaps. `pad` is the top margin plus the gaps before `row`.
+    QString topExpr;
+    double partsBefore = 0;
+    double parts = 0;
+};
+
+[[nodiscard]] std::optional<StarBand> starBandBeforeRow(const PageGrid& grid, int row);
+
 } // namespace PageDimParse
 } // namespace gazer

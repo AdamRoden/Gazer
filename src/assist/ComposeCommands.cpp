@@ -221,6 +221,7 @@ void registerComposeCommands(CommandRegistry& commands, ComposeUi& compose)
     bindVoidInt(QStringLiteral("compose.acceptPrediction."), &ComposeUi::acceptPrediction);
     bindVoidInt(QStringLiteral("compose.moveEndOfWord."), &ComposeUi::moveEndOfWord);
     bindVoidInt(QStringLiteral("compose.moveStartOfWord."), &ComposeUi::moveStartOfWord);
+    bindVoidInt(QStringLiteral("compose.selectWord."), &ComposeUi::selectWord);
     bindVoidInt(QStringLiteral("history.list.goto."), &ComposeUi::historyGoto);
     bindVoidInt(QStringLiteral("speech.voiceList.goto."), &ComposeUi::voicesGoto);
 
