@@ -34,7 +34,6 @@ struct ActiveStateContext {
     const SpeechEngine* speechEngine = nullptr;
     const ComposeUi* composeUi = nullptr;
     bool dwellSuspended = false;
-    bool trackerLostMouse = false;
 };
 
 /// Shared sticky-loop / toggle accent resolver (boards, settings, assist modes).

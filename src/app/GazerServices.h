@@ -84,8 +84,6 @@ public:
     AssistSession& assistSession() { return *m_assistSession; }
     ActionLoopService& actionLoops() { return *m_actionLoops; }
     InputService& input() { return *m_input; }
-    void setTrackerLostMouse(bool on);
-    [[nodiscard]] bool trackerLostMouse() const { return m_trackerLostMouse; }
 
     SettingsUi& settingsUi() { return *m_settingsUi; }
     AppSettings& settings() { return m_settings; }
@@ -161,7 +159,6 @@ private:
     std::unique_ptr<AssistCommandContext> m_assistCmdCtx;
     std::unique_ptr<SettingsUi> m_settingsUi;
     AppSettings m_settings;
-    bool m_trackerLostMouse = false;
 };
 
 } // namespace gazer

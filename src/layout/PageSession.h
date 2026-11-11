@@ -158,7 +158,6 @@ public:
     void raise();
     void hideHost();
     void showHost();
-    void setProp(const QString& key, bool value);
 
     void activateTarget(const QString& targetId);
     [[nodiscard]] QVector<QRect> unpauseGapRects() const;

@@ -1075,17 +1075,19 @@ void PageLoaderTest::loadMainPage()
     QVERIFY2(PageLoader::loadFromFile(path, doc, &err), qPrintable(err));
     QCOMPARE(doc.id, QStringLiteral("main"));
     QCOMPARE(doc.master, true);
-    QCOMPARE(doc.zones.size(), 5);
+    QCOMPARE(doc.zones.size(), 4);
     QCOMPARE(doc.grids.size(), 3);
     QVERIFY(doc.findZone(QStringLiteral("show")));
     QVERIFY(doc.findZone(QStringLiteral("hide")));
     QCOMPARE(doc.findZone(QStringLiteral("hide"))->layers, (QVector<int>{2, 4}));
     QVERIFY(doc.findZone(QStringLiteral("sleep")));
     QCOMPARE(doc.findZone(QStringLiteral("sleep"))->layers, (QVector<int>{1, 2, 4}));
-    QVERIFY(doc.findZone(QStringLiteral("rescue")));
-    QCOMPARE(doc.findZone(QStringLiteral("rescue"))->actions[0].command,
-             QStringLiteral("rescue.reset"));
-    QVERIFY(doc.findZone(QStringLiteral("tracker_lost")));
+    const PageZone* rescue = doc.findZone(QStringLiteral("rescue"));
+    QVERIFY(rescue);
+    QCOMPARE(rescue->anchor, PageAnchor::BottomLeft);
+    QCOMPARE(rescue->actions[0].command, QStringLiteral("rescue.reset"));
+    QVERIFY(rescue->dwell.activation.has_value());
+    QCOMPARE(*rescue->dwell.activation, QVector<int>({600}));
     QVERIFY(doc.findGrid(QStringLiteral("drawer")));
     QVERIFY(doc.findGrid(QStringLiteral("more")));
     QVERIFY(doc.findGrid(QStringLiteral("quit")));

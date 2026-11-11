@@ -335,9 +335,6 @@ void Application::onTobiiStreamFailed(const QString& reason)
     }
     GAZER_WARN << "Tobii never tracked; switching to mouse";
     fallbackToMouse();
-    if (m_svc) {
-        m_svc->setTrackerLostMouse(true);
-    }
     updateTrayStatus();
 }
 
@@ -521,18 +518,12 @@ void Application::retryEyeTracker()
     if (!startTracker()) {
         fallbackToMouse();
     }
-    if (m_svc) {
-        m_svc->setTrackerLostMouse(qobject_cast<TrackerTobii*>(m_tracker.get()) == nullptr);
-    }
     updateTrayStatus();
 }
 
 void Application::useMouseTracker()
 {
     fallbackToMouse();
-    if (m_svc) {
-        m_svc->setTrackerLostMouse(true);
-    }
     if (m_watch.lossHold()) {
         applyTrackingTransition(m_watch.resume());
     }

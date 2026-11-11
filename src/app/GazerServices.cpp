@@ -401,20 +401,7 @@ ActiveStateContext GazerServices::activeStateContext() const
     ctx.speechEngine = m_speech.get();
     ctx.composeUi = m_compose.get();
     ctx.dwellSuspended = isDwellSuspended();
-    ctx.trackerLostMouse = m_trackerLostMouse;
     return ctx;
-}
-
-void GazerServices::setTrackerLostMouse(bool on)
-{
-    if (m_trackerLostMouse == on) {
-        return;
-    }
-    m_trackerLostMouse = on;
-    if (m_pages) {
-        m_pages->setProp(QStringLiteral("trackerLostMouse"), on);
-    }
-    refreshActiveIndicators();
 }
 
 void GazerServices::setDwellSuspended(bool on)
