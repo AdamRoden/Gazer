@@ -38,6 +38,10 @@ public:
 
     void onPose(const HeadPose& pose);
     void onTrackingLost();
+    /// Zero head outputs and arm the next pose so a command edge cannot fire.
+    void beginStreamLoss();
+    /// Next pose is evaluated paused (arms a command that is already past threshold).
+    void armRecoverySettle();
 
     [[nodiscard]] HeadPose lastPose() const { return m_last; }
     [[nodiscard]] HeadPose displayPose() const;
@@ -68,6 +72,7 @@ private:
     bool m_driveJoyLY = false;
     bool m_driveJoyRX = false;
     bool m_driveJoyRY = false;
+    bool m_recoverSettle = false;
 };
 
 } // namespace gazer

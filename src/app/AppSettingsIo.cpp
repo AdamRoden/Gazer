@@ -9,11 +9,14 @@
 #include "ui/Theme.h"
 #include "utils/Log.h"
 
+#include <QDateTime>
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QJsonParseError>
 #include <QRegularExpression>
 #include <QStandardPaths>
 #include <QtGlobal>
@@ -34,6 +37,77 @@ namespace {
 }
 
 /// Factory curves from before the four-point deadzone (no center handle). Rewritten on load only.
+[[nodiscard]] bool writeAllBytes(const QString& path, const QByteArray& bytes, QString* error)
+{
+    QFile out(path);
+    if (!out.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        if (error) {
+            *error = out.errorString();
+        }
+        return false;
+    }
+    if (out.write(bytes) != bytes.size()) {
+        if (error) {
+            *error = QStringLiteral("Short write");
+        }
+        return false;
+    }
+    return true;
+}
+
+[[nodiscard]] bool readAllBytes(const QString& path, QByteArray* bytes, QString* error)
+{
+    QFile in(path);
+    if (!in.open(QIODevice::ReadOnly)) {
+        if (error) {
+            *error = in.errorString();
+        }
+        return false;
+    }
+    *bytes = in.readAll();
+    return true;
+}
+
+[[nodiscard]] bool parseSettingsObject(const QByteArray& bytes, QJsonObject* object, QString* error)
+{
+    QJsonParseError pe;
+    const QJsonDocument doc = QJsonDocument::fromJson(bytes, &pe);
+    if (pe.error != QJsonParseError::NoError || !doc.isObject()) {
+        if (error) {
+            *error = pe.error != QJsonParseError::NoError
+                         ? pe.errorString()
+                         : QStringLiteral("Settings JSON root must be an object");
+        }
+        return false;
+    }
+    if (object) {
+        *object = doc.object();
+    }
+    return true;
+}
+
+[[nodiscard]] QString versionedBackupPath(const QString& path, int schema)
+{
+    const QFileInfo fi(path);
+    return fi.dir().filePath(
+        QStringLiteral("%1.v%2.json.bak").arg(fi.completeBaseName()).arg(schema));
+}
+
+[[nodiscard]] QString badSettingsPath(const QString& path)
+{
+    const QFileInfo fi(path);
+    const QString stamp =
+        QDateTime::currentDateTimeUtc().toString(QStringLiteral("yyyyMMdd-HHmmss-zzz"));
+    return fi.dir().filePath(
+        QStringLiteral("%1.bad-%2.json").arg(fi.completeBaseName(), stamp));
+}
+
+[[nodiscard]] QString legacyNestedSettingsPath(const QString& path)
+{
+    const QFileInfo fi(path);
+    return QDir(fi.dir().filePath(QStringLiteral("Gazer"))).filePath(fi.fileName());
+}
+
 [[nodiscard]] bool legacyHeadPoseFactoryCurve(const QVector<HeadPoseCurvePoint>& pts)
 {
     const QVector<HeadPoseCurvePoint> old3 = {{-25.0, -600.0}, {0.0, 0.0}, {25.0, 600.0}};
@@ -483,7 +557,7 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     copy.applyTheme();
 
     QJsonObject o;
-    o.insert(QStringLiteral("schemaVersion"), 2);
+    o.insert(QStringLiteral("schemaVersion"), kSettingsSchemaVersion);
     QJsonArray seq;
     for (int ms : copy.dwellSequence) {
         seq.append(ms);
@@ -679,6 +753,211 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     f.write(QJsonDocument(o).toJson(QJsonDocument::Indented));
     GAZER_INFO << "Saved settings to" << path;
     return true;
+}
+
+QString AppSettings::backupFilePath(const QString& path)
+{
+    return path + QStringLiteral(".bak");
+}
+
+bool AppSettings::backupExistingFile(const QString& path, QString* error)
+{
+    if (!QFile::exists(path)) {
+        if (error) {
+            *error = QStringLiteral("Settings file not found");
+        }
+        return false;
+    }
+    QByteArray bytes;
+    if (!readAllBytes(path, &bytes, error)) {
+        return false;
+    }
+    return writeAllBytes(backupFilePath(path), bytes, error);
+}
+
+bool AppSettings::restoreFromBackup(const QString& path, QString* error)
+{
+    const QString bak = backupFilePath(path);
+    QByteArray bytes;
+    if (!readAllBytes(bak, &bytes, error)) {
+        return false;
+    }
+    if (!parseSettingsObject(bytes, nullptr, error)) {
+        return false;
+    }
+    return writeAllBytes(path, bytes, error);
+}
+
+AppSettings::SettingsLoadReport AppSettings::loadManaged(const QString& path)
+{
+    SettingsLoadReport report;
+    if (!QFile::exists(path)) {
+        const QString legacy = legacyNestedSettingsPath(path);
+        QByteArray legacyBytes;
+        if (QFile::exists(legacy) && readAllBytes(legacy, &legacyBytes, nullptr)
+            && writeAllBytes(path, legacyBytes, nullptr)) {
+            report.message = QStringLiteral("Copied legacy settings from %1").arg(legacy);
+        } else {
+            report.status = SettingsLoadReport::Status::Missing;
+            return report;
+        }
+    }
+
+    {
+        QByteArray bytes;
+        QString readErr;
+        if (!readAllBytes(path, &bytes, &readErr)) {
+            report.status = SettingsLoadReport::Status::Missing;
+            report.message = readErr;
+            return report;
+        }
+
+        QJsonObject object;
+        QString parseErr;
+        if (!parseSettingsObject(bytes, &object, &parseErr)) {
+            const QString badPath = badSettingsPath(path);
+            QString badErr;
+            if (!writeAllBytes(badPath, bytes, &badErr)) {
+                *this = AppSettings::defaults();
+                report.status = SettingsLoadReport::Status::FactoryFallback;
+                report.message = QStringLiteral(
+                                     "Settings file is unreadable and could not be backed up (%1). "
+                                     "Using factory defaults in memory; left %2 in place.")
+                                     .arg(badErr, path);
+                return report;
+            }
+            if (restoreFromBackup(path, nullptr)) {
+                const QString recovered = QStringLiteral(
+                    "Restored settings from %1. Unreadable copy kept at %2.")
+                                              .arg(backupFilePath(path), badPath);
+                report = loadManaged(path);
+                // loadManaged on the restored file must not loop back into this
+                // branch. A second call sees a valid object. Re-label the outcome.
+                if (report.status == SettingsLoadReport::Status::Loaded
+                    || report.status == SettingsLoadReport::Status::Migrated
+                    || report.status == SettingsLoadReport::Status::KeptNewer) {
+                    report.status = SettingsLoadReport::Status::RecoveredFromBackup;
+                    report.backupPath = backupFilePath(path);
+                    report.message = recovered;
+                }
+                return report;
+            }
+            *this = AppSettings::defaults();
+            QString saveErr;
+            if (!saveToFile(path, &saveErr)) {
+                report.status = SettingsLoadReport::Status::FactoryFallback;
+                report.backupPath = badPath;
+                report.message = QStringLiteral(
+                                     "Settings file was unreadable. Copy kept at %1. "
+                                     "Factory defaults could not be written (%2).")
+                                     .arg(badPath, saveErr);
+                return report;
+            }
+            report.status = SettingsLoadReport::Status::FactoryFallback;
+            report.backupPath = badPath;
+            report.schemaVersion = kSettingsSchemaVersion;
+            report.message = QStringLiteral(
+                                 "Settings file was unreadable. Copy kept at %1. "
+                                 "Using factory defaults.")
+                                 .arg(badPath);
+            return report;
+        }
+
+        int schema = 0;
+        if (object.contains(QStringLiteral("schemaVersion"))) {
+            schema = object.value(QStringLiteral("schemaVersion")).toInt(0);
+        }
+        report.schemaVersion = schema;
+
+        if (schema > kSettingsSchemaVersion) {
+            QString loadErr;
+            if (!loadFromFile(path, &loadErr)) {
+                *this = AppSettings::defaults();
+                report.status = SettingsLoadReport::Status::FactoryFallback;
+                report.message = loadErr;
+                return report;
+            }
+            report.status = SettingsLoadReport::Status::KeptNewer;
+            report.message = QStringLiteral(
+                                 "Settings schema %1 is newer than this build (%2). "
+                                 "Loaded what this build understands and left the file unchanged.")
+                                 .arg(schema)
+                                 .arg(kSettingsSchemaVersion);
+            return report;
+        }
+
+        if (schema < kSettingsSchemaVersion) {
+            QString backupErr;
+            if (!writeAllBytes(backupFilePath(path), bytes, &backupErr)) {
+                QString loadErr;
+                if (!loadFromFile(path, &loadErr)) {
+                    *this = AppSettings::defaults();
+                    report.status = SettingsLoadReport::Status::FactoryFallback;
+                    report.message = loadErr;
+                    return report;
+                }
+                report.status = SettingsLoadReport::Status::Loaded;
+                report.message = QStringLiteral(
+                                     "Settings were read but not upgraded on disk because a backup "
+                                     "could not be written (%1).")
+                                     .arg(backupErr);
+                return report;
+            }
+            const QString versioned = versionedBackupPath(path, schema);
+            if (!QFile::exists(versioned)) {
+                QString ignored;
+                (void)writeAllBytes(versioned, bytes, &ignored);
+            }
+            QString loadErr;
+            if (!loadFromFile(path, &loadErr)) {
+                *this = AppSettings::defaults();
+                report.status = SettingsLoadReport::Status::FactoryFallback;
+                report.backupPath = backupFilePath(path);
+                report.message = loadErr;
+                return report;
+            }
+            QString saveErr;
+            if (!saveToFile(path, &saveErr)) {
+                report.status = SettingsLoadReport::Status::Migrated;
+                report.backupPath = backupFilePath(path);
+                report.message = QStringLiteral(
+                                     "Settings were upgraded in memory from schema %1 but could not "
+                                     "be saved (%2). Backup: %3")
+                                     .arg(schema)
+                                     .arg(saveErr, backupFilePath(path));
+                return report;
+            }
+            report.status = SettingsLoadReport::Status::Migrated;
+            report.backupPath = backupFilePath(path);
+            const QString migrated = QStringLiteral(
+                                         "Upgraded settings from schema %1 to %2. Backup: %3")
+                                         .arg(schema)
+                                         .arg(kSettingsSchemaVersion)
+                                         .arg(backupFilePath(path));
+            report.message = report.message.isEmpty() ? migrated
+                                                      : report.message + QStringLiteral(" ") + migrated;
+            return report;
+        }
+
+        QString loadErr;
+        if (!loadFromFile(path, &loadErr)) {
+            *this = AppSettings::defaults();
+            report.status = SettingsLoadReport::Status::FactoryFallback;
+            report.message = loadErr;
+            return report;
+        }
+        if (!report.message.isEmpty()) {
+            // Legacy nested file was copied onto a current-schema file.
+            QString backupErr;
+            (void)writeAllBytes(backupFilePath(path), bytes, &backupErr);
+            report.status = SettingsLoadReport::Status::Migrated;
+            report.backupPath = backupFilePath(path);
+            return report;
+        }
+        report.status = SettingsLoadReport::Status::Loaded;
+        report.message = QStringLiteral("Loaded settings");
+        return report;
+    }
 }
 
 } // namespace gazer

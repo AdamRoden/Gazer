@@ -184,17 +184,28 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
         GAZER_WARN << "Mapping profile not loaded:" << mapErr;
     }
 
-    QString setErr;
     const QString settingsPath = AppSettings::defaultFilePath();
-    if (!m_settings.loadFromFile(settingsPath, &setErr)) {
-        GAZER_INFO << "Using default settings (" << setErr << ")";
+    const AppSettings::SettingsLoadReport loaded = m_settings.loadManaged(settingsPath);
+    switch (loaded.status) {
+    case AppSettings::SettingsLoadReport::Status::Missing:
+        GAZER_INFO << "Using default settings (no settings file)";
         m_settings = AppSettings::defaults();
-        if (!QFile::exists(settingsPath)) {
+        {
             QString saveErr;
             if (!m_settings.saveToFile(settingsPath, &saveErr)) {
                 GAZER_WARN << "Failed to write default settings:" << saveErr;
             }
         }
+        break;
+    case AppSettings::SettingsLoadReport::Status::Loaded:
+        GAZER_INFO << loaded.message << settingsPath;
+        break;
+    case AppSettings::SettingsLoadReport::Status::Migrated:
+    case AppSettings::SettingsLoadReport::Status::RecoveredFromBackup:
+    case AppSettings::SettingsLoadReport::Status::FactoryFallback:
+    case AppSettings::SettingsLoadReport::Status::KeptNewer:
+        GAZER_WARN << loaded.message;
+        break;
     }
     m_settings.elevenApiKeySet = m_secrets->hasKey();
 
@@ -645,9 +656,67 @@ void GazerServices::applySettings(bool persist)
 
 void GazerServices::resetSettingsToDefaults()
 {
+    const QString path = AppSettings::defaultFilePath();
+    QString backupErr;
+    if (QFile::exists(path) && !AppSettings::backupExistingFile(path, &backupErr)) {
+        GAZER_WARN << "Settings reset backup failed:" << backupErr;
+    }
     m_settings = AppSettings::defaults();
     applySettings(true);
     notifyStatus(QStringLiteral("Settings reset to defaults"));
+}
+
+void GazerServices::neutralizeForTracking(bool gazeScope)
+{
+    if (m_headPose) {
+        m_headPose->beginStreamLoss();
+    }
+    if (!gazeScope) {
+        return;
+    }
+    if (m_actionLoops) {
+        m_actionLoops->stopAll();
+    }
+    if (m_pages) {
+        m_pages->leaveGaze();
+        m_pages->armDwellStartHold();
+    }
+    QString ignored;
+    if (m_keyState) {
+        (void)m_keyState->releaseAll(&ignored);
+    }
+    if (m_mouseAssist) {
+        m_mouseAssist->releaseAllHolds();
+    }
+    if (m_lookToMaps) {
+        m_lookToMaps->setOutputPaused(true);
+        m_lookToMaps->releaseHeldOutput();
+    }
+    if (m_comboMouse) {
+        m_comboMouse->setPaused(true);
+    }
+    if (m_mouseDwellMove) {
+        m_mouseDwellMove->setArmed(false);
+    }
+    if (m_input) {
+        (void)m_input->gamepad().resetNeutral(&ignored);
+    }
+}
+
+void GazerServices::releaseTrackingHold()
+{
+    if (m_lookToMaps) {
+        m_lookToMaps->setOutputPaused(false);
+    }
+    if (m_comboMouse) {
+        m_comboMouse->setPaused(false);
+    }
+    if (m_headPose) {
+        m_headPose->armRecoverySettle();
+    }
+    if (m_pages) {
+        m_pages->armDwellStartHold();
+    }
 }
 
 void GazerServices::feedVolumeGaze(const GazePoint& point)

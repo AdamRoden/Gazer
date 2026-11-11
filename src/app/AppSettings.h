@@ -269,8 +269,33 @@ struct AppSettings {
     }
     [[nodiscard]] static const StyleToggle* findStyleToggle(const QString& jsonKey);
 
+    /// Written by saveToFile. Older files migrate up to this.
+    static constexpr int kSettingsSchemaVersion = 2;
+
+    struct SettingsLoadReport {
+        enum class Status {
+            Missing,
+            Loaded,
+            Migrated,
+            RecoveredFromBackup,
+            FactoryFallback,
+            KeptNewer
+        };
+        Status status = Status::Missing;
+        int schemaVersion = 0;
+        QString backupPath;
+        QString message;
+    };
+
+    /// Load, migrate, or recover. Does not delete a file it could not back up.
+    [[nodiscard]] SettingsLoadReport loadManaged(const QString& path);
     [[nodiscard]] bool loadFromFile(const QString& path, QString* error = nullptr);
     [[nodiscard]] bool saveToFile(const QString& path, QString* error = nullptr) const;
+    /// Copy the live file to `settings.json.bak` (immediate rollback copy).
+    [[nodiscard]] static bool backupExistingFile(const QString& path, QString* error = nullptr);
+    /// Replace the live file with its `.bak` when that backup is a JSON object.
+    [[nodiscard]] static bool restoreFromBackup(const QString& path, QString* error = nullptr);
+    [[nodiscard]] static QString backupFilePath(const QString& path);
 
     void setDwellPreset(int preset);
     /// 0 Slow, 1 Normal, 2 Fast, 3 Custom (current timings match none of the packages).

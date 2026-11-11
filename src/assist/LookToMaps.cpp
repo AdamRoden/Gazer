@@ -233,6 +233,12 @@ void LookToMaps::setOutputPaused(bool on)
     }
 }
 
+void LookToMaps::releaseHeldOutput()
+{
+    m_idlePause.invalidate();
+    forEachMap([](LookToScroll& m) { m.releaseHeldOutput(); });
+}
+
 bool LookToMaps::anyEnabled() const
 {
     for (int i = 0; i < kLookToDestCount; ++i) {

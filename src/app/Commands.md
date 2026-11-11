@@ -205,7 +205,7 @@ Patterns, not every generated name:
 | `settings.dwell.slow` / `.normal` / `.fast` / `.custom` | Dwell presets (standard + rapid dwells together) |
 | `settings.dwell.custom.save` / `.restore` | Save or restore Custom timings |
 | `settings.mag.follow.slow` / `.sticky` / `.smooth` / `.snappy` | Gaze follow (indicator, gaze mouse, live lens) |
-| `settings.tracker.auto` / `.mouse` | Tracker pref (restart) |
+| `settings.tracker.auto` / `.mouse` | Tracker pref (restart). A stalled or disconnected Tobii stream releases outputs and stays on Tobii until Resume, Retry, or Use mouse. It does not switch to the mouse by itself after gaze was live. |
 | `settings.capture.all` / `.pages` / `.none` | Screen capture: all (documentation), boards only, or boards and overlays omitted |
 | `settings.vigem.install` / `.refresh` | Download/launch official ViGEmBus setup; re-read bus + client status |
 | `settings.mousePickStyle.*.toggle` | Move-to markers (cursor, dot, crosshair). Any subset, including none. Zoom region uses the same set |

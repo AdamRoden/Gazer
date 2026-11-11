@@ -89,6 +89,8 @@ public:
 
     /// @p pauseInput: over board / full-screen aim. Invalid-gaze grace before lift.
     void onGaze(const GazePoint& point, bool pauseInput);
+    /// Drop a held stick, wheel, or mouse remainder without waiting for a sample.
+    void releaseHeldOutput();
 
 signals:
     void enabledChanged(bool enabled);

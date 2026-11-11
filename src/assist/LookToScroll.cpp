@@ -618,6 +618,18 @@ void LookToScroll::applyOutput(double nx, double ny, double gain, double sampleD
     }
 }
 
+void LookToScroll::releaseHeldOutput()
+{
+    m_scrollEngaged = false;
+    m_accelSecV = 0.0;
+    m_accelSecH = 0.0;
+    m_mouseRemX = 0.0;
+    m_mouseRemY = 0.0;
+    m_lastSampleMs = -1;
+    m_scroller.reset();
+    liftOutput();
+}
+
 void LookToScroll::onGaze(const GazePoint& point, bool pauseInput)
 {
     if (!m_enabled) {

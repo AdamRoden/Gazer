@@ -77,6 +77,8 @@ set(GAZER_SOURCES
     src/assist/ComposeCommands.cpp
     src/core/TrackerMouse.cpp
     src/core/TrackerTobii.cpp
+    src/core/TrackingWatch.cpp
+    src/core/TobiiPumpHealth.cpp
     src/core/StreamEngineLib.cpp
     src/layout/PageDim.cpp
     src/layout/PageDimMesh.cpp
@@ -172,6 +174,7 @@ set(GAZER_SOURCES
     src/ui/MagnifierOverlay.cpp
     src/ui/DwellSuspendOverlay.cpp
     src/ui/RescueOverlay.cpp
+    src/ui/TrackingLossOverlay.cpp
     src/ui/SplashOverlay.cpp
     src/ui/SplashOverlayPaint.cpp
     src/ui/Theme.cpp
@@ -362,6 +365,10 @@ set(GAZER_HEADERS
     src/utils/WinProcess.h
     src/input/InjectGate.h
     src/ui/RescueOverlay.h
+    src/ui/TrackingLossOverlay.h
+    src/core/TrackingWatch.h
+    src/core/TobiiPumpHealth.h
+    src/app/SettingsInstallPolicy.h
 )
 
 add_executable(Gazer WIN32
@@ -565,15 +572,33 @@ add_executable(GazerPageTests
     tests/ColorPickerHexTest.cpp
     tests/HeadPoseMapperTest.cpp
     tests/KeyGravityTest.cpp
+    tests/SettingsMigrationTest.cpp
+    tests/SettingsInstallPolicyTest.cpp
+    tests/TrackingWatchTest.cpp
+    src/core/TrackingWatch.cpp
+    src/core/TobiiPumpHealth.cpp
+    # Q_OBJECT test seam. Not in GAZER_HEADERS: listing the header there makes
+    # AUTOMOC emit FakeTracker into Gazer.exe without this source file.
+    # ITracker.h must be a source of this target. AUTOMOC does not moc a
+    # Q_OBJECT base that is only included through FakeTracker.h, so the
+    # signal implementations (gazeUpdated, trackingLost, the vtable) are missing.
+    src/core/ITracker.h
+    src/core/FakeTracker.cpp
+    src/assist/HeadPoseMapper.cpp
+    # HeadPoseMapper calls MouseInjector. That TU includes WinOverlay.h (QWidget)
+    # and constructs OverlayInputPassThrough, defined in WinOverlay.cpp.
+    src/input/MouseInjector.cpp
+    src/utils/WinOverlay.cpp
     src/mapping/HeadPoseCurve.cpp
     src/input/KeyStateManager.cpp
     src/input/KeyGlyphs.cpp
     ${GAZER_PAGE_TEST_LIB}
 )
 target_include_directories(GazerPageTests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_link_libraries(GazerPageTests PRIVATE Qt6::Core Qt6::Gui Qt6::Network Qt6::Test)
+target_link_libraries(GazerPageTests PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Network Qt6::Test)
 if(WIN32)
-    target_link_libraries(GazerPageTests PRIVATE user32 shell32)
+    # WinOverlay::processHasUiAccess calls OpenProcessToken / GetTokenInformation.
+    target_link_libraries(GazerPageTests PRIVATE user32 shell32 advapi32)
 endif()
 target_compile_definitions(GazerPageTests PRIVATE
     "GAZER_TEST_FIXTURES=\"${CMAKE_SOURCE_DIR}/tests/fixtures\""
@@ -643,6 +668,14 @@ target_compile_definitions(GazerPredictTests PRIVATE
 )
 target_link_libraries(GazerPredictTests PRIVATE Qt6::Core Qt6::Test)
 add_test(NAME GazerPredictTests COMMAND GazerPredictTests)
+
+# Qt sets CMAKE_WIN32_EXECUTABLE ON, so these become GUI programs with no
+# console. QTest then writes into the void and ctest --output-on-failure
+# records an empty log for both passes and failures.
+if(WIN32)
+    set_target_properties(GazerPageTests GazerDwellTests GazerSpeechTests GazerPredictTests
+        PROPERTIES WIN32_EXECUTABLE FALSE)
+endif()
 
 add_executable(BuildPredictModel
     tools/build-predict-model.cpp

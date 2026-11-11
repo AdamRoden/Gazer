@@ -1,11 +1,12 @@
 #include "utils/Log.h"
 
 #include <QCoreApplication>
-#include <QDir>
 #include <QFile>
 #include <QStringList>
 #include <QTest>
 #include <QTextStream>
+
+#include <cstdio>
 #include <memory>
 
 Q_LOGGING_CATEGORY(lcGazer, "gazer")
@@ -41,6 +42,9 @@ QObject* createKeyStateManagerTest();
 QObject* createColorPickerHexTest();
 QObject* createHeadPoseMapperTest();
 QObject* createKeyGravityTest();
+QObject* createSettingsMigrationTest();
+QObject* createSettingsInstallPolicyTest();
+QObject* createTrackingWatchTest();
 
 namespace {
 
@@ -65,78 +69,107 @@ QStringList argsWithoutDashO(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
+    // ctest captures stdout through a pipe. On Windows that stream is fully
+    // buffered, so QTest's fprintf lines never reach the log unless we flush
+    // every write. The per-suite -o file is the copy that still exists if the
+    // pipe is lost.
+    setvbuf(stdout, nullptr, _IONBF, 0);
+    setvbuf(stderr, nullptr, _IONBF, 0);
+
     QCoreApplication app(argc, argv);
     int status = 0;
-    const QStringList rest = argsWithoutDashO(argc, argv);
-    QFile suiteLog(QDir::temp().filePath(QStringLiteral("GazerPageTests-suites.txt")));
+    const QStringList baseArgs = argsWithoutDashO(argc, argv);
+    // Next to the exe (the build dir in CI) so the windows-test-logs artifact
+    // can collect it. Temp is outside that upload.
+    const QString outDir = QCoreApplication::applicationDirPath();
+    const QString suitePath = outDir + QStringLiteral("/GazerPageTests-suites.txt");
+    QFile suiteLog(suitePath);
     (void)suiteLog.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text);
-    auto runSuite = [&](const char* name, QObject* obj, bool first) {
-        const int s = first ? QTest::qExec(obj, argc, argv) : QTest::qExec(obj, rest);
+    auto runSuite = [&](const char* name, QObject* obj) {
+        const QString report = outDir + QStringLiteral("/GazerPageTests-")
+                               + QString::fromLatin1(name) + QStringLiteral(".txt");
+        QStringList args = baseArgs;
+        args << QStringLiteral("-o") << QStringLiteral("-,txt");
+        args << QStringLiteral("-o") << (report + QStringLiteral(",txt"));
+        const int s = QTest::qExec(obj, args);
         QTextStream(&suiteLog) << name << ' ' << s << '\n';
         suiteLog.flush();
+        if (s != 0) {
+            fprintf(stderr, "GazerPageTests suite %s failed status=%d report=%s\n", name, s,
+                    qPrintable(report));
+            fflush(stderr);
+        }
         status |= s;
     };
     std::unique_ptr<QObject> pages(createPageLoaderTest());
-    runSuite("PageLoaderTest", pages.get(), true);
+    runSuite("PageLoaderTest", pages.get());
     std::unique_ptr<QObject> pageActions(createPageLoaderActionTest());
-    runSuite("PageLoaderActionTest", pageActions.get(), false);
+    runSuite("PageLoaderActionTest", pageActions.get());
     std::unique_ptr<QObject> dims(createPageDimTest());
-    runSuite("PageDimTest", dims.get(), false);
+    runSuite("PageDimTest", dims.get());
     std::unique_ptr<QObject> nav(createPageNavTest());
-    runSuite("PageNavTest", nav.get(), false);
+    runSuite("PageNavTest", nav.get());
     std::unique_ptr<QObject> hits(createPageHitTest());
-    runSuite("PageHitTest", hits.get(), false);
+    runSuite("PageHitTest", hits.get());
     std::unique_ptr<QObject> volumeBoard(createVolumeBoardTest());
-    runSuite("VolumeBoardTest", volumeBoard.get(), false);
+    runSuite("VolumeBoardTest", volumeBoard.get());
     std::unique_ptr<QObject> hitLive(createPageHitLiveTest());
-    runSuite("PageHitLiveTest", hitLive.get(), false);
+    runSuite("PageHitLiveTest", hitLive.get());
     std::unique_ptr<QObject> compose(createPageComposeTest());
-    runSuite("PageComposeTest", compose.get(), false);
+    runSuite("PageComposeTest", compose.get());
     std::unique_ptr<QObject> settings(createSettingsLayoutTest());
-    runSuite("SettingsLayoutTest", settings.get(), false);
+    runSuite("SettingsLayoutTest", settings.get());
     std::unique_ptr<QObject> appSettings(createAppSettingsTest());
-    runSuite("AppSettingsTest", appSettings.get(), false);
+    runSuite("AppSettingsTest", appSettings.get());
     std::unique_ptr<QObject> materialPal(createMaterialPaletteTest());
-    runSuite("MaterialPaletteTest", materialPal.get(), false);
+    runSuite("MaterialPaletteTest", materialPal.get());
     std::unique_ptr<QObject> mouseDwell(createMouseDwellMoveTest());
-    runSuite("MouseDwellMoveTest", mouseDwell.get(), false);
+    runSuite("MouseDwellMoveTest", mouseDwell.get());
     std::unique_ptr<QObject> progress(createProgressPaintTest());
-    runSuite("ProgressPaintTest", progress.get(), false);
+    runSuite("ProgressPaintTest", progress.get());
     std::unique_ptr<QObject> scroll(createScrollBarTest());
-    runSuite("ScrollBarTest", scroll.get(), false);
+    runSuite("ScrollBarTest", scroll.get());
     std::unique_ptr<QObject> fileName(createFileNameScrollTest());
-    runSuite("FileNameScrollTest", fileName.get(), false);
+    runSuite("FileNameScrollTest", fileName.get());
     std::unique_ptr<QObject> combo(createComboMouseTest());
-    runSuite("ComboMouseTest", combo.get(), false);
+    runSuite("ComboMouseTest", combo.get());
     std::unique_ptr<QObject> lts(createLookToScrollTest());
-    runSuite("LookToScrollTest", lts.get(), false);
+    runSuite("LookToScrollTest", lts.get());
     std::unique_ptr<QObject> ahk(createAhkLauncherTest());
-    runSuite("AhkLauncherTest", ahk.get(), false);
+    runSuite("AhkLauncherTest", ahk.get());
     std::unique_ptr<QObject> sidecar(createSidecarHostTest());
-    runSuite("SidecarHostTest", sidecar.get(), false);
+    runSuite("SidecarHostTest", sidecar.get());
     std::unique_ptr<QObject> gamepad(createVirtualGamepadTest());
-    runSuite("VirtualGamepadTest", gamepad.get(), false);
+    runSuite("VirtualGamepadTest", gamepad.get());
     std::unique_ptr<QObject> inbound(createInboundActionsTest());
-    runSuite("InboundActionsTest", inbound.get(), false);
+    runSuite("InboundActionsTest", inbound.get());
     std::unique_ptr<QObject> channel(createActionChannelTest());
-    runSuite("ActionChannelTest", channel.get(), false);
+    runSuite("ActionChannelTest", channel.get());
     std::unique_ptr<QObject> heartbeat(createHeartbeatTest());
-    runSuite("HeartbeatTest", heartbeat.get(), false);
+    runSuite("HeartbeatTest", heartbeat.get());
     std::unique_ptr<QObject> logRotate(createLogRotateTest());
-    runSuite("LogRotateTest", logRotate.get(), false);
+    runSuite("LogRotateTest", logRotate.get());
     std::unique_ptr<QObject> injectGate(createInjectGateTest());
-    runSuite("InjectGateTest", injectGate.get(), false);
+    runSuite("InjectGateTest", injectGate.get());
     std::unique_ptr<QObject> winProc(createWinProcessTest());
-    runSuite("WinProcessTest", winProc.get(), false);
+    runSuite("WinProcessTest", winProc.get());
     std::unique_ptr<QObject> loops(createActionLoopServiceTest());
-    runSuite("ActionLoopServiceTest", loops.get(), false);
+    runSuite("ActionLoopServiceTest", loops.get());
     std::unique_ptr<QObject> keys(createKeyStateManagerTest());
-    runSuite("KeyStateManagerTest", keys.get(), false);
+    runSuite("KeyStateManagerTest", keys.get());
     std::unique_ptr<QObject> colorHex(createColorPickerHexTest());
-    runSuite("ColorPickerHexTest", colorHex.get(), false);
+    runSuite("ColorPickerHexTest", colorHex.get());
     std::unique_ptr<QObject> headPose(createHeadPoseMapperTest());
-    runSuite("HeadPoseMapperTest", headPose.get(), false);
+    runSuite("HeadPoseMapperTest", headPose.get());
     std::unique_ptr<QObject> gravity(createKeyGravityTest());
-    runSuite("KeyGravityTest", gravity.get(), false);
+    runSuite("KeyGravityTest", gravity.get());
+    std::unique_ptr<QObject> settingsMigration(createSettingsMigrationTest());
+    runSuite("SettingsMigrationTest", settingsMigration.get());
+    std::unique_ptr<QObject> installPolicy(createSettingsInstallPolicyTest());
+    runSuite("SettingsInstallPolicyTest", installPolicy.get());
+    std::unique_ptr<QObject> tracking(createTrackingWatchTest());
+    runSuite("TrackingWatchTest", tracking.get());
+    fprintf(stderr, "GazerPageTests overall=%d log=%s\n", status, qPrintable(suitePath));
+    fflush(stderr);
     return status;
 }

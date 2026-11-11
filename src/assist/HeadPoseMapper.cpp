@@ -6,6 +6,27 @@
 
 namespace gazer {
 
+namespace {
+
+/// True when every enabled map can be evaluated without substituting zero
+/// for a missing axis. A zero stand-in would release a command latch.
+bool mappedAxesReady(const QVector<HeadPoseMap>& maps, const HeadPose& pose)
+{
+    bool any = false;
+    for (const HeadPoseMap& m : maps) {
+        if (!m.enabled || m.id.isEmpty()) {
+            continue;
+        }
+        any = true;
+        if (!headPoseAxisValid(pose, m.source)) {
+            return false;
+        }
+    }
+    return any ? true : pose.valid();
+}
+
+} // namespace
+
 HeadPoseMapper::HeadPoseMapper(QObject* parent)
     : QObject(parent)
 {
@@ -70,6 +91,17 @@ void HeadPoseMapper::onTrackingLost()
     zeroJoystick();
 }
 
+void HeadPoseMapper::beginStreamLoss()
+{
+    onTrackingLost();
+    m_recoverSettle = true;
+}
+
+void HeadPoseMapper::armRecoverySettle()
+{
+    m_recoverSettle = true;
+}
+
 void HeadPoseMapper::onPose(const HeadPose& pose)
 {
     m_last.timestampMs = pose.timestampMs;
@@ -97,6 +129,21 @@ void HeadPoseMapper::onPose(const HeadPose& pose)
         dt = pose.timestampMs - m_lastTs;
     }
     m_lastTs = pose.timestampMs;
+
+    // The first valid pose after a stall is paused, so a command already past
+    // its threshold is armed and does not fire. Invalid samples are ignored
+    // until then; treating them as zero would release the latch and the next
+    // real pose would look like a new press.
+    if (m_recoverSettle && m_enabled) {
+        if (!mappedAxesReady(m_maps, pose)) {
+            return;
+        }
+        m_recoverSettle = false;
+        const HeadPoseOutputs settled = evalHeadPoseMaps(
+            m_maps, m_enabled, pose, m_origin, m_originSet, true, dt, &m_state);
+        apply(settled);
+        return;
+    }
 
     const HeadPoseOutputs out =
         evalHeadPoseMaps(m_maps, m_enabled, pose, m_origin, m_originSet, m_paused, dt, &m_state);

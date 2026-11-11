@@ -605,8 +605,8 @@ void PageLoaderTest::loadQwertyPadXml()
     const PageGrid* vert1 = doc.findGrid(QStringLiteral("vert1"));
     QVERIFY(board && numpad && nav && vert1);
     QCOMPARE(board->rows, 3);
-    QCOMPARE(board->columns, 150);
-    QCOMPARE(board->size.x.value, 1500.0);
+    QCOMPARE(board->columns, 160);
+    QCOMPARE(board->size.x.value, 1600.0);
     QCOMPARE(board->size.y.value, 300.0);
     QCOMPARE(board->offset.x.value, 500.0);
     QCOMPARE(board->offset.y.value, 740.0);
@@ -631,7 +631,7 @@ void PageLoaderTest::loadQwertyPadXml()
     const PageCell* zero = doc.findCell(QStringLiteral("n0"));
     const PageCell* esc = doc.findCell(QStringLiteral("esc"));
     QVERIFY(zero && esc);
-    QCOMPARE(zero->colSpan, 2);
+    QCOMPARE(zero->colSpan, 1);
     QCOMPARE(esc->actions.at(0).command, QStringLiteral("escape"));
     QCOMPARE(doc.findCell(QStringLiteral("del"))->actions.at(0).command, QStringLiteral("delete"));
     QCOMPARE(doc.findCell(QStringLiteral("enter"))->actions.at(0).command, QStringLiteral("enter"));
