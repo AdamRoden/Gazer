@@ -168,7 +168,7 @@ PageDocument ComposeUi::buildFilesDocument() const
 {
     PageDocument doc;
     doc.id = QString(kFilesLiveId);
-    doc.name = QStringLiteral("File Explorer");
+    doc.name = m_fileMode == FileMode::Export ? QStringLiteral("Export") : QStringLiteral("Import");
     const ThemeColors theme = m_settings.resolvedTheme();
     initTopOverlay(doc, 1, 4, {1.0, 1.0, 6.0, 1.2}, 8, 12, theme,
                    QStringLiteral("(A_ScreenHeight-56)*2/3+24"), speakBoardWidth());
@@ -196,19 +196,14 @@ PageDocument ComposeUi::buildFilesDocument() const
     titleBar.row = 0;
     titleBar.col = 0;
     titleBar.rows = 1;
-    titleBar.columns = 2;
+    titleBar.columns = 1;
     titleBar.gapPx = 8;
-    titleBar.columnTracks = {PageTrackSize::starWeight(), pxTrack(132)};
+    titleBar.columnTracks = {PageTrackSize::starWeight()};
     PageCell title = cell(QStringLiteral("file_title"), titleText, 0, 0, {}, clear, 1,
                           QStringLiteral("label"), {}, titleIcon);
     title.textStyle = QStringLiteral("row");
     title.style.thickness = PageBox::all(0);
     titleBar.cells.push_back(std::move(title));
-    PageCell close = cell(QStringLiteral("file_close"), QStringLiteral("Close"), 0, 1,
-                          QStringLiteral("compose.browserBack"), surface, 1, {}, {},
-                          QStringLiteral("close"));
-    close.textStyle = QStringLiteral("row");
-    titleBar.cells.push_back(std::move(close));
     grid.subGrids.push_back(std::move(titleBar));
 
     PageGrid bar;
@@ -482,42 +477,89 @@ PageDocument ComposeUi::buildFilesDocument() const
     actions.row = 0;
     actions.col = 1;
     actions.rows = 1;
-    actions.columns = 4;
     actions.gapPx = 8;
+    const bool exportEdit = m_fileMode == FileMode::Export && m_fileConfirm == FileConfirm::None;
+    const int nameCol = exportEdit ? 1 : 0;
+    const QString nameCaption = m_fileConfirm == FileConfirm::None
+                                    ? (m_boardNote.isEmpty() ? QStringLiteral("File name")
+                                                             : m_boardNote)
+                                    : fileConfirmQuestion();
     PageCell name;
     name.id = QStringLiteral("file_name");
     name.row = 0;
-    name.col = 0;
+    name.col = nameCol;
     name.role = QStringLiteral("display");
-    name.textStyle = QStringLiteral("body");
+    name.textStyle =
+        m_fileMode == FileMode::Export ? QStringLiteral("filename") : QStringLiteral("body");
     name.label = m_fileName.text();
     name.caretIndex = qBound(0, m_fileName.caret(), name.label.size());
     if (m_fileName.hasSelection()) {
         name.selectionStart = m_fileName.selectionStart();
         name.selectionEnd = m_fileName.selectionEnd();
     }
-    name.caption = m_fileConfirm == FileConfirm::None
-                       ? (m_boardNote.isEmpty() ? QStringLiteral("File name") : m_boardNote)
-                       : fileConfirmQuestion();
+    name.caption = nameCaption;
     name.style.background = value;
     name.style.foreground = ThemeColors::contrastOn(value);
-    actions.cells.push_back(std::move(name));
-    if (m_fileConfirm == FileConfirm::None) {
-        actions.columnTracks = starTracks({2.6, 1.15, 1.15, 1.25});
-        actions.cells.push_back(cell(QStringLiteral("file_import"), QStringLiteral("Import"), 0, 1,
-                                     QStringLiteral("compose.importReplace"), surface));
-        actions.cells.push_back(cell(QStringLiteral("file_merge"), QStringLiteral("Merge"), 0, 2,
-                                     QStringLiteral("compose.importMerge"), surface));
-        actions.cells.push_back(cell(QStringLiteral("file_export"), QStringLiteral("Export"), 0, 3,
-                                     QStringLiteral("compose.browserSave"), accent));
-    } else {
-        actions.columnTracks = starTracks({2.2, 2.0, 1.15, 1.15});
+    auto cancelAt = [&](int col) {
+        return cell(QStringLiteral("file_cancel"), QStringLiteral("Cancel"), 0, col,
+                    QStringLiteral("compose.browserBack"), surface);
+    };
+    if (m_fileConfirm != FileConfirm::None) {
+        actions.columns = 5;
+        actions.columnTracks = starTracks({2.2, 2.0, 1.0, 1.0, 1.05});
+        actions.cells.push_back(std::move(name));
         actions.cells.push_back(cell(QStringLiteral("file_ask"), fileConfirmQuestion(), 0, 1, {},
                                      surface, 1, QStringLiteral("label")));
         actions.cells.push_back(cell(QStringLiteral("file_yes"), QStringLiteral("Yes"), 0, 2,
                                      QStringLiteral("compose.fileYes"), accent));
         actions.cells.push_back(cell(QStringLiteral("file_no"), QStringLiteral("No"), 0, 3,
                                      QStringLiteral("compose.fileNo"), surface));
+        actions.cells.push_back(cancelAt(4));
+    } else if (m_fileMode == FileMode::Export) {
+        actions.columns = 5;
+        actions.columnTracks = {pxTrack(72), PageTrackSize::starWeight(), pxTrack(72), pxTrack(132),
+                                pxTrack(132)};
+        const bool canLeft = m_fileName.caret() > 0 || m_fileName.hasSelection();
+        const bool canRight =
+            m_fileName.caret() < m_fileName.text().size() || m_fileName.hasSelection();
+        auto caretArrow = [&](const QString& id, int col, bool on, const QString& command,
+                              const QString& icon) {
+            PageCell button = cell(id, {}, 0, col, on ? command : QString(), surface, 1,
+                                   on ? QString() : QStringLiteral("label"), {}, icon);
+            button.textStyle = QStringLiteral("row");
+            if (!on) {
+                button.style.foreground =
+                    ThemeColors::mix(surface, ThemeColors::contrastOn(surface), 0.4);
+            }
+            return button;
+        };
+        actions.cells.push_back(caretArrow(QStringLiteral("file_left"), 0, canLeft,
+                                           QStringLiteral("compose.fileCaret.-1"),
+                                           QStringLiteral("ArrowLeft")));
+        actions.cells.push_back(name);
+        PageCell caretTrack =
+            cell(QStringLiteral("file_caret"), m_fileName.text(), 0, nameCol, {}, QColor(), 1,
+                 QStringLiteral("caretscroll"), nameCaption);
+        caretTrack.caretIndex = qBound(0, m_fileName.caret(), caretTrack.label.size());
+        caretTrack.textStyle = QStringLiteral("filename");
+        caretTrack.dwell.scanGrace = kTrackLockMs;
+        caretTrack.style.thickness = PageBox::all(0);
+        actions.cells.push_back(std::move(caretTrack));
+        actions.cells.push_back(caretArrow(QStringLiteral("file_right"), 2, canRight,
+                                           QStringLiteral("compose.fileCaret.1"),
+                                           QStringLiteral("ArrowRight")));
+        actions.cells.push_back(cell(QStringLiteral("file_save"), QStringLiteral("Save"), 0, 3,
+                                     QStringLiteral("compose.browserSave"), accent));
+        actions.cells.push_back(cancelAt(4));
+    } else {
+        actions.columns = 4;
+        actions.columnTracks = starTracks({2.6, 1.15, 1.15, 1.15});
+        actions.cells.push_back(std::move(name));
+        actions.cells.push_back(cell(QStringLiteral("file_import"), QStringLiteral("Import"), 0, 1,
+                                     QStringLiteral("compose.importReplace"), surface));
+        actions.cells.push_back(cell(QStringLiteral("file_merge"), QStringLiteral("Merge"), 0, 2,
+                                     QStringLiteral("compose.importMerge"), surface));
+        actions.cells.push_back(cancelAt(3));
     }
     foot.subGrids.push_back(std::move(actions));
     grid.subGrids.push_back(std::move(foot));

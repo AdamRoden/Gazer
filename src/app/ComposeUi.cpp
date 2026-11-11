@@ -2,6 +2,7 @@
 
 #include "app/AppSettings.h"
 #include "app/ComposeUiInternal.h"
+#include "app/IconCatalog.h"
 #include "app/SettingsPageBuild.h"
 #include "assist/ElevenClient.h"
 #include "assist/ElevenRequest.h"
@@ -25,6 +26,7 @@
 #include <QGuiApplication>
 #include <QObject>
 #include <QStringView>
+#include <QTimer>
 #include <QtGlobal>
 #include <QVector>
 #include <algorithm>
@@ -47,7 +49,12 @@ ComposeUi::ComposeUi(PageSession& pages, SpeechEngine& speech, AppSettings& sett
     , m_tts(tts)
     , m_board(board)
     , m_history(history)
+    , m_iconCatalog(std::make_unique<IconCatalog>())
 {
+    QObject::connect(m_iconCatalog.get(), &IconCatalog::catalogChanged, m_iconCatalog.get(),
+                     [this]() { onIconCatalogChanged(); });
+    QObject::connect(m_iconCatalog.get(), &IconCatalog::iconsReady, m_iconCatalog.get(),
+                     [this]() { onIconSvgsReady(); });
     loadPredictor();
 }
 
@@ -212,6 +219,9 @@ void ComposeUi::handleSend(const PageAction& a)
     if (handleVoiceQuerySend(a)) {
         return;
     }
+    if (handleIconQuerySend(a)) {
+        return;
+    }
     const QString top = m_pages.topPageId();
     if (top != kPageId && !capturingPhrase()) {
         return;
@@ -243,16 +253,19 @@ void ComposeUi::handleCapturedCommand(const QString& command)
             cancelBorrowedPhrase();
             return;
         }
+        if (handleIconKeyboardEscape()) {
+            return;
+        }
+        if (top == kItemEditLiveId) {
+            cancelIconPick();
+            return;
+        }
         if (nameEditing()) {
             cancelNameEdit();
             return;
         }
         if ((assignMode() || editMode()) && top == kPageId) {
             cancelAssign();
-            return;
-        }
-        if (top == kItemEditLiveId) {
-            finishItemEditor(true);
             return;
         }
         if (handleVoicesEscape()) {
@@ -272,6 +285,9 @@ void ComposeUi::handleCapturedCommand(const QString& command)
         return;
     }
     if (handleVoiceQueryCommand(c)) {
+        return;
+    }
+    if (handleIconQueryCommand(c)) {
         return;
     }
     if (capturingPhrase()) {
@@ -324,15 +340,17 @@ void ComposeUi::abandonClosedSession()
         m_nameEditBackup.clear();
     }
     m_interaction = Interaction::Use;
-    m_editIcons = false;
+    endIconPick();
     m_editColor.clear();
     m_editIcon.clear();
+    if (m_dismissColor) {
+        m_dismissColor();
+    }
     m_styleEditor = false;
     m_stylePage = 0;
     m_tagPage = 0;
     clearVoiceQuery();
     stopListScroll();
-    closeItemEdit();
     m_composeAuthored = {};
 }
 
@@ -883,11 +901,9 @@ void ComposeUi::stampComposerChrome(PageDocument& doc) const
             keys->cells.push_back(std::move(clear));
         } else {
             PageCell color = cell(QStringLiteral("clear"), QStringLiteral("Color"), 0, keyCol,
-                                  QStringLiteral("compose.editShowColors"),
-                                  !m_editIcons ? accent : surface, keyColSpan, {}, {},
-                                  QStringLiteral("palette"));
+                                  QStringLiteral("compose.editShowColors"), surface, keyColSpan, {},
+                                  {}, QStringLiteral("palette"));
             color.styleId = styleId;
-            color.activeState = QStringLiteral("compose.editColors");
             keys->cells.push_back(std::move(color));
             PageCell image = cell(QStringLiteral("undo"), QStringLiteral("Icon"), 1, keyCol,
                                   QStringLiteral("compose.editShowIcons"),
@@ -984,12 +1000,23 @@ void ComposeUi::syncClosedOverlays()
         clearVoiceQuery();
     } else if (m_listScroll == ListScroll::Files && !hasLive(kFilesLiveId)) {
         stopListScroll();
+    } else if (m_listScroll == ListScroll::Icons && !hasLive(kItemEditLiveId)) {
+        stopListScroll();
     }
     if (!hasLive(kVoicesLiveId)) {
         clearVoiceQuery();
     }
-    if (nameEditing() && !hasLive(kItemEditLiveId)) {
-        finishItemEditor(true);
+    if (!hasLive(kItemEditLiveId) && (m_editIcons || m_iconKeyboard)) {
+        const bool keys = m_iconKeyboard;
+        endIconPick();
+        if (keys && m_iconCatalog) {
+            // Unstamp Esc after this refresh returns. Rebuilding here re-enters refresh.
+            QTimer::singleShot(0, m_iconCatalog.get(), [this]() {
+                if (isOpen()) {
+                    rebuildBoard();
+                }
+            });
+        }
     }
 }
 

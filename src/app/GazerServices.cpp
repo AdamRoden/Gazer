@@ -246,6 +246,12 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
     registerComposeCommands(*m_commands, *m_compose);
     m_compose->setApplyFn([this]() { applySettings(true); });
     m_compose->setNotifyFn([this](const QString& msg) { notifyStatus(msg); });
+    m_compose->setColorPickerFns(
+        [this](const QColor& initial, const QString& title,
+               std::function<void(const QColor&)> commit, QString* error) {
+            return m_settingsUi->openColorFor(initial, title, std::move(commit), error);
+        },
+        [this]() { m_settingsUi->closeGuestColorPicker(); });
     connect(m_speech.get(), &SpeechEngine::historyReady, this,
             [this](const QString& phrase, const QString& backend, const QString& modelId,
                    const QString& voiceId, const QString& clipPath) {

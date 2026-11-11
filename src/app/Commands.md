@@ -127,20 +127,22 @@ When adding a command: register it and add a row here.
 | `compose.insertTag.<name>` | Insert `[name]` at the caret and return to Actions. `name` is percent-encoded |
 | `compose.tagPage.<n>` | Move the saved-tag page by `n` |
 | `compose.beginTagName` | Type a new tag on the keyboard. Save inserts it at the caret, keeps it in the saved list (24), and returns to the tag page |
-| `compose.openFiles` / `compose.exportBoard` / `compose.importChoose` | Open File Explorer over Speak and show the keyboard layer so the file name can be typed. Closing returns to the layer that was showing |
-| `compose.importFile` | **Import**. Saves the open pages, hides the other boards, and leaves the main dock up. Shows the Windows open dialog beside the boards, with `qwerty_file`. Keys type into the dialog. Closing it restores those pages. The chosen JSON file replaces the boards |
-| `compose.exportFile` | **Export**. Same hold, with the Windows save dialog. Writes an `aac-workspace` v1 file |
+| `compose.openFiles` / `compose.importChoose` / `compose.importFile` | **Import**. Open the file browser in import/merge mode over Speak and show the keyboard layer. Cancel returns to the layer that was showing |
+| `compose.exportBoard` / `compose.exportFile` | **Export**. Same browser in export mode, with the file-name editor |
 | `compose.browserPrev` / `compose.browserForward` / `compose.browserUp` | Back, forward, or parent folder. A path crumb uses `compose.browserGoto.<i>`. A Places entry uses `compose.browserPlace.<i>` |
-| `compose.browserSave` | **Export**. Asks Yes/No, then writes a Voice `aac-workspace` v1 JSON file under the name in the text box |
+| `compose.browserSave` | **Save** on the export browser. Asks Yes/No, then writes a Voice `aac-workspace` v1 JSON file under the name in the text box |
+| `compose.fileCaret.<n>` | Move the export file-name caret by `n` characters. The on-screen arrows use `-1` and `1`. The name scrolls so the caret stays in view |
 | `compose.fileYes` / `compose.fileNo` | Accept or dismiss that confirm. Yes is the only step that reads or writes the file. Escape is No |
-| `compose.browserBack` | Close File Explorer |
-| `compose.fileView.list` / `compose.fileView.tiles` | File Explorer toolbar. List is the detail columns. Tiles is a grid of icons, eight across and four down. The current view is filled |
+| `compose.browserBack` | **Cancel**. Close the file browser |
+| `compose.fileView.list` / `compose.fileView.tiles` | File browser toolbar. List is the detail columns. Tiles is a grid of icons, eight across and four down. The current view is filled |
 | `compose.importPick.<i>` / `compose.importPage.<n>` / `compose.fileRow.<n>` | Open folder `i` or select that JSON file (no read yet), move by `n` pages, or move by `n` rows. A list row is one file. A tile row is eight files |
 | `compose.importMerge` / `compose.importReplace` | **Merge** or **Import**. Each asks Yes/No first. Import replaces the board and also applies model, speed, pitch, and volume |
 | `compose.saveName` / `compose.cancelName` / `compose.deleteName` | Save, discard, or delete the item being edited and return to the board |
-| `compose.editShowColors` / `compose.editShowIcons` | Switch the edit overlay between color chips and icons |
-| `compose.editColor.<i>` / `compose.editIcon.<i>` | Set color or icon on the item being edited |
-| `compose.editClearColor` / `compose.editClearIcon` | Clear custom color or icon on the item being edited |
+| `compose.editShowColors` | **Color** on the item editor. Opens the settings color picker. Save keeps that color on the item until the name is saved. Cancel discards it |
+| `compose.editShowIcons` | **Icon**. Opens a searchable Material Symbols board the same size as the color picker, eight across. Icons come from fonts.google.com when the network works, otherwise a short offline set. The footer is Clear, the current icon, Save, and Cancel. The item does not change until Save |
+| `compose.iconSearch` | Dwell **Search**. Shows the Speak keyboard, with Esc in place of Edit. Enter or Esc closes the keyboard and keeps the search |
+| `compose.iconPick.<i>` / `compose.iconRow.<n>` | Highlight result `i` (`0` clears it) or move by `n` tile rows. The track and the arrows both move whole rows |
+| `compose.iconSave` / `compose.iconCancel` | Apply the highlighted icon, or close the list and keep the previous icon |
 | `history.play.<id>` / `history.restore.<id>` / `history.delete.<id>` | Replay, put the phrase back in the buffer, or drop the row |
 | `history.list.next` / `.prev` / `history.list.goto.<n>` | History list: after the lock-on ring, looking along the track drags the thumb; commands still page/jump |
 | `compose.pin` / `compose.cancelAssign` | Empty buffer no-op; otherwise dwell a cell to save the phrase on the soundboard |

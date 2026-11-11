@@ -114,8 +114,8 @@ void ComposeUi::beginTagName()
     }
     if (nameEditing()) {
         finishItemEditor(true);
-    } else if (hasLive(kItemEditLiveId)) {
-        closeItemEdit();
+    } else {
+        endIconPick();
     }
     if (m_interaction != Interaction::Use) {
         m_interaction = Interaction::Use;

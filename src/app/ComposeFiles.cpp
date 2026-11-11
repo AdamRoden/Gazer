@@ -8,6 +8,7 @@
 #include "layout/PageSession.h"
 #include "layout/PageTypes.h"
 
+#include <QDateTime>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -197,6 +198,10 @@ bool ComposeUi::handleFileCommand(const QString& command)
         backspace();
     } else if (c == QLatin1String("space")) {
         insertFileName(QStringLiteral(" "));
+    } else if (c == QLatin1String("arrowLeft")) {
+        nudgeFileCaret(-1);
+    } else if (c == QLatin1String("arrowRight")) {
+        nudgeFileCaret(1);
     }
     return true;
 }
@@ -297,7 +302,7 @@ void ComposeUi::navigateBrowser(const QString& dir)
     rebuildFiles();
 }
 
-bool ComposeUi::openFiles(QString* error)
+bool ComposeUi::openFileMode(FileMode mode, QString* error)
 {
     if (capturingPhrase()) {
         const QString msg = QStringLiteral("Finish the name first");
@@ -308,20 +313,27 @@ bool ComposeUi::openFiles(QString* error)
         return false;
     }
     const bool firstOpen = !hasLive(kFilesLiveId);
+    const bool switching = !firstOpen && m_fileMode != mode;
     const QVector<int> priorLayers =
         firstOpen && isOpen() ? m_pages.attachedCopy(QString(kPageId)).showLayers : QVector<int>{};
     if (m_browserDir.isEmpty()) {
         m_browserDir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
     }
-    if (m_fileName.text().trimmed().isEmpty()) {
+    m_fileMode = mode;
+    if (mode == FileMode::Export && m_fileName.text().trimmed().isEmpty()) {
         m_fileName.load(QStringLiteral("aac-workspace-%1.json")
                             .arg(QDateTime::currentDateTime().toString(
                                 QStringLiteral("yyyy-MM-dd-HHmmss"))));
     }
-    m_fileOffset = 0;
-    m_browserFresh = false;
-    dismissBoardNote();
-    m_fileConfirm = FileConfirm::None;
+    if (firstOpen) {
+        m_fileOffset = 0;
+        m_browserFresh = false;
+        dismissBoardNote();
+        m_fileConfirm = FileConfirm::None;
+    } else if (switching) {
+        dismissBoardNote();
+        m_fileConfirm = FileConfirm::None;
+    }
     const bool ok = presentLive(QString(kFilesLiveId), buildFilesDocument(), error);
     if (!ok) {
         return false;
@@ -335,14 +347,32 @@ bool ComposeUi::openFiles(QString* error)
     return true;
 }
 
+bool ComposeUi::openFiles(QString* error)
+{
+    return openFileMode(FileMode::Import, error);
+}
+
 bool ComposeUi::exportBoard(QString* error)
 {
-    return openFiles(error);
+    return openFileMode(FileMode::Export, error);
 }
 
 bool ComposeUi::importChoose(QString* error)
 {
-    return openFiles(error);
+    return openFileMode(FileMode::Import, error);
+}
+
+void ComposeUi::nudgeFileCaret(int delta)
+{
+    if (delta == 0 || !hasLive(kFilesLiveId) || m_fileMode != FileMode::Export) {
+        return;
+    }
+    const int next = qBound(0, m_fileName.caret() + delta, m_fileName.text().size());
+    if (next == m_fileName.caret() && !m_fileName.hasSelection()) {
+        return;
+    }
+    m_fileName.setCaret(next);
+    rebuildFiles();
 }
 
 bool ComposeUi::browserUp(QString* error)
@@ -439,7 +469,7 @@ bool ComposeUi::writeExport(QString* error)
         return fail(QStringLiteral("Finish the name first"));
     }
     if (m_browserDir.isEmpty() || !QFileInfo(m_browserDir).isDir()) {
-        return fail(QStringLiteral("Open a folder, then Export"));
+        return fail(QStringLiteral("Open a folder, then Save"));
     }
     QString why;
     const QString name = exportLeafName(m_fileName.text(), &why);
@@ -579,7 +609,7 @@ bool ComposeUi::armFileConfirm(FileConfirm kind, QString* error)
     }
     if (kind == FileConfirm::Export) {
         if (m_browserDir.isEmpty() || !QFileInfo(m_browserDir).isDir()) {
-            return fail(QStringLiteral("Open a folder, then Export"));
+            return fail(QStringLiteral("Open a folder, then Save"));
         }
         QString why;
         if (exportLeafName(m_fileName.text(), &why).isEmpty()) {
@@ -678,11 +708,11 @@ QString ComposeUi::fileConfirmQuestion() const
     if (m_fileConfirm == FileConfirm::Export) {
         const QString name = exportLeafName(m_fileName.text(), nullptr);
         if (name.isEmpty()) {
-            return QStringLiteral("Export this file?");
+            return QStringLiteral("Save this file?");
         }
         const bool exists = !m_browserDir.isEmpty() && QFileInfo::exists(QDir(m_browserDir).filePath(name));
         return ellipsis(exists ? QStringLiteral("Overwrite %1?").arg(name)
-                               : QStringLiteral("Export %1?").arg(name),
+                               : QStringLiteral("Save %1?").arg(name),
                         72);
     }
     const QString path = selectedJsonPath();

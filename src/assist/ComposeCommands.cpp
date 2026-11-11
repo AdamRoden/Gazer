@@ -88,9 +88,9 @@ void registerComposeCommands(CommandRegistry& commands, ComposeUi& compose)
     commands.registerBuiltin(QStringLiteral("compose.importReplace"),
                              [&compose](QString* error) { return compose.importReplace(error); });
     commands.registerBuiltin(QStringLiteral("compose.importFile"),
-                             [&compose](QString* error) { return compose.importFromDialog(error); });
+                             [&compose](QString* error) { return compose.importChoose(error); });
     commands.registerBuiltin(QStringLiteral("compose.exportFile"),
-                             [&compose](QString* error) { return compose.exportToDialog(error); });
+                             [&compose](QString* error) { return compose.exportBoard(error); });
     commands.registerBuiltin(QStringLiteral("compose.saveName"),
                              [&compose](QString* error) { return compose.saveNameEdit(error); });
     commands.registerBuiltin(QStringLiteral("compose.cancelName"), [&compose](QString*) {
@@ -115,12 +115,16 @@ void registerComposeCommands(CommandRegistry& commands, ComposeUi& compose)
         compose.showEditIcons();
         return true;
     });
-    commands.registerBuiltin(QStringLiteral("compose.editClearColor"), [&compose](QString*) {
-        compose.clearEditedColor();
+    commands.registerBuiltin(QStringLiteral("compose.iconSearch"), [&compose](QString*) {
+        compose.focusIconSearch();
         return true;
     });
-    commands.registerBuiltin(QStringLiteral("compose.editClearIcon"), [&compose](QString*) {
-        compose.clearEditedIcon();
+    commands.registerBuiltin(QStringLiteral("compose.iconSave"), [&compose](QString*) {
+        compose.saveIconPick();
+        return true;
+    });
+    commands.registerBuiltin(QStringLiteral("compose.iconCancel"), [&compose](QString*) {
+        compose.cancelIconPick();
         return true;
     });
     commands.registerBuiltin(QStringLiteral("soundboard.newTopic"),
@@ -196,12 +200,13 @@ void registerComposeCommands(CommandRegistry& commands, ComposeUi& compose)
     bindVoidId(QStringLiteral("speech.voicePreview."), &ComposeUi::previewVoice);
     bindVoidId(QStringLiteral("speech.fav.toggle."), &ComposeUi::toggleFavorite);
     bindVoidId(QStringLiteral("speech.lang.set."), &ComposeUi::setLangFilter);
-    bindInt(QStringLiteral("compose.editColor."), &ComposeUi::setEditedColor);
-    bindInt(QStringLiteral("compose.editIcon."), &ComposeUi::setEditedIcon);
+    bindInt(QStringLiteral("compose.iconPick."), &ComposeUi::pickIcon);
+    bindVoidInt(QStringLiteral("compose.iconRow."), &ComposeUi::scrollIconRows);
     bindVoidInt(QStringLiteral("compose.pageChips."), &ComposeUi::pageChips);
     bindInt(QStringLiteral("compose.importPick."), &ComposeUi::pickImportFile);
     bindVoidInt(QStringLiteral("compose.importPage."), &ComposeUi::pageImportFiles);
     bindVoidInt(QStringLiteral("compose.fileRow."), &ComposeUi::scrollFileRows);
+    bindVoidInt(QStringLiteral("compose.fileCaret."), &ComposeUi::nudgeFileCaret);
     commands.registerBuiltin(QStringLiteral("compose.fileView.list"), [&compose](QString*) {
         compose.setFileTiles(false);
         return true;

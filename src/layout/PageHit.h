@@ -30,6 +30,8 @@ struct PageTarget {
     QString textStyle;
     QString role;
     int caretIndex = -1;
+    /// Real caret while `caretIndex` is cleared for the blink. Paint sets this.
+    int pinCaret = -1;
     int selectionStart = -1;
     int selectionEnd = -1;
     QString settingKey;

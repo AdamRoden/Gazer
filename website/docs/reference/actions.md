@@ -424,16 +424,17 @@ While the action’s **source page** is `compose`, `compose_voices_live`, `compo
 
 | Incoming | What happens |
 |----------|----------------|
-| `Send` of a single character | Inserted into the phrase (only when `compose` is top, or while renaming an item). While File Explorer is the top page, it goes into the file name. |
+| `Send` of a single character | Inserted into the phrase (only when `compose` is top, or while renaming an item). While the file browser is the top page, it goes into the file name. |
 | `Send` of `space` (named) | Inserts a space in those same cases. Other named Send keys are consumed and ignored. |
-| `command="backspace"` / `compose.backspace` | Deletes in the buffer, or in the file name while File Explorer is top. |
+| `command="backspace"` / `compose.backspace` | Deletes in the buffer, or in the file name while the file browser is top. |
 | `command="space"` | Inserts a space. |
-| `command="enter"` | Speaks (or saves, while renaming). Does not speak while File Explorer is top. |
-| `command="escape"` | Stops speech if busy; otherwise cancels assign/edit, dismisses a File Explorer Yes/No, closes a live overlay (including File Explorer), or closes composer. |
-| `leftShift`, `tab`, arrows, other mapping keys | Consumed, no OS inject. |
+| `command="enter"` | Speaks (or saves, while renaming). Does not speak while the file browser is top. |
+| `command="escape"` | Stops speech if busy; otherwise cancels assign/edit, dismisses a file-browser Yes/No, closes a live overlay (including the file browser), or closes composer. |
+| `leftShift`, `tab`, other mapping keys | Consumed, no OS inject. |
+| `arrowLeft` / `arrowRight` | Move the export file-name caret. Otherwise consumed, no OS inject. |
 | `compose.*` / `speech.*` / `soundboard.*` / `history.*` / `settings.speech.*` / `volume.dec` / `volume.inc` / dwell suspend commands | Run as builtins (not captured). |
 
-`qwerty_main` (and any other non-compose page, including `qwerty_file` beside a Windows file dialog) still injects into Windows even if composer is open underneath. Caps on the composer keyboard is XML `ShowLayers`, not OS Shift.
+`qwerty_main` (and any other non-compose page, including `qwerty_file`) still injects into Windows even if composer is open underneath. Caps on the composer keyboard is XML `ShowLayers`, not OS Shift.
 
 ---
 

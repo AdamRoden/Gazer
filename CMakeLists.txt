@@ -178,6 +178,8 @@ set(GAZER_SOURCES
     src/ui/ThemeScheme.cpp
     src/ui/MaterialPalette.cpp
     src/ui/KeySymbols.cpp
+    src/ui/MaterialIcons.cpp
+    src/app/IconCatalog.cpp
     src/ui/PickStyle.cpp
     src/editor/LayoutEditorSession.cpp
     src/editor/LayoutEditorSessionIo.cpp
@@ -544,6 +546,7 @@ add_executable(GazerPageTests
     src/ui/PickStyle.cpp
     tests/ProgressPaintTest.cpp
     tests/ScrollBarTest.cpp
+    tests/FileNameScrollTest.cpp
     src/ui/ScrollBar.cpp
     tests/ComboMouseTest.cpp
     tests/LookToScrollTest.cpp

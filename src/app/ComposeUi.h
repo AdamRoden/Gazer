@@ -11,6 +11,7 @@
 #include "layout/PageTypes.h"
 
 #include <QByteArray>
+#include <QColor>
 #include <QElapsedTimer>
 #include <QString>
 #include <QStringList>
@@ -29,6 +30,7 @@ class SpeechHistory;
 class SpeechEngine;
 class SpeechSecrets;
 class TtsService;
+class IconCatalog;
 
 /// Gaze composer: capture Send/mapping on the compose page, stamp labels,
 /// voice and history live boards.
@@ -47,6 +49,16 @@ public:
 
     void setApplyFn(std::function<void()> fn) { m_apply = std::move(fn); }
     void setNotifyFn(std::function<void(const QString&)> fn) { m_notify = std::move(fn); }
+    /// Color on the item editor opens the settings color picker. Save calls the commit.
+    void setColorPickerFns(std::function<bool(const QColor& initial, const QString& title,
+                                               std::function<void(const QColor&)> commit,
+                                               QString* error)>
+                               open,
+                           std::function<void()> dismissGuest)
+    {
+        m_colorPick = std::move(open);
+        m_dismissColor = std::move(dismissGuest);
+    }
     void setTypingContext(TypingContext* typing);
     [[nodiscard]] WordPredictor& predictor() { return m_predictor; }
 
@@ -67,7 +79,7 @@ public:
     [[nodiscard]] const ComposeBuffer& buffer() const { return m_buffer; }
 
     bool openCompose(QString* error);
-    /// Reset assign/edit/name-edit when compose and the item-edit overlay are gone.
+    /// Reset assign/edit/name-edit when Speak and its live boards are gone.
     void onSessionChanged();
     bool speakOrStop(QString* error);
     void stopSpeech();
@@ -124,25 +136,33 @@ public:
     bool saveNameEdit(QString* error = nullptr);
     void cancelNameEdit();
     bool deleteNameEdit(QString* error = nullptr);
+    /// Settings color picker. The chosen color stays on the item until Save.
     void showEditColors();
+    /// Searchable Material Symbols board, the same size as the color picker.
+    /// The footer is Clear, the current icon, Save, and Cancel. Save applies
+    /// the icon. Cancel discards it. Tiles move one row at a time.
     void showEditIcons();
-    bool setEditedColor(int index, QString* error = nullptr);
-    bool setEditedIcon(int index, QString* error = nullptr);
-    void clearEditedColor();
-    void clearEditedIcon();
+    /// Dwell on Search. Shows the Speak keyboard until Enter or Esc.
+    void focusIconSearch();
+    bool pickIcon(int index, QString* error = nullptr);
+    void saveIconPick();
+    void cancelIconPick();
+    /// Move the icon tiles by `rows` (one row is eight tiles).
+    void scrollIconRows(int rows);
+    /// Jump to tile row `row`. The scrollbar offset is a row, not an icon.
+    void iconsGoto(int row);
+    /// Export browser. Same board as import, with the file-name editor.
     bool exportBoard(QString* error = nullptr);
+    /// Import/merge browser.
     bool importChoose(QString* error = nullptr);
-    /// Requests the Windows open dialog. False only when a name capture must
-    /// finish first. True means the dialog was requested, not that a file was
-    /// imported. A later failure shows on the board note.
-    bool importFromDialog(QString* error = nullptr);
-    /// Requests the Windows save dialog. Same contract as `importFromDialog`.
-    bool exportToDialog(QString* error = nullptr);
+    /// Import/merge browser. The actions grid has no separate File Explorer button.
     bool openFiles(QString* error = nullptr);
     bool pickImportFile(int index, QString* error = nullptr);
     void pageImportFiles(int delta);
-    /// Move the File Explorer list by `rows`. A list row is one file. A tile row is eight.
+    /// Move the file list by `rows`. A list row is one file. A tile row is eight.
     void scrollFileRows(int rows);
+    /// Move the export file-name caret by `delta` characters.
+    void nudgeFileCaret(int delta);
     /// List shows the detail columns. Tiles shows a grid of icons.
     void setFileTiles(bool tiles);
     bool browserUp(QString* error = nullptr);
@@ -175,7 +195,7 @@ public:
     void historyGoto(int offset);
     void onHistoryReady(const QString& phrase, const QString& backend, const QString& modelId,
                         const QString& voiceId, const QString& clipPath);
-    /// Drag the history, voices, or files scrollbar after the lock-on ring.
+    /// Drag a list scrollbar, or the export file-name caret, after the lock-on ring.
     void onGaze(const GazePoint& point);
 
 private:
@@ -190,6 +210,8 @@ private:
     bool saveBorrowedPhrase(QString* error);
     [[nodiscard]] bool handleVoiceQuerySend(const PageAction& action);
     [[nodiscard]] bool handleVoiceQueryCommand(const QString& command);
+    [[nodiscard]] bool handleIconQuerySend(const PageAction& action);
+    [[nodiscard]] bool handleIconQueryCommand(const QString& command);
     [[nodiscard]] bool handleVoicesEscape();
     void clearVoiceQuery();
     void handleSend(const PageAction& a);
@@ -211,7 +233,7 @@ private:
     void stampTagLayer(PageDocument& doc) const;
     void ensureBrowserEntries() const;
     [[nodiscard]] bool editingFileName() const;
-    /// Phrase buffer, or the file name while File Explorer is the top page.
+    /// Phrase buffer, or the file name while the file browser is the top page.
     [[nodiscard]] ComposeBuffer& editTarget();
     void insertFileName(QStringView chars);
     /// Send, mapping keys, and Escape while the file name is being edited.
@@ -223,6 +245,8 @@ private:
     void navigateBrowser(const QString& dir);
     PageDocument buildFilesDocument() const;
     enum class FileConfirm { None, Import, Merge, Export };
+    enum class FileMode { Import, Export };
+    bool openFileMode(FileMode mode, QString* error);
     bool armFileConfirm(FileConfirm kind, QString* error);
     bool requestFileImport(bool replace, QString* error);
     bool writeExport(QString* error);
@@ -254,6 +278,17 @@ private:
     void layoutPredictRow(PageDocument& doc) const;
     void loadPredictor();
     void closeItemEdit();
+    /// Drop the icon board, the draft, the query, and the search keyboard.
+    void endIconPick();
+    void clearIconSession();
+    void closeIconKeyboard();
+    [[nodiscard]] bool handleIconKeyboardEscape();
+    void onIconCatalogChanged();
+    void onIconSvgsReady();
+    [[nodiscard]] QStringList iconHits() const;
+    void prefetchVisibleIcons();
+    void prefetchBoardIcons();
+    void prefetchIcons(const QStringList& names);
     bool beginNameEdit(NameEditKind kind, const QString& target, const QString& initial);
     void endNameEdit(bool restorePhrase);
     void finishItemEditor(bool restorePhrase);
@@ -291,6 +326,9 @@ private:
     ComposeBuffer m_buffer;
     std::function<void()> m_apply;
     std::function<void(const QString&)> m_notify;
+    std::function<bool(const QColor&, const QString&, std::function<void(const QColor&)>, QString*)>
+        m_colorPick;
+    std::function<void()> m_dismissColor;
 
     bool m_voicesLoading = false;
     QString m_genderFilter;
@@ -299,9 +337,17 @@ private:
     NameEditKind m_nameEdit = NameEditKind::None;
     QString m_editId;
     QString m_nameEditBackup;
+    /// Icon list is open. The phrase keeps `m_editIcon` until Save.
     bool m_editIcons = false;
     QString m_editColor;
     QString m_editIcon;
+    QString m_iconDraft;
+    /// First visible tile row. Cell 0 of that row is `m_iconRow * 8`.
+    int m_iconRow = 0;
+    QString m_iconQuery;
+    /// Search owns the Speak keyboard. Esc is in the Edit key's place.
+    bool m_iconKeyboard = false;
+    std::unique_ptr<IconCatalog> m_iconCatalog;
     QByteArray m_pendingImport;
     QString m_pendingImportName;
     QString m_pendingImportPath;
@@ -317,11 +363,12 @@ private:
     /// Tile grid instead of the detail columns. List is the default.
     bool m_fileTiles = false;
     FileConfirm m_fileConfirm = FileConfirm::None;
+    FileMode m_fileMode = FileMode::Import;
     /// Speak layers under File Explorer. Restored when it closes.
     QVector<int> m_fileRestoreLayers;
     QStringList m_fileBack;
     QStringList m_fileForward;
-    /// Export name. The Speak keyboard types into this while File Explorer is on top.
+    /// Export name. The Speak keyboard types into this while the file browser is on top.
     ComposeBuffer m_fileName;
     int m_historyPage = 0;
     bool m_styleEditor = false;
@@ -337,7 +384,7 @@ private:
     QString m_voiceQuery;
     /// Styles shown on one editor page: 2 rows × 3 columns.
     static constexpr int kStyleEditorPage = 6;
-    enum class ListScroll { None, History, Voices, Files };
+    enum class ListScroll { None, History, Voices, Files, FileName, Icons };
     ListScroll m_listScroll = ListScroll::None;
     mutable PageDocument m_composeAuthored;
     struct ShownPrediction {

@@ -25,6 +25,11 @@ using soundboard_json::buttonFromJson;
 using soundboard_json::readInt;
 using soundboard_json::readString;
 
+QString storedColor(const QColor& c)
+{
+    return c.alpha() == 255 ? c.name(QColor::HexRgb) : c.name(QColor::HexArgb);
+}
+
 QJsonObject buttonToJson(const SoundboardButton& b)
 {
     QJsonObject o;
@@ -410,7 +415,7 @@ bool SoundboardStore::setTopicColor(const QString& id, const QString& color, QSt
         }
         return false;
     }
-    t->color = c.name(QColor::HexRgb);
+    t->color = storedColor(c);
     return save(error);
 }
 
@@ -575,7 +580,7 @@ bool SoundboardStore::setButtonColor(const QString& buttonId, const QString& col
         }
         return false;
     }
-    b->color = c.name(QColor::HexRgb);
+    b->color = storedColor(c);
     return save(error);
 }
 

@@ -900,14 +900,11 @@ void PageLoaderTest::loadComposePage()
     QVERIFY(!doc.findCell(QStringLiteral("vol_track"))->isInteractive());
     QVERIFY(!doc.findCell(QStringLiteral("vol_track"))->dwell.scanGrace.has_value());
     QVERIFY(doc.findCell(QStringLiteral("vol_up")));
-    QCOMPARE(doc.findCell(QStringLiteral("vol_up"))->col, 3);
+    QCOMPARE(doc.findCell(QStringLiteral("vol_track"))->colSpan, 4);
+    QCOMPARE(doc.findCell(QStringLiteral("vol_up"))->col, 6);
     QCOMPARE(doc.findCell(QStringLiteral("vol_up"))->actions[0].command,
              QStringLiteral("volume.inc"));
-    QCOMPARE(doc.findCell(QStringLiteral("cmd_files"))->row, 2);
-    QCOMPARE(doc.findCell(QStringLiteral("cmd_files"))->col, 4);
-    QCOMPARE(doc.findCell(QStringLiteral("cmd_files"))->colSpan, 3);
-    QCOMPARE(doc.findCell(QStringLiteral("cmd_files"))->actions[0].command,
-             QStringLiteral("compose.openFiles"));
+    QVERIFY(!doc.findCell(QStringLiteral("cmd_files")));
     QVERIFY(!doc.findCell(QStringLiteral("topic_new")));
     QVERIFY(!doc.findCell(QStringLiteral("delword")));
     QVERIFY(!doc.findGrid(QStringLiteral("actions")));

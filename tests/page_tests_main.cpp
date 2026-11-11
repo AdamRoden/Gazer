@@ -24,6 +24,7 @@ QObject* createMaterialPaletteTest();
 QObject* createMouseDwellMoveTest();
 QObject* createProgressPaintTest();
 QObject* createScrollBarTest();
+QObject* createFileNameScrollTest();
 QObject* createComboMouseTest();
 QObject* createLookToScrollTest();
 QObject* createAhkLauncherTest();
@@ -103,6 +104,8 @@ int main(int argc, char** argv)
     runSuite("ProgressPaintTest", progress.get(), false);
     std::unique_ptr<QObject> scroll(createScrollBarTest());
     runSuite("ScrollBarTest", scroll.get(), false);
+    std::unique_ptr<QObject> fileName(createFileNameScrollTest());
+    runSuite("FileNameScrollTest", fileName.get(), false);
     std::unique_ptr<QObject> combo(createComboMouseTest());
     runSuite("ComboMouseTest", combo.get(), false);
     std::unique_ptr<QObject> lts(createLookToScrollTest());

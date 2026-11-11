@@ -46,6 +46,7 @@ void ComposeUi::rebuildBoard()
     fillSoundboard(doc);
     QString err;
     (void)m_pages.attachDocument(std::move(doc), &err, false, false);
+    prefetchBoardIcons();
     refresh();
     m_pages.gateHover(QString(kPageId));
 }
@@ -80,6 +81,15 @@ void ComposeUi::fillSoundboard(PageDocument& doc) const
             edit->style.background = ok;
             edit->style.foreground = QColor(255, 255, 255);
         } else {
+            edit->style.background.token = QStringLiteral("bg90");
+            edit->style.foreground.reset();
+        }
+        if (m_iconKeyboard) {
+            edit->label = QStringLiteral("Esc");
+            edit->icon.clear();
+            edit->actions.clear();
+            edit->actions.push_back(commandAction(QStringLiteral("escape")));
+            edit->activeState.clear();
             edit->style.background.token = QStringLiteral("bg90");
             edit->style.foreground.reset();
         }
@@ -190,7 +200,7 @@ bool ComposeUi::pin(QString* error)
     if (text.isEmpty()) {
         return true;
     }
-    closeItemEdit();
+    endIconPick();
     m_interaction = Interaction::Assign;
     rebuildBoard();
     notify(QStringLiteral("Dwell a cell to save"));
@@ -209,7 +219,7 @@ void ComposeUi::cancelAssign()
     }
     const bool any = assignMode() || editMode();
     m_interaction = Interaction::Use;
-    closeItemEdit();
+    endIconPick();
     if (any) {
         rebuildBoard();
     }
@@ -332,7 +342,7 @@ bool ComposeUi::setTopic(const QString& topicId, QString* error)
         return false;
     }
     m_interaction = Interaction::Use;
-    closeItemEdit();
+    endIconPick();
     rebuildBoard();
     return true;
 }

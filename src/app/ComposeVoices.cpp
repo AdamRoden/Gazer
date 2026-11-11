@@ -238,15 +238,8 @@ bool ComposeUi::handleVoiceQuerySend(const PageAction& action)
     if (!m_voiceSearch || !hasLive(kVoicesLiveId)) {
         return false;
     }
-    const QString key = action.sendKey.trimmed();
-    QString add;
-    if (key.size() == 1) {
-        add = key;
-    } else if (key.compare(QLatin1String("space"), Qt::CaseInsensitive) == 0) {
-        add = QStringLiteral(" ");
-    }
-    if (!add.isEmpty() && m_voiceQuery.size() < 40) {
-        m_voiceQuery += add.left(40 - m_voiceQuery.size());
+    const QString add = compose_detail::queryInsertion(action, nullptr);
+    if (compose_detail::appendQuery(m_voiceQuery, add)) {
         m_voicePage = 0;
         rebuildVoices();
     }
@@ -258,24 +251,17 @@ bool ComposeUi::handleVoiceQueryCommand(const QString& command)
     if (!m_voiceSearch || !hasLive(kVoicesLiveId)) {
         return false;
     }
-    if (command == QLatin1String("backspace") || command == QLatin1String("compose.backspace")) {
-        if (!m_voiceQuery.isEmpty()) {
-            m_voiceQuery.chop(1);
-            m_voicePage = 0;
-            rebuildVoices();
-        }
-        return true;
-    }
-    if (command == QLatin1String("space")) {
-        if (m_voiceQuery.size() < 40) {
-            m_voiceQuery += QLatin1Char(' ');
-            m_voicePage = 0;
-            rebuildVoices();
-        }
-        return true;
-    }
-    if (command == QLatin1String("enter")) {
+    using compose_detail::QueryCommand;
+    switch (compose_detail::editQuery(m_voiceQuery, command, nullptr)) {
+    case QueryCommand::Edited:
+        m_voicePage = 0;
+        rebuildVoices();
+        break;
+    case QueryCommand::Enter:
         exitVoiceSearch();
+        break;
+    case QueryCommand::Ignored:
+        break;
     }
     return true;
 }

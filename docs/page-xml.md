@@ -216,7 +216,7 @@ Cells sit in a grid. They do **not** take `shell` or `layers` — they follow th
 | `icon` | Stem of a file in `resources/icons/svg/` (`menu`, `mouseLeftClick`, `keyTab`). Case-insensitive; trailing `Icon` ignored. Unknown names fall back to the label. |
 | `caption` | Secondary line (settings descriptions; scrollbar `offset,visible,total`; volume slider) |
 | `role` | Visual / hit role (see [Roles](#roles)) |
-| `textStyle` | `caption`, `body`, `title`, `section`, `key`. `row` is an icon on the left and one elided line. An icon with no label is centered |
+| `textStyle` | `caption`, `body`, `title`, `section`, `key`. `row` is an icon on the left and one elided line. An icon with no label is centered and scales with the cell |
 | `style`, `dwell` | Named ids |
 | `visibleWhen` | Predicate (see [Visibility](#visibility-and-accent)) |
 | `activeState` | Accent when this key is true (see [Visibility](#visibility-and-accent)) |
@@ -426,7 +426,7 @@ AHK should `Run` that `--action` line (the pipe is Qt duplex; `FileOpen` write-o
 
 ### Composer capture
 
-While `compose` is top, or the action’s source page is `compose` or a compose live board (`compose_voices_live`, `compose_history_live`, `compose_files_live`, `compose_item_edit_live`), `Send` and mapping/modifier commands never inject into the OS. Letters go into the internal phrase, or into the File Explorer file name when that page is on top. `backspace` / `space` / `enter` edit or speak. `escape` stops speech, dismisses a File Explorer Yes/No, or closes that page. `leftShift` / `Ctrl` / `tab` / arrows are no-ops. `qwerty_main` is unchanged. `qwerty_file` is that same OS keyboard, shown with the Windows open or save dialog. `compose.*` and `settings.speech.*` still run as builtins.
+While `compose` is top, or the action’s source page is `compose` or a compose live board (`compose_voices_live`, `compose_history_live`, `compose_files_live`, `compose_item_edit_live`), `Send` and mapping/modifier commands never inject into the OS. Letters go into the internal phrase, into the file name when the file browser is on top, or into the icon search while that keyboard is open. `backspace` / `space` / `enter` edit the phrase, the file name, or the icon search. Enter closes the icon search keyboard. `enter` otherwise saves a name or speaks. `escape` stops speech, dismisses a file-browser Yes/No, closes the icon search keyboard, closes the icon tiles, or closes that page. `leftShift` / `Ctrl` / `tab` are no-ops. `arrowLeft` / `arrowRight` move the export file-name caret. `qwerty_main` is unchanged. `qwerty_file` is that same OS keyboard. Speak Import and Export use the in-app browser, not that page. `compose.*` and `settings.speech.*` still run as builtins.
 
 ---
 

@@ -242,9 +242,8 @@
       <Cell id="cmd_style" row="1" col="5" colSpan="2" label="Style" showLayers="6" activeState="compose.styleOn"/>
       <Cell id="cmd_keys" row="2" col="0" icon="keyboardKeys" label="ABC" background="accent" showLayers="1"/>
       <Cell id="vol_down" row="2" col="1" icon="ArrowLeft" command="volume.dec"/>
-      <Cell id="vol_track" row="2" col="2" role="slider" caption="volume" label="50%"/>
-      <Cell id="vol_up" row="2" col="3" icon="ArrowRight" command="volume.inc"/>
-      <Cell id="cmd_files" row="2" col="4" colSpan="3" icon="folder" label="File Explorer" command="compose.openFiles"/>
+      <Cell id="vol_track" row="2" col="2" colSpan="4" role="slider" caption="volume" label="50%"/>
+      <Cell id="vol_up" row="2" col="6" icon="ArrowRight" command="volume.inc"/>
     </SubGrid>
     <SubGrid id="keys_tags" row="3" col="0" rows="3" columns="6" gap="4" margin="4" layers="7">
       <Cell id="tag_placeholder" row="0" col="0" role="label"/>

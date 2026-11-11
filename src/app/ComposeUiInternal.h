@@ -214,4 +214,68 @@ inline const QStringList& paletteIcons()
     return k;
 }
 
+inline constexpr int kQueryLimit = 40;
+
+using QueryCharOk = bool (*)(QChar);
+
+inline bool iconQueryChar(QChar c)
+{
+    return c.isLetterOrNumber() || c == u' ' || c == u'_';
+}
+
+/// One character from a Send action. `ok` rejects characters the field cannot keep.
+inline QString queryInsertion(const PageAction& action, QueryCharOk ok)
+{
+    const QString key = action.sendKey.trimmed();
+    QString add;
+    if (key.size() == 1) {
+        add = key;
+    } else if (key.compare(QLatin1String("space"), Qt::CaseInsensitive) == 0) {
+        add = QStringLiteral(" ");
+    } else {
+        return {};
+    }
+    if (ok && !ok(add.at(0))) {
+        return {};
+    }
+    return add;
+}
+
+inline bool appendQuery(QString& text, const QString& add, int limit = kQueryLimit)
+{
+    if (add.isEmpty() || text.size() >= limit) {
+        return false;
+    }
+    text += add.left(limit - text.size());
+    return true;
+}
+
+enum class QueryCommand { Ignored, Edited, Enter };
+
+/// Backspace, space, and Enter for a captured search. Other commands are ignored
+/// here; the caller still swallows them while the capture is active.
+inline QueryCommand editQuery(QString& text, const QString& command, QueryCharOk ok,
+                              int limit = kQueryLimit)
+{
+    const QString c = command.trimmed();
+    if (c == QLatin1String("backspace") || c == QLatin1String("compose.backspace")) {
+        if (text.isEmpty()) {
+            return QueryCommand::Ignored;
+        }
+        text.chop(1);
+        return QueryCommand::Edited;
+    }
+    if (c == QLatin1String("space")) {
+        if (ok && !ok(QLatin1Char(' '))) {
+            return QueryCommand::Ignored;
+        }
+        return appendQuery(text, QStringLiteral(" "), limit) ? QueryCommand::Edited
+                                                             : QueryCommand::Ignored;
+    }
+    if (c == QLatin1String("enter")) {
+        return QueryCommand::Enter;
+    }
+    return QueryCommand::Ignored;
+}
+
 } // namespace gazer::compose_detail

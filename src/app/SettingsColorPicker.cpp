@@ -173,6 +173,11 @@ bool SettingsUi::openColorPicker(const QString& colorKey, QString* error)
         }
         return false;
     }
+    if (m_color.active) {
+        closeColorPicker();
+    }
+    m_colorCommit = {};
+    m_colorGuestTitle.clear();
     m_colorPickerKey = colorKey;
     m_colorPending.clear();
     loadColorDraft(m_settings.colorKey(m_colorPickerKey));
@@ -184,6 +189,42 @@ bool SettingsUi::openColorPicker(const QString& colorKey, QString* error)
     applyPreviewColor();
     notifyStatus(QStringLiteral("Pick color for %1").arg(AppSettings::settingTitle(colorKey)));
     return true;
+}
+
+bool SettingsUi::openColorFor(const QColor& initial, const QString& title,
+                              std::function<void(const QColor&)> commit, QString* error)
+{
+    if (!commit) {
+        if (error) {
+            *error = QStringLiteral("Color picker has nowhere to save");
+        }
+        return false;
+    }
+    if (m_color.active) {
+        closeColorPicker();
+    }
+    m_colorCommit = std::move(commit);
+    m_colorGuestTitle = title.isEmpty() ? QStringLiteral("Color") : title;
+    m_colorPickerKey.clear();
+    m_colorPending.clear();
+    loadColorDraft(initial.isValid() ? initial : ThemeColors::defaultProgressColor());
+    if (!presentLive(m_color, QLatin1String(kLiveColor), buildGenericColorDocument(), error)) {
+        m_color.reset();
+        m_colorCommit = {};
+        m_colorGuestTitle.clear();
+        return false;
+    }
+    applyPreviewColor();
+    notifyStatus(QStringLiteral("Pick a color"));
+    return true;
+}
+
+void SettingsUi::closeGuestColorPicker()
+{
+    if (!m_colorCommit) {
+        return;
+    }
+    closeColorPicker();
 }
 
 QColor SettingsUi::liveThemeSource() const
@@ -301,7 +342,7 @@ PageDocument SettingsUi::buildGenericColorDocument() const
 {
     PageDocument doc;
     doc.id = QLatin1String(kLiveColor);
-    doc.name = AppSettings::settingTitle(m_colorPickerKey);
+    doc.name = m_colorCommit ? m_colorGuestTitle : AppSettings::settingTitle(m_colorPickerKey);
     initGrid(doc, 2, 1, 1080, 1080, 6, 12, m_settings.resolvedTheme());
     PageGrid& grid = doc.grids[0];
     adoptCallerBoard(grid, m_pages.pageBehind(QLatin1String(kLiveColor)));
@@ -424,6 +465,8 @@ void SettingsUi::closeColorPicker()
     cancelEyedropper();
     m_colorPending.clear();
     m_colorPickerKey.clear();
+    m_colorCommit = {};
+    m_colorGuestTitle.clear();
     m_hexBuffer.clear();
     if (m_hexActive) {
         m_pages.closePage(QLatin1String(kLiveHex));
@@ -439,6 +482,20 @@ bool SettingsUi::colorSave(QString* error)
             *error = QStringLiteral("Color picker is not open");
         }
         return false;
+    }
+    if (m_colorCommit) {
+        if (!m_colorDraft.isValid()) {
+            if (error) {
+                *error = QStringLiteral("Pick a color");
+            }
+            return false;
+        }
+        const QColor chosen = m_colorDraft;
+        auto commit = std::move(m_colorCommit);
+        closeColorPicker();
+        commit(chosen);
+        notifyStatus(QStringLiteral("Color = %1").arg(chosen.name(QColor::HexArgb).toUpper()));
+        return true;
     }
     storeDraftPending();
     for (auto it = m_colorPending.constBegin(); it != m_colorPending.constEnd(); ++it) {

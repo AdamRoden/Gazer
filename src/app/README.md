@@ -16,11 +16,11 @@ Composition root, settings, command dispatch.
 | `ComposeStyles.cpp` | Standing style picker, editor, and keyboard naming |
 | `ComposeTags.cpp` | Insert-tag page and keyboard naming |
 | `ComposeSoundboard.cpp` | Pin/assign, topic rail, soundboard grid, Voice workspace import/export |
-| `ComposeItemEdit.cpp` | Unified name/color/icon editor overlay |
+| `ComposeItemEdit.cpp` | Topic/pin name editor. Color opens the settings picker. Icon opens a searchable Material Symbols board (fonts.google.com, then a short offline set). Search dwell shows the Speak keyboard with Esc in place of Edit. The footer is Clear, the current icon, Save, and Cancel. Tiles scroll by row |
 | `ComposeHistory.cpp` | History replay/restore |
-| `ComposeFiles.cpp` | File Explorer import, merge, export, and confirm |
-| `ComposeFilesWindow.cpp` | File Explorer window (places, list or tile view, footer) |
-| `ComposeListScroll.cpp` | Scrollbar drag on history, voices, and File Explorer (`GazeTrack`) |
+| `ComposeFiles.cpp` | Import/merge and export browser, confirm, and file-name caret |
+| `ComposeFilesWindow.cpp` | That browser (places, list or tile view, footer). Import/merge has Cancel. Export has caret arrows, Save, and Cancel |
+| `ComposeListScroll.cpp` | Scrollbar drag on history, voices, the file list, and the icon tiles, plus the export file-name caret (`GazeTrack`) |
 | `GazeRouter` | Gaze sample → session + assist |
 | `ActiveStateResolver` | `visibleWhen` / `activeState` keys (`mod.shift`, …) |
 | `AppSettings` | Persisted prefs. Factory values on the struct; `defaults()` calls `applyTheme()`; spec tables + nudge/display in `.cpp`; JSON overlay in `AppSettingsIo.cpp`; Fluent appearance × accent/progress in `AppSettingsTheme.cpp` |

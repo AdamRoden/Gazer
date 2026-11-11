@@ -1,6 +1,7 @@
 #include "ui/BoardPaint.h"
 
 #include "ui/KeySymbols.h"
+#include "ui/MaterialIcons.h"
 #include "ui/PhraseLayout.h"
 #include "ui/ProgressPaint.h"
 #include "layout/RoundBox.h"
@@ -17,6 +18,15 @@
 #include <QtMath>
 
 namespace gazer {
+namespace {
+
+bool paintIcon(QPainter& p, const QString& name, const QRectF& r, const QColor& color)
+{
+    return KeySymbols::paint(p, name, r, color) || MaterialIcons::paint(p, name, r, color);
+}
+
+} // namespace
+
 namespace BoardPaint {
 
 QString segoeFamily()
@@ -95,14 +105,14 @@ bool paintRowStyle(QPainter& p, const PageTarget& t, const QRectF& r, const QCol
         const qreal side = qBound(16.0, qMin(box.width(), box.height()) * 0.55, 28.0);
         const QRectF iconR(box.center().x() - side / 2.0, box.center().y() - side / 2.0, side,
                            side);
-        KeySymbols::paint(p, t.icon, iconR, fg);
+        paintIcon(p, t.icon, iconR, fg);
         return true;
     }
     qreal textLeft = box.left();
     if (hasIcon) {
         const qreal side = qBound(16.0, box.height() * 0.62, 28.0);
         const QRectF iconR(box.left(), box.center().y() - side / 2.0, side, side);
-        KeySymbols::paint(p, t.icon, iconR, fg);
+        paintIcon(p, t.icon, iconR, fg);
         textLeft = iconR.right() + 10.0;
     }
     QFont nameFont(segoeFamily(), 16, QFont::DemiBold);
@@ -176,6 +186,54 @@ void strokeRound(QPainter& p, const QRectF& r, const PageBox& radii, const QColo
     p.drawPath(ring);
 }
 
+int pinnedCaret(const PageTarget& t)
+{
+    return t.pinCaret >= 0 ? t.pinCaret : qMax(0, t.caretIndex);
+}
+
+void paintFilenameField(QPainter& p, const QRectF& pad, const PageTarget& t, const QColor& fg,
+                        const ThemeColors& theme)
+{
+    const QFont font(segoeFamily(), kFileNameFontPx, QFont::Normal);
+    const bool caption = !t.caption.isEmpty();
+    const FileNameScroll scrolled = fileNameScroll(font, t.label, pinnedCaret(t), pad, caption);
+    paintFileNameLine(p, scrolled.line, t.label, font, fg, t.caretIndex, t.selectionStart,
+                      t.selectionEnd, scrolled.scroll);
+    if (!caption) {
+        return;
+    }
+    const QRectF capR(pad.left(), scrolled.line.bottom() + 2.0, pad.width(),
+                      qMax(1.0, pad.bottom() - scrolled.line.bottom() - 2.0));
+    const int capFlags = int(Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap);
+    const int capPx = fontPxToFit(segoeFamily(), QFont::Normal, 12, 9, t.caption, capR, capFlags);
+    p.setPen(theme.textSecondary);
+    p.setFont(QFont(segoeFamily(), capPx));
+    p.drawText(capR, capFlags, t.caption);
+}
+
+void paintCaretLock(QPainter& p, const QRectF& cell, const PageTarget& t, const ThemeColors& theme,
+                    const ProgressVisuals& vis, double lockProgress)
+{
+    if (lockProgress <= 0.01) {
+        return;
+    }
+    const QRectF pad = phrasePad(cell);
+    if (pad.isEmpty()) {
+        return;
+    }
+    const QFont font(segoeFamily(), kFileNameFontPx, QFont::Normal);
+    const FileNameScroll scrolled =
+        fileNameScroll(font, t.label, pinnedCaret(t), pad, !t.caption.isEmpty());
+    const double d = 28.0;
+    const QPointF c(scrolled.line.left() + scrolled.caretX, scrolled.line.center().y());
+    const QRectF ring(c.x() - d * 0.5, c.y() - d * 0.5, d, d);
+    QColor well = theme.bgMain.isValid() ? theme.bgMain : QColor(24, 24, 26);
+    p.setBrush(well);
+    p.setPen(QPen(Qt::white, 2.2));
+    p.drawEllipse(ring);
+    paintProgress(p, ring.adjusted(-3.0, -3.0, 3.0, 3.0), lockProgress, vis, ProgressShape::Ellipse);
+}
+
 void paintLabel(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeColors& theme,
                 const QColor& canvas)
 {
@@ -223,11 +281,15 @@ void paintLabel(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeCo
     if (ts == QLatin1String("caption") && t.chrome.foreground.token.trimmed().isEmpty()) {
         titleFg = theme.textSecondary;
     }
+    if (ts == QLatin1String("filename")) {
+        paintFilenameField(p, pad, t, titleFg, theme);
+        return;
+    }
     if (t.label.isEmpty() && t.caption.isEmpty() && !t.icon.isEmpty()) {
-        const qreal side = qBound(16.0, qMin(pad.width(), pad.height()) * 0.55, 28.0);
+        const qreal side = qMax(16.0, qMin(pad.width(), pad.height()) * 0.62);
         const QRectF iconR(pad.center().x() - side / 2.0, pad.center().y() - side / 2.0, side,
                            side);
-        KeySymbols::paint(p, t.icon, iconR, titleFg);
+        paintIcon(p, t.icon, iconR, titleFg);
         return;
     }
     if (t.caption.isEmpty()) {
@@ -359,7 +421,7 @@ void paintIconAndText(QPainter& p, const PageTarget& t, const QRectF& r, const Q
         const qreal x0 = padBox.left() + qMax(0.0, (padBox.width() - totalW) * 0.5);
         const qreal y0 = padBox.top() + qMax(0.0, (padBox.height() - totalH) * 0.5);
         iconR = QRectF(x0, y0 + (totalH - side) * 0.5, side, side);
-        paintedIcon = KeySymbols::paint(p, t.icon, iconR, fg);
+        paintedIcon = paintIcon(p, t.icon, iconR, fg);
         textR = QRectF(iconR.right() + gap, y0, ts.width(), totalH);
         paintLabelText(p, textR, tFont, flags, t.label, fg, t.caretIndex, t.selectionStart,
                        t.selectionEnd);
@@ -374,7 +436,7 @@ void paintIconAndText(QPainter& p, const PageTarget& t, const QRectF& r, const Q
         const qreal side = qMax(8.0, qMin(iconArea.width(), iconArea.height()));
         iconR = QRectF(iconArea.center().x() - side / 2.0, iconArea.center().y() - side / 2.0, side,
                        side);
-        paintedIcon = KeySymbols::paint(p, t.icon, iconR, fg);
+        paintedIcon = paintIcon(p, t.icon, iconR, fg);
         if (hasCap) {
             capR = QRectF(r.left() + 6.0, r.bottom() - pad - capBand, w - 12.0, capBand);
             textR = QRectF(r.left() + 6.0, capR.top() - labelBand, w - 12.0, labelBand);
@@ -386,7 +448,7 @@ void paintIconAndText(QPainter& p, const PageTarget& t, const QRectF& r, const Q
     } else if (hasIcon && hasText) {
         const qreal side = qMax(8.0, qMin(h - 2.0 * pad, w * 0.38));
         iconR = QRectF(r.left() + pad, r.center().y() - side / 2.0, side, side);
-        paintedIcon = KeySymbols::paint(p, t.icon, iconR, fg);
+        paintedIcon = paintIcon(p, t.icon, iconR, fg);
         textR = QRectF(iconR.right() + 8.0, r.top() + pad, r.right() - pad - iconR.right() - 8.0,
                        h - 2.0 * pad);
         flags = int(Qt::AlignLeft | Qt::AlignVCenter | Qt::TextWordWrap);
@@ -400,7 +462,7 @@ void paintIconAndText(QPainter& p, const PageTarget& t, const QRectF& r, const Q
     } else if (hasIcon) {
         const qreal side = qMax(8.0, qMin(w, h) - 2.0 * pad);
         iconR = QRectF(r.center().x() - side / 2.0, r.center().y() - side / 2.0, side, side);
-        paintedIcon = KeySymbols::paint(p, t.icon, iconR, fg);
+        paintedIcon = paintIcon(p, t.icon, iconR, fg);
     } else if (hasText && hasCap) {
         const QRectF box = phrasePad(r);
         if (box.isEmpty()) {
@@ -578,12 +640,12 @@ void paintThemeCard(QPainter& p, const PageTarget& t, const QRectF& r, const The
         const QColor tintedBg = ThemeColors::mix(surface, accent, 0.38);
         fillRound(p, kb, cellRad, tintedBg);
         strokeRound(p, kb, cellRad, accent, borderW);
-        KeySymbols::paint(p, QStringLiteral("keyboardKeys"), iconAt(kb),
+        paintIcon(p, QStringLiteral("keyboardKeys"), iconAt(kb),
                           ThemeColors::contrastOn(tintedBg));
 
         fillRound(p, mouse, cellRad, surface);
         strokeRound(p, mouse, cellRad, progressCol, borderW);
-        KeySymbols::paint(p, QStringLiteral("mouse"), iconAt(mouse), accent);
+        paintIcon(p, QStringLiteral("mouse"), iconAt(mouse), accent);
     }
 
     if (labelH > 0.0) {
@@ -734,6 +796,10 @@ void paintTarget(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeC
         paintSurface(p, r, t.chrome, theme, glass, false, false, false, false, canvas);
         ScrollBar::paint(p, r, theme, ScrollBar::parseSpec(t.caption), -1.0, vis,
                          scrubbing ? live.sliderScrubProgress : 0.0);
+    } else if (role == QLatin1String("caretscroll")) {
+        if (scrubbing) {
+            paintCaretLock(p, r, t, theme, vis, live.sliderScrubProgress);
+        }
     } else if (role == QLatin1String("preview")) {
         SliderTrack::paintPreview(p, r, radius, live.previewColor);
         paintLabel(p, t, r, theme, canvas);

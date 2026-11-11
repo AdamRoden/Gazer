@@ -133,10 +133,6 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
     if (key == QLatin1String("compose.nameEdit")) {
         return ctx.composeUi && ctx.composeUi->nameEditing();
     }
-    if (key == QLatin1String("compose.editColors")) {
-        return ctx.composeUi && ctx.composeUi->nameEditing()
-               && !ctx.composeUi->editIconPalette();
-    }
     if (key == QLatin1String("compose.editIcons")) {
         return ctx.composeUi && ctx.composeUi->nameEditing()
                && ctx.composeUi->editIconPalette();

@@ -337,7 +337,8 @@ EditorGlyph glyphForLeaf(const PageLeaf& leaf, bool zone)
         return EditorGlyph::Tab;
     }
     if (role == QLatin1String("slider") || role == QLatin1String("scrollbar")
-        || role == QLatin1String("colorfield") || role == QLatin1String("curvefield")) {
+        || role == QLatin1String("caretscroll") || role == QLatin1String("colorfield")
+        || role == QLatin1String("curvefield")) {
         return EditorGlyph::Slider;
     }
     return EditorGlyph::Button;

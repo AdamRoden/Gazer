@@ -278,6 +278,9 @@ void SoundboardStoreTest::removeButtonAndSetColor()
     const QString id = s.buttonAt(*s.activeTopic(), 0, 0)->id;
     QVERIFY(s.setButtonColor(id, QStringLiteral("#8AB4F8")));
     QCOMPARE(s.findButton(id)->color.toUpper(), QStringLiteral("#8AB4F8"));
+    QVERIFY(s.setButtonColor(id, QStringLiteral("#80FF0000")));
+    QCOMPARE(s.findButton(id)->color.toUpper(), QStringLiteral("#80FF0000"));
+    QVERIFY(s.setButtonColor(id, QStringLiteral("#8AB4F8")));
     QVERIFY(!s.setButtonColor(id, QStringLiteral("nope")));
     QVERIFY(s.setButtonLabel(id, QStringLiteral("Hello")));
     QCOMPARE(s.findButton(id)->label, QStringLiteral("Hello"));

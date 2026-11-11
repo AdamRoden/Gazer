@@ -23,13 +23,17 @@ inline constexpr double kPhrasePadY = 6.0;
     return cell.adjusted(kPhrasePadX, kPhrasePadY, -kPhrasePadX, -kPhrasePadY);
 }
 
+enum class PhraseWrap { Words, None };
+
 template <typename Fn>
-void withPhraseLayout(const QRectF& pad, const QString& text, const QFont& font, int flags, Fn&& fn)
+void withPhraseLayout(const QRectF& pad, const QString& text, const QFont& font, int flags,
+                      PhraseWrap wrap, Fn&& fn)
 {
     QTextLayout layout(text, font);
     layout.setCacheEnabled(true);
     QTextOption opt;
-    opt.setWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
+    opt.setWrapMode(wrap == PhraseWrap::None ? QTextOption::NoWrap
+                                            : QTextOption::WrapAtWordBoundaryOrAnywhere);
     Qt::Alignment align = Qt::AlignLeft;
     if (flags & Qt::AlignHCenter) {
         align = Qt::AlignHCenter;
@@ -70,6 +74,12 @@ void withPhraseLayout(const QRectF& pad, const QString& text, const QFont& font,
     fn(layout, QPointF(pad.left(), y0), pad);
 }
 
+template <typename Fn>
+void withPhraseLayout(const QRectF& pad, const QString& text, const QFont& font, int flags, Fn&& fn)
+{
+    withPhraseLayout(pad, text, font, flags, PhraseWrap::Words, std::forward<Fn>(fn));
+}
+
 [[nodiscard]] inline int fontPxToFitPhrase(const QString& family, int weight, int startPx,
                                            int minPx, const QString& text, const QRectF& pad,
                                            int flags)
@@ -93,9 +103,10 @@ void withPhraseLayout(const QRectF& pad, const QString& text, const QFont& font,
 
 inline void paintPhraseLayout(QPainter& p, const QRectF& pad, const QString& text, const QFont& font,
                               int flags, const QColor& color, int caretIndex,
-                              int selectionStart = -1, int selectionEnd = -1)
+                              int selectionStart = -1, int selectionEnd = -1,
+                              PhraseWrap wrap = PhraseWrap::Words)
 {
-    withPhraseLayout(pad, text, font, flags, [&](QTextLayout& layout, const QPointF& origin,
+    withPhraseLayout(pad, text, font, flags, wrap, [&](QTextLayout& layout, const QPointF& origin,
                                                  const QRectF& box) {
         if (selectionStart >= 0 && selectionEnd > selectionStart && layout.lineCount() > 0) {
             const int n = layout.text().size();
@@ -148,6 +159,102 @@ inline void paintPhraseLayout(QPainter& p, const QRectF& pad, const QString& tex
         bar.setAlpha(qMax(180, bar.alpha()));
         p.fillRect(QRectF(cx, cy, 2.0, ch), bar);
     });
+}
+
+/// Body size of the export file-name line. It does not shrink to fit.
+inline constexpr int kFileNameFontPx = 18;
+
+/// Horizontal shift that keeps `caretAdvance` in view. A line wider than the
+/// field pins the caret at the center until an end is reached. A short line
+/// stays at scroll 0, so the caret keeps its natural x.
+[[nodiscard]] inline double pinnedFileScroll(double caretAdvance, double textWidth, double viewWidth)
+{
+    const double view = qMax(1.0, viewWidth);
+    const double maxScroll = qMax(0.0, textWidth - view);
+    return qBound(0.0, caretAdvance - view * 0.5, maxScroll);
+}
+
+/// `prefix[i]` is the width of the first `i` characters. `prefix[0]` is 0.
+[[nodiscard]] inline int caretIndexAtAdvances(const double* prefix, int count, double docX)
+{
+    if (prefix == nullptr || count <= 1 || docX <= 0.0) {
+        return 0;
+    }
+    int best = 0;
+    for (int i = 1; i < count; ++i) {
+        if (docX < (prefix[i - 1] + prefix[i]) * 0.5) {
+            break;
+        }
+        best = i;
+    }
+    return qMin(best, count - 1);
+}
+
+struct FileNameScroll {
+    QRectF line;
+    double scroll = 0;
+    double caretX = 0;
+    double caretAdvance = 0;
+    double textWidth = 0;
+    double viewWidth = 0;
+};
+
+/// Single-line file name. `caption` reserves a line under the text.
+[[nodiscard]] inline FileNameScroll fileNameScroll(const QFont& font, const QString& text, int caret,
+                                                   const QRectF& pad, bool caption)
+{
+    FileNameScroll s;
+    const QFontMetricsF fm(font);
+    const double lineH = qMax(1.0, fm.lineSpacing());
+    s.line = pad;
+    if (caption && pad.height() > lineH + 8.0) {
+        const double cap = QFontMetricsF(QFont(font.family(), 12)).lineSpacing() + 2.0;
+        s.line.setHeight(qMax(lineH, pad.height() - cap));
+    }
+    s.viewWidth = qMax(1.0, s.line.width());
+    const int i = qBound(0, caret, text.size());
+    s.caretAdvance = fm.horizontalAdvance(text.left(i));
+    s.textWidth = fm.horizontalAdvance(text);
+    s.scroll = pinnedFileScroll(s.caretAdvance, s.textWidth, s.viewWidth);
+    s.caretX = s.caretAdvance - s.scroll;
+    return s;
+}
+
+[[nodiscard]] inline int fileNameCaretAt(const QFont& font, const QString& text, double docX)
+{
+    if (text.isEmpty() || docX <= 0.0) {
+        return 0;
+    }
+    const QFontMetricsF fm(font);
+    int best = 0;
+    double prev = 0.0;
+    for (int i = 1; i <= text.size(); ++i) {
+        const double adv = fm.horizontalAdvance(text.left(i));
+        if (docX < (prev + adv) * 0.5) {
+            break;
+        }
+        best = i;
+        prev = adv;
+    }
+    return best;
+}
+
+/// Draw one no-wrap line shifted by `scrollPx`, clipped to `line`.
+inline void paintFileNameLine(QPainter& p, const QRectF& line, const QString& text, const QFont& font,
+                              const QColor& color, int caretIndex, int selectionStart, int selectionEnd,
+                              double scrollPx)
+{
+    if (line.isEmpty()) {
+        return;
+    }
+    const QFontMetricsF fm(font);
+    const double width = qMax(line.width(), fm.horizontalAdvance(text) + 8.0);
+    const QRectF wide(line.left() - scrollPx, line.top(), width, line.height());
+    p.save();
+    p.setClipRect(line);
+    paintPhraseLayout(p, wide, text, font, int(Qt::AlignLeft | Qt::AlignVCenter), color, caretIndex,
+                      selectionStart, selectionEnd, PhraseWrap::None);
+    p.restore();
 }
 
 } // namespace gazer

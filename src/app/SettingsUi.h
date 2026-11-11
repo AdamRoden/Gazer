@@ -78,6 +78,13 @@ public:
     void onDwellMoveArmed(bool armed);
     void cancelEyedropper();
     [[nodiscard]] QString colorPickerKey() const { return m_colorPickerKey; }
+    /// The settings color picker, seeded with `initial`, without writing a setting.
+    /// Save calls `commit` with the chosen color. Cancel discards it.
+    [[nodiscard]] bool openColorFor(const QColor& initial, const QString& title,
+                                    std::function<void(const QColor&)> commit,
+                                    QString* error = nullptr);
+    /// Close the picker only when `openColorFor` opened it.
+    void closeGuestColorPicker();
 
     [[nodiscard]] bool isNumpadActive() const { return m_numpad.active; }
 
@@ -323,6 +330,9 @@ private:
     LiveBoard m_color;
     bool m_themeAssignPrimary = true;
     QString m_colorPickerKey;
+    /// Set while the picker was opened for a caller other than a settings key.
+    std::function<void(const QColor&)> m_colorCommit;
+    QString m_colorGuestTitle;
     QHash<QString, QColor> m_colorPending;
     QColor m_colorDraft;
     int m_colorA = 255;

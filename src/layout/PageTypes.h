@@ -396,16 +396,17 @@ inline constexpr int kTrackLockMs = 400;
            && caption.compare(QLatin1String("volume"), Qt::CaseInsensitive) == 0;
 }
 
-/// label / value / display / slider / preview / scrollbar / colorfield / headpreview /
-/// curvefield are not dwell targets (slider/curvefield with actions are).
+/// label / value / display / slider / preview / scrollbar / caretscroll / colorfield /
+/// headpreview / curvefield are not dwell targets (slider/curvefield with actions are).
+/// `caretscroll` is the invisible export file-name scroller.
 [[nodiscard]] inline bool pageRoleIsPassive(QStringView role)
 {
     const QString r = role.toString().trimmed().toLower();
     return r == QLatin1String("label") || r == QLatin1String("value")
            || r == QLatin1String("display") || r == QLatin1String("slider")
            || r == QLatin1String("preview") || r == QLatin1String("scrollbar")
-           || r == QLatin1String("colorfield") || r == QLatin1String("headpreview")
-           || r == QLatin1String("curvefield");
+           || r == QLatin1String("caretscroll") || r == QLatin1String("colorfield")
+           || r == QLatin1String("headpreview") || r == QLatin1String("curvefield");
 }
 
 struct PageLeaf {

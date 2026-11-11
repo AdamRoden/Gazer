@@ -161,8 +161,8 @@ void ComposeUi::beginStyleName()
     if (m_borrowed != BorrowedPhrase::Style) {
         if (nameEditing()) {
             finishItemEditor(true);
-        } else if (hasLive(kItemEditLiveId)) {
-            closeItemEdit();
+        } else {
+            endIconPick();
         }
         if (m_interaction != Interaction::Use) {
             m_interaction = Interaction::Use;
@@ -170,7 +170,6 @@ void ComposeUi::beginStyleName()
         m_nameEditBackup = m_buffer.text();
         m_borrowed = BorrowedPhrase::Style;
         m_editId.clear();
-        m_editIcons = false;
         m_editColor.clear();
         m_editIcon.clear();
         m_buffer.load(QString());

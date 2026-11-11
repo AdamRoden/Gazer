@@ -206,6 +206,7 @@ void PageHostWindow::paintScene(QPainter& p, ChromePass pass)
             return;
         }
         PageTarget vis = t;
+        vis.pinCaret = t.caretIndex;
         if (!live || !m_caretOn) {
             vis.caretIndex = -1;
         }
