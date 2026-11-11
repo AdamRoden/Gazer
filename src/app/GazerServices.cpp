@@ -582,7 +582,7 @@ void GazerServices::applySettings(bool persist)
         m_pages->setTheme(m_settings.resolvedTheme());
         m_pages->setDwellTiming(m_settings.dwellSequence, m_settings.rapidDwellSequence,
                                m_settings.dwellGraceMs, m_settings.scanGraceMs);
-        m_pages->setKeyGravity(m_settings.keyGravity);
+        m_pages->setKeyGravity(m_settings.keyGravitySize, m_settings.keyGravityDuration);
     }
 
     m_mouseDwellMove->setDwellMs(m_settings.mouseMoveDwellMs);

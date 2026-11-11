@@ -12,7 +12,7 @@
       <Cell id="page_title" row="0" col="0" label="Dwell" caption="Presets, sequences, likely keys, grace, and button progress." role="label" textStyle="title" style="plain"/>
       <Cell id="tab_done" row="0" col="1" label="Close" icon="keyboardHide" textStyle="row" style="button" closeAllPages="true"/>
     </SubGrid>
-    <SubGrid id="scroller" row="1" col="0" scroll="true" rows="5" columns="1" rowHeights="272,272,168,272,168" gap="12" margin="0">
+    <SubGrid id="scroller" row="1" col="0" scroll="true" rows="5" columns="1" rowHeights="272,272,272,272,168" gap="12" margin="0">
       <SubGrid id="sec_presets" row="0" col="0" rows="3" columns="1" rowHeights="48,96,96" gap="8" margin="8" style="group">
         <Cell id="h_presets" row="0" col="0" label="Presets" role="label" textStyle="section" style="plain"/>
         <SubGrid id="row_preset" row="1" col="0" rows="1" columns="2" gap="6" style="row">
@@ -49,15 +49,24 @@
           </SubGrid>
         </SubGrid>
       </SubGrid>
-      <SubGrid id="sec_keys" row="2" col="0" rows="2" columns="1" rowHeights="48,96" gap="8" margin="8" style="group">
+      <SubGrid id="sec_keys" row="2" col="0" rows="3" columns="1" rowHeights="48,96,96" gap="8" margin="8" style="group">
         <Cell id="h_keys" row="0" col="0" label="Likely keys" role="label" textStyle="section" style="plain"/>
-        <SubGrid id="row_key_gravity" row="1" col="0" rows="1" columns="2" gap="6" style="row">
-          <Cell id="gravity_label" row="0" col="0" label="Likely keys" caption="Pulls gaze toward likely next characters on every keyboard. 0 is off." role="label" style="plain"/>
-          <SubGrid id="act_gravity" row="0" col="1" rows="1" columns="9" gap="0" style="row">
-            <Cell id="gravity_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.keyGravity.dec"/>
-            <Cell id="gravity_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="keyGravity" style="join"/>
-            <Cell id="gravity_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.keyGravity.inc"/>
-            <Cell id="gravity_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.keyGravity"/>
+        <SubGrid id="row_key_size" row="1" col="0" rows="1" columns="2" gap="6" style="row">
+          <Cell id="size_label" row="0" col="0" label="Dynamic size" caption="After t, the edge of g toward h can select h. The middle of a key always stays that key. 0 is off, 5 is strongest." role="label" style="plain"/>
+          <SubGrid id="act_key_size" row="0" col="1" rows="1" columns="9" gap="0" style="row">
+            <Cell id="size_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.keyGravitySize.dec"/>
+            <Cell id="size_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="keyGravitySize" style="join"/>
+            <Cell id="size_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.keyGravitySize.inc"/>
+            <Cell id="size_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.keyGravitySize"/>
+          </SubGrid>
+        </SubGrid>
+        <SubGrid id="row_key_duration" row="2" col="0" rows="1" columns="2" gap="6" style="row">
+          <Cell id="duration_label" row="0" col="0" label="Dynamic duration" caption="After t, h finishes its rapid dwell sooner than g. An unlikely key takes longer. 0 is off, 5 is strongest." role="label" style="plain"/>
+          <SubGrid id="act_key_duration" row="0" col="1" rows="1" columns="9" gap="0" style="row">
+            <Cell id="duration_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.keyGravityDuration.dec"/>
+            <Cell id="duration_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="keyGravityDuration" style="join"/>
+            <Cell id="duration_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.keyGravityDuration.inc"/>
+            <Cell id="duration_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.keyGravityDuration"/>
           </SubGrid>
         </SubGrid>
       </SubGrid>

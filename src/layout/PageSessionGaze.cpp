@@ -135,9 +135,10 @@ const PageTarget* PageSession::findTarget(const QString& id) const
     return nullptr;
 }
 
-void PageSession::setKeyGravity(int strength)
+void PageSession::setKeyGravity(int sizeLevel, int durationLevel)
 {
-    m_keyGravity = qBound(0, strength, 100);
+    m_keyGravitySize = qBound(0, sizeLevel, 5);
+    m_keyGravityDuration = qBound(0, durationLevel, 5);
 }
 
 void PageSession::setKeyDistribution(const QHash<QChar, double>& distribution)
@@ -203,7 +204,7 @@ void PageSession::ensureGravityCells(const QTransform& xf) const
 
 const PageTarget* PageSession::biasCharacter(const PageTarget* hit, const QPointF& gaze) const
 {
-    if (!hit || m_keyGravity <= 0) {
+    if (!hit || m_keyGravitySize <= 0) {
         return hit;
     }
     const QTransform xf = hitXf();
@@ -211,7 +212,7 @@ const PageTarget* PageSession::biasCharacter(const PageTarget* hit, const QPoint
     KeyGravityQuery query;
     query.cells = m_gravityCells;
     query.gaze = gaze;
-    query.strength = m_keyGravity;
+    query.level = m_keyGravitySize;
     query.probability = &m_keyProb;
     query.stickyId = m_hoverId;
     query.geometricIndex = -1;
@@ -248,7 +249,7 @@ void PageSession::applyDwellFor(const PageTarget& t)
         if (t.dwell.activation && !t.dwell.activation->isEmpty()) {
             authored = &(*t.dwell.activation);
         }
-        seq = chooseRapidSteps(m_rapidSequence, authored, m_keyGravity, keySurprise(t));
+        seq = chooseRapidSteps(m_rapidSequence, authored, m_keyGravityDuration, keySurprise(t));
     } else if (t.dwell.activation && !t.dwell.activation->isEmpty()) {
         seq = *t.dwell.activation;
     } else {
@@ -350,7 +351,7 @@ bool PageSession::feedGaze(const GazePoint& point, const GazeHit& classified, Ga
         leaveGaze();
         return classified.overBoard;
     }
-    if (m_keyGravity > 0 && hit) {
+    if (m_keyGravitySize > 0 && hit) {
         hit = biasCharacter(hit, point.toPointF());
     }
     const QString id = hit ? sessionKey(*hit) : QString();

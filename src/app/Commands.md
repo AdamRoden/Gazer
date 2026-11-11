@@ -175,7 +175,7 @@ Patterns, not every generated name:
 
 | Pattern | Role |
 |---------|------|
-| `settings.edit.<numericKey>` | Numpad (`dwellMs` / `dwellSequence` / `rapidDwellMs` / `rapidDwellSequence` open the array editor; `keyGravity` is Likely keys, 0–100) |
+| `settings.edit.<numericKey>` | Numpad (`dwellMs` / `dwellSequence` / `rapidDwellMs` / `rapidDwellSequence` open the array editor; `keyGravitySize` and `keyGravityDuration` are Likely keys dynamic size and duration, 0–5) |
 | `settings.nudge.<numericKey>.dec` / `.inc` | Step a numeric setting |
 | `settings.edit.dwellSequence` / `.rapidDwellSequence` | Standard / rapid dwell-sequence array boards |
 | `settings.numpad.*` | Live numpad keys |

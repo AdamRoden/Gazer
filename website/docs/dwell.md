@@ -23,9 +23,11 @@ Both live under Settings → **Dwell** (Slow / Normal / Fast / Custom). Those pr
 
 ## Likely keys
 
-**Likely keys** (Settings → **Dwell**) pulls the dwell target toward the next character you probably want, and shortens that key’s rapid steps. After `t`, `h` is easier to land than `g` or `j`. After a finished word, Space is easier than the letters beside it. The pull learns from what you type on every keyboard. `0` turns it off.
+Two settings under Settings → **Dwell**. Each is **0–5**. **0** is off and **5** is strongest. Both learn from what you type on every keyboard. The gaze marker stays on the measured point.
 
-The gaze marker stays on the measured point. The center of a key always wins, and Shift, Backspace, Enter, and the other non-character keys keep their real bounds. A per-cell `activation` sequence keeps the times written in the layout.
+**Dynamic size** changes which character key you dwell when you look at the edge of a key. After `t`, the edge of `g` toward `h` can select `h`. The middle of a key always stays that key. Shift, Backspace, Enter, and the other non-character keys keep their real bounds. Looking at empty space stays a miss.
+
+**Dynamic duration** changes how long that character key takes. After `t`, `h` finishes its rapid dwell sooner than `g`. An unlikely key takes longer. After a finished word, Space finishes sooner than the letters beside it. At **5**, a very likely key runs at 75% of the rapid sequence and a very unlikely one at 120%. A key with its own `activation` times in the layout keeps those times. Shift, Backspace, and Enter keep the rapid sequence.
 
 ## Pause dwell
 

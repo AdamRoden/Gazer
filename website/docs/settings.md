@@ -4,7 +4,7 @@ Drawer **Settings** opens `main_settings_host`. The top row is **Settings** besi
 
 | Board | What you change |
 |-------|-----------------|
-| **Dwell** | Slow / Normal / Fast / Custom. Presets also set pointer dwell, zoom dwell, and blink grace. Standard and rapid sequences. Likely keys pulls rapid character keys toward what you tend to type next. Scan grace, blink grace, and button progress (ring, pie, fill). |
+| **Dwell** | Slow / Normal / Fast / Custom. Presets also set pointer dwell, zoom dwell, and blink grace. Standard and rapid sequences. Likely keys: dynamic size lets a likely next character take the outer edge of a key, and dynamic duration shortens that key’s rapid dwell. Scan grace, blink grace, and button progress (ring, pie, fill). |
 | **Pointer** | Place: Move to…, pointer dwell, pointer grace, pointer progress, and final-pick markers. Those markers also show while choosing the zoom region. Magnify: magnify pick, zoom dwell, zoom level, zoom size, fill screen, shape, and position. |
 | **Gaze** | Follow (slow / sticky / smooth / snappy, show gaze, gaze mouse). Lens (on, zoom, size). The four look-to maps. ComboMouse radii and colors. |
 | **Head** | Analog head-pose maps (yaw / pitch / roll / x / y / z → commands or a virtual pad). |

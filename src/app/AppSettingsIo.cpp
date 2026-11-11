@@ -108,6 +108,18 @@ namespace {
     return QDir(fi.dir().filePath(QStringLiteral("Gazer"))).filePath(fi.fileName());
 }
 
+/// Old `keyGravity` 0–100. 55 → 3, 80 → 4, 100 → 5.
+[[nodiscard]] int keyGravityLevelFromLegacy(int strength)
+{
+    if (strength <= 0) {
+        return 0;
+    }
+    if (strength >= 100) {
+        return 5;
+    }
+    return (strength + 10) / 20;
+}
+
 [[nodiscard]] bool legacyHeadPoseFactoryCurve(const QVector<HeadPoseCurvePoint>& pts)
 {
     const QVector<HeadPoseCurvePoint> old3 = {{-25.0, -600.0}, {0.0, 0.0}, {25.0, 600.0}};
@@ -240,7 +252,26 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
     }
 
     scanGraceMs = o.value(QStringLiteral("scanGraceMs")).toInt(scanGraceMs);
-    keyGravity = o.value(QStringLiteral("keyGravity")).toInt(keyGravity);
+    const bool hasKeySize = o.contains(QStringLiteral("keyGravitySize"));
+    const bool hasKeyDuration = o.contains(QStringLiteral("keyGravityDuration"));
+    if (hasKeySize) {
+        keyGravitySize = o.value(QStringLiteral("keyGravitySize")).toInt(keyGravitySize);
+    }
+    if (hasKeyDuration) {
+        keyGravityDuration = o.value(QStringLiteral("keyGravityDuration")).toInt(keyGravityDuration);
+    }
+    if ((!hasKeySize || !hasKeyDuration) && o.contains(QStringLiteral("keyGravity"))) {
+        const QJsonValue legacy = o.value(QStringLiteral("keyGravity"));
+        if (legacy.isDouble()) {
+            const int level = keyGravityLevelFromLegacy(legacy.toInt());
+            if (!hasKeySize) {
+                keyGravitySize = level;
+            }
+            if (!hasKeyDuration) {
+                keyGravityDuration = level;
+            }
+        }
+    }
     dwellGraceMs = o.value(QStringLiteral("dwellGraceMs")).toInt(dwellGraceMs);
     mouseMoveDwellMs = o.value(QStringLiteral("mouseMoveDwellMs")).toInt(mouseMoveDwellMs);
     magPickDwellMs = o.value(QStringLiteral("magPickDwellMs")).toInt(magPickDwellMs);
@@ -569,7 +600,8 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     }
     o.insert(QStringLiteral("rapidDwellSequence"), rapidSeq);
     o.insert(QStringLiteral("scanGraceMs"), copy.scanGraceMs);
-    o.insert(QStringLiteral("keyGravity"), copy.keyGravity);
+    o.insert(QStringLiteral("keyGravitySize"), copy.keyGravitySize);
+    o.insert(QStringLiteral("keyGravityDuration"), copy.keyGravityDuration);
     o.insert(QStringLiteral("dwellGraceMs"), copy.dwellGraceMs);
     o.insert(QStringLiteral("mouseMoveDwellMs"), copy.mouseMoveDwellMs);
     o.insert(QStringLiteral("magPickDwellMs"), copy.magPickDwellMs);

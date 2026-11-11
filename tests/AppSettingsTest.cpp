@@ -30,6 +30,7 @@ private slots:
     void parseDwellSequenceAllowsZero();
     void loadOmitsRapidKeepsDefault();
     void rapidDwellRoundTrip();
+    void legacyKeyGravitySplits();
     void namedColorsResolveFromPalette();
     void toneTokensFollowSeed();
     void activeOffsetStepsDown();
@@ -80,8 +81,10 @@ void AppSettingsTest::factoryUsesDomainConstants()
     QCOMPARE(s.magPickDwellMs, pack.magPickDwellMs);
     QCOMPARE(s.dwellGraceMs, pack.blinkGraceMs);
     QCOMPARE(s.scanGraceMs, 100);
-    QCOMPARE(s.keyGravity, 55);
-    QCOMPARE(s.displayValue(QStringLiteral("keyGravity")), QStringLiteral("55"));
+    QCOMPARE(s.keyGravitySize, 3);
+    QCOMPARE(s.keyGravityDuration, 3);
+    QCOMPARE(s.displayValue(QStringLiteral("keyGravitySize")), QStringLiteral("3"));
+    QCOMPARE(s.displayValue(QStringLiteral("keyGravityDuration")), QStringLiteral("3"));
     QVERIFY(s.showSplash);
     QCOMPARE(s.mousePickStyle, PickStyle::kDefaultMousePick);
     QCOMPARE(s.comboInnerRadiusPx, ComboMouseHit::kDefaultInnerRadiusPx);
@@ -225,7 +228,8 @@ void AppSettingsTest::loadOmitsRapidKeepsDefault()
     QCOMPARE(s.dwellSequence, (QVector<int>{1200, 1000, 800, 600, 400}));
     QCOMPARE(s.rapidDwellSequence, AppSettings::defaultRapidDwellSequence());
     QCOMPARE(s.scanGraceMs, 200);
-    QCOMPARE(s.keyGravity, 55);
+    QCOMPARE(s.keyGravitySize, 3);
+    QCOMPARE(s.keyGravityDuration, 3);
     QCOMPARE(s.magPickDwellMs, 1200);
     QCOMPARE(s.dwellPreset(), 3);
 }
@@ -234,7 +238,8 @@ void AppSettingsTest::rapidDwellRoundTrip()
 {
     AppSettings s;
     s.setDwellPreset(2);
-    s.keyGravity = 80;
+    s.keyGravitySize = 4;
+    s.keyGravityDuration = 1;
     QTemporaryDir dir;
     QVERIFY(dir.isValid());
     const QString path = dir.filePath(QStringLiteral("settings.json"));
@@ -244,7 +249,9 @@ void AppSettingsTest::rapidDwellRoundTrip()
     const QByteArray json = jsonFile.readAll();
     jsonFile.close();
     QVERIFY(json.contains("\"rapidDwellSequence\""));
-    QVERIFY(json.contains("\"keyGravity\""));
+    QVERIFY(json.contains("\"keyGravitySize\""));
+    QVERIFY(json.contains("\"keyGravityDuration\""));
+    QVERIFY(!json.contains("\"keyGravity\""));
     QVERIFY(json.contains("\"customRapidDwellSequence\""));
     QVERIFY(!json.contains("\"customrapidDwellSequence\""));
     QVERIFY(!json.contains("\"themeCustom\""));
@@ -255,10 +262,60 @@ void AppSettingsTest::rapidDwellRoundTrip()
     QCOMPARE(b.dwellPreset(), 2);
     QCOMPARE(b.rapidDwellSequence, (QVector<int>{100, 600, 400, 250, 150, 50}));
     QCOMPARE(b.scanGraceMs, 100);
-    QCOMPARE(b.keyGravity, 80);
+    QCOMPARE(b.keyGravitySize, 4);
+    QCOMPARE(b.keyGravityDuration, 1);
     AppSettings off;
-    off.keyGravity = 0;
-    QCOMPARE(off.displayValue(QStringLiteral("keyGravity")), QStringLiteral("Off"));
+    off.keyGravitySize = 0;
+    off.keyGravityDuration = 0;
+    QCOMPARE(off.displayValue(QStringLiteral("keyGravitySize")), QStringLiteral("Off"));
+    QCOMPARE(off.displayValue(QStringLiteral("keyGravityDuration")), QStringLiteral("Off"));
+}
+
+void AppSettingsTest::legacyKeyGravitySplits()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("settings.json"));
+    QFile f(path);
+    QVERIFY(f.open(QIODevice::WriteOnly | QIODevice::Truncate));
+    f.write(R"({"keyGravity":55})");
+    f.close();
+    AppSettings migrated;
+    QVERIFY(migrated.loadFromFile(path));
+    QCOMPARE(migrated.keyGravitySize, 3);
+    QCOMPARE(migrated.keyGravityDuration, 3);
+
+    QVERIFY(f.open(QIODevice::WriteOnly | QIODevice::Truncate));
+    f.write(R"({"keyGravity":80})");
+    f.close();
+    AppSettings eighty;
+    QVERIFY(eighty.loadFromFile(path));
+    QCOMPARE(eighty.keyGravitySize, 4);
+    QCOMPARE(eighty.keyGravityDuration, 4);
+
+    QVERIFY(f.open(QIODevice::WriteOnly | QIODevice::Truncate));
+    f.write(R"({"keyGravity":0})");
+    f.close();
+    AppSettings off;
+    QVERIFY(off.loadFromFile(path));
+    QCOMPARE(off.keyGravitySize, 0);
+    QCOMPARE(off.keyGravityDuration, 0);
+
+    QVERIFY(f.open(QIODevice::WriteOnly | QIODevice::Truncate));
+    f.write(R"({"keyGravity":"nope"})");
+    f.close();
+    AppSettings ignored;
+    QVERIFY(ignored.loadFromFile(path));
+    QCOMPARE(ignored.keyGravitySize, 3);
+    QCOMPARE(ignored.keyGravityDuration, 3);
+
+    QVERIFY(f.open(QIODevice::WriteOnly | QIODevice::Truncate));
+    f.write(R"({"keyGravity":100,"keyGravitySize":1})");
+    f.close();
+    AppSettings mixed;
+    QVERIFY(mixed.loadFromFile(path));
+    QCOMPARE(mixed.keyGravitySize, 1);
+    QCOMPARE(mixed.keyGravityDuration, 5);
 }
 
 void AppSettingsTest::namedColorsResolveFromPalette()

@@ -105,8 +105,8 @@ public:
     void setThemeChromeVisibility(bool hoverCustom, bool flashCustom);
     void setDwellTiming(const QVector<int>& standard, const QVector<int>& rapid,
                         int blinkGraceMs, int scanGraceMs);
-    /// 0 leaves rapid character hits geometric. 100 is the full capture band.
-    void setKeyGravity(int strength);
+    /// Size and duration are 0–5. 0 leaves that effect off.
+    void setKeyGravity(int sizeLevel, int durationLevel);
     void setKeyDistribution(const QHash<QChar, double>& distribution);
 
     void setAutoCollapseMain(bool on) { m_autoCollapseMain = on; }
@@ -265,7 +265,8 @@ private:
     QVector<int> m_rapidSequence = {400, 600, 400, 300, 200, 100};
     int m_blinkGraceMs = 180;
     int m_scanGraceMs = 100;
-    int m_keyGravity = 55;
+    int m_keyGravitySize = 3;
+    int m_keyGravityDuration = 3;
     QHash<QChar, double> m_keyProb;
     /// Symbols and ids follow the board. Rects follow the drawer transform.
     mutable QVector<KeyGravityCell> m_gravityCells;

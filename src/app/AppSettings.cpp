@@ -186,9 +186,14 @@ constexpr IntSpec kIntSpecs[] = {
     {"scanGraceMs", "Scan grace",
      "Time on-target before dwell progress begins (ms).", " ms",
      &AppSettings::scanGraceMs, 0, 2000, 20},
-    {"keyGravity", "Likely keys",
-     "How strongly likely next characters pull gaze and shorten dwell. 0 is off.", "",
-     &AppSettings::keyGravity, 0, 100, 5},
+    {"keyGravitySize", "Dynamic size",
+     "After t, the edge of g toward h can select h. The middle of a key always stays that key. "
+     "0 is off, 5 is strongest.",
+     "", &AppSettings::keyGravitySize, 0, 5, 1},
+    {"keyGravityDuration", "Dynamic duration",
+     "After t, h finishes its rapid dwell sooner than g. An unlikely key takes longer. "
+     "0 is off, 5 is strongest.",
+     "", &AppSettings::keyGravityDuration, 0, 5, 1},
     {"mouseMoveDwellMs", "Pointer dwell",
      "Dwell time for the final cursor / click placement (ms).", " ms",
      &AppSettings::mouseMoveDwellMs, 200, 2500, 50},
@@ -635,7 +640,8 @@ QString AppSettings::displayValue(const QString& key) const
     if (const IntSpec* s = findInt(key)) {
         const int v = this->*s->member;
         if ((keyEq(s->key, QStringLiteral("mouseMoveSelectTimeoutMs"))
-             || keyEq(s->key, QStringLiteral("keyGravity")))
+             || keyEq(s->key, QStringLiteral("keyGravitySize"))
+             || keyEq(s->key, QStringLiteral("keyGravityDuration")))
             && v <= 0) {
             return QStringLiteral("Off");
         }

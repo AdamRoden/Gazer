@@ -26,8 +26,8 @@ struct KeyGravityQuery {
     /// Index of the geometric hit. -1 when gaze is not on a cell.
     int geometricIndex = -1;
     QPointF gaze;
-    /// 0 keeps the geometric hit. 100 is the full capture band.
-    int strength = 0;
+    /// 0 keeps the geometric hit. 5 is the full capture band.
+    int level = 0;
     const QHash<QChar, double>* probability = nullptr;
     /// Session id of the cell already dwelling, if any.
     QString stickyId;
@@ -37,13 +37,14 @@ struct KeyGravityQuery {
 /// A gap (`geometricIndex < 0`) stays a miss. The inner half of a key never moves.
 [[nodiscard]] int keyGravityPick(const KeyGravityQuery& query);
 
-/// Multiplier for the settings rapid sequence. Authored per-cell activation is not scaled;
-/// pass it back unchanged from `chooseRapidSteps`.
-[[nodiscard]] double rapidDwellScale(int strength, double surprise);
+/// Multiplier for the settings rapid sequence. `level` is 0–5.
+/// 0 leaves the sequence unchanged. 5 is the full scale.
+/// Authored per-cell activation is not scaled; `chooseRapidSteps` returns it unchanged.
+[[nodiscard]] double rapidDwellScale(int level, double surprise);
 
 /// `authored` non-empty wins. Otherwise scale `settingsRapid` by `rapidDwellScale`.
 [[nodiscard]] QVector<int> chooseRapidSteps(const QVector<int>& settingsRapid,
-                                            const QVector<int>* authored, int strength,
+                                            const QVector<int>* authored, int level,
                                             double surprise);
 
 } // namespace gazer

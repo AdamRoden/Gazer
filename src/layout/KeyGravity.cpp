@@ -46,6 +46,11 @@ double probabilityOf(const KeyGravityQuery& query, QChar symbol)
     return p > 0 ? p : kFloor;
 }
 
+double levelFraction(int level)
+{
+    return std::clamp(level, 0, 5) / 5.0;
+}
+
 } // namespace
 
 QChar characterSymbol(const PageTarget& target)
@@ -75,7 +80,7 @@ QChar characterSymbol(const PageTarget& target)
 
 int keyGravityPick(const KeyGravityQuery& query)
 {
-    if (query.strength <= 0 || query.geometricIndex < 0
+    if (query.level <= 0 || query.geometricIndex < 0
         || query.geometricIndex >= query.cells.size()) {
         return query.geometricIndex;
     }
@@ -101,9 +106,9 @@ int keyGravityPick(const KeyGravityQuery& query)
         }
     }
     const double width = medianOf(!letters.isEmpty() ? letters : characters);
-    const double strength = std::clamp(query.strength, 0, 100) / 100.0;
-    const double steal = kStealWidths * width * strength;
-    const double temperature = kTemperature * strength * width * width;
+    const double amount = levelFraction(query.level);
+    const double steal = kStealWidths * width * amount;
+    const double temperature = kTemperature * amount * width * width;
     const double stick = (kStickWidths * width) * (kStickWidths * width);
 
     int best = -1;
@@ -131,20 +136,19 @@ int keyGravityPick(const KeyGravityQuery& query)
     return best < 0 ? query.geometricIndex : best;
 }
 
-double rapidDwellScale(int strength, double surprise)
+double rapidDwellScale(int level, double surprise)
 {
-    const double s = std::clamp(strength, 0, 100) / 100.0;
     const double z = std::clamp(surprise, -1.0, 1.0);
-    return std::clamp(1.0 - 0.25 * s * z, 0.75, 1.20);
+    return std::clamp(1.0 - 0.25 * levelFraction(level) * z, 0.75, 1.20);
 }
 
 QVector<int> chooseRapidSteps(const QVector<int>& settingsRapid, const QVector<int>* authored,
-                              int strength, double surprise)
+                              int level, double surprise)
 {
     if (authored && !authored->isEmpty()) {
         return *authored;
     }
-    const double scale = rapidDwellScale(strength, surprise);
+    const double scale = rapidDwellScale(level, surprise);
     QVector<int> out;
     out.reserve(settingsRapid.size());
     for (int step : settingsRapid) {

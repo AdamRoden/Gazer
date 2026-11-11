@@ -217,7 +217,7 @@ void SettingsLayoutTest::timingRowsStayCompact()
     QVERIFY(scroller->scroll);
     QCOMPARE(scroller->rows, 5);
     QCOMPARE(PageDimParse::tokenList(scroller->rowTracks),
-             QStringLiteral("272,272,168,272,168"));
+             QStringLiteral("272,272,272,272,168"));
     const PageGrid* dwell = doc.findGrid(QStringLiteral("sec_dwell"));
     QVERIFY(dwell);
     QCOMPARE(dwell->styleId, QStringLiteral("group"));
@@ -234,9 +234,9 @@ void SettingsLayoutTest::timingRowsStayCompact()
     QCOMPARE(boost->row, 2);
     const PageGrid* keys = doc.findGrid(QStringLiteral("sec_keys"));
     QVERIFY(keys);
-    QCOMPARE(keys->rows, 2);
+    QCOMPARE(keys->rows, 3);
     QCOMPARE(keys->row, 2);
-    QCOMPARE(PageDimParse::tokenList(keys->rowTracks), QStringLiteral("48,96"));
+    QCOMPARE(PageDimParse::tokenList(keys->rowTracks), QStringLiteral("48,96,96"));
 
     PageFrame frame;
     frame.screen = QRectF(0, 0, 1920, 1080);
@@ -244,13 +244,16 @@ void SettingsLayoutTest::timingRowsStayCompact()
     const QVector<PageTarget> t = PageHit::collect(doc, frame);
     const PageTarget* header = targetById(t, QStringLiteral("h_dwell"));
     const PageTarget* desc = targetById(t, QStringLiteral("rapid_dwell_label"));
-    const PageTarget* gravity = targetById(t, QStringLiteral("gravity_label"));
+    const PageTarget* size = targetById(t, QStringLiteral("size_label"));
+    const PageTarget* duration = targetById(t, QStringLiteral("duration_label"));
     QVERIFY(header);
     QVERIFY(desc);
-    QVERIFY(gravity);
+    QVERIFY(size);
+    QVERIFY(duration);
     QVERIFY(qAbs(header->geom.visual.height() - 48.0) < 1.5);
     QVERIFY(qAbs(desc->geom.visual.height() - 96.0) < 1.5);
-    QVERIFY(qAbs(gravity->geom.visual.height() - 96.0) < 1.5);
+    QVERIFY(qAbs(size->geom.visual.height() - 96.0) < 1.5);
+    QVERIFY(qAbs(duration->geom.visual.height() - 96.0) < 1.5);
 }
 
 void SettingsLayoutTest::stepperWidths()
@@ -390,12 +393,16 @@ void SettingsLayoutTest::presetsComeFirst()
     QCOMPARE(doc.findGrid(QStringLiteral("row_dwell"))->row, 1);
     QCOMPARE(doc.findGrid(QStringLiteral("row_rapid_dwell"))->row, 2);
     QCOMPARE(doc.findGrid(QStringLiteral("sec_keys"))->row, 2);
-    QCOMPARE(doc.findGrid(QStringLiteral("row_key_gravity"))->row, 1);
+    QCOMPARE(doc.findGrid(QStringLiteral("row_key_size"))->row, 1);
+    QCOMPARE(doc.findGrid(QStringLiteral("row_key_duration"))->row, 2);
     QVERIFY(!doc.findGrid(QStringLiteral("sec_fine")));
     QCOMPARE(doc.findCell(QStringLiteral("dwell_label"))->label, QStringLiteral("Standard"));
     QCOMPARE(doc.findCell(QStringLiteral("rapid_dwell_label"))->label, QStringLiteral("Rapid"));
-    QCOMPARE(doc.findCell(QStringLiteral("gravity_label"))->label, QStringLiteral("Likely keys"));
-    QCOMPARE(doc.findCell(QStringLiteral("gravity_val"))->settingKey, QStringLiteral("keyGravity"));
+    QCOMPARE(doc.findCell(QStringLiteral("size_label"))->label, QStringLiteral("Dynamic size"));
+    QCOMPARE(doc.findCell(QStringLiteral("duration_label"))->label, QStringLiteral("Dynamic duration"));
+    QCOMPARE(doc.findCell(QStringLiteral("size_val"))->settingKey, QStringLiteral("keyGravitySize"));
+    QCOMPARE(doc.findCell(QStringLiteral("duration_val"))->settingKey,
+             QStringLiteral("keyGravityDuration"));
     QVERIFY(!doc.findGrid(QStringLiteral("sec_rapid")));
     QVERIFY(!doc.findGrid(QStringLiteral("sec_designer")));
     const PageCell* slow = doc.findCell(QStringLiteral("p_slow"));
