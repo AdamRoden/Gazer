@@ -34,9 +34,7 @@
 
 namespace gazer {
 
-using SettingsPageBuild::cell;
 using compose_detail::commandAction;
-using compose_detail::parseColor;
 
 ComposeUi::ComposeUi(PageSession& pages, SpeechEngine& speech, AppSettings& settings,
                      SpeechSecrets& secrets, ElevenClient& eleven, TtsService& tts,
@@ -72,7 +70,9 @@ bool ComposeUi::isCapturing(const QString& sourcePageId) const
 {
     return sourcePageId == kPageId || sourcePageId == kVoicesLiveId
            || sourcePageId == kHistoryLiveId || sourcePageId == kFilesLiveId
-           || sourcePageId == kItemEditLiveId;
+           || sourcePageId == kItemEditLiveId || sourcePageId == kStylesLiveId
+           || sourcePageId == kTagsLiveId || sourcePageId == kFormLiveId
+           || sourcePageId == kRailLiveId;
 }
 
 bool ComposeUi::isOpen() const
@@ -170,6 +170,10 @@ void ComposeUi::refreshLiveBoards()
     rebuildVoices();
     rebuildHistory();
     rebuildItemEdit();
+    rebuildStyles();
+    rebuildTags();
+    rebuildForm();
+    rebuildRailAdd();
     refresh();
 }
 
@@ -216,7 +220,7 @@ void ComposeUi::handleSend(const PageAction& a)
     if (handleFileSend(a)) {
         return;
     }
-    if (handleVoiceQuerySend(a)) {
+    if (handleSearchSend(a)) {
         return;
     }
     if (handleIconQuerySend(a)) {
@@ -268,11 +272,7 @@ void ComposeUi::handleCapturedCommand(const QString& command)
             cancelAssign();
             return;
         }
-        if (handleVoicesEscape()) {
-            return;
-        }
-        if (top == kHistoryLiveId) {
-            m_pages.closePage(QString(kHistoryLiveId));
+        if (handleSearchEscape()) {
             return;
         }
         if (handleFileEscape()) {
@@ -284,7 +284,7 @@ void ComposeUi::handleCapturedCommand(const QString& command)
     if (handleFileCommand(c)) {
         return;
     }
-    if (handleVoiceQueryCommand(c)) {
+    if (handleSearchCommand(c)) {
         return;
     }
     if (handleIconQueryCommand(c)) {
@@ -347,8 +347,24 @@ void ComposeUi::abandonClosedSession()
         m_dismissColor();
     }
     m_styleEditor = false;
+    m_tagEditor = false;
     m_stylePage = 0;
     m_tagPage = 0;
+    m_showFavorites = false;
+    m_historySearch = false;
+    m_historyQuery.clear();
+    m_historyClearArm = false;
+    m_styleSearch = false;
+    m_styleQuery.clear();
+    m_tagSearch = false;
+    m_tagQuery.clear();
+    m_railSearch = false;
+    m_railQuery.clear();
+    m_railPage = 0;
+    m_formField = FormField::Name;
+    m_formName.clear();
+    m_formPhrase.clear();
+    m_formPhraseTouched = false;
     clearVoiceQuery();
     stopListScroll();
     m_composeAuthored = {};
@@ -470,6 +486,15 @@ void ComposeUi::selectAll()
     refresh();
 }
 
+void ComposeUi::deselect()
+{
+    if (capturingPhrase()) {
+        return;
+    }
+    editTarget().collapseSelection();
+    refresh();
+}
+
 void ComposeUi::copy()
 {
     if (capturingPhrase()) {
@@ -579,14 +604,13 @@ void ComposeUi::decoratePage(PageDocument& doc) const
     if (!doc.findCell(QStringLiteral("topic_0"))) {
         fillSoundboard(doc);
     }
+    stampEditKeys(doc);
     const auto st = m_speech.status();
     const bool stop = st.busy || st.speaking;
     const bool naming = capturingPhrase();
     if (!naming) {
         stampChips(doc);
     }
-    stampStyleLayer(doc);
-    stampTagLayer(doc);
 
     auto paint = [&](PageGrid& g, auto& self) -> void {
         for (PageCell& c : g.cells) {
@@ -876,115 +900,12 @@ void ComposeUi::presentNamingPhrase(PageCell& cell) const
     cell.role = QStringLiteral("display");
 }
 
-void ComposeUi::stampComposerChrome(PageDocument& doc) const
-{
-    if (!capturingPhrase()) {
-        return;
-    }
+void ComposeUi::stampComposerChrome(PageDocument&) const {}
 
-    const ThemeColors theme = m_settings.resolvedTheme();
-    const QColor ok(46, 125, 50);
-    const QColor warn = theme.danger.isValid() ? theme.danger : QColor(180, 80, 80);
-    const QColor surface = theme.defaultCell();
-    const QColor accent = theme.accent.isValid() ? theme.accent : QColor(80, 160, 220);
-
-    if (PageGrid* keys = doc.findGrid(QStringLiteral("edit_keys"))) {
-        QString styleId;
-        int keyCol = 0;
-        int keyColSpan = 1;
-        if (!keys->cells.isEmpty()) {
-            styleId = keys->cells.first().styleId;
-            keyCol = keys->cells.first().col;
-            keyColSpan = qMax(1, keys->cells.first().colSpan);
-        }
-        keys->row = 0;
-        keys->rowSpan = 3;
-        keys->cells.clear();
-        if (borrowingPhrase()) {
-            PageCell clear = cell(QStringLiteral("clear"), QStringLiteral("Clear"), 0, keyCol,
-                                  QStringLiteral("compose.clear"), surface, keyColSpan);
-            clear.styleId = styleId;
-            keys->cells.push_back(std::move(clear));
-        } else {
-            PageCell color = cell(QStringLiteral("clear"), QStringLiteral("Color"), 0, keyCol,
-                                  QStringLiteral("compose.editShowColors"), surface, keyColSpan, {},
-                                  {}, QStringLiteral("palette"));
-            color.styleId = styleId;
-            keys->cells.push_back(std::move(color));
-            PageCell image = cell(QStringLiteral("undo"), QStringLiteral("Icon"), 1, keyCol,
-                                  QStringLiteral("compose.editShowIcons"),
-                                  m_editIcons ? accent : surface, keyColSpan, {}, {},
-                                  QStringLiteral("photoCamera"));
-            image.styleId = styleId;
-            image.activeState = QStringLiteral("compose.editIcons");
-            keys->cells.push_back(std::move(image));
-        }
-        keys->rows = keys->cells.size();
-    }
-
-    if (PageGrid* phraseGrid = doc.findGrid(QStringLiteral("phrase"))) {
-        if (const PageGrid* chips = doc.findGrid(QStringLiteral("chips"))) {
-            const int chipBottom = chips->row + qMax(0, chips->rowSpan);
-            phraseGrid->rowSpan = qMax(phraseGrid->rowSpan, chipBottom - phraseGrid->row);
-        }
-    }
-    if (PageGrid* chips = doc.findGrid(QStringLiteral("chips"))) {
-        chips->rowSpan = 0;
-        chips->colSpan = 0;
-        chips->cells.clear();
-    }
-
-    if (PageCell* phrase = doc.findCell(QStringLiteral("phrase"))) {
-        presentNamingPhrase(*phrase);
-        const QColor bg = parseColor(m_editColor, surface);
-        phrase->icon = m_editIcon;
-        phrase->style.background = bg;
-        phrase->style.foreground = ThemeColors::contrastOn(bg);
-        phrase->style.borderColor = accent;
-        phrase->style.thickness = PageBox::all(3);
-        phrase->actions.clear();
-    }
-
-    if (PageGrid* side = doc.findGrid(QStringLiteral("speak_keys"))) {
-        QString styleId;
-        int keyCol = 0;
-        int keyColSpan = 1;
-        if (!side->cells.isEmpty()) {
-            styleId = side->cells.first().styleId;
-            keyCol = side->cells.first().col;
-            keyColSpan = qMax(1, side->cells.first().colSpan);
-        }
-        side->row = 0;
-        side->rowSpan = 3;
-        side->cells.clear();
-        PageCell save = cell(QStringLiteral("speak"), QStringLiteral("Save"), 0, keyCol,
-                             QStringLiteral("compose.saveName"), ok, keyColSpan, {}, {},
-                             QStringLiteral("check"));
-        save.styleId = styleId;
-        save.style.foreground = QColor(255, 255, 255);
-        save.activeState.clear();
-        side->cells.push_back(std::move(save));
-        PageCell cancel = cell(QStringLiteral("voices"), QStringLiteral("Cancel"), 1, keyCol,
-                               QStringLiteral("compose.cancelName"), surface, keyColSpan, {}, {},
-                               QStringLiteral("close"));
-        cancel.styleId = styleId;
-        side->cells.push_back(std::move(cancel));
-        if (nameEditCanDelete()) {
-            PageCell del = cell(QStringLiteral("history"), QStringLiteral("Delete"), 2, keyCol,
-                                QStringLiteral("compose.deleteName"), warn, keyColSpan, {}, {},
-                                QStringLiteral("delete"));
-            del.styleId = styleId;
-            del.style.foreground = ThemeColors::contrastOn(warn);
-            side->cells.push_back(std::move(del));
-        }
-        side->rows = side->cells.size();
-    }
-}
-
-bool ComposeUi::presentLive(const QString& id, PageDocument doc, QString* error)
+bool ComposeUi::presentLive(const QString& id, PageDocument doc, QString* error, bool restack)
 {
     doc.id = id;
-    return m_pages.attachDocument(std::move(doc), error, false);
+    return m_pages.attachDocument(std::move(doc), error, false, restack);
 }
 
 bool ComposeUi::elevenMode() const
@@ -1011,6 +932,32 @@ void ComposeUi::syncClosedOverlays()
     }
     if (!hasLive(kVoicesLiveId)) {
         clearVoiceQuery();
+    }
+    if (!hasLive(kHistoryLiveId)) {
+        m_historySearch = false;
+        m_historyQuery.clear();
+        m_historyClearArm = false;
+    }
+    if (!hasLive(kStylesLiveId)) {
+        m_styleSearch = false;
+        m_styleQuery.clear();
+        m_styleEditor = false;
+    }
+    if (!hasLive(kTagsLiveId)) {
+        m_tagSearch = false;
+        m_tagQuery.clear();
+        m_tagEditor = false;
+    }
+    if (!hasLive(kRailLiveId)) {
+        m_railSearch = false;
+        m_railQuery.clear();
+    }
+    if (m_listScroll == ListScroll::Styles && !hasLive(kStylesLiveId)) {
+        stopListScroll();
+    } else if (m_listScroll == ListScroll::Tags && !hasLive(kTagsLiveId)) {
+        stopListScroll();
+    } else if (m_listScroll == ListScroll::Rail && !hasLive(kRailLiveId)) {
+        stopListScroll();
     }
     if (!hasLive(kItemEditLiveId) && (m_editIcons || m_iconKeyboard)) {
         const bool keys = m_iconKeyboard;

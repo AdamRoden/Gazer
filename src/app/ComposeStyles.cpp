@@ -10,12 +10,27 @@
 #include "ui/Theme.h"
 
 #include <QUrl>
+#include <QVector>
 #include <QtGlobal>
 
 namespace gazer {
 
 using SettingsPageBuild::cell;
-using compose_detail::commandAction;
+using SettingsPageBuild::initTopOverlay;
+using SettingsPageBuild::makeNested;
+using compose_detail::aboveKeyboardHeight;
+using compose_detail::kTileCols;
+using compose_detail::kTilePage;
+using compose_detail::kTileRows;
+using compose_detail::paintDanger;
+using compose_detail::paintSave;
+using compose_detail::paintSelected;
+using compose_detail::paintSurface;
+using compose_detail::overlayBody;
+using compose_detail::overlayList;
+using compose_detail::overlayScrollbar;
+using compose_detail::searchField;
+using compose_detail::trackPx;
 
 namespace {
 
@@ -23,18 +38,6 @@ QString encodeStyleName(const QString& name)
 {
     return QString::fromUtf8(QUrl::toPercentEncoding(name.toUtf8()));
 }
-
-PageAction showLayerAction(int layer)
-{
-    PageAction action;
-    action.type = PageActionType::ShowLayers;
-    action.layers = {layer};
-    return action;
-}
-
-constexpr int kStylePickerCap = 12;
-constexpr int kStyleEditorCols = 3;
-constexpr int kStyleGroupCols = 4;
 
 } // namespace
 
@@ -90,24 +93,38 @@ void ComposeUi::openStyleEditor()
 {
     m_styleEditor = true;
     m_stylePage = 0;
-    refresh();
+    m_styleSearch = true;
+    if (!hasLive(kStylesLiveId)) {
+        if (isOpen()) {
+            showComposeLayer(1);
+        }
+        QString err;
+        (void)presentLive(QString(kStylesLiveId), buildStylesDocument(), &err);
+        return;
+    }
+    rebuildStyles();
 }
 
 void ComposeUi::closeStyleEditor()
 {
     m_styleEditor = false;
     m_stylePage = 0;
-    refresh();
+    rebuildStyles();
 }
 
 void ComposeUi::pageStyles(int delta)
 {
-    if (!m_styleEditor || delta == 0) {
+    if (delta == 0 || !hasLive(kStylesLiveId)) {
         return;
     }
-    const int pages = qMax(1, (styleCatalog().styles.size() + kStyleEditorPage - 1) / kStyleEditorPage);
-    m_stylePage = qBound(0, m_stylePage + delta, pages - 1);
-    refresh();
+    m_stylePage += delta * kTileCols;
+    rebuildStyles();
+}
+
+void ComposeUi::stylesGoto(int offset)
+{
+    m_stylePage = offset;
+    rebuildStyles();
 }
 
 void ComposeUi::toggleStyleFavorite(const QString& encoded)
@@ -146,9 +163,9 @@ void ComposeUi::trashStyle(const QString& encoded)
     if (VoiceStyles::keyOf(m_settings.speechStyle) == VoiceStyles::keyOf(name)) {
         m_settings.speechStyle.clear();
     }
-    const int pages = qMax(1, (result.catalog.styles.size() + kStyleEditorPage - 1) / kStyleEditorPage);
-    if (m_stylePage >= pages) {
-        m_stylePage = pages - 1;
+    const int maxOff = qMax(0, result.catalog.styles.size() + 1 - kTilePage);
+    if (m_stylePage > maxOff) {
+        m_stylePage = maxOff;
     }
     storeStyleCatalog(result.catalog);
 }
@@ -175,8 +192,17 @@ void ComposeUi::beginStyleName()
         m_buffer.load(QString());
     }
     m_styleEditor = true;
+    m_styleSearch = true;
     rebuildBoard();
-    showComposeLayer(1);
+    if (!hasLive(kStylesLiveId)) {
+        QString err;
+        (void)presentLive(QString(kStylesLiveId), buildStylesDocument(), &err);
+    } else {
+        rebuildStyles();
+    }
+    if (isOpen()) {
+        showComposeLayer(1);
+    }
 }
 
 bool ComposeUi::saveStyleName(QString* error)
@@ -205,16 +231,17 @@ bool ComposeUi::saveStyleName(QString* error)
         return false;
     }
     m_styleEditor = true;
-    m_stylePage = qMax(0, (added.catalog.styles.size() - 1) / kStyleEditorPage);
+    m_stylePage = qMax(0, added.catalog.styles.size() - 1);
     m_borrowed = BorrowedPhrase::None;
     m_buffer.load(m_nameEditBackup);
     if (m_typing) {
         m_typing->adoptPhrase(m_buffer.text(), m_buffer.caret());
     }
     m_nameEditBackup.clear();
+    m_styleSearch = true;
+    m_styleQuery.clear();
     rebuildBoard();
     storeStyleCatalog(added.catalog);
-    showComposeLayer(6);
     notify(QStringLiteral("Added"));
     return true;
 }
@@ -227,188 +254,181 @@ void ComposeUi::cancelStyleName()
     cancelBorrowedPhrase();
 }
 
-void ComposeUi::stampStyleLayer(PageDocument& doc) const
+bool ComposeUi::openStyles(QString* error)
 {
-    PageGrid* grid = doc.findGrid(QStringLiteral("keys_style"));
-    if (!grid) {
-        return;
+    m_styleEditor = false;
+    m_styleSearch = true;
+    m_styleQuery.clear();
+    m_stylePage = 0;
+    const bool ok = presentLive(QString(kStylesLiveId), buildStylesDocument(), error);
+    if (ok && isOpen()) {
+        showComposeLayer(1);
     }
-    if (m_styleEditor) {
-        stampStyleEditor(*grid);
-    } else {
-        stampStylePicker(*grid);
-    }
+    return ok;
 }
 
-void ComposeUi::stampStylePicker(PageGrid& grid) const
+void ComposeUi::rebuildStyles()
 {
-    const ThemeColors theme = m_settings.resolvedTheme();
-    const QColor accent = theme.accent.isValid() ? theme.accent : QColor(80, 160, 220);
-    const VoiceStyles::Catalog catalog = styleCatalog();
-    QStringList shown = catalog.favorites.isEmpty() ? catalog.styles : catalog.favorites;
-    if (shown.size() > kStylePickerCap) {
-        shown = shown.mid(0, kStylePickerCap);
+    if (!hasLive(kStylesLiveId)) {
+        return;
     }
+    QString err;
+    PageDocument doc = buildStylesDocument();
+    doc.id = QString(kStylesLiveId);
+    (void)m_pages.attachDocument(std::move(doc), &err, false, false);
+}
+
+PageDocument ComposeUi::buildStylesDocument()
+{
+    PageDocument doc;
+    doc.id = QString(kStylesLiveId);
+    doc.name = QStringLiteral("Styles");
+    const ThemeColors theme = m_settings.resolvedTheme();
+    const bool naming = m_borrowed == BorrowedPhrase::Style;
+    const int sheetRows = naming ? 4 : 3;
+    initTopOverlay(doc, 1, sheetRows, QVector<double>(sheetRows, 1.0), 8, 16, theme,
+                   aboveKeyboardHeight(m_composeAuthored), speakBoardWidth());
+    PageGrid& grid = doc.grids[0];
+    grid.rowTracks = {trackPx(72), trackPx(72), PageTrackSize::starWeight()};
+    if (naming) {
+        grid.rowTracks.push_back(trackPx(72));
+    }
+    const QColor key = theme.defaultCell();
+    const QColor accent = theme.accent.isValid() ? theme.accent : QColor(80, 160, 220);
+    const QColor value = theme.bgMain.isValid() ? theme.bgMain : QColor(24, 24, 26);
+    const VoiceStyles::Catalog catalog = styleCatalog();
     const QString active = VoiceStyles::normalizeStyleName(m_settings.speechStyle);
-    if (!active.isEmpty()) {
-        const QString activeKey = VoiceStyles::keyOf(active);
+    const QString activeKey = VoiceStyles::keyOf(active);
+
+    grid.subGrids.push_back(compose_detail::speakTitleBar(
+        m_styleEditor ? QStringLiteral("Edit styles") : QStringLiteral("Style"), naming, key));
+
+    if (naming) {
+        PageCell field = searchField(QStringLiteral("style_search"), m_buffer.text(),
+                                     QStringLiteral("Style name"), 1, 0, 1, key, accent);
+        field.caretIndex = m_buffer.text().isEmpty()
+                               ? 0
+                               : qBound(0, m_buffer.caret(), field.label.size());
+        grid.cells.push_back(std::move(field));
+    } else {
+        grid.cells.push_back(searchField(QStringLiteral("style_search"), m_styleQuery,
+                                         QStringLiteral("Search styles"), 1, 0, 1, key, accent));
+    }
+
+    QStringList names = m_styleEditor || catalog.favorites.isEmpty() ? catalog.styles
+                                                                    : catalog.favorites;
+    if (!m_styleEditor && !active.isEmpty()) {
         bool found = false;
-        for (const QString& name : shown) {
+        for (const QString& name : names) {
             if (VoiceStyles::keyOf(name) == activeKey) {
                 found = true;
                 break;
             }
         }
         if (!found) {
-            shown.prepend(active);
-            if (shown.size() > kStylePickerCap) {
-                shown.removeLast();
+            names.prepend(active);
+        }
+    }
+    if (!naming && !m_styleQuery.trimmed().isEmpty()) {
+        QStringList matched;
+        const QString query = m_styleQuery.trimmed();
+        for (const QString& name : names) {
+            if (name.contains(query, Qt::CaseInsensitive)) {
+                matched.push_back(name);
             }
         }
+        names = matched;
     }
+    const bool showNone = !m_styleEditor;
+    const int lead = showNone ? 1 : 0;
+    const int addSlot = m_styleEditor && !naming ? 1 : 0;
+    const int total = lead + names.size() + addSlot;
+    const int maxOff = qMax(0, total - kTilePage);
+    m_stylePage = qBound(0, m_stylePage, maxOff);
+    const int start = m_stylePage;
 
-    grid.rows = 3;
-    grid.columns = 5;
-    grid.cells.clear();
-    for (int i = 0; i < shown.size() && i < kStylePickerCap; ++i) {
-        PageCell styleCell;
-        styleCell.id = QStringLiteral("style_%1").arg(i);
-        styleCell.row = i / 5;
-        styleCell.col = i % 5;
-        styleCell.label = shown.at(i);
-        const QString key = VoiceStyles::keyOf(shown.at(i));
-        const bool on = !active.isEmpty() && VoiceStyles::keyOf(active) == key;
-        if (on) {
-            styleCell.style.background = accent;
-            styleCell.style.foreground = ThemeColors::contrastOn(accent);
+    PageGrid body = overlayBody(2, 1);
+    PageGrid list = overlayList(kTileCols, kTileRows);
+    list.gapPx = 8;
+    for (int slot = 0; slot < kTilePage; ++slot) {
+        const int index = start + slot;
+        const int tileRow = slot / kTileCols;
+        const int tileCol = slot % kTileCols;
+        if (index >= total) {
+            list.cells.push_back(cell(QStringLiteral("style_name_%1").arg(slot), {}, tileRow,
+                                      tileCol, {}, value, 1, QStringLiteral("label")));
+            continue;
         }
-        styleCell.activeState = QStringLiteral("compose.style.%1").arg(encodeStyleName(key));
-        styleCell.actions.push_back(
-            commandAction(QStringLiteral("compose.applyStyle.%1").arg(encodeStyleName(shown.at(i)))));
-        grid.cells.push_back(std::move(styleCell));
-    }
-    if (shown.isEmpty()) {
-        PageCell empty;
-        empty.id = QStringLiteral("style_empty");
-        empty.row = 0;
-        empty.col = 0;
-        empty.colSpan = 5;
-        empty.role = QStringLiteral("label");
-        empty.label = QStringLiteral("No styles");
-        grid.cells.push_back(std::move(empty));
-    }
-    PageCell edit;
-    edit.id = QStringLiteral("style_edit");
-    edit.row = 2;
-    edit.col = 2;
-    edit.icon = QStringLiteral("edit");
-    edit.label = QStringLiteral("Edit");
-    edit.actions.push_back(commandAction(QStringLiteral("compose.openStyleEditor")));
-    grid.cells.push_back(std::move(edit));
-    PageCell none;
-    none.id = QStringLiteral("style_none");
-    none.row = 2;
-    none.col = 3;
-    none.label = QStringLiteral("None");
-    none.actions.push_back(commandAction(QStringLiteral("compose.clearStyle")));
-    grid.cells.push_back(std::move(none));
-    PageCell back;
-    back.id = QStringLiteral("style_back");
-    back.row = 2;
-    back.col = 4;
-    back.label = QStringLiteral("Back");
-    back.actions.push_back(showLayerAction(5));
-    grid.cells.push_back(std::move(back));
-}
-
-void ComposeUi::stampStyleEditor(PageGrid& grid) const
-{
-    const ThemeColors theme = m_settings.resolvedTheme();
-    const QColor accent = theme.accent.isValid() ? theme.accent : QColor(80, 160, 220);
-    const QColor surface = theme.defaultCell();
-    const VoiceStyles::Catalog catalog = styleCatalog();
-    const QString active = VoiceStyles::normalizeStyleName(m_settings.speechStyle);
-    const QString activeKey = VoiceStyles::keyOf(active);
-    const int count = catalog.styles.size();
-    const int pages = qMax(1, (count + kStyleEditorPage - 1) / kStyleEditorPage);
-    const int page = qBound(0, m_stylePage, pages - 1);
-
-    grid.rows = 3;
-    grid.columns = kStyleEditorCols * kStyleGroupCols;
-    grid.cells.clear();
-    if (count == 0) {
-        PageCell empty;
-        empty.id = QStringLiteral("style_empty");
-        empty.row = 0;
-        empty.col = 0;
-        empty.rowSpan = 2;
-        empty.colSpan = grid.columns;
-        empty.role = QStringLiteral("label");
-        empty.label = QStringLiteral("No styles");
-        grid.cells.push_back(std::move(empty));
-    }
-    for (int slot = 0; slot < kStyleEditorPage; ++slot) {
-        const int index = page * kStyleEditorPage + slot;
-        if (index >= count) {
-            break;
+        if (showNone && index == 0) {
+            PageCell none = cell(QStringLiteral("style_none"), QStringLiteral("None"), tileRow,
+                                 tileCol, QStringLiteral("compose.clearStyle"), key);
+            none.style.radius = PageBox::all(12);
+            if (active.isEmpty()) {
+                paintSelected(none, accent, key);
+            }
+            list.cells.push_back(std::move(none));
+            continue;
         }
-        const int row = slot / kStyleEditorCols;
-        const int col = (slot % kStyleEditorCols) * kStyleGroupCols;
-        const QString& name = catalog.styles.at(index);
+        if (addSlot && index == lead + names.size()) {
+            PageCell add = cell(QStringLiteral("style_add"), QStringLiteral("Add"), tileRow, tileCol,
+                                QStringLiteral("compose.beginStyleName"), key, 1, {}, {},
+                                QStringLiteral("add"));
+            add.style.radius = PageBox::all(12);
+            paintSurface(add, key);
+            list.cells.push_back(std::move(add));
+            continue;
+        }
+        const QString& name = names.at(index - lead);
         const QString encoded = encodeStyleName(name);
         const bool on = !activeKey.isEmpty() && VoiceStyles::keyOf(name) == activeKey;
-        const bool fav = VoiceStyles::isFavorite(catalog, name);
-        PageCell label;
-        label.id = QStringLiteral("style_name_%1").arg(slot);
-        label.row = row;
-        label.col = col;
-        label.colSpan = 2;
-        label.label = name;
-        if (on) {
-            label.style.background = accent;
-            label.style.foreground = ThemeColors::contrastOn(accent);
+        if (!m_styleEditor) {
+            PageCell tile = cell(QStringLiteral("style_name_%1").arg(slot), name, tileRow, tileCol,
+                                 QStringLiteral("compose.applyStyle.%1").arg(encoded), key);
+            tile.activeState =
+                QStringLiteral("compose.style.%1").arg(encodeStyleName(VoiceStyles::keyOf(name)));
+            tile.style.radius = PageBox::all(12);
+            if (on) {
+                paintSelected(tile, accent, key);
+            }
+            list.cells.push_back(std::move(tile));
+            continue;
         }
-        label.activeState = QStringLiteral("compose.style.%1").arg(encodeStyleName(VoiceStyles::keyOf(name)));
-        label.actions.push_back(commandAction(QStringLiteral("compose.applyStyle.%1").arg(encoded)));
-        grid.cells.push_back(std::move(label));
-
-        PageCell star = cell(QStringLiteral("style_star_%1").arg(slot),
-                             fav ? QStringLiteral("Starred") : QStringLiteral("Star"), row, col + 2,
-                             QStringLiteral("compose.favStyle.%1").arg(encoded),
-                             fav ? accent : surface, 1, {}, {}, QStringLiteral("star"));
-        grid.cells.push_back(std::move(star));
-
-        PageCell trash = cell(QStringLiteral("style_trash_%1").arg(slot), QStringLiteral("Trash"),
-                              row, col + 3, QStringLiteral("compose.trashStyle.%1").arg(encoded),
-                              surface, 1, {}, {}, QStringLiteral("delete"));
-        grid.cells.push_back(std::move(trash));
+        PageGrid tile = makeNested(QStringLiteral("style_tile_%1").arg(slot), tileRow, tileCol, 1, 2,
+                                   4);
+        tile.columnTracks = {PageTrackSize::starWeight(), trackPx(56)};
+        const bool fav = VoiceStyles::isFavorite(catalog, name);
+        PageCell label = cell(QStringLiteral("style_name_%1").arg(slot), name, 0, 0,
+                              QStringLiteral("compose.favStyle.%1").arg(encoded), fav ? accent : key,
+                              1, {}, {}, fav ? QStringLiteral("star") : QString());
+        label.style.radius = PageBox::all(12);
+        tile.cells.push_back(std::move(label));
+        PageCell trash = cell(QStringLiteral("style_trash_%1").arg(slot), {}, 0, 1,
+                              QStringLiteral("compose.trashStyle.%1").arg(encoded), QColor(), 1, {},
+                              {}, QStringLiteral("delete"));
+        paintDanger(trash, theme.danger.isValid() ? theme.danger : QColor(180, 80, 80));
+        tile.cells.push_back(std::move(trash));
+        list.subGrids.push_back(std::move(tile));
     }
+    body.subGrids.push_back(std::move(list));
+    body.subGrids.push_back(overlayScrollbar(start, kTilePage, total, key,
+                                            QStringLiteral("compose.stylePage.-1"),
+                                            QStringLiteral("compose.stylePage.1")));
+    grid.subGrids.push_back(std::move(body));
 
-    PageCell add = cell(QStringLiteral("style_add"), QStringLiteral("Add"), 2, 0,
-                        QStringLiteral("compose.beginStyleName"), surface, 3);
-    grid.cells.push_back(std::move(add));
-
-    const bool canPrev = page > 0;
-    PageCell prev = cell(QStringLiteral("style_prev"), QStringLiteral("Prev"), 2, 3,
-                         canPrev ? QStringLiteral("compose.stylePage.-1") : QString(), surface, 2,
-                         canPrev ? QString() : QStringLiteral("label"));
-    grid.cells.push_back(std::move(prev));
-
-    const bool canNext = page + 1 < pages;
-    PageCell next = cell(QStringLiteral("style_next"), QStringLiteral("Next"), 2, 5,
-                         canNext ? QStringLiteral("compose.stylePage.1") : QString(), surface, 2,
-                         canNext ? QString() : QStringLiteral("label"));
-    if (pages > 1) {
-        next.caption = QStringLiteral("%1/%2").arg(page + 1).arg(pages);
+    if (naming) {
+        PageGrid foot = makeNested(QStringLiteral("footer"), 3, 0, 1, 2, 8);
+        foot.columnTracks = {PageTrackSize::starWeight(1.4), PageTrackSize::starWeight()};
+        PageCell save = cell(QStringLiteral("style_save"), QStringLiteral("Save"), 0, 0,
+                             QStringLiteral("compose.saveName"), accent);
+        paintSave(save, accent);
+        foot.cells.push_back(std::move(save));
+        PageCell cancel = cell(QStringLiteral("style_cancel"), QStringLiteral("Cancel"), 0, 1,
+                               QStringLiteral("compose.cancelName"), key);
+        paintSurface(cancel, key);
+        foot.cells.push_back(std::move(cancel));
+        grid.subGrids.push_back(std::move(foot));
     }
-    grid.cells.push_back(std::move(next));
-
-    PageCell none = cell(QStringLiteral("style_none"), QStringLiteral("None"), 2, 7,
-                         QStringLiteral("compose.clearStyle"), surface, 2);
-    grid.cells.push_back(std::move(none));
-    PageCell done = cell(QStringLiteral("style_done"), QStringLiteral("Done"), 2, 9,
-                         QStringLiteral("compose.closeStyleEditor"), surface, 3);
-    grid.cells.push_back(std::move(done));
+    return doc;
 }
 
 } // namespace gazer

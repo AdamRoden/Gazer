@@ -183,6 +183,20 @@ struct AppSettings {
     QStringList voiceStyleNames;
     QStringList voiceStyleFavorites;
     bool voiceStylesSet = false;
+    /// Speak sidebar favorites. `kind` is `action`, `style`, or `tag`.
+    /// `ref` is a command, a style name, or a saved tag name.
+    /// `railFavoritesSet` is false until the user edits the list. An empty
+    /// array is a real list and sets the flag.
+    struct RailFavorite {
+        QString kind;
+        QString ref;
+        [[nodiscard]] bool operator==(const RailFavorite& o) const
+        {
+            return kind == o.kind && ref == o.ref;
+        }
+    };
+    QVector<RailFavorite> railFavorites;
+    bool railFavoritesSet = false;
 
     [[nodiscard]] static QVector<SavedSpeechTag> defaultSavedSpeechTags()
     {

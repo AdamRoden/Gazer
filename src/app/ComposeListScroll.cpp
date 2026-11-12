@@ -25,7 +25,9 @@ const PageTarget* frontScrollTrack(const QVector<PageTarget>& targets)
             continue;
         }
         if (t.pageId == ComposeUi::kHistoryLiveId || t.pageId == ComposeUi::kVoicesLiveId
-            || t.pageId == ComposeUi::kFilesLiveId || t.pageId == ComposeUi::kItemEditLiveId) {
+            || t.pageId == ComposeUi::kFilesLiveId || t.pageId == ComposeUi::kItemEditLiveId
+            || t.pageId == ComposeUi::kStylesLiveId || t.pageId == ComposeUi::kTagsLiveId
+            || t.pageId == ComposeUi::kRailLiveId) {
             return &t;
         }
     }
@@ -48,7 +50,8 @@ const PageTarget* fileNameScroller(const QVector<PageTarget>& targets)
 void ComposeUi::onGaze(const GazePoint& point)
 {
     if (!hasLive(kHistoryLiveId) && !hasLive(kVoicesLiveId) && !hasLive(kFilesLiveId)
-        && !hasLive(kItemEditLiveId)) {
+        && !hasLive(kItemEditLiveId) && !hasLive(kStylesLiveId) && !hasLive(kTagsLiveId)
+        && !hasLive(kRailLiveId)) {
         stopListScroll();
         return;
     }
@@ -188,6 +191,12 @@ void ComposeUi::feedListScrollGaze(const GazePoint& point)
         kind = ListScroll::Files;
     } else if (track->pageId == kItemEditLiveId) {
         kind = ListScroll::Icons;
+    } else if (track->pageId == kStylesLiveId) {
+        kind = ListScroll::Styles;
+    } else if (track->pageId == kTagsLiveId) {
+        kind = ListScroll::Tags;
+    } else if (track->pageId == kRailLiveId) {
+        kind = ListScroll::Rail;
     }
     if (m_listScroll != kind) {
         m_listScroll = kind;
@@ -215,6 +224,18 @@ void ComposeUi::feedListScrollGaze(const GazePoint& point)
     } else if (kind == ListScroll::Icons) {
         if (offset != m_iconRow) {
             iconsGoto(offset);
+        }
+    } else if (kind == ListScroll::Styles) {
+        if (offset != m_stylePage) {
+            stylesGoto(offset);
+        }
+    } else if (kind == ListScroll::Tags) {
+        if (offset != m_tagPage) {
+            tagsGoto(offset);
+        }
+    } else if (kind == ListScroll::Rail) {
+        if (offset != m_railPage) {
+            railGoto(offset);
         }
     } else if (offset != m_fileOffset) {
         filesGoto(offset);

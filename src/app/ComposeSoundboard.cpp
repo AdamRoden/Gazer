@@ -25,8 +25,10 @@ using SettingsPageBuild::cell;
 using compose_detail::ChoiceSlot;
 using compose_detail::commandAction;
 using compose_detail::fillChoiceGrid;
+using compose_detail::paintOutline;
 using compose_detail::parseColor;
 using compose_detail::stampEditableGrid;
+using compose_detail::trackPx;
 
 QString ComposeUi::activeTopicId() const
 {
@@ -49,6 +51,7 @@ void ComposeUi::rebuildBoard()
     prefetchBoardIcons();
     refresh();
     m_pages.gateHover(QString(kPageId));
+    rebuildForm();
 }
 
 PageDim ComposeUi::speakBoardWidth() const
@@ -61,39 +64,7 @@ PageDim ComposeUi::speakBoardWidth() const
 
 void ComposeUi::fillSoundboard(PageDocument& doc) const
 {
-    const ThemeColors theme = m_settings.resolvedTheme();
-    const QColor ok(46, 125, 50);
-    const QStringList editIds = {QStringLiteral("pin"), QStringLiteral("pin_s"),
-                                 QStringLiteral("pin_sym"), QStringLiteral("pin_ss")};
-    for (const QString& id : editIds) {
-        PageCell* edit = doc.findCell(id);
-        if (!edit) {
-            continue;
-        }
-        edit->label = editMode() ? QStringLiteral("Done") : QStringLiteral("Edit");
-        edit->icon = editMode() ? QStringLiteral("check") : QStringLiteral("edit");
-        edit->actions.clear();
-        edit->actions.push_back(
-            commandAction(editMode() ? QStringLiteral("compose.cancelAssign")
-                                     : QStringLiteral("compose.editPins")));
-        edit->activeState = QStringLiteral("compose.editMode");
-        if (editMode()) {
-            edit->style.background = ok;
-            edit->style.foreground = QColor(255, 255, 255);
-        } else {
-            edit->style.background.token = QStringLiteral("bg90");
-            edit->style.foreground.reset();
-        }
-        if (m_iconKeyboard) {
-            edit->label = QStringLiteral("Esc");
-            edit->icon.clear();
-            edit->actions.clear();
-            edit->actions.push_back(commandAction(QStringLiteral("escape")));
-            edit->activeState.clear();
-            edit->style.background.token = QStringLiteral("bg90");
-            edit->style.foreground.reset();
-        }
-    }
+    stampEditKeys(doc);
     if (PageCell* pin = doc.findCell(QStringLiteral("cmd_pin"))) {
         pin->label = assignMode() ? QStringLiteral("Cancel") : QStringLiteral("Pin");
         pin->actions.clear();
@@ -101,6 +72,9 @@ void ComposeUi::fillSoundboard(PageDocument& doc) const
             commandAction(assignMode() ? QStringLiteral("compose.cancelAssign")
                                        : QStringLiteral("compose.pin")));
         pin->activeState = QStringLiteral("compose.assignMode");
+    }
+    if (PageCell* mode = doc.findCell(QStringLiteral("rail_mode"))) {
+        mode->label = m_showFavorites ? QStringLiteral("Topics") : QStringLiteral("Favorites");
     }
     stampComposerChrome(doc);
     fillTopicsMode(doc);
@@ -114,25 +88,29 @@ void ComposeUi::fillTopicsMode(PageDocument& doc) const
     const QColor value = theme.bgMain.isValid() ? theme.bgMain : QColor(24, 24, 26);
     const bool editing = editMode();
 
-    QVector<ChoiceSlot> topics;
-    const auto& list = m_board.topics();
-    const int n = qMin(8, int(list.size()));
-    topics.reserve(n);
-    for (int i = 0; i < n; ++i) {
-        const SoundboardTopic& t = list[i];
-        ChoiceSlot s;
-        s.label = t.name;
-        s.icon = t.icon;
-        s.color = t.color;
-        s.useCommand = QStringLiteral("soundboard.topic.%1").arg(t.id);
-        s.editCommand = QStringLiteral("soundboard.editTopic.%1").arg(t.id);
-        s.activeState = QStringLiteral("soundboard.topic.%1").arg(t.id);
-        s.selected = editing && m_nameEdit == NameEditKind::Topic && t.id == m_editId;
-        s.on = s.selected || (!editing && t.id == m_board.activeTopicId());
-        topics.push_back(s);
+    if (m_showFavorites) {
+        fillRail(doc);
+    } else {
+        QVector<ChoiceSlot> topics;
+        const auto& list = m_board.topics();
+        const int n = qMin(8, int(list.size()));
+        topics.reserve(n);
+        for (int i = 0; i < n; ++i) {
+            const SoundboardTopic& t = list[i];
+            ChoiceSlot s;
+            s.label = t.name;
+            s.icon = t.icon;
+            s.color = t.color;
+            s.useCommand = QStringLiteral("soundboard.topic.%1").arg(t.id);
+            s.editCommand = QStringLiteral("soundboard.editTopic.%1").arg(t.id);
+            s.activeState = QStringLiteral("soundboard.topic.%1").arg(t.id);
+            s.selected = editing && m_nameEdit == NameEditKind::Topic && t.id == m_editId;
+            s.on = s.selected || (!editing && t.id == m_board.activeTopicId());
+            topics.push_back(s);
+        }
+        fillChoiceGrid(doc.findGrid(QStringLiteral("rail")), 8, 1, QStringLiteral("topic_"), topics,
+                       editing, QStringLiteral("soundboard.newTopic"), surface, accent, value);
     }
-    fillChoiceGrid(doc.findGrid(QStringLiteral("topics")), 1, 8, QStringLiteral("topic_"), topics,
-                   editing, QStringLiteral("soundboard.newTopic"), surface, accent, value);
 
     PageGrid* grid = doc.findGrid(QStringLiteral("soundboard"));
     stampEditableGrid(grid, editing, accent);
@@ -158,11 +136,18 @@ void ComposeUi::fillTopicsMode(PageDocument& doc) const
                 cell.label = b->label;
                 cell.icon = b->icon;
                 const bool selected = editing && m_nameEdit == NameEditKind::Pin && b->id == m_editId;
-                const QColor bg = selected ? accent : parseColor(b->color, surface);
-                cell.style.background = bg;
-                cell.style.foreground = ThemeColors::contrastOn(bg);
+                const auto plan = m_board.planPlay(*b);
+                const QColor ink = parseColor(b->color, surface);
                 if (selected) {
+                    cell.style.background = accent;
+                    cell.style.foreground = ThemeColors::contrastOn(accent);
                     cell.activeState = QStringLiteral("compose.editMode");
+                } else if (plan.kind == SoundboardStore::PlayPlan::Kind::Utterance
+                           || plan.kind == SoundboardStore::PlayPlan::Kind::Source) {
+                    paintOutline(cell, ink);
+                } else {
+                    cell.style.background = ink;
+                    cell.style.foreground = ThemeColors::contrastOn(ink);
                 }
                 if (assignMode()) {
                     cell.actions.push_back(
@@ -185,6 +170,17 @@ void ComposeUi::fillTopicsMode(PageDocument& doc) const
             }
             grid->cells.push_back(cell);
         }
+    }
+    if (rows <= 0) {
+        grid->rows = 1;
+        grid->rowTracks = {PageTrackSize::starWeight()};
+    } else {
+        grid->rowTracks.clear();
+        for (int r = 0; r < rows; ++r) {
+            grid->rowTracks.push_back(trackPx(80));
+        }
+        grid->rowTracks.push_back(PageTrackSize::starWeight());
+        grid->rows = rows + 1;
     }
 }
 
@@ -238,6 +234,91 @@ bool ComposeUi::editPins()
     rebuildBoard();
     notify(QStringLiteral("Dwell a button to edit"));
     return true;
+}
+
+bool ComposeUi::editShown()
+{
+    if (borrowingPhrase() || nameEditing()) {
+        return true;
+    }
+    const QString top = m_pages.topPageId();
+    if (top == kStylesLiveId) {
+        if (m_styleEditor) {
+            closeStyleEditor();
+        } else {
+            openStyleEditor();
+        }
+        m_pages.refreshDecorated();
+        return true;
+    }
+    if (top == kTagsLiveId) {
+        if (m_tagEditor) {
+            closeTagEditor();
+        } else {
+            openTagEditor();
+        }
+        m_pages.refreshDecorated();
+        return true;
+    }
+    if (top.isEmpty() || top == kPageId) {
+        return editPins();
+    }
+    return true;
+}
+
+void ComposeUi::stampEditKeys(PageDocument& doc) const
+{
+    const ThemeColors theme = m_settings.resolvedTheme();
+    const QColor accent = theme.accent.isValid() ? theme.accent : QColor(80, 160, 220);
+    const QString top = m_pages.topPageId();
+    const bool naming = (top == kStylesLiveId && m_borrowed == BorrowedPhrase::Style)
+                        || (top == kTagsLiveId && m_borrowed == BorrowedPhrase::Tag);
+    bool done = false;
+    if (!m_iconKeyboard && !naming) {
+        if (top == kStylesLiveId) {
+            done = m_styleEditor;
+        } else if (top == kTagsLiveId) {
+            done = m_tagEditor;
+        } else if (top.isEmpty() || top == kPageId) {
+            done = editMode();
+        }
+    }
+    const QStringList ids = {QStringLiteral("edit"), QStringLiteral("edit_s"),
+                             QStringLiteral("edit_sym"), QStringLiteral("edit_ss")};
+    for (const QString& id : ids) {
+        PageCell* key = doc.findCell(id);
+        if (!key) {
+            continue;
+        }
+        key->actions.clear();
+        key->activeState.clear();
+        key->style.foreground.reset();
+        key->style.background = QColor();
+        if (m_iconKeyboard) {
+            key->label = QStringLiteral("Esc");
+            key->icon.clear();
+            key->actions.push_back(commandAction(QStringLiteral("escape")));
+            key->style.background.token = QStringLiteral("bg90");
+            continue;
+        }
+        if (naming) {
+            key->label = QStringLiteral("Cancel");
+            key->icon.clear();
+            key->actions.push_back(commandAction(QStringLiteral("compose.cancelName")));
+            key->style.background.token = QString();
+            key->style.background = theme.defaultCell();
+            continue;
+        }
+        key->label = done ? QStringLiteral("Done") : QStringLiteral("Edit");
+        key->icon = done ? QStringLiteral("check") : QStringLiteral("edit");
+        key->actions.push_back(commandAction(QStringLiteral("compose.editShown")));
+        if (done) {
+            key->style.background = accent;
+            key->style.foreground = ThemeColors::contrastOn(accent);
+        } else {
+            key->style.background.token = QStringLiteral("bg90");
+        }
+    }
 }
 
 bool ComposeUi::playSoundboard(const QString& buttonId, QString* error)
@@ -389,6 +470,14 @@ void ComposeUi::commitEdit()
 {
     dismissBoardNote();
     refresh();
+    if (nameEditing()) {
+        rebuildForm();
+    }
+    if (m_borrowed == BorrowedPhrase::Style) {
+        rebuildStyles();
+    } else if (m_borrowed == BorrowedPhrase::Tag) {
+        rebuildTags();
+    }
 }
 
 bool ComposeUi::importPending(bool replace, QString* error)

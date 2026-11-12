@@ -85,8 +85,10 @@ int fontPixelsToFill(const QString& family, int weight, const QString& text, con
     return qMax(minPx, px);
 }
 
-/// `textStyle="row"`: icon on the left, one elided line. An icon with no label is centered.
-bool paintRowStyle(QPainter& p, const PageTarget& t, const QRectF& r, const QColor& fg)
+/// `textStyle="row"`: icon on the left, one elided line. A caption follows the label
+/// on that same line. An icon with no label is centered.
+bool paintRowStyle(QPainter& p, const PageTarget& t, const QRectF& r, const QColor& fg,
+                   const QColor& metaFg)
 {
     if (t.textStyle.compare(QLatin1String("row"), Qt::CaseInsensitive) != 0) {
         return false;
@@ -116,12 +118,40 @@ bool paintRowStyle(QPainter& p, const PageTarget& t, const QRectF& r, const QCol
         textLeft = iconR.right() + 10.0;
     }
     QFont nameFont(segoeFamily(), 16, QFont::DemiBold);
+    const QFontMetricsF nameFm(nameFont);
     const QRectF nameR(textLeft, box.top(), qMax(0.0, box.right() - textLeft), box.height());
-    const QString name =
-        QFontMetricsF(nameFont).elidedText(t.label, Qt::ElideRight, qMax(0.0, nameR.width()));
+    const QString caption = t.caption.trimmed();
+    qreal nameLimit = nameR.width();
+    qreal metaW = 0.0;
+    constexpr qreal gap = 10.0;
+    QFont metaFont(segoeFamily(), 13);
+    const QFontMetricsF metaFm(metaFont);
+    if (!caption.isEmpty() && nameR.width() > gap + 48.0) {
+        const qreal naturalMeta = metaFm.horizontalAdvance(caption);
+        const qreal naturalName = nameFm.horizontalAdvance(t.label);
+        if (naturalName + gap + naturalMeta <= nameR.width()) {
+            nameLimit = naturalName;
+            metaW = naturalMeta;
+        } else {
+            metaW = qMin(naturalMeta, qMax(48.0, nameR.width() * 0.40));
+            metaW = qMin(metaW, nameR.width() - 24.0 - gap);
+            nameLimit = qMax(24.0, nameR.width() - metaW - gap);
+        }
+    }
+    const QString name = nameFm.elidedText(t.label, Qt::ElideRight, qMax(0.0, nameLimit));
     p.setPen(fg);
     p.setFont(nameFont);
-    p.drawText(nameR, int(Qt::AlignLeft | Qt::AlignVCenter), name);
+    p.drawText(QRectF(textLeft, box.top(), qMax(1.0, nameLimit), box.height()),
+               int(Qt::AlignLeft | Qt::AlignVCenter), name);
+    if (metaW > 1.0) {
+        const qreal used = qMin(nameFm.horizontalAdvance(name), nameLimit);
+        const QRectF metaR(textLeft + used + gap, box.top(), metaW, box.height());
+        QColor ink = metaFg.isValid() ? metaFg : fg;
+        p.setPen(ink);
+        p.setFont(metaFont);
+        p.drawText(metaR, int(Qt::AlignLeft | Qt::AlignVCenter),
+                   metaFm.elidedText(caption, Qt::ElideRight, metaW));
+    }
     return true;
 }
 
@@ -242,7 +272,8 @@ void paintLabel(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeCo
     if (ts == QLatin1String("row")) {
         const QColor fill = theme.resolveFill(t.chrome.background.token, canvas, false, false);
         const QColor fg = theme.readableForeground(fill, t.chrome.foreground.token, canvas);
-        paintRowStyle(p, t, r, fg);
+        const QColor meta = theme.textSecondary.isValid() ? theme.textSecondary : fg;
+        paintRowStyle(p, t, r, fg, meta);
         return;
     }
     const QRectF pad = phrasePad(r);
@@ -365,7 +396,7 @@ void paintIconAndText(QPainter& p, const PageTarget& t, const QRectF& r, const Q
                       const ThemeColors& theme)
 {
     Q_UNUSED(theme);
-    if (paintRowStyle(p, t, r, fg)) {
+    if (paintRowStyle(p, t, r, fg, theme.textSecondary)) {
         return;
     }
     const QString family = segoeFamily();

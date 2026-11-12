@@ -43,6 +43,8 @@ public:
 
     /// Drop the row and its clip. Returns false if `id` is unknown.
     bool remove(const QString& id, QString* error = nullptr);
+    /// Drop every row and its clip.
+    bool clear(QString* error = nullptr);
 
     void evictOldestHistory();
     /// Drop oldest items until `usedBytes() + extraBytes` fits the 200 MB cap.

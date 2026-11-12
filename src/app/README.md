@@ -12,7 +12,10 @@ Composition root, settings, command dispatch.
 | `GuardApp` | `Gazer.exe --guard`: heartbeat watchdog, crash-loop rescue board, Pause hotkey |
 | `CommandRegistry` | Builtin names, then mapping profile. Prefix handlers. `compose.*` / `speech.*` / `soundboard.*` / `history.*` / `settings.*` / `headPose.*` skip the Cmd toast. Catalog: `Commands.md` |
 | `ComposeUi` | Gaze composer capture (`tryHandle`), decorate live values, stamp chrome. Composer Speak is `SpeakKind::Composed` (Eleven when configured). Helpers: `ComposeUiInternal.h` |
-| `ComposeVoices.cpp` | Voice catalog (model, speed, pitch, name search, languages) |
+| `ComposeVoices.cpp` | Voice catalog (model, speed, pitch, languages, voice list) |
+| `ComposeSearch.cpp` | Keyboard capture for the voice, history, style, tag, and favorite search sheets |
+| `ComposeForm.cpp` | Topic and phrase edit sheet |
+| `ComposeRail.cpp` | Favorites sidebar and the add-favorite tiles |
 | `ComposeStyles.cpp` | Standing style picker, editor, and keyboard naming |
 | `ComposeTags.cpp` | Insert-tag page and keyboard naming |
 | `ComposeSoundboard.cpp` | Pin/assign, topic rail, soundboard grid, Voice workspace import/export |

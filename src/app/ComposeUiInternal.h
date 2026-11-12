@@ -1,6 +1,7 @@
 #pragma once
 
 #include "app/SettingsPageBuild.h"
+#include "layout/PageDim.h"
 #include "layout/PageTypes.h"
 #include "ui/ScrollBar.h"
 #include "ui/Theme.h"
@@ -13,6 +14,14 @@
 namespace gazer::compose_detail {
 
 constexpr int kOverlayListRows = 10;
+/// Rows on a search sheet that sits above the Speak keyboard.
+constexpr int kSearchListRows = 5;
+/// Style and tag sheets lay names out as a tile grid, not one name per row.
+constexpr int kTileCols = 4;
+constexpr int kTileRows = 3;
+constexpr int kTilePage = kTileCols * kTileRows;
+/// History rows above the keyboard. Each record is one row.
+constexpr int kHistoryCards = 5;
 constexpr int kOverlayBodyCols = 20;
 constexpr int kOverlayListColSpan = 19;
 /// Scroll column width and the up/down arrow buttons, in pixels.
@@ -254,6 +263,193 @@ enum class QueryCommand { Ignored, Edited, Enter };
 
 /// Backspace, space, and Enter for a captured search. Other commands are ignored
 /// here; the caller still swallows them while the capture is active.
+/// Height of the Speak area above the keyboard, so a sheet leaves the keys free.
+inline QString aboveKeyboardHeight(const PageDocument& authored)
+{
+    const QString fallback = QStringLiteral("(A_ScreenHeight-40)*8/12+24");
+    if (authored.grids.isEmpty()) {
+        return fallback;
+    }
+    const PageGrid* keys = authored.findGrid(QStringLiteral("keys"));
+    if (!keys) {
+        return fallback;
+    }
+    const std::optional<PageDimParse::StarBand> band =
+        PageDimParse::starBandBeforeRow(authored.grids[0], keys->row);
+    if (!band || band->topExpr.isEmpty()) {
+        return fallback;
+    }
+    return band->topExpr;
+}
+
+/// Search line that already owns the caret. Typing goes into `query`.
+inline PageCell searchField(const QString& id, const QString& query, const QString& placeholder,
+                            int row, int col, int colSpan, const QColor& surface,
+                            const QColor& accent)
+{
+    PageCell field = SettingsPageBuild::cell(id, query.isEmpty() ? placeholder : query, row, col,
+                                             {}, surface, colSpan, QStringLiteral("display"), {},
+                                             QStringLiteral("search"));
+    field.caretIndex = query.size();
+    field.style.borderColor = accent;
+    field.style.thickness = PageBox::all(2);
+    field.style.radius = PageBox::all(12);
+    return field;
+}
+
+inline void paintOutline(PageCell& cell, const QColor& ink)
+{
+    cell.style.background = QColor(0, 0, 0, 0);
+    cell.style.foreground = ink;
+    cell.style.borderColor = ink;
+    cell.style.thickness = PageBox::all(2);
+}
+
+inline QColor accentOf(const ThemeColors& theme)
+{
+    return theme.accent.isValid() ? theme.accent : QColor(80, 160, 220);
+}
+
+inline QColor dangerOf(const ThemeColors& theme)
+{
+    return theme.danger.isValid() ? theme.danger : QColor(180, 80, 80);
+}
+
+inline QColor fieldOf(const ThemeColors& theme)
+{
+    return theme.bgMain.isValid() ? theme.bgMain : QColor(24, 24, 26);
+}
+
+/// Save and Done are the accent fill. Cancel and Close are the surface fill.
+/// Delete is a danger outline. The same words use the same fill on every sheet.
+inline void paintSave(PageCell& cell, const QColor& accent)
+{
+    cell.style.background = accent;
+    cell.style.foreground = ThemeColors::contrastOn(accent);
+    cell.style.borderColor = QColor();
+    cell.style.thickness = PageBox::all(0);
+    cell.style.radius = PageBox::all(12);
+}
+
+inline void paintSurface(PageCell& cell, const QColor& surface)
+{
+    cell.style.background = surface;
+    cell.style.foreground = ThemeColors::contrastOn(surface);
+    cell.style.borderColor = QColor();
+    cell.style.thickness = PageBox::all(0);
+    cell.style.radius = PageBox::all(12);
+}
+
+/// Text on a parent bar. No fill and no stroke, so the bar stays one piece.
+inline void paintFlat(PageCell& cell)
+{
+    cell.style.background = QColor(0, 0, 0, 0);
+    cell.style.foreground = QColor();
+    cell.style.borderColor = QColor();
+    cell.style.thickness = PageBox::all(0);
+    cell.style.radius = PageBox::all(0);
+}
+
+inline void paintDanger(PageCell& cell, const QColor& danger)
+{
+    paintOutline(cell, danger);
+    cell.style.radius = PageBox::all(12);
+}
+
+inline void paintSelected(PageCell& cell, const QColor& accent, const QColor& surface)
+{
+    cell.style.background = surface;
+    cell.style.foreground = ThemeColors::contrastOn(surface);
+    cell.style.borderColor = accent;
+    cell.style.thickness = PageBox::all(2);
+    cell.style.radius = PageBox::all(12);
+}
+
+inline PageTrackSize trackPx(int px)
+{
+    return PageTrackSize::fromDim(PageDim::pixels(px));
+}
+
+/// Title row. Cancel abandons an edit and says Cancel. Otherwise a round Close X.
+inline PageGrid speakTitleBar(const QString& heading, bool cancel, const QColor& surface)
+{
+    PageGrid title = SettingsPageBuild::makeNested(QStringLiteral("titlebar"), 0, 0, 1, 2, 8);
+    title.columnTracks = {PageTrackSize::starWeight(), trackPx(cancel ? 160 : 72)};
+    PageCell titleCell = SettingsPageBuild::cell(QStringLiteral("title"), heading, 0, 0, {},
+                                                 QColor(), 1, QStringLiteral("label"));
+    titleCell.textStyle = QStringLiteral("title");
+    title.cells.push_back(std::move(titleCell));
+    if (cancel) {
+        PageCell button = SettingsPageBuild::cell(QStringLiteral("close"), QStringLiteral("Cancel"),
+                                                  0, 1, QStringLiteral("compose.cancelName"),
+                                                  surface);
+        paintSurface(button, surface);
+        title.cells.push_back(std::move(button));
+    } else {
+        PageCell button = SettingsPageBuild::cell(QStringLiteral("close"), {}, 0, 1, {}, surface, 1,
+                                                  {}, {}, QStringLiteral("close"));
+        paintSurface(button, surface);
+        button.style.radius = PageBox::all(1000);
+        button.actions.push_back(SettingsPageBuild::closeSelf());
+        title.cells.push_back(std::move(button));
+    }
+    return title;
+}
+
+struct RailActionSpec {
+    QString command;
+    QString label;
+    QString icon;
+};
+
+inline QVector<RailActionSpec> railActionCatalog()
+{
+    return {
+        {QStringLiteral("compose.openHistory"), QStringLiteral("History"), QStringLiteral("history")},
+        {QStringLiteral("compose.openVoices"), QStringLiteral("Voice"),
+         QStringLiteral("recordVoiceOver")},
+        {QStringLiteral("compose.openStyles"), QStringLiteral("Style"), QStringLiteral("palette")},
+        {QStringLiteral("compose.openTags"), QStringLiteral("Tag"), QStringLiteral("sell")},
+        {QStringLiteral("compose.pin"), QStringLiteral("Pin"), QStringLiteral("pushPin")},
+        {QStringLiteral("compose.clear"), QStringLiteral("Clear"), QStringLiteral("keyBackspace")},
+        {QStringLiteral("compose.speak"), QStringLiteral("Speak"), QStringLiteral("Speak")},
+        {QStringLiteral("compose.undo"), QStringLiteral("Undo"), QStringLiteral("undo")},
+        {QStringLiteral("compose.redo"), QStringLiteral("Redo"), QStringLiteral("redo")},
+        {QStringLiteral("compose.openFiles"), QStringLiteral("Files"), QStringLiteral("folder")},
+        {QStringLiteral("compose.importFile"), QStringLiteral("Import"), QStringLiteral("folder")},
+        {QStringLiteral("compose.exportFile"), QStringLiteral("Export"),
+         QStringLiteral("description")},
+        {QStringLiteral("compose.selectAll"), QStringLiteral("Select all"), QStringLiteral("check")},
+        {QStringLiteral("compose.deselect"), QStringLiteral("Deselect"), QStringLiteral("close")},
+        {QStringLiteral("compose.cut"), QStringLiteral("Cut"), QStringLiteral("contentCut")},
+        {QStringLiteral("compose.copy"), QStringLiteral("Copy"), QStringLiteral("contentCopy")},
+        {QStringLiteral("compose.paste"), QStringLiteral("Paste"), QStringLiteral("contentPaste")},
+    };
+}
+
+inline RailActionSpec railActionLookup(const QString& command)
+{
+    for (const RailActionSpec& spec : railActionCatalog()) {
+        if (spec.command == command) {
+            return spec;
+        }
+    }
+    RailActionSpec spec;
+    spec.command = command;
+    spec.label = command.section(QLatin1Char('.'), -1);
+    if (spec.label.isEmpty()) {
+        spec.label = command;
+    }
+    return spec;
+}
+
+inline QStringList defaultRailCommands()
+{
+    return {QStringLiteral("compose.openHistory"), QStringLiteral("compose.openVoices"),
+            QStringLiteral("compose.openStyles"), QStringLiteral("compose.openTags"),
+            QStringLiteral("compose.pin")};
+}
+
 inline QueryCommand editQuery(QString& text, const QString& command, QueryCharOk ok,
                               int limit = kQueryLimit)
 {

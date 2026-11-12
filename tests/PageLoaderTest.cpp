@@ -837,17 +837,16 @@ void PageLoaderTest::loadComposePage()
     QCOMPARE(doc.findGrid(QStringLiteral("keys"))->columns, 120);
     QCOMPARE(doc.findGrid(QStringLiteral("keys"))->cells.size(), 36);
     QCOMPARE(doc.findGrid(QStringLiteral("board"))->layers,
-             (QVector<int>{1, 2, 3, 4, 5, 6, 7}));
-    QCOMPARE(PageDimParse::tokenList(doc.findGrid(QStringLiteral("compose"))->rowTracks),
-             QStringLiteral("1.1*,2*,1.1*"));
+             (QVector<int>{1, 2, 3, 4, 5}));
+    QCOMPARE(doc.findGrid(QStringLiteral("compose"))->rows, 1);
     const PageGrid* keys = doc.findGrid(QStringLiteral("keys"));
     QVERIFY(keys);
     const std::optional<PageDimParse::StarBand> band =
         PageDimParse::starBandBeforeRow(doc.grids[0], keys->row);
     QVERIFY(band);
     QCOMPARE(band->partsBefore, 8.0);
-    QCOMPARE(band->topExpr, QStringLiteral("(A_ScreenHeight-56)*8/12+40"));
-    QCOMPARE(doc.findGrid(QStringLiteral("keys"))->layers, QVector<int>({1}));
+    QCOMPARE(band->topExpr, QStringLiteral("(A_ScreenHeight-40)*8/12+24"));
+    QCOMPARE(doc.findGrid(QStringLiteral("keys"))->layers, (QVector<int>{1}));
     QCOMPARE(doc.findGrid(QStringLiteral("keys_shift"))->layers, QVector<int>({2}));
     QCOMPARE(doc.findGrid(QStringLiteral("keys_sym"))->layers, QVector<int>({3}));
     QCOMPARE(doc.findGrid(QStringLiteral("keys_sym_shift"))->layers, QVector<int>({4}));
@@ -868,11 +867,11 @@ void PageLoaderTest::loadComposePage()
     QVERIFY(!doc.findCell(QStringLiteral("cmd_clear")));
     QVERIFY(!doc.findCell(QStringLiteral("cmd_volume")));
     QCOMPARE(doc.findGrid(QStringLiteral("keys_cmd"))->columns, 7);
-    QCOMPARE(doc.findCell(QStringLiteral("cmd_import"))->row, 0);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_import"))->row, 1);
     QCOMPARE(doc.findCell(QStringLiteral("cmd_import"))->col, 5);
     QCOMPARE(doc.findCell(QStringLiteral("cmd_import"))->actions[0].command,
              QStringLiteral("compose.importFile"));
-    QCOMPARE(doc.findCell(QStringLiteral("cmd_export"))->row, 0);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_export"))->row, 1);
     QCOMPARE(doc.findCell(QStringLiteral("cmd_export"))->col, 6);
     QCOMPARE(doc.findCell(QStringLiteral("cmd_export"))->actions[0].command,
              QStringLiteral("compose.exportFile"));
@@ -885,13 +884,23 @@ void PageLoaderTest::loadComposePage()
         }
     }
     QVERIFY(trackOnCmd);
-    QCOMPARE(doc.findCell(QStringLiteral("cmd_pin"))->row, 0);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_pin"))->row, 1);
     QCOMPARE(doc.findCell(QStringLiteral("cmd_pin"))->col, 0);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_undo"))->row, 0);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_undo"))->col, 0);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_redo"))->row, 0);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_redo"))->col, 1);
     QCOMPARE(doc.findCell(QStringLiteral("cmd_select"))->row, 0);
-    QCOMPARE(doc.findCell(QStringLiteral("cmd_select"))->col, 1);
-    QCOMPARE(doc.findCell(QStringLiteral("cmd_cut"))->col, 2);
-    QCOMPARE(doc.findCell(QStringLiteral("cmd_copy"))->col, 3);
-    QCOMPARE(doc.findCell(QStringLiteral("cmd_paste"))->col, 4);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_select"))->col, 2);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_deselect"))->row, 0);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_deselect"))->col, 3);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_deselect"))->label, QStringLiteral("Deselect"));
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_deselect"))->icon, QStringLiteral("close"));
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_deselect"))->actions[0].command,
+             QStringLiteral("compose.deselect"));
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_cut"))->col, 4);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_copy"))->col, 5);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_paste"))->col, 6);
     QCOMPARE(doc.findCell(QStringLiteral("cmd_keys"))->row, 2);
     QCOMPARE(doc.findCell(QStringLiteral("cmd_keys"))->col, 0);
     QCOMPARE(doc.findCell(QStringLiteral("cmd_keys"))->actions[0].type, PageActionType::ShowLayers);
@@ -917,86 +926,98 @@ void PageLoaderTest::loadComposePage()
     QVERIFY(!doc.findCell(QStringLiteral("topic_new")));
     QVERIFY(!doc.findCell(QStringLiteral("delword")));
     QVERIFY(!doc.findGrid(QStringLiteral("actions")));
-    QVERIFY(doc.findGrid(QStringLiteral("edit_keys")));
+    QVERIFY(!doc.findGrid(QStringLiteral("edit_keys")));
     QVERIFY(doc.findGrid(QStringLiteral("speak_keys")));
-    QCOMPARE(doc.findGrid(QStringLiteral("edit_keys"))->col, 0);
-    QCOMPARE(doc.findGrid(QStringLiteral("speak_keys"))->col, 2);
+    QCOMPARE(doc.findGrid(QStringLiteral("speak_keys"))->col, 1);
     QCOMPARE(doc.findGrid(QStringLiteral("chips"))->col, 0);
-    QCOMPARE(doc.findGrid(QStringLiteral("chips"))->colSpan, 3);
-    QCOMPARE(doc.findGrid(QStringLiteral("chips"))->row, 2);
-    QCOMPARE(doc.findGrid(QStringLiteral("compose"))->columns, 3);
-    QCOMPARE(doc.findGrid(QStringLiteral("compose"))->rows, 3);
-    QCOMPARE(doc.findGrid(QStringLiteral("predict"))->row, 0);
+    QCOMPARE(doc.findGrid(QStringLiteral("chips"))->row, 3);
+    QCOMPARE(doc.findGrid(QStringLiteral("compose"))->columns, 2);
+    QCOMPARE(doc.findGrid(QStringLiteral("compose"))->rows, 1);
+    QCOMPARE(doc.findGrid(QStringLiteral("predict"))->row, 1);
     QCOMPARE(doc.findGrid(QStringLiteral("predict"))->col, 0);
-    QCOMPARE(doc.findGrid(QStringLiteral("predict"))->colSpan, 3);
-    QCOMPARE(doc.findGrid(QStringLiteral("phrase"))->row, 1);
-    QCOMPARE(doc.findGrid(QStringLiteral("edit_keys"))->row, 1);
-    QCOMPARE(doc.findGrid(QStringLiteral("edit_keys"))->rowSpan, 1);
-    QCOMPARE(doc.findGrid(QStringLiteral("speak_keys"))->row, 1);
+    QCOMPARE(doc.findGrid(QStringLiteral("phrase"))->row, 0);
+    QCOMPARE(doc.findGrid(QStringLiteral("speak_keys"))->row, 0);
     QCOMPARE(doc.findGrid(QStringLiteral("speak_keys"))->rowSpan, 1);
     QCOMPARE(doc.findCell(QStringLiteral("clear"))->styleId, QStringLiteral("round"));
-    QCOMPARE(doc.findCell(QStringLiteral("speak"))->styleId, QStringLiteral("round"));
     QVERIFY(!doc.findCell(QStringLiteral("undo")));
     QVERIFY(!doc.findCell(QStringLiteral("redo")));
     QVERIFY(!doc.findCell(QStringLiteral("voices")));
     QVERIFY(!doc.findCell(QStringLiteral("history")));
-    QCOMPARE(doc.findGrid(QStringLiteral("phrase"))->col, 1);
-    const QVector<int> allLayers{1, 2, 3, 4, 5, 6, 7};
+    QCOMPARE(doc.findGrid(QStringLiteral("phrase"))->col, 0);
+    const QVector<int> allLayers{1, 2, 3, 4, 5};
     QCOMPARE(doc.findGrid(QStringLiteral("compose"))->layers, allLayers);
-    QCOMPARE(doc.findGrid(QStringLiteral("edit_keys"))->layers, allLayers);
     QCOMPARE(doc.findGrid(QStringLiteral("phrase"))->layers, allLayers);
     QCOMPARE(doc.findGrid(QStringLiteral("chips"))->layers, allLayers);
     QCOMPARE(doc.findGrid(QStringLiteral("speak_keys"))->layers, allLayers);
-    QCOMPARE(doc.findGrid(QStringLiteral("board"))->rows, 4);
-    QCOMPARE(doc.findGrid(QStringLiteral("keys"))->row, 3);
-    QCOMPARE(doc.findGrid(QStringLiteral("topics"))->row, 0);
-    QCOMPARE(doc.findGrid(QStringLiteral("soundboard"))->row, 1);
+    QCOMPARE(doc.findGrid(QStringLiteral("board"))->rows, 2);
+    QCOMPARE(doc.findGrid(QStringLiteral("keys"))->row, 1);
+    QCOMPARE(doc.findGrid(QStringLiteral("rail"))->row, 0);
+    QCOMPARE(doc.findGrid(QStringLiteral("soundboard"))->row, 0);
     QCOMPARE(doc.findGrid(QStringLiteral("compose"))->row, 2);
-    QVERIFY(doc.findCell(QStringLiteral("speak")));
-    QCOMPARE(doc.findCell(QStringLiteral("speak"))->actions[0].command,
-             QStringLiteral("compose.speak"));
-    QVERIFY(doc.findGrid(QStringLiteral("topics")));
+    QVERIFY(!doc.findCell(QStringLiteral("actions")));
+    QCOMPARE(doc.findCell(QStringLiteral("clear"))->actions[0].command,
+             QStringLiteral("compose.clear"));
+    QVERIFY(doc.findGrid(QStringLiteral("rail")));
     QVERIFY(doc.findGrid(QStringLiteral("soundboard")));
     QVERIFY(doc.findCell(QStringLiteral("cmd_undo")));
-    QVERIFY(doc.findCell(QStringLiteral("pin")));
-    QCOMPARE(doc.findCell(QStringLiteral("pin"))->label, QStringLiteral("Edit"));
-    QCOMPARE(doc.findCell(QStringLiteral("pin"))->actions[0].command,
-             QStringLiteral("compose.editPins"));
-    QCOMPARE(doc.findCell(QStringLiteral("pin"))->activeState, QStringLiteral("compose.editMode"));
+    QVERIFY(!doc.findCell(QStringLiteral("pin")));
+    QVERIFY(!doc.findCell(QStringLiteral("cmd_edit")));
+    QCOMPARE(doc.findCell(QStringLiteral("edit"))->label, QStringLiteral("Edit"));
+    QCOMPARE(doc.findCell(QStringLiteral("edit"))->icon, QStringLiteral("edit"));
+    QCOMPARE(doc.findCell(QStringLiteral("edit"))->actions[0].command,
+             QStringLiteral("compose.editShown"));
+    QCOMPARE(doc.findCell(QStringLiteral("edit"))->row, 0);
+    QCOMPARE(doc.findCell(QStringLiteral("edit"))->col, 0);
+    QVERIFY(!doc.findCell(QStringLiteral("cmd_actions")));
     QCOMPARE(doc.findCell(QStringLiteral("cmd_pin"))->actions[0].command,
              QStringLiteral("compose.pin"));
     QVERIFY(doc.findCell(QStringLiteral("cmd_voice")));
     QVERIFY(doc.findCell(QStringLiteral("cmd_history")));
-    QVERIFY(doc.findCell(QStringLiteral("delivery")));
-    QCOMPARE(doc.findCell(QStringLiteral("delivery"))->label, QStringLiteral("Actions"));
-    QCOMPARE(doc.findCell(QStringLiteral("delivery"))->icon, QStringLiteral("graphicEq"));
-    QCOMPARE(doc.findCell(QStringLiteral("delivery"))->actions[0].type, PageActionType::ShowLayers);
-    QCOMPARE(doc.findCell(QStringLiteral("delivery"))->actions[0].layers, QVector<int>({5}));
-    QVERIFY(doc.findCell(QStringLiteral("delivery"))->activeState.isEmpty());
+    const PageCell* delivery = doc.findCell(QStringLiteral("delivery"));
+    QVERIFY(delivery);
+    QCOMPARE(delivery->label, QStringLiteral("Actions"));
+    QCOMPARE(delivery->icon, QStringLiteral("graphicEq"));
+    QCOMPARE(delivery->row, 2);
+    QCOMPARE(delivery->col, 0);
+    QCOMPARE(delivery->colSpan, 9);
+    QCOMPARE(delivery->actions[0].type, PageActionType::ShowLayers);
+    QCOMPARE(delivery->actions[0].layers, QVector<int>({5}));
+    QVERIFY(doc.findCell(QStringLiteral("delivery_s")));
+    QVERIFY(doc.findCell(QStringLiteral("delivery_sym")));
+    QVERIFY(doc.findCell(QStringLiteral("delivery_ss")));
     QVERIFY(doc.findGrid(QStringLiteral("keys_cmd")));
     QCOMPARE(doc.findGrid(QStringLiteral("keys_cmd"))->layers, QVector<int>({5}));
+    QCOMPARE(doc.findGrid(QStringLiteral("keys_cmd"))->row, 1);
     QCOMPARE(doc.findCell(QStringLiteral("cmd_select"))->actions[0].command,
              QStringLiteral("compose.selectAll"));
-    QCOMPARE(doc.findCell(QStringLiteral("cmd_style"))->actions[0].type, PageActionType::ShowLayers);
-    QCOMPARE(doc.findCell(QStringLiteral("cmd_style"))->actions[0].layers, QVector<int>({6}));
-    QCOMPARE(doc.findGrid(QStringLiteral("keys_style"))->layers, QVector<int>({6}));
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_style"))->actions[0].command,
+             QStringLiteral("compose.openStyles"));
+    QVERIFY(!doc.findGrid(QStringLiteral("keys_style")));
     QVERIFY(doc.findCell(QStringLiteral("cmd_tag")));
-    QCOMPARE(doc.findCell(QStringLiteral("cmd_tag"))->label, QStringLiteral("Insert tag"));
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_tag"))->label, QStringLiteral("Tag"));
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_tag"))->icon, QStringLiteral("sell"));
     QCOMPARE(doc.findCell(QStringLiteral("cmd_tag"))->row, 1);
-    QCOMPARE(doc.findCell(QStringLiteral("cmd_tag"))->col, 0);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_tag"))->col, 1);
     QCOMPARE(doc.findCell(QStringLiteral("cmd_tag"))->colSpan, 1);
-    QCOMPARE(doc.findCell(QStringLiteral("cmd_tag"))->actions[0].type, PageActionType::ShowLayers);
-    QCOMPARE(doc.findCell(QStringLiteral("cmd_tag"))->actions[0].layers, QVector<int>({7}));
-    QCOMPARE(doc.findCell(QStringLiteral("cmd_undo"))->col, 1);
-    QCOMPARE(doc.findCell(QStringLiteral("cmd_style"))->col, 5);
-    QCOMPARE(doc.findCell(QStringLiteral("cmd_style"))->colSpan, 2);
-    QCOMPARE(doc.findGrid(QStringLiteral("keys_tags"))->rows, 3);
-    QCOMPARE(doc.findGrid(QStringLiteral("keys_tags"))->columns, 6);
-    QCOMPARE(doc.findGrid(QStringLiteral("keys_tags"))->layers, QVector<int>({7}));
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_tag"))->actions[0].command,
+             QStringLiteral("compose.openTags"));
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_undo"))->col, 0);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_style"))->col, 2);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_style"))->colSpan, 1);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_voice"))->col, 3);
+    QCOMPARE(doc.findCell(QStringLiteral("cmd_history"))->col, 4);
+    for (const PageCell& c : keysCmd->cells) {
+        if (c.role == QLatin1String("slider")) {
+            continue;
+        }
+        QVERIFY2(!c.icon.isEmpty(), qPrintable(c.id));
+    }
+    QVERIFY(!doc.findGrid(QStringLiteral("keys_tags")));
     QVERIFY(!doc.findCell(QStringLiteral("tags")));
+    QVERIFY(!doc.findCell(QStringLiteral("speak")));
     QCOMPARE(doc.findCell(QStringLiteral("sym"))->icon, QStringLiteral("numbers"));
     for (const char* gid : {"keys", "keys_shift", "keys_sym", "keys_sym_shift", "keys_cmd",
-                            "keys_style", "keys_tags", "edit_keys", "speak_keys"}) {
+                            "speak_keys"}) {
         const PageGrid* g = doc.findGrid(QLatin1String(gid));
         QVERIFY2(g, gid);
         for (const PageCell& c : g->cells) {
@@ -1035,6 +1056,8 @@ void PageLoaderTest::loadComposePage()
     QVERIFY(sym);
     QCOMPARE(shift->actions[0].type, PageActionType::ShowLayers);
     QCOMPARE(shift->actions[0].layers, QVector<int>({2}));
+    QCOMPARE(sym->col, 9);
+    QCOMPARE(sym->colSpan, 9);
     QCOMPARE(sym->actions[0].layers, QVector<int>({3}));
     QVERIFY(!usesRapidDwell(shift->actions, shift->phases));
     const PageCell* chip = doc.findCell(QStringLiteral("chip_0"));
@@ -1057,30 +1080,30 @@ void PageLoaderTest::findCellMutateDoesNotShareCopy()
     const QString path =
         QStringLiteral(GAZER_SOURCE_DIR) + QStringLiteral("/resources/layouts/compose.xml");
     QVERIFY2(PageLoader::loadFromFile(path, doc, &err), qPrintable(err));
-    QCOMPARE(doc.findCell(QStringLiteral("speak"))->label, QStringLiteral("Speak"));
+    QCOMPARE(doc.findCell(QStringLiteral("delivery"))->label, QStringLiteral("Actions"));
     QCOMPARE(doc.findCell(QStringLiteral("clear"))->label, QStringLiteral("Clear"));
-    QCOMPARE(doc.findGrid(QStringLiteral("edit_keys"))->cells.size(), 1);
     QCOMPARE(doc.findGrid(QStringLiteral("speak_keys"))->cells.size(), 1);
+    QCOMPARE(doc.findGrid(QStringLiteral("phrase"))->cells.size(), 1);
 
     PageDocument copy = doc;
-    PageCell* speak = copy.findCell(QStringLiteral("speak"));
-    QVERIFY(speak);
-    speak->label = QStringLiteral("Save");
-    speak->actions.clear();
+    PageCell* delivery = copy.findCell(QStringLiteral("delivery"));
+    QVERIFY(delivery);
+    delivery->label = QStringLiteral("Save");
+    delivery->actions.clear();
     PageCell* clear = copy.findCell(QStringLiteral("clear"));
     QVERIFY(clear);
     clear->label = QStringLiteral("Color");
-    PageGrid* keys = copy.findGrid(QStringLiteral("edit_keys"));
+    PageGrid* keys = copy.findGrid(QStringLiteral("speak_keys"));
     QVERIFY(keys);
     keys->cells.clear();
     keys->rows = 2;
 
-    QCOMPARE(doc.findCell(QStringLiteral("speak"))->label, QStringLiteral("Speak"));
-    QCOMPARE(doc.findCell(QStringLiteral("speak"))->actions[0].command,
-             QStringLiteral("compose.speak"));
+    QCOMPARE(doc.findCell(QStringLiteral("delivery"))->label, QStringLiteral("Actions"));
+    QCOMPARE(doc.findCell(QStringLiteral("delivery"))->actions[0].type, PageActionType::ShowLayers);
+    QCOMPARE(doc.findCell(QStringLiteral("delivery"))->actions[0].layers, QVector<int>({5}));
     QCOMPARE(doc.findCell(QStringLiteral("clear"))->label, QStringLiteral("Clear"));
-    QCOMPARE(doc.findGrid(QStringLiteral("edit_keys"))->cells.size(), 1);
     QCOMPARE(doc.findGrid(QStringLiteral("speak_keys"))->cells.size(), 1);
+    QCOMPARE(doc.findGrid(QStringLiteral("phrase"))->cells.size(), 1);
 }
 
 void PageLoaderTest::loadMainPage()

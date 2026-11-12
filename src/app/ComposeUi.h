@@ -1,5 +1,6 @@
 #pragma once
 
+#include "app/AppSettings.h"
 #include "assist/ComposeBuffer.h"
 #include "assist/GazeTrack.h"
 #include "assist/SoundboardStore.h"
@@ -22,7 +23,6 @@
 
 namespace gazer {
 
-class AppSettings;
 class ElevenClient;
 class PageSession;
 class TypingContext;
@@ -41,6 +41,10 @@ public:
     static constexpr auto kHistoryLiveId = QLatin1String("compose_history_live");
     static constexpr auto kFilesLiveId = QLatin1String("compose_files_live");
     static constexpr auto kItemEditLiveId = QLatin1String("compose_item_edit_live");
+    static constexpr auto kStylesLiveId = QLatin1String("compose_styles_live");
+    static constexpr auto kTagsLiveId = QLatin1String("compose_tags_live");
+    static constexpr auto kFormLiveId = QLatin1String("compose_form_live");
+    static constexpr auto kRailLiveId = QLatin1String("compose_rail_live");
 
     ComposeUi(PageSession& pages, SpeechEngine& speech, AppSettings& settings,
               SpeechSecrets& secrets, ElevenClient& eleven, TtsService& tts,
@@ -89,6 +93,7 @@ public:
     void backspace();
     void deleteWord();
     void selectAll();
+    void deselect();
     void cut();
     void copy();
     void paste();
@@ -97,11 +102,18 @@ public:
     void clearStyle();
     void openStyleEditor();
     void closeStyleEditor();
+    void openTagEditor();
+    void closeTagEditor();
     void pageStyles(int delta);
+    void stylesGoto(int offset);
+    void tagsGoto(int offset);
+    void railGoto(int offset);
+    void railPage(int delta);
     void toggleStyleFavorite(const QString& encoded);
     void trashStyle(const QString& encoded);
     void beginStyleName();
     void insertSavedTag(const QString& encoded);
+    void trashTag(const QString& encoded);
     void pageTags(int delta);
     void beginTagName();
     void removeVisibleWord(int slot);
@@ -134,6 +146,9 @@ public:
     bool pin(QString* error = nullptr);
     void cancelAssign();
     bool editPins();
+    /// Edit key. The compose page toggles pin edit. Style and tag sheets toggle
+    /// their editors. Any other top page does nothing.
+    bool editShown();
     bool saveNameEdit(QString* error = nullptr);
     void cancelNameEdit();
     bool deleteNameEdit(QString* error = nullptr);
@@ -189,6 +204,16 @@ public:
     bool loadStarters(QString* error = nullptr);
 
     bool openHistory(QString* error = nullptr);
+    bool clearHistory(QString* error = nullptr);
+    bool openStyles(QString* error = nullptr);
+    bool openTags(QString* error = nullptr);
+    void toggleRail();
+    bool openRailAdd(QString* error = nullptr);
+    void addRailFavorite(const QString& spec);
+    void removeRailFavorite(int index);
+    void focusFormField(const QString& which);
+    void nudgeFormIndex(int delta);
+    void nudgeFormCols(int delta);
     bool playHistory(const QString& id, QString* error = nullptr);
     bool restoreHistory(const QString& id, QString* error = nullptr);
     bool deleteHistory(const QString& id, QString* error = nullptr);
@@ -206,15 +231,19 @@ private:
     [[nodiscard]] bool borrowingPhrase() const;
     /// Put the phrase back. Does not change the keyboard layer.
     void endBorrowedPhrase();
-    /// Put the phrase back and return to the style or tag layer.
+    /// Put the phrase back and refresh the style or tag sheet.
     void cancelBorrowedPhrase();
     bool saveBorrowedPhrase(QString* error);
-    [[nodiscard]] bool handleVoiceQuerySend(const PageAction& action);
-    [[nodiscard]] bool handleVoiceQueryCommand(const QString& command);
+    [[nodiscard]] bool handleSearchSend(const PageAction& action);
+    [[nodiscard]] bool handleSearchCommand(const QString& command);
     [[nodiscard]] bool handleIconQuerySend(const PageAction& action);
     [[nodiscard]] bool handleIconQueryCommand(const QString& command);
-    [[nodiscard]] bool handleVoicesEscape();
+    [[nodiscard]] bool handleSearchEscape();
     void clearVoiceQuery();
+    enum class SearchSheet { None, Voice, History, Style, Tag, Rail };
+    [[nodiscard]] SearchSheet activeSearchSheet() const;
+    [[nodiscard]] QString* searchQuery(SearchSheet sheet);
+    void onSearchEdited(SearchSheet sheet);
     void handleSend(const PageAction& a);
     void handleCapturedCommand(const QString& command);
     void insertText(QStringView chars);
@@ -228,10 +257,10 @@ private:
     void rebuildBoard();
     [[nodiscard]] PageDim speakBoardWidth() const;
     void fillSoundboard(PageDocument& doc) const;
+    void stampEditKeys(PageDocument& doc) const;
     void fillTopicsMode(PageDocument& doc) const;
     void stampChips(PageDocument& doc) const;
-    void stampStyleLayer(PageDocument& doc) const;
-    void stampTagLayer(PageDocument& doc) const;
+
     void ensureBrowserEntries() const;
     [[nodiscard]] bool editingFileName() const;
     /// Phrase buffer, or the file name while the file browser is the top page.
@@ -261,8 +290,22 @@ private:
     void setBoardNote(const QString& text, bool keep = false);
     void dismissBoardNote();
     void commitEdit();
-    void stampStylePicker(PageGrid& grid) const;
-    void stampStyleEditor(PageGrid& grid) const;
+    PageDocument buildStylesDocument();
+    PageDocument buildTagsDocument();
+    PageDocument buildFormDocument() const;
+    PageDocument buildRailAddDocument();
+    void rebuildStyles();
+    void rebuildTags();
+    void rebuildForm();
+    void rebuildRailAdd();
+    void fillRail(PageDocument& doc) const;
+    void applyFormDrafts();
+    [[nodiscard]] QString formNameText() const;
+    [[nodiscard]] QString formPhraseText() const;
+    [[nodiscard]] int formItemCount() const;
+    [[nodiscard]] int formLiveIndex() const;
+    [[nodiscard]] QVector<AppSettings::RailFavorite> railItems() const;
+    void storeRail(const QVector<AppSettings::RailFavorite>& items);
     void stampComposerChrome(PageDocument& doc) const;
     void presentNamingPhrase(PageCell& cell) const;
     void showComposeLayer(int layer);
@@ -307,7 +350,7 @@ private:
     [[nodiscard]] QVector<VoiceCatalog::Voice> currentVoices() const;
     [[nodiscard]] QVector<VoiceCatalog::Voice> filteredVoices() const;
     PageDocument buildVoicesDocument();
-    bool presentLive(const QString& id, PageDocument doc, QString* error);
+    bool presentLive(const QString& id, PageDocument doc, QString* error, bool restack = true);
     void rebuildVoices();
     void requestCatalogIfNeeded();
 
@@ -373,19 +416,39 @@ private:
     ComposeBuffer m_fileName;
     int m_historyPage = 0;
     bool m_styleEditor = false;
+    bool m_tagEditor = false;
     /// Phrase buffer is borrowed for a style or tag name. The two never overlap.
     enum class BorrowedPhrase { None, Style, Tag };
     BorrowedPhrase m_borrowed = BorrowedPhrase::None;
     int m_borrowCaret = 0;
     int m_tagPage = 0;
     int m_stylePage = 0;
+    enum class FormField { Name, Phrase };
+    /// Sidebar lists favorites instead of topics. Not saved.
+    bool m_showFavorites = false;
     /// Voice-list name query. Typed on the Speak keyboard, not into the phrase.
     bool m_voiceSearch = false;
+    bool m_historySearch = false;
+    QString m_historyQuery;
+    bool m_historyClearArm = false;
+    bool m_styleSearch = false;
+    QString m_styleQuery;
+    bool m_tagSearch = false;
+    QString m_tagQuery;
+    bool m_railSearch = false;
+    QString m_railQuery;
+    int m_railPage = 0;
+    FormField m_formField = FormField::Name;
+    QString m_formName;
+    QString m_formPhrase;
+    bool m_formPhraseTouched = false;
+    int m_formIndex = 0;
+    int m_formCols = 4;
     bool m_langBrowse = false;
     QString m_voiceQuery;
     /// Styles shown on one editor page: 2 rows × 3 columns.
     static constexpr int kStyleEditorPage = 6;
-    enum class ListScroll { None, History, Voices, Files, FileName, Icons };
+    enum class ListScroll { None, History, Voices, Files, FileName, Icons, Styles, Tags, Rail };
     ListScroll m_listScroll = ListScroll::None;
     mutable PageDocument m_composeAuthored;
     struct ShownPrediction {

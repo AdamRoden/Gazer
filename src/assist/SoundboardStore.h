@@ -38,7 +38,7 @@ struct SoundboardTopic {
 /// JSON soundboard + on-disk MPEG clips. No UI.
 class SoundboardStore {
 public:
-    static constexpr int kMaxCols = 4;
+    static constexpr int kMaxCols = 6;
     static constexpr int kMaxRows = 6;
     static constexpr qint64 kMaxTotalBytes = 200ll * 1024 * 1024;
     static constexpr qint64 kMaxClipBytes = 5ll * 1024 * 1024;
@@ -112,6 +112,14 @@ public:
     bool setButtonColor(const QString& buttonId, const QString& color, QString* error = nullptr);
     bool setButtonIcon(const QString& buttonId, const QString& icon, QString* error = nullptr);
     bool setButtonLabel(const QString& buttonId, const QString& label, QString* error = nullptr);
+    /// Spoken text for a phrase button. Empty clears it and leaves a clip alone.
+    bool setButtonUtterance(const QString& buttonId, const QString& text, QString* error = nullptr);
+    /// Column count for a topic, then pack buttons back into the grid.
+    bool setTopicGridCols(const QString& id, int cols, QString* error = nullptr);
+    /// Move a topic by `delta` places in the sidebar order.
+    bool moveTopic(const QString& id, int delta, QString* error = nullptr);
+    /// Move a button by `delta` places in row-major order, then pack the grid.
+    bool moveButton(const QString& buttonId, int delta, QString* error = nullptr);
 
     [[nodiscard]] PlayPlan planPlay(const SoundboardButton& b) const;
     [[nodiscard]] QString clipPath(const QString& clipId) const;

@@ -6,6 +6,7 @@
 #include "utils/AtomicFile.h"
 #include "utils/Log.h"
 
+#include <algorithm>
 #include <QColor>
 #include <QDir>
 #include <QFile>
@@ -623,6 +624,99 @@ bool SoundboardStore::setButtonLabel(const QString& buttonId, const QString& lab
     }
     b->label = n;
     return save(error);
+}
+
+bool SoundboardStore::setButtonUtterance(const QString& buttonId, const QString& text,
+                                         QString* error)
+{
+    SoundboardButton* b = findButton(buttonId);
+    if (!b) {
+        if (error) {
+            *error = QStringLiteral("Unknown button");
+        }
+        return false;
+    }
+    b->utteranceText = text.trimmed();
+    return save(error);
+}
+
+bool SoundboardStore::setTopicGridCols(const QString& id, int cols, QString* error)
+{
+    SoundboardTopic* topic = findTopic(id);
+    if (!topic) {
+        if (error) {
+            *error = QStringLiteral("Unknown topic");
+        }
+        return false;
+    }
+    topic->gridCols = qBound(1, cols, kMaxCols);
+    repackSequential(topic);
+    return save(error);
+}
+
+bool SoundboardStore::moveTopic(const QString& id, int delta, QString* error)
+{
+    int index = -1;
+    for (int i = 0; i < m_topics.size(); ++i) {
+        if (m_topics.at(i).id == id) {
+            index = i;
+            break;
+        }
+    }
+    if (index < 0) {
+        if (error) {
+            *error = QStringLiteral("Unknown topic");
+        }
+        return false;
+    }
+    const int next = qBound(0, index + delta, m_topics.size() - 1);
+    if (next == index) {
+        return true;
+    }
+    m_topics.move(index, next);
+    return save(error);
+}
+
+bool SoundboardStore::moveButton(const QString& buttonId, int delta, QString* error)
+{
+    for (SoundboardTopic& topic : m_topics) {
+        QVector<int> order;
+        order.reserve(topic.buttons.size());
+        for (int i = 0; i < topic.buttons.size(); ++i) {
+            order.push_back(i);
+        }
+        std::sort(order.begin(), order.end(), [&](int a, int b) {
+            const SoundboardButton& ba = topic.buttons.at(a);
+            const SoundboardButton& bb = topic.buttons.at(b);
+            if (ba.row != bb.row) {
+                return ba.row < bb.row;
+            }
+            if (ba.col != bb.col) {
+                return ba.col < bb.col;
+            }
+            return a < b;
+        });
+        int slot = -1;
+        for (int s = 0; s < order.size(); ++s) {
+            if (topic.buttons.at(order.at(s)).id == buttonId) {
+                slot = s;
+                break;
+            }
+        }
+        if (slot < 0) {
+            continue;
+        }
+        const int next = qBound(0, slot + delta, order.size() - 1);
+        if (next != slot) {
+            std::swap(topic.buttons[order.at(slot)], topic.buttons[order.at(next)]);
+        }
+        repackSequential(&topic);
+        return save(error);
+    }
+    if (error) {
+        *error = QStringLiteral("Unknown button");
+    }
+    return false;
 }
 
 bool SoundboardStore::assignCell(int row, int col, const SoundboardButton& seed, QString* error)

@@ -66,6 +66,9 @@ set(GAZER_SOURCES
     src/app/ComposeVoices.cpp
     src/app/ComposeSoundboard.cpp
     src/app/ComposeItemEdit.cpp
+    src/app/ComposeForm.cpp
+    src/app/ComposeRail.cpp
+    src/app/ComposeSearch.cpp
     src/app/ComposeStyles.cpp
     src/app/ComposeTags.cpp
     src/app/ComposeHistory.cpp

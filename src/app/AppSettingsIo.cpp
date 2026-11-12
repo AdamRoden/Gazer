@@ -532,6 +532,25 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
         voiceStyleFavorites = cat.favorites;
         voiceStylesSet = true;
     }
+    railFavorites.clear();
+    railFavoritesSet = false;
+    if (o.contains(QStringLiteral("railFavorites"))
+        && o.value(QStringLiteral("railFavorites")).isArray()) {
+        for (const QJsonValue& v : o.value(QStringLiteral("railFavorites")).toArray()) {
+            if (!v.isObject()) {
+                continue;
+            }
+            const QJsonObject item = v.toObject();
+            RailFavorite fav;
+            fav.kind = item.value(QStringLiteral("kind")).toString().trimmed();
+            fav.ref = item.value(QStringLiteral("ref")).toString().trimmed();
+            if (fav.kind.isEmpty() || fav.ref.isEmpty()) {
+                continue;
+            }
+            railFavorites.push_back(fav);
+        }
+        railFavoritesSet = true;
+    }
     if (o.contains(QStringLiteral("themeAppearance"))) {
         themeAppearance = themeAppearanceFromString(
             o.value(QStringLiteral("themeAppearance")).toString());
@@ -752,6 +771,16 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
         cat.styles = copy.voiceStyleNames;
         cat.favorites = copy.voiceStyleFavorites;
         o.insert(QStringLiteral("voiceStyles"), VoiceStyles::serialize(cat));
+    }
+    if (copy.railFavoritesSet) {
+        QJsonArray favs;
+        for (const RailFavorite& fav : copy.railFavorites) {
+            QJsonObject item;
+            item.insert(QStringLiteral("kind"), fav.kind);
+            item.insert(QStringLiteral("ref"), fav.ref);
+            favs.append(item);
+        }
+        o.insert(QStringLiteral("railFavorites"), favs);
     }
     o.insert(QStringLiteral("themeAppearance"), themeAppearanceToString(copy.themeAppearance));
     o.insert(QStringLiteral("themeSaturation"), copy.themeSaturation);

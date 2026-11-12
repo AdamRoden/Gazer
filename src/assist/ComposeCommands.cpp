@@ -43,6 +43,10 @@ void registerComposeCommands(CommandRegistry& commands, ComposeUi& compose)
         compose.selectAll();
         return true;
     });
+    commands.registerBuiltin(QStringLiteral("compose.deselect"), [&compose](QString*) {
+        compose.deselect();
+        return true;
+    });
     commands.registerBuiltin(QStringLiteral("compose.cut"), [&compose](QString*) {
         compose.cut();
         return true;
@@ -107,6 +111,8 @@ void registerComposeCommands(CommandRegistry& commands, ComposeUi& compose)
     });
     commands.registerBuiltin(QStringLiteral("compose.editPins"),
                              [&compose](QString*) { return compose.editPins(); });
+    commands.registerBuiltin(QStringLiteral("compose.editShown"),
+                             [&compose](QString*) { return compose.editShown(); });
     commands.registerBuiltin(QStringLiteral("compose.editShowColors"), [&compose](QString*) {
         compose.showEditColors();
         return true;
@@ -169,7 +175,16 @@ void registerComposeCommands(CommandRegistry& commands, ComposeUi& compose)
     bindVoidId(QStringLiteral("compose.applyStyle."), &ComposeUi::applyStyle);
     bindVoidId(QStringLiteral("compose.favStyle."), &ComposeUi::toggleStyleFavorite);
     bindVoidId(QStringLiteral("compose.trashStyle."), &ComposeUi::trashStyle);
+    bindVoidId(QStringLiteral("compose.trashTag."), &ComposeUi::trashTag);
     bindVoidInt(QStringLiteral("compose.stylePage."), &ComposeUi::pageStyles);
+    bindVoidInt(QStringLiteral("compose.styleGoto."), &ComposeUi::stylesGoto);
+    bindVoidInt(QStringLiteral("compose.tagGoto."), &ComposeUi::tagsGoto);
+    bindVoidInt(QStringLiteral("compose.railGoto."), &ComposeUi::railGoto);
+    bindVoidInt(QStringLiteral("compose.railPage."), &ComposeUi::railPage);
+    bindVoidId(QStringLiteral("compose.railAdd."), &ComposeUi::addRailFavorite);
+    bindVoidInt(QStringLiteral("compose.railRemove."), &ComposeUi::removeRailFavorite);
+    bindVoidInt(QStringLiteral("compose.formIndex."), &ComposeUi::nudgeFormIndex);
+    bindVoidInt(QStringLiteral("compose.formCols."), &ComposeUi::nudgeFormCols);
     commands.registerBuiltin(QStringLiteral("compose.openStyleEditor"), [&compose](QString*) {
         compose.openStyleEditor();
         return true;
@@ -184,6 +199,26 @@ void registerComposeCommands(CommandRegistry& commands, ComposeUi& compose)
     });
     commands.registerBuiltin(QStringLiteral("compose.beginTagName"), [&compose](QString*) {
         compose.beginTagName();
+        return true;
+    });
+    commands.registerBuiltin(QStringLiteral("compose.toggleRail"), [&compose](QString*) {
+        compose.toggleRail();
+        return true;
+    });
+    commands.registerBuiltin(QStringLiteral("compose.openStyles"),
+                             [&compose](QString* error) { return compose.openStyles(error); });
+    commands.registerBuiltin(QStringLiteral("compose.openTags"),
+                             [&compose](QString* error) { return compose.openTags(error); });
+    commands.registerBuiltin(QStringLiteral("compose.openRailAdd"),
+                             [&compose](QString* error) { return compose.openRailAdd(error); });
+    commands.registerBuiltin(QStringLiteral("history.clear"),
+                             [&compose](QString* error) { return compose.clearHistory(error); });
+    commands.registerBuiltin(QStringLiteral("compose.formField.name"), [&compose](QString*) {
+        compose.focusFormField(QStringLiteral("name"));
+        return true;
+    });
+    commands.registerBuiltin(QStringLiteral("compose.formField.phrase"), [&compose](QString*) {
+        compose.focusFormField(QStringLiteral("phrase"));
         return true;
     });
     bindVoidId(QStringLiteral("compose.insertTag."), &ComposeUi::insertSavedTag);

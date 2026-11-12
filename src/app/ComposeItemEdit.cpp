@@ -140,7 +140,18 @@ bool ComposeUi::beginNameEdit(NameEditKind kind, const QString& target, const QS
     m_editId = target;
     m_interaction = Interaction::NameEdit;
     loadEditAppearance();
-    m_buffer.load(initial);
+    if (m_formName.isEmpty()) {
+        m_formName = initial;
+    }
+    m_buffer.load(m_formName);
+    QString err;
+    if (!presentLive(QString(kFormLiveId), buildFormDocument(), &err)) {
+        finishItemEditor(true);
+        return false;
+    }
+    if (isOpen()) {
+        showComposeLayer(1);
+    }
     rebuildBoard();
     return true;
 }
@@ -155,6 +166,13 @@ void ComposeUi::finishItemEditor(bool restorePhrase)
     endIconPick();
     m_editColor.clear();
     m_editIcon.clear();
+    m_formField = FormField::Name;
+    m_formName.clear();
+    m_formPhrase.clear();
+    m_formPhraseTouched = false;
+    if (hasLive(kFormLiveId)) {
+        m_pages.closePage(QString(kFormLiveId));
+    }
     rebuildBoard();
 }
 
@@ -174,16 +192,28 @@ void ComposeUi::loadEditAppearance()
 {
     m_editColor.clear();
     m_editIcon.clear();
+    m_formField = FormField::Name;
+    m_formPhraseTouched = false;
+    m_formName.clear();
+    m_formPhrase.clear();
+    m_formIndex = 0;
+    m_formCols = 4;
     if (const SoundboardTopic* t = m_board.findTopic(m_editId);
         m_nameEdit == NameEditKind::Topic && t) {
         m_editColor = t->color;
         m_editIcon = t->icon;
+        m_formName = t->name;
+        m_formCols = t->gridCols;
+        m_formIndex = qMax(0, formLiveIndex());
         return;
     }
     if (const SoundboardButton* b = m_board.findButton(m_editId);
         m_nameEdit == NameEditKind::Pin && b) {
         m_editColor = b->color;
         m_editIcon = b->icon;
+        m_formName = b->label;
+        m_formPhrase = b->utteranceText;
+        m_formIndex = qMax(0, formLiveIndex());
     }
 }
 
@@ -237,7 +267,6 @@ PageDocument ComposeUi::buildItemEditDocument() const
     grid.rowTracks = starTracks({1.35, 11.0, 2.2});
     const QColor key = theme.defaultCell();
     const QColor accent = theme.accent.isValid() ? theme.accent : QColor(80, 160, 220);
-    const QColor ok(46, 125, 50);
     const QStringList hits = iconHits();
     const int total = hits.size();
     const int row = qBound(0, m_iconRow, iconMaxRow(total));
@@ -317,8 +346,8 @@ PageDocument ComposeUi::buildItemEditDocument() const
     current.style.radius = PageBox::all(12);
     actions.cells.push_back(std::move(current));
     PageCell save = cell(QStringLiteral("icon_save"), QStringLiteral("Save"), 0, 2,
-                         QStringLiteral("compose.iconSave"), ok);
-    save.style.foreground = QColor(255, 255, 255);
+                         QStringLiteral("compose.iconSave"), accent);
+    save.style.foreground = ThemeColors::contrastOn(accent);
     actions.cells.push_back(std::move(save));
     actions.cells.push_back(cell(QStringLiteral("icon_cancel"), QStringLiteral("Cancel"), 0, 3,
                                  QStringLiteral("compose.iconCancel"), key));
@@ -334,7 +363,7 @@ bool ComposeUi::saveNameEdit(QString* error)
     if (!nameEditing()) {
         return true;
     }
-    const QString name = ellipsis(m_buffer.text().trimmed(), 24);
+    QString name = formNameText();
     if (name.isEmpty()) {
         const QString msg = QStringLiteral("Type a name first");
         notify(msg);
@@ -343,24 +372,23 @@ bool ComposeUi::saveNameEdit(QString* error)
         }
         return false;
     }
+    name = ellipsis(name, 24);
 
     bool ok = false;
     switch (m_nameEdit) {
     case NameEditKind::Pin:
         ok = m_board.setButtonLabel(m_editId, name, error);
-        if (ok) {
-            persistEditAppearance();
-        }
         break;
     case NameEditKind::Topic:
         ok = m_board.renameTopic(m_editId, name, error);
-        if (ok) {
-            persistEditAppearance();
-        }
         break;
     default:
         ok = true;
         break;
+    }
+    if (ok) {
+        persistEditAppearance();
+        applyFormDrafts();
     }
     if (!ok) {
         return false;

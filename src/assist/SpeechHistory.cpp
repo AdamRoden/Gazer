@@ -227,6 +227,16 @@ bool SpeechHistory::remove(const QString& id, QString* error)
     return false;
 }
 
+bool SpeechHistory::clear(QString* error)
+{
+    const QVector<SpeechHistoryItem> gone = m_items;
+    m_items.clear();
+    for (const SpeechHistoryItem& it : gone) {
+        deleteClip(it.id);
+    }
+    return save(error);
+}
+
 bool SpeechHistory::record(const QString& phrase, const QString& backend, const QString& modelId,
                            const QString& voiceId, const QString& clipPath, QString* error,
                            QString* copiedClip)
