@@ -13,6 +13,7 @@ class ComboMouse;
 class LookToMaps;
 class MagnifierOverlay;
 class MouseDwellMove;
+class MouseLeftDrag;
 class SplashOverlay;
 
 /// Ordered gaze consumers. Board/aim policy comes only from AssistSession.
@@ -23,6 +24,7 @@ public:
     void setLookToMaps(LookToMaps* maps) { m_lookToMaps = maps; }
     void setComboMouse(ComboMouse* c) { m_comboMouse = c; }
     void setMouseDwellMove(MouseDwellMove* move) { m_mouseDwell = move; }
+    void setMouseLeftDrag(MouseLeftDrag* drag) { m_leftDrag = drag; }
     void setMagnifier(MagnifierOverlay* mag) { m_magnifier = mag; }
     void setGazeReticle(GazeReticle* r) { m_gazeReticle = r; }
     void setGazeMouseFollow(GazeMouseFollow* f) { m_gazeFollow = f; }
@@ -37,6 +39,7 @@ private:
     LookToMaps* m_lookToMaps = nullptr;
     ComboMouse* m_comboMouse = nullptr;
     MouseDwellMove* m_mouseDwell = nullptr;
+    MouseLeftDrag* m_leftDrag = nullptr;
     MagnifierOverlay* m_magnifier = nullptr;
     GazeReticle* m_gazeReticle = nullptr;
     GazeMouseFollow* m_gazeFollow = nullptr;

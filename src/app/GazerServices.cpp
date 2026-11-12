@@ -19,6 +19,7 @@
 #include "assist/LookToMaps.h"
 #include "assist/MouseAssistState.h"
 #include "assist/MouseDwellMove.h"
+#include "assist/MouseLeftDrag.h"
 #include "assist/ClipPlayer.h"
 #include "assist/ElevenClient.h"
 #include "assist/SoundboardStore.h"
@@ -157,6 +158,8 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
     m_magnifier = std::make_unique<MagnifierOverlay>();
     m_mouseDwellMove = std::make_unique<MouseDwellMove>();
     m_mouseAssist = std::make_unique<MouseAssistState>(*m_input);
+    m_mouseLeftDrag = std::make_unique<MouseLeftDrag>();
+    m_mouseLeftDrag->setMouseAssist(m_mouseAssist.get());
     m_gazeReticle = std::make_unique<GazeReticle>();
     m_gazeMouseFollow = std::make_unique<GazeMouseFollow>();
     m_headPose = std::make_unique<HeadPoseMapper>();
@@ -316,6 +319,8 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
             });
     connect(m_mouseDwellMove.get(), &MouseDwellMove::armedChanged, this,
             [this](bool) { refreshActiveIndicators(); });
+    connect(m_mouseLeftDrag.get(), &MouseLeftDrag::activeChanged, this,
+            [this](bool) { refreshActiveIndicators(); });
     connect(m_magnifier.get(), &MagnifierOverlay::enabledChanged, this,
             [this](bool) { refreshActiveIndicators(); });
     connect(m_mouseAssist.get(), &MouseAssistState::holdsChanged, this,
@@ -391,6 +396,7 @@ ActiveStateContext GazerServices::activeStateContext() const
     ctx.lookToMaps = m_lookToMaps.get();
     ctx.comboMouse = m_comboMouse.get();
     ctx.mouseDwellMove = m_mouseDwellMove.get();
+    ctx.mouseLeftDrag = m_mouseLeftDrag.get();
     ctx.magnifier = m_magnifier.get();
     ctx.gazeReticle = m_gazeReticle.get();
     ctx.gazeMouseFollow = m_gazeMouseFollow.get();
@@ -415,6 +421,9 @@ void GazerServices::setDwellSuspended(bool on)
     if (m_mouseDwellMove) {
         m_mouseDwellMove->setPaused(on);
     }
+    if (on && m_mouseLeftDrag) {
+        m_mouseLeftDrag->cancel();
+    }
     if (on && m_mouseAssist) {
         m_mouseAssist->releaseAllHolds();
     }
@@ -437,6 +446,9 @@ void GazerServices::stopAssistOutput()
     QString ignored;
     if (m_keyState) {
         (void)m_keyState->releaseAll(&ignored);
+    }
+    if (m_mouseLeftDrag) {
+        m_mouseLeftDrag->cancel();
     }
     if (m_mouseAssist) {
         m_mouseAssist->releaseAllHolds();
@@ -586,6 +598,10 @@ void GazerServices::applySettings(bool persist)
     ProgressVisuals mousePv = boardPv;
     mousePv.style = m_settings.mouseProgress;
     m_mouseDwellMove->setProgressVisuals(mousePv);
+    if (m_mouseLeftDrag) {
+        m_mouseLeftDrag->setDwellMs(m_settings.mouseMoveDwellMs);
+        m_mouseLeftDrag->setProgressVisuals(mousePv);
+    }
     m_gazeReticle->setColor(boardPv.progressColor);
     m_magnifier->setAccent(boardPv.progressColor);
     m_lookToMaps->setAccent(boardPv.progressColor);
@@ -671,6 +687,9 @@ void GazerServices::neutralizeForTracking(bool gazeScope)
     QString ignored;
     if (m_keyState) {
         (void)m_keyState->releaseAll(&ignored);
+    }
+    if (m_mouseLeftDrag) {
+        m_mouseLeftDrag->cancel();
     }
     if (m_mouseAssist) {
         m_mouseAssist->releaseAllHolds();
@@ -758,6 +777,7 @@ void GazerServices::registerDomainCommands()
     m_assistCmdCtx->lookToMaps = m_lookToMaps.get();
     m_assistCmdCtx->comboMouse = m_comboMouse.get();
     m_assistCmdCtx->mouseDwellMove = m_mouseDwellMove.get();
+    m_assistCmdCtx->mouseLeftDrag = m_mouseLeftDrag.get();
     m_assistCmdCtx->magnifier = m_magnifier.get();
     m_assistCmdCtx->gazeReticle = m_gazeReticle.get();
     m_assistCmdCtx->gazeMouseFollow = m_gazeMouseFollow.get();
@@ -812,7 +832,11 @@ void GazerServices::registerDomainCommands()
         if (m_actionLoops) {
             m_actionLoops->stopAll();
         }
-        if (m_mouseDwellMove && m_mouseDwellMove->isClickLoop()) {
+        if (m_mouseLeftDrag) {
+            m_mouseLeftDrag->cancel();
+        }
+        if (m_mouseDwellMove
+            && (m_mouseDwellMove->isClickLoop() || m_mouseDwellMove->isLeftDragPlace())) {
             m_mouseDwellMove->setArmed(false);
         }
         if (m_mouseAssist) {

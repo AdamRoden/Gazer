@@ -30,6 +30,8 @@ const char* MouseDwellMove::purposeName(ArmPurpose purpose)
         return "moveRightClick";
     case ArmPurpose::CursorMoveMiddleClick:
         return "moveMiddleClick";
+    case ArmPurpose::CursorMoveLeftDrag:
+        return "leftDrag";
     case ArmPurpose::ColorPick:
         return "colorPick";
     case ArmPurpose::ColorSample:
@@ -86,6 +88,7 @@ bool MouseDwellMove::isCursorMoveFamily() const
     case ArmPurpose::CursorMoveLeftClick:
     case ArmPurpose::CursorMoveRightClick:
     case ArmPurpose::CursorMoveMiddleClick:
+    case ArmPurpose::CursorMoveLeftDrag:
     case ArmPurpose::ColorPick:
     case ArmPurpose::ColorSample:
         return true;
@@ -466,6 +469,13 @@ void MouseDwellMove::onGazeAim(const QPointF& g, double dtSec)
 
 void MouseDwellMove::completeMoveCycle(const QPoint& target)
 {
+    if (m_purpose == ArmPurpose::CursorMoveLeftDrag) {
+        // Leave the dwell session before drag mode starts. Emitting first would
+        // enter MouseLeftDrag while this arm is still current.
+        setArmed(false);
+        emit leftDragAnchor(target);
+        return;
+    }
     Q_UNUSED(target);
     const bool loop = m_purpose == ArmPurpose::CursorMoveClickLoop;
     const bool leftOnce = m_purpose == ArmPurpose::CursorMoveLeftClick;

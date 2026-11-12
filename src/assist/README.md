@@ -10,6 +10,7 @@ Gaze tools on top of the page session.
 | `HeadPoseMapper` | Analog maps from tracker head pose (settings-backed). Pauses mouse/scroll/joy/commands while gaze is on Gazer boards. Gaze offset is not applied to board hit-tests. |
 | `ComboMouse` / `ComboMouseHit.h` / `PieOverlay` | Directional mouse pad. Shared command pie (ComboMouse + LTS) |
 | `MouseDwellMove` | Dwell to warp cursor. Overlays in `MouseDwellMove_p.h`; mag-pick in `MouseDwellMoveMag.cpp` |
+| `MouseLeftDrag` | After that warp, hold left and aim a dotted arrow. A double-length fixation pauses for check, mouse-move, and X |
 | `MouseAssistState` | Shared pointer-assist flags |
 | `GazeReticle` / `GazeMouseFollow` | Marker / cursor-follows-gaze |
 | `GazeDwellTracker.h` / `GazeFollowProfile.h` / `GazeFollowStickiness.h` / `MagLayout.h` | Shared helpers |

@@ -18,6 +18,7 @@ class LookToMaps;
 class MagnifierOverlay;
 class MouseAssistState;
 class MouseDwellMove;
+class MouseLeftDrag;
 class PageSession;
 
 /// Heap-owned command wiring context (must outlive all command/signal handlers).
@@ -28,6 +29,7 @@ struct AssistCommandContext {
     LookToMaps* lookToMaps = nullptr;
     ComboMouse* comboMouse = nullptr;
     MouseDwellMove* mouseDwellMove = nullptr;
+    MouseLeftDrag* mouseLeftDrag = nullptr;
     MagnifierOverlay* magnifier = nullptr;
     GazeReticle* gazeReticle = nullptr;
     GazeMouseFollow* gazeMouseFollow = nullptr;

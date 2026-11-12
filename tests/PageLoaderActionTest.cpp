@@ -477,6 +477,7 @@ void PageLoaderActionTest::rapidDwellClassification()
     QVERIFY(!usesRapidDwell({cmd(QStringLiteral("toggleLookToScroll"))}));
     QVERIFY(!usesRapidDwell({cmd(QStringLiteral("lookToScroll"))}));
     QVERIFY(!usesRapidDwell({cmd(QStringLiteral("lookToMouse"))}));
+    QVERIFY(!usesRapidDwell({cmd(QStringLiteral("mouseLeftDrag"))}));
     QVERIFY(!usesRapidDwell({cmd(QStringLiteral("lookTo.edit.scroll"))}));
     QVERIFY(!usesRapidDwell({cmd(QStringLiteral("compose.speak"))}));
     QVERIFY(!usesRapidDwell({cmd(QStringLiteral("quitApp"))}));

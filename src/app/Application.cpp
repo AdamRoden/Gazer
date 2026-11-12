@@ -117,6 +117,7 @@ bool Application::initialize()
     m_gazeRouter.setLookToMaps(&m_svc->lookToMaps());
     m_gazeRouter.setComboMouse(&m_svc->comboMouse());
     m_gazeRouter.setMouseDwellMove(&m_svc->mouseDwellMove());
+    m_gazeRouter.setMouseLeftDrag(&m_svc->mouseLeftDrag());
     m_gazeRouter.setMagnifier(&m_svc->magnifier());
     m_gazeRouter.setGazeReticle(&m_svc->gazeReticle());
     m_gazeRouter.setGazeMouseFollow(&m_svc->gazeMouseFollow());

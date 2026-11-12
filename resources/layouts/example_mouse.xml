@@ -43,7 +43,7 @@ loop" style="pink" activeState="mouseMoveToGazeClickLoop" command="mouseMoveToGa
     <Cell id="move_mclick" row="2" col="5" icon="mouseMiddleClickAtGaze" label="Move+M" style="orange" activeState="mouseMiddleClickAtGaze" mouseMiddleClickAtGaze=""/>
     <Cell id="move_rclick" row="2" col="6" icon="mouseRightClickAtGaze" label="Move+R" style="orange" activeState="mouseRightClickAtGaze" mouseRightClickAtGaze=""/>
     <Cell id="combo" row="2" col="7" icon="comboMouse" label="ComboMouse" style="purple" activeState="comboMouse" command="toggleComboMouse"/>
-    <Cell id="ltm" row="2" col="8" icon="lookToScroll" label="LookToMouse" style="purple" activeState="lookToMouse" command="lookToMouse"/>
+    <Cell id="ldrag" row="2" col="8" icon="mouseLeftDrag" label="Left drag" style="purple" activeState="mouseLeftDrag" command="mouseLeftDrag"/>
     <Cell id="main" row="2" col="9" icon="AlignBottom" label="Close" style="indigo">
       <ClosePage/>
     </Cell>

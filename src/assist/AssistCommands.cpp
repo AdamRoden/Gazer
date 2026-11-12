@@ -12,6 +12,7 @@
 #include "assist/LtsScrollMode.h"
 #include "assist/MouseAssistState.h"
 #include "assist/MouseDwellMove.h"
+#include "assist/MouseLeftDrag.h"
 #include "layout/PageSession.h"
 #include "ui/MagnifierOverlay.h"
 #include "utils/Log.h"
@@ -60,6 +61,7 @@ void registerAssistCommands(AssistCommandContext& ctx)
     auto* lookTo = ctx.lookToMaps;
     auto* combo = ctx.comboMouse;
     auto* mouseDwell = ctx.mouseDwellMove;
+    auto* leftDrag = ctx.mouseLeftDrag;
     auto* follow = ctx.gazeMouseFollow;
     auto* reticle = ctx.gazeReticle;
     auto* mag = ctx.magnifier;
@@ -83,7 +85,7 @@ void registerAssistCommands(AssistCommandContext& ctx)
     // When leaving a mode, tear down the tool that owns it — except soft handoffs
     // within the mouse-dwell family.
     QObject::connect(session, &AssistSession::leaving, session,
-                     [combo, mouseDwell, follow](Mode left, Mode next) {
+                     [combo, mouseDwell, follow, leftDrag](Mode left, Mode next) {
                          switch (left) {
                          case Mode::LookToScrollPlaceCursor:
                          case Mode::MouseDwell:
@@ -93,6 +95,11 @@ void registerAssistCommands(AssistCommandContext& ctx)
                                  break;
                              }
                              mouseDwell->setArmed(false);
+                             break;
+                         case Mode::MouseLeftDrag:
+                             if (leftDrag) {
+                                 leftDrag->cancel();
+                             }
                              break;
                          case Mode::ComboMousePlaceCursor:
                              if (next == Mode::ComboMouse) {
@@ -423,6 +430,46 @@ void registerAssistCommands(AssistCommandContext& ctx)
         QStringLiteral("Middle click at gaze — dwell to place, then click"),
         QStringLiteral("Middle click at gaze OFF"));
     commands->registerBuiltin(QStringLiteral("mouseLeftClickAtGaze"), leftAtGaze);
+    commands->registerBuiltin(QStringLiteral("mouseLeftDrag"),
+                              [mouseDwell, leftDrag, refresh, notify](QString*) {
+                                  if (!mouseDwell || !leftDrag) {
+                                      return false;
+                                  }
+                                  if (leftDrag->isActive()) {
+                                      leftDrag->cancel();
+                                      notify(QStringLiteral("Left drag cancelled"));
+                                      refresh();
+                                      return true;
+                                  }
+                                  if (mouseDwell->isLeftDragPlace()) {
+                                      mouseDwell->setArmed(false);
+                                      notify(QStringLiteral("Left drag cancelled"));
+                                      refresh();
+                                      return true;
+                                  }
+                                  mouseDwell->setArmed(true, ArmPurpose::CursorMoveLeftDrag);
+                                  notify(QStringLiteral("Left drag — dwell to press"));
+                                  refresh();
+                                  return true;
+                              });
+    if (leftDrag) {
+        QObject::connect(leftDrag, &MouseLeftDrag::activeChanged, session, [session](bool on) {
+            if (on) {
+                session->enter(Mode::MouseLeftDrag);
+            } else if (session->mode() == Mode::MouseLeftDrag) {
+                session->leave(Mode::MouseLeftDrag);
+            }
+        });
+        QObject::connect(mouseDwell, &MouseDwellMove::leftDragAnchor, session,
+                         [leftDrag, notify](QPoint pos) {
+                             QString err;
+                             if (!leftDrag->begin(pos, &err)) {
+                                 notify(err.isEmpty() ? QStringLiteral("Left drag failed") : err);
+                                 return;
+                             }
+                             notify(QStringLiteral("Left drag — dwell at the end"));
+                         });
+    }
     commands->registerBuiltin(QStringLiteral("mouseRightClickAtGaze"), rightAtGaze);
     commands->registerBuiltin(QStringLiteral("mouseMiddleClickAtGaze"), middleAtGaze);
     commands->registerBuiltin(QStringLiteral("toggleGazeReticle"),

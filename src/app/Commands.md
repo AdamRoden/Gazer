@@ -81,6 +81,7 @@ When adding a command: register it and add a row here.
 | `mouseMoveToGaze` | Toggle dwell-to-warp cursor |
 | `mouseMoveToGazeClickLoop` | Sticky dwell-move then click |
 | `mouseLeftClickAtGaze` / `mouseMiddleClickAtGaze` / `mouseRightClickAtGaze` | Dwell-move then one click |
+| `mouseLeftDrag` | Dwell-move, left button down, dotted arrow until a double-length fixation, then check (release at the end), X (return to the press and release), or mouse-move (aim again) |
 | `toggleMouseMoveMagPick` | Settings: magnify pick |
 | `toggleMouseMoveMagPickCenter` | Mag-pick center on dwell vs screen |
 | `toggleMouseMoveMagPickFullScreen` | Mag-pick full-screen zoom |

@@ -12,6 +12,7 @@
 | **Look-to-scroll** | `lookToScroll` / `toggleLookToScroll` | Place an origin, then gaze vs the ring drives wheel. |
 | **Move to gaze** | `mouseMoveToGaze=""` (zoom token optional) | **Arm**: the next desktop dwell warps the cursor. Arming again cancels. Zoom: empty = Settings → Zoom; `0` = no magnify; `N` = N×. |
 | **Move + click at gaze** | `mouseLeftClickAtGaze=""` (also Middle / Right) | Arm dwell-move, then one click of that button. Same zoom tokens. |
+| **Left drag** | `mouseLeftDrag` | Arm dwell-move, then hold the left button. A dot marks the press. A dotted arrow follows gaze until a fixation twice the move-to-gaze dwell. Three round buttons then sit in a semicircle toward the screen center. The center mouse-move button has a yellow border and aims the end again. Check releases at that end. X returns to the press point and releases. Choosing a button uses the normal move-to-gaze dwell. |
 | **Gaze click loop** | `mouseMoveToGazeClickLoop` | Sticky dwell-move then click until you stop it. |
 | **ComboMouse** | `toggleComboMouse` | Inner drift ring + outer command pie. |
 

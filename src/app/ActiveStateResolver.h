@@ -14,6 +14,7 @@ class MagnifierOverlay;
 class KeyStateManager;
 class MouseAssistState;
 class MouseDwellMove;
+class MouseLeftDrag;
 class ComposeUi;
 class SettingsUi;
 class SpeechEngine;
@@ -24,6 +25,7 @@ struct ActiveStateContext {
     const LookToMaps* lookToMaps = nullptr;
     const ComboMouse* comboMouse = nullptr;
     const MouseDwellMove* mouseDwellMove = nullptr;
+    const MouseLeftDrag* mouseLeftDrag = nullptr;
     const MagnifierOverlay* magnifier = nullptr;
     const GazeReticle* gazeReticle = nullptr;
     const GazeMouseFollow* gazeMouseFollow = nullptr;

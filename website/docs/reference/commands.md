@@ -103,6 +103,7 @@ After any of them, a **500 ms** hold runs before a new dwell can start. `suspend
 | `mouseMoveToGaze` | Toggle dwell-to-warp cursor. |
 | `mouseMoveToGazeClickLoop` | Sticky dwell-move then click until stopped. |
 | `mouseLeftClickAtGaze` / `mouseMiddleClickAtGaze` / `mouseRightClickAtGaze` | Dwell-move then one click. |
+| `mouseLeftDrag` | Dwell-move, then hold the left button. A dotted arrow follows gaze until a fixation twice the move-to-gaze dwell. Check releases at that end. X returns to the press point and releases. Mouse-move aims the end again. The choice buttons use the normal move-to-gaze dwell. |
 | `toggleMouseMoveMagPick` | Settings: magnify pick on/off. |
 | `toggleMouseMoveMagPickCenter` | Mag-pick center on dwell vs screen. |
 | `toggleMouseMoveMagPickFullScreen` | Mag-pick full-screen zoom. |

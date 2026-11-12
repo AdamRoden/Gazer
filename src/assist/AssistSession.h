@@ -13,6 +13,7 @@ public:
         None,
         LookToScrollPlaceCursor,
         MouseDwell,
+        MouseLeftDrag,
         MagPickPoint,
         GazeFollow,
         ComboMouse,

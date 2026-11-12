@@ -11,8 +11,8 @@ AssistSession::AssistSession(QObject* parent)
 
 bool AssistSession::freesScreenForAim() const
 {
-    return m_mode == Mode::MouseDwell || m_mode == Mode::MagPickPoint
-           || m_mode == Mode::LookToScrollPlaceCursor
+    return m_mode == Mode::MouseDwell || m_mode == Mode::MouseLeftDrag
+           || m_mode == Mode::MagPickPoint || m_mode == Mode::LookToScrollPlaceCursor
            || m_mode == Mode::ComboMousePlaceCursor;
 }
 

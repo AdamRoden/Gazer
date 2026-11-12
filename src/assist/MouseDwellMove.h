@@ -32,6 +32,7 @@ public:
         CursorMoveLeftClick,  ///< Move-to, then one left click and disarm.
         CursorMoveRightClick, ///< Move-to, then one right click and disarm.
         CursorMoveMiddleClick, ///< Move-to, then one middle click and disarm.
+        CursorMoveLeftDrag,   ///< Move-to, then a left-button drag (MouseLeftDrag).
         ColorPick,            ///< Move-to on the color picker; no OS click.
         ColorSample           ///< Move-to, sample the screen pixel; no OS click.
     };
@@ -93,6 +94,11 @@ public:
     {
         return m_armed && m_purpose == ArmPurpose::CursorMoveClickLoop;
     }
+    /// Armed to place the press point for a left drag. The button is not down yet.
+    [[nodiscard]] bool isLeftDragPlace() const
+    {
+        return m_armed && m_purpose == ArmPurpose::CursorMoveLeftDrag;
+    }
     void setPaused(bool paused);
     [[nodiscard]] bool isPaused() const { return m_paused; }
     [[nodiscard]] bool isColorPick() const
@@ -146,6 +152,8 @@ signals:
     void armedChanged(bool armed);
     void magPointPhaseChanged(bool active);
     void movedTo(QPoint pos);
+    /// Cursor is at the press point. MouseLeftDrag owns the button from here.
+    void leftDragAnchor(QPoint pos);
     void progressChanged(double progress);
 
 private:

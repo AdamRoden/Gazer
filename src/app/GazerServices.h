@@ -33,6 +33,7 @@ class MagnifierOverlay;
 class MappingEngine;
 class MouseAssistState;
 class MouseDwellMove;
+class MouseLeftDrag;
 class PageCatalog;
 class PageSession;
 class SoundboardStore;
@@ -77,6 +78,7 @@ public:
     ComboMouse& comboMouse() { return *m_comboMouse; }
     MagnifierOverlay& magnifier() { return *m_magnifier; }
     MouseDwellMove& mouseDwellMove() { return *m_mouseDwellMove; }
+    MouseLeftDrag& mouseLeftDrag() { return *m_mouseLeftDrag; }
     MouseAssistState& mouseAssist() { return *m_mouseAssist; }
     GazeReticle& gazeReticle() { return *m_gazeReticle; }
     GazeMouseFollow& gazeMouseFollow() { return *m_gazeMouseFollow; }
@@ -151,6 +153,8 @@ private:
     std::unique_ptr<MagnifierOverlay> m_magnifier;
     std::unique_ptr<MouseDwellMove> m_mouseDwellMove;
     std::unique_ptr<MouseAssistState> m_mouseAssist;
+    /// Declared after mouse assist so shutdown can still release the button.
+    std::unique_ptr<MouseLeftDrag> m_mouseLeftDrag;
     std::unique_ptr<GazeReticle> m_gazeReticle;
     std::unique_ptr<GazeMouseFollow> m_gazeMouseFollow;
     std::unique_ptr<HeadPoseMapper> m_headPose;

@@ -7,6 +7,7 @@
 #include "assist/HeadPoseMapper.h"
 #include "assist/LookToMaps.h"
 #include "assist/MouseDwellMove.h"
+#include "assist/MouseLeftDrag.h"
 #include "input/InjectGate.h"
 #include "layout/PageSession.h"
 #include "ui/MagnifierOverlay.h"
@@ -36,8 +37,9 @@ void GazeRouter::dispatch(const GazePoint& point)
     const bool overCombo = m_comboMouse && m_comboMouse->containsGaze(point);
     const bool overMagPick = m_mouseDwell && m_mouseDwell->containsGaze(point);
     const bool overLts = m_lookToMaps && m_lookToMaps->containsGaze(point);
+    const bool overDragChoice = m_leftDrag && m_leftDrag->containsChoice(point);
     const bool overFrontOverlay =
-        overSplash || overLts
+        overSplash || overLts || overDragChoice
         || (m_session && m_session->overlayHasGazePriority() && (overCombo || overMagPick));
 
     bool overBoard = false;
@@ -94,6 +96,17 @@ void GazeRouter::dispatch(const GazePoint& point)
         m_mouseDwell->setPaused(pauseAim);
         if (!pauseAim) {
             m_mouseDwell->onGaze(assist);
+        }
+    }
+    if (m_leftDrag) {
+        const bool pauseDrag = dwellOff || overSplash || injectPaused
+                               || (m_leftDrag->isAiming() && (overBoard || hit.overBoard));
+        m_leftDrag->setPaused(pauseDrag);
+        if (!pauseDrag) {
+            m_leftDrag->onGaze(assist);
+        }
+        if (m_leftDrag->containsChoice(assist) && m_pages) {
+            m_pages->leaveGaze();
         }
     }
     if (m_magnifier && !overSplash) {

@@ -9,6 +9,7 @@
 #include "assist/LookToScroll.h"
 #include "assist/MouseAssistState.h"
 #include "assist/MouseDwellMove.h"
+#include "assist/MouseLeftDrag.h"
 #include "input/KeyStateManager.h"
 #include "ui/MagnifierOverlay.h"
 #include "app/ComposeUi.h"
@@ -220,6 +221,12 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
                        && ctx.mouseDwellMove->armPurpose() == e.purpose;
             }
         }
+    }
+    if (key == QLatin1String("mouseLeftDrag")) {
+        if (ctx.mouseLeftDrag && ctx.mouseLeftDrag->isActive()) {
+            return true;
+        }
+        return ctx.mouseDwellMove && ctx.mouseDwellMove->isLeftDragPlace();
     }
     if (key == QLatin1String("mouseMoveToGazeClickLoop")) {
         return ctx.mouseDwellMove && ctx.mouseDwellMove->isClickLoop();

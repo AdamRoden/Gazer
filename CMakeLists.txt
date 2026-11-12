@@ -156,6 +156,7 @@ set(GAZER_SOURCES
     src/assist/PieOverlay.cpp
     src/assist/MouseDwellMove.cpp
     src/assist/MouseDwellMoveMag.cpp
+    src/assist/MouseLeftDrag.cpp
     src/assist/MouseAssistState.cpp
     src/assist/GazeReticle.cpp
     src/assist/GazeMouseFollow.cpp
@@ -310,6 +311,7 @@ set(GAZER_HEADERS
     src/assist/LtsScrollMode.h
     src/assist/LtsMenu.h
     src/assist/MouseDwellMove.h
+    src/assist/MouseLeftDrag.h
     src/assist/MouseAssistState.h
     src/assist/GazeReticle.h
     src/assist/GazeMouseFollow.h
@@ -545,6 +547,7 @@ add_executable(GazerPageTests
     tests/AppSettingsTest.cpp
     tests/MaterialPaletteTest.cpp
     tests/MouseDwellMoveTest.cpp
+    tests/MouseLeftDragTest.cpp
     src/app/AppSettings.cpp
     src/app/AppSettingsIo.cpp
     src/app/AppSettingsTheme.cpp

@@ -23,6 +23,7 @@ QObject* createSettingsLayoutTest();
 QObject* createAppSettingsTest();
 QObject* createMaterialPaletteTest();
 QObject* createMouseDwellMoveTest();
+QObject* createMouseLeftDragTest();
 QObject* createProgressPaintTest();
 QObject* createScrollBarTest();
 QObject* createFileNameScrollTest();
@@ -125,6 +126,8 @@ int main(int argc, char** argv)
     runSuite("MaterialPaletteTest", materialPal.get());
     std::unique_ptr<QObject> mouseDwell(createMouseDwellMoveTest());
     runSuite("MouseDwellMoveTest", mouseDwell.get());
+    std::unique_ptr<QObject> mouseLeftDrag(createMouseLeftDragTest());
+    runSuite("MouseLeftDragTest", mouseLeftDrag.get());
     std::unique_ptr<QObject> progress(createProgressPaintTest());
     runSuite("ProgressPaintTest", progress.get());
     std::unique_ptr<QObject> scroll(createScrollBarTest());

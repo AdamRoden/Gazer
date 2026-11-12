@@ -451,6 +451,7 @@ QString friendlyCommandLabel(const QString& commandId)
         {QStringLiteral("mouseRightClickAtGaze"), QStringLiteral("Right click at gaze")},
         {QStringLiteral("mouseMiddleClickAtGaze"), QStringLiteral("Middle click at gaze")},
         {QStringLiteral("mouseMoveToGaze"), QStringLiteral("Dwell-move cursor")},
+        {QStringLiteral("mouseLeftDrag"), QStringLiteral("Left drag")},
         {QStringLiteral("mouseMoveToGazeClickLoop"), QStringLiteral("Gaze click loop")},
         {QStringLiteral("toggleMagnifier"), QStringLiteral("Magnifier")},
         {QStringLiteral("toggleLookToScroll"), QStringLiteral("Look to scroll")},
