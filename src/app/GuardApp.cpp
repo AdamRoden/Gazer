@@ -404,7 +404,7 @@ int runGuard(int argc, char** argv)
     QApplication::setQuitOnLastWindowClosed(false);
     QApplication::setApplicationName(QStringLiteral("Gazer"));
     QApplication::setOrganizationName(QString());
-    QApplication::setApplicationVersion(QStringLiteral("0.7.1"));
+    QApplication::setApplicationVersion(QStringLiteral("0.7.2"));
 
     // After the mutex, so a second --guard does not truncate the live watchdog log.
     gazer::openSessionLog(QStringLiteral("guard.log"));
