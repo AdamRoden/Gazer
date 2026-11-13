@@ -339,9 +339,27 @@ void LookToScrollTest::analogGainRings()
     c.outerDeadzoneEnabled = true;
     QCOMPARE(lookToOverlayRadiusPx(c), 340);
     QCOMPARE(QLatin1String(lookToDestCommand(LookToDest::Mouse)), QLatin1String("lookToMouse"));
-    QCOMPARE(snapLookToSpeed(LookToDest::Mouse, 900.0), 800.0);
-    QCOMPARE(nudgeLookToSpeed(LookToDest::Mouse, 800.0, +1), 1600.0);
+    QCOMPARE(kLookToMouseSpeedDefault, 50.0);
+    QCOMPARE(snapLookToSpeed(LookToDest::Mouse, 7.0), 5.0);
+    QCOMPARE(snapLookToSpeed(LookToDest::Mouse, 8.0), 10.0);
+    QCOMPARE(snapLookToSpeed(LookToDest::Mouse, 800.0), 500.0);
+    QCOMPARE(nudgeLookToSpeed(LookToDest::Mouse, 1.0, -1), 1.0);
+    QCOMPARE(nudgeLookToSpeed(LookToDest::Mouse, 1.0, +1), 5.0);
+    QCOMPARE(nudgeLookToSpeed(LookToDest::Mouse, 10.0, +1), 25.0);
+    QCOMPARE(nudgeLookToSpeed(LookToDest::Mouse, 25.0, +1), 50.0);
+    QCOMPARE(nudgeLookToSpeed(LookToDest::Mouse, 50.0, +1), 100.0);
+    QCOMPARE(nudgeLookToSpeed(LookToDest::Mouse, 100.0, +1), 200.0);
+    QCOMPARE(nudgeLookToSpeed(LookToDest::Mouse, 200.0, +1), 500.0);
+    QCOMPARE(nudgeLookToSpeed(LookToDest::Mouse, 500.0, +1), 500.0);
     QCOMPARE(snapLookToSpeed(LookToDest::LeftStick, 0.6), 0.5);
+    LookToMapSettings hub = defaultLookToMapSettings(LookToDest::Scroll);
+    QCOMPARE(hub.hubPx, kLookToHubDefaultPx);
+    hub.hubPx = 500;
+    clampLookToMapSettings(LookToDest::Scroll, hub);
+    QCOMPARE(hub.hubPx, hub.deadzonePx);
+    hub.hubPx = 1;
+    clampLookToMapSettings(LookToDest::Scroll, hub);
+    QCOMPARE(hub.hubPx, kLookToHubMinPx);
 }
 
 QObject* createLookToScrollTest()

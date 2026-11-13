@@ -124,6 +124,7 @@ void AppSettingsTest::factoryUsesDomainConstants()
     QCOMPARE(s.hoverBorderWeight, 4);
     QCOMPARE(s.flashMs, 60);
     QCOMPARE(s.pickWindowRound, false);
+    QCOMPARE(s.lookToScroll.hubPx, kLookToHubDefaultPx);
     QCOMPARE(s.lookToScroll.deadzonePx, 80);
     QCOMPARE(s.lookToScroll.maxPx, 380);
     QCOMPARE(s.lookToScroll.outerDeadzonePx, 540);
@@ -758,12 +759,13 @@ void AppSettingsTest::legacyHeadPoseCurveUpgradesOnLoad()
 void AppSettingsTest::lookToMapsRoundTripAndLegacyMigrate()
 {
     AppSettings s = AppSettings::defaults();
+    s.lookToMouse.hubPx = 64;
     s.lookToMouse.deadzonePx = 120;
     s.lookToMouse.maxPx = 400;
     s.lookToMouse.outerDeadzoneEnabled = true;
     s.lookToMouse.outerDeadzonePx = 600;
     s.lookToMouse.hubEnabled = false;
-    s.lookToMouse.maxSpeed = 1600.0;
+    s.lookToMouse.maxSpeed = 100.0;
     s.lookToLeftStick.axisMode = LtsScrollMode::Horizontal;
     s.lookToRightStick.chrome(LookToPart::Pause).fill = false;
     s.lookToRightStick.chrome(LookToPart::Inner).fill = false;
@@ -778,12 +780,13 @@ void AppSettingsTest::lookToMapsRoundTripAndLegacyMigrate()
     QVERIFY2(s.saveToFile(path, &err), qPrintable(err));
     AppSettings b;
     QVERIFY2(b.loadFromFile(path, &err), qPrintable(err));
+    QCOMPARE(b.lookToMouse.hubPx, 64);
     QCOMPARE(b.lookToMouse.deadzonePx, 120);
     QCOMPARE(b.lookToMouse.maxPx, 400);
     QVERIFY(b.lookToMouse.outerDeadzoneEnabled);
     QCOMPARE(b.lookToMouse.outerDeadzonePx, 600);
     QVERIFY(!b.lookToMouse.hubEnabled);
-    QCOMPARE(b.lookToMouse.maxSpeed, 1600.0);
+    QCOMPARE(b.lookToMouse.maxSpeed, 100.0);
     QCOMPARE(b.lookToLeftStick.axisMode, LtsScrollMode::Horizontal);
     QVERIFY(!b.lookToRightStick.chrome(LookToPart::Inner).fill);
     QVERIFY(!b.lookToRightStick.chrome(LookToPart::Outer).fill);
@@ -846,6 +849,7 @@ void AppSettingsTest::lookToMapsRoundTripAndLegacyMigrate()
     QVERIFY(!old.lookToScroll.chrome(LookToPart::Max).border);
     QVERIFY(!old.lookToScroll.chrome(LookToPart::Outer).fill);
     QVERIFY(!old.lookToScroll.chrome(LookToPart::Outer).border);
+    QCOMPARE(old.lookToScroll.hubPx, kLookToHubDefaultPx);
 }
 
 void AppSettingsTest::hoverBorderFollowsProgressAndRoundTrips()

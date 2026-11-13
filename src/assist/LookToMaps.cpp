@@ -4,25 +4,9 @@
 #include "utils/Log.h"
 #include "utils/ScreenGrab.h"
 
-#include <QGuiApplication>
-#include <QScreen>
 #include <QtMath>
 
 namespace gazer {
-
-namespace {
-
-double hubVisualRadiusAt(QPoint origin)
-{
-    QScreen* s = QGuiApplication::screenAt(origin);
-    if (!s) {
-        s = QGuiApplication::primaryScreen();
-    }
-    const double h = s ? double(s->geometry().height()) : 1080.0;
-    return h * (kLtsHubVisualDiameterFrac * 0.5);
-}
-
-} // namespace
 
 LookToMaps::LookToMaps(QObject* parent)
     : QObject(parent)
@@ -180,7 +164,7 @@ void LookToMaps::updatePreviewHud()
     }
     m_previewHud->setAccent(m_accent);
     m_previewHud->setHighlight(m_highlight);
-    m_previewHud->setState(m.config(), gazeOff, gain, 0.0, hubVisualRadiusAt(origin), false);
+    m_previewHud->setState(m.config(), gazeOff, gain, 0.0, double(m.config().hubPx), false);
     m_previewHud->placeCenter(origin);
 }
 

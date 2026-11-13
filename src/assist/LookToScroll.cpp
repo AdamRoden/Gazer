@@ -10,8 +10,6 @@
 
 #include <QColor>
 #include <QCursor>
-#include <QGuiApplication>
-#include <QScreen>
 #include <QtMath>
 
 namespace gazer {
@@ -97,6 +95,8 @@ void LookToScroll::setEnabled(bool enabled)
     if (!m_enabled) {
         hidePlus();
         hideOverlay();
+    } else if (m_dest == LookToDest::Mouse) {
+        followPointerOrigin();
     } else if (!m_hasOrigin) {
         setScrollOrigin(QCursor::pos());
     } else if (m_pinCursor) {
@@ -145,6 +145,15 @@ QPoint LookToScroll::originPoint() const
         return m_origin;
     }
     return QCursor::pos();
+}
+
+void LookToScroll::followPointerOrigin()
+{
+    if (m_dest != LookToDest::Mouse) {
+        return;
+    }
+    m_origin = QCursor::pos();
+    m_hasOrigin = true;
 }
 
 void LookToScroll::toggle()
@@ -318,7 +327,7 @@ void LookToScroll::showPausedHub()
     if (!m_overlay) {
         return;
     }
-    m_overlay->setState(m_cfg, {}, 0.0, 0.0, hubVisualRadiusPx(), true);
+    m_overlay->setState(m_cfg, {}, 0.0, 0.0, hubRadiusPx(), true);
     m_overlay->placeCenter(originPoint());
 }
 
@@ -433,21 +442,13 @@ void LookToScroll::updateOverlay(const QPoint& center, const QPointF& gaze, doub
     if (!m_overlay) {
         return;
     }
-    m_overlay->setState(m_cfg, gaze, gain, centerProg, hubVisualRadiusPx(), paused);
+    m_overlay->setState(m_cfg, gaze, gain, centerProg, hubRadiusPx(), paused);
     m_overlay->placeCenter(center);
-}
-
-double LookToScroll::screenHeightPx() const
-{
-    QScreen* s = QGuiApplication::screenAt(originPoint());
-    if (!s) {
-        s = QGuiApplication::primaryScreen();
-    }
-    return s ? double(s->geometry().height()) : 1080.0;
 }
 
 void LookToScroll::updatePausedMenu(const GazePoint& point)
 {
+    followPointerOrigin();
     liftOutput();
 
     const qint64 now = m_clock.elapsed();
@@ -489,7 +490,7 @@ void LookToScroll::updatePausedMenu(const GazePoint& point)
     if (point.valid && m_cfg.hubEnabled) {
         const QPointF delta = point.toPointF() - QPointF(originPoint());
         const double dist = qSqrt(delta.x() * delta.x() + delta.y() * delta.y());
-        if (dist <= hubDwellRadiusPx()) {
+        if (dist <= hubRadiusPx()) {
             openPlus();
             return;
         }
@@ -497,14 +498,9 @@ void LookToScroll::updatePausedMenu(const GazePoint& point)
     showPausedHub();
 }
 
-double LookToScroll::hubVisualRadiusPx() const
+double LookToScroll::hubRadiusPx() const
 {
-    return screenHeightPx() * (kLtsHubVisualDiameterFrac * 0.5);
-}
-
-double LookToScroll::hubDwellRadiusPx() const
-{
-    return screenHeightPx() * (kLtsHubDwellDiameterFrac * 0.5);
+    return double(qMax(kLookToHubMinPx, m_cfg.hubPx));
 }
 
 void LookToScroll::liftOutput()
@@ -588,7 +584,9 @@ void LookToScroll::applyOutput(double nx, double ny, double gain, double sampleD
         m_mouseRemX -= double(dx);
         m_mouseRemY -= double(dy);
         QString err;
-        (void)MouseInjector::moveBy(dx, dy, &err);
+        if (MouseInjector::moveBy(dx, dy, &err)) {
+            followPointerOrigin();
+        }
         break;
     }
     case LookToDest::LeftStick:
@@ -663,6 +661,7 @@ void LookToScroll::onGaze(const GazePoint& point, bool pauseInput)
     }
     m_invalidGrace.onValid();
 
+    followPointerOrigin();
     const QPoint origin = originPoint();
     pinCursorToOrigin();
     const QPointF gaze(point.x, point.y);
@@ -670,7 +669,7 @@ void LookToScroll::onGaze(const GazePoint& point, bool pauseInput)
     const double dist = qSqrt(delta.x() * delta.x() + delta.y() * delta.y());
     const double dirX = dist > 1.0 ? delta.x() / dist : 0.0;
     const double dirY = dist > 1.0 ? delta.y() / dist : 0.0;
-    const double hubR = hubDwellRadiusPx();
+    const double hubR = hubRadiusPx();
     const bool inHub = m_cfg.hubEnabled && dist <= hubR;
     const bool vActive =
         m_cfg.axisMode != LtsScrollMode::Horizontal && ltsAxisAccelActive(delta.y(), m_cfg.deadzonePx);
@@ -686,8 +685,15 @@ void LookToScroll::onGaze(const GazePoint& point, bool pauseInput)
         !inHub && lookToKeepEngaged(m_scrollEngaged, dist, m_cfg) && dist >= 1.0;
     const double gain = m_scrollEngaged ? lookToGain(dist, m_cfg) : 0.0;
     const bool grow = m_scrollEngaged && gain > 0.0;
-    stepLtsAxisAccelSec(m_accelSecV, vActive, grow, grow ? sampleDt : 0.0);
-    stepLtsAxisAccelSec(m_accelSecH, hActive, grow, grow ? sampleDt : 0.0);
+    // Rest for look-to-mouse is inside the deadzone, so gain 0 is settled,
+    // not "still looking away from a fixed origin".
+    if (m_dest == LookToDest::Mouse && gain <= 0.0) {
+        m_accelSecV = 0.0;
+        m_accelSecH = 0.0;
+    } else {
+        stepLtsAxisAccelSec(m_accelSecV, vActive, grow, grow ? sampleDt : 0.0);
+        stepLtsAxisAccelSec(m_accelSecH, hActive, grow, grow ? sampleDt : 0.0);
+    }
 
     if (inHub) {
         liftOutput();
@@ -716,6 +722,10 @@ void LookToScroll::onGaze(const GazePoint& point, bool pauseInput)
 
     updateOverlay(origin, delta, gain, m_centerProgress, false);
     applyOutput(dirX, dirY, gain, sampleDt);
+    if (m_dest == LookToDest::Mouse && originPoint() != origin) {
+        const QPointF shifted = gaze - QPointF(originPoint());
+        updateOverlay(originPoint(), shifted, gain, m_centerProgress, false);
+    }
 }
 
 } // namespace gazer

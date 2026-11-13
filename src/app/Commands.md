@@ -66,14 +66,14 @@ When adding a command: register it and add a row here.
 | `toggleDwellSuspend` | Flip global dwell pause; 500 ms before the next dwell can start |
 | `suspendDwell` / `resumeDwell` | Set pause on/off; same 500 ms start hold |
 | `lookToScroll` / `toggleLookToScroll` | Gaze analog scroll (place origin first). Four maps can run at once. |
-| `lookToMouse` | Gaze analog mouse move (place origin first) |
+| `lookToMouse` | Gaze analog mouse move (place origin first). Deadzone center follows the pointer. Speed ladder: 1, 5, 10, 25, 50, 100, 200, 500 px/s. |
 | `lookToLeftStick` / `lookToRightStick` | Gaze analog left / right stick (place origin first) |
 | `lts.resume` / `lts.quit` / `lts.reset` | Scroll map while on (`lookTo.scroll.*` aliases) |
 | `lts.speed.slower` / `lts.speed.faster` | Scroll map peak speed |
 | `lts.cycleMode` | Scroll map axes: vertical → horizontal → both |
 | `lookTo.mouse.*` / `lookTo.leftStick.*` / `lookTo.rightStick.*` | Same pie actions for the other maps (`.resume` / `.quit` / `.reset` / `.speed.*` / `.cycleMode`) |
 | `lookTo.edit.scroll` / `.mouse` / `.leftStick` / `.rightStick` | Open that map’s ring editor |
-| `lookTo.map.*` | Ring editor: preview, hub, radii, speed, direction, per-part border and fill |
+| `lookTo.map.*` | Ring editor: preview, hub on/off, hub size, radii, speed, direction, per-part border and fill |
 | `toggleMagnifier` | Live lens (exclusive with reticle) |
 | `toggleGazeReticle` | Gaze marker (exclusive with magnifier) |
 | `toggleGazeMouseFollow` | Cursor follows gaze |

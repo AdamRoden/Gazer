@@ -239,6 +239,9 @@ void SettingsUi::lookToNudge(LookToRing ring, int dir)
     m_lookToRing = ring;
     const int step = dir > 0 ? 10 : -10;
     switch (ring) {
+    case LookToRing::Hub:
+        c->hubPx += step;
+        break;
     case LookToRing::Deadzone:
         c->deadzonePx += step;
         break;
@@ -303,7 +306,12 @@ bool SettingsUi::lookToEditField(const QString& field, QString* error)
     QString seed;
     QString title;
     QString hint;
-    if (field == QLatin1String("deadzone")) {
+    if (field == QLatin1String("hub")) {
+        m_lookToRing = LookToRing::Hub;
+        seed = QString::number(c->hubPx);
+        title = QStringLiteral("Hub size");
+        hint = QStringLiteral("Center pie radius (px). Stays inside the deadzone.");
+    } else if (field == QLatin1String("deadzone")) {
         m_lookToRing = LookToRing::Deadzone;
         seed = QString::number(c->deadzonePx);
         title = QStringLiteral("Deadzone");
@@ -350,7 +358,10 @@ void SettingsUi::applyLookToNumpad(double v)
         return;
     }
     const QString f = m_lookToNumpadField;
-    if (f == QLatin1String("deadzone")) {
+    if (f == QLatin1String("hub")) {
+        c->hubPx = int(qRound(v));
+        m_lookToRing = LookToRing::Hub;
+    } else if (f == QLatin1String("deadzone")) {
         c->deadzonePx = int(qRound(v));
         m_lookToRing = LookToRing::Deadzone;
     } else if (f == QLatin1String("max")) {
@@ -453,9 +464,16 @@ PageDocument SettingsUi::buildLookToEditor() const
                                    QStringLiteral("lookTo.map.nudge.accel.inc"),
                                    QStringLiteral("lookTo.map.edit.accel")))})}));
     body.subGrids.push_back(columnOf(
-        QStringLiteral("right"), 1, {9.0, 5.0},
+        QStringLiteral("right"), 1, {11.0, 5.0},
         {groupBox(QStringLiteral("sec_rings"), QStringLiteral("Rings"),
-                  {labeled(QStringLiteral("dz"), QStringLiteral("Deadzone"),
+                  {labeled(QStringLiteral("hubr"), QStringLiteral("Hub"),
+                           QStringLiteral("Center pie radius. Stays inside the deadzone."),
+                           stepper(QStringLiteral("hub_s"), QStringLiteral("%1 px").arg(m->hubPx),
+                                   QStringLiteral("px"),
+                                   QStringLiteral("lookTo.map.nudge.hub.dec"),
+                                   QStringLiteral("lookTo.map.nudge.hub.inc"),
+                                   QStringLiteral("lookTo.map.edit.hub"))),
+                   labeled(QStringLiteral("dz"), QStringLiteral("Deadzone"),
                            QStringLiteral("Inner circle. Output is 0."),
                            stepper(QStringLiteral("dz_s"), QStringLiteral("%1 px").arg(m->deadzonePx),
                                    QStringLiteral("px"),
@@ -541,6 +559,10 @@ void SettingsUi::registerLookToCommands()
             return true;
         };
     };
+    m_commands.registerBuiltin(QStringLiteral("lookTo.map.nudge.hub.dec"),
+                               nudgeRing(LookToRing::Hub, -1));
+    m_commands.registerBuiltin(QStringLiteral("lookTo.map.nudge.hub.inc"),
+                               nudgeRing(LookToRing::Hub, +1));
     m_commands.registerBuiltin(QStringLiteral("lookTo.map.nudge.deadzone.dec"),
                                nudgeRing(LookToRing::Deadzone, -1));
     m_commands.registerBuiltin(QStringLiteral("lookTo.map.nudge.deadzone.inc"),

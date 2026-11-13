@@ -11,13 +11,13 @@ Opened from the drawer **Assist** page (`example_assist`) or the mouse pad.
 | Gaze click loop | `mouseMoveToGazeClickLoop` | Sticky dwell-move then click. |
 | Magnify pick | `toggleMouseMoveMagPick` | Static zoom window for the pick. |
 | Look to scroll | `lookToScroll` (`toggleLookToScroll`) | Place an origin, then scroll from gaze vs a circular deadzone. Optional hub pie for speed, axis, reset, quit. |
-| Look to mouse | `lookToMouse` | Same analog disk, driving pointer velocity. |
+| Look to mouse | `lookToMouse` | Same analog disk, driving pointer velocity. The deadzone center follows the pointer. Peak speed steps are 1, 5, 10, 25, 50, 100, 200, and 500 px/s. |
 | Look to left / right stick | `lookToLeftStick` / `lookToRightStick` | Same analog disk, driving a virtual Xbox stick (ViGEm). Also on the [Gamepad](gamepad.md) board. |
 
 | ComboMouse | `toggleComboMouse` | Inner drift ring + outer command pie. |
 | Edit page | `openPageEditor` | Opens the XML designer. |
 
-All four look-to maps can run at once, each with its own origin and rings. Tune them on Settings → **Gaze**. Edit opens a ring editor (deadzone, 0–100% ramp, optional outer deadzone, optional hub). Output stays at 100% outside the ramp until the outer deadzone. Preview draws analog rings at the origin (independent of whether the map is enabled). Overlay style is per part: draw a border and fill the background for pause, inner deadzone, max, and outer deadzone.
+All four look-to maps can run at once, each with its own origin and rings. Tune them on Settings → **Gaze**. Edit opens a ring editor (hub size, deadzone, 0–100% ramp, optional outer deadzone, optional hub). Hub size stays inside the deadzone. Output stays at 100% outside the ramp until the outer deadzone. Preview draws analog rings at the origin (independent of whether the map is enabled). Overlay style is per part: draw a border and fill the background for pause, inner deadzone, max, and outer deadzone.
 
 Scroll-map peak speeds: 0.5–8 notches/sec (`lts.speed.slower` / `.faster`). Overlay z-order (front → back): reticle, live lens, mag-pick, other assist overlays, then the page host.
 

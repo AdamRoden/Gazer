@@ -20,6 +20,7 @@ inline constexpr int kLookToDestCount = 4;
 
 enum class LookToRing {
     None = 0,
+    Hub,
     Deadzone,
     Max,
     Outer,
@@ -55,20 +56,26 @@ inline constexpr LookToPartSpec kLookToParts[] = {
      "lookTo.map.fill.outer"},
 };
 
-inline constexpr double kLookToMouseSpeedStops[] = {200.0, 400.0, 800.0, 1600.0, 3200.0};
+/// Look-to-mouse peak pointer speed (px/s). +/- steps through this ladder.
+inline constexpr double kLookToMouseSpeedStops[] = {1.0, 5.0, 10.0, 25.0, 50.0, 100.0, 200.0, 500.0};
 inline constexpr int kLookToMouseSpeedStopCount =
     int(sizeof(kLookToMouseSpeedStops) / sizeof(kLookToMouseSpeedStops[0]));
-inline constexpr double kLookToMouseSpeedDefault = 800.0;
+inline constexpr double kLookToMouseSpeedDefault = 50.0;
 
 inline constexpr double kLookToStickSpeedStops[] = {0.25, 0.50, 0.75, 1.00};
 inline constexpr int kLookToStickSpeedStopCount =
     int(sizeof(kLookToStickSpeedStops) / sizeof(kLookToStickSpeedStops[0]));
 inline constexpr double kLookToStickSpeedDefault = 1.0;
 
-/// Pixel radii for the analog gaze disk. Output is 0 inside `deadzonePx`, ramps
-/// 0–100% until `maxPx`, stays at 100% outside that, and drops to 0 past
+inline constexpr int kLookToHubMinPx = 8;
+inline constexpr int kLookToHubDefaultPx = 40;
+
+/// Pixel radii for the analog gaze disk. `hubPx` is the center pie and is
+/// clamped to the deadzone. Output is 0 inside `deadzonePx`, ramps 0–100%
+/// until `maxPx`, stays at 100% outside that, and drops to 0 past
 /// `outerDeadzonePx` when `outerDeadzoneEnabled`.
 struct LookToMapSettings {
+    int hubPx = kLookToHubDefaultPx;
     int deadzonePx = 80;
     int maxPx = 380;
     int outerDeadzonePx = 540;
@@ -266,6 +273,7 @@ struct LookToMapSettings {
 inline void clampLookToMapSettings(LookToDest dest, LookToMapSettings& c)
 {
     c.deadzonePx = qBound(20, c.deadzonePx, 400);
+    c.hubPx = qBound(kLookToHubMinPx, c.hubPx, c.deadzonePx);
     c.maxPx = qBound(c.deadzonePx + 40, c.maxPx, 900);
     c.outerDeadzonePx = qBound(c.maxPx + 20, c.outerDeadzonePx, 1600);
     c.accelPerSec = qBound(kLtsAccelMin, c.accelPerSec, kLtsAccelMax);

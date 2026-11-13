@@ -304,6 +304,7 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
         o.value(QStringLiteral("magFollowProfile")).toInt(int(magFollowProfile)));
     auto readLookToMap = [](const QJsonObject& mo, LookToDest dest) {
         LookToMapSettings c = defaultLookToMapSettings(dest);
+        c.hubPx = mo.value(QStringLiteral("hubPx")).toInt(c.hubPx);
         c.deadzonePx = mo.value(QStringLiteral("deadzonePx")).toInt(c.deadzonePx);
         c.maxPx = mo.value(QStringLiteral("maxPx"))
                       .toInt(mo.value(QStringLiteral("rampEndPx")).toInt(c.maxPx));
@@ -650,6 +651,7 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     o.insert(QStringLiteral("magFollowProfile"), int(copy.magFollowProfile));
     auto writeLookToMap = [](const LookToMapSettings& c) {
         QJsonObject mo;
+        mo.insert(QStringLiteral("hubPx"), c.hubPx);
         mo.insert(QStringLiteral("deadzonePx"), c.deadzonePx);
         mo.insert(QStringLiteral("maxPx"), c.maxPx);
         mo.insert(QStringLiteral("outerDeadzonePx"), c.outerDeadzonePx);

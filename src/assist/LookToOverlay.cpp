@@ -273,6 +273,8 @@ void LookToOverlay::paintRings(QPainter& p, const QPointF& c, const QColor& cyan
 double LookToOverlay::highlightRadius() const
 {
     switch (m_highlight) {
+    case LookToRing::Hub:
+        return double(m_cfg.hubPx);
     case LookToRing::Deadzone:
         return double(m_cfg.deadzonePx);
     case LookToRing::Max:

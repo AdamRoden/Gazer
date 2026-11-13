@@ -26,15 +26,14 @@ class InputService;
 class LookToOverlay;
 class PieOverlay;
 
-inline constexpr double kLtsHubVisualDiameterFrac = 0.05;
-inline constexpr double kLtsHubDwellDiameterFrac = 0.08;
 /// Gaze must leave the plus this long before it collapses to the overlay hub.
 inline constexpr double kLtsPlusDismissGraceSec = 0.18;
 
 /// Analog gaze disk: look away from an origin to drive scroll, mouse, or a
 /// stick. Four instances can run at once (`LookToMaps`). Circular deadzone,
 /// 0–100% ramp, 100% outside the ramp until an optional outer deadzone. Optional hub pie for
-/// speed, place, axis, and quit.
+/// speed, place, axis, and quit. Hub radius is `LookToMapSettings::hubPx`.
+/// Look-to-mouse keeps the deadzone center on the pointer.
 class LookToScroll final : public QObject {
     Q_OBJECT
 
@@ -125,9 +124,9 @@ private:
     [[nodiscard]] ComboMouseHit::Layout plusLayout() const;
     [[nodiscard]] QRectF plusScreenRect() const;
     [[nodiscard]] QPoint originPoint() const;
-    [[nodiscard]] double screenHeightPx() const;
-    [[nodiscard]] double hubVisualRadiusPx() const;
-    [[nodiscard]] double hubDwellRadiusPx() const;
+    /// Look-to-mouse: deadzone center is the current pointer.
+    void followPointerOrigin();
+    [[nodiscard]] double hubRadiusPx() const;
     [[nodiscard]] static QString plusHitId(ComboMouseHit::Band band, ComboMouseHit::Slice slice);
     [[nodiscard]] QString hubSpeedLabel() const;
 

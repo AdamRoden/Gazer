@@ -91,14 +91,14 @@ After any of them, a **500 ms** hold runs before a new dwell can start. `suspend
 | `toggleGazeReticle` | Gaze marker. Exclusive with the magnifier. |
 | `toggleGazeMouseFollow` | Cursor follows gaze. |
 | `lookToScroll` / `toggleLookToScroll` | Gaze analog **scroll**. Dwell to place an origin, then gaze vs the ring drives wheel. Four look-to maps can run at once. |
-| `lookToMouse` | Same analog disk, pointer velocity. |
+| `lookToMouse` | Same analog disk, pointer velocity. Deadzone center follows the pointer. Speed steps: 1, 5, 10, 25, 50, 100, 200, 500 px/s. |
 | `lookToLeftStick` / `lookToRightStick` | Same analog disk, virtual Xbox stick (ViGEm). |
 | `lts.resume` / `lts.quit` / `lts.reset` | Scroll map while on (`lookTo.scroll.*` aliases). |
 | `lts.speed.slower` / `lts.speed.faster` | Scroll peak speed (0.5–8 notches/sec). |
 | `lts.cycleMode` | Scroll axes: vertical → horizontal → both. |
 | `lookTo.mouse.*` / `lookTo.leftStick.*` / `lookTo.rightStick.*` | Same pie actions (`.resume` / `.quit` / `.reset` / `.speed.*` / `.cycleMode`). |
 | `lookTo.edit.scroll` / `.mouse` / `.leftStick` / `.rightStick` | Open that map’s ring editor. |
-| `lookTo.map.*` | Ring editor: preview, hub, radii, speed, direction, per-part border and fill. |
+| `lookTo.map.*` | Ring editor: preview, hub on/off, hub size, radii, speed, direction, per-part border and fill. |
 | `toggleComboMouse` | Arm ComboMouse place, or disable. |
 | `mouseMoveToGaze` | Toggle dwell-to-warp cursor. |
 | `mouseMoveToGazeClickLoop` | Sticky dwell-move then click until stopped. |
