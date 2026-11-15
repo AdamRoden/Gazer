@@ -18,7 +18,7 @@ Inbound `--action` payloads skip dwell. They parse into the same action list and
 | `actionLoop="true"` | The first fire **starts** a sticky loop that keeps dispatching the same actions. The next activation of that cell **stops** it. `stopAllActionLoops` (and Close All / Close Other) stop every loop. |
 | `<Phase>` children | The cell no longer has a single-shot list. The first dwell **activation** enters phase 0. Each later activation advances (the last wraps to the first). The **current** phase’s actions run when dwell **ends**. Mixed leftover attributes plus `<Phase>` is a load error. Empty `<Phase/>` is a load error. |
 
-Unspecified dwell uses **rapid** timing for `Send`, modifier commands, mapping keys (`backspace`, `space`, `enter`, …), and `compose.backspace` / `compose.deleteWord`. Everything else uses **standard** (settings, navigation, mouse, AHK, Run, assist toggles, composer word chips). Per-cell `scanGrace` / `activation` still override.
+Unspecified dwell uses **rapid** timing for `Send`, modifier commands, mapping keys (`backspace`, `space`, `enter`, …), and `compose.backspace` / `compose.deleteWord`. Everything else uses **standard** (settings, navigation, mouse, AHK, Run, assist toggles). Per-cell `scanGrace` / `activation` still override.
 
 ## How you write an action
 
@@ -415,7 +415,7 @@ Dwell: **standard**.
 </Cell>
 ```
 
-Composer word chips use phases: the first dwell puts the caret at the start of that word, the next selects the word, and the next clears the selection and puts the caret at the end. The last phase wraps back to the first. After an activation, progress holds full through scan grace before the next step clocks.
+A phased cell can cycle caret commands this way. Speak does not show that row. After an activation, progress holds full through scan grace before the next step clocks.
 
 ---
 
@@ -432,7 +432,7 @@ While the action’s **source page** is `compose`, `compose_voices_live`, `compo
 | `command="enter"` | Speaks (or saves, while renaming). Does not speak while the file browser is top. |
 | `command="escape"` | Stops speech if busy; otherwise cancels assign/edit, dismisses a file-browser Yes/No, closes a live overlay (including the file browser), or closes composer. |
 | `leftShift`, `tab`, other mapping keys | Consumed, no OS inject. |
-| `arrowLeft` / `arrowRight` | Move the export file-name caret. Otherwise consumed, no OS inject. |
+| `arrowLeft` / `arrowRight` / `home` / `end` | Move the phrase caret on Speak and the export file-name caret. Without Shift, arrows move one character and clear any selection; Home and End jump to that end. With Shift (held or the Speak shift layer), arrows extend or shrink the selection by one character, and Home and End extend it to that end. Repeat on the rapid dwell sequence. No OS inject. |
 | `compose.*` / `speech.*` / `soundboard.*` / `history.*` / `settings.speech.*` / `volume.dec` / `volume.inc` / dwell suspend commands | Run as builtins (not captured). |
 
 `qwerty_main` (and any other non-compose page, including `qwerty_file`) still injects into Windows even if composer is open underneath. Caps on the composer keyboard is XML `ShowLayers`, not OS Shift.

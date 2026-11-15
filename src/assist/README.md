@@ -25,7 +25,7 @@ Gaze tools on top of the page session.
 | `AudioGain` | Int16 PCM scale + clamp for clip boost (1–5×) |
 | `AudioOutput` | Playback-device list and the saved `speechOutputId`. Empty id is the Windows default. SAPI matches the endpoint id on the classic audio-output token |
 | `SystemVolume` / `VolumeBoard` | WASAPI master volume of the Speak playback device (0–100, step 10). The device is `AudioOutput::resolveDevice` (`speechOutputId`). Empty id is the Windows default. A missing device follows that default until `QMediaDevices::audioOutputsChanged`. The shell owns the endpoint. `VolumeBoard` stamps any `caption="volume"` slider and maps gaze on it. The slider stays passive. `GazeTrack::Lock` waits `kTrackLockMs` (or the cell's `scanGrace` when set) before `GazeTrack` may drag the level; the arming ring is the slider scrub. The label refresh waits until the current gaze sample has been classified. |
-| `ComposeBuffer` | Composer phrase, caret, chips, undo (800 ms coalesce). `load()` replaces the phrase and drops history for name-edit. No UI. |
+| `ComposeBuffer` | Composer phrase, caret, token window, undo (800 ms coalesce). `load()` replaces the phrase and drops history for name-edit. No UI. |
 | `ComposeCommands` | `compose.*` / `speech.*` builtins and prefixes |
 | `VoiceCatalog` | Parse/filter/sort ElevenLabs voice cache. No network. |
 | `SoundboardStore` | `boards.json` + `clips/`. Starters, assign, clip import, eviction. |

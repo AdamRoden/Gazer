@@ -30,10 +30,16 @@ struct PageTarget {
     QString textStyle;
     QString role;
     int caretIndex = -1;
-    /// Real caret while `caretIndex` is cleared for the blink. Paint sets this.
-    int pinCaret = -1;
+    /// Line to draw `caretIndex` on. -1 uses the line that contains the index.
+    /// A soft wrap shares that index with the next line, so the bar would otherwise
+    /// jump down when the caret sits on the right edge.
+    int caretLine = -1;
     int selectionStart = -1;
     int selectionEnd = -1;
+    /// While a phrase word is being looked at, paint that range bold at this scale.
+    int gazeWordStart = -1;
+    int gazeWordEnd = -1;
+    double gazeWordScale = 1.0;
     QString settingKey;
     bool suspendExempt = false;
     bool interactive = true;

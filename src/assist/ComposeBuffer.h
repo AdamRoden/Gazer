@@ -7,14 +7,14 @@
 
 namespace gazer {
 
-/// Internal composer phrase: caret, chips, undo. No UI, no network.
+/// Internal composer phrase: caret, token window, undo. No UI, no network.
 class ComposeBuffer {
 public:
     static constexpr int kUndoLimit = 80;
     static constexpr int kCoalesceMs = 800;
-    /// Physical chip buttons on the Speak row.
+    /// Token-window slots. Not shown on the Speak board.
     static constexpr int kVisibleChips = 12;
-    /// Word chips kept when the row pages. The first and last buttons are pagers.
+    /// Word slots when the window pages. The first and last slots are pagers.
     static constexpr int kChipWordSlots = 10;
     static constexpr int kChipPageStep = 5;
 
@@ -47,7 +47,7 @@ public:
     void backspace();
     /// Delete the selection, or the whole word before caret (Voice deleteWholeWord).
     void deleteWord();
-    /// Remove the word on chip `slot`. Pager slots and empty slots do nothing.
+    /// Remove the word in window `slot`. Pager slots and empty slots do nothing.
     void removeVisibleWord(int slot);
     void clear();
     /// Replace the phrase and caret, and drop undo/redo. Used when the composer
@@ -60,6 +60,8 @@ public:
     void moveCaretToVisibleWordEdge(int slot, bool atStart);
     /// Select token `index`. The caret stays at the start of that word. No undo step.
     void selectToken(int index);
+    /// Select [start, end) and place the caret. No undo step. An empty range collapses.
+    void setSelectionRange(int start, int end, int caret);
     void selectVisibleWord(int slot);
 
     bool undo();
@@ -79,14 +81,14 @@ public:
     void collapseSelection();
 
     [[nodiscard]] QVector<Token> tokens() const;
-    /// Words in the chip window. Pager buttons are not included.
+    /// Words in the token window. Pager slots are not included.
     [[nodiscard]] QVector<Token> visibleTokens() const;
-    /// Full-token index for a word chip, or -1 for a pager or empty slot.
+    /// Full-token index for a window slot, or -1 for a pager or empty slot.
     [[nodiscard]] int tokenIndexForVisibleSlot(int slot) const;
     [[nodiscard]] bool chipsOverflow() const;
     [[nodiscard]] int chipWindowStart() const;
     [[nodiscard]] ChipSlot chipSlot(int slot) const;
-    /// Move the word window by `delta` tokens (the chips use ±5).
+    /// Move the token window by `delta` tokens.
     void pageChips(int delta);
 
     /// Test hook: freeze the coalesce clock. nullopt = wall clock.

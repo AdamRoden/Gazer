@@ -1,6 +1,6 @@
 #include "utils/Log.h"
 
-#include <QCoreApplication>
+#include <QGuiApplication>
 #include <QFile>
 #include <QStringList>
 #include <QTest>
@@ -26,7 +26,7 @@ QObject* createMouseDwellMoveTest();
 QObject* createMouseLeftDragTest();
 QObject* createProgressPaintTest();
 QObject* createScrollBarTest();
-QObject* createFileNameScrollTest();
+QObject* createPhraseCaretChooseTest();
 QObject* createComboMouseTest();
 QObject* createLookToScrollTest();
 QObject* createAhkLauncherTest();
@@ -77,7 +77,7 @@ int main(int argc, char** argv)
     setvbuf(stdout, nullptr, _IONBF, 0);
     setvbuf(stderr, nullptr, _IONBF, 0);
 
-    QCoreApplication app(argc, argv);
+    QGuiApplication app(argc, argv);
     int status = 0;
     const QStringList baseArgs = argsWithoutDashO(argc, argv);
     // Next to the exe (the build dir in CI) so the windows-test-logs artifact
@@ -132,8 +132,8 @@ int main(int argc, char** argv)
     runSuite("ProgressPaintTest", progress.get());
     std::unique_ptr<QObject> scroll(createScrollBarTest());
     runSuite("ScrollBarTest", scroll.get());
-    std::unique_ptr<QObject> fileName(createFileNameScrollTest());
-    runSuite("FileNameScrollTest", fileName.get());
+    std::unique_ptr<QObject> phraseCaret(createPhraseCaretChooseTest());
+    runSuite("PhraseCaretChooseTest", phraseCaret.get());
     std::unique_ptr<QObject> combo(createComboMouseTest());
     runSuite("ComboMouseTest", combo.get());
     std::unique_ptr<QObject> lts(createLookToScrollTest());

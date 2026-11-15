@@ -3,6 +3,7 @@
 #include "app/AppSettings.h"
 #include "assist/ComposeBuffer.h"
 #include "assist/GazeTrack.h"
+#include "ui/PhraseCaretChoose.h"
 #include "assist/SoundboardStore.h"
 #include "assist/VoiceCatalog.h"
 #include "assist/VoiceStyles.h"
@@ -24,7 +25,10 @@
 namespace gazer {
 
 class ElevenClient;
+class KeyStateManager;
 class PageSession;
+class PhraseCaretOverlay;
+struct PageTarget;
 class TypingContext;
 class SpeechHistory;
 class SpeechEngine;
@@ -64,6 +68,7 @@ public:
         m_dismissColor = std::move(dismissGuest);
     }
     void setTypingContext(TypingContext* typing);
+    void setPhraseKeys(KeyStateManager* keys);
     [[nodiscard]] WordPredictor& predictor() { return m_predictor; }
 
     [[nodiscard]] bool isOpen() const;
@@ -95,7 +100,7 @@ public:
     void selectAll();
     void deselect();
     void cut();
-    void copy();
+    bool copy();
     void paste();
     void pageChips(int delta);
     void applyStyle(const QString& encoded);
@@ -118,6 +123,8 @@ public:
     void beginTagName();
     void removeVisibleWord(int slot);
     void acceptPrediction(int slot);
+    /// Move the phrase caret. ±1 follows Shift like an arrow key.
+    void nudgePhraseCaret(int delta);
     void moveEndOfWord(int slot);
     void moveStartOfWord(int slot);
     void selectWord(int slot);
@@ -177,7 +184,7 @@ public:
     void pageImportFiles(int delta);
     /// Move the file list by `rows`. A list row is one file. A tile row is eight.
     void scrollFileRows(int rows);
-    /// Move the export file-name caret by `delta` characters.
+    /// Move the export file-name caret. ±1 follows Shift like the phrase.
     void nudgeFileCaret(int delta);
     /// List shows the detail columns. Tiles shows a grid of icons.
     void setFileTiles(bool tiles);
@@ -221,8 +228,10 @@ public:
     void historyGoto(int offset);
     void onHistoryReady(const QString& phrase, const QString& backend, const QString& modelId,
                         const QString& voiceId, const QString& clipPath);
-    /// Drag a list scrollbar, or the export file-name caret, after the lock-on ring.
+    /// Drag a list scrollbar after the lock-on ring. The export file name uses the phrase caret look.
     void onGaze(const GazePoint& point);
+    /// True while a phrase or file-name word, or Copy, should not activate the cell underneath.
+    [[nodiscard]] bool claimsCaretGaze(const GazePoint& point) const;
 
 private:
     [[nodiscard]] bool isCapturing(const QString& sourcePageId) const;
@@ -259,7 +268,6 @@ private:
     void fillSoundboard(PageDocument& doc) const;
     void stampEditKeys(PageDocument& doc) const;
     void fillTopicsMode(PageDocument& doc) const;
-    void stampChips(PageDocument& doc) const;
 
     void ensureBrowserEntries() const;
     [[nodiscard]] bool editingFileName() const;
@@ -320,6 +328,7 @@ private:
     void applyImportedSpeech(const SoundboardStore::WorkspaceImportedSettings& imported);
     void updatePredictions();
     void layoutPredictRow(PageDocument& doc) const;
+    void layoutPhraseBox(PageDocument& doc) const;
     void loadPredictor();
     void closeItemEdit();
     /// Drop the icon board, the draft, the query, and the search keyboard.
@@ -356,8 +365,47 @@ private:
 
     PageDocument buildHistoryDocument();
     void rebuildHistory();
+    struct CaretLook {
+        enum class Host { None, Phrase, File };
+        Host host = Host::None;
+        QVector<PhraseWordSpan> words;
+        PhraseCaretButton button;
+        bool shown = false;
+        bool gazeLive = false;
+        PhraseWordLook wordLook;
+        PhraseLook buttonLook;
+        int copiedStart = -1;
+        int copiedEnd = -1;
+        int ackGen = 0;
+        QElapsedTimer ack;
+    };
     void feedListScrollGaze(const GazePoint& point);
+    void feedCaret(const GazePoint& point);
     void stopListScroll();
+    void dismissPhraseChooser();
+    void hideCaretCopy();
+    void destroyPhraseChooser();
+    void showCaretCopy(const QRectF& anchor);
+    void updateCaretChooser(const QPointF& gaze, bool gazeValid);
+    void publishCaretGrow(const PageTarget* target, int start, int end, double scale);
+    void publishCaret(int caretBefore, int selStartBefore, int selEndBefore);
+    void applyCaretChoice(PhraseCaretChoice choice);
+    void selectCaretWord(int index);
+    void useCaretHost(CaretLook::Host host);
+    void idleCaret(const PageTarget* target);
+    void runCaret(const GazePoint& point, const QRectF& anchor);
+    [[nodiscard]] ComposeBuffer& caretBuffer();
+    [[nodiscard]] const ComposeBuffer& caretBuffer() const;
+    [[nodiscard]] const PageTarget* caretTarget();
+    [[nodiscard]] int caretBoldWord() const;
+    [[nodiscard]] bool caretShift() const;
+    [[nodiscard]] int phraseCaretLine(const QString& label, int caret) const;
+    void syncCaretTyping();
+    void nudgeActiveCaret(int delta);
+    [[nodiscard]] bool handlePhraseCaretKey(const QString& command);
+    void finishCaretKey();
+    [[nodiscard]] bool exportCaretEngaged() const;
+    [[nodiscard]] double caretLookDt(const GazePoint& point);
 
     PageSession& m_pages;
     SpeechEngine& m_speech;
@@ -448,7 +496,7 @@ private:
     QString m_voiceQuery;
     /// Styles shown on one editor page: 2 rows × 3 columns.
     static constexpr int kStyleEditorPage = 6;
-    enum class ListScroll { None, History, Voices, Files, FileName, Icons, Styles, Tags, Rail };
+    enum class ListScroll { None, History, Voices, Files, Icons, Styles, Tags, Rail };
     ListScroll m_listScroll = ListScroll::None;
     mutable PageDocument m_composeAuthored;
     struct ShownPrediction {
@@ -458,6 +506,12 @@ private:
         int end = 0;
         QString learnWord;
         QStringList learnLeft;
+
+        [[nodiscard]] bool operator==(const ShownPrediction& o) const
+        {
+            return label == o.label && insertText == o.insertText && start == o.start && end == o.end
+                   && learnWord == o.learnWord && learnLeft == o.learnLeft;
+        }
     };
     QVector<ShownPrediction> m_shown;
     WordPredictor m_predictor;
@@ -467,6 +521,11 @@ private:
     QElapsedTimer m_listScrollClock;
     GazeTrack::Lock m_listScrollLock;
     GazeTrack::Drag m_listScrollDrag;
+    KeyStateManager* m_keys = nullptr;
+    CaretLook m_caret;
+    qint64 m_caretLookMs = -1;
+    QElapsedTimer m_caretClock;
+    PhraseCaretOverlay* m_caretUi = nullptr;
 };
 
 } // namespace gazer

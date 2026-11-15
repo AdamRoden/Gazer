@@ -157,6 +157,7 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
     m_comboMouse = std::make_unique<ComboMouse>();
     m_magnifier = std::make_unique<MagnifierOverlay>();
     m_mouseDwellMove = std::make_unique<MouseDwellMove>();
+    m_compose->setPhraseKeys(m_keyState.get());
     m_mouseAssist = std::make_unique<MouseAssistState>(*m_input);
     m_mouseLeftDrag = std::make_unique<MouseLeftDrag>();
     m_mouseLeftDrag->setMouseAssist(m_mouseAssist.get());

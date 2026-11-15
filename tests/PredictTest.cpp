@@ -99,6 +99,7 @@ private slots:
     void prefixBeatsNeighborEdit();
     void anchorsRankDoctorAboveUnrelated();
     void sentenceBoundaryDropsLeadingTopic();
+    void caretAtWordEndIsTyped();
     void realWordSurvivesMildEdit();
     void blobRoundTrip();
     void suggestIsQuick();
@@ -188,6 +189,20 @@ void PredictTest::sentenceBoundaryDropsLeadingTopic()
     const int pizza = indexOf(without, QStringLiteral("pizza"));
     const int doctor = indexOf(without, QStringLiteral("doctor"));
     QVERIFY2(pizza >= 0 && (doctor < 0 || pizza < doctor), qPrintable(joinHits(without)));
+}
+
+void PredictTest::caretAtWordEndIsTyped()
+{
+    const QString phrase = QStringLiteral("hello world");
+    const WordPredictor::Query atStart = WordPredictor::fromPhrase(phrase, 6);
+    QVERIFY(atStart.typed.isEmpty());
+    QCOMPARE(atStart.activeStart, 6);
+    QCOMPARE(atStart.activeEnd, 6);
+
+    const WordPredictor::Query selected = WordPredictor::fromPhrase(phrase, 11);
+    QCOMPARE(selected.typed, QStringLiteral("world"));
+    QCOMPARE(selected.activeStart, 6);
+    QCOMPARE(selected.activeEnd, 11);
 }
 
 void PredictTest::realWordSurvivesMildEdit()

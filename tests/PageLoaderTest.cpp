@@ -838,7 +838,7 @@ void PageLoaderTest::loadComposePage()
     QCOMPARE(doc.findGrid(QStringLiteral("keys"))->cells.size(), 36);
     QCOMPARE(doc.findGrid(QStringLiteral("board"))->layers,
              (QVector<int>{1, 2, 3, 4, 5}));
-    QCOMPARE(doc.findGrid(QStringLiteral("compose"))->rows, 1);
+    QCOMPARE(doc.findGrid(QStringLiteral("compose"))->rows, 2);
     const PageGrid* keys = doc.findGrid(QStringLiteral("keys"));
     QVERIFY(keys);
     const std::optional<PageDimParse::StarBand> band =
@@ -929,14 +929,14 @@ void PageLoaderTest::loadComposePage()
     QVERIFY(!doc.findGrid(QStringLiteral("edit_keys")));
     QVERIFY(doc.findGrid(QStringLiteral("speak_keys")));
     QCOMPARE(doc.findGrid(QStringLiteral("speak_keys"))->col, 1);
-    QCOMPARE(doc.findGrid(QStringLiteral("chips"))->col, 0);
-    QCOMPARE(doc.findGrid(QStringLiteral("chips"))->row, 3);
+    QVERIFY(!doc.findGrid(QStringLiteral("chips")));
     QCOMPARE(doc.findGrid(QStringLiteral("compose"))->columns, 2);
-    QCOMPARE(doc.findGrid(QStringLiteral("compose"))->rows, 1);
-    QCOMPARE(doc.findGrid(QStringLiteral("predict"))->row, 1);
+    QCOMPARE(doc.findGrid(QStringLiteral("compose"))->rows, 2);
+    QCOMPARE(doc.findGrid(QStringLiteral("predict"))->row, 2);
     QCOMPARE(doc.findGrid(QStringLiteral("predict"))->col, 0);
     QCOMPARE(doc.findGrid(QStringLiteral("phrase"))->row, 0);
-    QCOMPARE(doc.findGrid(QStringLiteral("speak_keys"))->row, 0);
+    QCOMPARE(doc.findGrid(QStringLiteral("phrase"))->rowSpan, 2);
+    QCOMPARE(doc.findGrid(QStringLiteral("speak_keys"))->row, 1);
     QCOMPARE(doc.findGrid(QStringLiteral("speak_keys"))->rowSpan, 1);
     QCOMPARE(doc.findCell(QStringLiteral("clear"))->styleId, QStringLiteral("round"));
     QVERIFY(!doc.findCell(QStringLiteral("undo")));
@@ -947,13 +947,22 @@ void PageLoaderTest::loadComposePage()
     const QVector<int> allLayers{1, 2, 3, 4, 5};
     QCOMPARE(doc.findGrid(QStringLiteral("compose"))->layers, allLayers);
     QCOMPARE(doc.findGrid(QStringLiteral("phrase"))->layers, allLayers);
-    QCOMPARE(doc.findGrid(QStringLiteral("chips"))->layers, allLayers);
+    QCOMPARE(doc.findGrid(QStringLiteral("predict"))->layers, allLayers);
     QCOMPARE(doc.findGrid(QStringLiteral("speak_keys"))->layers, allLayers);
     QCOMPARE(doc.findGrid(QStringLiteral("board"))->rows, 2);
     QCOMPARE(doc.findGrid(QStringLiteral("keys"))->row, 1);
     QCOMPARE(doc.findGrid(QStringLiteral("rail"))->row, 0);
     QCOMPARE(doc.findGrid(QStringLiteral("soundboard"))->row, 0);
-    QCOMPARE(doc.findGrid(QStringLiteral("compose"))->row, 2);
+    const PageGrid* stage = doc.findGrid(QStringLiteral("stage"));
+    QVERIFY(stage);
+    QCOMPARE(stage->rows, 3);
+    QCOMPARE(stage->rowTracks.size(), 3);
+    QVERIFY(stage->rowTracks.at(0).isStar());
+    QCOMPARE(stage->rowTracks.at(1).dim.unit, PageDim::Unit::Pixels);
+    QCOMPARE(stage->rowTracks.at(1).dim.value, 96.0);
+    QCOMPARE(stage->rowTracks.at(2).dim.unit, PageDim::Unit::Pixels);
+    QCOMPARE(stage->rowTracks.at(2).dim.value, 72.0);
+    QCOMPARE(doc.findGrid(QStringLiteral("compose"))->row, 1);
     QVERIFY(!doc.findCell(QStringLiteral("actions")));
     QCOMPARE(doc.findCell(QStringLiteral("clear"))->actions[0].command,
              QStringLiteral("compose.clear"));
@@ -1060,17 +1069,8 @@ void PageLoaderTest::loadComposePage()
     QCOMPARE(sym->colSpan, 9);
     QCOMPARE(sym->actions[0].layers, QVector<int>({3}));
     QVERIFY(!usesRapidDwell(shift->actions, shift->phases));
-    const PageCell* chip = doc.findCell(QStringLiteral("chip_0"));
-    QVERIFY(chip);
-    QCOMPARE(chip->phases.size(), 3);
-    QCOMPARE(chip->phases[0].actions[0].command, QStringLiteral("compose.moveStartOfWord.0"));
-    QCOMPARE(chip->phases[1].actions[0].command, QStringLiteral("compose.selectWord.0"));
-    QCOMPARE(chip->phases[2].actions[0].command, QStringLiteral("compose.moveEndOfWord.0"));
-    const PageCell* chip11 = doc.findCell(QStringLiteral("chip_11"));
-    QVERIFY(chip11);
-    QCOMPARE(chip11->phases[1].actions[0].command, QStringLiteral("compose.selectWord.11"));
-    QCOMPARE(chip11->phases[2].actions[0].command, QStringLiteral("compose.moveEndOfWord.11"));
-    QVERIFY(!usesRapidDwell(chip->actions, chip->phases));
+    QVERIFY(!doc.findCell(QStringLiteral("chip_0")));
+    QVERIFY(!doc.findCell(QStringLiteral("chip_11")));
 }
 
 void PageLoaderTest::findCellMutateDoesNotShareCopy()

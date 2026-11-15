@@ -31,7 +31,7 @@ Child order is free. Grids and zones are painted and hit in document order withi
 | Rule | Behavior |
 |------|----------|
 | Dims | Integer token = pixels (`150`). Token with `.` or `/` = proportion of the bounds (`0.5`, `1/2`). Arithmetic with `A_ScreenWidth` / `A_ScreenHeight` is pixels (`A_ScreenHeight/9*16`), evaluated against the placement surface passed at resolve time (work area when `desktopMode`). `clamp(value, min, max)` bounds a pixel expression. Grid tracks add `*` / `2*` for leftover space (`rowHeights="80,*,120"`). |
-| Style / dwell | Page inherits from settings, then overrides per field. Unspecified dwell uses **rapid** for Send / modifiers / mapping keys / composer typing, and **standard** for everything else (including mouse, AHK, and composer word chips). Grids, cells, and zones inherit from the **page** (never from a parent grid). Named `style` / `dwell` plus inline attrs override individual members. Unset `background` paints as the page/theme canvas (`bg100`). Grid resolve then drops `foreground` / `progressStyle` / `progressColor`. |
+| Style / dwell | Page inherits from settings, then overrides per field. Unspecified dwell uses **rapid** for Send / modifiers / mapping keys / composer typing, and **standard** for everything else (including mouse, AHK, and assist toggles). Grids, cells, and zones inherit from the **page** (never from a parent grid). Named `style` / `dwell` plus inline attrs override individual members. Unset `background` paints as the page/theme canvas (`bg100`). Grid resolve then drops `foreground` / `progressStyle` / `progressColor`. |
 | Overlap | Topmost attached page’s grid is opaque. Shell grids/zones paint and hit above the rest. A cell on a buried grid does not come forward when dwelled; only the unoccluded part hit-tests. |
 | Drawer / quit | Layer membership. Master XML puts dock chips on layer 1, the drawer on 2, quit on 3. `ShowLayers` sets the visible set (Main chip `1,2`; Dismiss `1`; Quit `1,3`). Consecutive ShowLayers in one cell are applied together, then the drawer animates: appear when a `drawerMotion` grid is shown, dismiss when it is the last master grid hidden, snap when another master grid remains. Hidden shell grids do not reserve host space. |
 | Auto-close | Idle on an `autoClose` grid or page closes those boards (root never destroys itself). Duration and the master on/off switch are Settings (`layoutAutoClose`, `layoutAutoCloseIdleMs`). `suspendDwell` stops the idle timer; `resumeDwell` restarts it from zero. |
@@ -131,7 +131,7 @@ The same chrome attributes may be set on `<Page>`, `<Grid>`, `<Cell>`, and `<Zon
 
 Named or anonymous timing. An unnamed `<Dwell>` (no `id`) sets the page default for every cell on the page. Grids, cells, and zones inherit from the page, never from a parent grid. They may reference a named dwell with `dwell="id"` and override individual members inline.
 
-When the page does not set a default, Speed settings supply **rapid** dwell (keys, composer typing, modifiers) or **standard** dwell (settings, navigation, mouse, AHK, assist toggles, composer word chips). Scan grace is a shared advanced Speed setting.
+When the page does not set a default, Speed settings supply **rapid** dwell (keys, composer typing, modifiers) or **standard** dwell (settings, navigation, mouse, AHK, assist toggles). Scan grace is a shared advanced Speed setting.
 
 | Attribute | Description |
 |-----------|-------------|
@@ -426,7 +426,7 @@ AHK should `Run` that `--action` line (the pipe is Qt duplex; `FileOpen` write-o
 
 ### Composer capture
 
-While `compose` is top, or the action’s source page is `compose` or a compose live board (`compose_voices_live`, `compose_history_live`, `compose_files_live`, `compose_item_edit_live`), `Send` and mapping/modifier commands never inject into the OS. Letters go into the internal phrase, into the file name when the file browser is on top, or into the icon search while that keyboard is open. `backspace` / `space` / `enter` edit the phrase, the file name, or the icon search. Enter closes the icon search keyboard. `enter` otherwise saves a name or speaks. `escape` stops speech, dismisses a file-browser Yes/No, closes the icon search keyboard, closes the icon tiles, or closes that page. `leftShift` / `Ctrl` / `tab` are no-ops. `arrowLeft` / `arrowRight` move the export file-name caret. `qwerty_main` is unchanged. `qwerty_file` is that same OS keyboard. Speak Import and Export use the in-app browser, not that page. `compose.*` and `settings.speech.*` still run as builtins.
+While `compose` is top, or the action’s source page is `compose` or a compose live board (`compose_voices_live`, `compose_history_live`, `compose_files_live`, `compose_item_edit_live`), `Send` and mapping/modifier commands never inject into the OS. Letters go into the internal phrase, into the file name when the file browser is on top, or into the icon search while that keyboard is open. `backspace` / `space` / `enter` edit the phrase, the file name, or the icon search. Enter closes the icon search keyboard. `enter` otherwise saves a name or speaks. `escape` stops speech, dismisses a file-browser Yes/No, closes the icon search keyboard, closes the icon tiles, or closes that page. `leftShift` / `Ctrl` / `tab` are no-ops. `arrowLeft` / `arrowRight` / `home` / `end` move the phrase caret and the export file-name caret, and repeat on the rapid dwell sequence. Shift (held or the Speak shift layer) extends the selection: arrows by one character, Home and End to that end. Without Shift, arrows move one character and clear any selection. `qwerty_main` is unchanged. `qwerty_file` is that same OS keyboard. Speak Import and Export use the in-app browser, not that page. `compose.*` and `settings.speech.*` still run as builtins.
 
 ---
 
@@ -450,7 +450,7 @@ Each `<Phase>` takes the same action attribute or child actions as a cell.
 </Cell>
 ```
 
-Composer word chips use this cycle: the first dwell puts the caret at the start of the word, the next selects the word, and the next clears the selection and puts the caret at the end. The last phase wraps back to the first.
+That cycle puts the caret at the start of the word, then selects it, then moves to the end. Speak does not show this row. The last phase wraps back to the first.
 
 ---
 

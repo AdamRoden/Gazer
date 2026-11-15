@@ -255,6 +255,23 @@ void ComposeBuffer::selectVisibleWord(int slot)
     selectToken(tokenIndexForVisibleSlot(slot));
 }
 
+void ComposeBuffer::setSelectionRange(int start, int end, int caretPos)
+{
+    const int n = m_text.size();
+    start = std::clamp(start, 0, n);
+    end = std::clamp(end, 0, n);
+    if (start > end) {
+        std::swap(start, end);
+    }
+    m_caret = std::clamp(caretPos, 0, n);
+    if (start == end) {
+        collapseSelection();
+        return;
+    }
+    m_selA = start;
+    m_selB = end;
+}
+
 bool ComposeBuffer::undo()
 {
     if (m_undo.isEmpty()) {

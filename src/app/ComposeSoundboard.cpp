@@ -468,6 +468,7 @@ void ComposeUi::dismissBoardNote()
 
 void ComposeUi::commitEdit()
 {
+    dismissPhraseChooser();
     dismissBoardNote();
     refresh();
     if (nameEditing()) {

@@ -206,7 +206,6 @@ void PageHostWindow::paintScene(QPainter& p, ChromePass pass)
             return;
         }
         PageTarget vis = t;
-        vis.pinCaret = t.caretIndex;
         if (!live || !m_caretOn) {
             vis.caretIndex = -1;
         }
@@ -630,6 +629,62 @@ void PageHostWindow::setCurve(QVector<HeadPoseCurvePoint> points, int selected, 
     m_live.curveLiveOn = liveOn;
     if (m_board) {
         m_board->update();
+    }
+}
+
+void PageHostWindow::setPhraseWordGrow(const QString& targetKey, int start, int end, double scale)
+{
+    if (targetKey.isEmpty()) {
+        return;
+    }
+    if (start < 0 || end <= start) {
+        start = -1;
+        end = -1;
+        scale = 1.0;
+    }
+    for (PageTarget& t : m_targets) {
+        if (sessionKey(t) != targetKey) {
+            continue;
+        }
+        if (t.gazeWordStart == start && t.gazeWordEnd == end && qAbs(t.gazeWordScale - scale) < 0.001) {
+            return;
+        }
+        t.gazeWordStart = start;
+        t.gazeWordEnd = end;
+        t.gazeWordScale = scale;
+        if (m_board) {
+            m_board->update();
+        }
+        return;
+    }
+}
+
+void PageHostWindow::setTargetCaret(const QString& targetKey, int caret, int caretLine,
+                                    int selectionStart, int selectionEnd)
+{
+    if (targetKey.isEmpty()) {
+        return;
+    }
+    for (PageTarget& t : m_targets) {
+        if (sessionKey(t) != targetKey) {
+            continue;
+        }
+        if (t.caretIndex == caret && t.caretLine == caretLine && t.selectionStart == selectionStart
+            && t.selectionEnd == selectionEnd) {
+            return;
+        }
+        t.caretIndex = caret;
+        t.caretLine = caretLine;
+        t.selectionStart = selectionStart;
+        t.selectionEnd = selectionEnd;
+        if (caret >= 0 && !m_caretBlinkTimer.isActive()) {
+            m_caretOn = true;
+            m_caretBlinkTimer.start();
+        }
+        if (m_board) {
+            m_board->update();
+        }
+        return;
     }
 }
 

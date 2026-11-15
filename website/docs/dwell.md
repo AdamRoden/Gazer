@@ -17,7 +17,7 @@ Two sequences share scan grace:
 | Sequence | Used for |
 |----------|----------|
 | **Rapid** | `Send`, composer typing, modifiers, mapping keys (`backspace`, `space`, `enter`, …), `compose.backspace` / `compose.deleteWord` |
-| **Standard** | Settings, navigation, mouse, AHK, Run, assist toggles, composer word chips, `quitApp`, editor / preview |
+| **Standard** | Settings, navigation, mouse, AHK, Run, assist toggles, `quitApp`, editor / preview |
 
 Both live under Settings → **Dwell** (Slow / Normal / Fast / Custom). Those presets also set pointer dwell, zoom dwell, and blink grace. Scan grace is not part of a preset. Per-cell XML can override `scanGrace`, `dwellGrace`, and `activation`.
 

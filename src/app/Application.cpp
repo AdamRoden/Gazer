@@ -439,6 +439,9 @@ void Application::onGaze(const gazer::GazePoint& point)
     m_svc->settingsUi().onGaze(point);
     m_svc->composeUi().onGaze(point);
     m_gazeRouter.dispatch(point);
+    if (m_svc->composeUi().claimsCaretGaze(point)) {
+        m_svc->pages().leaveGaze();
+    }
     if (m_svc->isDwellSuspended()) {
         syncDwellSuspendOverlay();
     }

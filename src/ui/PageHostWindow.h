@@ -33,6 +33,7 @@ public:
     explicit PageHostWindow(QWindow* parent = nullptr);
 
     void setTheme(const ThemeColors& theme);
+    [[nodiscard]] const ThemeColors& theme() const { return m_theme; }
     void setProgressVisuals(const ProgressVisuals& visuals);
     void commit(QVector<PageTarget> targets, QVector<PageGridPaint> grids, double drawerScale,
                 QRectF reserved = {}, QHash<QString, QString> pageBgTokens = {});
@@ -50,6 +51,11 @@ public:
     void setHeadPreviewImage(QImage image);
     void setCurve(QVector<HeadPoseCurvePoint> points, int selected, double liveIn, bool liveOn);
     void setTargetPhase(const QString& targetKey, int phaseIndex);
+    /// Caret and selection on one painted target. Does not rebuild the page.
+    void setTargetCaret(const QString& targetKey, int caret, int caretLine, int selectionStart,
+                        int selectionEnd);
+    /// Bold, growing phrase word. A negative start clears it. Does not rebuild the page.
+    void setPhraseWordGrow(const QString& targetKey, int start, int end, double scale);
     void setInputFocusEnabled(bool on);
     void showHost();
     void raiseHost();

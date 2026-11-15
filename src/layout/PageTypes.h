@@ -317,7 +317,7 @@ struct PageAction {
 };
 
 /// Rapid dwell for keys, composer typing, modifiers, and mapping key commands.
-/// Settings / nav / assist toggles / mouse / AHK / Run / composer word chips use standard dwell.
+/// Settings / nav / assist toggles / mouse / AHK / Run use standard dwell.
 [[nodiscard]] inline bool isRapidDwellCommand(QStringView name)
 {
     const QString n = name.toString();
@@ -396,16 +396,15 @@ inline constexpr int kTrackLockMs = 400;
            && caption.compare(QLatin1String("volume"), Qt::CaseInsensitive) == 0;
 }
 
-/// label / value / display / slider / preview / scrollbar / caretscroll / colorfield /
+/// label / value / display / slider / preview / scrollbar / colorfield /
 /// headpreview / curvefield are not dwell targets (slider/curvefield with actions are).
-/// `caretscroll` is the invisible export file-name scroller.
 [[nodiscard]] inline bool pageRoleIsPassive(QStringView role)
 {
     const QString r = role.toString().trimmed().toLower();
     return r == QLatin1String("label") || r == QLatin1String("value")
            || r == QLatin1String("display") || r == QLatin1String("slider")
            || r == QLatin1String("preview") || r == QLatin1String("scrollbar")
-           || r == QLatin1String("caretscroll") || r == QLatin1String("colorfield")
+           || r == QLatin1String("colorfield")
            || r == QLatin1String("headpreview") || r == QLatin1String("curvefield");
 }
 
@@ -425,6 +424,8 @@ struct PageLeaf {
     QString visibleWhen;
     /// UTF-16 offset in `label` for a blinking caret; -1 = none.
     int caretIndex = -1;
+    /// Soft-wrap line for `caretIndex`. -1 lets paint pick the line that contains it.
+    int caretLine = -1;
     /// Inclusive start and exclusive end of a phrase selection. -1 = none.
     int selectionStart = -1;
     int selectionEnd = -1;

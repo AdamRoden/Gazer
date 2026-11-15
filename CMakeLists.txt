@@ -77,6 +77,8 @@ set(GAZER_SOURCES
     src/app/ComposeFileDialog.cpp
     src/app/OsFileDialog.cpp
     src/app/ComposeListScroll.cpp
+    src/app/ComposePhraseCaret.cpp
+    src/app/ComposePredict.cpp
     src/assist/ComposeCommands.cpp
     src/core/TrackerMouse.cpp
     src/core/TrackerTobii.cpp
@@ -559,7 +561,7 @@ add_executable(GazerPageTests
     src/ui/PickStyle.cpp
     tests/ProgressPaintTest.cpp
     tests/ScrollBarTest.cpp
-    tests/FileNameScrollTest.cpp
+    tests/PhraseCaretGazeTest.cpp
     src/ui/ScrollBar.cpp
     tests/ComboMouseTest.cpp
     tests/LookToScrollTest.cpp

@@ -57,7 +57,7 @@
           </SubGrid>
         </SubGrid>
         <SubGrid id="row_predict" row="6" col="0" rows="1" columns="2" gap="6" style="row">
-          <Cell id="predict_l" row="0" col="0" label="Word predictions" caption="Suggestions above the phrase. Dwell a word to insert it." role="label" style="plain"/>
+          <Cell id="predict_l" row="0" col="0" label="Word predictions" caption="Suggestions below the phrase. Dwell a word to insert it." role="label" style="plain"/>
           <Cell id="predict_on" row="0" col="1" label="On" role="toggle" activeState="settings.speech.predictions.toggle" style="button" command="settings.speech.predictions.toggle"/>
         </SubGrid>
       </SubGrid>

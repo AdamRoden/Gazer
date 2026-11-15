@@ -202,6 +202,12 @@ bool ComposeUi::handleFileCommand(const QString& command)
         nudgeFileCaret(-1);
     } else if (c == QLatin1String("arrowRight")) {
         nudgeFileCaret(1);
+    } else if (m_fileMode == FileMode::Export
+               && (c == QLatin1String("home") || c == QLatin1String("end"))) {
+        useCaretHost(CaretLook::Host::File);
+        applyCaretChoice(c == QLatin1String("home") ? PhraseCaretChoice::Home
+                                                    : PhraseCaretChoice::End);
+        finishCaretKey();
     }
     return true;
 }
@@ -360,19 +366,6 @@ bool ComposeUi::exportBoard(QString* error)
 bool ComposeUi::importChoose(QString* error)
 {
     return openFileMode(FileMode::Import, error);
-}
-
-void ComposeUi::nudgeFileCaret(int delta)
-{
-    if (delta == 0 || !hasLive(kFilesLiveId) || m_fileMode != FileMode::Export) {
-        return;
-    }
-    const int next = qBound(0, m_fileName.caret() + delta, m_fileName.text().size());
-    if (next == m_fileName.caret() && !m_fileName.hasSelection()) {
-        return;
-    }
-    m_fileName.setCaret(next);
-    rebuildFiles();
 }
 
 bool ComposeUi::browserUp(QString* error)

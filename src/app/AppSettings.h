@@ -27,7 +27,7 @@ struct AppSettings {
     /// Editor and persisted sequences keep at most this many steps.
     static constexpr int kMaxDwellSequenceSteps = 12;
     /// Standard dwell steps (ms). Last step repeats while gaze holds.
-    /// Default for settings, navigation, mouse, AHK, composer word chips, and other non-key cells.
+    /// Default for settings, navigation, mouse, AHK, and other non-key cells.
     QVector<int> dwellSequence = defaultDwellSequence();
     /// Rapid dwell steps. Default for Send, composer typing, modifiers, and mapping keys.
     QVector<int> rapidDwellSequence = defaultRapidDwellSequence();

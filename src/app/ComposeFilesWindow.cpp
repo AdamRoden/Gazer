@@ -478,8 +478,7 @@ PageDocument ComposeUi::buildFilesDocument() const
     actions.col = 1;
     actions.rows = 1;
     actions.gapPx = 8;
-    const bool exportEdit = m_fileMode == FileMode::Export && m_fileConfirm == FileConfirm::None;
-    const int nameCol = exportEdit ? 1 : 0;
+    const int nameCol = 0;
     const QString nameCaption = m_fileConfirm == FileConfirm::None
                                     ? (m_boardNote.isEmpty() ? QStringLiteral("File name")
                                                              : m_boardNote)
@@ -516,41 +515,26 @@ PageDocument ComposeUi::buildFilesDocument() const
                                      QStringLiteral("compose.fileNo"), surface));
         actions.cells.push_back(cancelAt(4));
     } else if (m_fileMode == FileMode::Export) {
-        actions.columns = 5;
-        actions.columnTracks = {pxTrack(72), PageTrackSize::starWeight(), pxTrack(72), pxTrack(132),
-                                pxTrack(132)};
-        const bool canLeft = m_fileName.caret() > 0 || m_fileName.hasSelection();
-        const bool canRight =
-            m_fileName.caret() < m_fileName.text().size() || m_fileName.hasSelection();
-        auto caretArrow = [&](const QString& id, int col, bool on, const QString& command,
-                              const QString& icon) {
-            PageCell button = cell(id, {}, 0, col, on ? command : QString(), surface, 1,
-                                   on ? QString() : QStringLiteral("label"), {}, icon);
+        actions.columns = 7;
+        actions.columnTracks = {PageTrackSize::starWeight(), pxTrack(72), pxTrack(72), pxTrack(72),
+                                pxTrack(72), pxTrack(132), pxTrack(132)};
+        auto nav = [&](const QString& id, int col, const QString& command, const QString& icon) {
+            PageCell button = cell(id, {}, 0, col, command, surface, 1, {}, {}, icon);
             button.textStyle = QStringLiteral("row");
-            if (!on) {
-                button.style.foreground =
-                    ThemeColors::mix(surface, ThemeColors::contrastOn(surface), 0.4);
-            }
             return button;
         };
-        actions.cells.push_back(caretArrow(QStringLiteral("file_left"), 0, canLeft,
-                                           QStringLiteral("compose.fileCaret.-1"),
-                                           QStringLiteral("ArrowLeft")));
-        actions.cells.push_back(name);
-        PageCell caretTrack =
-            cell(QStringLiteral("file_caret"), m_fileName.text(), 0, nameCol, {}, QColor(), 1,
-                 QStringLiteral("caretscroll"), nameCaption);
-        caretTrack.caretIndex = qBound(0, m_fileName.caret(), caretTrack.label.size());
-        caretTrack.textStyle = QStringLiteral("filename");
-        caretTrack.dwell.scanGrace = kTrackLockMs;
-        caretTrack.style.thickness = PageBox::all(0);
-        actions.cells.push_back(std::move(caretTrack));
-        actions.cells.push_back(caretArrow(QStringLiteral("file_right"), 2, canRight,
-                                           QStringLiteral("compose.fileCaret.1"),
-                                           QStringLiteral("ArrowRight")));
-        actions.cells.push_back(cell(QStringLiteral("file_save"), QStringLiteral("Save"), 0, 3,
+        actions.cells.push_back(std::move(name));
+        actions.cells.push_back(nav(QStringLiteral("file_home"), 1, QStringLiteral("home"),
+                                    QStringLiteral("alignLeft")));
+        actions.cells.push_back(nav(QStringLiteral("file_left"), 2, QStringLiteral("arrowLeft"),
+                                    QStringLiteral("arrowWest")));
+        actions.cells.push_back(nav(QStringLiteral("file_right"), 3, QStringLiteral("arrowRight"),
+                                    QStringLiteral("arrowEast")));
+        actions.cells.push_back(nav(QStringLiteral("file_end"), 4, QStringLiteral("end"),
+                                    QStringLiteral("alignRight")));
+        actions.cells.push_back(cell(QStringLiteral("file_save"), QStringLiteral("Save"), 0, 5,
                                      QStringLiteral("compose.browserSave"), accent));
-        actions.cells.push_back(cancelAt(4));
+        actions.cells.push_back(cancelAt(6));
     } else {
         actions.columns = 4;
         actions.columnTracks = starTracks({2.6, 1.15, 1.15, 1.15});

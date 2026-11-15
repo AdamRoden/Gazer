@@ -35,7 +35,7 @@
       <SubGrid id="sec_dwell" row="1" col="0" rows="3" columns="1" rowHeights="48,96,96" gap="8" margin="8" style="group">
         <Cell id="h_dwell" row="0" col="0" label="Sequences" role="label" textStyle="section" style="plain"/>
         <SubGrid id="row_dwell" row="1" col="0" rows="1" columns="2" gap="6" style="row">
-          <Cell id="dwell_label" row="0" col="0" label="Standard" caption="Settings, navigation, mouse, AHK, and composer word chips. Last step repeats." role="label" style="plain"/>
+          <Cell id="dwell_label" row="0" col="0" label="Standard" caption="Settings, navigation, mouse, and AHK. Last step repeats." role="label" style="plain"/>
           <SubGrid id="act_dwell" row="0" col="1" rows="1" columns="2" columnWidths="7*,2*" gap="0" style="row">
             <Cell id="dwell_value" row="0" col="0" label="—" role="value" settingKey="dwellMs" style="joinLeft"/>
             <Cell id="dwell_edit" row="0" col="1" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.dwellMs"/>

@@ -743,7 +743,7 @@ QString AppSettings::settingDescription(const QString& key)
     if (isSequenceKey(key)) {
         return QStringLiteral(
             "Comma-separated standard dwell times in ms (settings, navigation, mouse, "
-            "AHK, composer word chips). Last step repeats.");
+            "AHK). Last step repeats.");
     }
     if (const IntSpec* s = findInt(key)) {
         return QLatin1String(s->hint);

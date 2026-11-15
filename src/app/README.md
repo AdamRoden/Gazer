@@ -23,7 +23,7 @@ Composition root, settings, command dispatch.
 | `ComposeHistory.cpp` | History replay/restore |
 | `ComposeFiles.cpp` | Import/merge and export browser, confirm, and file-name caret |
 | `ComposeFilesWindow.cpp` | That browser (places, list or tile view, footer). Import/merge has Cancel. Export has caret arrows, Save, and Cancel |
-| `ComposeListScroll.cpp` | Scrollbar drag on history, voices, the file list, and the icon tiles, plus the export file-name caret (`GazeTrack`) |
+| `ComposeListScroll.cpp` | Scrollbar drag on history, voices, styles, tags, favorites, the file list, and the icon tiles |
 | `GazeRouter` | Gaze sample → session + assist |
 | `ActiveStateResolver` | `visibleWhen` / `activeState` keys (`mod.shift`, …) |
 | `AppSettings` | Persisted prefs. Factory values on the struct; `defaults()` calls `applyTheme()`; spec tables + nudge/display in `.cpp`; JSON overlay in `AppSettingsIo.cpp` (`loadManaged`: backup, schema migrate, restore); Fluent appearance × accent/progress in `AppSettingsTheme.cpp`. Installer wipe policy: `SettingsInstallPolicy.h` |

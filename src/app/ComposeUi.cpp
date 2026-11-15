@@ -1,7 +1,6 @@
 #include "app/ComposeUi.h"
 
 #include "app/AppSettings.h"
-#include "app/ComposeUiInternal.h"
 #include "app/IconCatalog.h"
 #include "app/SettingsPageBuild.h"
 #include "assist/ElevenClient.h"
@@ -34,8 +33,6 @@
 
 namespace gazer {
 
-using compose_detail::commandAction;
-
 ComposeUi::ComposeUi(PageSession& pages, SpeechEngine& speech, AppSettings& settings,
                      SpeechSecrets& secrets, ElevenClient& eleven, TtsService& tts,
                      SoundboardStore& board, SpeechHistory& history)
@@ -56,7 +53,10 @@ ComposeUi::ComposeUi(PageSession& pages, SpeechEngine& speech, AppSettings& sett
     loadPredictor();
 }
 
-ComposeUi::~ComposeUi() = default;
+ComposeUi::~ComposeUi()
+{
+    destroyPhraseChooser();
+}
 
 void ComposeUi::setTypingContext(TypingContext* typing)
 {
@@ -295,6 +295,9 @@ void ComposeUi::handleCapturedCommand(const QString& command)
             backspace();
             return;
         }
+        if (handlePhraseCaretKey(c)) {
+            return;
+        }
         if (c == QLatin1String("space")) {
             insertText(QStringLiteral(" "));
             return;
@@ -314,6 +317,9 @@ void ComposeUi::handleCapturedCommand(const QString& command)
     }
     if (c == QLatin1String("backspace") || c == QLatin1String("compose.backspace")) {
         backspace();
+        return;
+    }
+    if (handlePhraseCaretKey(c)) {
         return;
     }
     if (c == QLatin1String("space")) {
@@ -495,17 +501,18 @@ void ComposeUi::deselect()
     refresh();
 }
 
-void ComposeUi::copy()
+bool ComposeUi::copy()
 {
     if (capturingPhrase()) {
-        return;
+        return false;
     }
     QClipboard* clip = QGuiApplication::clipboard();
     if (!clip) {
-        return;
+        return false;
     }
     const ComposeBuffer& buf = editTarget();
     clip->setText(buf.hasSelection() ? buf.selectedText() : buf.text());
+    return true;
 }
 
 void ComposeUi::cut()
@@ -608,9 +615,6 @@ void ComposeUi::decoratePage(PageDocument& doc) const
     const auto st = m_speech.status();
     const bool stop = st.busy || st.speaking;
     const bool naming = capturingPhrase();
-    if (!naming) {
-        stampChips(doc);
-    }
 
     auto paint = [&](PageGrid& g, auto& self) -> void {
         for (PageCell& c : g.cells) {
@@ -626,6 +630,7 @@ void ComposeUi::decoratePage(PageDocument& doc) const
                         c.selectionStart = m_buffer.selectionStart();
                         c.selectionEnd = m_buffer.selectionEnd();
                     }
+                    c.caretLine = phraseCaretLine(c.label, c.caretIndex);
                     c.role = QStringLiteral("display");
                     if (editMode()) {
                         c.caption = QStringLiteral("Dwell a button or + topic");
@@ -652,16 +657,10 @@ void ComposeUi::decoratePage(PageDocument& doc) const
         paint(g, paint);
     }
     layoutPredictRow(doc);
+    layoutPhraseBox(doc);
 }
 
 namespace {
-
-int predictionWidth(const QString& label)
-{
-    const QFont font(BoardPaint::segoeFamily(), 16, QFont::DemiBold);
-    const int adv = int(std::ceil(QFontMetricsF(font).horizontalAdvance(label)));
-    return std::clamp(adv + 32, 72, 280);
-}
 
 QString displayWord(const QString& word, const QString& typed, bool capFirst)
 {
@@ -710,7 +709,7 @@ void ComposeUi::updatePredictions()
         return;
     }
     const QString text = m_buffer.text();
-    const int caret = m_buffer.caret();
+    const int caret = m_buffer.hasSelection() ? m_buffer.selectionEnd() : m_buffer.caret();
     const WordPredictor::Query q = WordPredictor::fromPhrase(text, caret);
     const QVector<WordPredictor::Hit> hits = m_predictor.suggest(q, WordPredictor::kMaxSuggestions);
     for (const WordPredictor::Hit& hit : hits) {
@@ -754,73 +753,13 @@ void ComposeUi::updatePredictions()
     }
 }
 
-void ComposeUi::layoutPredictRow(PageDocument& doc) const
-{
-    PageGrid* predict = doc.findGrid(QStringLiteral("predict"));
-    PageGrid* phrase = doc.findGrid(QStringLiteral("phrase"));
-    const PageGrid* authPredict = m_composeAuthored.findGrid(QStringLiteral("predict"));
-    const PageGrid* authPhrase = m_composeAuthored.findGrid(QStringLiteral("phrase"));
-    const PageGrid* authChips = m_composeAuthored.findGrid(QStringLiteral("chips"));
-    if (!predict || !phrase || !authPredict || !authPhrase) {
-        return;
-    }
-    const int pRow = authPredict->row;
-    const int phRow = authPhrase->row;
-    const int phSpan = std::max(1, authPhrase->rowSpan);
-    const bool hide = capturingPhrase() || !m_settings.composePredictions;
-    if (hide) {
-        predict->rowSpan = 0;
-        predict->colSpan = 0;
-        predict->cells.clear();
-        predict->columnTracks.clear();
-        phrase->row = std::min(pRow, phRow);
-        int bottom = phRow + phSpan;
-        if (capturingPhrase() && authChips) {
-            bottom = std::max(bottom, authChips->row + std::max(1, authChips->rowSpan));
-        }
-        phrase->rowSpan = std::max(1, bottom - phrase->row);
-        return;
-    }
-    predict->row = pRow;
-    predict->rowSpan = std::max(1, authPredict->rowSpan);
-    predict->col = authPredict->col;
-    predict->colSpan = std::max(1, authPredict->colSpan);
-    phrase->row = phRow;
-    phrase->rowSpan = phSpan;
-    predict->rows = 1;
-    predict->cells.clear();
-    predict->columnTracks.clear();
-    if (m_shown.isEmpty()) {
-        predict->columns = 1;
-        PageCell empty;
-        empty.id = QStringLiteral("pred_0");
-        empty.row = 0;
-        empty.col = 0;
-        empty.role = QStringLiteral("label");
-        predict->cells.push_back(std::move(empty));
-        return;
-    }
-    predict->columns = m_shown.size();
-    for (int i = 0; i < m_shown.size(); ++i) {
-        PageCell cell;
-        cell.id = QStringLiteral("pred_%1").arg(i);
-        cell.label = m_shown[i].label;
-        cell.row = 0;
-        cell.col = i;
-        cell.actions.push_back(
-            commandAction(QStringLiteral("compose.acceptPrediction.%1").arg(i)));
-        predict->cells.push_back(std::move(cell));
-        predict->columnTracks.push_back(
-            PageTrackSize::fromDim(PageDim::pixels(predictionWidth(m_shown[i].label))));
-    }
-}
-
 void ComposeUi::acceptPrediction(int slot)
 {
     if (capturingPhrase() || slot < 0 || slot >= m_shown.size()) {
         return;
     }
     const ShownPrediction shown = m_shown[slot];
+    dismissPhraseChooser();
     m_buffer.replaceRange(shown.start, shown.end, shown.insertText);
     if (m_settings.composePredictions) {
         if (m_typing) {
@@ -832,56 +771,6 @@ void ComposeUi::acceptPrediction(int slot)
     refresh();
 }
 
-void ComposeUi::stampChips(PageDocument& doc) const
-{
-    PageGrid* chips = doc.findGrid(QStringLiteral("chips"));
-    const PageGrid* authored = m_composeAuthored.findGrid(QStringLiteral("chips"));
-    if (!chips || !authored) {
-        return;
-    }
-    chips->row = authored->row;
-    chips->col = authored->col;
-    chips->rowSpan = std::max(1, authored->rowSpan);
-    chips->colSpan = std::max(1, authored->colSpan);
-    chips->cells = authored->cells;
-    const QVector<ComposeBuffer::Token> tokens = m_buffer.tokens();
-    for (PageCell& cell : chips->cells) {
-        if (cell.id == QLatin1String("chip_more")) {
-            cell.label.clear();
-            continue;
-        }
-        if (!cell.id.startsWith(QLatin1String("chip_"))) {
-            continue;
-        }
-        bool ok = false;
-        const int slot = QStringView(cell.id).mid(5).toInt(&ok);
-        if (!ok) {
-            continue;
-        }
-        const ComposeBuffer::ChipSlot chip = m_buffer.chipSlot(slot);
-        if (chip.kind == ComposeBuffer::ChipSlotKind::Word) {
-            cell.label = chip.tokenIndex >= 0 && chip.tokenIndex < tokens.size()
-                             ? tokens.at(chip.tokenIndex).text
-                             : QString();
-            continue;
-        }
-        cell.phases.clear();
-        cell.actions.clear();
-        if (chip.kind == ComposeBuffer::ChipSlotKind::PageBack
-            || chip.kind == ComposeBuffer::ChipSlotKind::PageForward) {
-            const bool back = chip.kind == ComposeBuffer::ChipSlotKind::PageBack;
-            cell.label = back ? QString(u"\u25C05") : QString(u"5\u25B6");
-            cell.role.clear();
-            cell.actions.push_back(commandAction(
-                QStringLiteral("compose.pageChips.%1")
-                    .arg(back ? -ComposeBuffer::kChipPageStep : ComposeBuffer::kChipPageStep)));
-        } else {
-            cell.label.clear();
-            cell.role = QStringLiteral("label");
-        }
-    }
-}
-
 void ComposeUi::presentNamingPhrase(PageCell& cell) const
 {
     const int cap = borrowingPhrase() ? VoiceStyles::kNameMax : 24;
@@ -889,6 +778,7 @@ void ComposeUi::presentNamingPhrase(PageCell& cell) const
     cell.label = ellipsis(raw, cap);
     const int visLen = qMin(raw.size(), cap);
     cell.caretIndex = qBound(0, qBound(0, m_buffer.caret(), visLen), cell.label.size());
+    cell.caretLine = phraseCaretLine(cell.label, cell.caretIndex);
     cell.selectionStart = -1;
     cell.selectionEnd = -1;
     cell.caption = m_borrowed == BorrowedPhrase::Tag

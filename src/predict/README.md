@@ -11,7 +11,7 @@ Sentence-length spelling and next-word ranking for the Speak page. The query is 
 | `PredictBlob.cpp` | `GZPR` model file and `GZPU` user counts |
 | `PredictTrain.cpp` | Build a model from one sentence per line |
 
-`ComposeUi` calls `suggest` when the phrase changes and stamps `pred_0`… on the `predict` row above the phrase. Gaze samples do not query the model.
+`ComposeUi` calls `suggest` when the phrase changes and stamps `pred_0`… on the `predict` row under the phrase. Undo, redo, and the caret keys stay on that row when suggestions are off. Gaze samples do not query the model.
 
 Score is a noisy channel: log of an interpolated word probability, minus an edit cost. The trigram covers the last two words. Up to four content words earlier in the sentence (closed-class words dropped) pull related candidates through embeddings and PMI triggers. A typed lexicon word is replaced only when the alternative is about 100 times more likely after the edit cost. A longer word that continues the token under the caret stays in the list. A finished word is held to that same margin.
 

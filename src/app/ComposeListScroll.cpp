@@ -5,12 +5,9 @@
 #include "assist/GazeTrack.h"
 #include "layout/PageHit.h"
 #include "layout/PageSession.h"
-#include "ui/BoardPaint.h"
 #include "ui/PageHostWindow.h"
-#include "ui/PhraseLayout.h"
 #include "ui/ScrollBar.h"
 
-#include <QFont>
 #include <QtGlobal>
 
 namespace gazer {
@@ -34,21 +31,11 @@ const PageTarget* frontScrollTrack(const QVector<PageTarget>& targets)
     return nullptr;
 }
 
-const PageTarget* fileNameScroller(const QVector<PageTarget>& targets)
-{
-    for (int i = targets.size() - 1; i >= 0; --i) {
-        const PageTarget& t = targets[i];
-        if (t.pageId == ComposeUi::kFilesLiveId && localIdOf(t) == QLatin1String("file_caret")) {
-            return &t;
-        }
-    }
-    return nullptr;
-}
-
 } // namespace
 
 void ComposeUi::onGaze(const GazePoint& point)
 {
+    feedCaret(point);
     if (!hasLive(kHistoryLiveId) && !hasLive(kVoicesLiveId) && !hasLive(kFilesLiveId)
         && !hasLive(kItemEditLiveId) && !hasLive(kStylesLiveId) && !hasLive(kTagsLiveId)
         && !hasLive(kRailLiveId)) {
@@ -102,50 +89,6 @@ void ComposeUi::feedListScrollGaze(const GazePoint& point)
     if (hitT && hitT->interactive) {
         stopListScroll();
         return;
-    }
-
-    if (const PageTarget* name = fileNameScroller(m_pages.targets())) {
-        const QRectF cell = name->geom.contentOnScreen();
-        const QRectF bound = cell.adjusted(-2.0, -6.0, 2.0, 6.0);
-        if (!cell.isEmpty() && bound.contains(point.toPointF())) {
-            m_listScrollGrace.onValid();
-            const QFont font(BoardPaint::segoeFamily(), kFileNameFontPx, QFont::Normal);
-            const QRectF pad = phrasePad(cell);
-            const int caret = name->caretIndex >= 0 ? name->caretIndex : 0;
-            const FileNameScroll scrolled =
-                fileNameScroll(font, name->label, caret, pad, !name->caption.isEmpty());
-            const QString id = sessionKey(*name);
-            if (m_listScrollLock.key != id) {
-                m_listScrollDrag = {};
-            }
-            const int grace = name->dwell.scanGrace.value_or(kTrackLockMs);
-            const double progress = m_listScrollLock.arm(id, now, grace);
-            const double span = qMax(scrolled.textWidth, 1.0);
-            const double t = qBound(0.0, scrolled.caretAdvance / span, 1.0);
-            if (m_pages.window()) {
-                m_pages.window()->setSliderScrub(id, t, progress >= 1.0 ? 0.0 : progress);
-            }
-            if (progress < 1.0 || scrolled.viewWidth <= 1.0) {
-                return;
-            }
-            if (m_listScroll != ListScroll::FileName) {
-                m_listScroll = ListScroll::FileName;
-                m_listScrollDrag = {};
-            }
-            const double track1 = qMax(scrolled.textWidth, scrolled.viewWidth);
-            if (track1 <= 1.0) {
-                return;
-            }
-            const double gazeDoc = (point.x - scrolled.line.left()) + scrolled.scroll;
-            const double pos = GazeTrack::moveThumb(m_listScrollDrag, gazeDoc, scrolled.caretAdvance,
-                                                    0.0, track1, now);
-            const int next = fileNameCaretAt(font, name->label, pos);
-            if (next != m_fileName.caret() || m_fileName.hasSelection()) {
-                m_fileName.setCaret(next);
-                rebuildFiles();
-            }
-            return;
-        }
     }
 
     const PageTarget* track = frontScrollTrack(m_pages.targets());

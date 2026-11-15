@@ -459,6 +459,8 @@ void PageLoaderActionTest::rapidDwellClassification()
     QVERIFY(usesRapidDwell({cmd(QStringLiteral("leftShift"))}));
     QVERIFY(usesRapidDwell({cmd(QStringLiteral("leftCtrl"))}));
     QVERIFY(usesRapidDwell({cmd(QStringLiteral("backspace"))}));
+    QVERIFY(usesRapidDwell({cmd(QStringLiteral("arrowLeft"))}));
+    QVERIFY(usesRapidDwell({cmd(QStringLiteral("arrowRight"))}));
     QVERIFY(usesRapidDwell({cmd(QStringLiteral("compose.backspace"))}));
     QVERIFY(usesRapidDwell({cmd(QStringLiteral("compose.deleteWord"))}));
 

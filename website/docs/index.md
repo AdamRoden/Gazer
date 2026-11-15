@@ -54,7 +54,7 @@ Version **0.7.2**. License: [GPL-3.0](https://github.com/AdamRoden/Gazer/blob/ma
 
 -   :material-microphone: __Speech__
 
-    Gaze composer with an internal phrase, word chips, ElevenLabs or Windows SAPI, soundboard clips, and history.
+    Gaze composer with an internal phrase, word suggestions, ElevenLabs or Windows SAPI, soundboard clips, and history.
 
 -   :material-cog: __Settings__
 

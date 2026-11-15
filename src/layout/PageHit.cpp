@@ -288,6 +288,7 @@ void walkGrid(const PageDocument& page, const PageGrid& grid, const QRectF& boun
         t.textStyle = cell.textStyle;
         t.role = cell.role;
         t.caretIndex = cell.caretIndex;
+        t.caretLine = cell.caretLine;
         t.selectionStart = cell.selectionStart;
         t.selectionEnd = cell.selectionEnd;
         t.settingKey = cell.settingKey;
