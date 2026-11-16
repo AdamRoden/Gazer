@@ -283,6 +283,7 @@ void ComposeUi::stampEditKeys(PageDocument& doc) const
             done = editMode();
         }
     }
+    const bool escCtrl = escCtrlKeyboard();
     const QStringList ids = {QStringLiteral("edit"), QStringLiteral("edit_s"),
                              QStringLiteral("edit_sym"), QStringLiteral("edit_ss")};
     for (const QString& id : ids) {
@@ -294,7 +295,7 @@ void ComposeUi::stampEditKeys(PageDocument& doc) const
         key->activeState.clear();
         key->style.foreground.reset();
         key->style.background = QColor();
-        if (m_iconKeyboard) {
+        if (escCtrl) {
             key->label = QStringLiteral("Esc");
             key->icon.clear();
             key->actions.push_back(commandAction(QStringLiteral("escape")));
@@ -318,6 +319,35 @@ void ComposeUi::stampEditKeys(PageDocument& doc) const
         } else {
             key->style.background.token = QStringLiteral("bg90");
         }
+    }
+
+    const QStringList actionIds = {QStringLiteral("delivery"), QStringLiteral("delivery_s"),
+                                   QStringLiteral("delivery_sym"), QStringLiteral("delivery_ss")};
+    for (const QString& id : actionIds) {
+        PageCell* key = doc.findCell(id);
+        if (!key) {
+            continue;
+        }
+        if (escCtrl) {
+            key->actions.clear();
+            key->activeState = QStringLiteral("mod.ctrl");
+            key->style.foreground.reset();
+            key->style.background = QColor();
+            key->style.background.token = QStringLiteral("bg90");
+            key->label = QStringLiteral("Ctrl");
+            key->icon.clear();
+            key->actions.push_back(commandAction(QStringLiteral("leftCtrl")));
+            continue;
+        }
+        const PageCell* authored = m_composeAuthored.findCell(id);
+        if (!authored) {
+            continue;
+        }
+        key->label = authored->label;
+        key->icon = authored->icon;
+        key->actions = authored->actions;
+        key->activeState = authored->activeState;
+        key->style = authored->style;
     }
 }
 

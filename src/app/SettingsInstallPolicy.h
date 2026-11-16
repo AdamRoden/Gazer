@@ -3,8 +3,7 @@
 namespace gazer {
 
 /// How this MSI invocation relates to an existing install.
-/// Fresh, upgrade, repair, and same-version reinstall all keep settings unless
-/// the user asked for a factory reset (`RESETUSERSETTINGS=1`).
+/// Fresh, upgrade, repair, and same-version reinstall all keep settings.
 enum class SettingsInstallKind {
     Fresh,
     Upgrade,
@@ -15,20 +14,16 @@ enum class SettingsInstallKind {
 struct SettingsInstallDecision {
     /// Leave `%AppData%\Gazer\settings.json` in place.
     bool preserveSettings = true;
-    /// Delete the live settings file so the next launch writes factory defaults.
+    /// The installer does not delete the live settings file.
     bool factoryReset = false;
 };
 
-/// Installer policy shared with tests. `packaging/Gazer.wxs` must match:
-/// `settings.json` is removed only when a factory reset was requested.
-[[nodiscard]] inline SettingsInstallDecision decideSettingsInstall(SettingsInstallKind kind,
-                                                                   bool resetRequested)
+/// Installer policy shared with tests. `packaging/Gazer.wxs` keeps
+/// `settings.json` on every install kind.
+[[nodiscard]] inline SettingsInstallDecision decideSettingsInstall(SettingsInstallKind kind)
 {
     (void)kind;
-    SettingsInstallDecision d;
-    d.factoryReset = resetRequested;
-    d.preserveSettings = !resetRequested;
-    return d;
+    return {};
 }
 
 } // namespace gazer

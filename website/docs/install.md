@@ -15,11 +15,17 @@ Published builds go on [GitHub Releases](https://github.com/AdamRoden/Gazer/rele
 
 The MSI installs to `Program Files\Gazer\` with a Start Menu shortcut and a logon entry for `Gazer.exe --guard` (watchdog). Setup asks whether to add a desktop shortcut and, on the last page, whether to launch Gazer. The shortcut choice is remembered for the next install. A quiet install (`msiexec /qn`) keeps the shortcut unless you pass `INSTALLDESKTOPSHORTCUT=0`, and it does not launch Gazer. The Program Files copy is stamped `uiAccess=true` and signed so it can sit above Task Manager and type/click into elevated windows. A `Gazer.exe` built in the source tree is left without UIAccess so it still launches from the build directory.
 
-Install, upgrade, repair, and installing the same version again keep your settings. The options page has **Reset my settings to factory defaults** (off unless you check it). A quiet install keeps settings unless you pass `RESETUSERSETTINGS=1`. That deletes `settings.json` (and a leftover copy under `Gazer\Gazer\`) so the next launch writes factory defaults. Speech secrets, clips, and user layouts stay either way. Inside Gazer, Settings → reset (`settings.reset`) writes factory defaults and keeps the previous file as `settings.json.bak`.
+Install, upgrade, repair, and installing the same version again keep your settings. Speech secrets, clips, and user layouts stay as well. Inside Gazer, Settings → reset (`settings.reset`) writes factory defaults and keeps the previous file as `settings.json.bak`.
 
 If no release is up yet, build an MSI from the tree: [README — Beta MSI](https://github.com/AdamRoden/Gazer/blob/master/README.md#beta-msi).
 
 Testers still need Tobii drivers for hardware gaze. Without a tracker, use the mouse backend.
+
+## Updates
+
+After this version is installed once, Gazer checks [GitHub Releases](https://github.com/AdamRoden/Gazer/releases) on its own: about 45 seconds after start, then about every four hours. When a newer MSI is published, a gaze prompt offers **Update now** and **Later**. **Update now** downloads and installs in the background while you keep using Gazer. When the package is ready, Gazer asks you to restart. Restart closes Gazer, applies the update, and opens Gazer again.
+
+The first install of a build that includes this updater is still a normal MSI, including the usual Windows approval. Later updates stay inside Gazer and do not open the installer wizard. A copy built from the source tree can check and download; applying the package needs the update task from an installed copy. ViGEmBus setup still needs a helper on the Secure Desktop. Settings → **Setup** → **Check for updates** runs a check immediately.
 
 ## First launch
 

@@ -215,8 +215,18 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
         }
         return false;
     }
-    const QJsonObject o = doc.object();
+    if (!applyJsonObject(doc.object())) {
+        if (error) {
+            *error = QStringLiteral("Settings could not be applied");
+        }
+        return false;
+    }
+    GAZER_INFO << "Loaded settings from" << path;
+    return true;
+}
 
+bool AppSettings::applyJsonObject(const QJsonObject& o)
+{
     auto loadSeq = [](const QJsonValue& v) {
         QVector<int> out;
         if (v.isArray()) {
@@ -595,13 +605,11 @@ bool AppSettings::loadFromFile(const QString& path, QString* error)
     flashMs = o.value(QStringLiteral("flashMs")).toInt(flashMs);
 
     applyTheme();
-
     clamp();
-    GAZER_INFO << "Loaded settings from" << path;
     return true;
 }
 
-bool AppSettings::saveToFile(const QString& path, QString* error) const
+QJsonObject AppSettings::toJsonObject() const
 {
     AppSettings copy = *this;
     copy.clamp();
@@ -805,7 +813,12 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     o.insert(QStringLiteral("flashForegroundOpacity"), copy.flashForegroundOpacity);
     o.insert(QStringLiteral("flashColor"), copy.flashColor);
     o.insert(QStringLiteral("flashMs"), copy.flashMs);
+    return o;
+}
 
+bool AppSettings::saveToFile(const QString& path, QString* error) const
+{
+    const QJsonObject o = toJsonObject();
     QFile f(path);
     if (!f.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
         if (error) {
@@ -815,6 +828,63 @@ bool AppSettings::saveToFile(const QString& path, QString* error) const
     }
     f.write(QJsonDocument(o).toJson(QJsonDocument::Indented));
     GAZER_INFO << "Saved settings to" << path;
+    return true;
+}
+
+namespace {
+
+void copySettingKey(const QJsonObject& from, QJsonObject& to, const QString& key)
+{
+    const int dot = key.indexOf(QLatin1Char('.'));
+    if (dot < 0) {
+        if (from.contains(key)) {
+            to.insert(key, from.value(key));
+        } else {
+            to.remove(key);
+        }
+        return;
+    }
+    const QString parentKey = key.left(dot);
+    const QString child = key.mid(dot + 1);
+    const QJsonObject parentFrom = from.value(parentKey).toObject();
+    QJsonObject parentTo = to.value(parentKey).toObject();
+    if (parentFrom.contains(child)) {
+        parentTo.insert(child, parentFrom.value(child));
+    } else {
+        parentTo.remove(child);
+    }
+    if (parentTo.isEmpty() && !from.contains(parentKey)) {
+        to.remove(parentKey);
+    } else {
+        to.insert(parentKey, parentTo);
+    }
+}
+
+} // namespace
+
+bool AppSettings::resetKeysToDefaults(const QStringList& keys)
+{
+    if (keys.isEmpty()) {
+        return false;
+    }
+    const QJsonObject factory = AppSettings::defaults().toJsonObject();
+    QJsonObject mine = toJsonObject();
+    bool copied = false;
+    for (const QString& key : keys) {
+        if (key.isEmpty() || key.count(QLatin1Char('.')) > 1) {
+            continue;
+        }
+        copySettingKey(factory, mine, key);
+        copied = true;
+    }
+    if (!copied) {
+        return false;
+    }
+    AppSettings next = AppSettings::defaults();
+    if (!next.applyJsonObject(mine)) {
+        return false;
+    }
+    *this = next;
     return true;
 }
 

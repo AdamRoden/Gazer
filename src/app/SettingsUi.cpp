@@ -388,6 +388,10 @@ void stampGrid(PageGrid& grid, const AppSettings& settings, const ThemeColors& s
 
 void SettingsUi::decoratePage(PageDocument& doc)
 {
+    if (doc.id == QLatin1String("main_update")) {
+        decorateUpdate(doc);
+        return;
+    }
     if (!doc.id.startsWith(QLatin1String("main_settings"))) {
         return;
     }
@@ -436,6 +440,12 @@ void SettingsUi::decoratePage(PageDocument& doc)
     }
     if (doc.id == QLatin1String("main_settings_head_pose")) {
         decorateHeadPosePage(doc);
+    }
+    if (doc.id == QLatin1String("main_settings_defaults")) {
+        decorateDefaults(doc);
+    }
+    if (doc.id == QLatin1String("main_settings_setup")) {
+        stampSetupUpdate(doc);
     }
     stampSettingsScroll(doc);
 }

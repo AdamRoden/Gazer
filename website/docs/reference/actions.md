@@ -172,7 +172,7 @@ Unknown multi-character names fail (`Unknown key: …`). Prefer mapping commands
 
 ### What happens
 
-1. If the source page is a composer capture page and the name is **not** in the allow-through families (`compose.*`, `speech.*`, `soundboard.*`, `history.*`, `settings.speech.*`, `volume.dec` / `volume.inc`, `toggleDwellSuspend` / `suspendDwell` / `resumeDwell`), the command is captured ([Composer capture](#composer-capture)).
+1. If the source page is a composer capture page and the name is **not** in the allow-through families (`compose.*`, `speech.*`, `soundboard.*`, `history.*`, `settings.speech.*`, `volume.dec` / `volume.inc`, `toggleDwellSuspend` / `suspendDwell` / `resumeDwell`), the command is captured ([Composer capture](#composer-capture)). `leftCtrl` is the exception while Settings import or export has the file browser open.
 2. Otherwise `CommandRegistry.run(name, sourcePageId)`:
    1. **Exact builtin** (shell, assist, settings, composer, …).
    2. Else **longest prefix** handler (`settings.edit.`, `compose.removeWord.`, `speech.voice.`, `headPose.map.`, …).
@@ -431,7 +431,7 @@ While the action’s **source page** is `compose`, `compose_voices_live`, `compo
 | `command="space"` | Inserts a space. |
 | `command="enter"` | Speaks (or saves, while renaming). Does not speak while the file browser is top. |
 | `command="escape"` | Stops speech if busy; otherwise cancels assign/edit, dismisses a file-browser Yes/No, closes a live overlay (including the file browser), or closes composer. |
-| `leftShift`, `tab`, other mapping keys | Consumed, no OS inject. |
+| `leftShift`, `tab`, other mapping keys | Consumed, no OS inject. During Settings import and export, and on a search keyboard (View defaults, icon search, or a Speak voice, history, style, tag, or favorites search), Actions is Ctrl: `leftCtrl` cycles the modifier instead of being captured, and Edit is Escape. `leftCtrl` is let through only while that face is on. The keyboard’s top edge meets the bottom of the file browser during import and export. |
 | `arrowLeft` / `arrowRight` / `home` / `end` | Move the phrase caret on Speak and the export file-name caret. Without Shift, arrows move one character and clear any selection; Home and End jump to that end. With Shift (held or the Speak shift layer), arrows extend or shrink the selection by one character, and Home and End extend it to that end. Repeat on the rapid dwell sequence. No OS inject. |
 | `compose.*` / `speech.*` / `soundboard.*` / `history.*` / `settings.speech.*` / `volume.dec` / `volume.inc` / dwell suspend commands | Run as builtins (not captured). |
 

@@ -15,6 +15,7 @@ namespace gazer {
 
 struct GazePoint;
 class ActionLoopService;
+class AppUpdater;
 class AhkLauncher;
 class SidecarHost;
 class AssistSession;
@@ -88,6 +89,7 @@ public:
     InputService& input() { return *m_input; }
 
     SettingsUi& settingsUi() { return *m_settingsUi; }
+    AppUpdater& updater() { return *m_updater; }
     AppSettings& settings() { return m_settings; }
     [[nodiscard]] const AppSettings& settings() const { return m_settings; }
     void applySettings(bool persist = true);
@@ -162,6 +164,7 @@ private:
     std::unique_ptr<ActionLoopService> m_actionLoops;
     std::unique_ptr<AssistCommandContext> m_assistCmdCtx;
     std::unique_ptr<SettingsUi> m_settingsUi;
+    std::unique_ptr<AppUpdater> m_updater;
     AppSettings m_settings;
 };
 

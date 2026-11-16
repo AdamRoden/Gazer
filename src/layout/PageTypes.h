@@ -453,6 +453,12 @@ struct PageLeaf {
             && phases.isEmpty()) {
             return false;
         }
+        // A swatch with no action is a color well. Theme swatches keep their commands.
+        const QString well = role.trimmed().toLower();
+        if ((well == QLatin1String("swatch") || well == QLatin1String("swatchrect"))
+            && actions.isEmpty() && phases.isEmpty()) {
+            return false;
+        }
         return true;
     }
 };

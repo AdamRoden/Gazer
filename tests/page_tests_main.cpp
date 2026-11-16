@@ -45,6 +45,8 @@ QObject* createHeadPoseMapperTest();
 QObject* createKeyGravityTest();
 QObject* createSettingsMigrationTest();
 QObject* createSettingsInstallPolicyTest();
+QObject* createSettingsCatalogTest();
+QObject* createUpdateReleaseTest();
 QObject* createTrackingWatchTest();
 
 namespace {
@@ -170,6 +172,10 @@ int main(int argc, char** argv)
     runSuite("SettingsMigrationTest", settingsMigration.get());
     std::unique_ptr<QObject> installPolicy(createSettingsInstallPolicyTest());
     runSuite("SettingsInstallPolicyTest", installPolicy.get());
+    std::unique_ptr<QObject> settingsCatalog(createSettingsCatalogTest());
+    runSuite("SettingsCatalogTest", settingsCatalog.get());
+    std::unique_ptr<QObject> updateRelease(createUpdateReleaseTest());
+    runSuite("UpdateReleaseTest", updateRelease.get());
     std::unique_ptr<QObject> tracking(createTrackingWatchTest());
     runSuite("TrackingWatchTest", tracking.get());
     fprintf(stderr, "GazerPageTests overall=%d log=%s\n", status, qPrintable(suitePath));

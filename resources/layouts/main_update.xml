@@ -1,0 +1,11 @@
+<Page id="main_update" name="Update" radius="16">
+  <Style id="plain" background="transparent" thickness="0" radius="0"/>
+  <Style id="button" background="transparent" thickness="0" radius="10"/>
+  <Grid id="board" desktopMode="true" rows="3" columns="2" anchor="Top" offset="0,24" size="880,300" gap="8" margin="16" radius="16"
+        rowHeights="64,*,72">
+    <Cell id="update_title" row="0" col="0" colSpan="2" label="Update" role="label" textStyle="title" style="plain"/>
+    <Cell id="update_body" row="1" col="0" colSpan="2" label="Checking for updates" role="label" style="plain"/>
+    <Cell id="update_now" row="2" col="0" label="Update now" style="button" command="settings.update.now"/>
+    <Cell id="update_later" row="2" col="1" label="Later" style="button" command="settings.update.later"/>
+  </Grid>
+</Page>

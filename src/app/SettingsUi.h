@@ -13,6 +13,7 @@
 #include <QHash>
 #include <QMetaObject>
 #include <QPoint>
+#include <QSet>
 #include <QString>
 #include <QVector>
 #include <functional>
@@ -20,7 +21,9 @@
 
 namespace gazer {
 
+class AppUpdater;
 class CommandRegistry;
+class ComposeUi;
 class ElevenClient;
 class HeadPoseMapper;
 class LookToMaps;
@@ -33,7 +36,16 @@ class VigemInstaller;
 /// Implementations: SettingsUi.cpp (shared), SettingsNumpad, SettingsArrayEditor,
 /// SettingsColorPicker, SettingsHexEditor, SettingsSpeechKey, SettingsSpeechOutput,
 /// SettingsSliderGaze, SettingsScroll,
-/// SettingsCommands, SettingsHeadPose.
+/// SettingsCommands, SettingsHeadPose, SettingsDefaults, SettingsDefaultsEdit.
+
+/// One group card per settings page on the View defaults scroller.
+/// Tracks are name, default, current, edit, and select.
+/// `editingId` is an on/off row whose current cell is the switch. Save and Cancel
+/// replace Edit and Select on that row.
+void fillSettingsDefaultsGrid(PageGrid& host, const AppSettings& live, const QString& filter,
+                              const QString& query, const QString& editingId = {},
+                              bool editingOn = false);
+
 class SettingsUi {
 public:
     using ApplyFn = std::function<void(bool persist)>;
@@ -64,6 +76,13 @@ public:
     void syncHeadPosePaint();
 
     void registerCommands();
+    void setUpdater(AppUpdater* updater) { m_updater = updater; }
+    void setCompose(ComposeUi* compose);
+    [[nodiscard]] QString defaultsFilter() const;
+    [[nodiscard]] bool defaultsFilterOpen() const;
+    [[nodiscard]] bool defaultsPicked(const QString& id) const;
+    /// `rest` is a catalog id, or `id.token` while a choice pad is open.
+    [[nodiscard]] bool defaultsDraftActive(const QString& rest) const;
     void decoratePage(PageDocument& doc);
     /// Store the validated key, or surface the HTTP/DPAPI error. Returns true if stored.
     [[nodiscard]] bool onSpeechKeyValidated(bool ok, const QString& error);
@@ -230,6 +249,38 @@ private:
     void stopSettingsScroll();
     [[nodiscard]] bool settingsScrollBy(int dir);
     void fillSpeechOutputList(PageGrid& host);
+    void decorateDefaults(PageDocument& doc);
+    void clearDefaultsDraft();
+    void closeDefaultsEditor();
+    /// Search keyboard closed, or the choice pad left the session. Does not close a page.
+    void noteDefaultsSession();
+    [[nodiscard]] bool presentDefaultsPopup(QString* error);
+    [[nodiscard]] PageDocument buildDefaultsChoiceDocument() const;
+    [[nodiscard]] bool editDefaultSetting(const QString& id);
+    [[nodiscard]] bool applyDefaultsChoice(const QString& id, const QString& token);
+    [[nodiscard]] bool commitDefaultsDraft();
+    /// Closes the defaults editor, then writes. Callers that must stay open on failure
+    /// do not use this.
+    void writeDefault(const std::function<void(AppSettings&)>& fn, const QString& status);
+    [[nodiscard]] bool hostSettingsFragment(const QString& fragment);
+    void decorateUpdate(PageDocument& doc);
+    void stampSetupUpdate(PageDocument& doc);
+    void fillDefaultsList(PageGrid& host);
+    void registerDefaultsCommands();
+    void registerUpdateCommands();
+    void refreshDefaultsList();
+    void openDefaultsSearch();
+    void onGuestInsert(const QString& text);
+    void onGuestCommand(const QString& command);
+    void toggleDefaultsFilterMenu();
+    void setDefaultsFilter(const QString& page);
+    void defaultsSelectVisible();
+    void defaultsDeselectAll();
+    void defaultsResetSelected();
+    void importSettings();
+    void exportSettings();
+    [[nodiscard]] bool importSettingsFile(const QString& path, QString* error);
+    [[nodiscard]] bool exportSettingsFile(const QString& path, QString* error);
     [[nodiscard]] bool selectSpeechOutput(const QString& encoded, QString* error);
 
     [[nodiscard]] bool linkSpeechKey(QString* error = nullptr);
@@ -362,6 +413,21 @@ private:
     std::unique_ptr<QObject> m_audioWatch;
 
     QHash<QString, int> m_settingsScroll;
+    QString m_defaultsFilter = QStringLiteral("All");
+    QString m_defaultsQuery;
+    QSet<QString> m_defaultsPicked;
+    bool m_filterOpen = false;
+    /// Catalog id whose on/off switch or choice pad is open.
+    QString m_defaultsChoiceId;
+    enum class DefaultsDraftKind { None, Bool, Token, Mask };
+    DefaultsDraftKind m_defaultsDraftKind = DefaultsDraftKind::None;
+    bool m_defaultsDraftOn = false;
+    QString m_defaultsDraftToken;
+    int m_defaultsDraftMask = 0;
+    LiveBoard m_defaultsPopup;
+    bool m_defaultsSearchOpen = false;
+    ComposeUi* m_compose = nullptr;
+    AppUpdater* m_updater = nullptr;
     GazeTrack::Drag m_settingsScrollDrag;
     GazeTrack::Lock m_settingsScrollLock;
     InvalidGazeGrace m_settingsScrollGrace;

@@ -2,6 +2,7 @@
 
 #include "app/ActionChannel.h"
 #include "app/ActiveStateResolver.h"
+#include "app/AppUpdater.h"
 #include "app/CommandRegistry.h"
 #include "app/ComposeUi.h"
 #include "app/SettingsUi.h"
@@ -224,6 +225,16 @@ bool GazerServices::initialize(const QString& layoutsDir, const QString& mapping
     m_settingsUi->setResetFn([this]() { resetSettingsToDefaults(); });
     m_settingsUi->setMouseDwellMove(m_mouseDwellMove.get());
     m_settingsUi->setHeadPoseMapper(m_headPose.get());
+    m_updater = std::make_unique<AppUpdater>(this);
+    m_settingsUi->setUpdater(m_updater.get());
+    m_settingsUi->setCompose(m_compose.get());
+    connect(m_updater.get(), &AppUpdater::changed, this, [this]() {
+        if (m_pages) {
+            m_pages->refreshDecorated();
+        }
+    });
+    connect(m_updater.get(), &AppUpdater::statusMessage, this,
+            [this](const QString& msg) { notifyStatus(msg); });
     m_settingsUi->setLookToMaps(m_lookToMaps.get());
     m_headPose->setRunCommand(
         [this](const QString& name, QString* error) { return m_commands->run(name, error); });

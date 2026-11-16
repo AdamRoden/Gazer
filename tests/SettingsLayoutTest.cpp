@@ -123,7 +123,8 @@ void SettingsLayoutTest::pagesAnchorTop()
                              QStringLiteral("main_settings_speak"),
                              QStringLiteral("main_settings_theme"),
                              QStringLiteral("main_settings_head_pose"),
-                             QStringLiteral("main_settings_setup")};
+                             QStringLiteral("main_settings_setup"),
+                             QStringLiteral("main_settings_defaults")};
     for (const QString& id : ids) {
         PageDocument doc;
         QString err;
@@ -730,9 +731,23 @@ void SettingsLayoutTest::zoomAndSetupHoldSession()
     QCOMPARE(setup.findCell(QStringLiteral("aci_val"))->settingKey,
              QStringLiteral("layoutAutoCloseIdleMs"));
     QCOMPARE(setup.findCell(QStringLiteral("ac_on"))->role, QStringLiteral("toggle"));
-    QCOMPARE(setup.findGrid(QStringLiteral("board"))->rows, 6);
-    QCOMPARE(setup.findGrid(QStringLiteral("sec_session"))->row, 5);
+    QCOMPARE(setup.findGrid(QStringLiteral("board"))->rows, 2);
+    QVERIFY(setup.findGrid(QStringLiteral("scroller")));
+    QVERIFY(setup.findGrid(QStringLiteral("scroller"))->scroll);
+    QCOMPARE(setup.findGrid(QStringLiteral("sec_tr"))->row, 0);
+    QCOMPARE(setup.findGrid(QStringLiteral("sec_vigem"))->row, 1);
+    QCOMPARE(setup.findGrid(QStringLiteral("sec_capture"))->row, 2);
+    QCOMPARE(setup.findGrid(QStringLiteral("sec_splash"))->row, 3);
+    QCOMPARE(setup.findGrid(QStringLiteral("sec_session"))->row, 4);
     QCOMPARE(setup.findGrid(QStringLiteral("sec_session"))->rows, 4);
+    QCOMPARE(setup.findCell(QStringLiteral("defaults_open"))->actions[0].targetId,
+             QStringLiteral("main_settings_defaults"));
+    QCOMPARE(setup.findCell(QStringLiteral("import_open"))->actions[0].command,
+             QStringLiteral("settings.import"));
+    QCOMPARE(setup.findCell(QStringLiteral("export_open"))->actions[0].command,
+             QStringLiteral("settings.export"));
+    QCOMPARE(setup.findCell(QStringLiteral("update_check"))->actions[0].command,
+             QStringLiteral("settings.update.check"));
     QCOMPARE(setup.findCell(QStringLiteral("log_open"))->actions[0].command,
              QStringLiteral("openLogFolder"));
     const PageCell* on = setup.findCell(QStringLiteral("splash_on"));
@@ -801,10 +816,10 @@ void SettingsLayoutTest::adminCaptureModes()
              QStringLiteral("settings.vigem.install"));
     QCOMPARE(setup.findCell(QStringLiteral("vigem_refresh"))->actions[0].command,
              QStringLiteral("settings.vigem.refresh"));
-    QCOMPARE(setup.findGrid(QStringLiteral("sec_tr"))->row, 1);
-    QCOMPARE(setup.findGrid(QStringLiteral("sec_vigem"))->row, 2);
-    QCOMPARE(setup.findGrid(QStringLiteral("sec_capture"))->row, 3);
-    QCOMPARE(setup.findGrid(QStringLiteral("sec_splash"))->row, 4);
+    QCOMPARE(setup.findGrid(QStringLiteral("sec_tr"))->row, 0);
+    QCOMPARE(setup.findGrid(QStringLiteral("sec_vigem"))->row, 1);
+    QCOMPARE(setup.findGrid(QStringLiteral("sec_capture"))->row, 2);
+    QCOMPARE(setup.findGrid(QStringLiteral("sec_splash"))->row, 3);
     QVERIFY(!setup.findCell(QStringLiteral("key_edit")));
     QVERIFY(!setup.findCell(QStringLiteral("head_preview")));
     QVERIFY(!setup.findGrid(QStringLiteral("sec_speech")));
@@ -930,7 +945,8 @@ void SettingsLayoutTest::buttonCornersMatch()
                              QStringLiteral("main_settings_head_pose"),
                              QStringLiteral("main_settings_speak"),
                              QStringLiteral("main_settings_theme"),
-                             QStringLiteral("main_settings_setup")};
+                             QStringLiteral("main_settings_setup"),
+                             QStringLiteral("main_settings_defaults")};
     for (const QString& id : ids) {
         PageDocument doc;
         QString err;

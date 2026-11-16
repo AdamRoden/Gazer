@@ -14,6 +14,7 @@
 #include "utils/ScreenCaptureMode.h"
 
 #include <QColor>
+#include <QJsonObject>
 #include <QString>
 #include <QStringList>
 #include <QVector>
@@ -308,6 +309,16 @@ struct AppSettings {
     [[nodiscard]] SettingsLoadReport loadManaged(const QString& path);
     [[nodiscard]] bool loadFromFile(const QString& path, QString* error = nullptr);
     [[nodiscard]] bool saveToFile(const QString& path, QString* error = nullptr) const;
+    /// Full snapshot. Omitted optional objects (voice styles, rail favorites,
+    /// head-pose origin) stay omitted when those flags are unset.
+    [[nodiscard]] QJsonObject toJsonObject() const;
+    /// Overlay `object` onto this value. Absent keys that the loader treats as
+    /// empty (speech style, tags, voices, maps) clear the live field. Start
+    /// from `defaults()` when a missing key should become the factory value.
+    [[nodiscard]] bool applyJsonObject(const QJsonObject& object);
+    /// Copy `keys` from `defaults()` onto this value. A key may be top-level
+    /// (`dwellGraceMs`) or one object child (`lookToMaps.scroll`).
+    [[nodiscard]] bool resetKeysToDefaults(const QStringList& keys);
     /// Copy the live file to `settings.json.bak` (immediate rollback copy).
     [[nodiscard]] static bool backupExistingFile(const QString& path, QString* error = nullptr);
     /// Replace the live file with its `.bak` when that backup is a JSON object.

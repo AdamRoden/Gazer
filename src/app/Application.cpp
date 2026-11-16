@@ -3,6 +3,7 @@
 #include "app/ActionChannel.h"
 #include "app/ActionDispatcher.h"
 #include "app/AppSettings.h"
+#include "app/AppUpdater.h"
 #include "app/InboundActions.h"
 #include "app/CommandRegistry.h"
 #include "app/ComposeUi.h"
@@ -272,6 +273,11 @@ bool Application::initialize()
     }
     if (runSplash) {
         QTimer::singleShot(400, this, &Application::startSplash);
+    }
+    connect(&m_svc->updater(), &AppUpdater::promptRequested, this, &Application::onUpdatePrompt);
+    connect(&m_svc->updater(), &AppUpdater::restarting, this, &Application::onQuitRequested);
+    if (!m_safeMode && !QCoreApplication::arguments().contains(QStringLiteral("--editor"))) {
+        m_svc->updater().start();
     }
     return true;
 }
@@ -732,6 +738,25 @@ void Application::onSplashFinished()
     if (m_splashSavedMag) {
         m_svc->magnifier().setEnabledLens(true);
         m_splashSavedMag = false;
+    }
+    if (m_updatePromptQueued) {
+        onUpdatePrompt();
+    }
+}
+
+void Application::onUpdatePrompt()
+{
+    if (!m_svc) {
+        return;
+    }
+    if (m_splash && m_splash->isActive()) {
+        m_updatePromptQueued = true;
+        return;
+    }
+    m_updatePromptQueued = false;
+    QString err;
+    if (!m_svc->pages().openPage(QStringLiteral("main_update"), &err)) {
+        GAZER_WARN << "Update prompt failed:" << err;
     }
 }
 

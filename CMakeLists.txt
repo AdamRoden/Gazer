@@ -43,6 +43,11 @@ set(GAZER_SOURCES
     src/app/AppSettings.cpp
     src/app/AppSettingsIo.cpp
     src/app/AppSettingsTheme.cpp
+    src/app/SettingsCatalog.cpp
+    src/app/SettingsDefaults.cpp
+    src/app/SettingsDefaultsEdit.cpp
+    src/app/UpdateRelease.cpp
+    src/app/AppUpdater.cpp
     src/app/ActiveStateResolver.cpp
     src/app/GazeRouter.cpp
     src/app/GazerServices.cpp
@@ -63,6 +68,7 @@ set(GAZER_SOURCES
     src/app/ActionChannel.cpp
     src/app/GuardApp.cpp
     src/app/ComposeUi.cpp
+    src/app/ComposeBorrow.cpp
     src/app/ComposeVoices.cpp
     src/app/ComposeSoundboard.cpp
     src/app/ComposeItemEdit.cpp
@@ -434,7 +440,7 @@ target_link_libraries(Gazer PRIVATE
 )
 
 if(WIN32)
-    target_link_libraries(Gazer PRIVATE user32 advapi32 ole32 oleaut32 uuid sapi crypt32 shell32 wtsapi32)
+    target_link_libraries(Gazer PRIVATE user32 advapi32 ole32 oleaut32 uuid sapi crypt32 wintrust shell32 wtsapi32)
 endif()
 
 add_custom_command(TARGET Gazer POST_BUILD
@@ -553,6 +559,8 @@ add_executable(GazerPageTests
     src/app/AppSettings.cpp
     src/app/AppSettingsIo.cpp
     src/app/AppSettingsTheme.cpp
+    src/app/SettingsCatalog.cpp
+    src/app/UpdateRelease.cpp
     src/assist/ElevenRequest.cpp
     src/assist/VoiceStyles.cpp
     src/ui/Theme.cpp
@@ -582,6 +590,8 @@ add_executable(GazerPageTests
     tests/KeyGravityTest.cpp
     tests/SettingsMigrationTest.cpp
     tests/SettingsInstallPolicyTest.cpp
+    tests/SettingsCatalogTest.cpp
+    tests/UpdateReleaseTest.cpp
     tests/TrackingWatchTest.cpp
     src/core/TrackingWatch.cpp
     src/core/TobiiPumpHealth.cpp
@@ -683,6 +693,11 @@ add_test(NAME GazerPredictTests COMMAND GazerPredictTests)
 if(WIN32)
     set_target_properties(GazerPageTests GazerDwellTests GazerSpeechTests GazerPredictTests
         PROPERTIES WIN32_EXECUTABLE FALSE)
+endif()
+
+if(WIN32)
+    add_executable(GazerUpdate WIN32 src/update/GazerUpdate.cpp)
+    target_link_libraries(GazerUpdate PRIVATE wintrust crypt32 shell32)
 endif()
 
 add_executable(BuildPredictModel

@@ -547,6 +547,8 @@ void SettingsUi::registerCommands()
             return true;
         });
     }
+    registerDefaultsCommands();
+    registerUpdateCommands();
 }
 
 } // namespace gazer

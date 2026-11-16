@@ -288,6 +288,30 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
         return ctx.settings->speechOutputId == VoiceCatalog::decodeId(key.mid(prefix.size()));
     }
     const AppSettings& s = *ctx.settings;
+    if (key == QLatin1String("settings.defaults.filterMenu")) {
+        return ctx.settingsUi && ctx.settingsUi->defaultsFilterOpen();
+    }
+    if (key.startsWith(QLatin1String("settings.defaults.filter."))) {
+        if (!ctx.settingsUi) {
+            return false;
+        }
+        const auto prefix = QLatin1String("settings.defaults.filter.");
+        return ctx.settingsUi->defaultsFilter() == key.mid(prefix.size());
+    }
+    if (key.startsWith(QLatin1String("settings.defaults.pick."))) {
+        if (!ctx.settingsUi) {
+            return false;
+        }
+        const auto prefix = QLatin1String("settings.defaults.pick.");
+        return ctx.settingsUi->defaultsPicked(key.mid(prefix.size()));
+    }
+    if (key.startsWith(QLatin1String("settings.defaults.draft."))) {
+        if (!ctx.settingsUi) {
+            return false;
+        }
+        const auto prefix = QLatin1String("settings.defaults.draft.");
+        return ctx.settingsUi->defaultsDraftActive(key.mid(prefix.size()));
+    }
     for (const AppSettings::StyleToggle& t : AppSettings::kStyleToggles) {
         if (key == QLatin1String(t.command)) {
             return s.styleFlag(t);

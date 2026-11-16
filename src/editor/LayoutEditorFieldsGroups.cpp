@@ -466,6 +466,19 @@ QString friendlyCommandLabel(const QString& commandId)
         {QStringLiteral("settings.vigem.install"), QStringLiteral("Install ViGEmBus")},
         {QStringLiteral("settings.vigem.launchSetup"), QStringLiteral("Launch ViGEm setup (UAC)")},
         {QStringLiteral("settings.vigem.refresh"), QStringLiteral("Recheck ViGEm")},
+        {QStringLiteral("settings.import"), QStringLiteral("Import settings")},
+        {QStringLiteral("settings.export"), QStringLiteral("Export settings")},
+        {QStringLiteral("settings.defaults.search"), QStringLiteral("Search defaults")},
+        {QStringLiteral("settings.defaults.filterMenu"), QStringLiteral("Filter defaults")},
+        {QStringLiteral("settings.defaults.edit."), QStringLiteral("Edit a default")},
+        {QStringLiteral("settings.defaults.value."), QStringLiteral("Set a default")},
+        {QStringLiteral("settings.defaults.draft."), QStringLiteral("Default draft is on")},
+        {QStringLiteral("settings.defaults.selectAll"), QStringLiteral("Select visible defaults")},
+        {QStringLiteral("settings.defaults.deselectAll"), QStringLiteral("Deselect defaults")},
+        {QStringLiteral("settings.defaults.resetSelected"), QStringLiteral("Reset selected defaults")},
+        {QStringLiteral("settings.update.check"), QStringLiteral("Check for updates")},
+        {QStringLiteral("settings.update.now"), QStringLiteral("Update now")},
+        {QStringLiteral("settings.update.later"), QStringLiteral("Update later")},
     };
     return k.value(commandId, commandId);
 }

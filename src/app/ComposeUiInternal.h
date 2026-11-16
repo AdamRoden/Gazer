@@ -282,6 +282,14 @@ inline QString aboveKeyboardHeight(const PageDocument& authored)
     return band->topExpr;
 }
 
+/// Height of the Speak file browser. Settings import/export sizes the borrowed
+/// keyboard as `A_ScreenHeight` minus this string, so the two edges meet.
+/// Other Speak sheets still use `aboveKeyboardHeight`.
+inline QString filesOverlayHeight()
+{
+    return QStringLiteral("(A_ScreenHeight-56)*2/3+24");
+}
+
 /// Search line that already owns the caret. Typing goes into `query`.
 inline PageCell searchField(const QString& id, const QString& query, const QString& placeholder,
                             int row, int col, int colSpan, const QColor& surface,

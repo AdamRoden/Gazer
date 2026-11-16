@@ -10,6 +10,7 @@ namespace gazer {
 namespace SettingsUiInternal {
 
 constexpr auto kLiveNumpad = "settings_numpad_live";
+constexpr auto kLiveDefaultsChoice = "settings_defaults_choice_live";
 constexpr auto kLiveArray = "settings_array_live";
 constexpr auto kLiveColor = "settings_color_live";
 constexpr auto kLiveHex = "settings_hex_live";

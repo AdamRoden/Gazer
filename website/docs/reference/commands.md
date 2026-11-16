@@ -251,7 +251,21 @@ Patterns — boards generate many concrete names from these:
 | `theme.lightTinted` / `.darkTinted` | Legacy: light/dark plus primary tint. |
 | `theme.brightness.0`…`.4` | Five background shades. |
 | `theme.tint.none` / `.primary` / `.complementary` / `.analogous1` / `.analogous2` / `.tertiary1` / `.tertiary2` | Hue washed onto the background shades. |
-| `settings.reset` | Factory defaults. |
+| `settings.reset` | Factory defaults. Copies `settings.json` to `settings.json.bak` first. |
+| `settings.defaults.search` | Open the Speak keyboard for the View defaults search. Edit is Esc and Actions is Ctrl. Enter or Escape closes it and keeps the query. |
+| `settings.defaults.filterMenu` | Open or close the View defaults page filter. |
+| `settings.defaults.filter.<page>` | Filter View defaults and close the menu. Pages: `All`, `Dwell`, `Pointer`, `Gaze`, `Head`, `Speak`, `Theme`, `Setup`. |
+| `settings.defaults.pick.<id>` | Toggle that setting in the reset selection. |
+| `settings.defaults.edit.<id>` | Open the editor for that View defaults row (numpad, color picker, on/off switch, choice pad, look-to map, or the settings board). The same id again closes the switch or the pad. |
+| `settings.defaults.value.<id>.<token>` | Choose a draft value. `flip` toggles an on/off draft. `commit` saves. `cancel` closes. The switch uses activeState `settings.defaults.draft.<id>`. |
+| `settings.defaults.selectAll` | Select every row that matches the current search and filter. |
+| `settings.defaults.deselectAll` | Clear the reset selection. |
+| `settings.defaults.resetSelected` | Reset the selected settings to factory values. |
+| `settings.import` | Import a settings JSON file with the Speak file browser. On that keyboard, Edit is Esc and Actions is Ctrl, and the keyboard meets the bottom of the browser. Keys left out of the file return to factory values. An empty file or a newer schema is left unused. |
+| `settings.export` | Export the current settings snapshot with the Speak file browser (`gazer-settings.json`). Same keyboard as import: Edit is Esc, Actions is Ctrl. |
+| `settings.update.check` | Check for an update now. |
+| `settings.update.now` | Download the offered update, or restart when it is ready. |
+| `settings.update.later` | Dismiss the update prompt until the next launch. |
 
 `activeState` for these cells is the command name (`theme.light`, `settings.progress.radial.toggle`). Live assist uses the feature stem (`lookToScroll`, `dwellSuspend`).
 

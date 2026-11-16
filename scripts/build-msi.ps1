@@ -151,6 +151,11 @@ if (Test-Path $StageDir) {
 New-Item -ItemType Directory -Force -Path $StageDir | Out-Null
 
 Copy-Item $Exe $StageDir
+$UpdateExe = Join-Path $BuildDir "GazerUpdate.exe"
+if (-not (Test-Path $UpdateExe)) {
+    throw "GazerUpdate.exe not found at $UpdateExe - build first or omit -SkipBuild"
+}
+Copy-Item $UpdateExe $StageDir
 
 $vigem = Join-Path $BuildDir "ViGEmClient.dll"
 if (-not (Test-Path $vigem)) {
@@ -204,7 +209,10 @@ $manifestIn = Join-Path $PackagingDir "Gazer.exe.manifest.in"
 Set-GazerUiAccessManifest -Exe $stagedExe -TemplatePath $manifestIn -Version $Version
 $sign = Get-GazerSigningCert
 Sign-GazerExecutable -Exe $stagedExe -Cert $sign.Cert
+$stagedUpdate = Join-Path $StageDir "GazerUpdate.exe"
+Sign-GazerExecutable -Exe $stagedUpdate -Cert $sign.Cert
 Copy-Item (Join-Path $PackagingDir "trust-gazer-cert.cmd") (Join-Path $StageDir "trust-gazer-cert.cmd") -Force
+Copy-Item (Join-Path $PackagingDir "register-gazer-update.cmd") (Join-Path $StageDir "register-gazer-update.cmd") -Force
 if ($sign.SelfSigned) {
     $cer = Join-Path $StageDir "gazer-codesign.cer"
     Export-GazerPublicCert -Cert $sign.Cert -Path $cer

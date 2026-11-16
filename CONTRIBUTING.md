@@ -29,5 +29,5 @@ Needs a Windows machine with WiX and the ability to install a per-machine MSI. T
 
 1. Install the MSI. Set a non-default dwell time in Gazer and quit.
 2. Install the same MSI again (repair / same version) and install a newer build (upgrade). `settings.json` must still contain that dwell time.
-3. Install with `RESETUSERSETTINGS=1`. The next launch should be factory defaults, and an in-app reset should leave `settings.json.bak`.
+3. In the app, reset settings (`settings.reset`). `settings.json.bak` should hold the previous file. Install the MSI again and confirm `settings.json` is still that reset file. Installs keep existing settings.
 4. Confirm the installed `Gazer.exe` is still `uiAccess=true` (the build-tree exe stays `false`).

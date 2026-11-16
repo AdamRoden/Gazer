@@ -9,11 +9,11 @@ class SettingsInstallPolicyTest final : public QObject {
     Q_OBJECT
 
 private slots:
-    void everyInstallKindPreservesUnlessReset();
-    void installerRemovesSettingsOnlyWhenResetRequested();
+    void everyInstallKindPreservesSettings();
+    void installerDoesNotRemoveSettings();
 };
 
-void SettingsInstallPolicyTest::everyInstallKindPreservesUnlessReset()
+void SettingsInstallPolicyTest::everyInstallKindPreservesSettings()
 {
     const SettingsInstallKind kinds[] = {
         SettingsInstallKind::Fresh,
@@ -22,35 +22,25 @@ void SettingsInstallPolicyTest::everyInstallKindPreservesUnlessReset()
         SettingsInstallKind::SameVersionReinstall,
     };
     for (const SettingsInstallKind kind : kinds) {
-        const SettingsInstallDecision keep = decideSettingsInstall(kind, false);
+        const SettingsInstallDecision keep = decideSettingsInstall(kind);
         QVERIFY(keep.preserveSettings);
         QVERIFY(!keep.factoryReset);
-
-        const SettingsInstallDecision reset = decideSettingsInstall(kind, true);
-        QVERIFY(!reset.preserveSettings);
-        QVERIFY(reset.factoryReset);
     }
 }
 
-void SettingsInstallPolicyTest::installerRemovesSettingsOnlyWhenResetRequested()
+void SettingsInstallPolicyTest::installerDoesNotRemoveSettings()
 {
     QFile wxs(QStringLiteral(GAZER_SOURCE_DIR) + QStringLiteral("/packaging/Gazer.wxs"));
     QVERIFY2(wxs.open(QIODevice::ReadOnly), qPrintable(wxs.errorString()));
     const QString text = QString::fromUtf8(wxs.readAll());
 
-    QVERIFY(text.contains(QStringLiteral("RESETUSERSETTINGS")));
-    QVERIFY(text.contains(QStringLiteral("Id=\"FactoryResetSettings\"")));
-    QVERIFY(text.contains(QStringLiteral("Condition=\"RESETUSERSETTINGS = &quot;1&quot;\"")));
+    QVERIFY(!text.contains(QStringLiteral("RESETUSERSETTINGS")));
+    QVERIFY(!text.contains(QStringLiteral("FactoryResetSettings")));
+    QVERIFY(!text.contains(QStringLiteral("RemoveSettingsJson")));
+    QVERIFY(!text.contains(QStringLiteral("Reset my settings")));
 
-    // Anchor on the Component elements. The Feature lists the same ids as
-    // ComponentRef, and the comment above ResetUserSettings mentions settings.json.
     const int preserveAt = text.indexOf(QStringLiteral("<Component Id=\"ResetUserSettings\""));
-    const int factoryAt = text.indexOf(QStringLiteral("<Component Id=\"FactoryResetSettings\""));
-    const int removeAt = text.indexOf(QStringLiteral("Id=\"RemoveSettingsJson\""));
     QVERIFY(preserveAt > 0);
-    QVERIFY(factoryAt > preserveAt);
-    QVERIFY(removeAt > factoryAt);
-
     const int preserveEnd = text.indexOf(QStringLiteral("<Component"), preserveAt + 1);
     QVERIFY(preserveEnd > preserveAt);
     const QString preserveBody = text.mid(preserveAt, preserveEnd - preserveAt);
@@ -60,7 +50,8 @@ void SettingsInstallPolicyTest::installerRemovesSettingsOnlyWhenResetRequested()
     // ResetSettings; renaming it under this GUID breaks major upgrade.
     QVERIFY(preserveBody.contains(QStringLiteral("D4E6A8B0-3F5C-7D9E-1B2A-4C6D8E0F1A3B")));
     QVERIFY(preserveBody.contains(QStringLiteral("Name=\"ResetSettings\"")));
-    QVERIFY(!text.contains(QStringLiteral("SettingsPreserved")));
+    QVERIFY(text.contains(QStringLiteral("RegisterGazerUpdateTask")));
+    QVERIFY(text.contains(QStringLiteral("RemoveGazerUpdateTask")));
 }
 
 QObject* createSettingsInstallPolicyTest()

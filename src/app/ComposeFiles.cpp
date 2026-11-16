@@ -250,6 +250,20 @@ bool ComposeUi::importReplace(QString* error)
 
 bool ComposeUi::requestFileImport(bool replace, QString* error)
 {
+    if (m_fileJob == FileJob::Settings) {
+        if (!replace) {
+            const QString msg = QStringLiteral("Settings import replaces the file");
+            notify(msg);
+            if (error) {
+                *error = msg;
+            }
+            return false;
+        }
+        if (hasLive(kFilesLiveId)) {
+            return armFileConfirm(FileConfirm::Import, error);
+        }
+        return importSettingsSelection(error);
+    }
     if (hasLive(kFilesLiveId)) {
         return armFileConfirm(replace ? FileConfirm::Import : FileConfirm::Merge, error);
     }
@@ -308,7 +322,7 @@ void ComposeUi::navigateBrowser(const QString& dir)
     rebuildFiles();
 }
 
-bool ComposeUi::openFileMode(FileMode mode, QString* error)
+bool ComposeUi::openFileMode(FileMode mode, QString* error, FileJob job)
 {
     if (capturingPhrase()) {
         const QString msg = QStringLiteral("Finish the name first");
@@ -320,16 +334,22 @@ bool ComposeUi::openFileMode(FileMode mode, QString* error)
     }
     const bool firstOpen = !hasLive(kFilesLiveId);
     const bool switching = !firstOpen && m_fileMode != mode;
+    const bool jobChanged = m_fileJob != job;
     const QVector<int> priorLayers =
         firstOpen && isOpen() ? m_pages.attachedCopy(QString(kPageId)).showLayers : QVector<int>{};
     if (m_browserDir.isEmpty()) {
         m_browserDir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
     }
     m_fileMode = mode;
-    if (mode == FileMode::Export && m_fileName.text().trimmed().isEmpty()) {
-        m_fileName.load(QStringLiteral("aac-workspace-%1.json")
-                            .arg(QDateTime::currentDateTime().toString(
-                                QStringLiteral("yyyy-MM-dd-HHmmss"))));
+    m_fileJob = job;
+    if (mode == FileMode::Export && (jobChanged || m_fileName.text().trimmed().isEmpty())) {
+        if (job == FileJob::Settings) {
+            m_fileName.load(QStringLiteral("gazer-settings.json"));
+        } else {
+            m_fileName.load(QStringLiteral("aac-workspace-%1.json")
+                                .arg(QDateTime::currentDateTime().toString(
+                                    QStringLiteral("yyyy-MM-dd-HHmmss"))));
+        }
     }
     if (firstOpen) {
         m_fileOffset = 0;
@@ -446,35 +466,89 @@ bool ComposeUi::browserSave(QString* error)
     return writeExport(error);
 }
 
-bool ComposeUi::writeExport(QString* error)
+bool ComposeUi::noteFileFailure(const QString& msg, QString* error)
 {
-    auto fail = [&](const QString& msg) {
-        setBoardNote(msg);
-        if (error) {
-            *error = msg;
-        }
-        if (hasLive(kFilesLiveId)) {
-            rebuildFiles();
-        }
-        return false;
-    };
-    if (capturingPhrase()) {
-        return fail(QStringLiteral("Finish the name first"));
+    setBoardNote(msg);
+    if (error) {
+        *error = msg;
     }
+    if (hasLive(kFilesLiveId)) {
+        rebuildFiles();
+    }
+    return false;
+}
+
+QString ComposeUi::exportDestination(QString* error)
+{
     if (m_browserDir.isEmpty() || !QFileInfo(m_browserDir).isDir()) {
-        return fail(QStringLiteral("Open a folder, then Save"));
+        noteFileFailure(QStringLiteral("Open a folder, then Save"), error);
+        return {};
     }
     QString why;
     const QString name = exportLeafName(m_fileName.text(), &why);
     if (name.isEmpty()) {
-        return fail(why.isEmpty() ? QStringLiteral("Type a file name") : why);
+        noteFileFailure(why.isEmpty() ? QStringLiteral("Type a file name") : why, error);
+        return {};
     }
-    return writeWorkspaceFile(QDir(m_browserDir).filePath(name), error);
+    return QDir(m_browserDir).filePath(name);
+}
+
+bool ComposeUi::writeExport(QString* error)
+{
+    if (m_fileJob == FileJob::Settings) {
+        return writeSettingsExport(error);
+    }
+    if (capturingPhrase()) {
+        return noteFileFailure(QStringLiteral("Finish the name first"), error);
+    }
+    const QString path = exportDestination(error);
+    if (path.isEmpty()) {
+        return false;
+    }
+    return writeWorkspaceFile(path, error);
+}
+
+bool ComposeUi::writeSettingsExport(QString* error)
+{
+    const QString path = exportDestination(error);
+    if (path.isEmpty()) {
+        return false;
+    }
+    if (!m_settingsExport) {
+        return noteFileFailure(QStringLiteral("Export is unavailable"), error);
+    }
+    QString err;
+    if (!m_settingsExport(path, &err)) {
+        return noteFileFailure(err.isEmpty() ? QStringLiteral("Could not export settings") : err,
+                               error);
+    }
+    browserBack();
+    return true;
+}
+
+bool ComposeUi::importSettingsSelection(QString* error)
+{
+    const QString path = selectedJsonPath();
+    if (path.isEmpty()) {
+        return noteFileFailure(QStringLiteral("Dwell a JSON file first"), error);
+    }
+    if (!m_settingsImport) {
+        return noteFileFailure(QStringLiteral("Import is unavailable"), error);
+    }
+    QString err;
+    if (!m_settingsImport(path, &err)) {
+        return noteFileFailure(err.isEmpty() ? QStringLiteral("Could not import settings") : err,
+                               error);
+    }
+    browserBack();
+    return true;
 }
 
 void ComposeUi::browserBack()
 {
+    const bool settingsJob = m_fileJob == FileJob::Settings;
     m_fileConfirm = FileConfirm::None;
+    m_fileJob = FileJob::Speak;
     const bool wasOpen = hasLive(kFilesLiveId);
     if (wasOpen) {
         m_pages.closePage(QString(kFilesLiveId));
@@ -482,10 +556,14 @@ void ComposeUi::browserBack()
     if (!m_boardNoteKeep) {
         dismissBoardNote();
     }
-    if (wasOpen && isOpen()) {
+    if (wasOpen && isOpen() && !settingsJob) {
         restoreFileLayers();
     } else {
         m_fileRestoreLayers.clear();
+    }
+    if (settingsJob) {
+        releaseBorrowedKeyboard();
+        return;
     }
     refresh();
 }
@@ -624,7 +702,13 @@ bool ComposeUi::confirmFileYes(QString* error)
         return true;
     }
     if (kind == FileConfirm::Export) {
+        if (m_fileJob == FileJob::Settings) {
+            return writeSettingsExport(error);
+        }
         return writeExport(error);
+    }
+    if (m_fileJob == FileJob::Settings) {
+        return importSettingsSelection(error);
     }
     if (!readSelectedWorkspace(error)) {
         if (hasLive(kFilesLiveId)) {

@@ -50,6 +50,7 @@ private:
     void closePagesForLostGaze();
     void startSplash();
     void onSplashFinished();
+    void onUpdatePrompt();
     void syncSplashChrome();
     void showMasterLayers(const QVector<int>& layers);
     void openPageEditor(const QString& pageId = {});
@@ -78,6 +79,7 @@ private:
     GazeRouter m_gazeRouter;
     std::unique_ptr<SplashOverlay> m_splash;
     bool m_splashSavedMag = false;
+    bool m_updatePromptQueued = false;
     std::unique_ptr<DwellSuspendOverlay> m_dwellSuspendOverlay;
     std::unique_ptr<TrackingLossOverlay> m_lossOverlay;
     QTimer m_gazeLossNotice;

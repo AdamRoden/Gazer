@@ -67,7 +67,7 @@ Catalog id = filename stem under `resources/layouts/`. User copies in `%AppData%
 | `example_gamepad` | Xbox-layout virtual pad (ViGEm) |
 | `example_assist` | Assist tools |
 | `qwerty_main` | Full QWERTY + edge strips |
-| `qwerty_file` | Same keyboard as `qwerty_main`, for a Windows open or save dialog. Speak **Import** and **Export** use the in-app file browser |
+| `qwerty_file` | Same keyboard as `qwerty_main`, for a Windows open or save dialog. Speak and Settings **Import** and **Export** use the in-app file browser |
 | `uw_qwerty` | Wide QWERTY |
 | `uw_qwerty_pad` | Wide QWERTY with no number row, a numpad, and the nav cluster beside the edge strip |
 

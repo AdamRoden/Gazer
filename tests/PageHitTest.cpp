@@ -1,3 +1,4 @@
+#include "app/SettingsUi.h"
 #include "layout/PageDetector.h"
 #include "layout/PageDim.h"
 #include "layout/PageHit.h"
@@ -17,6 +18,21 @@ const PageTarget* targetById(const QVector<PageTarget>& targets, const QString& 
     for (const PageTarget& t : targets) {
         if (t.id == id) {
             return &t;
+        }
+    }
+    return nullptr;
+}
+
+const PageCell* cellIn(const PageGrid& grid, const QString& id)
+{
+    for (const PageCell& cell : grid.cells) {
+        if (cell.id == id) {
+            return &cell;
+        }
+    }
+    for (const PageGrid& sub : grid.subGrids) {
+        if (const PageCell* found = cellIn(sub, id)) {
+            return found;
         }
     }
     return nullptr;
@@ -45,6 +61,7 @@ private slots:
     void cellRectPixelOverflowScalesDown();
     void scrollGridKeepsRowSizeAndClips();
     void scrollStarRowKeepsChildHeight();
+    void defaultsFillerRowsAreVisible();
     void scrollColumnHidesWhenContentFits();
     void cellRectExpressionTrackUsesScreen();
     void drawerMapIsIdentityAtFullScale();
@@ -545,6 +562,103 @@ void PageHitTest::scrollStarRowKeepsChildHeight()
     QCOMPARE(d0->geom.visual.height(), 96.0);
     QCOMPARE(targetById(targets, QStringLiteral("set_scroll_track"))->caption,
              QStringLiteral("120,100,312"));
+}
+
+void PageHitTest::defaultsFillerRowsAreVisible()
+{
+    PageFrame frame;
+    frame.screen = QRectF(0, 0, 800, 600);
+    frame.desktop = frame.screen;
+    PageDocument doc;
+    QString err;
+    QVERIFY2(PageLoader::loadFromXml(R"xml(
+<Page id="defaults">
+  <Style id="group" background="bg95" thickness="0" radius="16"/>
+  <Style id="plain" background="transparent" thickness="0" radius="0"/>
+  <Style id="row" background="transparent" thickness="0" radius="0"/>
+  <Style id="button" background="transparent" thickness="0" radius="10"/>
+  <Grid id="board" rows="1" columns="1" size="800,400" gap="0" margin="0">
+    <SubGrid id="scroller" row="0" col="0" scroll="true" rows="1" columns="1" rowHeights="*" gap="0" margin="0">
+      <Cell id="placeholder" row="0" col="0" label="x"/>
+    </SubGrid>
+  </Grid>
+</Page>
+)xml",
+                                     doc, &err),
+             qPrintable(err));
+    PageGrid* scroller = doc.findGrid(QStringLiteral("scroller"));
+    QVERIFY(scroller);
+    const AppSettings live = AppSettings::defaults();
+    fillSettingsDefaultsGrid(*scroller, live, QStringLiteral("Dwell"), QString());
+
+    QVERIFY(!scroller->subGrids.isEmpty());
+    const PageGrid& card = scroller->subGrids.at(0);
+    QCOMPARE(card.styleId, QStringLiteral("group"));
+    QVERIFY(!card.subGrids.isEmpty());
+    const PageGrid& row = card.subGrids.at(0);
+    QCOMPARE(row.columnTracks.size(), 5);
+    QVERIFY(row.columnTracks.at(0).isStar());
+    QCOMPARE(row.columnTracks.at(0).star, 5.0);
+    QVERIFY(row.columnTracks.at(1).isStar());
+    QCOMPARE(row.columnTracks.at(1).star, 3.0);
+    QVERIFY(row.columnTracks.at(2).isStar());
+    QCOMPARE(row.columnTracks.at(2).star, 3.0);
+    QVERIFY(row.columnTracks.at(3).isStar());
+    QCOMPARE(row.columnTracks.at(3).star, 2.0);
+    QVERIFY(row.columnTracks.at(4).isStar());
+    QCOMPARE(row.columnTracks.at(4).star, 2.0);
+    QCOMPARE(row.cells.at(2).id, QStringLiteral("def_c_dwellSequence"));
+    QCOMPARE(row.cells.at(3).id, QStringLiteral("def_e_dwellSequence"));
+    QCOMPARE(row.cells.at(3).icon, QStringLiteral("edit"));
+    QCOMPARE(row.cells.at(3).actions.at(0).command,
+             QStringLiteral("settings.defaults.edit.dwellSequence"));
+
+    const QVector<PageTarget> targets = PageHit::collect(doc, frame);
+    const PageTarget* name = targetById(targets, QStringLiteral("def_n_dwellSequence"));
+    const PageTarget* edit = targetById(targets, QStringLiteral("def_e_dwellSequence"));
+    const PageTarget* pick = targetById(targets, QStringLiteral("def_p_dwellSequence"));
+    QVERIFY(name);
+    QVERIFY(edit);
+    QVERIFY(pick);
+    QVERIFY(name->geom.visual.width() > 100.0);
+    QCOMPARE(name->geom.visual.height(), 96.0);
+    QVERIFY(edit->geom.visual.width() > 20.0);
+    QCOMPARE(edit->geom.visual.height(), 96.0);
+    QVERIFY(pick->geom.visual.width() > 20.0);
+    QCOMPARE(pick->geom.visual.height(), 96.0);
+
+    fillSettingsDefaultsGrid(*scroller, live, QStringLiteral("Theme"), QString());
+    const PageCell* swatch = cellIn(*scroller, QStringLiteral("def_c_customPrimaryColor"));
+    const PageCell* factorySwatch = cellIn(*scroller, QStringLiteral("def_d_customPrimaryColor"));
+    QVERIFY(swatch);
+    QVERIFY(factorySwatch);
+    QCOMPARE(swatch->role, QStringLiteral("swatchrect"));
+    QCOMPARE(factorySwatch->role, QStringLiteral("swatchrect"));
+    QVERIFY(swatch->style.background.isSet());
+    QVERIFY(factorySwatch->style.background.isSet());
+
+    fillSettingsDefaultsGrid(*scroller, live, QStringLiteral("Speak"), QString());
+    const PageCell* go = cellIn(*scroller, QStringLiteral("def_e_elevenVoiceId"));
+    QVERIFY(go);
+    QCOMPARE(go->icon, QStringLiteral("ArrowRight"));
+
+    fillSettingsDefaultsGrid(*scroller, live, QStringLiteral("Setup"), QString(),
+                             QStringLiteral("autoCollapseMain"), true);
+    const PageCell* toggle = cellIn(*scroller, QStringLiteral("def_c_autoCollapseMain"));
+    const PageCell* save = cellIn(*scroller, QStringLiteral("def_e_autoCollapseMain"));
+    const PageCell* cancel = cellIn(*scroller, QStringLiteral("def_p_autoCollapseMain"));
+    QVERIFY(toggle);
+    QVERIFY(save);
+    QVERIFY(cancel);
+    QCOMPARE(toggle->role, QStringLiteral("toggle"));
+    QVERIFY(toggle->style.borderColor.isSet());
+    QVERIFY(toggle->style.thickness.has_value());
+    QCOMPARE(save->label, QStringLiteral("Save"));
+    QCOMPARE(cancel->label, QStringLiteral("Cancel"));
+    QCOMPARE(save->actions.at(0).command,
+             QStringLiteral("settings.defaults.value.autoCollapseMain.commit"));
+    QCOMPARE(cancel->actions.at(0).command,
+             QStringLiteral("settings.defaults.value.autoCollapseMain.cancel"));
 }
 
 void PageHitTest::scrollColumnHidesWhenContentFits()

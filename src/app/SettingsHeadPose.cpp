@@ -1,5 +1,6 @@
 #include "app/SettingsUi.h"
 #include "app/CommandRegistry.h"
+#include "app/ComposeUi.h"
 #include "app/SettingsPageBuild.h"
 #include "assist/HeadPoseMapper.h"
 #include "layout/PageEdit.h"
@@ -1078,6 +1079,7 @@ void SettingsUi::discardHeadPoseEditor()
 
 void SettingsUi::onSessionChanged()
 {
+    noteDefaultsSession();
     abandonLinkPageIfClosed();
     stopSettingsScroll();
     if (m_pages.showsPage(QString(kHeadPosePageId))) {

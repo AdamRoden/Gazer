@@ -168,10 +168,15 @@ PageDocument ComposeUi::buildFilesDocument() const
 {
     PageDocument doc;
     doc.id = QString(kFilesLiveId);
-    doc.name = m_fileMode == FileMode::Export ? QStringLiteral("Export") : QStringLiteral("Import");
+    if (m_fileJob == FileJob::Settings) {
+        doc.name = m_fileMode == FileMode::Export ? QStringLiteral("Export settings")
+                                                  : QStringLiteral("Import settings");
+    } else {
+        doc.name = m_fileMode == FileMode::Export ? QStringLiteral("Export") : QStringLiteral("Import");
+    }
     const ThemeColors theme = m_settings.resolvedTheme();
     initTopOverlay(doc, 1, 4, {1.0, 1.0, 6.0, 1.2}, 8, 12, theme,
-                   QStringLiteral("(A_ScreenHeight-56)*2/3+24"), speakBoardWidth());
+                   compose_detail::filesOverlayHeight(), speakBoardWidth());
     PageGrid& grid = doc.grids[0];
     grid.rowTracks = {pxTrack(56), pxTrack(64), PageTrackSize::starWeight(), pxTrack(80)};
     const QColor surface = theme.bgAt(90);
@@ -203,6 +208,10 @@ PageDocument ComposeUi::buildFilesDocument() const
                           QStringLiteral("label"), {}, titleIcon);
     title.textStyle = QStringLiteral("row");
     title.style.thickness = PageBox::all(0);
+    if (m_fileJob == FileJob::Settings) {
+        title.caption = m_fileMode == FileMode::Export ? QStringLiteral("Export settings")
+                                                       : QStringLiteral("Import settings");
+    }
     titleBar.cells.push_back(std::move(title));
     grid.subGrids.push_back(std::move(titleBar));
 
@@ -535,6 +544,13 @@ PageDocument ComposeUi::buildFilesDocument() const
         actions.cells.push_back(cell(QStringLiteral("file_save"), QStringLiteral("Save"), 0, 5,
                                      QStringLiteral("compose.browserSave"), accent));
         actions.cells.push_back(cancelAt(6));
+    } else if (m_fileJob == FileJob::Settings) {
+        actions.columns = 3;
+        actions.columnTracks = starTracks({2.6, 1.15, 1.15});
+        actions.cells.push_back(std::move(name));
+        actions.cells.push_back(cell(QStringLiteral("file_import"), QStringLiteral("Import"), 0, 1,
+                                     QStringLiteral("compose.importReplace"), surface));
+        actions.cells.push_back(cancelAt(2));
     } else {
         actions.columns = 4;
         actions.columnTracks = starTracks({2.6, 1.15, 1.15, 1.15});

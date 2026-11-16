@@ -58,7 +58,7 @@ Version **0.7.3**. License: [GPL-3.0](https://github.com/AdamRoden/Gazer/blob/ma
 
 -   :material-cog: __Settings__
 
-    Gaze-operated boards: Dwell, Pointer, Gaze, Head, Speak, Theme, and Setup. No desktop dialogs for live prefs.
+    Gaze-operated boards: Dwell, Pointer, Gaze, Head, Speak, Theme, and Setup. View defaults, import, and export are on Setup. Import and export use the Speak file browser.
 
 -   :material-pencil-ruler: __Page editor__
 

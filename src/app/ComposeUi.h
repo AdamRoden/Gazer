@@ -37,7 +37,8 @@ class TtsService;
 class IconCatalog;
 
 /// Gaze composer: capture Send/mapping on the compose page, stamp labels,
-/// voice and history live boards.
+/// voice and history live boards. Borrowed keyboard and the settings-file
+/// strip: `ComposeBorrow.cpp`.
 class ComposeUi {
 public:
     static constexpr auto kPageId = QLatin1String("compose");
@@ -180,6 +181,16 @@ public:
     bool importChoose(QString* error = nullptr);
     /// Import/merge browser. The actions grid has no separate File Explorer button.
     bool openFiles(QString* error = nullptr);
+    /// Settings import or export on the same file browser and Speak keyboard.
+    bool openSettingsFiles(bool exportMode, QString* error = nullptr);
+    /// Borrow the Speak keyboard (letters, shift, symbols) for another field.
+    bool beginGuestKeyboard(QString* error = nullptr);
+    void endGuestKeyboard();
+    /// `insert` receives one character or a space. `command` is backspace, space, enter, or escape.
+    void setGuestText(std::function<void(const QString&)> insert,
+                      std::function<void(const QString&)> command);
+    void setSettingsFileHandlers(std::function<bool(const QString& path, QString* error)> importFn,
+                                 std::function<bool(const QString& path, QString* error)> exportFn);
     bool pickImportFile(int index, QString* error = nullptr);
     void pageImportFiles(int delta);
     /// Move the file list by `rows`. A list row is one file. A tile row is eight.
@@ -260,6 +271,9 @@ private:
     void notify(const QString& msg);
     static QString ellipsis(const QString& text, int maxChars);
     static bool isAllowThroughCommand(const QString& name);
+    /// Captured commands that still reach the dispatcher. An Esc/Ctrl keyboard
+    /// also lets `leftCtrl` through so Actions can hold Ctrl.
+    [[nodiscard]] bool captureLetsCommandThrough(const QString& command) const;
     enum class Interaction { Use, Assign, Edit, NameEdit };
     enum class NameEditKind { None, Topic, Pin };
 
@@ -284,7 +298,25 @@ private:
     PageDocument buildFilesDocument() const;
     enum class FileConfirm { None, Import, Merge, Export };
     enum class FileMode { Import, Export };
-    bool openFileMode(FileMode mode, QString* error);
+    enum class FileJob { Speak, Settings };
+    bool openFileMode(FileMode mode, QString* error, FileJob job = FileJob::Speak);
+    [[nodiscard]] bool guestCapture() const;
+    [[nodiscard]] bool keyboardBorrowed() const;
+    /// Settings import/export is showing the Speak file browser.
+    [[nodiscard]] bool settingsFileKeyboard() const;
+    /// View-defaults search, icon search, or a Speak search sheet.
+    [[nodiscard]] bool searchKeyboard() const;
+    /// Settings files or a search keyboard. Edit is Esc and Actions is Ctrl.
+    [[nodiscard]] bool escCtrlKeyboard() const;
+    [[nodiscard]] bool handleGuestSend(const PageAction& action);
+    [[nodiscard]] bool handleGuestCommand(const QString& command);
+    void applyGuestChrome(PageDocument& doc) const;
+    void releaseBorrowedKeyboard();
+    bool noteFileFailure(const QString& msg, QString* error);
+    /// Folder plus the typed export name. Empty after `noteFileFailure`.
+    [[nodiscard]] QString exportDestination(QString* error);
+    bool writeSettingsExport(QString* error);
+    bool importSettingsSelection(QString* error);
     bool armFileConfirm(FileConfirm kind, QString* error);
     bool requestFileImport(bool replace, QString* error);
     bool writeExport(QString* error);
@@ -437,7 +469,7 @@ private:
     /// First visible tile row. Cell 0 of that row is `m_iconRow * 8`.
     int m_iconRow = 0;
     QString m_iconQuery;
-    /// Search owns the Speak keyboard. Esc is in the Edit key's place.
+    /// Search owns the Speak keyboard. Esc and Ctrl replace Edit and Actions.
     bool m_iconKeyboard = false;
     std::unique_ptr<IconCatalog> m_iconCatalog;
     QByteArray m_pendingImport;
@@ -456,6 +488,18 @@ private:
     bool m_fileTiles = false;
     FileConfirm m_fileConfirm = FileConfirm::None;
     FileMode m_fileMode = FileMode::Import;
+    FileJob m_fileJob = FileJob::Speak;
+    /// Settings search owns inserts. The Speak phrase is left alone.
+    bool m_guestKeys = false;
+    /// Last Esc/Ctrl stamp. A session change restamps only when this flips.
+    bool m_escCtrlFace = false;
+    bool m_restampGuard = false;
+    /// Compose was opened only to lend its keyboard. Close it when the loan ends.
+    bool m_borrowedCompose = false;
+    std::function<void(const QString&)> m_guestInsert;
+    std::function<void(const QString&)> m_guestCommand;
+    std::function<bool(const QString& path, QString* error)> m_settingsImport;
+    std::function<bool(const QString& path, QString* error)> m_settingsExport;
     /// Speak layers under File Explorer. Restored when it closes.
     QVector<int> m_fileRestoreLayers;
     QStringList m_fileBack;

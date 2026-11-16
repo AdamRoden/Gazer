@@ -1,6 +1,7 @@
 #include "app/ComposeUi.h"
 
 #include "app/AppSettings.h"
+#include "app/ComposeUiInternal.h"
 #include "app/IconCatalog.h"
 #include "app/SettingsPageBuild.h"
 #include "assist/ElevenClient.h"
@@ -129,7 +130,7 @@ bool ComposeUi::tryHandle(const PageAction& a, const QString& sourcePageId)
         return true;
     }
     if (a.type == PageActionType::Command) {
-        if (isAllowThroughCommand(a.command)) {
+        if (captureLetsCommandThrough(a.command)) {
             return false;
         }
         handleCapturedCommand(a.command);
@@ -226,6 +227,9 @@ void ComposeUi::handleSend(const PageAction& a)
     if (handleIconQuerySend(a)) {
         return;
     }
+    if (handleGuestSend(a)) {
+        return;
+    }
     const QString top = m_pages.topPageId();
     if (top != kPageId && !capturingPhrase()) {
         return;
@@ -278,6 +282,14 @@ void ComposeUi::handleCapturedCommand(const QString& command)
         if (handleFileEscape()) {
             return;
         }
+        if (guestCapture()) {
+            if (m_guestCommand) {
+                m_guestCommand(QStringLiteral("escape"));
+            } else {
+                endGuestKeyboard();
+            }
+            return;
+        }
         m_pages.closePage(QString(kPageId));
         return;
     }
@@ -288,6 +300,9 @@ void ComposeUi::handleCapturedCommand(const QString& command)
         return;
     }
     if (handleIconQueryCommand(c)) {
+        return;
+    }
+    if (handleGuestCommand(c)) {
         return;
     }
     if (capturingPhrase()) {
@@ -373,11 +388,30 @@ void ComposeUi::abandonClosedSession()
     m_formPhraseTouched = false;
     clearVoiceQuery();
     stopListScroll();
+    m_guestKeys = false;
+    m_escCtrlFace = false;
+    m_borrowedCompose = false;
+    if (!hasLive(kFilesLiveId)) {
+        m_fileJob = FileJob::Speak;
+    }
     m_composeAuthored = {};
 }
 
 void ComposeUi::onSessionChanged()
 {
+    if (m_restampGuard) {
+        return;
+    }
+    if (isOpen()) {
+        const bool face = escCtrlKeyboard();
+        if (face != m_escCtrlFace) {
+            // A query keystroke keeps this face. Restamp only when Esc/Ctrl turns on or off.
+            m_escCtrlFace = face;
+            m_restampGuard = true;
+            m_pages.refreshDecorated();
+            m_restampGuard = false;
+        }
+    }
     if (isOpen() || hasLive(kItemEditLiveId)) {
         return;
     }
@@ -608,6 +642,7 @@ void ComposeUi::decoratePage(PageDocument& doc) const
     if (!m_composeAuthored.isValid()) {
         m_composeAuthored = doc;
     }
+    applyGuestChrome(doc);
     if (!doc.findCell(QStringLiteral("topic_0"))) {
         fillSoundboard(doc);
     }
