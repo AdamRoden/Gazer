@@ -34,6 +34,8 @@ namespace gazer {
 
 /// Hover fill delay. Independent of scan grace (rings/chips still use that).
 constexpr int kHoverDelayMs = 100;
+/// Idle-close warning. Applied per closing page, not to the host window.
+constexpr double kPageFadeOpacity = 0.5;
 
 class PageHostItem final : public QQuickPaintedItem {
 public:
@@ -289,8 +291,16 @@ void PageHostWindow::paintScene(QPainter& p, ChromePass pass)
         }
     };
     for (const QString& pageId : pageOrder) {
+        const bool fade = live && m_fadedPageIds.contains(pageId);
+        if (fade) {
+            p.save();
+            p.setOpacity(p.opacity() * kPageFadeOpacity);
+        }
         paintPageLayer(pageId, false);
         paintPageLayer(pageId, true);
+        if (fade) {
+            p.restore();
+        }
     }
 }
 
@@ -509,6 +519,17 @@ void PageHostWindow::setShiftHeld(bool on)
         return;
     }
     m_shiftHeld = on;
+    if (m_board) {
+        m_board->update();
+    }
+}
+
+void PageHostWindow::setFadedPageIds(QSet<QString> ids)
+{
+    if (m_fadedPageIds == ids) {
+        return;
+    }
+    m_fadedPageIds = std::move(ids);
     if (m_board) {
         m_board->update();
     }

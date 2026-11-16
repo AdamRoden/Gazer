@@ -38,6 +38,9 @@ public:
     void commit(QVector<PageTarget> targets, QVector<PageGridPaint> grids, double drawerScale,
                 QRectF reserved = {}, QHash<QString, QString> pageBgTokens = {});
     void setDrawerScale(double scale);
+    /// Pages painted at half opacity during the idle-close warning. Empty clears it.
+    /// The window opacity stays 1, so pages that are not in @p ids stay solid.
+    void setFadedPageIds(QSet<QString> ids);
     void setActiveIds(QSet<QString> ids);
     void setLockedIds(QSet<QString> ids);
     void setShiftHeld(bool on);
@@ -100,6 +103,7 @@ private:
     QHash<QString, QString> m_pageBgTokens;
     QRectF m_reserved;
     double m_drawerScale = 1.0;
+    QSet<QString> m_fadedPageIds;
     QTransform m_drawerXf;
     double m_blurMax = 0.0;
     QSet<QString> m_activeIds;

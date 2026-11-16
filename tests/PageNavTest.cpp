@@ -3,6 +3,8 @@
 #include "layout/PageNav.h"
 #include "layout/PageWriter.h"
 
+#include <QSet>
+
 #include <QtTest>
 
 using namespace gazer;
@@ -18,6 +20,7 @@ private slots:
     void showLayersFiltersCollect();
     void dropLayersLeavesDefault();
     void reconcileDrawerAppearDismissSnap();
+    void autoCloseFadeSkipsPagesThatStayOpen();
 };
 
 namespace {
@@ -196,6 +199,49 @@ void PageNavTest::reconcileDrawerAppearDismissSnap()
     QVERIFY(otherRoot);
 
     QCOMPARE(PageNav::reconcileDrawer(true, false, false, false), A::Dismiss);
+}
+
+void PageNavTest::autoCloseFadeSkipsPagesThatStayOpen()
+{
+    PageDocument root;
+    root.id = QStringLiteral("main");
+    root.showLayers = {2};
+    PageGrid drawer;
+    drawer.id = QStringLiteral("drawer");
+    drawer.layers = {2};
+    drawer.autoClose = true;
+    root.grids.push_back(drawer);
+
+    PageDocument keyboard;
+    keyboard.id = QStringLiteral("qwerty_main");
+    PageGrid keys;
+    keys.id = QStringLiteral("board");
+    keyboard.grids.push_back(keys);
+
+    PageDocument assist;
+    assist.id = QStringLiteral("example_assist");
+    assist.autoClose = true;
+
+    QVector<PageDocument> attached{keyboard};
+    QCOMPARE(PageNav::autoCloseFadePages(docsOf(root, attached)),
+             QSet<QString>({QStringLiteral("main")}));
+
+    attached.push_back(assist);
+    QCOMPARE(PageNav::autoCloseFadePages(docsOf(root, attached)),
+             QSet<QString>({QStringLiteral("main"), QStringLiteral("example_assist")}));
+
+    root.showLayers = {1};
+    attached = {keyboard};
+    QCOMPARE(PageNav::autoCloseFadePages(docsOf(root, attached)), QSet<QString>());
+
+    PageDocument tools;
+    tools.id = QStringLiteral("tools");
+    PageGrid toolGrid;
+    toolGrid.autoClose = true;
+    tools.grids.push_back(toolGrid);
+    attached = {keyboard, tools};
+    QCOMPARE(PageNav::autoCloseFadePages(docsOf(root, attached)),
+             QSet<QString>({QStringLiteral("tools")}));
 }
 
 QObject* createPageNavTest()

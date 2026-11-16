@@ -89,7 +89,7 @@ void PageSession::hideRootAutoClose(bool animate)
     const QVector<int> wasDrawer = drawerMotionLayers();
     QVector<int> drop;
     for (const PageGrid& g : m_root.grids) {
-        if (g.autoClose && layersVisible(g.layers, m_root.showLayers)) {
+        if (PageNav::visibleAutoClose(g, m_root.showLayers)) {
             for (int n : g.layers) {
                 if (!drop.contains(n)) {
                     drop.push_back(n);

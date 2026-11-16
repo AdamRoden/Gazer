@@ -28,31 +28,15 @@ int PageSession::autoCloseIdleMs() const
     if (!m_layoutAutoClose) {
         return -1;
     }
-    bool any = false;
-    for (const PageGrid& g : m_root.grids) {
-        if (g.autoClose && layersVisible(g.layers, m_root.showLayers) && !g.id.isEmpty()) {
-            any = true;
-            break;
+    if (PageNav::rootWillAutoClose(m_root)) {
+        return m_layoutAutoCloseIdleMs;
+    }
+    for (const AttachedPage& a : m_attached) {
+        if (PageNav::optsIntoAutoClose(a.doc)) {
+            return m_layoutAutoCloseIdleMs;
         }
     }
-    if (!any) {
-        for (const AttachedPage& a : m_attached) {
-            if (a.doc.autoClose) {
-                any = true;
-                break;
-            }
-            for (const PageGrid& g : a.doc.grids) {
-                if (g.autoClose) {
-                    any = true;
-                    break;
-                }
-            }
-            if (any) {
-                break;
-            }
-        }
-    }
-    return any ? m_layoutAutoCloseIdleMs : -1;
+    return -1;
 }
 
 void PageSession::noteActivity()
@@ -64,10 +48,13 @@ void PageSession::noteActivity()
 
 void PageSession::clearAutoCloseFade()
 {
-    if (m_autoCloseFading && m_host) {
-        m_host->setOpacity(1.0);
+    if (!m_autoCloseFading) {
+        return;
     }
     m_autoCloseFading = false;
+    if (m_host) {
+        m_host->setFadedPageIds({});
+    }
 }
 
 void PageSession::syncAutoClose()
@@ -103,7 +90,7 @@ void PageSession::tickAutoClose()
     }
     if (elapsed < idle + m_layoutAutoCloseFadeMs) {
         if (m_host) {
-            m_host->setOpacity(0.5);
+            m_host->setFadedPageIds(PageNav::autoCloseFadePages(navDocs()));
         }
         m_autoCloseFading = true;
         return;
@@ -111,11 +98,7 @@ void PageSession::tickAutoClose()
     clearAutoCloseFade();
     QStringList drop;
     for (const AttachedPage& a : m_attached) {
-        bool ac = a.doc.autoClose;
-        for (const PageGrid& g : a.doc.grids) {
-            ac = ac || g.autoClose;
-        }
-        if (ac) {
+        if (PageNav::optsIntoAutoClose(a.doc)) {
             drop.push_back(a.doc.id);
         }
     }

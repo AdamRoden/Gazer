@@ -116,7 +116,8 @@ struct AppSettings {
     bool startDocked = false;
     /// Full-screen dock tour when Gazer starts.
     bool showSplash = true;
-    /// Secondaries: no dwell for idleMs → instant 50% for fadeMs → 500ms dismiss shrink → close.
+    /// Boards that will idle-close: no dwell for idleMs → those boards at 50% for fadeMs
+    /// → 500ms dismiss shrink → close. Other open pages stay opaque.
     /// Master shells exempt unless the layout opts in.
     bool layoutAutoClose = true;
     int layoutAutoCloseIdleMs = 10000;
