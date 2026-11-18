@@ -25,7 +25,7 @@ Testers still need Tobii drivers for hardware gaze. Without a tracker, use the m
 
 After this version is installed once, Gazer checks [GitHub Releases](https://github.com/AdamRoden/Gazer/releases) on its own: about 45 seconds after start, then about every four hours. When a newer MSI is published, a gaze prompt offers **Update now** and **Later**. **Update now** downloads and installs in the background while you keep using Gazer. When the package is ready, Gazer asks you to restart. Restart closes Gazer, applies the update, and opens Gazer again.
 
-The first install of a build that includes this updater is still a normal MSI, including the usual Windows approval. Later updates stay inside Gazer and do not open the installer wizard. A copy built from the source tree can check and download; applying the package needs the update task from an installed copy. ViGEmBus setup still needs a helper on the Secure Desktop. Settings → **Setup** → **Check for updates** runs a check immediately.
+The first install of a build that includes this updater is still a normal MSI, including the usual Windows approval. Later updates stay inside Gazer and do not open the installer wizard. The downloaded package must be signed by the same certificate as the installed app. A self-signed certificate is enough when it matches that install. A copy built from the source tree can check and download; applying the package needs the update task from an installed copy. ViGEmBus setup still needs a helper on the Secure Desktop. Settings → **Setup** → **Check for updates** runs a check immediately.
 
 ## First launch
 

@@ -8,7 +8,9 @@
   2. Stages a clean runtime tree (exe + windeployqt + resources + MinGW runtime).
   3. Stamps uiAccess=true on the staged exe and Authenticode-signs it (Task Manager /
      elevated windows). Local build\Gazer.exe is left unsigned so it still starts.
-  4. Builds an MSI with WiX Toolset CLI v7.
+  4. Builds an MSI with WiX Toolset CLI v7 and Authenticode-signs it with the
+     same cert as the staged executables. In-app updates accept that signature,
+     including the local self-signed cert, when the signer matches the install.
 
   Signing: set GAZER_SIGN_PFX (+ optional GAZER_SIGN_PFX_PASSWORD) to use a real
   Authenticode cert. Otherwise a persistent self-signed cert is created under
@@ -250,6 +252,10 @@ $wixArgs = @(
 if ($LASTEXITCODE -ne 0) { throw "wix build failed (exit $LASTEXITCODE)" }
 
 if (-not (Test-Path $MsiPath)) { throw "MSI was not produced: $MsiPath" }
+
+# Same cert as Gazer.exe. The updater compares this signature to the installed
+# copy and accepts the local self-signed cert.
+Sign-GazerExecutable -Exe $MsiPath -Cert $sign.Cert
 
 $msiSize = (Get-Item $MsiPath).Length
 Write-Host ""

@@ -21,6 +21,8 @@
 #include <softpub.h>
 #include <wincrypt.h>
 #include <wintrust.h>
+
+#include "update/SignatureIntact.h"
 #endif
 
 namespace gazer {
@@ -117,7 +119,7 @@ QString signerThumbprint(const QString& path)
     return thumb;
 }
 
-bool winVerifyOk(const QString& path)
+bool signatureCoversFile(const QString& path)
 {
     const std::wstring wide = path.toStdWString();
     WINTRUST_FILE_INFO file{};
@@ -135,7 +137,7 @@ bool winVerifyOk(const QString& path)
     const LONG status = WinVerifyTrust(nullptr, &action, &data);
     data.dwStateAction = WTD_STATEACTION_CLOSE;
     WinVerifyTrust(nullptr, &action, &data);
-    return status == ERROR_SUCCESS;
+    return signatureIntact(status);
 }
 #endif
 
@@ -175,7 +177,7 @@ bool AppUpdater::acceptableMsi(const QString& path) const
     if (expected.isEmpty()) {
         return true;
     }
-    return winVerifyOk(path)
+    return signatureCoversFile(path)
            && signerThumbprint(path).compare(expected, Qt::CaseInsensitive) == 0;
 #else
     return true;

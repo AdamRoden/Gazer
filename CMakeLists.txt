@@ -697,6 +697,7 @@ endif()
 
 if(WIN32)
     add_executable(GazerUpdate WIN32 src/update/GazerUpdate.cpp)
+    target_include_directories(GazerUpdate PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     target_link_libraries(GazerUpdate PRIVATE wintrust crypt32 shell32)
 endif()
 

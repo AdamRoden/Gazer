@@ -12,6 +12,8 @@
 #include <wincrypt.h>
 #include <wintrust.h>
 
+#include "update/SignatureIntact.h"
+
 #include <stdio.h>
 #include <string>
 #include <vector>
@@ -162,7 +164,7 @@ std::wstring signerThumbprint(const wchar_t* path)
     return thumb;
 }
 
-bool winVerifyOk(const wchar_t* path)
+bool signatureCoversFile(const wchar_t* path)
 {
     WINTRUST_FILE_INFO file{};
     file.cbStruct = sizeof(file);
@@ -179,12 +181,12 @@ bool winVerifyOk(const wchar_t* path)
     const LONG status = WinVerifyTrust(nullptr, &action, &data);
     data.dwStateAction = WTD_STATEACTION_CLOSE;
     WinVerifyTrust(nullptr, &action, &data);
-    return status == ERROR_SUCCESS;
+    return gazer::signatureIntact(status);
 }
 
 bool sameSigner(const wchar_t* helper, const wchar_t* msi)
 {
-    if (!winVerifyOk(helper) || !winVerifyOk(msi)) {
+    if (!signatureCoversFile(helper) || !signatureCoversFile(msi)) {
         return false;
     }
     const std::wstring left = signerThumbprint(helper);
