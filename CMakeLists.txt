@@ -699,6 +699,11 @@ if(WIN32)
     add_executable(GazerUpdate WIN32 src/update/GazerUpdate.cpp)
     target_include_directories(GazerUpdate PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     target_link_libraries(GazerUpdate PRIVATE wintrust crypt32 shell32)
+    # The helper copies itself to Temp so msiexec can replace Program Files.
+    # libstdc++ and libgcc must be inside the exe. A Temp copy cannot see the
+    # MinGW DLLs that ship beside the installed helper, and the loader then
+    # exits STATUS_DLL_NOT_FOUND before install or relaunch.
+    target_link_options(GazerUpdate PRIVATE -static -static-libgcc -static-libstdc++)
 endif()
 
 add_executable(BuildPredictModel

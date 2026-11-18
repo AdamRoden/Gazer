@@ -220,7 +220,7 @@ QString AppUpdater::statusLine() const
     case Phase::Downloading:
         return QStringLiteral("Downloading update %1%").arg(m_percent);
     case Phase::Ready:
-        return QStringLiteral("Update %1 is ready to restart").arg(m_version);
+        return QStringLiteral("Update %1 is ready to restart Gazer").arg(m_version);
     case Phase::Failed:
         return m_error.isEmpty() ? QStringLiteral("The update did not finish") : m_error;
     case Phase::Idle:
@@ -505,13 +505,13 @@ bool AppUpdater::beginRestart()
         return false;
     }
     if (m_phase != Phase::Ready) {
-        m_blockReason = QStringLiteral("The update is not ready to restart.");
+        m_blockReason = QStringLiteral("The update is not ready to restart Gazer.");
         return false;
     }
     const QString helper = helperPath();
     if (!taskExists() || !QFileInfo::exists(helper)) {
         m_blockReason = QStringLiteral(
-            "Restart needs the update task from an installed copy of Gazer.");
+            "Restart Gazer needs the update task from an installed copy of Gazer.");
         emit changed();
         return false;
     }

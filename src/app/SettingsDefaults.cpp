@@ -86,7 +86,7 @@ void SettingsUi::decorateUpdate(PageDocument& doc)
             cell.caption = note;
         } else if (cell.id == QLatin1String("update_title")) {
             if (phase == AppUpdater::Phase::Ready) {
-                cell.label = QStringLiteral("Restart to update");
+                cell.label = QStringLiteral("Restart Gazer to update");
             } else if (phase == AppUpdater::Phase::Failed) {
                 cell.label = QStringLiteral("Update failed");
             } else if (phase == AppUpdater::Phase::Downloading) {
@@ -96,7 +96,7 @@ void SettingsUi::decorateUpdate(PageDocument& doc)
             }
         } else if (cell.id == QLatin1String("update_now")) {
             if (phase == AppUpdater::Phase::Ready) {
-                cell.label = QStringLiteral("Restart");
+                cell.label = QStringLiteral("Restart Gazer");
             } else if (phase == AppUpdater::Phase::Available) {
                 cell.label = QStringLiteral("Update now");
             } else {

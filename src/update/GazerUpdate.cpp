@@ -84,6 +84,18 @@ bool relaunchFromTemp(const wchar_t* destName, int argc, wchar_t** argv)
                         nullptr, nullptr, &si, &pi)) {
         return false;
     }
+    // A Temp copy that cannot load its DLLs dies at once with STATUS_DLL_NOT_FOUND
+    // and never writes a result. Run the work here instead of reporting success.
+    if (WaitForSingleObject(pi.hProcess, 500) == WAIT_OBJECT_0) {
+        DWORD code = 0;
+        GetExitCodeProcess(pi.hProcess, &code);
+        CloseHandle(pi.hThread);
+        CloseHandle(pi.hProcess);
+        if (code == 0xC0000135u || code == 0xC0000142u) {
+            return false;
+        }
+        return true;
+    }
     CloseHandle(pi.hThread);
     CloseHandle(pi.hProcess);
     return true;

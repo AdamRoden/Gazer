@@ -101,7 +101,7 @@
           <Cell id="update_status" row="0" col="0" label="Gazer" caption="Checking for updates." role="label" style="plain"/>
           <Cell id="update_check" row="0" col="1" label="Check now" icon="restart" style="button" command="settings.update.check"/>
         </SubGrid>
-        <Cell id="update_note" row="2" col="0" label="Silent updates" caption="After this version is installed, Gazer can download the next one and ask before it restarts." role="label" style="plain"/>
+        <Cell id="update_note" row="2" col="0" label="Silent updates" caption="After this version is installed, Gazer can download the next one and ask before it restarts Gazer." role="label" style="plain"/>
       </SubGrid>
     </SubGrid>
     <SubGrid id="page_scroll" row="1" col="1" rows="3" columns="1" rowHeights="72,*,72" gap="6" margin="0" style="group">
