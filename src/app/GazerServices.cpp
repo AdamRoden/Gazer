@@ -441,7 +441,13 @@ void GazerServices::setDwellSuspended(bool on)
     }
     if (on && m_keyState) {
         QString ignored;
-        (void)m_keyState->releaseAll(&ignored);
+        const QStringList held = m_keyState->heldCanonical();
+        for (const QString& id : held) {
+            if (id == QLatin1String("shift")) {
+                continue;
+            }
+            (void)m_keyState->up(id, &ignored);
+        }
     }
 }
 

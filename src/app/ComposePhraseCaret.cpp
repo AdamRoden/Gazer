@@ -409,7 +409,7 @@ void ComposeUi::publishCaret(int caretBefore, int selStartBefore, int selEndBefo
 
 bool ComposeUi::claimsCaretGaze(const GazePoint& point) const
 {
-    if (!m_caret.gazeLive || !point.valid) {
+    if (m_pages.isDwellSuspended() || !m_caret.gazeLive || !point.valid) {
         return false;
     }
     const QPointF g = point.toPointF();
@@ -622,6 +622,10 @@ void ComposeUi::runCaret(const GazePoint& point, const QRectF& anchor)
 
 void ComposeUi::feedCaret(const GazePoint& point)
 {
+    if (m_pages.isDwellSuspended()) {
+        idleCaret(caretTarget());
+        return;
+    }
     const bool exportPage = hasLive(kFilesLiveId) && m_fileMode == FileMode::Export
                             && m_pages.topPageId() == kFilesLiveId;
     if (exportPage) {

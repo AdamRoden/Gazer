@@ -111,8 +111,6 @@ void registerComposeCommands(CommandRegistry& commands, ComposeUi& compose)
     });
     commands.registerBuiltin(QStringLiteral("compose.editPins"),
                              [&compose](QString*) { return compose.editPins(); });
-    commands.registerBuiltin(QStringLiteral("compose.editShown"),
-                             [&compose](QString*) { return compose.editShown(); });
     commands.registerBuiltin(QStringLiteral("compose.editShowColors"), [&compose](QString*) {
         compose.showEditColors();
         return true;
@@ -191,6 +189,14 @@ void registerComposeCommands(CommandRegistry& commands, ComposeUi& compose)
     });
     commands.registerBuiltin(QStringLiteral("compose.closeStyleEditor"), [&compose](QString*) {
         compose.closeStyleEditor();
+        return true;
+    });
+    commands.registerBuiltin(QStringLiteral("compose.openTagEditor"), [&compose](QString*) {
+        compose.openTagEditor();
+        return true;
+    });
+    commands.registerBuiltin(QStringLiteral("compose.closeTagEditor"), [&compose](QString*) {
+        compose.closeTagEditor();
         return true;
     });
     commands.registerBuiltin(QStringLiteral("compose.beginStyleName"), [&compose](QString*) {

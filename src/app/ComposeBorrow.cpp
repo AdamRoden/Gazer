@@ -30,22 +30,9 @@ bool ComposeUi::settingsFileKeyboard() const
     return m_fileJob == FileJob::Settings && hasLive(kFilesLiveId);
 }
 
-bool ComposeUi::searchKeyboard() const
-{
-    return m_guestKeys || m_iconKeyboard || activeSearchSheet() != SearchSheet::None;
-}
-
-bool ComposeUi::escCtrlKeyboard() const
-{
-    return settingsFileKeyboard() || searchKeyboard();
-}
-
 bool ComposeUi::captureLetsCommandThrough(const QString& command) const
 {
-    // Esc/Ctrl keyboards turn Actions into Ctrl. Every other command stays
-    // captured, including Escape.
-    return isAllowThroughCommand(command)
-           || (escCtrlKeyboard() && command == QLatin1String("leftCtrl"));
+    return isAllowThroughCommand(command);
 }
 
 bool ComposeUi::guestCapture() const

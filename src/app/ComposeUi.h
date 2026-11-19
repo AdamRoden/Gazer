@@ -154,9 +154,6 @@ public:
     bool pin(QString* error = nullptr);
     void cancelAssign();
     bool editPins();
-    /// Edit key. The compose page toggles pin edit. Style and tag sheets toggle
-    /// their editors. Any other top page does nothing.
-    bool editShown();
     bool saveNameEdit(QString* error = nullptr);
     void cancelNameEdit();
     bool deleteNameEdit(QString* error = nullptr);
@@ -271,8 +268,7 @@ private:
     void notify(const QString& msg);
     static QString ellipsis(const QString& text, int maxChars);
     static bool isAllowThroughCommand(const QString& name);
-    /// Captured commands that still reach the dispatcher. An Esc/Ctrl keyboard
-    /// also lets `leftCtrl` through so Actions can hold Ctrl.
+    /// Captured commands that still reach the dispatcher.
     [[nodiscard]] bool captureLetsCommandThrough(const QString& command) const;
     enum class Interaction { Use, Assign, Edit, NameEdit };
     enum class NameEditKind { None, Topic, Pin };
@@ -280,7 +276,9 @@ private:
     void rebuildBoard();
     [[nodiscard]] PageDim speakBoardWidth() const;
     void fillSoundboard(PageDocument& doc) const;
+    /// Keyboard Edit toggles topic and soundboard edit, or the style or tag editor.
     void stampEditKeys(PageDocument& doc) const;
+    [[nodiscard]] QString editKeyFace() const;
     void fillTopicsMode(PageDocument& doc) const;
 
     void ensureBrowserEntries() const;
@@ -304,10 +302,6 @@ private:
     [[nodiscard]] bool keyboardBorrowed() const;
     /// Settings import/export is showing the Speak file browser.
     [[nodiscard]] bool settingsFileKeyboard() const;
-    /// View-defaults search, icon search, or a Speak search sheet.
-    [[nodiscard]] bool searchKeyboard() const;
-    /// Settings files or a search keyboard. Edit is Esc and Actions is Ctrl.
-    [[nodiscard]] bool escCtrlKeyboard() const;
     [[nodiscard]] bool handleGuestSend(const PageAction& action);
     [[nodiscard]] bool handleGuestCommand(const QString& command);
     void applyGuestChrome(PageDocument& doc) const;
@@ -491,9 +485,8 @@ private:
     FileJob m_fileJob = FileJob::Speak;
     /// Settings search owns inserts. The Speak phrase is left alone.
     bool m_guestKeys = false;
-    /// Last Esc/Ctrl stamp. A session change restamps only when this flips.
-    bool m_escCtrlFace = false;
-    bool m_restampGuard = false;
+    /// Last style/tag face on the keyboard Edit key. A session change restamps when this flips.
+    QString m_editKeyFace;
     /// Compose was opened only to lend its keyboard. Close it when the loan ends.
     bool m_borrowedCompose = false;
     std::function<void(const QString&)> m_guestInsert;

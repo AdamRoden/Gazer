@@ -834,11 +834,12 @@ void PageLoaderTest::loadComposePage()
              QStringLiteral("1.5*A_ScreenHeight"));
     QVERIFY(doc.findGrid(QStringLiteral("keys")));
     QCOMPARE(doc.findGrid(QStringLiteral("keys"))->rows, 3);
-    QCOMPARE(doc.findGrid(QStringLiteral("keys"))->columns, 120);
-    QCOMPARE(doc.findGrid(QStringLiteral("keys"))->cells.size(), 36);
+    QCOMPARE(doc.findGrid(QStringLiteral("keys"))->columns, 1);
+    QCOMPARE(doc.findGrid(QStringLiteral("keys"))->cells.size(), 0);
+    QCOMPARE(doc.findGrid(QStringLiteral("keys"))->subGrids.size(), 3);
     QCOMPARE(doc.findGrid(QStringLiteral("board"))->layers,
              (QVector<int>{1, 2, 3, 4, 5}));
-    QCOMPARE(doc.findGrid(QStringLiteral("compose"))->rows, 2);
+    QCOMPARE(doc.findGrid(QStringLiteral("compose"))->rows, 1);
     const PageGrid* keys = doc.findGrid(QStringLiteral("keys"));
     QVERIFY(keys);
     const std::optional<PageDimParse::StarBand> band =
@@ -927,18 +928,36 @@ void PageLoaderTest::loadComposePage()
     QVERIFY(!doc.findCell(QStringLiteral("delword")));
     QVERIFY(!doc.findGrid(QStringLiteral("actions")));
     QVERIFY(!doc.findGrid(QStringLiteral("edit_keys")));
-    QVERIFY(doc.findGrid(QStringLiteral("speak_keys")));
-    QCOMPARE(doc.findGrid(QStringLiteral("speak_keys"))->col, 1);
+    QVERIFY(!doc.findGrid(QStringLiteral("speak_keys")));
     QVERIFY(!doc.findGrid(QStringLiteral("chips")));
-    QCOMPARE(doc.findGrid(QStringLiteral("compose"))->columns, 2);
-    QCOMPARE(doc.findGrid(QStringLiteral("compose"))->rows, 2);
+    QCOMPARE(doc.findGrid(QStringLiteral("compose"))->columns, 1);
+    QCOMPARE(doc.findGrid(QStringLiteral("compose"))->rows, 1);
     QCOMPARE(doc.findGrid(QStringLiteral("predict"))->row, 2);
     QCOMPARE(doc.findGrid(QStringLiteral("predict"))->col, 0);
-    QCOMPARE(doc.findGrid(QStringLiteral("phrase"))->row, 0);
-    QCOMPARE(doc.findGrid(QStringLiteral("phrase"))->rowSpan, 2);
-    QCOMPARE(doc.findGrid(QStringLiteral("speak_keys"))->row, 1);
-    QCOMPARE(doc.findGrid(QStringLiteral("speak_keys"))->rowSpan, 1);
-    QCOMPARE(doc.findCell(QStringLiteral("clear"))->styleId, QStringLiteral("round"));
+    const PageGrid* phraseGrid = doc.findGrid(QStringLiteral("phrase"));
+    QVERIFY(phraseGrid);
+    QCOMPARE(phraseGrid->row, 0);
+    QCOMPARE(phraseGrid->rowSpan, 1);
+    QCOMPARE(phraseGrid->columns, 3);
+    QCOMPARE(phraseGrid->columnTracks.size(), 3);
+    QVERIFY(phraseGrid->columnTracks.at(0).isStar());
+    QVERIFY(!phraseGrid->columnTracks.at(1).isStar());
+    QVERIFY(!phraseGrid->columnTracks.at(2).isStar());
+    QVERIFY(phraseGrid->style.thickness.has_value());
+    QCOMPARE(phraseGrid->style.thickness->first(), 1.0);
+    QCOMPARE(doc.findCell(QStringLiteral("phrase"))->col, 0);
+    QCOMPARE(doc.findCell(QStringLiteral("phrase"))->colSpan, 1);
+    QVERIFY(doc.findCell(QStringLiteral("phrase"))->style.thickness.has_value());
+    QCOMPARE(doc.findCell(QStringLiteral("phrase"))->style.thickness->first(), 0.0);
+    QCOMPARE(doc.findCell(QStringLiteral("clear"))->col, 1);
+    QCOMPARE(doc.findCell(QStringLiteral("clear"))->colSpan, 1);
+    QCOMPARE(doc.findCell(QStringLiteral("clear"))->styleId, QStringLiteral("plain"));
+    QCOMPARE(doc.findCell(QStringLiteral("clear"))->icon, QStringLiteral("close"));
+    QCOMPARE(doc.findCell(QStringLiteral("speak"))->col, 2);
+    QCOMPARE(doc.findCell(QStringLiteral("speak"))->colSpan, 1);
+    QCOMPARE(doc.findCell(QStringLiteral("speak"))->styleId, QStringLiteral("plain"));
+    QCOMPARE(doc.findCell(QStringLiteral("speak"))->icon, QStringLiteral("Speak"));
+    QCOMPARE(doc.findCell(QStringLiteral("speak"))->label, QString());
     QVERIFY(!doc.findCell(QStringLiteral("undo")));
     QVERIFY(!doc.findCell(QStringLiteral("redo")));
     QVERIFY(!doc.findCell(QStringLiteral("voices")));
@@ -948,7 +967,6 @@ void PageLoaderTest::loadComposePage()
     QCOMPARE(doc.findGrid(QStringLiteral("compose"))->layers, allLayers);
     QCOMPARE(doc.findGrid(QStringLiteral("phrase"))->layers, allLayers);
     QCOMPARE(doc.findGrid(QStringLiteral("predict"))->layers, allLayers);
-    QCOMPARE(doc.findGrid(QStringLiteral("speak_keys"))->layers, allLayers);
     QCOMPARE(doc.findGrid(QStringLiteral("board"))->rows, 2);
     QCOMPARE(doc.findGrid(QStringLiteral("keys"))->row, 1);
     QCOMPARE(doc.findGrid(QStringLiteral("rail"))->row, 0);
@@ -966,6 +984,8 @@ void PageLoaderTest::loadComposePage()
     QVERIFY(!doc.findCell(QStringLiteral("actions")));
     QCOMPARE(doc.findCell(QStringLiteral("clear"))->actions[0].command,
              QStringLiteral("compose.clear"));
+    QCOMPARE(doc.findCell(QStringLiteral("speak"))->actions[0].command,
+             QStringLiteral("compose.speak"));
     QVERIFY(doc.findGrid(QStringLiteral("rail")));
     QVERIFY(doc.findGrid(QStringLiteral("soundboard")));
     QVERIFY(doc.findCell(QStringLiteral("cmd_undo")));
@@ -973,8 +993,7 @@ void PageLoaderTest::loadComposePage()
     QVERIFY(!doc.findCell(QStringLiteral("cmd_edit")));
     QCOMPARE(doc.findCell(QStringLiteral("edit"))->label, QStringLiteral("Edit"));
     QCOMPARE(doc.findCell(QStringLiteral("edit"))->icon, QStringLiteral("edit"));
-    QCOMPARE(doc.findCell(QStringLiteral("edit"))->actions[0].command,
-             QStringLiteral("compose.editShown"));
+    QVERIFY(doc.findCell(QStringLiteral("edit"))->actions.isEmpty());
     QCOMPARE(doc.findCell(QStringLiteral("edit"))->row, 0);
     QCOMPARE(doc.findCell(QStringLiteral("edit"))->col, 0);
     QVERIFY(!doc.findCell(QStringLiteral("cmd_actions")));
@@ -986,9 +1005,10 @@ void PageLoaderTest::loadComposePage()
     QVERIFY(delivery);
     QCOMPARE(delivery->label, QStringLiteral("Actions"));
     QCOMPARE(delivery->icon, QStringLiteral("graphicEq"));
-    QCOMPARE(delivery->row, 2);
+    QCOMPARE(doc.findGrid(QStringLiteral("keys_row2"))->row, 2);
+    QCOMPARE(delivery->row, 0);
     QCOMPARE(delivery->col, 0);
-    QCOMPARE(delivery->colSpan, 9);
+    QCOMPARE(delivery->colSpan, 1);
     QCOMPARE(delivery->actions[0].type, PageActionType::ShowLayers);
     QCOMPARE(delivery->actions[0].layers, QVector<int>({5}));
     QVERIFY(doc.findCell(QStringLiteral("delivery_s")));
@@ -1023,50 +1043,98 @@ void PageLoaderTest::loadComposePage()
     }
     QVERIFY(!doc.findGrid(QStringLiteral("keys_tags")));
     QVERIFY(!doc.findCell(QStringLiteral("tags")));
-    QVERIFY(!doc.findCell(QStringLiteral("speak")));
+    QVERIFY(doc.findCell(QStringLiteral("speak")));
     QCOMPARE(doc.findCell(QStringLiteral("sym"))->icon, QStringLiteral("numbers"));
-    for (const char* gid : {"keys", "keys_shift", "keys_sym", "keys_sym_shift", "keys_cmd",
-                            "speak_keys"}) {
+    const auto winTab = [](const PageGrid& g) {
+        for (const PageCell& c : g.cells) {
+            for (const PageAction& a : c.actions) {
+                if (a.command == QLatin1String("tab") || a.command == QLatin1String("leftWin")) {
+                    return c.id;
+                }
+            }
+        }
+        return QString();
+    };
+    for (const char* gid : {"keys", "keys_shift", "keys_sym", "keys_sym_shift", "keys_cmd"}) {
         const PageGrid* g = doc.findGrid(QLatin1String(gid));
         QVERIFY2(g, gid);
-        for (const PageCell& c : g->cells) {
-            for (const PageAction& a : c.actions) {
-                QVERIFY2(a.command != QLatin1String("tab"), qPrintable(c.id));
-                QVERIFY2(a.command != QLatin1String("leftWin"), qPrintable(c.id));
-            }
+        QVERIFY2(winTab(*g).isEmpty(), qPrintable(winTab(*g)));
+        for (const PageGrid& sub : g->subGrids) {
+            QVERIFY2(winTab(sub).isEmpty(), qPrintable(winTab(sub)));
+        }
+    }
+    for (const char* gid : {"keys_row0", "keys_row1", "keys_row2", "keys_shift_row0",
+                            "keys_shift_row1", "keys_shift_row2", "keys_sym_row0", "keys_sym_row1",
+                            "keys_sym_row2", "keys_sym_shift_row0", "keys_sym_shift_row1",
+                            "keys_sym_shift_row2"}) {
+        const PageGrid* row = doc.findGrid(QLatin1String(gid));
+        QVERIFY2(row, gid);
+        QCOMPARE(row->rows, 1);
+        QCOMPARE(row->columns, row->cells.size());
+        for (int i = 0; i < row->cells.size(); ++i) {
+            QCOMPARE(row->cells.at(i).row, 0);
+            QCOMPARE(row->cells.at(i).col, i);
+            QCOMPARE(row->cells.at(i).colSpan, 1);
         }
     }
     const PageCell* qKey = doc.findCell(QStringLiteral("ch_113_0_1"));
     QVERIFY(qKey);
     QCOMPARE(qKey->actions[0].type, PageActionType::Send);
     QCOMPARE(qKey->actions[0].sendKey, QStringLiteral("q"));
-    QCOMPARE(qKey->col, 10);
-    QCOMPARE(qKey->colSpan, 10);
-    const PageCell* aKey = doc.findCell(QStringLiteral("ch_97_1_1"));
-    const PageCell* zKey = doc.findCell(QStringLiteral("ch_122_2_2"));
-    QVERIFY(aKey);
-    QVERIFY(zKey);
-    QVERIFY(aKey->col > qKey->col);
-    QVERIFY(zKey->col > aKey->col);
-    QCOMPARE(zKey->colSpan, 9);
-    const PageCell* gKey = doc.findCell(QStringLiteral("ch_103_1_5"));
-    const PageCell* hKey = doc.findCell(QStringLiteral("ch_104_1_6"));
+    QCOMPARE(qKey->col, 1);
+    QCOMPARE(qKey->colSpan, 1);
+    const PageCell* pKey = doc.findCell(QStringLiteral("ch_112_0_10"));
+    const PageCell* minus = doc.findCell(QStringLiteral("minus"));
+    const PageCell* bksp = doc.findCell(QStringLiteral("bksp"));
+    QVERIFY(pKey);
+    QVERIFY(minus);
+    QVERIFY(bksp);
+    QCOMPARE(minus->col, pKey->col + pKey->colSpan);
+    QCOMPARE(bksp->col, minus->col + minus->colSpan);
+    QCOMPARE(minus->colSpan, 1);
+    QCOMPARE(minus->actions[0].sendKey, QStringLiteral("-"));
+    const PageCell* lKey = doc.findCell(QStringLiteral("ch_108_1_9"));
+    const PageCell* semi = doc.findCell(QStringLiteral("semicolon"));
+    const PageCell* quote = doc.findCell(QStringLiteral("quote"));
+    const PageCell* wordBksp = doc.findCell(QStringLiteral("bksp_word"));
+    QVERIFY(lKey);
+    QVERIFY(semi);
+    QVERIFY(quote);
+    QVERIFY(wordBksp);
+    QCOMPARE(semi->col, lKey->col + lKey->colSpan);
+    QCOMPARE(quote->col, semi->col + semi->colSpan);
+    QCOMPARE(wordBksp->col, quote->col + quote->colSpan);
+    QCOMPARE(semi->colSpan, 1);
+    QCOMPARE(quote->colSpan, 1);
+    QCOMPARE(wordBksp->colSpan, 1);
+    QCOMPARE(semi->actions[0].sendKey, QStringLiteral(";"));
+    QCOMPARE(wordBksp->actions[0].command, QStringLiteral("compose.deleteWord"));
+    const PageCell* mKey = doc.findCell(QStringLiteral("ch_109_2_9"));
+    const PageCell* comma = doc.findCell(QStringLiteral("comma"));
+    const PageCell* period = doc.findCell(QStringLiteral("period"));
+    QVERIFY(mKey);
+    QVERIFY(comma);
+    QVERIFY(period);
+    QCOMPARE(comma->col, mKey->col + mKey->colSpan);
+    QCOMPARE(period->col, comma->col + comma->colSpan);
+    QCOMPARE(comma->colSpan, 1);
+    QCOMPARE(period->colSpan, 1);
+    const PageCell* vKey = doc.findCell(QStringLiteral("ch_118_2_5"));
+    const PageCell* bKey = doc.findCell(QStringLiteral("ch_98_2_7"));
     const PageCell* space = doc.findCell(QStringLiteral("space"));
-    QVERIFY(gKey);
-    QVERIFY(hKey);
+    QVERIFY(vKey);
+    QVERIFY(bKey);
     QVERIFY(space);
-    QVERIFY(space->col > gKey->col);
-    QVERIFY(space->col < gKey->col + gKey->colSpan);
-    QVERIFY(space->col + space->colSpan > hKey->col);
-    QVERIFY(space->col + space->colSpan < hKey->col + hKey->colSpan);
+    QCOMPARE(space->col, vKey->col + vKey->colSpan);
+    QCOMPARE(bKey->col, space->col + space->colSpan);
     const PageCell* shift = doc.findCell(QStringLiteral("shift"));
     const PageCell* sym = doc.findCell(QStringLiteral("sym"));
     QVERIFY(shift);
     QVERIFY(sym);
     QCOMPARE(shift->actions[0].type, PageActionType::ShowLayers);
     QCOMPARE(shift->actions[0].layers, QVector<int>({2}));
-    QCOMPARE(sym->col, 9);
-    QCOMPARE(sym->colSpan, 9);
+    QCOMPARE(sym->col, 1);
+    QCOMPARE(sym->colSpan, 1);
     QCOMPARE(sym->actions[0].layers, QVector<int>({3}));
     QVERIFY(!usesRapidDwell(shift->actions, shift->phases));
     QVERIFY(!doc.findCell(QStringLiteral("chip_0")));
@@ -1081,9 +1149,8 @@ void PageLoaderTest::findCellMutateDoesNotShareCopy()
         QStringLiteral(GAZER_SOURCE_DIR) + QStringLiteral("/resources/layouts/compose.xml");
     QVERIFY2(PageLoader::loadFromFile(path, doc, &err), qPrintable(err));
     QCOMPARE(doc.findCell(QStringLiteral("delivery"))->label, QStringLiteral("Actions"));
-    QCOMPARE(doc.findCell(QStringLiteral("clear"))->label, QStringLiteral("Clear"));
-    QCOMPARE(doc.findGrid(QStringLiteral("speak_keys"))->cells.size(), 1);
-    QCOMPARE(doc.findGrid(QStringLiteral("phrase"))->cells.size(), 1);
+    QCOMPARE(doc.findCell(QStringLiteral("clear"))->label, QString());
+    QCOMPARE(doc.findGrid(QStringLiteral("phrase"))->cells.size(), 3);
 
     PageDocument copy = doc;
     PageCell* delivery = copy.findCell(QStringLiteral("delivery"));
@@ -1093,17 +1160,17 @@ void PageLoaderTest::findCellMutateDoesNotShareCopy()
     PageCell* clear = copy.findCell(QStringLiteral("clear"));
     QVERIFY(clear);
     clear->label = QStringLiteral("Color");
-    PageGrid* keys = copy.findGrid(QStringLiteral("speak_keys"));
-    QVERIFY(keys);
-    keys->cells.clear();
-    keys->rows = 2;
+    PageGrid* phrase = copy.findGrid(QStringLiteral("phrase"));
+    QVERIFY(phrase);
+    phrase->cells.clear();
+    phrase->rows = 2;
 
     QCOMPARE(doc.findCell(QStringLiteral("delivery"))->label, QStringLiteral("Actions"));
     QCOMPARE(doc.findCell(QStringLiteral("delivery"))->actions[0].type, PageActionType::ShowLayers);
     QCOMPARE(doc.findCell(QStringLiteral("delivery"))->actions[0].layers, QVector<int>({5}));
-    QCOMPARE(doc.findCell(QStringLiteral("clear"))->label, QStringLiteral("Clear"));
-    QCOMPARE(doc.findGrid(QStringLiteral("speak_keys"))->cells.size(), 1);
-    QCOMPARE(doc.findGrid(QStringLiteral("phrase"))->cells.size(), 1);
+    QCOMPARE(doc.findCell(QStringLiteral("clear"))->label, QString());
+    QCOMPARE(doc.findGrid(QStringLiteral("phrase"))->cells.size(), 3);
+    QCOMPARE(doc.findGrid(QStringLiteral("phrase"))->rows, 1);
 }
 
 void PageLoaderTest::loadMainPage()

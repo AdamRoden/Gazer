@@ -389,7 +389,7 @@ void ComposeUi::abandonClosedSession()
     clearVoiceQuery();
     stopListScroll();
     m_guestKeys = false;
-    m_escCtrlFace = false;
+    m_editKeyFace.clear();
     m_borrowedCompose = false;
     if (!hasLive(kFilesLiveId)) {
         m_fileJob = FileJob::Speak;
@@ -399,17 +399,11 @@ void ComposeUi::abandonClosedSession()
 
 void ComposeUi::onSessionChanged()
 {
-    if (m_restampGuard) {
-        return;
-    }
     if (isOpen()) {
-        const bool face = escCtrlKeyboard();
-        if (face != m_escCtrlFace) {
-            // A query keystroke keeps this face. Restamp only when Esc/Ctrl turns on or off.
-            m_escCtrlFace = face;
-            m_restampGuard = true;
+        const QString face = editKeyFace();
+        if (face != m_editKeyFace) {
+            m_editKeyFace = face;
             m_pages.refreshDecorated();
-            m_restampGuard = false;
         }
     }
     if (isOpen() || hasLive(kItemEditLiveId)) {
@@ -680,7 +674,7 @@ void ComposeUi::decoratePage(PageDocument& doc) const
                     }
                 }
             } else if (c.id == QLatin1String("speak") && !naming) {
-                c.label = stop ? QStringLiteral("Stop") : QStringLiteral("Speak");
+                c.label.clear();
                 c.icon = stop ? QStringLiteral("Sleep") : QStringLiteral("Speak");
             }
         }
