@@ -29,7 +29,7 @@ namespace {
 constexpr int kFileNameMax = 180;
 constexpr int kHistoryCap = 40;
 
-QStringList listBrowser(const QString& dir)
+QStringList listBrowser(const QString& dir, const QStringList& patterns)
 {
     QStringList out;
     if (dir.isEmpty()) {
@@ -52,8 +52,8 @@ QStringList listBrowser(const QString& dir)
         }
     }
     const QFileInfoList files = folder.entryInfoList(
-        QStringList{QStringLiteral("*.json")}, QDir::Files | QDir::Readable,
-        QDir::Name | QDir::IgnoreCase);
+        patterns.isEmpty() ? QStringList{QStringLiteral("*.json")} : patterns,
+        QDir::Files | QDir::Readable, QDir::Name | QDir::IgnoreCase);
     for (const QFileInfo& info : files) {
         out.push_back(info.absoluteFilePath());
         if (out.size() >= 2000) {
@@ -298,7 +298,9 @@ void ComposeUi::ensureBrowserEntries() const
     if (m_browserFresh) {
         return;
     }
-    m_browserEntries = listBrowser(m_browserDir);
+    const QStringList patterns = m_fileJob == FileJob::Audio ? SoundboardStore::audioNameFilters()
+                                                             : QStringList{QStringLiteral("*.json")};
+    m_browserEntries = listBrowser(m_browserDir, patterns);
     m_browserFresh = true;
 }
 
@@ -324,7 +326,7 @@ void ComposeUi::navigateBrowser(const QString& dir)
 
 bool ComposeUi::openFileMode(FileMode mode, QString* error, FileJob job)
 {
-    if (capturingPhrase()) {
+    if (capturingPhrase() && job != FileJob::Audio) {
         const QString msg = QStringLiteral("Finish the name first");
         notify(msg);
         if (error) {
@@ -342,6 +344,16 @@ bool ComposeUi::openFileMode(FileMode mode, QString* error, FileJob job)
     }
     m_fileMode = mode;
     m_fileJob = job;
+    if (jobChanged) {
+        m_browserFresh = false;
+    }
+    if (job == FileJob::Audio && (firstOpen || jobChanged)) {
+        m_pendingImport.clear();
+        m_pendingImportName.clear();
+        m_pendingImportPath.clear();
+        m_fileName.load(QString());
+        m_browserFresh = false;
+    }
     if (mode == FileMode::Export && (jobChanged || m_fileName.text().trimmed().isEmpty())) {
         if (job == FileJob::Settings) {
             m_fileName.load(QStringLiteral("gazer-settings.json"));
@@ -570,7 +582,7 @@ void ComposeUi::browserBack()
 
 bool ComposeUi::pickImportFile(int index, QString* error)
 {
-    if (capturingPhrase()) {
+    if (capturingPhrase() && m_fileJob != FileJob::Audio) {
         const QString msg = QStringLiteral("Finish the name first");
         notify(msg);
         if (error) {
@@ -580,7 +592,9 @@ bool ComposeUi::pickImportFile(int index, QString* error)
     }
     ensureBrowserEntries();
     if (index < 0 || index >= m_browserEntries.size()) {
-        const QString msg = QStringLiteral("Dwell a folder or a JSON file");
+        const QString msg = m_fileJob == FileJob::Audio
+                                ? QStringLiteral("Dwell a folder or an audio file")
+                                : QStringLiteral("Dwell a folder or a JSON file");
         setBoardNote(msg);
         if (error) {
             *error = msg;
@@ -675,10 +689,14 @@ bool ComposeUi::armFileConfirm(FileConfirm kind, QString* error)
         rebuildFiles();
         return false;
     };
-    if (capturingPhrase()) {
+    if (capturingPhrase() && m_fileJob != FileJob::Audio) {
         return fail(QStringLiteral("Finish the name first"));
     }
-    if (kind == FileConfirm::Export) {
+    if (m_fileJob == FileJob::Audio) {
+        if (selectedAudioPath().isEmpty()) {
+            return fail(QStringLiteral("Dwell an audio file first"));
+        }
+    } else if (kind == FileConfirm::Export) {
         if (m_browserDir.isEmpty() || !QFileInfo(m_browserDir).isDir()) {
             return fail(QStringLiteral("Open a folder, then Save"));
         }
@@ -706,6 +724,9 @@ bool ComposeUi::confirmFileYes(QString* error)
             return writeSettingsExport(error);
         }
         return writeExport(error);
+    }
+    if (m_fileJob == FileJob::Audio) {
+        return rememberPhraseAudio(error);
     }
     if (m_fileJob == FileJob::Settings) {
         return importSettingsSelection(error);
@@ -780,8 +801,65 @@ QString ComposeUi::selectedJsonPath() const
     return {};
 }
 
+QString ComposeUi::selectedAudioPath() const
+{
+    const QFileInfo saved(m_pendingImportPath);
+    if (saved.isFile() && !SoundboardStore::storedAudioSuffix(saved.suffix()).isEmpty()) {
+        return saved.absoluteFilePath();
+    }
+    return {};
+}
+
+bool ComposeUi::browsePhraseAudio(QString* error)
+{
+    if (m_nameEdit != NameEditKind::Pin || m_editId.isEmpty()) {
+        const QString msg = QStringLiteral("Open a phrase first");
+        notify(msg);
+        if (error) {
+            *error = msg;
+        }
+        return false;
+    }
+    return openFileMode(FileMode::Import, error, FileJob::Audio);
+}
+
+bool ComposeUi::usePhraseAudio(QString* error)
+{
+    if (!hasLive(kFilesLiveId) || m_fileJob != FileJob::Audio) {
+        const QString msg = QStringLiteral("Open a phrase first");
+        notify(msg);
+        if (error) {
+            *error = msg;
+        }
+        return false;
+    }
+    return armFileConfirm(FileConfirm::Import, error);
+}
+
+bool ComposeUi::rememberPhraseAudio(QString* error)
+{
+    if (m_nameEdit != NameEditKind::Pin || m_editId.isEmpty()) {
+        return noteFileFailure(QStringLiteral("Open a phrase first"), error);
+    }
+    const QString path = selectedAudioPath();
+    if (path.isEmpty()) {
+        return noteFileFailure(QStringLiteral("Dwell an audio file first"), error);
+    }
+    m_formAudioPath = path;
+    m_formAudioName = QFileInfo(path).fileName();
+    browserBack();
+    rebuildForm();
+    notify(QStringLiteral("Audio selected"));
+    return true;
+}
+
 QString ComposeUi::fileConfirmQuestion() const
 {
+    if (m_fileJob == FileJob::Audio && m_fileConfirm != FileConfirm::None) {
+        const QString path = selectedAudioPath();
+        const QString name = path.isEmpty() ? QStringLiteral("this file") : QFileInfo(path).fileName();
+        return ellipsis(QStringLiteral("Assign %1?").arg(name), 72);
+    }
     if (m_fileConfirm == FileConfirm::Export) {
         const QString name = exportLeafName(m_fileName.text(), nullptr);
         if (name.isEmpty()) {

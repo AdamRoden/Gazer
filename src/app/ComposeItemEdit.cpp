@@ -11,6 +11,7 @@
 #include "ui/KeySymbols.h"
 #include "ui/Theme.h"
 
+#include <QFileInfo>
 #include <QVector>
 
 namespace gazer {
@@ -165,11 +166,14 @@ void ComposeUi::finishItemEditor(bool restorePhrase)
     m_interaction = Interaction::Use;
     endIconPick();
     m_editColor.clear();
+    m_editBorder.clear();
     m_editIcon.clear();
     m_formField = FormField::Name;
     m_formName.clear();
     m_formPhrase.clear();
     m_formPhraseTouched = false;
+    m_formAudioPath.clear();
+    m_formAudioName.clear();
     if (hasLive(kFormLiveId)) {
         m_pages.closePage(QString(kFormLiveId));
     }
@@ -191,28 +195,38 @@ void ComposeUi::cancelNameEdit()
 void ComposeUi::loadEditAppearance()
 {
     m_editColor.clear();
+    m_editBorder.clear();
     m_editIcon.clear();
     m_formField = FormField::Name;
     m_formPhraseTouched = false;
     m_formName.clear();
     m_formPhrase.clear();
+    m_formAudioPath.clear();
+    m_formAudioName.clear();
     m_formIndex = 0;
     m_formCols = 4;
+    m_formRows = 3;
     if (const SoundboardTopic* t = m_board.findTopic(m_editId);
         m_nameEdit == NameEditKind::Topic && t) {
         m_editColor = t->color;
+        m_editBorder = t->borderColor;
         m_editIcon = t->icon;
         m_formName = t->name;
         m_formCols = t->gridCols;
+        m_formRows = t->gridRows;
         m_formIndex = qMax(0, formLiveIndex());
         return;
     }
     if (const SoundboardButton* b = m_board.findButton(m_editId);
         m_nameEdit == NameEditKind::Pin && b) {
         m_editColor = b->color;
+        m_editBorder = b->borderColor;
         m_editIcon = b->icon;
         m_formName = b->label;
         m_formPhrase = b->utteranceText;
+        if (!b->clipId.isEmpty() && QFileInfo::exists(m_board.clipPath(b->clipId))) {
+            m_formAudioName = QStringLiteral("Saved audio");
+        }
         m_formIndex = qMax(0, formLiveIndex());
     }
 }
@@ -222,11 +236,13 @@ void ComposeUi::persistEditAppearance()
     QString err;
     if (m_nameEdit == NameEditKind::Topic) {
         (void)m_board.setTopicColor(m_editId, m_editColor, &err);
+        (void)m_board.setTopicBorder(m_editId, m_editBorder, &err);
         (void)m_board.setTopicIcon(m_editId, m_editIcon, &err);
         return;
     }
     if (m_nameEdit == NameEditKind::Pin) {
         (void)m_board.setButtonColor(m_editId, m_editColor, &err);
+        (void)m_board.setButtonBorder(m_editId, m_editBorder, &err);
         (void)m_board.setButtonIcon(m_editId, m_editIcon, &err);
     }
 }
@@ -374,6 +390,28 @@ bool ComposeUi::saveNameEdit(QString* error)
     }
     name = ellipsis(name, 24);
 
+    if (m_nameEdit == NameEditKind::Pin && !m_formAudioPath.isEmpty()) {
+        QString clipErr;
+        const QString clipId = m_board.importClip(m_formAudioPath, &clipErr, &m_history);
+        QString setErr;
+        if (clipId.isEmpty() || !m_board.setButtonClip(m_editId, clipId, &setErr)) {
+            const QString msg = !clipId.isEmpty()
+                                    ? (setErr.isEmpty() ? QStringLiteral("Could not save audio") : setErr)
+                                    : (clipErr.isEmpty() ? QStringLiteral("Could not copy clip") : clipErr);
+            notify(msg);
+            if (error) {
+                *error = msg;
+            }
+            m_board.evictUnreferencedClips();
+            return false;
+        }
+        m_formPhrase.clear();
+        m_formPhraseTouched = false;
+        if (m_formField == FormField::Phrase) {
+            m_buffer.load(QString());
+        }
+    }
+
     bool ok = false;
     switch (m_nameEdit) {
     case NameEditKind::Pin:
@@ -388,7 +426,16 @@ bool ComposeUi::saveNameEdit(QString* error)
     }
     if (ok) {
         persistEditAppearance();
-        applyFormDrafts();
+        QString draftErr;
+        if (!applyFormDrafts(&draftErr)) {
+            const QString msg =
+                draftErr.isEmpty() ? QStringLiteral("Could not save the board") : draftErr;
+            notify(msg);
+            if (error) {
+                *error = msg;
+            }
+            return false;
+        }
     }
     if (!ok) {
         return false;
@@ -456,6 +503,16 @@ bool ComposeUi::openTopicEdit(const QString& topicId, QString* error)
 
 void ComposeUi::showEditColors()
 {
+    showEditColor(false);
+}
+
+void ComposeUi::showEditBorder()
+{
+    showEditColor(true);
+}
+
+void ComposeUi::showEditColor(bool border)
+{
     if (!nameEditing()) {
         return;
     }
@@ -469,15 +526,21 @@ void ComposeUi::showEditColors()
     }
     const ThemeColors theme = m_settings.resolvedTheme();
     const QColor fallback = theme.accent.isValid() ? theme.accent : QColor(30, 151, 243);
-    const QColor initial = parseColor(m_editColor, fallback);
+    const QString current = border ? m_editBorder : m_editColor;
+    const QColor initial = parseColor(current, fallback);
     QString err;
     const bool ok = m_colorPick(
-        initial, QStringLiteral("Color"),
-        [this](const QColor& chosen) {
-            if (!nameEditing() || !chosen.isValid()) {
+        initial, border ? QStringLiteral("Border") : QStringLiteral("Background"),
+        [this, border](const QColor& chosen) {
+            if (!nameEditing()) {
                 return;
             }
-            m_editColor = storedEditColor(chosen);
+            const QString stored = chosen.isValid() ? storedEditColor(chosen) : QString();
+            if (border) {
+                m_editBorder = stored;
+            } else {
+                m_editColor = stored;
+            }
             rebuildBoard();
         },
         &err);

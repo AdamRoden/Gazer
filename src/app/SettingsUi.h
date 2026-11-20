@@ -98,7 +98,8 @@ public:
     void cancelEyedropper();
     [[nodiscard]] QString colorPickerKey() const { return m_colorPickerKey; }
     /// The settings color picker, seeded with `initial`, without writing a setting.
-    /// Save calls `commit` with the chosen color. Cancel discards it.
+    /// Save calls `commit` with the chosen color. None calls it with an invalid color.
+    /// Cancel discards it.
     [[nodiscard]] bool openColorFor(const QColor& initial, const QString& title,
                                     std::function<void(const QColor&)> commit,
                                     QString* error = nullptr);
@@ -184,6 +185,7 @@ private:
     void storeDraftPending();
     void refreshHexEditor();
     [[nodiscard]] bool colorSave(QString* error = nullptr);
+    [[nodiscard]] bool colorNone(QString* error = nullptr);
     [[nodiscard]] bool colorEditChannel(const QString& channel, QString* error = nullptr);
     [[nodiscard]] bool openHexEditor(QString* error = nullptr);
     [[nodiscard]] PageDocument buildHexDocument() const;

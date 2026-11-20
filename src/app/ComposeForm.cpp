@@ -9,7 +9,6 @@
 #include "ui/Theme.h"
 
 #include <QtGlobal>
-#include <algorithm>
 
 namespace gazer {
 
@@ -18,7 +17,7 @@ using SettingsPageBuild::initTopOverlay;
 using SettingsPageBuild::makeNested;
 using compose_detail::aboveKeyboardHeight;
 using compose_detail::paintDanger;
-using compose_detail::paintOutline;
+using compose_detail::paintItemFace;
 using compose_detail::paintSave;
 using compose_detail::paintSurface;
 using compose_detail::parseColor;
@@ -38,64 +37,19 @@ const SoundboardTopic* topicOwning(const SoundboardStore& board, const QString& 
     return nullptr;
 }
 
-int rowMajorSlot(const SoundboardTopic& topic, const QString& buttonId)
+int occupiedSpan(const SoundboardTopic* topic, bool rows)
 {
-    QVector<int> order;
-    order.reserve(topic.buttons.size());
-    for (int i = 0; i < topic.buttons.size(); ++i) {
-        order.push_back(i);
+    int n = 1;
+    if (!topic) {
+        return n;
     }
-    std::sort(order.begin(), order.end(), [&](int a, int b) {
-        const SoundboardButton& ba = topic.buttons.at(a);
-        const SoundboardButton& bb = topic.buttons.at(b);
-        if (ba.row != bb.row) {
-            return ba.row < bb.row;
-        }
-        if (ba.col != bb.col) {
-            return ba.col < bb.col;
-        }
-        return a < b;
-    });
-    for (int slot = 0; slot < order.size(); ++slot) {
-        if (topic.buttons.at(order.at(slot)).id == buttonId) {
-            return slot;
-        }
+    for (const SoundboardButton& button : topic->buttons) {
+        const int origin = rows ? button.row : button.col;
+        const int span = qMax(1, rows ? button.rowSpan : button.colSpan);
+        n = qMax(n, origin + span);
     }
-    return -1;
-}
-
-QVector<int> rowMajorOrder(const SoundboardTopic& topic)
-{
-    QVector<int> order;
-    order.reserve(topic.buttons.size());
-    for (int i = 0; i < topic.buttons.size(); ++i) {
-        order.push_back(i);
-    }
-    std::sort(order.begin(), order.end(), [&](int a, int b) {
-        const SoundboardButton& ba = topic.buttons.at(a);
-        const SoundboardButton& bb = topic.buttons.at(b);
-        if (ba.row != bb.row) {
-            return ba.row < bb.row;
-        }
-        if (ba.col != bb.col) {
-            return ba.col < bb.col;
-        }
-        return a < b;
-    });
-    return order;
-}
-
-void paintSpoken(PageCell& cell, const SoundboardStore::PlayPlan& plan, const QColor& ink,
-                 const QColor& surface)
-{
-    if (plan.kind == SoundboardStore::PlayPlan::Kind::Utterance
-        || plan.kind == SoundboardStore::PlayPlan::Kind::Source) {
-        paintOutline(cell, ink);
-        return;
-    }
-    const QColor bg = ink.isValid() ? ink : surface;
-    cell.style.background = bg;
-    cell.style.foreground = ThemeColors::contrastOn(bg);
+    const int cap = rows ? SoundboardStore::kMaxRows : SoundboardStore::kMaxCols;
+    return qBound(1, n, cap);
 }
 
 } // namespace
@@ -123,7 +77,16 @@ int ComposeUi::formItemCount() const
     }
     if (m_nameEdit == NameEditKind::Pin) {
         if (const SoundboardTopic* topic = topicOwning(m_board, m_editId)) {
-            return topic->buttons.size();
+            const int cols = qMax(1, topic->gridCols);
+            int rows = qMax(1, topic->gridRows);
+            if (rows < SoundboardStore::kMaxRows) {
+                ++rows;
+            }
+            int cap = rows * cols;
+            for (const SoundboardButton& button : topic->buttons) {
+                cap = qMax(cap, button.row * cols + button.col + 1);
+            }
+            return cap;
         }
     }
     return 0;
@@ -142,16 +105,18 @@ int ComposeUi::formLiveIndex() const
     }
     if (m_nameEdit == NameEditKind::Pin) {
         for (const SoundboardTopic& topic : m_board.topics()) {
-            const int slot = rowMajorSlot(topic, m_editId);
-            if (slot >= 0) {
-                return slot;
+            for (const SoundboardButton& button : topic.buttons) {
+                if (button.id == m_editId) {
+                    const int cols = qMax(1, topic.gridCols);
+                    return button.row * cols + button.col;
+                }
             }
         }
     }
     return -1;
 }
 
-void ComposeUi::applyFormDrafts()
+bool ComposeUi::applyFormDrafts(QString* error)
 {
     // Spoken text only. Copying the label or source into utteranceText would
     // hide a clip, because a phrase wins over the clip when it plays.
@@ -159,24 +124,33 @@ void ComposeUi::applyFormDrafts()
     if (m_nameEdit == NameEditKind::Pin && m_formPhraseTouched) {
         (void)m_board.setButtonUtterance(m_editId, formPhraseText(), &err);
     }
-    if (m_nameEdit == NameEditKind::Topic) {
-        (void)m_board.setTopicGridCols(m_editId, m_formCols, &err);
+    if (m_nameEdit == NameEditKind::Topic
+        && !m_board.setTopicGridSize(m_editId, m_formCols, m_formRows, &err)) {
+        if (error) {
+            *error = err;
+        }
+        return false;
     }
     const int live = formLiveIndex();
     const int count = formItemCount();
     if (live < 0 || count <= 0) {
-        return;
+        return true;
     }
     const int want = qBound(0, m_formIndex, count - 1);
     const int delta = want - live;
     if (delta == 0) {
-        return;
+        return true;
     }
+    bool ok = true;
     if (m_nameEdit == NameEditKind::Topic) {
-        (void)m_board.moveTopic(m_editId, delta, &err);
+        ok = m_board.moveTopic(m_editId, delta, &err);
     } else if (m_nameEdit == NameEditKind::Pin) {
-        (void)m_board.moveButton(m_editId, delta, &err);
+        ok = m_board.placeButtonAt(m_editId, want, &err);
     }
+    if (!ok && error) {
+        *error = err;
+    }
+    return ok;
 }
 
 void ComposeUi::focusFormField(const QString& which)
@@ -231,7 +205,18 @@ void ComposeUi::nudgeFormCols(int delta)
     if (m_nameEdit != NameEditKind::Topic || delta == 0) {
         return;
     }
-    m_formCols = qBound(1, m_formCols + delta, SoundboardStore::kMaxCols);
+    const int minCols = occupiedSpan(m_board.findTopic(m_editId), false);
+    m_formCols = qBound(minCols, m_formCols + delta, SoundboardStore::kMaxCols);
+    rebuildForm();
+}
+
+void ComposeUi::nudgeFormRows(int delta)
+{
+    if (m_nameEdit != NameEditKind::Topic || delta == 0) {
+        return;
+    }
+    const int minRows = occupiedSpan(m_board.findTopic(m_editId), true);
+    m_formRows = qBound(minRows, m_formRows + delta, SoundboardStore::kMaxRows);
     rebuildForm();
 }
 
@@ -249,31 +234,34 @@ void ComposeUi::rebuildForm()
 PageDocument ComposeUi::buildFormDocument() const
 {
     const bool topic = m_nameEdit == NameEditKind::Topic;
-    const int rows = topic ? 9 : 11;
     PageDocument doc;
     doc.id = QString(kFormLiveId);
     doc.name = topic ? QStringLiteral("Edit Topic") : QStringLiteral("Edit Phrase");
+    PageChrome plain;
+    plain.background.token = QStringLiteral("transparent");
+    plain.thickness = PageBox::all(0);
+    plain.radius = PageBox::all(0);
+    doc.styles.insert(QStringLiteral("plain"), plain);
     const ThemeColors theme = m_settings.resolvedTheme();
-    QVector<double> weights(rows, 1.0);
-    initTopOverlay(doc, 1, rows, weights, 8, 16, theme, aboveKeyboardHeight(m_composeAuthored),
+    initTopOverlay(doc, 1, 3, {1.0, 8.0, 1.2}, 8, 12, theme, aboveKeyboardHeight(m_composeAuthored),
                    speakBoardWidth());
     PageGrid& grid = doc.grids[0];
+    grid.rowTracks = {trackPx(56), PageTrackSize::starWeight(), trackPx(72)};
     const QColor key = theme.defaultCell();
     const QColor accent = theme.accent.isValid() ? theme.accent : QColor(80, 160, 220);
     const QColor field = theme.bgMain.isValid() ? theme.bgMain : QColor(24, 24, 26);
     const QColor danger = theme.danger.isValid() ? theme.danger : QColor(180, 80, 80);
     const QColor rim = ThemeColors::mix(field, ThemeColors::contrastOn(field), 0.28);
+    const QVector<PageTrackSize> labelTracks = {trackPx(148), PageTrackSize::starWeight()};
 
-    int row = 0;
-    grid.rowTracks.clear();
-    auto take = [&](int px) {
-        grid.rowTracks.push_back(px <= 0 ? PageTrackSize::starWeight() : trackPx(px));
-        return row++;
-    };
-    auto section = [&](const QString& id, const QString& label, int col = 0, int span = 1) {
-        PageCell caption = cell(id, label, 0, col, {}, QColor(), span, QStringLiteral("label"));
-        caption.textStyle = QStringLiteral("caption");
-        return caption;
+    auto caption = [&](const QString& id, const QString& label, int col = 0) {
+        PageCell text = cell(id, label, 0, col, {}, QColor(), 1, QStringLiteral("label"));
+        text.textStyle = QStringLiteral("caption");
+        text.styleId = QStringLiteral("plain");
+        text.style.background = QColor(0, 0, 0, 0);
+        text.style.thickness = PageBox::all(0);
+        text.style.radius = PageBox::all(0);
+        return text;
     };
     auto fieldChrome = [&](PageCell& box, bool focused) {
         box.style.background = field;
@@ -282,66 +270,23 @@ PageDocument ComposeUi::buildFormDocument() const
         box.style.borderColor = focused ? accent : rim;
         box.style.thickness = PageBox::all(focused ? 2 : 1);
     };
+    auto stepEnd = [&](const QString& id, const QString& label, int col, bool on,
+                       const QString& command) {
+        PageCell button = cell(id, label, 0, col, on ? command : QString(), key, 1,
+                               on ? QString() : QStringLiteral("label"));
+        button.style.radius = PageBox::all(12);
+        return button;
+    };
 
-    const int titleRow = take(64);
     PageCell heading = cell(QStringLiteral("title"),
                             topic ? QStringLiteral("Edit Topic") : QStringLiteral("Edit Phrase"),
-                            titleRow, 0, {}, QColor(), 1, QStringLiteral("label"));
+                            0, 0, {}, QColor(), 1, QStringLiteral("label"));
     heading.textStyle = QStringLiteral("title");
+    heading.styleId = QStringLiteral("plain");
+    heading.style.background = QColor(0, 0, 0, 0);
+    heading.style.thickness = PageBox::all(0);
+    heading.style.radius = PageBox::all(0);
     grid.cells.push_back(std::move(heading));
-
-    const int nameLabelRow = take(28);
-    PageGrid nameLabel = makeNested(QStringLiteral("name_label"), nameLabelRow, 0, 1, 1, 0);
-    nameLabel.cells.push_back(section(QStringLiteral("name_caption"), QStringLiteral("Name")));
-    grid.subGrids.push_back(std::move(nameLabel));
-
-    const bool nameFocus = m_formField == FormField::Name;
-    const QString nameText = nameFocus ? m_buffer.text() : m_formName;
-    const int nameRow = take(72);
-    PageCell name = cell(QStringLiteral("form_name"),
-                         nameText.isEmpty() ? QStringLiteral("Name") : nameText, nameRow, 0,
-                         QStringLiteral("compose.formField.name"), field);
-    fieldChrome(name, nameFocus);
-    if (nameFocus) {
-        name.caretIndex = nameText.isEmpty() ? 0 : qBound(0, m_buffer.caret(), name.label.size());
-    }
-    grid.cells.push_back(std::move(name));
-
-    const QVector<PageTrackSize> colorTracks = {trackPx(72), PageTrackSize::starWeight(),
-                                                PageTrackSize::starWeight(), trackPx(72)};
-    const int colorLabelRow = take(28);
-    PageGrid colorLabels = makeNested(QStringLiteral("color_labels"), colorLabelRow, 0, 1, 4, 8);
-    colorLabels.columnTracks = colorTracks;
-    colorLabels.cells.push_back(
-        section(QStringLiteral("color_caption"), QStringLiteral("Color"), 0, 2));
-    colorLabels.cells.push_back(
-        section(QStringLiteral("symbol_caption"), QStringLiteral("Symbol"), 2, 2));
-    grid.subGrids.push_back(std::move(colorLabels));
-
-    const QColor ink = parseColor(m_editColor, key);
-    const int colorRow = take(72);
-    PageGrid color = makeNested(QStringLiteral("color_row"), colorRow, 0, 1, 4, 8);
-    color.columnTracks = colorTracks;
-    PageCell swatch = cell(QStringLiteral("form_color"), {}, 0, 0,
-                           QStringLiteral("compose.editShowColors"), ink);
-    swatch.style.radius = PageBox::all(12);
-    color.cells.push_back(std::move(swatch));
-    PageCell hex = cell(QStringLiteral("form_hex"),
-                        m_editColor.isEmpty() ? QStringLiteral("None") : m_editColor, 0, 1, {},
-                        field, 1, QStringLiteral("label"));
-    hex.style.radius = PageBox::all(12);
-    color.cells.push_back(std::move(hex));
-    PageCell symbol = cell(QStringLiteral("form_icon"),
-                           m_editIcon.isEmpty() ? QStringLiteral("Symbol") : m_editIcon, 0, 2, {},
-                           field, 1, QStringLiteral("label"));
-    symbol.style.radius = PageBox::all(12);
-    color.cells.push_back(std::move(symbol));
-    PageCell search = cell(QStringLiteral("form_icon_search"), {}, 0, 3,
-                           QStringLiteral("compose.editShowIcons"), key, 1, {}, {},
-                           QStringLiteral("search"));
-    search.style.radius = PageBox::all(12);
-    color.cells.push_back(std::move(search));
-    grid.subGrids.push_back(std::move(color));
 
     const SoundboardButton* button = nullptr;
     const SoundboardTopic* editedTopic = nullptr;
@@ -351,13 +296,94 @@ PageDocument ComposeUi::buildFormDocument() const
         button = m_board.findButton(m_editId);
     }
 
-    if (!topic) {
-        const int phraseLabelRow = take(28);
-        PageGrid phraseLabel = makeNested(QStringLiteral("phrase_label"), phraseLabelRow, 0, 1, 1, 0);
-        phraseLabel.cells.push_back(
-            section(QStringLiteral("phrase_caption"), QStringLiteral("Phrase")));
-        grid.subGrids.push_back(std::move(phraseLabel));
+    PageGrid body = makeNested(QStringLiteral("editor"), 1, 0, topic ? 2 : 1, 2, 12);
+    body.columnTracks = {PageTrackSize::starWeight(), PageTrackSize::starWeight()};
+    if (topic) {
+        body.rowTracks = {PageTrackSize::starWeight(4), PageTrackSize::starWeight(2)};
+    }
 
+    const QVector<PageTrackSize> phraseRows = starTracks({1, 1, 1, 1});
+    PageGrid left = makeNested(QStringLiteral("editor_left"), 0, 0, topic ? 3 : 4, 1, 8);
+    left.rowTracks = topic ? starTracks({1, 1, 1}) : phraseRows;
+    PageGrid right = makeNested(QStringLiteral("editor_right"), 0, 1, 4, 1, 8);
+    right.rowTracks = phraseRows;
+
+    const bool nameFocus = m_formField == FormField::Name;
+    const QString nameText = nameFocus ? m_buffer.text() : m_formName;
+    PageGrid nameRow = makeNested(QStringLiteral("name_row"), 0, 0, 1, 2, 8);
+    nameRow.columnTracks = labelTracks;
+    nameRow.cells.push_back(caption(QStringLiteral("name_caption"), QStringLiteral("Name")));
+    PageCell name = cell(QStringLiteral("form_name"),
+                         nameText.isEmpty() ? QStringLiteral("Name") : nameText, 0, 1,
+                         QStringLiteral("compose.formField.name"), field);
+    fieldChrome(name, nameFocus);
+    if (nameFocus) {
+        name.caretIndex = nameText.isEmpty() ? 0 : qBound(0, m_buffer.caret(), name.label.size());
+    }
+    nameRow.cells.push_back(std::move(name));
+    left.subGrids.push_back(std::move(nameRow));
+
+    auto colorRow = [&](PageGrid& host, int row, const QString& id, const QString& label,
+                        const QString& stored, const QString& command) {
+        PageGrid line = makeNested(id + QStringLiteral("_row"), row, 0, 1, 3, 8);
+        line.columnTracks = {trackPx(148), trackPx(72), PageTrackSize::starWeight()};
+        line.cells.push_back(caption(id + QStringLiteral("_caption"), label));
+        const QColor ink = stored.isEmpty() ? field : parseColor(stored, key);
+        PageCell swatch = cell(id, {}, 0, 1, command, ink);
+        swatch.style.radius = PageBox::all(12);
+        line.cells.push_back(std::move(swatch));
+        PageCell hex = cell(id + QStringLiteral("_hex"),
+                            stored.isEmpty() ? QStringLiteral("None") : stored, 0, 2, command, field);
+        fieldChrome(hex, false);
+        line.cells.push_back(std::move(hex));
+        host.subGrids.push_back(std::move(line));
+    };
+    colorRow(left, 1, QStringLiteral("form_bg"), QStringLiteral("Background"), m_editColor,
+             QStringLiteral("compose.editShowColors"));
+    colorRow(right, 1, QStringLiteral("form_border"), QStringLiteral("Border"), m_editBorder,
+             QStringLiteral("compose.editShowBorder"));
+
+    PageGrid symbolRow = makeNested(QStringLiteral("symbol_row"), 0, 0, 1, 3, 8);
+    symbolRow.columnTracks = {trackPx(148), trackPx(72), PageTrackSize::starWeight()};
+    symbolRow.cells.push_back(caption(QStringLiteral("symbol_caption"), QStringLiteral("Symbol")));
+    PageCell search = cell(QStringLiteral("form_icon_search"), {}, 0, 1,
+                           QStringLiteral("compose.editShowIcons"), key, 1, {}, {},
+                           QStringLiteral("MagnifyTool"));
+    search.style.radius = PageBox::all(12);
+    symbolRow.cells.push_back(std::move(search));
+    PageCell symbol = cell(QStringLiteral("form_icon"),
+                           m_editIcon.isEmpty() ? QStringLiteral("None") : QString(), 0, 2,
+                           QStringLiteral("compose.editShowIcons"), field, 1, {}, {}, m_editIcon);
+    fieldChrome(symbol, false);
+    symbolRow.cells.push_back(std::move(symbol));
+    right.subGrids.push_back(std::move(symbolRow));
+
+    auto stepper = [&](PageGrid& host, int row, const QString& id, const QString& label, int value,
+                       bool decOn, bool incOn, const QString& decCmd, const QString& incCmd) {
+        PageGrid line = makeNested(id + QStringLiteral("_row"), row, 0, 1, 4, 8);
+        line.columnTracks = {trackPx(148), trackPx(64), PageTrackSize::starWeight(), trackPx(64)};
+        line.cells.push_back(caption(id + QStringLiteral("_label"), label));
+        line.cells.push_back(stepEnd(id + QStringLiteral("_dec"), QStringLiteral("−"), 1, decOn, decCmd));
+        PageCell shown = cell(id + QStringLiteral("_val"), QString::number(value), 0, 2, {}, field, 1,
+                              QStringLiteral("value"));
+        fieldChrome(shown, false);
+        line.cells.push_back(std::move(shown));
+        line.cells.push_back(stepEnd(id + QStringLiteral("_inc"), QStringLiteral("+"), 3, incOn, incCmd));
+        host.subGrids.push_back(std::move(line));
+    };
+
+    if (topic) {
+        const int minCols = occupiedSpan(editedTopic, false);
+        const int minRows = occupiedSpan(editedTopic, true);
+        const int cols = qBound(minCols, m_formCols, SoundboardStore::kMaxCols);
+        const int boardRows = qBound(minRows, m_formRows, SoundboardStore::kMaxRows);
+        stepper(right, 2, QStringLiteral("rows"), QStringLiteral("Rows"), boardRows,
+                boardRows > minRows, boardRows < SoundboardStore::kMaxRows,
+                QStringLiteral("compose.formRows.-1"), QStringLiteral("compose.formRows.1"));
+        stepper(right, 3, QStringLiteral("cols"), QStringLiteral("Columns"), cols, cols > minCols,
+                cols < SoundboardStore::kMaxCols, QStringLiteral("compose.formCols.-1"),
+                QStringLiteral("compose.formCols.1"));
+    } else {
         const bool phraseFocus = m_formField == FormField::Phrase;
         const QString phraseText = phraseFocus ? m_buffer.text() : m_formPhrase;
         QString placeholder = QStringLiteral("Phrase");
@@ -368,147 +394,126 @@ PageDocument ComposeUi::buildFormDocument() const
                 placeholder = button->label;
             }
         }
-        const int phraseRow = take(72);
+        PageGrid phraseRow = makeNested(QStringLiteral("phrase_row"), 2, 0, 1, 2, 8);
+        phraseRow.columnTracks = labelTracks;
+        phraseRow.cells.push_back(caption(QStringLiteral("phrase_caption"), QStringLiteral("Phrase")));
         PageCell phrase = cell(QStringLiteral("form_phrase"),
-                               phraseText.isEmpty() ? placeholder : phraseText, phraseRow, 0,
+                               phraseText.isEmpty() ? placeholder : phraseText, 0, 1,
                                QStringLiteral("compose.formField.phrase"), field);
         fieldChrome(phrase, phraseFocus);
         if (phraseFocus) {
             phrase.caretIndex =
                 phraseText.isEmpty() ? 0 : qBound(0, m_buffer.caret(), phrase.label.size());
         }
-        grid.cells.push_back(std::move(phrase));
+        phraseRow.cells.push_back(std::move(phrase));
+        left.subGrids.push_back(std::move(phraseRow));
+
+        QString audioLabel = QStringLiteral("None");
+        if (!m_formAudioName.isEmpty()) {
+            audioLabel = m_formAudioName;
+        }
+        PageGrid audio = makeNested(QStringLiteral("audio_row"), 2, 0, 1, 3, 8);
+        audio.columnTracks = {trackPx(148), PageTrackSize::starWeight(), trackPx(148)};
+        audio.cells.push_back(caption(QStringLiteral("audio_caption"), QStringLiteral("Audio")));
+        PageCell file = cell(QStringLiteral("form_audio"), audioLabel, 0, 1,
+                             QStringLiteral("compose.browseAudio"), field);
+        fieldChrome(file, false);
+        file.caption = m_formAudioPath.isEmpty() && (button == nullptr || button->clipId.isEmpty())
+                           ? QString()
+                           : QStringLiteral("Plays instead of the phrase");
+        audio.cells.push_back(std::move(file));
+        PageCell browse = cell(QStringLiteral("form_audio_browse"), QStringLiteral("Browse"), 0, 2,
+                               QStringLiteral("compose.browseAudio"), key, 1, {}, {},
+                               QStringLiteral("folder"));
+        browse.style.radius = PageBox::all(12);
+        audio.cells.push_back(std::move(browse));
+        right.subGrids.push_back(std::move(audio));
     }
 
     const int count = formItemCount();
     const int index = count <= 0 ? 0 : qBound(0, m_formIndex, count - 1);
-    const int stepperRow = take(72);
-    const int stepperCols = topic ? 9 : 5;
-    PageGrid steps = makeNested(QStringLiteral("steppers"), stepperRow, 0, 1, stepperCols, 8);
-    auto stepEnd = [&](const QString& id, const QString& label, int col, bool on,
-                       const QString& command) {
-        PageCell button = cell(id, label, 0, col, on ? command : QString(), key, 1,
-                               on ? QString() : QStringLiteral("label"));
-        button.style.radius = PageBox::all(12);
-        return button;
-    };
     const bool canDec = count > 0 && index > 0;
     const bool canInc = count > 0 && index < count - 1;
-    PageCell indexLabel = section(QStringLiteral("idx_label"), QStringLiteral("Index"));
+    PageGrid indexRow = makeNested(QStringLiteral("index_row"), topic ? 2 : 3, 0, 1, 4, 8);
+    indexRow.columnTracks = {trackPx(148), trackPx(64), PageTrackSize::starWeight(), trackPx(64)};
+    PageCell indexLabel = caption(QStringLiteral("idx_label"), QStringLiteral("Index"));
     indexLabel.caption = QStringLiteral("%1 of %2").arg(count <= 0 ? 0 : index + 1).arg(count);
-    if (topic) {
-        steps.columnTracks = {trackPx(88), trackPx(64), trackPx(64), trackPx(64), trackPx(72),
-                              trackPx(64), trackPx(64), trackPx(64), PageTrackSize::starWeight()};
-        steps.cells.push_back(std::move(indexLabel));
-        steps.cells.push_back(stepEnd(QStringLiteral("idx_dec"), QStringLiteral("−"), 1, canDec,
-                                      QStringLiteral("compose.formIndex.-1")));
-        PageCell idx = cell(QStringLiteral("idx_val"), QString::number(count <= 0 ? 0 : index + 1),
-                            0, 2, {}, field, 1, QStringLiteral("label"));
-        idx.style.radius = PageBox::all(12);
-        steps.cells.push_back(std::move(idx));
-        steps.cells.push_back(stepEnd(QStringLiteral("idx_inc"), QStringLiteral("+"), 3, canInc,
-                                      QStringLiteral("compose.formIndex.1")));
-        steps.cells.push_back(section(QStringLiteral("cols_label"), QStringLiteral("Cols"), 4));
-        const int cols = qBound(1, m_formCols, SoundboardStore::kMaxCols);
-        const bool colsDec = cols > 1;
-        const bool colsInc = cols < SoundboardStore::kMaxCols;
-        steps.cells.push_back(stepEnd(QStringLiteral("cols_dec"), QStringLiteral("−"), 5, colsDec,
-                                      QStringLiteral("compose.formCols.-1")));
-        PageCell colsCell = cell(QStringLiteral("cols_val"), QString::number(cols), 0, 6, {}, field,
-                                 1, QStringLiteral("label"));
-        colsCell.style.radius = PageBox::all(12);
-        steps.cells.push_back(std::move(colsCell));
-        steps.cells.push_back(stepEnd(QStringLiteral("cols_inc"), QStringLiteral("+"), 7, colsInc,
-                                      QStringLiteral("compose.formCols.1")));
-    } else {
-        steps.columnTracks = {trackPx(88), PageTrackSize::starWeight(), trackPx(64), trackPx(64),
-                              trackPx(64)};
-        steps.cells.push_back(std::move(indexLabel));
-        steps.cells.push_back(stepEnd(QStringLiteral("idx_dec"), QStringLiteral("−"), 2, canDec,
-                                      QStringLiteral("compose.formIndex.-1")));
-        PageCell idx = cell(QStringLiteral("idx_val"), QString::number(count <= 0 ? 0 : index + 1),
-                            0, 3, {}, field, 1, QStringLiteral("label"));
-        idx.style.radius = PageBox::all(12);
-        steps.cells.push_back(std::move(idx));
-        steps.cells.push_back(stepEnd(QStringLiteral("idx_inc"), QStringLiteral("+"), 4, canInc,
-                                      QStringLiteral("compose.formIndex.1")));
-    }
-    grid.subGrids.push_back(std::move(steps));
+    indexRow.cells.push_back(std::move(indexLabel));
+    indexRow.cells.push_back(stepEnd(QStringLiteral("idx_dec"), QStringLiteral("−"), 1, canDec,
+                                     QStringLiteral("compose.formIndex.-1")));
+    PageCell idx = cell(QStringLiteral("idx_val"), QString::number(count <= 0 ? 0 : index + 1), 0, 2,
+                        {}, field, 1, QStringLiteral("value"));
+    fieldChrome(idx, false);
+    indexRow.cells.push_back(std::move(idx));
+    indexRow.cells.push_back(stepEnd(QStringLiteral("idx_inc"), QStringLiteral("+"), 3, canInc,
+                                     QStringLiteral("compose.formIndex.1")));
+    left.subGrids.push_back(std::move(indexRow));
 
-    const int previewLabelRow = take(28);
-    PageGrid previewLabel =
-        makeNested(QStringLiteral("preview_label"), previewLabelRow, 0, 1, 1, 0);
-    previewLabel.cells.push_back(section(QStringLiteral("preview_caption"),
-                                        topic ? QStringLiteral("Sound buttons")
-                                              : QStringLiteral("Preview")));
-    grid.subGrids.push_back(std::move(previewLabel));
-
-    const int previewRow = take(0);
-    PageGrid preview = makeNested(QStringLiteral("preview"), previewRow, 0, 1, 1, 8);
-    preview.style.radius = PageBox::all(16);
-    preview.style.background = field;
-    preview.style.borderColor = rim;
-    preview.style.thickness = PageBox::all(1);
+    auto boardBackdrop = [](PageGrid& board) {
+        board.style.background.token = QStringLiteral("bg95");
+        board.style.radius = PageBox::all(16);
+        board.style.thickness = PageBox::all(0);
+        board.marginPx = 8;
+    };
     if (topic) {
-        const int cols = qBound(1, m_formCols, SoundboardStore::kMaxCols);
+        const int cols = qBound(occupiedSpan(editedTopic, false), m_formCols, SoundboardStore::kMaxCols);
+        const int boardRows = qBound(occupiedSpan(editedTopic, true), m_formRows, SoundboardStore::kMaxRows);
+        PageGrid preview = makeNested(QStringLiteral("preview"), 1, 0, boardRows, cols, 8);
+        preview.colSpan = 2;
+        boardBackdrop(preview);
+        for (int r = 0; r < boardRows; ++r) {
+            preview.rowTracks.push_back(PageTrackSize::starWeight());
+        }
+        for (int c = 0; c < cols; ++c) {
+            preview.columnTracks.push_back(PageTrackSize::starWeight());
+        }
         if (!editedTopic || editedTopic->buttons.isEmpty()) {
-            preview.cells.push_back(cell(QStringLiteral("preview_empty"),
-                                        QStringLiteral("No phrases"), 0, 0, {}, QColor(), 1,
-                                        QStringLiteral("label")));
+            PageCell empty = caption(QStringLiteral("preview_empty"), QStringLiteral("No phrases"));
+            empty.colSpan = cols;
+            empty.rowSpan = boardRows;
+            preview.cells.push_back(std::move(empty));
         } else {
-            const QVector<int> order = rowMajorOrder(*editedTopic);
-            const int buttonRows = (order.size() + cols - 1) / cols;
-            PageGrid mini =
-                makeNested(QStringLiteral("preview_grid"), 0, 0, buttonRows + 1, cols, 8);
-            for (int r = 0; r < buttonRows; ++r) {
-                mini.rowTracks.push_back(trackPx(80));
-            }
-            mini.rowTracks.push_back(PageTrackSize::starWeight());
-            for (int c = 0; c < cols; ++c) {
-                mini.columnTracks.push_back(PageTrackSize::starWeight());
-            }
-            for (int i = 0; i < order.size(); ++i) {
-                const SoundboardButton& source = editedTopic->buttons.at(order.at(i));
+            for (int i = 0; i < editedTopic->buttons.size(); ++i) {
+                const SoundboardButton& source = editedTopic->buttons.at(i);
+                if (source.row < 0 || source.col < 0 || source.row >= boardRows || source.col >= cols) {
+                    continue;
+                }
                 PageCell tile;
                 tile.id = QStringLiteral("preview_%1").arg(i);
-                tile.role = QStringLiteral("label");
-                tile.row = i / cols;
-                tile.col = i % cols;
+                tile.role = QStringLiteral("face");
+                tile.row = source.row;
+                tile.col = source.col;
                 tile.label = source.label;
                 tile.icon = source.icon;
-                tile.style.radius = PageBox::all(12);
-                const QColor tileInk = parseColor(source.color, key);
-                paintSpoken(tile, m_board.planPlay(source), tileInk, field);
-                mini.cells.push_back(std::move(tile));
+                paintItemFace(tile, source.color, source.borderColor, key);
+                preview.cells.push_back(std::move(tile));
             }
-            preview.subGrids.push_back(std::move(mini));
         }
-    } else if (button) {
-        SoundboardButton draft = *button;
-        draft.icon = m_editIcon;
-        if (!m_editColor.isEmpty()) {
-            draft.color = m_editColor;
+        body.subGrids.push_back(std::move(preview));
+    } else {
+        PageGrid previewRow = makeNested(QStringLiteral("preview_row"), 3, 0, 1, 2, 8);
+        previewRow.columnTracks = labelTracks;
+        previewRow.cells.push_back(caption(QStringLiteral("preview_caption"), QStringLiteral("Preview")));
+        PageGrid preview = makeNested(QStringLiteral("preview"), 0, 1, 1, 3, 8);
+        preview.columnTracks = {PageTrackSize::starWeight(), PageTrackSize::starWeight(1.4),
+                                PageTrackSize::starWeight()};
+        boardBackdrop(preview);
+        if (button) {
+            PageCell tile = cell(QStringLiteral("preview_phrase"),
+                                 formNameText().isEmpty() ? button->label : formNameText(), 0, 1, {},
+                                 key, 1, QStringLiteral("face"), {}, m_editIcon);
+            paintItemFace(tile, m_editColor, m_editBorder, key);
+            preview.cells.push_back(std::move(tile));
         }
-        const QString draftedName = formNameText();
-        if (!draftedName.isEmpty()) {
-            draft.label = draftedName;
-        }
-        if (m_formPhraseTouched) {
-            draft.utteranceText = formPhraseText();
-        }
-        PageGrid mini = makeNested(QStringLiteral("preview_grid"), 0, 0, 2, 1, 0);
-        mini.rowTracks = {trackPx(80), PageTrackSize::starWeight()};
-        PageCell tile = cell(QStringLiteral("preview_phrase"), draft.label, 0, 0, {}, key, 1,
-                             QStringLiteral("label"), {}, draft.icon);
-        tile.style.radius = PageBox::all(12);
-        paintSpoken(tile, m_board.planPlay(draft), parseColor(draft.color, key), field);
-        mini.cells.push_back(std::move(tile));
-        preview.subGrids.push_back(std::move(mini));
+        previewRow.subGrids.push_back(std::move(preview));
+        right.subGrids.push_back(std::move(previewRow));
     }
-    grid.subGrids.push_back(std::move(preview));
 
-    const int footerRow = take(72);
-    PageGrid foot = makeNested(QStringLiteral("footer"), footerRow, 0, 1, 3, 8);
+    body.subGrids.push_back(std::move(left));
+    body.subGrids.push_back(std::move(right));
+    grid.subGrids.push_back(std::move(body));
+
+    PageGrid foot = makeNested(QStringLiteral("footer"), 2, 0, 1, 3, 8);
     foot.columnTracks = {PageTrackSize::starWeight(1.0), PageTrackSize::starWeight(1.4),
                          PageTrackSize::starWeight(1.0)};
     PageCell remove = cell(QStringLiteral("form_delete"), QStringLiteral("Delete"), 0, 0,

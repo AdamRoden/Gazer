@@ -140,19 +140,22 @@ When adding a command: register it and add a row here.
 | `compose.importPick.<i>` / `compose.importPage.<n>` / `compose.fileRow.<n>` | Open folder `i` or select that JSON file (no read yet), move by `n` pages, or move by `n` rows. A list row is one file. A tile row is eight files |
 | `compose.importMerge` / `compose.importReplace` | **Merge** or **Import**. Each asks Yes/No first. Import replaces the board and also applies model, speed, pitch, and volume |
 | `compose.saveName` / `compose.cancelName` / `compose.deleteName` | Save, discard, or delete the item being edited and return to the board |
-| `compose.editShowColors` | **Color** on the item editor. Opens the settings color picker. Save keeps that color on the item until the name is saved. Cancel discards it |
+| `compose.editShowColors` | **Background** on the item editor. Opens the settings color picker. Save keeps that fill until the name is saved. Cancel discards it |
+| `compose.editShowBorder` | **Border**. Same picker. A custom border is also the label color. **None** clears it. Save keeps it. Cancel discards it |
+| `compose.formIndex.<n>` / `compose.formCols.<n>` / `compose.formRows.<n>` | Item editor steppers. A phrase index reaches every cell, including the extra row. Topic columns and rows set the board |
 | `compose.editShowIcons` | **Icon**. Opens a searchable Material Symbols board the same size as the color picker, eight across. Icons come from fonts.google.com when the network works, otherwise a short offline set. The footer is Clear, the current icon, Save, and Cancel. The item does not change until Save |
 | `compose.iconSearch` | Dwell **Search**. Shows the Speak keyboard, with Esc in place of Edit. Enter or Esc closes the keyboard and keeps the search |
 | `compose.iconPick.<i>` / `compose.iconRow.<n>` | Highlight result `i` (`0` clears it) or move by `n` tile rows. The track and the arrows both move whole rows |
 | `compose.iconSave` / `compose.iconCancel` | Apply the highlighted icon, or close the list and keep the previous icon |
 | `history.play.<id>` / `history.restore.<id>` / `history.delete.<id>` | Replay, put the phrase back in the buffer, or drop the row |
 | `history.list.next` / `.prev` / `history.list.goto.<n>` | History list: after the lock-on ring, looking along the track drags the thumb; commands still page/jump |
-| `compose.pin` / `compose.cancelAssign` | Empty buffer no-op; otherwise dwell a cell to save the phrase on the soundboard |
-| `compose.editPins` | Keyboard **Edit** key. Dwell a pin or topic to rename |
+| `compose.pin` / `compose.cancelAssign` | Actions **Edit**. Same as `compose.editPins`, except Save while a name, style, or tag is open |
+| `compose.editPins` | Keyboard **Edit**. Dwell a phrase or topic to edit it. Dwell an empty cell to save the composer text there |
+| `compose.browseAudio` / `compose.assignAudio` | Phrase editor **Browse**. Opens the file browser for a wav, mp3, m4a, aac, wma, ogg, or flac file. **Assign** asks Yes, then Save copies it onto the phrase. The file plays instead of the typed phrase |
 | `soundboard.edit.<id>` | Open the pin item editor |
 | `soundboard.editTopic.<id>` | Open the topic item editor |
 | `soundboard.play.<id>` | Prefix; play a button |
-| `soundboard.assign.sb_r_c` | Prefix; create/overwrite a cell |
+| `soundboard.assign.sb_r_c` | Prefix; create a phrase in an empty cell from the composer text |
 | `soundboard.topic.<id>` | Prefix; switch topic |
 | `soundboard.newTopic` / `soundboard.loadStarters` | Topics |
 | `speech.model.sapi` / `.eleven_v4_turbo` | Composer engine. `.eleven_flash_v2_5` and `.eleven_v3` also select v4 Turbo. |
@@ -188,7 +191,7 @@ Patterns, not every generated name:
 | `settings.color.pickAtGaze` | Arm move-to on the picker (no OS click) |
 | `settings.color.eyedropper` | Hide Gazer and sample a screen pixel |
 | `settings.color.palette.0`… | Color-picker palette (red→neutral columns, 950→50 down) |
-| `settings.color.editHex` / `.save` / `.cancel` | Hex pad |
+| `settings.color.editHex` / `.save` / `.none` / `.cancel` | Hex pad. **None** is on the item-editor picker and clears the color |
 | `settings.hex.digit.*` / `.backspace` / `.clear` / `.copy` / `.paste` / `.save` / `.cancel` | Hex keys |
 | `settings.numpad.copy` / `.paste` | Clipboard on the numeric editor |
 | `settings.flash.custom.toggle` | Custom flash color (off = item foreground) |

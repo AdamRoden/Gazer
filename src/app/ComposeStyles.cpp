@@ -188,6 +188,7 @@ void ComposeUi::beginStyleName()
         m_borrowed = BorrowedPhrase::Style;
         m_editId.clear();
         m_editColor.clear();
+        m_editBorder.clear();
         m_editIcon.clear();
         m_buffer.load(QString());
     }

@@ -25,7 +25,7 @@ using SettingsPageBuild::cell;
 using compose_detail::ChoiceSlot;
 using compose_detail::commandAction;
 using compose_detail::fillChoiceGrid;
-using compose_detail::paintOutline;
+using compose_detail::paintItemFace;
 using compose_detail::parseColor;
 using compose_detail::stampEditableGrid;
 using compose_detail::trackPx;
@@ -65,14 +65,6 @@ PageDim ComposeUi::speakBoardWidth() const
 void ComposeUi::fillSoundboard(PageDocument& doc) const
 {
     stampEditKeys(doc);
-    if (PageCell* pin = doc.findCell(QStringLiteral("cmd_pin"))) {
-        pin->label = assignMode() ? QStringLiteral("Cancel") : QStringLiteral("Pin");
-        pin->actions.clear();
-        pin->actions.push_back(
-            commandAction(assignMode() ? QStringLiteral("compose.cancelAssign")
-                                       : QStringLiteral("compose.pin")));
-        pin->activeState = QStringLiteral("compose.assignMode");
-    }
     if (PageCell* mode = doc.findCell(QStringLiteral("rail_mode"))) {
         mode->label = m_showFavorites ? QStringLiteral("Topics") : QStringLiteral("Favorites");
     }
@@ -147,6 +139,31 @@ void ComposeUi::stampEditKeys(PageDocument& doc) const
             key->style.background.token = QStringLiteral("bg90");
         }
     }
+    // Actions-row Edit. Same command as the keyboard key, including Save while a name is open.
+    if (PageCell* pin = doc.findCell(QStringLiteral("cmd_pin"))) {
+        const bool naming = borrowingPhrase() || nameEditing();
+        const bool done = !naming && m_interaction == Interaction::Edit;
+        pin->actions.clear();
+        pin->actions.push_back(commandAction(QStringLiteral("compose.pin")));
+        pin->activeState = QStringLiteral("compose.editMode");
+        pin->style.foreground.reset();
+        pin->style.background = QColor();
+        if (naming) {
+            pin->label = QStringLiteral("Save");
+            pin->icon = QStringLiteral("check");
+            pin->style.background = accent;
+            pin->style.foreground = ThemeColors::contrastOn(accent);
+        } else if (done) {
+            pin->label = QStringLiteral("Done");
+            pin->icon = QStringLiteral("check");
+            pin->style.background = accent;
+            pin->style.foreground = ThemeColors::contrastOn(accent);
+        } else {
+            pin->label = QStringLiteral("Edit");
+            pin->icon = QStringLiteral("edit");
+            pin->style.background.token = QStringLiteral("bg90");
+        }
+    }
 }
 
 void ComposeUi::fillTopicsMode(PageDocument& doc) const
@@ -170,6 +187,7 @@ void ComposeUi::fillTopicsMode(PageDocument& doc) const
             s.label = t.name;
             s.icon = t.icon;
             s.color = t.color;
+            s.border = t.borderColor;
             s.useCommand = QStringLiteral("soundboard.topic.%1").arg(t.id);
             s.editCommand = QStringLiteral("soundboard.editTopic.%1").arg(t.id);
             s.activeState = QStringLiteral("soundboard.topic.%1").arg(t.id);
@@ -189,8 +207,9 @@ void ComposeUi::fillTopicsMode(PageDocument& doc) const
     }
     grid->cells.clear();
     grid->columns = topic->gridCols;
+    const bool placing = m_interaction == Interaction::Edit || assignMode();
     int rows = topic->gridRows;
-    if (assignMode() && rows < SoundboardStore::kMaxRows) {
+    if (placing && rows < SoundboardStore::kMaxRows) {
         ++rows;
     }
     grid->rows = rows;
@@ -205,20 +224,18 @@ void ComposeUi::fillTopicsMode(PageDocument& doc) const
                 cell.label = b->label;
                 cell.icon = b->icon;
                 const bool selected = editing && m_nameEdit == NameEditKind::Pin && b->id == m_editId;
-                const auto plan = m_board.planPlay(*b);
-                const QColor ink = parseColor(b->color, surface);
                 if (selected) {
                     cell.style.background = accent;
                     cell.style.foreground = ThemeColors::contrastOn(accent);
+                    cell.style.radius = PageBox::all(12);
                     cell.activeState = QStringLiteral("compose.editMode");
-                } else if (plan.kind == SoundboardStore::PlayPlan::Kind::Utterance
-                           || plan.kind == SoundboardStore::PlayPlan::Kind::Source) {
-                    paintOutline(cell, ink);
                 } else {
-                    cell.style.background = ink;
-                    cell.style.foreground = ThemeColors::contrastOn(ink);
+                    paintItemFace(cell, b->color, b->borderColor, surface);
                 }
-                if (assignMode()) {
+                if (m_interaction == Interaction::Edit) {
+                    cell.actions.push_back(
+                        commandAction(QStringLiteral("soundboard.edit.%1").arg(b->id)));
+                } else if (assignMode()) {
                     cell.actions.push_back(
                         commandAction(QStringLiteral("soundboard.assign.%1").arg(cell.id)));
                 } else if (editing) {
@@ -228,7 +245,7 @@ void ComposeUi::fillTopicsMode(PageDocument& doc) const
                     cell.actions.push_back(
                         commandAction(QStringLiteral("soundboard.play.%1").arg(b->id)));
                 }
-            } else if (assignMode()) {
+            } else if (placing) {
                 cell.label = QStringLiteral("+");
                 cell.style.background = value;
                 cell.actions.push_back(
@@ -261,15 +278,8 @@ bool ComposeUi::pin(QString* error)
     if (nameEditing()) {
         return saveNameEdit(error);
     }
-    const QString text = m_buffer.text().trimmed();
-    if (text.isEmpty()) {
-        return true;
-    }
-    endIconPick();
-    m_interaction = Interaction::Assign;
-    rebuildBoard();
-    notify(QStringLiteral("Dwell a cell to save"));
-    return true;
+    Q_UNUSED(error);
+    return editPins();
 }
 
 void ComposeUi::cancelAssign()
@@ -301,7 +311,7 @@ bool ComposeUi::editPins()
     }
     m_interaction = Interaction::Edit;
     rebuildBoard();
-    notify(QStringLiteral("Dwell a button to edit"));
+    notify(QStringLiteral("Dwell a phrase to edit, or an empty cell to save"));
     return true;
 }
 
@@ -339,7 +349,7 @@ bool ComposeUi::playSoundboard(const QString& buttonId, QString* error)
 
 bool ComposeUi::assignSoundboard(const QString& cellOrButtonId, QString* error)
 {
-    if (!assignMode()) {
+    if (m_interaction != Interaction::Assign && m_interaction != Interaction::Edit) {
         return playSoundboard(cellOrButtonId, error);
     }
     int row = -1;

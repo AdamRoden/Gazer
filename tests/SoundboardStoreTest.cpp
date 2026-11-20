@@ -23,6 +23,10 @@ private slots:
     void playPolicy();
     void importAndEvictUnreferenced();
     void assignGrowsRows();
+    void placeButtonAtLastCell();
+    void setTopicGridRows();
+    void gridSizeKeepsPhraseCells();
+    void repackDropsPastMaxRows();
     void overwriteDeletesOldClip();
     void importEvictsOldestHistoryFirst();
     void removeButtonAndSetColor();
@@ -171,6 +175,17 @@ void SoundboardStoreTest::importAndEvictUnreferenced()
     }
     const QString wavId = s.importClip(wav, &err);
     QVERIFY(s.clipPath(wavId).endsWith(QStringLiteral(".wav")));
+    const QString m4a = dir.filePath(QStringLiteral("src.m4a"));
+    {
+        QFile f(m4a);
+        QVERIFY(f.open(QIODevice::WriteOnly));
+        f.write(QByteArray(16, 'A'));
+    }
+    const QString m4aId = s.importClip(m4a, &err);
+    QVERIFY2(!m4aId.isEmpty(), qPrintable(err));
+    QVERIFY(s.clipPath(m4aId).endsWith(QStringLiteral(".m4a")));
+    QVERIFY(SoundboardStore::storedAudioSuffix(QStringLiteral("FLAC")) == QStringLiteral("flac"));
+    QVERIFY(SoundboardStore::storedAudioSuffix(QStringLiteral("txt")).isEmpty());
     s.evictUnreferencedClips();
     QVERIFY(!QFile::exists(s.clipPath(id)));
 
@@ -202,6 +217,125 @@ void SoundboardStoreTest::assignGrowsRows()
     QVERIFY(s.assignCell(5, 1, seed));
     QCOMPARE(s.activeTopic()->gridRows, 6);
     QVERIFY(!s.assignCell(6, 0, seed));
+}
+
+void SoundboardStoreTest::placeButtonAtLastCell()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    SoundboardStore s(dir.path());
+    QVERIFY(s.load());
+    QVERIFY(s.newTopic());
+    SoundboardButton seed;
+    seed.label = QStringLiteral("Last");
+    seed.sourceText = QStringLiteral("Last");
+    QVERIFY(s.assignCell(0, 0, seed));
+    SoundboardButton other;
+    other.label = QStringLiteral("Other");
+    other.sourceText = QStringLiteral("Other");
+    QVERIFY(s.assignCell(0, 1, other));
+    const QString id = s.buttonAt(*s.activeTopic(), 0, 0)->id;
+    const int cols = s.activeTopic()->gridCols;
+    const int last = (s.activeTopic()->gridRows + 1) * cols - 1;
+    QVERIFY(s.placeButtonAt(id, last));
+    QCOMPARE(s.activeTopic()->gridRows, 4);
+    const SoundboardButton* moved = s.buttonAt(*s.activeTopic(), 3, cols - 1);
+    QVERIFY(moved);
+    QCOMPARE(moved->id, id);
+    QVERIFY(!s.buttonAt(*s.activeTopic(), 0, 0));
+    QVERIFY(s.buttonAt(*s.activeTopic(), 0, 1));
+    QVERIFY(s.setButtonBorder(id, QStringLiteral("#112233")));
+    SoundboardStore again(dir.path());
+    QVERIFY(again.load());
+    const SoundboardButton* loaded = nullptr;
+    for (const SoundboardTopic& topic : again.topics()) {
+        for (const SoundboardButton& button : topic.buttons) {
+            if (button.id == id) {
+                loaded = &button;
+            }
+        }
+    }
+    QVERIFY(loaded);
+    QCOMPARE(loaded->borderColor, QStringLiteral("#112233"));
+    QCOMPARE(loaded->row, 3);
+    QCOMPARE(loaded->col, cols - 1);
+}
+
+void SoundboardStoreTest::setTopicGridRows()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    SoundboardStore s(dir.path());
+    QVERIFY(s.load());
+    QVERIFY(s.newTopic());
+    SoundboardButton seed;
+    seed.label = QStringLiteral("A");
+    seed.sourceText = QStringLiteral("A");
+    QVERIFY(s.assignCell(0, 0, seed));
+    QVERIFY(s.assignCell(0, 1, seed));
+    const QString id = s.activeTopic()->id;
+    QVERIFY(s.setTopicGridRows(id, 5));
+    QCOMPARE(s.activeTopic()->gridRows, 5);
+    QVERIFY(s.setTopicGridRows(id, 1));
+    QCOMPARE(s.activeTopic()->gridRows, 1);
+    QCOMPARE(s.activeTopic()->buttons.size(), 2);
+}
+
+void SoundboardStoreTest::gridSizeKeepsPhraseCells()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    SoundboardStore s(dir.path());
+    QVERIFY(s.load());
+    QVERIFY(s.newTopic());
+    SoundboardButton seed;
+    seed.label = QStringLiteral("End");
+    seed.sourceText = QStringLiteral("End");
+    QVERIFY(s.assignCell(0, 0, seed));
+    const QString id = s.buttonAt(*s.activeTopic(), 0, 0)->id;
+    const int cols = s.activeTopic()->gridCols;
+    const int last = (s.activeTopic()->gridRows + 1) * cols - 1;
+    QVERIFY(s.placeButtonAt(id, last));
+    const int rows = s.activeTopic()->gridRows;
+    const SoundboardButton* placed = s.buttonAt(*s.activeTopic(), rows - 1, cols - 1);
+    QVERIFY(placed);
+    QCOMPARE(placed->id, id);
+    QVERIFY(s.setTopicGridSize(s.activeTopic()->id, cols, rows));
+    QCOMPARE(s.buttonAt(*s.activeTopic(), rows - 1, cols - 1)->id, id);
+    QString err;
+    QVERIFY(!s.setTopicGridSize(s.activeTopic()->id, cols, 1, &err));
+    QCOMPARE(err, QStringLiteral("A phrase sits outside that grid"));
+    QCOMPARE(s.activeTopic()->gridRows, rows);
+    QCOMPARE(s.buttonAt(*s.activeTopic(), rows - 1, cols - 1)->id, id);
+}
+
+void SoundboardStoreTest::repackDropsPastMaxRows()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    SoundboardStore s(dir.path());
+    QVERIFY(s.load());
+    QVERIFY(s.newTopic());
+    SoundboardTopic* topic = s.activeTopic();
+    topic->gridCols = 1;
+    topic->gridRows = SoundboardStore::kMaxRows;
+    topic->buttons.clear();
+    for (int i = 0; i < SoundboardStore::kMaxRows + 2; ++i) {
+        SoundboardButton button;
+        button.id = QStringLiteral("b%1").arg(i);
+        button.label = button.id;
+        button.row = 0;
+        button.col = 0;
+        topic->buttons.push_back(button);
+    }
+    SoundboardStore::repackSequential(topic);
+    QCOMPARE(topic->buttons.size(), SoundboardStore::kMaxRows);
+    QCOMPARE(topic->gridRows, SoundboardStore::kMaxRows);
+    for (int i = 0; i < topic->buttons.size(); ++i) {
+        QCOMPARE(topic->buttons.at(i).row, i);
+        QCOMPARE(topic->buttons.at(i).col, 0);
+        QVERIFY(topic->buttons.at(i).row < topic->gridRows);
+    }
 }
 
 void SoundboardStoreTest::overwriteDeletesOldClip()

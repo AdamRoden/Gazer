@@ -3,6 +3,7 @@
 #include <QByteArray>
 #include <QJsonObject>
 #include <QString>
+#include <QStringList>
 #include <QVector>
 #include <cstdint>
 
@@ -15,6 +16,8 @@ struct SoundboardButton {
     QString label;
     QString icon;
     QString color;
+    /// Custom border. When set, the label uses this color too.
+    QString borderColor;
     QString sourceText;
     QString utteranceText;
     QString clipId;
@@ -30,6 +33,8 @@ struct SoundboardTopic {
     QString name;
     QString icon;
     QString color;
+    /// Custom border. When set, the label uses this color too.
+    QString borderColor;
     int gridCols = 4;
     int gridRows = 3;
     QVector<SoundboardButton> buttons;
@@ -92,6 +97,7 @@ public:
     bool newTopic(QString* error = nullptr);
     bool removeTopic(const QString& id, QString* error = nullptr);
     bool setTopicColor(const QString& id, const QString& color, QString* error = nullptr);
+    bool setTopicBorder(const QString& id, const QString& color, QString* error = nullptr);
     bool setTopicIcon(const QString& id, const QString& icon, QString* error = nullptr);
     bool renameTopic(const QString& id, const QString& name, QString* error = nullptr);
 
@@ -110,20 +116,32 @@ public:
     bool assignCell(int row, int col, const SoundboardButton& seed, QString* error = nullptr);
     bool removeButton(const QString& buttonId, QString* error = nullptr);
     bool setButtonColor(const QString& buttonId, const QString& color, QString* error = nullptr);
+    bool setButtonBorder(const QString& buttonId, const QString& color, QString* error = nullptr);
     bool setButtonIcon(const QString& buttonId, const QString& icon, QString* error = nullptr);
     bool setButtonLabel(const QString& buttonId, const QString& label, QString* error = nullptr);
     /// Spoken text for a phrase button. Empty clears it and leaves a clip alone.
     bool setButtonUtterance(const QString& buttonId, const QString& text, QString* error = nullptr);
-    /// Column count for a topic, then pack buttons back into the grid.
+    /// Replace the saved audio. Clears spoken text so the file plays. Empty removes the file.
+    bool setButtonClip(const QString& buttonId, const QString& clipId, QString* error = nullptr);
+    /// Column count. Phrases stay in their cells. Fails when one would sit outside.
     bool setTopicGridCols(const QString& id, int cols, QString* error = nullptr);
+    /// Row count. Phrases stay in their cells. Fails when one would sit outside.
+    bool setTopicGridRows(const QString& id, int rows, QString* error = nullptr);
+    /// Row and column count together. Phrases stay in their cells.
+    bool setTopicGridSize(const QString& id, int cols, int rows, QString* error = nullptr);
     /// Move a topic by `delta` places in the sidebar order.
     bool moveTopic(const QString& id, int delta, QString* error = nullptr);
     /// Move a button by `delta` places in row-major order, then pack the grid.
     bool moveButton(const QString& buttonId, int delta, QString* error = nullptr);
+    /// Put a button on cell `slot` (row-major). Grows the grid so the last cell is reachable.
+    bool placeButtonAt(const QString& buttonId, int slot, QString* error = nullptr);
 
     [[nodiscard]] PlayPlan planPlay(const SoundboardButton& b) const;
     [[nodiscard]] QString clipPath(const QString& clipId) const;
     [[nodiscard]] static bool validClipId(const QString& clipId);
+    /// `wav`, `mp3`, `m4a`, `aac`, `wma`, `ogg`, or `flac`. Empty when `suffix` is not audio.
+    [[nodiscard]] static QString storedAudioSuffix(const QString& suffix);
+    [[nodiscard]] static QStringList audioNameFilters();
 
     /// Copy `srcPath` into clips/. Returns the new clip id.
     /// Evicts oldest history (via `history`) then unreferenced clips before refusing at cap.

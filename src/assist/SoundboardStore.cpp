@@ -38,6 +38,7 @@ QJsonObject buttonToJson(const SoundboardButton& b)
     o.insert(QStringLiteral("label"), b.label);
     o.insert(QStringLiteral("icon"), b.icon);
     o.insert(QStringLiteral("color"), b.color);
+    o.insert(QStringLiteral("borderColor"), b.borderColor);
     o.insert(QStringLiteral("sourceText"), b.sourceText);
     if (!b.utteranceText.isEmpty()) {
         o.insert(QStringLiteral("utteranceText"), b.utteranceText);
@@ -60,6 +61,7 @@ SoundboardTopic topicFromJson(const QJsonObject& o)
     t.name = readString(o, "name");
     t.icon = readString(o, "icon");
     t.color = readString(o, "color");
+    t.borderColor = readString(o, "borderColor");
     t.gridCols = readInt(o, "gridCols", 4);
     t.gridRows = readInt(o, "gridRows", 3);
     const QJsonArray buttons = o.value(QStringLiteral("buttons")).toArray();
@@ -78,6 +80,7 @@ QJsonObject topicToJson(const SoundboardTopic& t)
     o.insert(QStringLiteral("name"), t.name);
     o.insert(QStringLiteral("icon"), t.icon);
     o.insert(QStringLiteral("color"), t.color);
+    o.insert(QStringLiteral("borderColor"), t.borderColor);
     o.insert(QStringLiteral("gridCols"), t.gridCols);
     o.insert(QStringLiteral("gridRows"), t.gridRows);
     QJsonArray buttons;
@@ -165,28 +168,25 @@ void SoundboardStore::repackSequential(SoundboardTopic* topic)
         return;
     }
     clampTopic(topic);
-    int i = 0;
-    for (SoundboardButton& b : topic->buttons) {
-        b.col = i % topic->gridCols;
-        b.row = i / topic->gridCols;
-        b.colSpan = 1;
-        b.rowSpan = 1;
-        ++i;
-        if (b.row >= topic->gridRows) {
-            if (topic->gridRows < kMaxRows) {
-                ++topic->gridRows;
-            } else {
-                break;
-            }
-        }
-    }
-    while (!topic->buttons.isEmpty()) {
-        const SoundboardButton& last = topic->buttons.last();
-        if (last.row < topic->gridRows && last.col < topic->gridCols) {
+    const int cols = qMax(1, topic->gridCols);
+    QVector<SoundboardButton> kept;
+    kept.reserve(topic->buttons.size());
+    for (int i = 0; i < topic->buttons.size(); ++i) {
+        const int row = i / cols;
+        if (row >= kMaxRows) {
             break;
         }
-        topic->buttons.removeLast();
+        if (row >= topic->gridRows) {
+            topic->gridRows = row + 1;
+        }
+        SoundboardButton button = topic->buttons.at(i);
+        button.col = i % cols;
+        button.row = row;
+        button.colSpan = 1;
+        button.rowSpan = 1;
+        kept.push_back(std::move(button));
     }
+    topic->buttons = std::move(kept);
 }
 
 QVector<SoundboardTopic> SoundboardStore::starterTopics()
@@ -420,6 +420,31 @@ bool SoundboardStore::setTopicColor(const QString& id, const QString& color, QSt
     return save(error);
 }
 
+bool SoundboardStore::setTopicBorder(const QString& id, const QString& color, QString* error)
+{
+    SoundboardTopic* t = findTopic(id);
+    if (!t) {
+        if (error) {
+            *error = QStringLiteral("Unknown topic");
+        }
+        return false;
+    }
+    const QString raw = color.trimmed();
+    if (raw.isEmpty()) {
+        t->borderColor.clear();
+        return save(error);
+    }
+    const QColor c(raw);
+    if (!c.isValid()) {
+        if (error) {
+            *error = QStringLiteral("Invalid color");
+        }
+        return false;
+    }
+    t->borderColor = storedColor(c);
+    return save(error);
+}
+
 bool SoundboardStore::setTopicIcon(const QString& id, const QString& icon, QString* error)
 {
     SoundboardTopic* t = findTopic(id);
@@ -585,6 +610,31 @@ bool SoundboardStore::setButtonColor(const QString& buttonId, const QString& col
     return save(error);
 }
 
+bool SoundboardStore::setButtonBorder(const QString& buttonId, const QString& color, QString* error)
+{
+    SoundboardButton* b = findButton(buttonId);
+    if (!b) {
+        if (error) {
+            *error = QStringLiteral("Unknown button");
+        }
+        return false;
+    }
+    const QString raw = color.trimmed();
+    if (raw.isEmpty()) {
+        b->borderColor.clear();
+        return save(error);
+    }
+    const QColor c(raw);
+    if (!c.isValid()) {
+        if (error) {
+            *error = QStringLiteral("Invalid color");
+        }
+        return false;
+    }
+    b->borderColor = storedColor(c);
+    return save(error);
+}
+
 bool SoundboardStore::setButtonIcon(const QString& buttonId, const QString& icon, QString* error)
 {
     SoundboardButton* b = findButton(buttonId);
@@ -640,7 +690,64 @@ bool SoundboardStore::setButtonUtterance(const QString& buttonId, const QString&
     return save(error);
 }
 
+bool SoundboardStore::setButtonClip(const QString& buttonId, const QString& clipId, QString* error)
+{
+    SoundboardButton* b = findButton(buttonId);
+    if (!b) {
+        if (error) {
+            *error = QStringLiteral("Unknown button");
+        }
+        return false;
+    }
+    if (!clipId.isEmpty() && !validClipId(clipId)) {
+        if (error) {
+            *error = QStringLiteral("Invalid clip");
+        }
+        return false;
+    }
+    const QString oldClip = b->clipId;
+    b->clipId = clipId;
+    b->utteranceText.clear();
+    if (!save(error)) {
+        return false;
+    }
+    if (!oldClip.isEmpty() && oldClip != clipId) {
+        evictUnreferencedClips();
+    }
+    return true;
+}
+
+QString SoundboardStore::storedAudioSuffix(const QString& suffix)
+{
+    const QString s = suffix.trimmed().toLower();
+    if (s == QLatin1String("wav") || s == QLatin1String("mp3") || s == QLatin1String("m4a")
+        || s == QLatin1String("aac") || s == QLatin1String("wma") || s == QLatin1String("ogg")
+        || s == QLatin1String("flac")) {
+        return s;
+    }
+    return {};
+}
+
+QStringList SoundboardStore::audioNameFilters()
+{
+    return {QStringLiteral("*.wav"), QStringLiteral("*.mp3"), QStringLiteral("*.m4a"),
+            QStringLiteral("*.aac"), QStringLiteral("*.wma"), QStringLiteral("*.ogg"),
+            QStringLiteral("*.flac")};
+}
+
 bool SoundboardStore::setTopicGridCols(const QString& id, int cols, QString* error)
+{
+    const SoundboardTopic* topic = findTopic(id);
+    return setTopicGridSize(id, cols, topic ? topic->gridRows : 1, error);
+}
+
+bool SoundboardStore::setTopicGridRows(const QString& id, int rows, QString* error)
+{
+    const SoundboardTopic* topic = findTopic(id);
+    return setTopicGridSize(id, topic ? topic->gridCols : 1, rows, error);
+}
+
+bool SoundboardStore::setTopicGridSize(const QString& id, int cols, int rows, QString* error)
 {
     SoundboardTopic* topic = findTopic(id);
     if (!topic) {
@@ -649,8 +756,26 @@ bool SoundboardStore::setTopicGridCols(const QString& id, int cols, QString* err
         }
         return false;
     }
-    topic->gridCols = qBound(1, cols, kMaxCols);
-    repackSequential(topic);
+    cols = qBound(1, cols, kMaxCols);
+    rows = qBound(1, rows, kMaxRows);
+    int needCols = 1;
+    int needRows = 1;
+    for (const SoundboardButton& button : topic->buttons) {
+        needCols = qMax(needCols, button.col + qMax(1, button.colSpan));
+        needRows = qMax(needRows, button.row + qMax(1, button.rowSpan));
+    }
+    if (cols < needCols || rows < needRows) {
+        if (error) {
+            *error = QStringLiteral("A phrase sits outside that grid");
+        }
+        return false;
+    }
+    if (topic->gridCols == cols && topic->gridRows == rows) {
+        return true;
+    }
+    topic->gridCols = cols;
+    topic->gridRows = rows;
+    clampTopic(topic);
     return save(error);
 }
 
@@ -711,6 +836,53 @@ bool SoundboardStore::moveButton(const QString& buttonId, int delta, QString* er
             std::swap(topic.buttons[order.at(slot)], topic.buttons[order.at(next)]);
         }
         repackSequential(&topic);
+        return save(error);
+    }
+    if (error) {
+        *error = QStringLiteral("Unknown button");
+    }
+    return false;
+}
+
+bool SoundboardStore::placeButtonAt(const QString& buttonId, int slot, QString* error)
+{
+    for (SoundboardTopic& topic : m_topics) {
+        SoundboardButton* button = nullptr;
+        for (SoundboardButton& candidate : topic.buttons) {
+            if (candidate.id == buttonId) {
+                button = &candidate;
+                break;
+            }
+        }
+        if (!button) {
+            continue;
+        }
+        const int cols = qBound(1, topic.gridCols, kMaxCols);
+        const int oldRows = qBound(1, topic.gridRows, kMaxRows);
+        int rows = oldRows;
+        if (slot >= rows * cols && rows < kMaxRows) {
+            rows = qMin(kMaxRows, slot / cols + 1);
+            topic.gridRows = rows;
+        }
+        const int cap = qMax(1, rows * cols);
+        slot = qBound(0, slot, cap - 1);
+        const int row = slot / cols;
+        const int col = slot % cols;
+        if (button->row == row && button->col == col) {
+            return rows == oldRows ? true : save(error);
+        }
+        const int oldRow = button->row;
+        const int oldCol = button->col;
+        if (SoundboardButton* other = buttonAt(topic, row, col); other && other != button) {
+            other->row = oldRow;
+            other->col = oldCol;
+        }
+        button->row = row;
+        button->col = col;
+        if (row + 1 > topic.gridRows) {
+            topic.gridRows = row + 1;
+        }
+        clampTopic(&topic);
         return save(error);
     }
     if (error) {
@@ -808,11 +980,19 @@ QString SoundboardStore::clipPath(const QString& clipId) const
     if (!validClipId(clipId)) {
         return {};
     }
-    const QString wav = QDir(clipsDir()).filePath(clipId + QStringLiteral(".wav"));
-    if (QFileInfo::exists(wav)) {
-        return wav;
+    const QDir dir(clipsDir());
+    QString mp3;
+    for (const QString& filter : audioNameFilters()) {
+        const QString suffix = filter.mid(2);
+        const QString path = dir.filePath(clipId + QLatin1Char('.') + suffix);
+        if (suffix == QLatin1String("mp3")) {
+            mp3 = path;
+        }
+        if (QFileInfo::exists(path)) {
+            return path;
+        }
     }
-    return QDir(clipsDir()).filePath(clipId + QStringLiteral(".mp3"));
+    return mp3;
 }
 
 void SoundboardStore::setMaxTotalBytes(qint64 n)
@@ -840,9 +1020,14 @@ QString SoundboardStore::importClip(const QString& srcPath, QString* error, Spee
         history->makeRoom(src.size());
     }
     evictUnreferencedClips();
+    const QString suffix = storedAudioSuffix(src.suffix());
+    if (suffix.isEmpty()) {
+        if (error) {
+            *error = QStringLiteral("Use an audio file");
+        }
+        return {};
+    }
     const QString id = makeId();
-    const QString suffix = src.suffix().toLower() == QLatin1String("wav") ? QStringLiteral("wav")
-                                                                          : QStringLiteral("mp3");
     const QString dest = QDir(clipsDir()).filePath(id + QLatin1Char('.') + suffix);
     if (dest.isEmpty() || !QFile::copy(srcPath, dest)) {
         if (error) {
@@ -890,9 +1075,7 @@ void SoundboardStore::evictUnreferencedClips()
 {
     const QStringList keep = referencedClipIds();
     const QFileInfoList files =
-        QDir(clipsDir()).entryInfoList(
-            QStringList{QStringLiteral("*.mp3"), QStringLiteral("*.wav")}, QDir::Files,
-                                       QDir::Time | QDir::Reversed);
+        QDir(clipsDir()).entryInfoList(audioNameFilters(), QDir::Files, QDir::Time | QDir::Reversed);
     for (const QFileInfo& fi : files) {
         const QString id = fi.completeBaseName();
         if (!keep.contains(id, Qt::CaseInsensitive)) {

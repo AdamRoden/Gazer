@@ -427,11 +427,21 @@ PageDocument SettingsUi::buildGenericColorDocument() const
     }
     right.subGrids.push_back(std::move(palette));
 
-    PageGrid actions = makeNested(QStringLiteral("actions"), 1, 0, 1, 2, kGap);
-    actions.cells.push_back(cell(QStringLiteral("save"), QStringLiteral("Save"), 0, 0,
-                                 QStringLiteral("settings.color.save"), pal.save));
-    actions.cells.push_back(cell(QStringLiteral("cancel"), QStringLiteral("Cancel"), 0, 1,
-                                 QStringLiteral("settings.color.cancel"), pal.cancel));
+    const bool guest = static_cast<bool>(m_colorCommit);
+    PageGrid actions = makeNested(QStringLiteral("actions"), 1, 0, 1, guest ? 3 : 2, kGap);
+    if (guest) {
+        actions.cells.push_back(cell(QStringLiteral("color_none"), QStringLiteral("None"), 0, 0,
+                                     QStringLiteral("settings.color.none"), pal.cancel));
+        actions.cells.push_back(cell(QStringLiteral("save"), QStringLiteral("Save"), 0, 1,
+                                     QStringLiteral("settings.color.save"), pal.save));
+        actions.cells.push_back(cell(QStringLiteral("cancel"), QStringLiteral("Cancel"), 0, 2,
+                                     QStringLiteral("settings.color.cancel"), pal.key));
+    } else {
+        actions.cells.push_back(cell(QStringLiteral("save"), QStringLiteral("Save"), 0, 0,
+                                     QStringLiteral("settings.color.save"), pal.save));
+        actions.cells.push_back(cell(QStringLiteral("cancel"), QStringLiteral("Cancel"), 0, 1,
+                                     QStringLiteral("settings.color.cancel"), pal.cancel));
+    }
     right.subGrids.push_back(std::move(actions));
     grid.subGrids.push_back(std::move(right));
     return doc;
@@ -473,6 +483,21 @@ void SettingsUi::closeColorPicker()
         m_hexActive = false;
     }
     closeLive(m_color);
+}
+
+bool SettingsUi::colorNone(QString* error)
+{
+    if (!m_color.active || !m_colorCommit) {
+        if (error) {
+            *error = QStringLiteral("Color picker is not open");
+        }
+        return false;
+    }
+    auto commit = std::move(m_colorCommit);
+    closeColorPicker();
+    commit(QColor());
+    notifyStatus(QStringLiteral("Color cleared"));
+    return true;
 }
 
 bool SettingsUi::colorSave(QString* error)

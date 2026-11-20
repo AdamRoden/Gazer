@@ -224,7 +224,7 @@
       <Cell id="cmd_cut" row="0" col="4" icon="contentCut" label="Cut" command="compose.cut"/>
       <Cell id="cmd_copy" row="0" col="5" icon="contentCopy" label="Copy" command="compose.copy"/>
       <Cell id="cmd_paste" row="0" col="6" icon="contentPaste" label="Paste" command="compose.paste"/>
-      <Cell id="cmd_pin" row="1" col="0" icon="pushPin" label="Pin" command="compose.pin" activeState="compose.assignMode"/>
+      <Cell id="cmd_pin" row="1" col="0" icon="edit" label="Edit" command="compose.pin" activeState="compose.editMode"/>
       <Cell id="cmd_tag" row="1" col="1" icon="sell" label="Tag" command="compose.openTags"/>
       <Cell id="cmd_style" row="1" col="2" icon="palette" label="Style" command="compose.openStyles" activeState="compose.styleOn"/>
       <Cell id="cmd_voice" row="1" col="3" icon="recordVoiceOver" label="Voice" command="compose.openVoices"/>

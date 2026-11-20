@@ -285,6 +285,11 @@ QColor ThemeColors::readableForeground(const QColor& fill, const QString& author
     }
     const QColor seed = canvas.isValid() ? canvas : bgMain;
     if (const std::optional<QColor> authored = resolveToken(t, seed)) {
+        // An authored hex color is the ink. Theme tokens still fall back when they
+        // do not contrast with the fill.
+        if (t.startsWith(QLatin1Char('#')) && authored->isValid()) {
+            return *authored;
+        }
         return pick(*authored);
     }
     return pick(text);

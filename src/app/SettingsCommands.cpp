@@ -213,6 +213,8 @@ void SettingsUi::registerCommands()
     });
     m_commands.registerBuiltin(QStringLiteral("settings.color.save"),
                                [this](QString* e) { return colorSave(e); });
+    m_commands.registerBuiltin(QStringLiteral("settings.color.none"),
+                               [this](QString* e) { return colorNone(e); });
     m_commands.registerBuiltin(QStringLiteral("settings.color.cancel"), [this](QString*) {
         closeColorPicker();
         notifyStatus(QStringLiteral("Color pick cancelled"));

@@ -88,8 +88,19 @@ QString clipDataUrl(const QString& path)
     if (bytes.isEmpty() || bytes.size() > SoundboardStore::kMaxClipBytes) {
         return {};
     }
-    const bool wav = path.endsWith(QLatin1String(".wav"), Qt::CaseInsensitive);
-    const QString mime = wav ? QStringLiteral("audio/wav") : QStringLiteral("audio/mpeg");
+    const QString suffix = SoundboardStore::storedAudioSuffix(QFileInfo(path).suffix());
+    QString mime = QStringLiteral("audio/mpeg");
+    if (suffix == QLatin1String("wav")) {
+        mime = QStringLiteral("audio/wav");
+    } else if (suffix == QLatin1String("m4a") || suffix == QLatin1String("aac")) {
+        mime = QStringLiteral("audio/mp4");
+    } else if (suffix == QLatin1String("wma")) {
+        mime = QStringLiteral("audio/x-ms-wma");
+    } else if (suffix == QLatin1String("ogg")) {
+        mime = QStringLiteral("audio/ogg");
+    } else if (suffix == QLatin1String("flac")) {
+        mime = QStringLiteral("audio/flac");
+    }
     return QStringLiteral("data:") + mime + QStringLiteral(";base64,")
            + QString::fromLatin1(bytes.toBase64());
 }
@@ -135,6 +146,7 @@ QByteArray SoundboardStore::exportWorkspace(const WorkspaceExportSettings& setti
             to.insert(QStringLiteral("name"), topic.name);
             to.insert(QStringLiteral("icon"), topic.icon);
             to.insert(QStringLiteral("color"), topic.color);
+            to.insert(QStringLiteral("borderColor"), topic.borderColor);
             to.insert(QStringLiteral("thread"), QStringLiteral("all"));
             to.insert(QStringLiteral("gridCols"), topic.gridCols);
             to.insert(QStringLiteral("gridRows"), topic.gridRows);
@@ -146,6 +158,7 @@ QByteArray SoundboardStore::exportWorkspace(const WorkspaceExportSettings& setti
                 bo.insert(QStringLiteral("symbol"), b.icon);
                 bo.insert(QStringLiteral("icon"), b.icon);
                 bo.insert(QStringLiteral("color"), b.color);
+                bo.insert(QStringLiteral("borderColor"), b.borderColor);
                 bo.insert(QStringLiteral("sourceText"), textOrNull(b.sourceText));
                 bo.insert(QStringLiteral("utteranceText"), textOrNull(b.utteranceText));
                 QString audio;
@@ -301,6 +314,7 @@ bool SoundboardStore::importWorkspace(const QJsonObject& root, WorkspaceMode mod
                 incoming.icon = readString(rawTopic, "symbol").trimmed();
             }
             incoming.color = readString(rawTopic, "color");
+            incoming.borderColor = readString(rawTopic, "borderColor");
             incoming.gridCols = readInt(rawTopic, "gridCols", 4);
             incoming.gridRows = readInt(rawTopic, "gridRows", 3);
             if (incoming.name.isEmpty()) {
@@ -338,6 +352,9 @@ bool SoundboardStore::importWorkspace(const QJsonObject& root, WorkspaceMode mod
         const QString color = readString(rawTopic, "color").trimmed();
         if (!color.isEmpty()) {
             existing->color = color;
+        }
+        if (rawTopic.contains(QLatin1String("borderColor"))) {
+            existing->borderColor = readString(rawTopic, "borderColor").trimmed();
         }
         if (rawTopic.contains(QLatin1String("gridCols"))) {
             existing->gridCols = qMax(existing->gridCols, readInt(rawTopic, "gridCols", existing->gridCols));
@@ -378,6 +395,9 @@ bool SoundboardStore::importWorkspace(const QJsonObject& root, WorkspaceMode mod
             }
             if (rawButton.contains(QLatin1String("color"))) {
                 dest->color = norm.color;
+            }
+            if (rawButton.contains(QLatin1String("borderColor"))) {
+                dest->borderColor = norm.borderColor;
             }
             if (rawButton.contains(QLatin1String("utteranceText"))) {
                 dest->utteranceText = norm.utteranceText;
@@ -452,11 +472,22 @@ bool SoundboardStore::importWorkspace(const QJsonObject& root, WorkspaceMode mod
             continue;
         }
         const QString header = data.left(comma).toLower();
-        const bool wav = header.contains(QLatin1String("audio/wav"))
-                         || header.contains(QLatin1String("audio/x-wav"));
-        QTemporaryFile tmp(QDir::temp().filePath(QStringLiteral("gazer-import-XXXXXX.")
-                                                 + (wav ? QStringLiteral("wav")
-                                                        : QStringLiteral("mp3"))));
+        QString suffix = QStringLiteral("mp3");
+        if (header.contains(QLatin1String("audio/wav")) || header.contains(QLatin1String("audio/x-wav"))) {
+            suffix = QStringLiteral("wav");
+        } else if (header.contains(QLatin1String("audio/mp4"))
+                   || header.contains(QLatin1String("audio/m4a"))
+                   || header.contains(QLatin1String("audio/aac"))) {
+            suffix = QStringLiteral("m4a");
+        } else if (header.contains(QLatin1String("audio/x-ms-wma"))
+                   || header.contains(QLatin1String("audio/wma"))) {
+            suffix = QStringLiteral("wma");
+        } else if (header.contains(QLatin1String("audio/ogg"))) {
+            suffix = QStringLiteral("ogg");
+        } else if (header.contains(QLatin1String("audio/flac"))) {
+            suffix = QStringLiteral("flac");
+        }
+        QTemporaryFile tmp(QDir::temp().filePath(QStringLiteral("gazer-import-XXXXXX.") + suffix));
         tmp.setAutoRemove(true);
         if (!tmp.open() || tmp.write(bytes) != bytes.size() || !tmp.flush()) {
             continue;

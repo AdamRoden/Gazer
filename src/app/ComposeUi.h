@@ -157,8 +157,10 @@ public:
     bool saveNameEdit(QString* error = nullptr);
     void cancelNameEdit();
     bool deleteNameEdit(QString* error = nullptr);
-    /// Settings color picker. The chosen color stays on the item until Save.
+    /// Settings color picker for the background. The color stays until Save.
     void showEditColors();
+    /// Settings color picker for the border. A custom border is also the label color.
+    void showEditBorder();
     /// Searchable Material Symbols board, the same size as the color picker.
     /// The footer is Clear, the current icon, Save, and Cancel. Save applies
     /// the icon. Cancel discards it. Tiles move one row at a time.
@@ -211,6 +213,10 @@ public:
     bool importMerge(QString* error = nullptr);
     bool importReplace(QString* error = nullptr);
     bool openPinEdit(const QString& buttonId, QString* error = nullptr);
+    /// Phrase editor. Opens the file browser so a saved audio file can be assigned on Save.
+    bool browsePhraseAudio(QString* error = nullptr);
+    /// Assign button on that browser. Asks Yes before remembering the file.
+    bool usePhraseAudio(QString* error = nullptr);
     bool openTopicEdit(const QString& topicId, QString* error = nullptr);
     bool playSoundboard(const QString& buttonId, QString* error = nullptr);
     bool assignSoundboard(const QString& cellOrButtonId, QString* error = nullptr);
@@ -229,6 +235,7 @@ public:
     void focusFormField(const QString& which);
     void nudgeFormIndex(int delta);
     void nudgeFormCols(int delta);
+    void nudgeFormRows(int delta);
     bool playHistory(const QString& id, QString* error = nullptr);
     bool restoreHistory(const QString& id, QString* error = nullptr);
     bool deleteHistory(const QString& id, QString* error = nullptr);
@@ -296,7 +303,7 @@ private:
     PageDocument buildFilesDocument() const;
     enum class FileConfirm { None, Import, Merge, Export };
     enum class FileMode { Import, Export };
-    enum class FileJob { Speak, Settings };
+    enum class FileJob { Speak, Settings, Audio };
     bool openFileMode(FileMode mode, QString* error, FileJob job = FileJob::Speak);
     [[nodiscard]] bool guestCapture() const;
     [[nodiscard]] bool keyboardBorrowed() const;
@@ -319,6 +326,8 @@ private:
     bool readSelectedWorkspace(QString* error);
     void restoreFileLayers();
     [[nodiscard]] QString selectedJsonPath() const;
+    [[nodiscard]] QString selectedAudioPath() const;
+    bool rememberPhraseAudio(QString* error);
     [[nodiscard]] QString fileConfirmQuestion() const;
     /// `keep` survives closing File Explorer. Edits drop either kind.
     void setBoardNote(const QString& text, bool keep = false);
@@ -327,13 +336,14 @@ private:
     PageDocument buildStylesDocument();
     PageDocument buildTagsDocument();
     PageDocument buildFormDocument() const;
+    void showEditColor(bool border);
     PageDocument buildRailAddDocument();
     void rebuildStyles();
     void rebuildTags();
     void rebuildForm();
     void rebuildRailAdd();
     void fillRail(PageDocument& doc) const;
-    void applyFormDrafts();
+    bool applyFormDrafts(QString* error = nullptr);
     [[nodiscard]] QString formNameText() const;
     [[nodiscard]] QString formPhraseText() const;
     [[nodiscard]] int formItemCount() const;
@@ -458,6 +468,7 @@ private:
     /// Icon list is open. The phrase keeps `m_editIcon` until Save.
     bool m_editIcons = false;
     QString m_editColor;
+    QString m_editBorder;
     QString m_editIcon;
     QString m_iconDraft;
     /// First visible tile row. Cell 0 of that row is `m_iconRow * 8`.
@@ -527,8 +538,12 @@ private:
     QString m_formName;
     QString m_formPhrase;
     bool m_formPhraseTouched = false;
+    /// Audio chosen in the phrase editor. Copied onto the phrase when Save succeeds.
+    QString m_formAudioPath;
+    QString m_formAudioName;
     int m_formIndex = 0;
     int m_formCols = 4;
+    int m_formRows = 3;
     bool m_langBrowse = false;
     QString m_voiceQuery;
     /// Styles shown on one editor page: 2 rows × 3 columns.

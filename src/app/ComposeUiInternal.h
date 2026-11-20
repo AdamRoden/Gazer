@@ -123,6 +123,27 @@ inline QColor parseColor(const QString& hex, const QColor& fallback)
     return c.isValid() ? c : fallback;
 }
 
+/// Fill from `background`. A custom `border` is also the label color.
+inline void paintItemFace(PageCell& cell, const QString& background, const QString& border,
+                          const QColor& surface)
+{
+    const QString bgHex = background.trimmed();
+    const QString borderHex = border.trimmed();
+    const QColor fill = bgHex.isEmpty() ? surface : parseColor(bgHex, surface);
+    cell.style.background = fill;
+    cell.style.radius = PageBox::all(12);
+    if (!borderHex.isEmpty()) {
+        const QColor ink = parseColor(borderHex, fill);
+        cell.style.borderColor = ink;
+        cell.style.thickness = PageBox::all(2);
+        cell.style.foreground = ink;
+        return;
+    }
+    cell.style.borderColor = QColor();
+    cell.style.thickness = PageBox::all(0);
+    cell.style.foreground = ThemeColors::contrastOn(fill);
+}
+
 inline void stampEditableGrid(PageGrid* grid, bool editing, const QColor& accent)
 {
     if (!grid) {
@@ -143,6 +164,7 @@ struct ChoiceSlot {
     QString caption;
     QString icon;
     QString color;
+    QString border;
     QString useCommand;
     QString editCommand;
     QString activeState;
@@ -175,9 +197,12 @@ inline void fillChoiceGrid(PageGrid* grid, int rows, int cols, const QString& id
             cell.icon = it.icon;
             cell.role = QStringLiteral("choice");
             cell.activeState = it.selected ? QStringLiteral("compose.editMode") : it.activeState;
-            const QColor bg = it.on ? accent : parseColor(it.color, surface);
-            cell.style.background = bg;
-            cell.style.foreground = ThemeColors::contrastOn(bg);
+            if (it.on) {
+                cell.style.background = accent;
+                cell.style.foreground = ThemeColors::contrastOn(accent);
+            } else {
+                paintItemFace(cell, it.color, it.border, surface);
+            }
             cell.actions.push_back(commandAction(editing ? it.editCommand : it.useCommand));
         } else {
             cell.style.background = value;
@@ -418,7 +443,7 @@ inline QVector<RailActionSpec> railActionCatalog()
          QStringLiteral("recordVoiceOver")},
         {QStringLiteral("compose.openStyles"), QStringLiteral("Style"), QStringLiteral("palette")},
         {QStringLiteral("compose.openTags"), QStringLiteral("Tag"), QStringLiteral("sell")},
-        {QStringLiteral("compose.pin"), QStringLiteral("Pin"), QStringLiteral("pushPin")},
+        {QStringLiteral("compose.pin"), QStringLiteral("Edit"), QStringLiteral("edit")},
         {QStringLiteral("compose.clear"), QStringLiteral("Clear"), QStringLiteral("keyBackspace")},
         {QStringLiteral("compose.speak"), QStringLiteral("Speak"), QStringLiteral("Speak")},
         {QStringLiteral("compose.undo"), QStringLiteral("Undo"), QStringLiteral("undo")},

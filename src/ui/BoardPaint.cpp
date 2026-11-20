@@ -795,6 +795,9 @@ void paintTarget(QPainter& p, const PageTarget& t, const QRectF& r, const ThemeC
                               live.curveLiveOn);
     } else if (role == QLatin1String("tab")) {
         paintTab(p, t, r, theme, canvas, hovered, active || t.actions.isEmpty(), progress);
+    } else if (role == QLatin1String("face")) {
+        paintSurface(p, r, t.chrome, theme, glass, false, false, false, false, canvas);
+        paintIconAndText(p, t, r, fg, theme);
     } else if (role == QLatin1String("label") || role == QLatin1String("value")
                || role == QLatin1String("display")) {
         paintSurface(p, r, t.chrome, theme, glass, false, false, false, false, canvas);

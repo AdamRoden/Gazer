@@ -31,6 +31,7 @@ inline SoundboardButton buttonFromJson(const QJsonObject& o)
         b.icon = readString(o, "symbol").trimmed();
     }
     b.color = readString(o, "color");
+    b.borderColor = readString(o, "borderColor");
     b.sourceText = readString(o, "sourceText");
     b.utteranceText = readString(o, "utteranceText");
     if (b.sourceText.isEmpty() && b.utteranceText.isEmpty()) {

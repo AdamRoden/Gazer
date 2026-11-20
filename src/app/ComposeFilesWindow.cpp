@@ -1,5 +1,7 @@
 #include "app/ComposeUi.h"
 
+#include "assist/SoundboardStore.h"
+
 #include "app/AppSettings.h"
 #include "app/ComposeFilesDetail.h"
 #include "app/ComposeUiInternal.h"
@@ -65,6 +67,9 @@ QString fileIcon(const QFileInfo& info)
     if (info.suffix().compare(QLatin1String("json"), Qt::CaseInsensitive) == 0) {
         return QStringLiteral("editSquare");
     }
+    if (!SoundboardStore::storedAudioSuffix(info.suffix()).isEmpty()) {
+        return QStringLiteral("music_note");
+    }
     return QStringLiteral("description");
 }
 
@@ -118,6 +123,9 @@ FileFacts fileFacts(const QFileInfo& info)
         f.kind = QStringLiteral("Folder");
     } else {
         f.size = fileBytes(info.size());
+        if (!SoundboardStore::storedAudioSuffix(info.suffix()).isEmpty()) {
+            f.kind = QStringLiteral("Audio");
+        }
     }
     f.when = fileWhen(info);
     return f;
@@ -171,6 +179,8 @@ PageDocument ComposeUi::buildFilesDocument() const
     if (m_fileJob == FileJob::Settings) {
         doc.name = m_fileMode == FileMode::Export ? QStringLiteral("Export settings")
                                                   : QStringLiteral("Import settings");
+    } else if (m_fileJob == FileJob::Audio) {
+        doc.name = QStringLiteral("Audio");
     } else {
         doc.name = m_fileMode == FileMode::Export ? QStringLiteral("Export") : QStringLiteral("Import");
     }
@@ -211,6 +221,8 @@ PageDocument ComposeUi::buildFilesDocument() const
     if (m_fileJob == FileJob::Settings) {
         title.caption = m_fileMode == FileMode::Export ? QStringLiteral("Export settings")
                                                        : QStringLiteral("Import settings");
+    } else if (m_fileJob == FileJob::Audio) {
+        title.caption = QStringLiteral("Choose audio");
     }
     titleBar.cells.push_back(std::move(title));
     grid.subGrids.push_back(std::move(titleBar));
@@ -544,6 +556,13 @@ PageDocument ComposeUi::buildFilesDocument() const
         actions.cells.push_back(cell(QStringLiteral("file_save"), QStringLiteral("Save"), 0, 5,
                                      QStringLiteral("compose.browserSave"), accent));
         actions.cells.push_back(cancelAt(6));
+    } else if (m_fileJob == FileJob::Audio) {
+        actions.columns = 3;
+        actions.columnTracks = starTracks({2.6, 1.15, 1.15});
+        actions.cells.push_back(std::move(name));
+        actions.cells.push_back(cell(QStringLiteral("file_assign"), QStringLiteral("Assign"), 0, 1,
+                                     QStringLiteral("compose.assignAudio"), accent));
+        actions.cells.push_back(cancelAt(2));
     } else if (m_fileJob == FileJob::Settings) {
         actions.columns = 3;
         actions.columnTracks = starTracks({2.6, 1.15, 1.15});

@@ -268,6 +268,10 @@ void ComposeUi::handleCapturedCommand(const QString& command)
             cancelIconPick();
             return;
         }
+        if (editingFileName()) {
+            (void)handleFileEscape();
+            return;
+        }
         if (nameEditing()) {
             cancelNameEdit();
             return;
@@ -363,6 +367,7 @@ void ComposeUi::abandonClosedSession()
     m_interaction = Interaction::Use;
     endIconPick();
     m_editColor.clear();
+    m_editBorder.clear();
     m_editIcon.clear();
     if (m_dismissColor) {
         m_dismissColor();
@@ -386,6 +391,8 @@ void ComposeUi::abandonClosedSession()
     m_formName.clear();
     m_formPhrase.clear();
     m_formPhraseTouched = false;
+    m_formAudioPath.clear();
+    m_formAudioName.clear();
     clearVoiceQuery();
     stopListScroll();
     m_guestKeys = false;
@@ -662,7 +669,7 @@ void ComposeUi::decoratePage(PageDocument& doc) const
                     c.caretLine = phraseCaretLine(c.label, c.caretIndex);
                     c.role = QStringLiteral("display");
                     if (editMode()) {
-                        c.caption = QStringLiteral("Dwell a button or + topic");
+                        c.caption = QStringLiteral("Dwell a phrase to edit, or + to save");
                     } else if (assignMode()) {
                         c.caption = QStringLiteral("Dwell a cell to save");
                     } else if (!m_boardNote.isEmpty()) {
