@@ -18,6 +18,8 @@
 #include <QTransform>
 #include <QVector>
 
+#include <atomic>
+
 class QCloseEvent;
 class QKeyEvent;
 class QPainter;
@@ -84,6 +86,11 @@ private:
     void syncBoardSize();
     void syncGlass();
     void fitToChrome();
+    /// Clip the HWND across a vertical resize until the new frame is presented.
+    void armFrameHold();
+    void scheduleHoldRelease();
+    void retryFrameHold();
+    void releaseFrameHold();
     void applyPieceClip();
     void applyChrome();
     void applyInputFocusChrome();
@@ -124,6 +131,13 @@ private:
     QPoint m_origin;
     bool m_pieceClip = false;
     QRegion m_appliedClip;
+    /// Idle, clipped and waiting for a paint, or painted and waiting for that frame to swap.
+    /// A vertical jump (the keyboard opening over the menu) clips the HWND so the
+    /// previous frame is not stretched into the new client.
+    enum HoldPhase { HoldIdle = 0, HoldArmed = 1, HoldPainted = 2 };
+    std::atomic<int> m_hold{HoldIdle};
+    bool m_holdRetried = false;
+    QTimer m_holdTimer;
     BoardPaint::Live m_live;
     bool m_inputFocus = false;
     friend class PageHostItem;

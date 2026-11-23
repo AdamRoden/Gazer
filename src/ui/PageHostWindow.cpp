@@ -37,6 +37,20 @@ constexpr int kHoverDelayMs = 100;
 /// Idle-close warning. Applied per closing page, not to the host window.
 constexpr double kPageFadeOpacity = 0.5;
 
+namespace {
+
+/// Drawer and More share a bottom edge and a height, so that slide does not
+/// change the vertical span. Opening the keyboard does.
+[[nodiscard]] bool verticalSpanJumped(const QRect& from, const QRect& to, int slack)
+{
+    if (from.width() <= 1 || from.height() <= 1 || to.width() <= 1 || to.height() <= 1) {
+        return false;
+    }
+    return qAbs(to.top() - from.top()) > slack || qAbs(to.height() - from.height()) > slack;
+}
+
+} // namespace
+
 class PageHostItem final : public QQuickPaintedItem {
 public:
     explicit PageHostItem(PageHostWindow* host, QQuickItem* parent)
@@ -54,6 +68,7 @@ public:
         if (!p || !m_host) {
             return;
         }
+        const int hold = m_host->m_hold.load(std::memory_order_acquire);
         p->setRenderHint(QPainter::Antialiasing, true);
         p->save();
         p->setCompositionMode(QPainter::CompositionMode_Source);
@@ -97,6 +112,12 @@ public:
             BoardPaint::fillRound(*p, fr, radii, fc);
             BoardPaint::strokeRound(*p, fr, radii, fc, PageBox::all(3.5));
             p->restore();
+        }
+        if (hold == PageHostWindow::HoldArmed) {
+            int expected = PageHostWindow::HoldArmed;
+            m_host->m_hold.compare_exchange_strong(expected, PageHostWindow::HoldPainted,
+                                                   std::memory_order_release,
+                                                   std::memory_order_relaxed);
         }
     }
 
@@ -163,6 +184,8 @@ PageHostWindow::PageHostWindow(QWindow* parent)
             m_board->update();
         }
     });
+    m_holdTimer.setSingleShot(true);
+    connect(&m_holdTimer, &QTimer::timeout, this, &PageHostWindow::retryFrameHold);
 }
 
 void PageHostWindow::syncBoardSize()
@@ -382,6 +405,10 @@ void PageHostWindow::fitToChrome()
         }
     }
     if (geo.topLeft() != m_origin || geo.size() != size()) {
+        const QRect current(m_origin, size());
+        if (isVisible() && verticalSpanJumped(current, geo, pad)) {
+            armFrameHold();
+        }
         m_origin = geo.topLeft();
         setGeometry(geo);
         syncBoardSize();
@@ -396,6 +423,17 @@ void PageHostWindow::setPieceClip(bool on)
 
 void PageHostWindow::applyPieceClip()
 {
+    // One pixel, not an empty region: empty means "no mask" and would show
+    // the previous frame stretched across the new client.
+    if (m_hold.load(std::memory_order_acquire) != HoldIdle) {
+        const QRegion dot(0, 0, 1, 1);
+        if (m_appliedClip == dot) {
+            return;
+        }
+        m_appliedClip = dot;
+        setMask(dot);
+        return;
+    }
     // The host rectangle is the bounding box of an L-shaped board. The region
     // is the painted pieces, so the empty corner is not this HWND.
     if (!m_pieceClip) {
@@ -855,6 +893,12 @@ bool PageHostWindow::nativeEvent(const QByteArray& eventType, void* message, qin
 #ifdef Q_OS_WIN
     if (eventType == QByteArrayLiteral("windows_generic_MSG") && message && result) {
         MSG* msg = static_cast<MSG*>(message);
+        if (msg->message == WM_WINDOWPOSCHANGING
+            && m_hold.load(std::memory_order_acquire) != HoldIdle) {
+            if (auto* pos = reinterpret_cast<WINDOWPOS*>(msg->lParam)) {
+                pos->flags |= SWP_NOCOPYBITS;
+            }
+        }
         if (msg->message == WM_NCHITTEST) {
             if (OverlayInputPassThrough::active()) {
                 *result = HTTRANSPARENT;

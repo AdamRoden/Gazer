@@ -176,6 +176,7 @@ set(GAZER_SOURCES
     src/ui/PreviewGeometry.cpp
     src/ui/StlMesh.cpp
     src/ui/PageHostWindow.cpp
+    src/ui/PageHostWindowFrame.cpp
     src/ui/BoardPaint.cpp
     src/ui/SliderTrack.cpp
     src/ui/ColorField.cpp
