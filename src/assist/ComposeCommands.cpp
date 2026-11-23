@@ -246,6 +246,7 @@ void registerComposeCommands(CommandRegistry& commands, ComposeUi& compose)
     bindId(QStringLiteral("history.play."), &ComposeUi::playHistory);
     bindId(QStringLiteral("history.restore."), &ComposeUi::restoreHistory);
     bindId(QStringLiteral("history.delete."), &ComposeUi::deleteHistory);
+    bindId(QStringLiteral("history.save."), &ComposeUi::saveHistory);
     bindVoidId(QStringLiteral("speech.voice."), &ComposeUi::selectVoice);
     bindVoidId(QStringLiteral("speech.voicePreview."), &ComposeUi::previewVoice);
     bindVoidId(QStringLiteral("speech.fav.toggle."), &ComposeUi::toggleFavorite);

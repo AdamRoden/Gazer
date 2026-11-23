@@ -1,9 +1,11 @@
 #pragma once
 
+#include <QDateTime>
 #include <QDir>
 #include <QFileInfo>
 #include <QStandardPaths>
 #include <QString>
+#include <QStringList>
 #include <QVector>
 #include <QtGlobal>
 
@@ -147,6 +149,144 @@ struct Place {
         out.push_back({browserEntryLabel(root), root, QStringLiteral("hardDrive")});
     }
     return out;
+}
+
+enum class BrowserJob { Speak, Settings, Audio, HistoryClip };
+enum class BrowserMode { Import, Export };
+
+/// What one file-browser job shows and which writer confirm uses.
+struct BrowserFace {
+    QStringList patterns;
+    QString documentName;
+    QString caption;
+    QString emptyFolder;
+    QString exportSuffix;
+    QString dwellHint;
+    enum class Selection { Typed, Audio };
+    Selection selection = Selection::Typed;
+    enum class Writer { Workspace, Settings, Clip };
+    Writer writer = Writer::Workspace;
+};
+
+[[nodiscard]] inline BrowserFace browserFace(BrowserJob job, BrowserMode mode,
+                                              const QStringList& audioPatterns)
+{
+    const bool exporting = mode == BrowserMode::Export;
+    BrowserFace face;
+    face.patterns = QStringList{QStringLiteral("*.json")};
+    face.exportSuffix = QStringLiteral(".json");
+    face.emptyFolder = QStringLiteral("No folders or JSON files");
+    face.dwellHint = QStringLiteral("Dwell a folder or a JSON file");
+    face.documentName = exporting ? QStringLiteral("Export") : QStringLiteral("Import");
+    switch (job) {
+    case BrowserJob::Audio:
+        face.patterns = audioPatterns;
+        face.documentName = QStringLiteral("Audio");
+        face.caption = QStringLiteral("Choose audio");
+        face.emptyFolder = QStringLiteral("No folders or audio files");
+        face.dwellHint = QStringLiteral("Dwell a folder or an audio file");
+        face.selection = BrowserFace::Selection::Audio;
+        break;
+    case BrowserJob::HistoryClip:
+        face.patterns = QStringList{QStringLiteral("*.mp3")};
+        face.documentName = QStringLiteral("Save MP3");
+        face.caption = QStringLiteral("Save MP3");
+        face.emptyFolder = QStringLiteral("No folders or MP3 files");
+        face.exportSuffix = QStringLiteral(".mp3");
+        face.dwellHint = QStringLiteral("Dwell a folder or an MP3 file");
+        face.writer = BrowserFace::Writer::Clip;
+        break;
+    case BrowserJob::Settings:
+        face.documentName = exporting ? QStringLiteral("Export settings")
+                                      : QStringLiteral("Import settings");
+        face.caption = face.documentName;
+        face.writer = BrowserFace::Writer::Settings;
+        break;
+    case BrowserJob::Speak:
+        break;
+    }
+    return face;
+}
+
+[[nodiscard]] inline bool reservedWindowsStem(const QString& stem)
+{
+    const QString s = stem.toUpper();
+    if (s == QLatin1String("CON") || s == QLatin1String("PRN") || s == QLatin1String("AUX")
+        || s == QLatin1String("NUL")) {
+        return true;
+    }
+    if (s.startsWith(QLatin1String("COM")) || s.startsWith(QLatin1String("LPT"))) {
+        bool digits = s.size() > 3;
+        for (int i = 3; digits && i < s.size(); ++i) {
+            digits = s.at(i).isDigit();
+        }
+        return digits;
+    }
+    return false;
+}
+
+[[nodiscard]] inline bool fileNameCharOk(QChar c)
+{
+    if (c.unicode() < 32) {
+        return false;
+    }
+    return QStringLiteral("\\/:*?\"<>|").indexOf(c) < 0;
+}
+
+/// Existing file in `dir` for a typed leaf. `suffix` is appended when it is missing.
+[[nodiscard]] inline QString fileInDir(const QString& dir, const QString& typed, const QString& suffix)
+{
+    if (dir.isEmpty()) {
+        return {};
+    }
+    QString name = typed.trimmed();
+    if (name.isEmpty() || name.endsWith(QLatin1Char('.'))) {
+        return {};
+    }
+    const QString ext = suffix.startsWith(QLatin1Char('.')) ? suffix : QStringLiteral(".") + suffix;
+    if (!name.endsWith(ext, Qt::CaseInsensitive)) {
+        name += ext;
+    }
+    for (const QChar c : name) {
+        if (!fileNameCharOk(c)) {
+            return {};
+        }
+    }
+    const QFileInfo info(QDir(dir).filePath(name));
+    const QString want = ext.mid(1);
+    if (!info.isFile() || info.suffix().compare(want, Qt::CaseInsensitive) != 0) {
+        return {};
+    }
+    return info.absoluteFilePath();
+}
+
+/// Phrase turned into an MP3 leaf. Empty and reserved stems get a timestamped name.
+[[nodiscard]] inline QString historyClipLeaf(const QString& phrase)
+{
+    QString stem;
+    bool gap = false;
+    for (const QChar c : phrase.trimmed()) {
+        if (c.isLetterOrNumber()) {
+            if (gap && !stem.isEmpty()) {
+                stem += QLatin1Char('-');
+            }
+            gap = false;
+            stem += c;
+            if (stem.size() >= 48) {
+                break;
+            }
+        } else if (!stem.isEmpty()) {
+            gap = true;
+        }
+    }
+    while (stem.endsWith(QLatin1Char('-'))) {
+        stem.chop(1);
+    }
+    if (stem.isEmpty() || reservedWindowsStem(stem)) {
+        stem = QStringLiteral("gazer-clip-%1")
+                   .arg(QDateTime::currentDateTime().toString(QStringLiteral("yyyy-MM-dd-HHmmss")));
+    }
+    return stem + QStringLiteral(".mp3");
 }
 
 } // namespace files_detail

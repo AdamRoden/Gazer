@@ -147,7 +147,7 @@ When adding a command: register it and add a row here.
 | `compose.iconSearch` | Dwell **Search**. Shows the Speak keyboard, with Esc in place of Edit. Enter or Esc closes the keyboard and keeps the search |
 | `compose.iconPick.<i>` / `compose.iconRow.<n>` | Highlight result `i` (`0` clears it) or move by `n` tile rows. The track and the arrows both move whole rows |
 | `compose.iconSave` / `compose.iconCancel` | Apply the highlighted icon, or close the list and keep the previous icon |
-| `history.play.<id>` / `history.restore.<id>` / `history.delete.<id>` | Replay, put the phrase back in the buffer, or drop the row |
+| `history.play.<id>` / `history.restore.<id>` / `history.delete.<id>` / `history.save.<id>` | Replay, put the phrase back in the buffer, drop the row, or save that recording as an MP3 |
 | `history.list.next` / `.prev` / `history.list.goto.<n>` | History list: after the lock-on ring, looking along the track drags the thumb; commands still page/jump |
 | `compose.pin` / `compose.cancelAssign` | Actions **Edit**. Same as `compose.editPins`, except Save while a name, style, or tag is open |
 | `compose.editPins` | Keyboard **Edit**. Dwell a phrase or topic to edit it. Dwell an empty cell to save the composer text there |

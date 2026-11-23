@@ -1,8 +1,10 @@
 #include "app/ComposeUi.h"
 
 #include "app/AppSettings.h"
+#include "app/ComposeFilesDetail.h"
 #include "app/ComposeUiInternal.h"
 #include "app/SettingsPageBuild.h"
+#include "assist/Mp3File.h"
 #include "assist/SpeechEngine.h"
 #include "assist/SpeechHistory.h"
 #include "layout/PageSession.h"
@@ -161,6 +163,55 @@ bool ComposeUi::restoreHistory(const QString& id, QString* error)
     return true;
 }
 
+bool ComposeUi::saveHistory(const QString& id, QString* error)
+{
+    m_historyClearArm = false;
+    const SpeechHistoryItem* it = m_history.find(id);
+    if (!it) {
+        if (error) {
+            *error = QStringLiteral("Unknown history item");
+        }
+        return false;
+    }
+    const QString path = m_history.clipPath(it->id);
+    if (path.isEmpty() || !QFileInfo::exists(path)) {
+        const QString msg = QStringLiteral("No recording to save");
+        notify(msg);
+        if (error) {
+            *error = msg;
+        }
+        return false;
+    }
+    m_historyClipPath = path;
+    m_historyClipName = files_detail::historyClipLeaf(it->phrase);
+    if (!openFileMode(FileMode::Export, error, FileJob::HistoryClip)) {
+        m_historyClipPath.clear();
+        m_historyClipName.clear();
+        return false;
+    }
+    return true;
+}
+
+bool ComposeUi::writeHistoryClip(QString* error)
+{
+    const QString src = m_historyClipPath;
+    if (src.isEmpty() || !QFileInfo::exists(src)) {
+        return noteFileFailure(QStringLiteral("No recording to save"), error);
+    }
+    const QString path = exportDestination(error);
+    if (path.isEmpty()) {
+        return false;
+    }
+    QString why;
+    if (!writeMp3File(src, path, &why)) {
+        return noteFileFailure(why.isEmpty() ? QStringLiteral("Could not save the MP3") : why, error);
+    }
+    setBoardNote(QStringLiteral("Saved %1").arg(path), true);
+    notify(QStringLiteral("Saved"));
+    browserBack();
+    return true;
+}
+
 bool ComposeUi::deleteHistory(const QString& id, QString* error)
 {
     m_historyClearArm = false;
@@ -228,10 +279,10 @@ PageDocument ComposeUi::buildHistoryDocument()
             continue;
         }
         const SpeechHistoryItem& it = items.at(idx);
-        PageGrid row = makeNested(QStringLiteral("hist_%1").arg(i), i, 0, 1, 5, 8);
+        PageGrid row = makeNested(QStringLiteral("hist_%1").arg(i), i, 0, 1, 6, 8);
         row.marginPx = 6;
         row.columnTracks = {PageTrackSize::starWeight(), trackPx(108), trackPx(104), trackPx(128),
-                            trackPx(64)};
+                            trackPx(104), trackPx(64)};
         row.style.radius = PageBox::all(12);
         row.style.background = value;
         row.style.borderColor = rim;
@@ -255,7 +306,11 @@ PageDocument ComposeUi::buildHistoryDocument()
         paintOutline(restore, accent);
         restore.style.radius = PageBox::all(12);
         row.cells.push_back(std::move(restore));
-        PageCell remove = cell(QStringLiteral("d_%1").arg(i), {}, 0, 4,
+        PageCell save = cell(QStringLiteral("s_%1").arg(i), QStringLiteral("Save"), 0, 4,
+                             QStringLiteral("history.save.%1").arg(it.id), key);
+        paintSurface(save, key);
+        row.cells.push_back(std::move(save));
+        PageCell remove = cell(QStringLiteral("d_%1").arg(i), {}, 0, 5,
                                QStringLiteral("history.delete.%1").arg(it.id), QColor(), 1, {}, {},
                                QStringLiteral("close"));
         paintDanger(remove, warn);

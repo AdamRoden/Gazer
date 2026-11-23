@@ -84,6 +84,7 @@ set(GAZER_SOURCES
     src/app/OsFileDialog.cpp
     src/app/ComposeListScroll.cpp
     src/app/ComposePhraseCaret.cpp
+    src/app/ComposeStyleChip.cpp
     src/app/ComposePredict.cpp
     src/assist/ComposeCommands.cpp
     src/core/TrackerMouse.cpp
@@ -132,6 +133,7 @@ set(GAZER_SOURCES
     src/assist/SoundboardStore.cpp
     src/assist/SoundboardWorkspace.cpp
     src/assist/SpeechHistory.cpp
+    src/assist/Mp3File.cpp
     src/assist/SpeechEngine.cpp
     src/assist/WsFrame.cpp
     src/assist/DialogueSocket.cpp
@@ -441,7 +443,7 @@ target_link_libraries(Gazer PRIVATE
 )
 
 if(WIN32)
-    target_link_libraries(Gazer PRIVATE user32 advapi32 ole32 oleaut32 uuid sapi crypt32 wintrust shell32 wtsapi32)
+    target_link_libraries(Gazer PRIVATE user32 advapi32 ole32 oleaut32 uuid sapi crypt32 wintrust shell32 wtsapi32 mfplat mfreadwrite mfuuid)
 endif()
 
 add_custom_command(TARGET Gazer POST_BUILD
@@ -571,6 +573,7 @@ add_executable(GazerPageTests
     tests/ProgressPaintTest.cpp
     tests/ScrollBarTest.cpp
     tests/PhraseCaretGazeTest.cpp
+    tests/FileBrowserFaceTest.cpp
     src/ui/ScrollBar.cpp
     tests/ComboMouseTest.cpp
     tests/LookToScrollTest.cpp
@@ -657,6 +660,7 @@ add_executable(GazerSpeechTests
     src/assist/SoundboardStore.cpp
     src/assist/SoundboardWorkspace.cpp
     src/assist/SpeechHistory.cpp
+    src/assist/Mp3File.cpp
     src/assist/ElevenClient.cpp
     src/assist/ElevenHttp.cpp
     src/assist/PcmFx.cpp
@@ -664,7 +668,7 @@ add_executable(GazerSpeechTests
 target_include_directories(GazerSpeechTests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(GazerSpeechTests PRIVATE Qt6::Core Qt6::Gui Qt6::Network Qt6::Multimedia Qt6::Test)
 if(WIN32)
-    target_link_libraries(GazerSpeechTests PRIVATE ole32 uuid)
+    target_link_libraries(GazerSpeechTests PRIVATE ole32 uuid mfplat mfreadwrite mfuuid)
 endif()
 add_test(NAME GazerSpeechTests COMMAND GazerSpeechTests)
 

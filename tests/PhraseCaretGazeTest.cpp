@@ -41,6 +41,9 @@ private slots:
     void wordPastTheLineEdgeIsNotAHit();
     void caretOnAWrapStaysOnTheEarlierLine();
     void copyBottomSitsOnThePhraseTop();
+    void styleChipMatchesTheCopyButton();
+    void styleChipLookMissesThePhraseWord();
+    void styleChipDwellIsSeparateFromTheCaret();
     void copyClampsIntoTheScreen();
     void pointBelowThePhraseMissesCopy();
     void captionUsesLabelRect();
@@ -531,6 +534,69 @@ void PhraseCaretChooseTest::copyClampsIntoTheScreen()
     PhraseCaretButton button;
     layoutPhraseCopyButton(QRectF(100, 4, 40, 20), QRectF(0, 0, 800, 600), button);
     QCOMPARE(button.center, QPointF(120, 36));
+}
+
+void PhraseCaretChooseTest::styleChipMatchesTheCopyButton()
+{
+    const QRectF phrase(100, 200, 500, 80);
+    const QRectF screen(0, 0, 800, 600);
+    PhraseCaretButton copy;
+    layoutPhraseCopyButton(phrase, screen, copy);
+    PhraseStyleChip chip;
+    layoutPhraseStyleChip(phrase, screen, 120.0, chip);
+    QCOMPARE(chip.rect.height(), kPhraseCaretButtonRadius * 2.0);
+    QCOMPARE(chip.rect.center().y(), copy.center.y());
+    QVERIFY(chip.rect.right() <= copy.center.x() - kPhraseCaretButtonHit);
+    QVERIFY(phraseStyleChipAt(chip, QPointF(chip.rect.left() + 8.0, copy.center.y())));
+    QVERIFY(!phraseStyleChipAt(chip, copy.center));
+
+    PhraseStyleChip narrow;
+    layoutPhraseStyleChip(QRectF(100, 200, 40, 20), screen, 80.0, narrow);
+    QVERIFY(narrow.rect.isEmpty());
+}
+
+void PhraseCaretChooseTest::styleChipLookMissesThePhraseWord()
+{
+    const QRectF phrase(100, 200, 500, 80);
+    const QRectF screen(0, 0, 800, 600);
+    PhraseStyleChip chip;
+    layoutPhraseStyleChip(phrase, screen, 120.0, chip);
+    PhraseWordSpan word;
+    word.rects = {phrase};
+    const QPointF look = chip.rect.center();
+    QCOMPARE(phraseWordIndexAt({word}, look), -1);
+    QVERIFY(phraseStyleChipAt(chip, look));
+    PhraseCaretButton copy;
+    layoutPhraseCopyButton(phrase, screen, copy);
+    QVERIFY(!phraseCaretButtonAt(copy, look));
+}
+
+void PhraseCaretChooseTest::styleChipDwellIsSeparateFromTheCaret()
+{
+    PhraseLook look;
+    look.elapsedMs = 100.0;
+    const StyleChipTick asleep = stepStyleChip(true, true, true, look, kPhraseWordDwellMs);
+    QVERIFY(!asleep.fired);
+    QVERIFY(!asleep.hot);
+    QCOMPARE(asleep.look.elapsedMs, 100.0);
+
+    const StyleChipTick away = stepStyleChip(true, false, false, look, 40.0);
+    QVERIFY(!away.fired);
+    QCOMPARE(away.look.elapsedMs, 0.0);
+
+    const StyleChipTick hidden = stepStyleChip(false, true, false, look, 40.0);
+    QCOMPARE(hidden.look.elapsedMs, 0.0);
+
+    const StyleChipTick half = stepStyleChip(true, true, false, {}, kPhraseWordDwellMs * 0.5);
+    QVERIFY(half.hot);
+    QVERIFY(!half.fired);
+    QCOMPARE(half.look.elapsedMs, kPhraseWordDwellMs * 0.5);
+
+    const StyleChipTick done = stepStyleChip(true, true, false, half.look, kPhraseWordDwellMs);
+    QVERIFY(done.fired);
+    QVERIFY(!done.hot);
+    const StyleChipTick again = stepStyleChip(true, true, false, done.look, kPhraseWordDwellMs);
+    QVERIFY(!again.fired);
 }
 
 void PhraseCaretChooseTest::pointBelowThePhraseMissesCopy()

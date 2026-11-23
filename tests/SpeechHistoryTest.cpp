@@ -1,3 +1,5 @@
+#include "assist/Mp3File.h"
+#include "assist/PcmWav.h"
 #include "assist/SpeechHistory.h"
 
 #include <QDir>
@@ -17,6 +19,8 @@ private slots:
     void recordTwoMpegFilesKeepBoth();
     void makeRoomEvictsOldest();
     void removeDropsRowAndMpeg();
+    void saveMp3CopiesBytes();
+    void saveWavEncodesMp3();
 };
 
 void SpeechHistoryTest::missingFileIsEmpty()
@@ -163,6 +167,48 @@ void SpeechHistoryTest::removeDropsRowAndMpeg()
     QVERIFY(b.load());
     QCOMPARE(b.items().size(), 1);
     QCOMPARE(b.items().first().id, keepId);
+}
+
+void SpeechHistoryTest::saveMp3CopiesBytes()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QByteArray bytes("ID3not-a-real-frame");
+    const QString src = dir.filePath(QStringLiteral("src.mp3"));
+    const QString dest = dir.filePath(QStringLiteral("out.mp3"));
+    QFile in(src);
+    QVERIFY(in.open(QIODevice::WriteOnly));
+    QCOMPARE(in.write(bytes), qint64(bytes.size()));
+    in.close();
+    QString err;
+    QVERIFY2(writeMp3File(src, dest, &err), qPrintable(err));
+    QFile out(dest);
+    QVERIFY(out.open(QIODevice::ReadOnly));
+    QCOMPARE(out.readAll(), bytes);
+}
+
+void SpeechHistoryTest::saveWavEncodesMp3()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    QByteArray pcm(24000, '\0');
+    for (int i = 0; i < pcm.size() / 2; ++i) {
+        const qint16 s = qint16(8000 * ((i / 20) % 2 == 0 ? 1 : -1));
+        pcm[i * 2] = char(s & 0xFF);
+        pcm[i * 2 + 1] = char((s >> 8) & 0xFF);
+    }
+    const QString src = dir.filePath(QStringLiteral("src.wav"));
+    QVERIFY(PcmWav::writeFile(src, pcm, 24000));
+    const QString dest = dir.filePath(QStringLiteral("out.mp3"));
+    QString err;
+    QVERIFY2(writeMp3File(src, dest, &err), qPrintable(err));
+    QFile out(dest);
+    QVERIFY(out.open(QIODevice::ReadOnly));
+    const QByteArray saved = out.readAll();
+    QVERIFY(saved.size() > 32);
+    const bool id3 = saved.startsWith("ID3");
+    const bool sync = saved.size() >= 2 && quint8(saved[0]) == 0xFF && (quint8(saved[1]) & 0xE0) == 0xE0;
+    QVERIFY(id3 || sync);
 }
 
 QObject* createSpeechHistoryTest()

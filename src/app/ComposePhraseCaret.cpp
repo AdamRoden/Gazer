@@ -187,6 +187,7 @@ void ComposeUi::destroyPhraseChooser()
 {
     delete m_caretUi;
     m_caretUi = nullptr;
+    destroyStyleChip();
 }
 
 void ComposeUi::setPhraseKeys(KeyStateManager* keys)
@@ -409,10 +410,16 @@ void ComposeUi::publishCaret(int caretBefore, int selStartBefore, int selEndBefo
 
 bool ComposeUi::claimsCaretGaze(const GazePoint& point) const
 {
-    if (m_pages.isDwellSuspended() || !m_caret.gazeLive || !point.valid) {
+    if (m_pages.isDwellSuspended() || !point.valid) {
         return false;
     }
     const QPointF g = point.toPointF();
+    if (m_styleChipShown && phraseStyleChipAt(m_styleChip, g)) {
+        return true;
+    }
+    if (!m_caret.gazeLive) {
+        return false;
+    }
     const ComposeBuffer& buffer = caretBuffer();
     if (selectablePhraseWord(m_caret.words, g, caretBoldWord(), buffer.selectionStart(),
                              buffer.selectionEnd())

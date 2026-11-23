@@ -351,6 +351,64 @@ inline void layoutPhraseCopyButton(const QRectF& anchor, const QRectF& screen, P
     return std::hypot(p.x() - button.center.x(), p.y() - button.center.y()) <= kPhraseCaretButtonHit;
 }
 
+/// Voice and style pill. Same height and vertical center as Copy, on the left of the phrase.
+struct PhraseStyleChip {
+    QRectF rect;
+};
+
+inline void layoutPhraseStyleChip(const QRectF& phrase, const QRectF& screen, double textAdvance,
+                                  PhraseStyleChip& out)
+{
+    out.rect = QRectF();
+    if (phrase.isEmpty()) {
+        return;
+    }
+    PhraseCaretButton copy;
+    layoutPhraseCopyButton(phrase, screen, copy);
+    const double h = kPhraseCaretButtonRadius * 2.0;
+    const double gap = 8.0;
+    const double left = qMax(phrase.left(), screen.left() + 8.0);
+    const double rightLimit = copy.center.x() - kPhraseCaretButtonHit - gap;
+    const double room = rightLimit - left;
+    if (room < 48.0) {
+        return;
+    }
+    const double width = qBound(48.0, textAdvance + 32.0, room);
+    out.rect = QRectF(left, copy.center.y() - kPhraseCaretButtonRadius, width, h);
+}
+
+[[nodiscard]] inline bool phraseStyleChipAt(const PhraseStyleChip& chip, const QPointF& p)
+{
+    return chip.rect.isValid() && !chip.rect.isEmpty() && chip.rect.contains(p);
+}
+
+struct StyleChipTick {
+    PhraseLook look;
+    bool fired = false;
+    bool hot = false;
+};
+
+/// Pill dwell. Sleep keeps the look and draws no ring. Looking away clears it.
+[[nodiscard]] inline StyleChipTick stepStyleChip(bool shown, bool onChip, bool suspended,
+                                                  PhraseLook look, double dtMs)
+{
+    StyleChipTick out;
+    if (!shown || suspended) {
+        if (shown) {
+            out.look = look;
+        }
+        return out;
+    }
+    if (!onChip) {
+        return out;
+    }
+    const PhraseLookStep step = stepPhraseLook(look, 0, dtMs, kPhraseWordDwellMs);
+    out.look = step.look;
+    out.fired = step.fired;
+    out.hot = !step.look.latched;
+    return out;
+}
+
 /// Speak shift layers are 2 and 4. Arrows, Home, and End use this to extend the selection.
 [[nodiscard]] inline bool phraseShiftSelects(bool shiftHeld, const QVector<int>& shownLayers)
 {

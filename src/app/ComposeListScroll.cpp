@@ -36,6 +36,7 @@ const PageTarget* frontScrollTrack(const QVector<PageTarget>& targets)
 void ComposeUi::onGaze(const GazePoint& point)
 {
     feedCaret(point);
+    feedStyleChip(point);
     if (!hasLive(kHistoryLiveId) && !hasLive(kVoicesLiveId) && !hasLive(kFilesLiveId)
         && !hasLive(kItemEditLiveId) && !hasLive(kStylesLiveId) && !hasLive(kTagsLiveId)
         && !hasLive(kRailLiveId)) {

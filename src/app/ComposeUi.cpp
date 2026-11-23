@@ -400,6 +400,8 @@ void ComposeUi::abandonClosedSession()
     m_borrowedCompose = false;
     if (!hasLive(kFilesLiveId)) {
         m_fileJob = FileJob::Speak;
+        m_historyClipPath.clear();
+        m_historyClipName.clear();
     }
     m_composeAuthored = {};
 }

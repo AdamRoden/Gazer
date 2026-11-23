@@ -176,14 +176,8 @@ PageDocument ComposeUi::buildFilesDocument() const
 {
     PageDocument doc;
     doc.id = QString(kFilesLiveId);
-    if (m_fileJob == FileJob::Settings) {
-        doc.name = m_fileMode == FileMode::Export ? QStringLiteral("Export settings")
-                                                  : QStringLiteral("Import settings");
-    } else if (m_fileJob == FileJob::Audio) {
-        doc.name = QStringLiteral("Audio");
-    } else {
-        doc.name = m_fileMode == FileMode::Export ? QStringLiteral("Export") : QStringLiteral("Import");
-    }
+    const files_detail::BrowserFace face = browserFace();
+    doc.name = face.documentName;
     const ThemeColors theme = m_settings.resolvedTheme();
     initTopOverlay(doc, 1, 4, {1.0, 1.0, 6.0, 1.2}, 8, 12, theme,
                    compose_detail::filesOverlayHeight(), speakBoardWidth());
@@ -218,11 +212,8 @@ PageDocument ComposeUi::buildFilesDocument() const
                           QStringLiteral("label"), {}, titleIcon);
     title.textStyle = QStringLiteral("row");
     title.style.thickness = PageBox::all(0);
-    if (m_fileJob == FileJob::Settings) {
-        title.caption = m_fileMode == FileMode::Export ? QStringLiteral("Export settings")
-                                                       : QStringLiteral("Import settings");
-    } else if (m_fileJob == FileJob::Audio) {
-        title.caption = QStringLiteral("Choose audio");
+    if (!face.caption.isEmpty()) {
+        title.caption = face.caption;
     }
     titleBar.cells.push_back(std::move(title));
     grid.subGrids.push_back(std::move(titleBar));
@@ -339,7 +330,7 @@ PageDocument ComposeUi::buildFilesDocument() const
     main.rowTracks = {pxTrack(26), PageTrackSize::starWeight()};
     framePane(main, theme);
 
-    const QString selected = selectedJsonPath();
+    const QString selected = selectedBrowserFile();
     const int page = filePageSize(m_fileTiles);
     auto emptyList = [&]() {
         PageGrid list;
@@ -355,7 +346,7 @@ PageDocument ComposeUi::buildFilesDocument() const
         empty.role = QStringLiteral("label");
         empty.textStyle = QStringLiteral("row");
         empty.label = atPc ? QStringLiteral("No drives")
-                           : (here.isDir() ? QStringLiteral("No folders or JSON files")
+                           : (here.isDir() ? face.emptyFolder
                                            : QStringLiteral("Cannot open this folder"));
         empty.style.background = clear;
         empty.style.thickness = PageBox::all(0);

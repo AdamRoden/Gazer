@@ -27,6 +27,7 @@ QObject* createMouseLeftDragTest();
 QObject* createProgressPaintTest();
 QObject* createScrollBarTest();
 QObject* createPhraseCaretChooseTest();
+QObject* createFileBrowserFaceTest();
 QObject* createComboMouseTest();
 QObject* createLookToScrollTest();
 QObject* createAhkLauncherTest();
@@ -136,6 +137,8 @@ int main(int argc, char** argv)
     runSuite("ScrollBarTest", scroll.get());
     std::unique_ptr<QObject> phraseCaret(createPhraseCaretChooseTest());
     runSuite("PhraseCaretChooseTest", phraseCaret.get());
+    std::unique_ptr<QObject> fileFace(createFileBrowserFaceTest());
+    runSuite("FileBrowserFaceTest", fileFace.get());
     std::unique_ptr<QObject> combo(createComboMouseTest());
     runSuite("ComboMouseTest", combo.get());
     std::unique_ptr<QObject> lts(createLookToScrollTest());

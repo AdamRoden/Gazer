@@ -1,6 +1,7 @@
 #pragma once
 
 #include "app/AppSettings.h"
+#include "app/ComposeFilesDetail.h"
 #include "assist/ComposeBuffer.h"
 #include "assist/GazeTrack.h"
 #include "ui/PhraseCaretChoose.h"
@@ -28,6 +29,7 @@ class ElevenClient;
 class KeyStateManager;
 class PageSession;
 class PhraseCaretOverlay;
+class PhraseStyleChipOverlay;
 struct PageTarget;
 class TypingContext;
 class SpeechHistory;
@@ -239,6 +241,8 @@ public:
     bool playHistory(const QString& id, QString* error = nullptr);
     bool restoreHistory(const QString& id, QString* error = nullptr);
     bool deleteHistory(const QString& id, QString* error = nullptr);
+    /// Open the file browser so this history clip can be saved as an MP3.
+    bool saveHistory(const QString& id, QString* error = nullptr);
     void historyPage(int delta);
     void historyGoto(int offset);
     void onHistoryReady(const QString& phrase, const QString& backend, const QString& modelId,
@@ -303,7 +307,7 @@ private:
     PageDocument buildFilesDocument() const;
     enum class FileConfirm { None, Import, Merge, Export };
     enum class FileMode { Import, Export };
-    enum class FileJob { Speak, Settings, Audio };
+    using FileJob = files_detail::BrowserJob;
     bool openFileMode(FileMode mode, QString* error, FileJob job = FileJob::Speak);
     [[nodiscard]] bool guestCapture() const;
     [[nodiscard]] bool keyboardBorrowed() const;
@@ -315,18 +319,22 @@ private:
     void releaseBorrowedKeyboard();
     bool noteFileFailure(const QString& msg, QString* error);
     /// Folder plus the typed export name. Empty after `noteFileFailure`.
+    [[nodiscard]] files_detail::BrowserFace browserFace() const;
     [[nodiscard]] QString exportDestination(QString* error);
     bool writeSettingsExport(QString* error);
     bool importSettingsSelection(QString* error);
     bool armFileConfirm(FileConfirm kind, QString* error);
     bool requestFileImport(bool replace, QString* error);
     bool writeExport(QString* error);
+    bool writeHistoryClip(QString* error);
     bool writeWorkspaceFile(const QString& path, QString* error);
     bool loadPendingFile(const QString& path, QString* error);
     bool readSelectedWorkspace(QString* error);
     void restoreFileLayers();
     [[nodiscard]] QString selectedJsonPath() const;
     [[nodiscard]] QString selectedAudioPath() const;
+    [[nodiscard]] QString selectedTypedFile(const QString& suffix) const;
+    [[nodiscard]] QString selectedBrowserFile() const;
     bool rememberPhraseAudio(QString* error);
     [[nodiscard]] QString fileConfirmQuestion() const;
     /// `keep` survives closing File Explorer. Edits drop either kind.
@@ -417,12 +425,16 @@ private:
     };
     void feedListScrollGaze(const GazePoint& point);
     void feedCaret(const GazePoint& point);
+    void feedStyleChip(const GazePoint& point);
     void stopListScroll();
     void dismissPhraseChooser();
     void hideCaretCopy();
     void destroyPhraseChooser();
     void showCaretCopy(const QRectF& anchor);
     void updateCaretChooser(const QPointF& gaze, bool gazeValid);
+    void destroyStyleChip();
+    void refreshStyleChip(bool hot);
+    [[nodiscard]] QString styleChipLabel() const;
     void publishCaretGrow(const PageTarget* target, int start, int end, double scale);
     void publishCaret(int caretBefore, int selStartBefore, int selEndBefore);
     void applyCaretChoice(PhraseCaretChoice choice);
@@ -494,6 +506,9 @@ private:
     FileConfirm m_fileConfirm = FileConfirm::None;
     FileMode m_fileMode = FileMode::Import;
     FileJob m_fileJob = FileJob::Speak;
+    /// History row being saved. Cleared when the file browser closes.
+    QString m_historyClipPath;
+    QString m_historyClipName;
     /// Settings search owns inserts. The Speak phrase is left alone.
     bool m_guestKeys = false;
     /// Last style/tag face on the keyboard Edit key. A session change restamps when this flips.
@@ -578,6 +593,14 @@ private:
     qint64 m_caretLookMs = -1;
     QElapsedTimer m_caretClock;
     PhraseCaretOverlay* m_caretUi = nullptr;
+    PhraseStyleChip m_styleChip;
+    PhraseLook m_styleChipLook;
+    qint64 m_styleChipLookMs = -1;
+    QElapsedTimer m_styleChipClock;
+    bool m_styleChipShown = false;
+    QString m_styleChipKey;
+    QString m_styleChipLabel;
+    PhraseStyleChipOverlay* m_styleChipUi = nullptr;
 };
 
 } // namespace gazer
