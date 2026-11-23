@@ -50,7 +50,8 @@
     <CustomAction Id="RestoreDesktopShortcutChoice" Property="INSTALLDESKTOPSHORTCUT" Value="[SAVED_DESKTOP_SHORTCUT]" />
     <CustomAction Id="DefaultDesktopShortcutOn" Property="INSTALLDESKTOPSHORTCUT" Value="1" />
     <!-- Explorer hands the exe to the medium-integrity shell. A direct launch from
-         elevated msiexec would start Gazer elevated and drop UIAccess. -->
+         elevated msiexec would start Gazer elevated and drop UIAccess.
+         MSI paths are backslashes. A forward-slash path makes Explorer open a folder. -->
     <CustomAction Id="LaunchGazer"
                   Directory="INSTALLFOLDER"
                   ExeCommand="&quot;[WindowsFolder]explorer.exe&quot; &quot;[INSTALLFOLDER]Gazer.exe&quot;"

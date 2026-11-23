@@ -1,5 +1,7 @@
 // Tiny update helper. No Qt. The user-mode copy waits until Gazer.exe has
-// exited, runs the SYSTEM task, then relaunches Gazer through explorer.exe.
+// exited, runs the SYSTEM task, then ShellExecute's Gazer.exe.
+// CreateProcess returns ERROR_ELEVATION_REQUIRED for this uiAccess image.
+// explorer.exe opens a folder for the forward-slash path QDir passes here.
 // The SYSTEM copy checks the MSI signature and runs msiexec /qn.
 
 #ifndef WIN32_LEAN_AND_MEAN
@@ -246,8 +248,15 @@ void launchGazer(const wchar_t* gazer)
     if (!gazer || !gazer[0]) {
         return;
     }
-    const std::wstring params = quote(gazer);
-    ShellExecuteW(nullptr, L"open", L"explorer.exe", params.c_str(), nullptr, SW_SHOWNORMAL);
+    std::wstring dir(gazer);
+    const size_t slash = dir.find_last_of(L"\\/");
+    if (slash == std::wstring::npos) {
+        dir.clear();
+    } else {
+        dir.resize(slash);
+    }
+    ShellExecuteW(nullptr, L"open", gazer, nullptr, dir.empty() ? nullptr : dir.c_str(),
+                  SW_SHOWNORMAL);
 }
 
 int systemApply()
