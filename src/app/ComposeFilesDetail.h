@@ -151,8 +151,20 @@ struct Place {
     return out;
 }
 
-enum class BrowserJob { Speak, Settings, Audio, HistoryClip };
+enum class BrowserJob { Speak, Settings, Audio, HistoryClip, Topic };
 enum class BrowserMode { Import, Export };
+
+/// Phrase audio, a history MP3, and one-topic export run while the item form is open.
+[[nodiscard]] inline bool jobDuringItemEdit(BrowserJob job)
+{
+    return job == BrowserJob::Audio || job == BrowserJob::HistoryClip || job == BrowserJob::Topic;
+}
+
+/// Enter on these export pages stays on the file name. It does not save the item.
+[[nodiscard]] inline bool jobOwnsEnter(BrowserJob job)
+{
+    return job == BrowserJob::HistoryClip || job == BrowserJob::Topic;
+}
 
 /// What one file-browser job shows and which writer confirm uses.
 struct BrowserFace {
@@ -164,8 +176,11 @@ struct BrowserFace {
     QString dwellHint;
     enum class Selection { Typed, Audio };
     Selection selection = Selection::Typed;
-    enum class Writer { Workspace, Settings, Clip };
+    enum class Writer { Workspace, Settings, Clip, Topic };
     Writer writer = Writer::Workspace;
+    /// See `jobDuringItemEdit` and `jobOwnsEnter`.
+    bool duringItemEdit = false;
+    bool ownsEnter = false;
 };
 
 [[nodiscard]] inline BrowserFace browserFace(BrowserJob job, BrowserMode mode,
@@ -178,6 +193,8 @@ struct BrowserFace {
     face.emptyFolder = QStringLiteral("No folders or JSON files");
     face.dwellHint = QStringLiteral("Dwell a folder or a JSON file");
     face.documentName = exporting ? QStringLiteral("Export") : QStringLiteral("Import");
+    face.duringItemEdit = jobDuringItemEdit(job);
+    face.ownsEnter = jobOwnsEnter(job);
     switch (job) {
     case BrowserJob::Audio:
         face.patterns = audioPatterns;
@@ -201,6 +218,9 @@ struct BrowserFace {
                                       : QStringLiteral("Import settings");
         face.caption = face.documentName;
         face.writer = BrowserFace::Writer::Settings;
+        break;
+    case BrowserJob::Topic:
+        face.writer = BrowserFace::Writer::Topic;
         break;
     case BrowserJob::Speak:
         break;
@@ -260,8 +280,8 @@ struct BrowserFace {
     return info.absoluteFilePath();
 }
 
-/// Phrase turned into an MP3 leaf. Empty and reserved stems get a timestamped name.
-[[nodiscard]] inline QString historyClipLeaf(const QString& phrase)
+/// Letters and digits from `phrase`. Empty and reserved stems use `fallbackPrefix` plus the time.
+[[nodiscard]] inline QString exportStem(const QString& phrase, const QString& fallbackPrefix)
 {
     QString stem;
     bool gap = false;
@@ -283,10 +303,47 @@ struct BrowserFace {
         stem.chop(1);
     }
     if (stem.isEmpty() || reservedWindowsStem(stem)) {
-        stem = QStringLiteral("gazer-clip-%1")
-                   .arg(QDateTime::currentDateTime().toString(QStringLiteral("yyyy-MM-dd-HHmmss")));
+        stem = fallbackPrefix + QLatin1Char('-')
+               + QDateTime::currentDateTime().toString(QStringLiteral("yyyy-MM-dd-HHmmss"));
     }
-    return stem + QStringLiteral(".mp3");
+    return stem;
+}
+
+/// Phrase turned into an MP3 leaf.
+[[nodiscard]] inline QString historyClipLeaf(const QString& phrase)
+{
+    return exportStem(phrase, QStringLiteral("gazer-clip")) + QStringLiteral(".mp3");
+}
+
+/// Typed export name with `suffix` appended when it is missing. Empty when the name is unusable.
+[[nodiscard]] inline QString exportLeafName(const QString& typed, QString* error,
+                                            const QString& suffix = QStringLiteral(".json"))
+{
+    const QString msg = QStringLiteral("Type a file name");
+    const QString name = typed.trimmed();
+    if (name.isEmpty() || name.endsWith(QLatin1Char('.'))) {
+        if (error) {
+            *error = msg;
+        }
+        return {};
+    }
+    QString leaf = name;
+    const QString ext = suffix.startsWith(QLatin1Char('.')) ? suffix : QStringLiteral(".") + suffix;
+    if (!leaf.endsWith(ext, Qt::CaseInsensitive)) {
+        leaf += ext;
+    }
+    const QString stem = QFileInfo(leaf).completeBaseName();
+    bool bad = reservedWindowsStem(stem);
+    for (int i = 0; !bad && i < leaf.size(); ++i) {
+        bad = !fileNameCharOk(leaf.at(i));
+    }
+    if (bad) {
+        if (error) {
+            *error = msg;
+        }
+        return {};
+    }
+    return leaf;
 }
 
 } // namespace files_detail

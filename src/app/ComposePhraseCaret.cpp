@@ -534,6 +534,14 @@ void ComposeUi::finishCaretKey()
 
 bool ComposeUi::handlePhraseCaretKey(const QString& command)
 {
+    const bool caretKey = command == QLatin1String("arrowLeft") || command == QLatin1String("arrowRight")
+                          || command == QLatin1String("home") || command == QLatin1String("end");
+    if (textFieldOpen()) {
+        return caretKey && nudgeFieldCaret(command);
+    }
+    if (caretKey && nameEditing() && !borrowingPhrase()) {
+        return true;
+    }
     if (command == QLatin1String("arrowLeft") || command == QLatin1String("arrowRight")) {
         nudgePhraseCaret(command == QLatin1String("arrowLeft") ? -1 : 1);
         return true;

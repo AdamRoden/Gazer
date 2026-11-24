@@ -144,6 +144,22 @@ inline void paintItemFace(PageCell& cell, const QString& background, const QStri
     cell.style.foreground = ThemeColors::contrastOn(fill);
 }
 
+/// + beside `face`. No fill. Border is the speak border when set, otherwise the speak fill.
+/// No custom speak fill: the glyph matches the speak label.
+inline void paintInsertChip(PageCell& plus, const PageCell& face, const QString& background,
+                            const QString& border)
+{
+    const QColor faceFill = face.style.background.parsed();
+    const QString borderHex = border.trimmed();
+    const QColor edge = borderHex.isEmpty() ? faceFill : parseColor(borderHex, faceFill);
+    plus.style = {};
+    plus.style.background = QColor(0, 0, 0, 0);
+    plus.style.borderColor = edge;
+    plus.style.thickness = PageBox::all(3);
+    plus.style.foreground = background.trimmed().isEmpty() ? face.style.foreground : PageColor(edge);
+    plus.style.radius = PageBox::of(0, 10, 10, 0);
+}
+
 inline void stampEditableGrid(PageGrid* grid, bool editing, const QColor& accent)
 {
     if (!grid) {
@@ -305,6 +321,54 @@ inline QString aboveKeyboardHeight(const PageDocument& authored)
         return fallback;
     }
     return band->topExpr;
+}
+
+/// Item-editor sheet: margin 12, title 72, footer 72, two board gaps of 8,
+/// and three gaps of 16 between the four field rows. No extra group margin.
+inline constexpr int kFormFieldRowGap = 16;
+inline constexpr int kFormFieldRowTop = 92;
+inline constexpr int kFormFieldChrome = 220;
+
+/// One of the four field rows, so a text popup matches that row.
+inline QString formFieldRowHeight(const PageDocument& authored)
+{
+    return QStringLiteral("((%1)-%2)/4")
+        .arg(aboveKeyboardHeight(authored))
+        .arg(kFormFieldChrome);
+}
+
+/// One editor column. Board margin 12 on each side and a 12px gap between columns.
+inline QString formColumnWidth(const PageDim& board)
+{
+    return QStringLiteral("((%1)-36)/2").arg(PageDimParse::token(board));
+}
+
+/// Left column starts at the board margin. The right column starts after that width and the gap.
+inline PageDim formColumnOrigin(bool right, const PageDim& board)
+{
+    if (!right) {
+        return PageDim::pixels(12);
+    }
+    return PageDim::expression(QStringLiteral("24+((%1)-36)/2").arg(PageDimParse::token(board)));
+}
+
+/// Settings page chrome: group cards, joined controls, and radius-10 buttons.
+inline void addSettingsChrome(PageDocument& doc)
+{
+    auto put = [&](const char* id, const char* bg, const PageBox& radius) {
+        PageChrome chrome;
+        chrome.background.token = QLatin1String(bg);
+        chrome.thickness = PageBox::all(0.0);
+        chrome.radius = radius;
+        doc.styles.insert(QLatin1String(id), chrome);
+    };
+    put("group", "bg95", PageBox::all(16.0));
+    put("row", "transparent", PageBox::all(0.0));
+    put("plain", "transparent", PageBox::all(0.0));
+    put("join", "transparent", PageBox::all(0.0));
+    put("joinLeft", "transparent", PageBox::of(10.0, 0.0, 0.0, 10.0));
+    put("joinRight", "transparent", PageBox::of(0.0, 10.0, 10.0, 0.0));
+    put("button", "transparent", PageBox::all(10.0));
 }
 
 /// Height of the Speak file browser. Settings import/export sizes the borrowed

@@ -19,6 +19,7 @@
 namespace gazer {
 
 using files_detail::clampFileOffset;
+using files_detail::exportLeafName;
 using files_detail::filePageSize;
 using files_detail::filePlaces;
 using files_detail::fileRowStep;
@@ -83,36 +84,6 @@ bool workspaceFileLooksValid(const QJsonObject& root, QString* error)
     return true;
 }
 
-QString exportLeafName(const QString& typed, QString* error,
-                       const QString& suffix = QStringLiteral(".json"))
-{
-    const QString msg = QStringLiteral("Type a file name");
-    const QString name = typed.trimmed();
-    if (name.isEmpty() || name.endsWith(QLatin1Char('.'))) {
-        if (error) {
-            *error = msg;
-        }
-        return {};
-    }
-    QString leaf = name;
-    const QString ext = suffix.startsWith(QLatin1Char('.')) ? suffix : QStringLiteral(".") + suffix;
-    if (!leaf.endsWith(ext, Qt::CaseInsensitive)) {
-        leaf += ext;
-    }
-    const QString stem = QFileInfo(leaf).completeBaseName();
-    bool bad = files_detail::reservedWindowsStem(stem);
-    for (int i = 0; !bad && i < leaf.size(); ++i) {
-        bad = !files_detail::fileNameCharOk(leaf.at(i));
-    }
-    if (bad) {
-        if (error) {
-            *error = msg;
-        }
-        return {};
-    }
-    return leaf;
-}
-
 } // namespace
 
 bool ComposeUi::editingFileName() const
@@ -120,8 +91,16 @@ bool ComposeUi::editingFileName() const
     return m_pages.topPageId() == kFilesLiveId;
 }
 
+bool ComposeUi::exportDialogOpen() const
+{
+    return editingFileName() && m_fileMode == FileMode::Export && browserFace().ownsEnter;
+}
+
 ComposeBuffer& ComposeUi::editTarget()
 {
+    if (textFieldOpen()) {
+        return m_fieldBuffer;
+    }
     return editingFileName() ? m_fileName : m_buffer;
 }
 
@@ -284,7 +263,7 @@ bool ComposeUi::openFileMode(FileMode mode, QString* error, FileJob job)
         }
         return false;
     }
-    if (capturingPhrase() && job != FileJob::Audio) {
+    if (capturingPhrase() && !files_detail::jobDuringItemEdit(job)) {
         const QString msg = QStringLiteral("Finish the name first");
         notify(msg);
         if (error) {
@@ -309,15 +288,21 @@ bool ComposeUi::openFileMode(FileMode mode, QString* error, FileJob job)
         m_pendingImport.clear();
         m_pendingImportName.clear();
         m_pendingImportPath.clear();
-        m_fileName.load(QString());
+        m_fileName.load(phraseAudioLeaf());
         m_browserFresh = false;
     }
     if (job != FileJob::HistoryClip) {
         m_historyClipPath.clear();
         m_historyClipName.clear();
     }
+    if (job != FileJob::Topic) {
+        m_topicExportId.clear();
+        m_topicExportName.clear();
+    }
     if (mode == FileMode::Export && job == FileJob::HistoryClip) {
         m_fileName.load(m_historyClipName.trimmed());
+    } else if (mode == FileMode::Export && job == FileJob::Topic) {
+        m_fileName.load(m_topicExportName.trimmed());
     } else if (mode == FileMode::Export && (jobChanged || m_fileName.text().trimmed().isEmpty())) {
         if (job == FileJob::Settings) {
             m_fileName.load(QStringLiteral("gazer-settings.json"));
@@ -483,11 +468,9 @@ bool ComposeUi::writeExport(QString* error)
         return writeSettingsExport(error);
     case files_detail::BrowserFace::Writer::Clip:
         return writeHistoryClip(error);
+    case files_detail::BrowserFace::Writer::Topic:
     case files_detail::BrowserFace::Writer::Workspace:
         break;
-    }
-    if (capturingPhrase()) {
-        return noteFileFailure(QStringLiteral("Finish the name first"), error);
     }
     const QString path = exportDestination(error);
     if (path.isEmpty()) {
@@ -539,6 +522,8 @@ void ComposeUi::browserBack()
     m_fileJob = FileJob::Speak;
     m_historyClipPath.clear();
     m_historyClipName.clear();
+    m_topicExportId.clear();
+    m_topicExportName.clear();
     const bool wasOpen = hasLive(kFilesLiveId);
     if (wasOpen) {
         m_pages.closePage(QString(kFilesLiveId));
@@ -560,7 +545,7 @@ void ComposeUi::browserBack()
 
 bool ComposeUi::pickImportFile(int index, QString* error)
 {
-    if (capturingPhrase() && m_fileJob != FileJob::Audio) {
+    if (capturingPhrase() && !browserFace().duringItemEdit) {
         const QString msg = QStringLiteral("Finish the name first");
         notify(msg);
         if (error) {
@@ -665,7 +650,7 @@ bool ComposeUi::armFileConfirm(FileConfirm kind, QString* error)
         rebuildFiles();
         return false;
     };
-    if (capturingPhrase() && m_fileJob != FileJob::Audio) {
+    if (capturingPhrase() && !browserFace().duringItemEdit) {
         return fail(QStringLiteral("Finish the name first"));
     }
     if (m_fileJob == FileJob::Audio) {
@@ -811,7 +796,45 @@ bool ComposeUi::browsePhraseAudio(QString* error)
         }
         return false;
     }
+    closeFieldEditor();
+    auto folderOf = [](const QString& path) {
+        if (path.isEmpty()) {
+            return QString();
+        }
+        const QFileInfo info(path);
+        const QString dir = info.isDir() ? info.absoluteFilePath() : info.absolutePath();
+        return QDir(dir).exists() ? QDir(dir).absolutePath() : QString();
+    };
+    QString start = folderOf(m_formAudioPath);
+    if (start.isEmpty() && !m_formAudioClear) {
+        if (const SoundboardButton* b = m_board.findButton(m_editId); b && !b->clipId.isEmpty()) {
+            const QString path = m_board.clipPath(b->clipId);
+            if (QFileInfo::exists(path)) {
+                start = folderOf(path);
+            }
+        }
+    }
+    if (!start.isEmpty()) {
+        m_browserDir = start;
+        m_fileOffset = 0;
+        m_browserFresh = false;
+    }
     return openFileMode(FileMode::Import, error, FileJob::Audio);
+}
+
+bool ComposeUi::clearPhraseAudio(QString* error)
+{
+    if (m_nameEdit != NameEditKind::Pin || m_editId.isEmpty()) {
+        return noteFileFailure(QStringLiteral("Open a phrase first"), error);
+    }
+    m_formAudioPath.clear();
+    m_formAudioName.clear();
+    m_formAudioClear = true;
+    if (hasLive(kFilesLiveId) && m_fileJob == FileJob::Audio) {
+        browserBack();
+    }
+    rebuildForm();
+    return true;
 }
 
 bool ComposeUi::usePhraseAudio(QString* error)
@@ -836,6 +859,7 @@ bool ComposeUi::rememberPhraseAudio(QString* error)
     if (path.isEmpty()) {
         return noteFileFailure(QStringLiteral("Dwell an audio file first"), error);
     }
+    m_formAudioClear = false;
     m_formAudioPath = path;
     m_formAudioName = QFileInfo(path).fileName();
     browserBack();

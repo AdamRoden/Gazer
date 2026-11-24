@@ -130,7 +130,7 @@ When adding a command: register it and add a row here.
 | `compose.tagPage.<n>` | Move the saved-tag page by `n` |
 | `compose.beginTagName` | Type a new tag on the keyboard. Save inserts it at the caret, keeps it in the saved list (24), and returns to the tag page |
 | `compose.openFiles` / `compose.importChoose` / `compose.importFile` | **Import**. Open the file browser in import/merge mode over Speak and show the keyboard layer. Cancel returns to the layer that was showing |
-| `compose.exportBoard` / `compose.exportFile` | **Export**. Same browser in export mode, with the file-name editor |
+| `compose.exportBoard` / `compose.exportFile` | **Export**. Same browser in export mode, with the file-name editor. Writes every topic |
 | `compose.browserPrev` / `compose.browserForward` / `compose.browserUp` | Back, forward, or parent folder. A path crumb uses `compose.browserGoto.<i>`. A Places entry uses `compose.browserPlace.<i>` |
 | `compose.browserSave` | **Save** on the export browser. Asks Yes/No, then writes a Voice `aac-workspace` v1 JSON file under the name in the text box |
 | `compose.fileCaret.<n>` | Move the export file-name caret by `n` characters and clear any selection. The name does not scroll. Home, Left, Right, and End on that row use `home`, `arrowLeft`, `arrowRight`, and `end` |
@@ -140,9 +140,13 @@ When adding a command: register it and add a row here.
 | `compose.importPick.<i>` / `compose.importPage.<n>` / `compose.fileRow.<n>` | Open folder `i` or select that JSON file (no read yet), move by `n` pages, or move by `n` rows. A list row is one file. A tile row is eight files |
 | `compose.importMerge` / `compose.importReplace` | **Merge** or **Import**. Each asks Yes/No first. Import replaces the board and also applies model, speed, pitch, and volume |
 | `compose.saveName` / `compose.cancelName` / `compose.deleteName` | Save, discard, or delete the item being edited and return to the board |
+| `compose.exportPhrase` | Phrase editor **Export**, before Save. Converts the assigned audio to an MP3 and opens the history save dialog. No audio says "No audio to save" |
+| `compose.exportTopic` | Topic editor **Export**, before Save. Same browser as **Export** on Actions, with only that topic in the file |
 | `compose.editShowColors` | **Background** on the item editor. Opens the settings color picker. Save keeps that fill until the name is saved. Cancel discards it |
 | `compose.editShowBorder` | **Border**. Same picker. A custom border is also the label color. **None** clears it. Save keeps it. Cancel discards it |
-| `compose.formIndex.<n>` / `compose.formCols.<n>` / `compose.formRows.<n>` | Item editor steppers. A phrase index reaches every cell, including the extra row. Topic columns and rows set the board |
+| `compose.formField.name` / `.phrase` | **Edit** on Name or Phrase. Opens a one-row popup (the text, Clear, Save, Cancel) the height of that row. Index, rows, and columns step on the sheet |
+| `compose.formField.save` / `.cancel` / `.clear` | Keep the popup value, discard it, or empty a name or phrase. Clear is only on name and phrase |
+| `compose.formIndex.<n>` / `compose.formCols.<n>` / `compose.formRows.<n>` | − and + beside the value. A phrase index reaches every cell, including the extra row. Topic columns and rows set the board |
 | `compose.editShowIcons` | **Icon**. Opens a searchable Material Symbols board the same size as the color picker, eight across. Icons come from fonts.google.com when the network works, otherwise a short offline set. The footer is Clear, the current icon, Save, and Cancel. The item does not change until Save |
 | `compose.iconSearch` | Dwell **Search**. Shows the Speak keyboard, with Esc in place of Edit. Enter or Esc closes the keyboard and keeps the search |
 | `compose.iconPick.<i>` / `compose.iconRow.<n>` | Highlight result `i` (`0` clears it) or move by `n` tile rows. The track and the arrows both move whole rows |
@@ -151,10 +155,11 @@ When adding a command: register it and add a row here.
 | `history.list.next` / `.prev` / `history.list.goto.<n>` | History list: after the lock-on ring, looking along the track drags the thumb; commands still page/jump |
 | `compose.pin` / `compose.cancelAssign` | Actions **Edit**. Same as `compose.editPins`, except Save while a name, style, or tag is open |
 | `compose.editPins` | Keyboard **Edit**. Dwell a phrase or topic to edit it. Dwell an empty cell to save the composer text there |
-| `compose.browseAudio` / `compose.assignAudio` | Phrase editor **Browse**. Opens the file browser for a wav, mp3, m4a, aac, wma, ogg, or flac file. **Assign** asks Yes, then Save copies it onto the phrase. The file plays instead of the typed phrase |
+| `compose.browseAudio` / `compose.assignAudio` / `compose.clearAudio` | Phrase **Audio** **Edit**. Opens the file browser for a wav, mp3, m4a, aac, wma, ogg, or flac file, in the saved clip's folder when one is assigned. The file name starts as that clip's name. **Assign** asks Yes, then Save copies it onto the phrase. **Clear** drops that audio when the phrase is saved. The file plays instead of the typed phrase |
 | `soundboard.edit.<id>` | Open the pin item editor |
 | `soundboard.editTopic.<id>` | Open the topic item editor |
 | `soundboard.play.<id>` | Prefix; play a button |
+| `soundboard.insert.<id>` | Prefix; insert that button's phrase at the composer caret. Does not play it |
 | `soundboard.assign.sb_r_c` | Prefix; create a phrase in an empty cell from the composer text |
 | `soundboard.topic.<id>` | Prefix; switch topic |
 | `soundboard.newTopic` / `soundboard.loadStarters` | Topics |

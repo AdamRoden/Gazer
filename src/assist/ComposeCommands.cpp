@@ -97,6 +97,10 @@ void registerComposeCommands(CommandRegistry& commands, ComposeUi& compose)
                              [&compose](QString* error) { return compose.exportBoard(error); });
     commands.registerBuiltin(QStringLiteral("compose.saveName"),
                              [&compose](QString* error) { return compose.saveNameEdit(error); });
+    commands.registerBuiltin(QStringLiteral("compose.exportPhrase"),
+                             [&compose](QString* error) { return compose.exportPhraseAudio(error); });
+    commands.registerBuiltin(QStringLiteral("compose.exportTopic"),
+                             [&compose](QString* error) { return compose.exportTopic(error); });
     commands.registerBuiltin(QStringLiteral("compose.cancelName"), [&compose](QString*) {
         compose.cancelNameEdit();
         return true;
@@ -113,6 +117,8 @@ void registerComposeCommands(CommandRegistry& commands, ComposeUi& compose)
                              [&compose](QString*) { return compose.editPins(); });
     commands.registerBuiltin(QStringLiteral("compose.browseAudio"),
                              [&compose](QString* error) { return compose.browsePhraseAudio(error); });
+    commands.registerBuiltin(QStringLiteral("compose.clearAudio"),
+                             [&compose](QString* error) { return compose.clearPhraseAudio(error); });
     commands.registerBuiltin(QStringLiteral("compose.assignAudio"),
                              [&compose](QString* error) { return compose.usePhraseAudio(error); });
     commands.registerBuiltin(QStringLiteral("compose.editShowColors"), [&compose](QString*) {
@@ -236,11 +242,36 @@ void registerComposeCommands(CommandRegistry& commands, ComposeUi& compose)
         compose.focusFormField(QStringLiteral("phrase"));
         return true;
     });
+    commands.registerBuiltin(QStringLiteral("compose.formField.index"), [&compose](QString*) {
+        compose.focusFormField(QStringLiteral("index"));
+        return true;
+    });
+    commands.registerBuiltin(QStringLiteral("compose.formField.rows"), [&compose](QString*) {
+        compose.focusFormField(QStringLiteral("rows"));
+        return true;
+    });
+    commands.registerBuiltin(QStringLiteral("compose.formField.cols"), [&compose](QString*) {
+        compose.focusFormField(QStringLiteral("cols"));
+        return true;
+    });
+    commands.registerBuiltin(QStringLiteral("compose.formField.save"), [&compose](QString*) {
+        compose.saveFormEditor();
+        return true;
+    });
+    commands.registerBuiltin(QStringLiteral("compose.formField.cancel"), [&compose](QString*) {
+        compose.cancelFormEditor();
+        return true;
+    });
+    commands.registerBuiltin(QStringLiteral("compose.formField.clear"), [&compose](QString*) {
+        compose.clearFormEditor();
+        return true;
+    });
     bindVoidId(QStringLiteral("compose.insertTag."), &ComposeUi::insertSavedTag);
     bindVoidInt(QStringLiteral("compose.tagPage."), &ComposeUi::pageTags);
     bindId(QStringLiteral("soundboard.edit."), &ComposeUi::openPinEdit);
     bindId(QStringLiteral("soundboard.editTopic."), &ComposeUi::openTopicEdit);
     bindId(QStringLiteral("soundboard.play."), &ComposeUi::playSoundboard);
+    bindId(QStringLiteral("soundboard.insert."), &ComposeUi::insertSoundboard);
     bindId(QStringLiteral("soundboard.assign."), &ComposeUi::assignSoundboard);
     bindId(QStringLiteral("soundboard.topic."), &ComposeUi::setTopic);
     bindId(QStringLiteral("history.play."), &ComposeUi::playHistory);

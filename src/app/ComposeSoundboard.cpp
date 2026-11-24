@@ -25,8 +25,8 @@ using SettingsPageBuild::cell;
 using compose_detail::ChoiceSlot;
 using compose_detail::commandAction;
 using compose_detail::fillChoiceGrid;
+using compose_detail::paintInsertChip;
 using compose_detail::paintItemFace;
-using compose_detail::parseColor;
 using compose_detail::stampEditableGrid;
 using compose_detail::trackPx;
 
@@ -206,6 +206,7 @@ void ComposeUi::fillTopicsMode(PageDocument& doc) const
         return;
     }
     grid->cells.clear();
+    grid->subGrids.clear();
     grid->columns = topic->gridCols;
     const bool placing = m_interaction == Interaction::Edit || assignMode();
     int rows = topic->gridRows;
@@ -221,30 +222,49 @@ void ComposeUi::fillTopicsMode(PageDocument& doc) const
             cell.col = c;
             const SoundboardButton* b = m_board.buttonAt(*topic, r, c);
             if (b) {
+                PageGrid slot = SettingsPageBuild::makeNested(
+                    QStringLiteral("sb_slot_%1_%2").arg(r).arg(c), r, c, 1, 2, 0);
+                // The soundboard stays up on every keyboard layer. A nested slot
+                // defaults to layer 1, so Shift and symbols would drop the button.
+                slot.layers = grid->layers;
+                slot.columnTracks = {PageTrackSize::starWeight(), trackPx(96)};
                 cell.label = b->label;
                 cell.icon = b->icon;
                 const bool selected = editing && m_nameEdit == NameEditKind::Pin && b->id == m_editId;
                 if (selected) {
                     cell.style.background = accent;
                     cell.style.foreground = ThemeColors::contrastOn(accent);
-                    cell.style.radius = PageBox::all(12);
+                    cell.style.thickness = PageBox::all(0);
+                    cell.style.radius = PageBox::of(10, 0, 0, 10);
                     cell.activeState = QStringLiteral("compose.editMode");
                 } else {
                     paintItemFace(cell, b->color, b->borderColor, surface);
+                    cell.style.radius = PageBox::of(10, 0, 0, 10);
                 }
-                if (m_interaction == Interaction::Edit) {
+                if (m_interaction == Interaction::Edit || editing) {
                     cell.actions.push_back(
                         commandAction(QStringLiteral("soundboard.edit.%1").arg(b->id)));
                 } else if (assignMode()) {
                     cell.actions.push_back(
                         commandAction(QStringLiteral("soundboard.assign.%1").arg(cell.id)));
-                } else if (editing) {
-                    cell.actions.push_back(
-                        commandAction(QStringLiteral("soundboard.edit.%1").arg(b->id)));
                 } else {
                     cell.actions.push_back(
                         commandAction(QStringLiteral("soundboard.play.%1").arg(b->id)));
                 }
+                cell.row = 0;
+                cell.col = 0;
+                slot.cells.push_back(cell);
+                PageCell plus;
+                plus.id = QStringLiteral("sb_ins_%1_%2").arg(r).arg(c);
+                plus.row = 0;
+                plus.col = 1;
+                plus.label = QStringLiteral("+");
+                paintInsertChip(plus, cell, b->color, b->borderColor);
+                plus.actions.push_back(
+                    commandAction(QStringLiteral("soundboard.insert.%1").arg(b->id)));
+                slot.cells.push_back(std::move(plus));
+                grid->subGrids.push_back(std::move(slot));
+                continue;
             } else if (placing) {
                 cell.label = QStringLiteral("+");
                 cell.style.background = value;
@@ -344,6 +364,41 @@ bool ComposeUi::playSoundboard(const QString& buttonId, QString* error)
     case SoundboardStore::PlayPlan::Kind::None:
         return true;
     }
+    return true;
+}
+
+bool ComposeUi::insertSoundboard(const QString& buttonId, QString* error)
+{
+    if (borrowingPhrase()) {
+        const QString msg = QStringLiteral("Finish the name first");
+        notify(msg);
+        if (error) {
+            *error = msg;
+        }
+        return false;
+    }
+    const SoundboardButton* b = m_board.findButton(buttonId);
+    if (!b) {
+        if (error) {
+            *error = QStringLiteral("Unknown button");
+        }
+        return false;
+    }
+    const SoundboardStore::PlayPlan plan = m_board.planPlay(*b);
+    QString text = plan.text.trimmed();
+    if (text.isEmpty()) {
+        text = b->label.trimmed();
+    }
+    if (text.isEmpty()) {
+        const QString msg = QStringLiteral("Nothing to insert");
+        notify(msg);
+        if (error) {
+            *error = msg;
+        }
+        return false;
+    }
+    m_buffer.insertPadded(text);
+    commitEdit();
     return true;
 }
 
@@ -465,6 +520,10 @@ void ComposeUi::commitEdit()
     dismissPhraseChooser();
     dismissBoardNote();
     refresh();
+    if (fieldEditing()) {
+        rebuildFieldEditor();
+        return;
+    }
     if (nameEditing()) {
         rebuildForm();
     }

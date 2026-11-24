@@ -110,12 +110,8 @@ bool ComposeUi::nameEditCanDelete() const
 
 void ComposeUi::endNameEdit(bool restorePhrase)
 {
-    if (restorePhrase) {
-        m_buffer.load(m_nameEditBackup);
-        if (m_typing) {
-            m_typing->adoptPhrase(m_buffer.text(), m_buffer.caret());
-        }
-    }
+    // The item sheet does not borrow the phrase. Inserts made while it is open stay.
+    Q_UNUSED(restorePhrase);
     m_nameEdit = NameEditKind::None;
     m_editId.clear();
     m_nameEditBackup.clear();
@@ -136,6 +132,7 @@ bool ComposeUi::beginNameEdit(NameEditKind kind, const QString& target, const QS
         m_dismissColor();
     }
     endIconPick();
+    closeFieldEditor();
     m_nameEditBackup = m_buffer.text();
     m_nameEdit = kind;
     m_editId = target;
@@ -144,7 +141,6 @@ bool ComposeUi::beginNameEdit(NameEditKind kind, const QString& target, const QS
     if (m_formName.isEmpty()) {
         m_formName = initial;
     }
-    m_buffer.load(m_formName);
     QString err;
     if (!presentLive(QString(kFormLiveId), buildFormDocument(), &err)) {
         finishItemEditor(true);
@@ -162,6 +158,7 @@ void ComposeUi::finishItemEditor(bool restorePhrase)
     if (m_dismissColor) {
         m_dismissColor();
     }
+    closeFieldEditor();
     endNameEdit(restorePhrase);
     m_interaction = Interaction::Use;
     endIconPick();
@@ -174,6 +171,7 @@ void ComposeUi::finishItemEditor(bool restorePhrase)
     m_formPhraseTouched = false;
     m_formAudioPath.clear();
     m_formAudioName.clear();
+    m_formAudioClear = false;
     if (hasLive(kFormLiveId)) {
         m_pages.closePage(QString(kFormLiveId));
     }
@@ -203,6 +201,7 @@ void ComposeUi::loadEditAppearance()
     m_formPhrase.clear();
     m_formAudioPath.clear();
     m_formAudioName.clear();
+    m_formAudioClear = false;
     m_formIndex = 0;
     m_formCols = 4;
     m_formRows = 3;
@@ -224,8 +223,11 @@ void ComposeUi::loadEditAppearance()
         m_editIcon = b->icon;
         m_formName = b->label;
         m_formPhrase = b->utteranceText;
-        if (!b->clipId.isEmpty() && QFileInfo::exists(m_board.clipPath(b->clipId))) {
-            m_formAudioName = QStringLiteral("Saved audio");
+        if (!b->clipId.isEmpty()) {
+            const QString path = m_board.clipPath(b->clipId);
+            if (QFileInfo::exists(path)) {
+                m_formAudioName = QFileInfo(path).fileName();
+            }
         }
         m_formIndex = qMax(0, formLiveIndex());
     }
@@ -379,6 +381,15 @@ bool ComposeUi::saveNameEdit(QString* error)
     if (!nameEditing()) {
         return true;
     }
+    if (m_fieldEditor == FieldEditor::Name) {
+        m_formName = m_fieldBuffer.text();
+    } else if (m_fieldEditor == FieldEditor::Phrase) {
+        m_formPhrase = m_fieldBuffer.text();
+        m_formPhraseTouched = true;
+    }
+    if (fieldEditing()) {
+        closeFieldEditor();
+    }
     QString name = formNameText();
     if (name.isEmpty()) {
         const QString msg = QStringLiteral("Type a name first");
@@ -407,8 +418,16 @@ bool ComposeUi::saveNameEdit(QString* error)
         }
         m_formPhrase.clear();
         m_formPhraseTouched = false;
-        if (m_formField == FormField::Phrase) {
-            m_buffer.load(QString());
+        m_formAudioClear = false;
+    } else if (m_nameEdit == NameEditKind::Pin && m_formAudioClear) {
+        QString clipErr;
+        if (!m_board.setButtonClip(m_editId, QString(), &clipErr)) {
+            const QString msg = clipErr.isEmpty() ? QStringLiteral("Could not clear audio") : clipErr;
+            notify(msg);
+            if (error) {
+                *error = msg;
+            }
+            return false;
         }
     }
 
@@ -516,6 +535,7 @@ void ComposeUi::showEditColor(bool border)
     if (!nameEditing()) {
         return;
     }
+    closeFieldEditor();
     if (m_editIcons || hasLive(kItemEditLiveId)) {
         endIconPick();
     }
@@ -555,6 +575,7 @@ void ComposeUi::showEditIcons()
     if (!nameEditing()) {
         return;
     }
+    closeFieldEditor();
     if (m_dismissColor) {
         m_dismissColor();
     }

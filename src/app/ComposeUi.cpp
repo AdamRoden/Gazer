@@ -73,7 +73,7 @@ bool ComposeUi::isCapturing(const QString& sourcePageId) const
            || sourcePageId == kHistoryLiveId || sourcePageId == kFilesLiveId
            || sourcePageId == kItemEditLiveId || sourcePageId == kStylesLiveId
            || sourcePageId == kTagsLiveId || sourcePageId == kFormLiveId
-           || sourcePageId == kRailLiveId;
+           || sourcePageId == kFieldLiveId || sourcePageId == kRailLiveId;
 }
 
 bool ComposeUi::isOpen() const
@@ -190,6 +190,14 @@ void ComposeUi::insertText(QStringView chars)
     if (chars.isEmpty()) {
         return;
     }
+    if (textFieldOpen()) {
+        m_fieldBuffer.insert(chars);
+        commitEdit();
+        return;
+    }
+    if (nameEditing() && !borrowingPhrase()) {
+        return;
+    }
     if (m_settings.composePredictions && !capturingPhrase() && chars == QLatin1String(" ")) {
         const WordPredictor::Query q = WordPredictor::fromPhrase(m_buffer.text(), m_buffer.caret());
         if (!q.typed.isEmpty() && m_predictor.isLexiconWord(q.typed)) {
@@ -272,6 +280,10 @@ void ComposeUi::handleCapturedCommand(const QString& command)
             (void)handleFileEscape();
             return;
         }
+        if (fieldEditing()) {
+            cancelFormEditor();
+            return;
+        }
         if (nameEditing()) {
             cancelNameEdit();
             return;
@@ -323,8 +335,12 @@ void ComposeUi::handleCapturedCommand(const QString& command)
         }
         if (c == QLatin1String("enter")) {
             QString err;
-            if (borrowingPhrase()) {
+            if (exportDialogOpen()) {
+                (void)consumeFileSpeak(&err);
+            } else if (borrowingPhrase()) {
                 saveBorrowedPhrase(&err);
+            } else if (fieldEditing()) {
+                saveFormEditor();
             } else {
                 saveNameEdit(&err);
             }
@@ -393,6 +409,8 @@ void ComposeUi::abandonClosedSession()
     m_formPhraseTouched = false;
     m_formAudioPath.clear();
     m_formAudioName.clear();
+    m_formAudioClear = false;
+    closeFieldEditor();
     clearVoiceQuery();
     stopListScroll();
     m_guestKeys = false;
@@ -402,6 +420,8 @@ void ComposeUi::abandonClosedSession()
         m_fileJob = FileJob::Speak;
         m_historyClipPath.clear();
         m_historyClipName.clear();
+        m_topicExportId.clear();
+        m_topicExportName.clear();
     }
     m_composeAuthored = {};
 }
@@ -439,6 +459,13 @@ bool ComposeUi::speakOrStop(QString* error)
     if (borrowingPhrase()) {
         return saveBorrowedPhrase(error);
     }
+    if (fieldEditing()) {
+        saveFormEditor();
+        return true;
+    }
+    if (exportDialogOpen()) {
+        return consumeFileSpeak(error);
+    }
     if (nameEditing()) {
         return saveNameEdit(error);
     }
@@ -466,12 +493,18 @@ void ComposeUi::stopSpeech()
 
 void ComposeUi::clear()
 {
+    if (blockItemKeys()) {
+        return;
+    }
     editTarget().clear();
     commitEdit();
 }
 
 bool ComposeUi::undo()
 {
+    if (blockItemKeys()) {
+        return false;
+    }
     const bool ok = editTarget().undo();
     commitEdit();
     return ok;
@@ -479,6 +512,9 @@ bool ComposeUi::undo()
 
 bool ComposeUi::redo()
 {
+    if (blockItemKeys()) {
+        return false;
+    }
     const bool ok = editTarget().redo();
     commitEdit();
     return ok;
@@ -486,12 +522,18 @@ bool ComposeUi::redo()
 
 void ComposeUi::backspace()
 {
+    if (blockItemKeys()) {
+        return;
+    }
     editTarget().backspace();
     commitEdit();
 }
 
 void ComposeUi::deleteWord()
 {
+    if (blockItemKeys()) {
+        return;
+    }
     editTarget().deleteWord();
     commitEdit();
 }
@@ -522,25 +564,33 @@ void ComposeUi::selectWord(int slot)
 
 void ComposeUi::selectAll()
 {
-    if (capturingPhrase()) {
+    if (blockItemKeys()) {
         return;
     }
     editTarget().selectAll();
+    if (textFieldOpen()) {
+        rebuildFieldEditor();
+        return;
+    }
     refresh();
 }
 
 void ComposeUi::deselect()
 {
-    if (capturingPhrase()) {
+    if (blockItemKeys()) {
         return;
     }
     editTarget().collapseSelection();
+    if (textFieldOpen()) {
+        rebuildFieldEditor();
+        return;
+    }
     refresh();
 }
 
 bool ComposeUi::copy()
 {
-    if (capturingPhrase()) {
+    if (blockItemKeys()) {
         return false;
     }
     QClipboard* clip = QGuiApplication::clipboard();
@@ -554,7 +604,7 @@ bool ComposeUi::copy()
 
 void ComposeUi::cut()
 {
-    if (capturingPhrase()) {
+    if (blockItemKeys()) {
         return;
     }
     ComposeBuffer& buf = editTarget();
@@ -570,7 +620,7 @@ void ComposeUi::cut()
 
 void ComposeUi::paste()
 {
-    if (capturingPhrase()) {
+    if (blockItemKeys()) {
         return;
     }
     QClipboard* clip = QGuiApplication::clipboard();
@@ -585,7 +635,7 @@ void ComposeUi::paste()
         insertFileName(text);
         return;
     }
-    m_buffer.insert(text);
+    editTarget().insert(text);
     commitEdit();
 }
 
@@ -659,8 +709,14 @@ void ComposeUi::decoratePage(PageDocument& doc) const
             if (c.id == QLatin1String("phrase")) {
                 c.selectionStart = -1;
                 c.selectionEnd = -1;
-                if (naming) {
+                if (borrowingPhrase()) {
                     presentNamingPhrase(c);
+                } else if (nameEditing()) {
+                    c.label = m_buffer.text();
+                    c.caretIndex = -1;
+                    c.caretLine = -1;
+                    c.role = QStringLiteral("display");
+                    c.caption.clear();
                 } else {
                     c.label = m_buffer.text();
                     c.caretIndex = qBound(0, m_buffer.caret(), c.label.size());
@@ -671,7 +727,7 @@ void ComposeUi::decoratePage(PageDocument& doc) const
                     c.caretLine = phraseCaretLine(c.label, c.caretIndex);
                     c.role = QStringLiteral("display");
                     if (editMode()) {
-                        c.caption = QStringLiteral("Dwell a phrase to edit, or + to save");
+                        c.caption = QStringLiteral("Dwell a phrase to edit, or an empty cell to save");
                     } else if (assignMode()) {
                         c.caption = QStringLiteral("Dwell a cell to save");
                     } else if (!m_boardNote.isEmpty()) {
@@ -886,6 +942,10 @@ void ComposeUi::syncClosedOverlays()
         stopListScroll();
     } else if (m_listScroll == ListScroll::Rail && !hasLive(kRailLiveId)) {
         stopListScroll();
+    }
+    if (m_fieldEditor != FieldEditor::None && !hasLive(kFieldLiveId)) {
+        m_fieldEditor = FieldEditor::None;
+        m_fieldBuffer.clear();
     }
     if (!hasLive(kItemEditLiveId) && (m_editIcons || m_iconKeyboard)) {
         const bool keys = m_iconKeyboard;

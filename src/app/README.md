@@ -15,15 +15,16 @@ Composition root, settings, command dispatch.
 | `ComposeBorrow.cpp` | Borrowed Speak keyboard for Settings search, and the Settings import/export strip. Search keyboards and that strip use Esc and Ctrl. Import and export share the file-browser height |
 | `ComposeVoices.cpp` | Voice catalog (model, speed, pitch, languages, voice list) |
 | `ComposeSearch.cpp` | Keyboard capture for the voice, history, style, tag, and favorite search sheets |
-| `ComposeForm.cpp` | Topic and phrase edit sheet |
+| `ComposeForm.cpp` | Topic and phrase edit sheet. Settings-style rows: name, value, and an edit icon. Rows, columns, and index are − / value / +. Footer is Delete, Export, Save, and Cancel |
+| `ComposeFieldEdit.cpp` | One-row popup for a name or phrase, the height of that field. Save, Cancel, and Clear |
 | `ComposeRail.cpp` | Favorites sidebar and the add-favorite tiles |
 | `ComposeStyles.cpp` | Standing style picker, editor, and keyboard naming |
 | `ComposeTags.cpp` | Insert-tag page and keyboard naming |
 | `ComposeSoundboard.cpp` | Pin/assign, topic rail, soundboard grid, Voice workspace import/export |
 | `ComposeItemEdit.cpp` | Topic/pin name editor. Color opens the settings picker. Icon opens a searchable Material Symbols board (fonts.google.com, then a short offline set). Search dwell shows the Speak keyboard with Esc and Ctrl in place of Edit and Actions. The footer is Clear, the current icon, Save, and Cancel. Tiles scroll by row |
-| `ComposeHistory.cpp` | History replay/restore |
+| `ComposeHistory.cpp` | History replay/restore. Phrase **Export** saves that clip as an MP3 |
 | `ComposeFiles.cpp` | Import/merge and export browser, confirm, and file-name caret |
-| `ComposeFilesWindow.cpp` | That browser (places, list or tile view, footer). Import/merge has Cancel. Export has caret arrows, Save, and Cancel |
+| `ComposeFilesWindow.cpp` | That browser (places, list or tile view, footer). Import/merge has Cancel. Export has caret arrows, Save, and Cancel. Phrase audio adds Assign and Clear |
 | `ComposeListScroll.cpp` | Scrollbar drag on history, voices, styles, tags, favorites, the file list, and the icon tiles |
 | `GazeRouter` | Gaze sample → session + assist |
 | `ActiveStateResolver` | `visibleWhen` / `activeState` keys (`mod.shift`, …) |

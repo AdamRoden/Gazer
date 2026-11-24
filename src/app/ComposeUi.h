@@ -51,6 +51,7 @@ public:
     static constexpr auto kStylesLiveId = QLatin1String("compose_styles_live");
     static constexpr auto kTagsLiveId = QLatin1String("compose_tags_live");
     static constexpr auto kFormLiveId = QLatin1String("compose_form_live");
+    static constexpr auto kFieldLiveId = QLatin1String("compose_field_live");
     static constexpr auto kRailLiveId = QLatin1String("compose_rail_live");
 
     ComposeUi(PageSession& pages, SpeechEngine& speech, AppSettings& settings,
@@ -178,6 +179,10 @@ public:
     void iconsGoto(int row);
     /// Export browser. Same board as import, with the file-name editor.
     bool exportBoard(QString* error = nullptr);
+    /// Phrase editor. Converts the assigned clip to an MP3 in the history save dialog.
+    bool exportPhraseAudio(QString* error = nullptr);
+    /// Topic editor. Same export browser as the action menu, with only that topic.
+    bool exportTopic(QString* error = nullptr);
     /// Import/merge browser.
     bool importChoose(QString* error = nullptr);
     /// Import/merge browser. The actions grid has no separate File Explorer button.
@@ -216,11 +221,16 @@ public:
     bool importReplace(QString* error = nullptr);
     bool openPinEdit(const QString& buttonId, QString* error = nullptr);
     /// Phrase editor. Opens the file browser so a saved audio file can be assigned on Save.
+    /// A phrase that already has audio starts in that file's folder.
     bool browsePhraseAudio(QString* error = nullptr);
     /// Assign button on that browser. Asks Yes before remembering the file.
     bool usePhraseAudio(QString* error = nullptr);
+    /// Drop the phrase's saved audio. The board changes when the phrase is saved.
+    bool clearPhraseAudio(QString* error = nullptr);
     bool openTopicEdit(const QString& topicId, QString* error = nullptr);
     bool playSoundboard(const QString& buttonId, QString* error = nullptr);
+    /// Insert the button's phrase at the composer caret. Does not play it.
+    bool insertSoundboard(const QString& buttonId, QString* error = nullptr);
     bool assignSoundboard(const QString& cellOrButtonId, QString* error = nullptr);
     bool setTopic(const QString& topicId, QString* error = nullptr);
     bool newTopic(QString* error = nullptr);
@@ -234,7 +244,11 @@ public:
     bool openRailAdd(QString* error = nullptr);
     void addRailFavorite(const QString& spec);
     void removeRailFavorite(int index);
+    /// Open the one-row editor for the name or the phrase.
     void focusFormField(const QString& which);
+    void saveFormEditor();
+    void cancelFormEditor();
+    void clearFormEditor();
     void nudgeFormIndex(int delta);
     void nudgeFormCols(int delta);
     void nudgeFormRows(int delta);
@@ -294,6 +308,8 @@ private:
 
     void ensureBrowserEntries() const;
     [[nodiscard]] bool editingFileName() const;
+    /// History MP3 or one-topic export is the top page. Enter must not save the item.
+    [[nodiscard]] bool exportDialogOpen() const;
     /// Phrase buffer, or the file name while the file browser is the top page.
     [[nodiscard]] ComposeBuffer& editTarget();
     void insertFileName(QStringView chars);
@@ -336,6 +352,8 @@ private:
     [[nodiscard]] QString selectedTypedFile(const QString& suffix) const;
     [[nodiscard]] QString selectedBrowserFile() const;
     bool rememberPhraseAudio(QString* error);
+    [[nodiscard]] QString phraseAudioSource() const;
+    [[nodiscard]] QString phraseAudioLeaf() const;
     [[nodiscard]] QString fileConfirmQuestion() const;
     /// `keep` survives closing File Explorer. Edits drop either kind.
     void setBoardNote(const QString& text, bool keep = false);
@@ -356,6 +374,16 @@ private:
     [[nodiscard]] QString formPhraseText() const;
     [[nodiscard]] int formItemCount() const;
     [[nodiscard]] int formLiveIndex() const;
+    /// Columns or rows already occupied on the topic being edited.
+    [[nodiscard]] int formOccupiedSpan(bool rows) const;
+    [[nodiscard]] bool fieldEditing() const;
+    [[nodiscard]] bool textFieldOpen() const;
+    /// Name edit is up and the keyboard is not typing into a field popup.
+    [[nodiscard]] bool blockItemKeys() const;
+    void closeFieldEditor();
+    void rebuildFieldEditor();
+    bool nudgeFieldCaret(const QString& command);
+    PageDocument buildFieldDocument() const;
     [[nodiscard]] QVector<AppSettings::RailFavorite> railItems() const;
     void storeRail(const QVector<AppSettings::RailFavorite>& items);
     void stampComposerChrome(PageDocument& doc) const;
@@ -509,6 +537,9 @@ private:
     /// History row being saved. Cleared when the file browser closes.
     QString m_historyClipPath;
     QString m_historyClipName;
+    /// Topic editor export. Cleared when that browser closes.
+    QString m_topicExportId;
+    QString m_topicExportName;
     /// Settings search owns inserts. The Speak phrase is left alone.
     bool m_guestKeys = false;
     /// Last style/tag face on the keyboard Edit key. A session change restamps when this flips.
@@ -535,6 +566,7 @@ private:
     int m_tagPage = 0;
     int m_stylePage = 0;
     enum class FormField { Name, Phrase };
+    enum class FieldEditor { None, Name, Phrase };
     /// Sidebar lists favorites instead of topics. Not saved.
     bool m_showFavorites = false;
     /// Voice-list name query. Typed on the Speak keyboard, not into the phrase.
@@ -550,12 +582,17 @@ private:
     QString m_railQuery;
     int m_railPage = 0;
     FormField m_formField = FormField::Name;
+    FieldEditor m_fieldEditor = FieldEditor::None;
+    /// Text in the field popup. The composer phrase stays in `m_buffer`.
+    ComposeBuffer m_fieldBuffer;
     QString m_formName;
     QString m_formPhrase;
     bool m_formPhraseTouched = false;
     /// Audio chosen in the phrase editor. Copied onto the phrase when Save succeeds.
     QString m_formAudioPath;
     QString m_formAudioName;
+    /// Save removes the phrase clip. A new file clears this.
+    bool m_formAudioClear = false;
     int m_formIndex = 0;
     int m_formCols = 4;
     int m_formRows = 3;

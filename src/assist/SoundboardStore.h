@@ -156,9 +156,11 @@ public:
 
     /// Voice-compatible `aac-workspace` v1. Also accepts `gazer-soundboard`.
     /// Does not write `boards.json`. `load` / `save` stay on gazer-soundboard.
+    /// `onlyTopicId` writes that one topic. Empty writes every topic.
     [[nodiscard]] QByteArray exportWorkspace(const WorkspaceExportSettings& settings,
                                              bool* audioOmitted = nullptr,
-                                             qint64 maxBytes = kWorkspaceMaxBytes) const;
+                                             qint64 maxBytes = kWorkspaceMaxBytes,
+                                             const QString& onlyTopicId = {}) const;
     bool importWorkspace(const QJsonObject& root, WorkspaceMode mode,
                          WorkspaceImportedSettings* imported = nullptr,
                          QString* error = nullptr);

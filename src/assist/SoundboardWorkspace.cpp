@@ -130,17 +130,24 @@ SoundboardButton ingestWorkspaceButton(const QJsonObject& o)
 } // namespace
 
 QByteArray SoundboardStore::exportWorkspace(const WorkspaceExportSettings& settings,
-                                            bool* audioOmitted, qint64 maxBytes) const
+                                            bool* audioOmitted, qint64 maxBytes,
+                                            const QString& onlyTopicId) const
 {
-    const auto build = [&](bool withAudio) {
+    const auto build = [&](bool withAudio) -> QByteArray {
         QJsonObject root;
         root.insert(QStringLiteral("format"), QStringLiteral("aac-workspace"));
         root.insert(QStringLiteral("version"), 1);
         root.insert(QStringLiteral("exportedAt"),
                     QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs));
-        root.insert(QStringLiteral("activeTopicId"), m_activeTopicId);
+        root.insert(QStringLiteral("activeTopicId"),
+                    onlyTopicId.isEmpty() ? m_activeTopicId : onlyTopicId);
         QJsonArray topics;
+        bool found = onlyTopicId.isEmpty();
         for (const SoundboardTopic& topic : m_topics) {
+            if (!onlyTopicId.isEmpty() && topic.id != onlyTopicId) {
+                continue;
+            }
+            found = true;
             QJsonObject to;
             to.insert(QStringLiteral("id"), topic.id);
             to.insert(QStringLiteral("name"), topic.name);
@@ -180,6 +187,9 @@ QByteArray SoundboardStore::exportWorkspace(const WorkspaceExportSettings& setti
             to.insert(QStringLiteral("buttons"), buttons);
             topics.append(to);
         }
+        if (!found) {
+            return {};
+        }
         root.insert(QStringLiteral("topics"), topics);
         QJsonObject speech;
         speech.insert(QStringLiteral("theme"), settings.theme);
@@ -199,6 +209,12 @@ QByteArray SoundboardStore::exportWorkspace(const WorkspaceExportSettings& setti
     };
 
     QByteArray json = build(true);
+    if (json.isEmpty()) {
+        if (audioOmitted) {
+            *audioOmitted = false;
+        }
+        return {};
+    }
     bool omitted = false;
     if (maxBytes > 0 && json.size() > maxBytes) {
         json = build(false);

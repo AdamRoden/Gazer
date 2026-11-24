@@ -548,12 +548,20 @@ PageDocument ComposeUi::buildFilesDocument() const
                                      QStringLiteral("compose.browserSave"), accent));
         actions.cells.push_back(cancelAt(6));
     } else if (m_fileJob == FileJob::Audio) {
-        actions.columns = 3;
-        actions.columnTracks = starTracks({2.6, 1.15, 1.15});
+        const bool canClear = !m_formAudioPath.isEmpty() || !m_formAudioName.isEmpty();
+        actions.columns = canClear ? 4 : 3;
+        actions.columnTracks = canClear ? starTracks({2.2, 1.05, 1.15, 1.15})
+                                        : starTracks({2.6, 1.15, 1.15});
         actions.cells.push_back(std::move(name));
-        actions.cells.push_back(cell(QStringLiteral("file_assign"), QStringLiteral("Assign"), 0, 1,
+        int col = 1;
+        if (canClear) {
+            actions.cells.push_back(cell(QStringLiteral("file_clear_audio"), QStringLiteral("Clear"),
+                                         0, col, QStringLiteral("compose.clearAudio"), surface));
+            ++col;
+        }
+        actions.cells.push_back(cell(QStringLiteral("file_assign"), QStringLiteral("Assign"), 0, col,
                                      QStringLiteral("compose.assignAudio"), accent));
-        actions.cells.push_back(cancelAt(2));
+        actions.cells.push_back(cancelAt(col + 1));
     } else if (m_fileJob == FileJob::Settings) {
         actions.columns = 3;
         actions.columnTracks = starTracks({2.6, 1.15, 1.15});
@@ -574,6 +582,37 @@ PageDocument ComposeUi::buildFilesDocument() const
     foot.subGrids.push_back(std::move(actions));
     grid.subGrids.push_back(std::move(foot));
     return doc;
+}
+
+QString ComposeUi::phraseAudioSource() const
+{
+    if (!m_formAudioPath.isEmpty() && QFileInfo::exists(m_formAudioPath)) {
+        return QFileInfo(m_formAudioPath).absoluteFilePath();
+    }
+    if (m_formAudioClear || m_editId.isEmpty()) {
+        return {};
+    }
+    const SoundboardButton* button = m_board.findButton(m_editId);
+    if (!button || button->clipId.isEmpty()) {
+        return {};
+    }
+    const QString path = m_board.clipPath(button->clipId);
+    return QFileInfo::exists(path) ? path : QString();
+}
+
+QString ComposeUi::phraseAudioLeaf() const
+{
+    if (!m_formAudioPath.isEmpty()) {
+        const QString name = QFileInfo(m_formAudioPath).fileName();
+        if (!name.isEmpty()) {
+            return name;
+        }
+    }
+    if (!m_formAudioName.isEmpty()) {
+        return m_formAudioName;
+    }
+    const QString src = phraseAudioSource();
+    return src.isEmpty() ? QString() : QFileInfo(src).fileName();
 }
 
 } // namespace gazer

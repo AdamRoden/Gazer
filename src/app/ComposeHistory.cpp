@@ -192,6 +192,40 @@ bool ComposeUi::saveHistory(const QString& id, QString* error)
     return true;
 }
 
+bool ComposeUi::exportPhraseAudio(QString* error)
+{
+    if (m_nameEdit != NameEditKind::Pin || m_editId.isEmpty()) {
+        const QString msg = QStringLiteral("Open a phrase first");
+        notify(msg);
+        if (error) {
+            *error = msg;
+        }
+        return false;
+    }
+    const QString src = phraseAudioSource();
+    if (src.isEmpty() || !QFileInfo::exists(src)) {
+        const QString msg = QStringLiteral("No audio to save");
+        notify(msg);
+        if (error) {
+            *error = msg;
+        }
+        return false;
+    }
+    saveFormEditor();
+    QString label = m_formPhrase.trimmed();
+    if (label.isEmpty()) {
+        label = QFileInfo(src).completeBaseName();
+    }
+    m_historyClipPath = src;
+    m_historyClipName = files_detail::historyClipLeaf(label);
+    if (!openFileMode(FileMode::Export, error, FileJob::HistoryClip)) {
+        m_historyClipPath.clear();
+        m_historyClipName.clear();
+        return false;
+    }
+    return true;
+}
+
 bool ComposeUi::writeHistoryClip(QString* error)
 {
     const QString src = m_historyClipPath;

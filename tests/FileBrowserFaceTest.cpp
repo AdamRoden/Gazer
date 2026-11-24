@@ -12,6 +12,7 @@ class FileBrowserFaceTest final : public QObject {
 private slots:
     void historySaveIsNotAWorkspaceExport();
     void speakAndSettingsKeepJson();
+    void topicExportIsOneWorkspaceFile();
     void audioUsesTheCallerFilters();
     void clipLeafDropsReservedNames();
     void typedFileMatchesItsSuffix();
@@ -25,6 +26,8 @@ void FileBrowserFaceTest::historySaveIsNotAWorkspaceExport()
     QCOMPARE(face.exportSuffix, QStringLiteral(".mp3"));
     QCOMPARE(face.patterns, QStringList{QStringLiteral("*.mp3")});
     QCOMPARE(face.documentName, QStringLiteral("Save MP3"));
+    QVERIFY(face.duringItemEdit);
+    QVERIFY(face.ownsEnter);
     QCOMPARE(face.caption, QStringLiteral("Save MP3"));
     QCOMPARE(face.emptyFolder, QStringLiteral("No folders or MP3 files"));
     QCOMPARE(face.dwellHint, QStringLiteral("Dwell a folder or an MP3 file"));
@@ -39,6 +42,8 @@ void FileBrowserFaceTest::speakAndSettingsKeepJson()
     QCOMPARE(speak.exportSuffix, QStringLiteral(".json"));
     QCOMPARE(speak.documentName, QStringLiteral("Export"));
     QVERIFY(speak.caption.isEmpty());
+    QVERIFY(!speak.duringItemEdit);
+    QVERIFY(!speak.ownsEnter);
     QCOMPARE(speak.patterns, QStringList{QStringLiteral("*.json")});
 
     const files_detail::BrowserFace settings = files_detail::browserFace(
@@ -47,6 +52,18 @@ void FileBrowserFaceTest::speakAndSettingsKeepJson()
     QCOMPARE(settings.documentName, QStringLiteral("Import settings"));
     QCOMPARE(settings.caption, QStringLiteral("Import settings"));
     QCOMPARE(settings.exportSuffix, QStringLiteral(".json"));
+}
+
+void FileBrowserFaceTest::topicExportIsOneWorkspaceFile()
+{
+    const files_detail::BrowserFace face = files_detail::browserFace(
+        files_detail::BrowserJob::Topic, files_detail::BrowserMode::Export, {});
+    QCOMPARE(face.writer, files_detail::BrowserFace::Writer::Topic);
+    QCOMPARE(face.exportSuffix, QStringLiteral(".json"));
+    QCOMPARE(face.documentName, QStringLiteral("Export"));
+    QCOMPARE(face.patterns, QStringList{QStringLiteral("*.json")});
+    QVERIFY(face.duringItemEdit);
+    QVERIFY(face.ownsEnter);
 }
 
 void FileBrowserFaceTest::audioUsesTheCallerFilters()
@@ -60,6 +77,8 @@ void FileBrowserFaceTest::audioUsesTheCallerFilters()
     QCOMPARE(face.documentName, QStringLiteral("Audio"));
     QCOMPARE(face.caption, QStringLiteral("Choose audio"));
     QCOMPARE(face.emptyFolder, QStringLiteral("No folders or audio files"));
+    QVERIFY(face.duringItemEdit);
+    QVERIFY(!face.ownsEnter);
 }
 
 void FileBrowserFaceTest::clipLeafDropsReservedNames()
@@ -70,6 +89,10 @@ void FileBrowserFaceTest::clipLeafDropsReservedNames()
              QStringLiteral("file-name.mp3"));
     QVERIFY(files_detail::historyClipLeaf(QStringLiteral("CON")).startsWith(QStringLiteral("gazer-clip-")));
     QVERIFY(files_detail::historyClipLeaf(QString()).endsWith(QStringLiteral(".mp3")));
+    QCOMPARE(files_detail::exportStem(QStringLiteral("Hello, world!"), QStringLiteral("gazer-topic")),
+             QStringLiteral("Hello-world"));
+    QVERIFY(files_detail::exportStem(QStringLiteral("CON"), QStringLiteral("gazer-topic"))
+                .startsWith(QStringLiteral("gazer-topic-")));
     QVERIFY(files_detail::reservedWindowsStem(QStringLiteral("lpt2")));
     QVERIFY(!files_detail::reservedWindowsStem(QStringLiteral("computer")));
 }

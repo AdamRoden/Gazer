@@ -73,6 +73,7 @@ set(GAZER_SOURCES
     src/app/ComposeSoundboard.cpp
     src/app/ComposeItemEdit.cpp
     src/app/ComposeForm.cpp
+    src/app/ComposeFieldEdit.cpp
     src/app/ComposeRail.cpp
     src/app/ComposeSearch.cpp
     src/app/ComposeStyles.cpp
