@@ -44,6 +44,8 @@ void remapDwellId(PageDocument& doc, const QString& from, const QString& to);
 [[nodiscard]] PageCell cellFromZone(const PageZone& zone);
 void removeLeaf(PageDocument& doc, const QString& id);
 void removeGrid(PageDocument& doc, const QString& id);
+/// Fills empty ids with a stable slot name (`grid/row,col`). Authored ids stay.
+void assignMissingIds(PageDocument& doc);
 
 } // namespace PageEdit
 } // namespace gazer

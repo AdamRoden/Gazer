@@ -1,51 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <Page id="example_mouse" name="Mouse">
-  <Style id="red" background="red80" foreground="foreground"/>
-  <Style id="orange" background="orange70" foreground="foreground"/>
-  <Style id="yellow" background="yellow80" foreground="foreground"/>
-  <Style id="green" background="green70" foreground="foreground"/>
-  <Style id="teal" background="teal70" foreground="foreground"/>
-  <Style id="blue" background="blue70" foreground="foreground"/>
-  <Style id="indigo" background="indigo60" foreground="foreground"/>
   <Style id="purple" background="purple60" foreground="foreground"/>
+  <Style id="orange" background="orange70" foreground="foreground"/>
+  <Style id="indigo" background="indigo60" foreground="foreground"/>
+  <Style id="green" background="green70" foreground="foreground"/>
   <Style id="pink" background="pink70" foreground="foreground"/>
-
-  <Grid id="board" desktopMode="true" rows="3" columns="10" anchor="Bottom" offset="0,0"
-        size="A_ScreenHeight, 0.28" gap="8" margin="8">
-
-    <Cell id="movestep" row="0" col="0" icon="LookToScrollSpeedMedium" label="Step 40 px" style="teal" command="cycleMouseMoveAmount"/>
-    <Cell id="nudge_up" row="0" col="1" icon="ArrowPointingToTop" label="Up" style="teal" mouseMoveByDirection="n"/>
-    <Cell id="dwell_move" row="0" col="2" icon="mouseMove" label="Move to…" style="teal" activeState="mouseMoveToGaze" mouseMoveToGaze=""/>
-    <Cell id="ldbl" row="0" col="3" icon="mouseLeftClick" label="L×2" style="green" mouseLeftClick="double"/>
-    <Cell id="lclick" row="0" col="4" icon="mouseLeftClick" label="Left" style="green" mouseLeftClick=""/>
-    <Cell id="mclick" row="0" col="5" icon="mouseMiddleClick" label="Middle" style="green" mouseMiddleClick=""/>
-    <Cell id="rclick" row="0" col="6" icon="mouseRightClick" label="Right" style="green" mouseRightClick=""/>
-    <Cell id="scrstep" row="0" col="7" icon="LookToScrollSpeedMedium" label="Scroll ×3" style="blue" command="cycleMouseScrollAmount"/>
-    <Cell id="sc_up" row="0" col="8" icon="ScrollUp" style="blue" command="mouseScrollUp"/>
-    <Cell id="lts" row="0" col="9" icon="lookToScroll" style="blue" activeState="lookToScroll" command="toggleLookToScroll"/>
-
-    <Cell id="nudge_left" row="1" col="0" icon="ArrowPointingToLeft" label="Left" style="teal" mouseMoveByDirection="w"/>
-    <Cell id="nudge_down" row="1" col="1" icon="ArrowPointingToBottom" label="Down" style="teal" mouseMoveByDirection="s"/>
-    <Cell id="nudge_right" row="1" col="2" icon="ArrowPointingToRight" label="Right" style="teal" mouseMoveByDirection="e"/>
-    <Cell id="click_loop" row="1" col="3" icon="LoopingAction" label="Gaze click
-loop" style="pink" activeState="mouseMoveToGazeClickLoop" command="mouseMoveToGazeClickLoop"/>
-    <Cell id="ldownup" row="1" col="4" icon="mouseLeftDrag" label="L Hold" style="red" activeState="mouse.leftHold" mouseLeftClick="toggle"/>
-    <Cell id="mdownup" row="1" col="5" icon="mouseMiddleDrag" label="M Hold" style="red" activeState="mouse.middleHold" mouseMiddleClick="toggle"/>
-    <Cell id="rdownup" row="1" col="6" icon="mouseRightDrag" label="R Hold" style="red" activeState="mouse.rightHold" mouseRightClick="toggle"/>
-    <Cell id="sc_left" row="1" col="7" icon="ScrollLeft" style="blue" command="mouseScrollLeft"/>
-    <Cell id="sc_down" row="1" col="8" icon="ScrollDown" style="blue" command="mouseScrollDown"/>
-    <Cell id="sc_right" row="1" col="9" icon="ScrollRight" style="blue" command="mouseScrollRight"/>
-
-    <Cell id="gaze_reticle" row="2" col="0" icon="Eye" label="Show gaze" style="yellow" activeState="gazeReticle" command="toggleGazeReticle"/>
-    <Cell id="magnifier" row="2" col="1" icon="MagnifyTool" label="Gaze Magnifier" style="yellow" activeState="magnifier" command="toggleMagnifier"/>
-    <Cell id="gaze_follow" row="2" col="2" icon="MouseMagneticCursor" label="Gaze mouse" style="yellow" activeState="gazeMouseFollow" command="toggleGazeMouseFollow"/>
-    <Cell id="mag_pick" row="2" col="3" icon="ZoomConfirm" label="Magnify pick" style="orange" activeState="mouseMoveMagPick" command="toggleMouseMoveMagPick"/>
-    <Cell id="move_lclick" row="2" col="4" icon="mouseLeftClickAtGaze" label="Move+L" style="orange" activeState="mouseLeftClickAtGaze" mouseLeftClickAtGaze=""/>
-    <Cell id="move_mclick" row="2" col="5" icon="mouseMiddleClickAtGaze" label="Move+M" style="orange" activeState="mouseMiddleClickAtGaze" mouseMiddleClickAtGaze=""/>
-    <Cell id="move_rclick" row="2" col="6" icon="mouseRightClickAtGaze" label="Move+R" style="orange" activeState="mouseRightClickAtGaze" mouseRightClickAtGaze=""/>
-    <Cell id="combo" row="2" col="7" icon="comboMouse" label="ComboMouse" style="purple" activeState="comboMouse" command="toggleComboMouse"/>
-    <Cell id="ldrag" row="2" col="8" icon="mouseLeftDrag" label="Left drag" style="purple" activeState="mouseLeftDrag" command="mouseLeftDrag"/>
-    <Cell id="main" row="2" col="9" icon="AlignBottom" label="Close" style="indigo">
-      <ClosePage/>
-    </Cell>
+  <Style id="yellow" background="yellow80" foreground="foreground"/>
+  <Style id="blue" background="blue70" foreground="foreground"/>
+  <Style id="teal" background="teal70" foreground="foreground"/>
+  <Style id="red" background="red80" foreground="foreground"/>
+  <Grid id="board" rows="3" columns="10" desktopMode="true" anchor="Bottom" offset="0,0" size="A_ScreenHeight,0.28" gap="8" padding="8">
+    <Button style="teal" label="Step 40 px" icon="LookToScrollSpeedMedium" command="cycleMouseMoveAmount"/>
+    <Button style="teal" label="Up" icon="ArrowPointingToTop" col="1" mouseMoveByDirection="n"/>
+    <Button style="teal" label="Move to…" icon="mouseMove" bind="mouseMoveToGaze" col="2" mouseMoveToGaze=""/>
+    <Button style="green" label="L×2" icon="mouseLeftClick" col="3" mouseLeftClick="double"/>
+    <Button style="green" label="Left" icon="mouseLeftClick" col="4" mouseLeftClick=""/>
+    <Button style="green" label="Middle" icon="mouseMiddleClick" col="5" mouseMiddleClick=""/>
+    <Button style="green" label="Right" icon="mouseRightClick" col="6" mouseRightClick=""/>
+    <Button style="blue" label="Scroll ×3" icon="LookToScrollSpeedMedium" col="7" command="cycleMouseScrollAmount"/>
+    <Button style="blue" icon="ScrollUp" col="8" command="mouseScrollUp"/>
+    <Button style="blue" icon="lookToScroll" bind="lookToScroll" col="9" id="lts" command="toggleLookToScroll"/>
+    <Button style="teal" label="Left" icon="ArrowPointingToLeft" row="1" mouseMoveByDirection="w"/>
+    <Button style="teal" label="Down" icon="ArrowPointingToBottom" row="1" col="1" mouseMoveByDirection="s"/>
+    <Button style="teal" label="Right" icon="ArrowPointingToRight" row="1" col="2" mouseMoveByDirection="e"/>
+    <Button style="pink" label="Gaze click loop" icon="LoopingAction" bind="mouseMoveToGazeClickLoop" row="1" col="3" command="mouseMoveToGazeClickLoop"/>
+    <Button style="red" label="L Hold" icon="mouseLeftDrag" bind="mouse.leftHold" row="1" col="4" mouseLeftClick="toggle"/>
+    <Button style="red" label="M Hold" icon="mouseMiddleDrag" bind="mouse.middleHold" row="1" col="5" mouseMiddleClick="toggle"/>
+    <Button style="red" label="R Hold" icon="mouseRightDrag" bind="mouse.rightHold" row="1" col="6" mouseRightClick="toggle"/>
+    <Button style="blue" icon="ScrollLeft" row="1" col="7" command="mouseScrollLeft"/>
+    <Button style="blue" icon="ScrollDown" row="1" col="8" command="mouseScrollDown"/>
+    <Button style="blue" icon="ScrollRight" row="1" col="9" command="mouseScrollRight"/>
+    <Button style="yellow" label="Show gaze" icon="Eye" bind="gazeReticle" row="2" command="toggleGazeReticle"/>
+    <Button id="magnifier" style="yellow" label="Gaze Magnifier" icon="MagnifyTool" bind="magnifier" row="2" col="1" command="toggleMagnifier"/>
+    <Button style="yellow" label="Gaze mouse" icon="MouseMagneticCursor" bind="gazeMouseFollow" row="2" col="2" command="toggleGazeMouseFollow"/>
+    <Button style="orange" label="Magnify pick" icon="ZoomConfirm" bind="mouseMoveMagPick" row="2" col="3" command="toggleMouseMoveMagPick"/>
+    <Button style="orange" label="Move+L" icon="mouseLeftClickAtGaze" bind="mouseLeftClickAtGaze" row="2" col="4" mouseLeftClickAtGaze=""/>
+    <Button style="orange" label="Move+M" icon="mouseMiddleClickAtGaze" bind="mouseMiddleClickAtGaze" row="2" col="5" mouseMiddleClickAtGaze=""/>
+    <Button style="orange" label="Move+R" icon="mouseRightClickAtGaze" bind="mouseRightClickAtGaze" row="2" col="6" mouseRightClickAtGaze=""/>
+    <Button style="purple" label="ComboMouse" icon="comboMouse" bind="comboMouse" row="2" col="7" command="toggleComboMouse"/>
+    <Button style="purple" label="Left drag" icon="mouseLeftDrag" bind="mouseLeftDrag" row="2" col="8" command="mouseLeftDrag"/>
+    <Button id="main" style="indigo" label="Close" icon="AlignBottom" row="2" col="9" closePage="true"/>
   </Grid>
 </Page>

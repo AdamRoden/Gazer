@@ -1,143 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <Page id="main_settings_gaze" name="Gaze" radius="16">
-  <Style id="group" background="bg95" thickness="0" radius="16"/>
   <Style id="row" background="transparent" thickness="0" radius="0"/>
-  <Style id="plain" background="transparent" thickness="0" radius="0"/>
   <Style id="join" background="transparent" thickness="0" radius="0"/>
-  <Style id="joinLeft" background="transparent" thickness="0" radius="10,0,0,10"/>
-  <Style id="joinRight" background="transparent" thickness="0" radius="0,10,10,0"/>
+  <Style id="plain" background="transparent" thickness="0" radius="0"/>
   <Style id="button" background="transparent" thickness="0" radius="10"/>
-  <Grid id="board" desktopMode="true" rows="2" columns="2" anchor="Top" offset="0,0" size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" gap="12" margin="0" radius="16"
-        rowHeights="96,*" columnWidths="*,72">
-    <SubGrid id="titlebar" row="0" col="0" colSpan="2" rows="1" columns="2" columnWidths="*,160" gap="8" margin="0" style="plain">
-      <Cell id="page_title" row="0" col="0" label="Gaze" caption="Follow, lens, look-to maps, and ComboMouse" role="label" textStyle="title" style="plain"/>
-      <Cell id="tab_done" row="0" col="1" label="Close" icon="keyboardHide" textStyle="row" style="button" closeAllPages="true"/>
-    </SubGrid>
-    <SubGrid id="scroller" row="1" col="0" scroll="true" rows="4" columns="1" rowHeights="376,376,480,584" gap="12" margin="0">
-    <SubGrid id="sec_follow" row="0" col="0" rows="4" columns="1" rowHeights="48,96,96,96" gap="8" margin="8" style="group">
-      <Cell id="h_follow" row="0" col="0" label="Follow" role="label" textStyle="section" style="plain"/>
-      <SubGrid id="row_follow" row="1" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="f_l" row="0" col="0" label="Gaze follow" caption="Reticle, gaze mouse, and live lens." role="label" style="plain"/>
-        <SubGrid id="act_follow" row="0" col="1" rows="1" columns="4" gap="0" style="row">
-          <Cell id="f_slow" row="0" col="0" label="Slow" role="choice" activeState="settings.mag.follow.slow" style="joinLeft" command="settings.mag.follow.slow"/>
-          <Cell id="f_sticky" row="0" col="1" label="Sticky" role="choice" activeState="settings.mag.follow.sticky" style="join" command="settings.mag.follow.sticky"/>
-          <Cell id="f_smooth" row="0" col="2" label="Smooth" role="choice" activeState="settings.mag.follow.smooth" style="join" command="settings.mag.follow.smooth"/>
-          <Cell id="f_snappy" row="0" col="3" label="Snappy" role="choice" activeState="settings.mag.follow.snappy" style="joinRight" command="settings.mag.follow.snappy"/>
-        </SubGrid>
-      </SubGrid>
-      <SubGrid id="row_show" row="2" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="reticle_l" row="0" col="0" label="Show gaze" caption="Marker at the gaze point." role="label" style="plain"/>
-        <Cell id="reticle" row="0" col="1" icon="eye" label="On" role="toggle" activeState="gazeReticle" style="button" command="toggleGazeReticle"/>
-      </SubGrid>
-      <SubGrid id="row_gaze_mouse" row="3" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="follow_l" row="0" col="0" label="Gaze mouse" caption="The pointer follows gaze." role="label" style="plain"/>
-        <Cell id="follow" row="0" col="1" icon="MouseMagneticCursor" label="On" role="toggle" activeState="gazeMouseFollow" style="button" command="toggleGazeMouseFollow"/>
-      </SubGrid>
-    </SubGrid>
-    <SubGrid id="sec_lens" row="1" col="0" rows="4" columns="1" rowHeights="48,96,96,96" gap="8" margin="8" style="group">
-      <Cell id="h_lens" row="0" col="0" label="Lens" role="label" textStyle="section" style="plain"/>
-      <SubGrid id="row_lens" row="1" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="lens_l" row="0" col="0" label="Lens" caption="Magnifier that follows gaze." role="label" style="plain"/>
-        <Cell id="magnifier" row="0" col="1" icon="MagnifyTool" label="On" role="toggle" activeState="magnifier" style="button" command="toggleMagnifier"/>
-      </SubGrid>
-      <SubGrid id="row_z" row="2" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="z_l" row="0" col="0" label="Lens zoom" caption="Live lens magnification." role="label" style="plain"/>
-        <SubGrid id="act_z" row="0" col="1" rows="1" columns="9" gap="0" style="row">
-          <Cell id="z_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.magZoom.dec"/>
-          <Cell id="z_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="magZoom" style="join"/>
-          <Cell id="z_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.magZoom.inc"/>
-          <Cell id="z_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.magZoom"/>
-        </SubGrid>
-      </SubGrid>
-      <SubGrid id="row_l" row="3" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="l_l" row="0" col="0" label="Lens size" caption="Live lens diameter." role="label" style="plain"/>
-        <SubGrid id="act_l" row="0" col="1" rows="1" columns="9" gap="0" style="row">
-          <Cell id="l_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.magLensSize.dec"/>
-          <Cell id="l_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="magLensSize" style="join"/>
-          <Cell id="l_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.magLensSize.inc"/>
-          <Cell id="l_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.magLensSize"/>
-        </SubGrid>
-      </SubGrid>
-    </SubGrid>
-    <SubGrid id="sec_look" row="2" col="0" rows="5" columns="1" rowHeights="48,96,96,96,96" gap="8" margin="8" style="group">
-      <SubGrid id="row_look_head" row="0" col="0" rows="1" columns="2" columnWidths="220,*" gap="12" style="plain">
-        <Cell id="h_look" row="0" col="0" label="Look-to maps" role="label" textStyle="section" style="plain"/>
-        <Cell id="look_hint" row="0" col="1" label="Each map has its own origin and rings. All four can run at once." role="label" textStyle="caption" style="plain"/>
-      </SubGrid>
-      <SubGrid id="row_scroll" row="1" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="scroll_l" row="0" col="0" label="Scroll" caption="Wheel from gaze vs the origin." icon="lookToScroll" role="label" style="plain"/>
-        <SubGrid id="act_scroll" row="0" col="1" rows="1" columns="2" gap="0" style="row">
-          <Cell id="lts_on" row="0" col="0" label="Enable" icon="lookToScroll" role="toggle" activeState="lookToScroll" style="joinLeft" command="lookToScroll"/>
-          <Cell id="scroll_edit" row="0" col="1" icon="editSquare" label="Edit" style="joinRight" command="lookTo.edit.scroll"/>
-        </SubGrid>
-      </SubGrid>
-      <SubGrid id="row_mouse" row="2" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="mouse_l" row="0" col="0" label="Mouse" caption="Move the pointer from gaze vs the origin." icon="mouseMove" role="label" style="plain"/>
-        <SubGrid id="act_mouse" row="0" col="1" rows="1" columns="2" gap="0" style="row">
-          <Cell id="mouse_on" row="0" col="0" label="Enable" icon="mouseMove" role="toggle" activeState="lookToMouse" style="joinLeft" command="lookToMouse"/>
-          <Cell id="mouse_edit" row="0" col="1" icon="editSquare" label="Edit" style="joinRight" command="lookTo.edit.mouse"/>
-        </SubGrid>
-      </SubGrid>
-      <SubGrid id="row_lstick" row="3" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="lstick_l" row="0" col="0" label="Left stick" caption="Left analog stick from gaze vs the origin." icon="sportsEsports" role="label" style="plain"/>
-        <SubGrid id="act_lstick" row="0" col="1" rows="1" columns="2" gap="0" style="row">
-          <Cell id="lstick_on" row="0" col="0" label="Enable" icon="sportsEsports" role="toggle" activeState="lookToLeftStick" style="joinLeft" command="lookToLeftStick"/>
-          <Cell id="lstick_edit" row="0" col="1" icon="editSquare" label="Edit" style="joinRight" command="lookTo.edit.leftStick"/>
-        </SubGrid>
-      </SubGrid>
-      <SubGrid id="row_rstick" row="4" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="rstick_l" row="0" col="0" label="Right stick" caption="Right analog stick from gaze vs the origin." icon="sportsEsports" role="label" style="plain"/>
-        <SubGrid id="act_rstick" row="0" col="1" rows="1" columns="2" gap="0" style="row">
-          <Cell id="rstick_on" row="0" col="0" label="Enable" icon="sportsEsports" role="toggle" activeState="lookToRightStick" style="joinLeft" command="lookToRightStick"/>
-          <Cell id="rstick_edit" row="0" col="1" icon="editSquare" label="Edit" style="joinRight" command="lookTo.edit.rightStick"/>
-        </SubGrid>
-      </SubGrid>
-    </SubGrid>
-    <SubGrid id="sec_combo" row="3" col="0" rows="6" columns="1" rowHeights="48,96,96,96,96,96" gap="8" margin="8" style="group">
-      <Cell id="h_combo" row="0" col="0" label="ComboMouse" role="label" textStyle="section" style="plain"/>
-      <SubGrid id="row_combo_on" row="1" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="combo_on_l" row="0" col="0" label="Try" caption="Dwell to place, then drift and click from the pie." role="label" style="plain"/>
-        <Cell id="combo_on" row="0" col="1" label="ComboMouse" icon="comboMouse" role="toggle" activeState="comboMouse" style="button" command="toggleComboMouse"/>
-      </SubGrid>
-      <SubGrid id="row_combo_inner" row="2" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="ci_l" row="0" col="0" label="Inner radius" caption="Inner edge of the drift ring." role="label" style="plain"/>
-        <SubGrid id="act_ci" row="0" col="1" rows="1" columns="9" gap="0" style="row">
-          <Cell id="ci_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.comboInnerRadiusPx.dec"/>
-          <Cell id="ci_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="comboInnerRadiusPx" style="join"/>
-          <Cell id="ci_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.comboInnerRadiusPx.inc"/>
-          <Cell id="ci_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.comboInnerRadiusPx"/>
-        </SubGrid>
-      </SubGrid>
-      <SubGrid id="row_combo_shared" row="3" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="cs_l" row="0" col="0" label="Shared radius" caption="Where the drift ring meets the pie." role="label" style="plain"/>
-        <SubGrid id="act_cs" row="0" col="1" rows="1" columns="9" gap="0" style="row">
-          <Cell id="cs_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.comboSharedRadiusPx.dec"/>
-          <Cell id="cs_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="comboSharedRadiusPx" style="join"/>
-          <Cell id="cs_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.comboSharedRadiusPx.inc"/>
-          <Cell id="cs_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.comboSharedRadiusPx"/>
-        </SubGrid>
-      </SubGrid>
-      <SubGrid id="row_combo_outer" row="4" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="co_l" row="0" col="0" label="Outer radius" caption="Outer edge of the command pie." role="label" style="plain"/>
-        <SubGrid id="act_co" row="0" col="1" rows="1" columns="9" gap="0" style="row">
-          <Cell id="co_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.comboOuterRadiusPx.dec"/>
-          <Cell id="co_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="comboOuterRadiusPx" style="join"/>
-          <Cell id="co_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.comboOuterRadiusPx.inc"/>
-          <Cell id="co_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.comboOuterRadiusPx"/>
-        </SubGrid>
-      </SubGrid>
-      <SubGrid id="row_combo_style" row="5" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="combo_style_l" row="0" col="0" label="Colors" caption="Drift ring and command slices." role="label" style="plain"/>
-        <SubGrid id="row_combo_colors" row="0" col="1" rows="1" columns="2" gap="0" style="row">
-          <Cell id="cic_sw" row="0" col="0" label="Inner ring" caption="Drift ring." settingKey="comboInnerColor" style="joinLeft" command="settings.edit.color.comboInnerColor"/>
-          <Cell id="coc_sw" row="0" col="1" label="Outer ring" caption="Command slices." settingKey="comboOuterColor" style="joinRight" command="settings.edit.color.comboOuterColor"/>
-        </SubGrid>
-      </SubGrid>
-    </SubGrid>
-    </SubGrid>
-    <SubGrid id="page_scroll" row="1" col="1" rows="3" columns="1" rowHeights="72,*,72" gap="6" margin="0" style="group">
-      <Cell id="set_scroll_up" row="0" col="0" icon="ArrowUp" role="scrollUp" style="button" command="settings.scroll.up"/>
-      <Cell id="set_scroll_track" row="1" col="0" role="scrollbar" caption="0,1,1" scanGrace="400"/>
-      <Cell id="set_scroll_down" row="2" col="0" icon="ArrowDown" role="scrollDown" style="button" command="settings.scroll.down"/>
-    </SubGrid>
+  <Style id="joinLeft" background="transparent" thickness="0" radius="10,0,0,10"/>
+  <Style id="group" background="bg95" thickness="0" radius="16"/>
+  <Style id="joinRight" background="transparent" thickness="0" radius="0,10,10,0"/>
+  <Grid id="board" rows="2" columns="2" desktopMode="true" anchor="Top" offset="0,0" size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth),A_ScreenHeight" gap="12" rowHeights="96,*" columnWidths="*,72" radius="16">
+    <Row id="titlebar" columns="2" span="2" gap="8" columnWidths="*,160" style="plain">
+      <Label id="page_title" style="plain" label="Gaze" caption="Follow, lens, look-to maps, and ComboMouse" textStyle="title"/>
+      <Button id="tab_done" style="button" label="Close" icon="keyboardHide" textStyle="row" closeAllPages="true"/>
+    </Row>
+    <Column id="scroller" rows="4" row="1" gap="12" rowHeights="376,376,480,584" scroll="true">
+      <Card id="sec_follow" rows="4" gap="8" padding="8" rowHeights="48,96,96,96" style="group">
+        <Label id="h_follow" style="plain" label="Follow" textStyle="section"/>
+        <Row id="row_follow" columns="2" gap="6" style="row">
+          <Label id="f_l" style="plain" label="Gaze follow" caption="Reticle, gaze mouse, and live lens."/>
+          <Row columns="4" style="row">
+            <Choice id="f_slow" style="joinLeft" label="Slow" bind="settings.mag.follow.slow" command="settings.mag.follow.slow"/>
+            <Choice style="join" label="Sticky" bind="settings.mag.follow.sticky" command="settings.mag.follow.sticky"/>
+            <Choice style="join" label="Smooth" bind="settings.mag.follow.smooth" command="settings.mag.follow.smooth"/>
+            <Choice style="joinRight" label="Snappy" bind="settings.mag.follow.snappy" command="settings.mag.follow.snappy"/>
+          </Row>
+        </Row>
+        <Row columns="2" gap="6" style="row">
+          <Label style="plain" label="Show gaze" caption="Marker at the gaze point."/>
+          <Switch id="reticle" style="button" label="On" icon="eye" bind="gazeReticle" command="toggleGazeReticle"/>
+        </Row>
+        <Row columns="2" gap="6" style="row">
+          <Label style="plain" label="Gaze mouse" caption="The pointer follows gaze."/>
+          <Switch id="follow" style="button" label="On" icon="MouseMagneticCursor" bind="gazeMouseFollow" command="toggleGazeMouseFollow"/>
+        </Row>
+      </Card>
+      <Card id="sec_lens" rows="4" gap="8" padding="8" rowHeights="48,96,96,96" style="group">
+        <Label id="h_lens" style="plain" label="Lens" textStyle="section"/>
+        <Row columns="2" gap="6" style="row">
+          <Label style="plain" label="Lens" caption="Magnifier that follows gaze."/>
+          <Switch id="magnifier" style="button" label="On" icon="MagnifyTool" bind="magnifier" command="toggleMagnifier"/>
+        </Row>
+        <Row columns="2" gap="6" style="row">
+          <Label style="plain" label="Lens zoom" caption="Live lens magnification."/>
+          <Row columns="9" style="row">
+            <Button style="joinLeft" label="−" span="2" command="settings.nudge.magZoom.dec"/>
+            <Label id="z_val" style="join" label="—" settingKey="magZoom" role="value" span="3"/>
+            <Button style="join" label="+" span="2" command="settings.nudge.magZoom.inc"/>
+            <Button style="joinRight" label="Edit…" icon="editSquare" span="2" command="settings.edit.magZoom"/>
+          </Row>
+        </Row>
+        <Row columns="2" gap="6" style="row">
+          <Label style="plain" label="Lens size" caption="Live lens diameter."/>
+          <Row columns="9" style="row">
+            <Button style="joinLeft" label="−" span="2" command="settings.nudge.magLensSize.dec"/>
+            <Label id="l_val" style="join" label="—" settingKey="magLensSize" role="value" span="3"/>
+            <Button style="join" label="+" span="2" command="settings.nudge.magLensSize.inc"/>
+            <Button style="joinRight" label="Edit…" icon="editSquare" span="2" command="settings.edit.magLensSize"/>
+          </Row>
+        </Row>
+      </Card>
+      <Card id="sec_look" rows="5" gap="8" padding="8" rowHeights="48,96,96,96,96" style="group">
+        <Row columns="2" gap="12" columnWidths="220,*" style="plain">
+          <Label id="h_look" style="plain" label="Look-to maps" textStyle="section"/>
+          <Label id="look_hint" style="plain" label="Each map has its own origin and rings. All four can run at once." textStyle="caption"/>
+        </Row>
+        <Row columns="2" gap="6" style="row">
+          <Label style="plain" label="Scroll" icon="lookToScroll" caption="Wheel from gaze vs the origin."/>
+          <Row columns="2" style="row">
+            <Switch id="lts_on" style="joinLeft" label="Enable" icon="lookToScroll" bind="lookToScroll" command="lookToScroll"/>
+            <Button style="joinRight" label="Edit" icon="editSquare" command="lookTo.edit.scroll"/>
+          </Row>
+        </Row>
+        <Row id="row_mouse" columns="2" gap="6" style="row">
+          <Label style="plain" label="Mouse" icon="mouseMove" caption="Move the pointer from gaze vs the origin."/>
+          <Row id="act_mouse" columns="2" style="row">
+            <Switch id="mouse_on" style="joinLeft" label="Enable" icon="mouseMove" bind="lookToMouse" command="lookToMouse"/>
+            <Button style="joinRight" label="Edit" icon="editSquare" command="lookTo.edit.mouse"/>
+          </Row>
+        </Row>
+        <Row columns="2" gap="6" style="row">
+          <Label style="plain" label="Left stick" icon="sportsEsports" caption="Left analog stick from gaze vs the origin."/>
+          <Row columns="2" style="row">
+            <Switch id="lstick_on" style="joinLeft" label="Enable" icon="sportsEsports" bind="lookToLeftStick" command="lookToLeftStick"/>
+            <Button style="joinRight" label="Edit" icon="editSquare" command="lookTo.edit.leftStick"/>
+          </Row>
+        </Row>
+        <Row columns="2" gap="6" style="row">
+          <Label style="plain" label="Right stick" icon="sportsEsports" caption="Right analog stick from gaze vs the origin."/>
+          <Row columns="2" style="row">
+            <Switch id="rstick_on" style="joinLeft" label="Enable" icon="sportsEsports" bind="lookToRightStick" command="lookToRightStick"/>
+            <Button style="joinRight" label="Edit" icon="editSquare" command="lookTo.edit.rightStick"/>
+          </Row>
+        </Row>
+      </Card>
+      <Card id="sec_combo" rows="6" gap="8" padding="8" rowHeights="48,96,96,96,96,96" style="group">
+        <Label id="h_combo" style="plain" label="ComboMouse" textStyle="section"/>
+        <Row id="row_combo_on" columns="2" gap="6" style="row">
+          <Label id="combo_on_l" style="plain" label="Try" caption="Dwell to place, then drift and click from the pie."/>
+          <Switch id="combo_on" style="button" label="ComboMouse" icon="comboMouse" bind="comboMouse" command="toggleComboMouse"/>
+        </Row>
+        <Row id="row_combo_inner" columns="2" gap="6" style="row">
+          <Label style="plain" label="Inner radius" caption="Inner edge of the drift ring."/>
+          <Row columns="9" style="row">
+            <Button style="joinLeft" label="−" span="2" command="settings.nudge.comboInnerRadiusPx.dec"/>
+            <Label style="join" label="—" settingKey="comboInnerRadiusPx" role="value" span="3"/>
+            <Button style="join" label="+" span="2" command="settings.nudge.comboInnerRadiusPx.inc"/>
+            <Button style="joinRight" label="Edit…" icon="editSquare" span="2" command="settings.edit.comboInnerRadiusPx"/>
+          </Row>
+        </Row>
+        <Row columns="2" gap="6" style="row">
+          <Label style="plain" label="Shared radius" caption="Where the drift ring meets the pie."/>
+          <Row columns="9" style="row">
+            <Button style="joinLeft" label="−" span="2" command="settings.nudge.comboSharedRadiusPx.dec"/>
+            <Label style="join" label="—" settingKey="comboSharedRadiusPx" role="value" span="3"/>
+            <Button style="join" label="+" span="2" command="settings.nudge.comboSharedRadiusPx.inc"/>
+            <Button style="joinRight" label="Edit…" icon="editSquare" span="2" command="settings.edit.comboSharedRadiusPx"/>
+          </Row>
+        </Row>
+        <Row columns="2" gap="6" style="row">
+          <Label style="plain" label="Outer radius" caption="Outer edge of the command pie."/>
+          <Row columns="9" style="row">
+            <Button style="joinLeft" label="−" span="2" command="settings.nudge.comboOuterRadiusPx.dec"/>
+            <Label style="join" label="—" settingKey="comboOuterRadiusPx" role="value" span="3"/>
+            <Button style="join" label="+" span="2" command="settings.nudge.comboOuterRadiusPx.inc"/>
+            <Button style="joinRight" label="Edit…" icon="editSquare" span="2" command="settings.edit.comboOuterRadiusPx"/>
+          </Row>
+        </Row>
+        <Row id="row_combo_style" columns="2" gap="6" style="row">
+          <Label style="plain" label="Colors" caption="Drift ring and command slices."/>
+          <Row columns="2" style="row">
+            <Button style="joinLeft" label="Inner ring" caption="Drift ring." settingKey="comboInnerColor" command="settings.edit.color.comboInnerColor"/>
+            <Button style="joinRight" label="Outer ring" caption="Command slices." settingKey="comboOuterColor" command="settings.edit.color.comboOuterColor"/>
+          </Row>
+        </Row>
+      </Card>
+    </Column>
+    <Card id="page_scroll" rows="3" row="1" col="1" gap="6" rowHeights="72,*,72" style="group">
+      <Button id="set_scroll_up" style="button" icon="ArrowUp" role="scrollUp" command="settings.scroll.up"/>
+      <Button caption="0,1,1" role="scrollbar" scanGrace="400"/>
+      <Button id="set_scroll_down" style="button" icon="ArrowDown" role="scrollDown" command="settings.scroll.down"/>
+    </Card>
   </Grid>
 </Page>

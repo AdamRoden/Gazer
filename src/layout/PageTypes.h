@@ -410,8 +410,13 @@ inline constexpr int kTrackLockMs = 400;
            || r == QLatin1String("headpreview") || r == QLatin1String("curvefield");
 }
 
+/// How a grid lays out its children. `Mesh` is the row/column grid. `Card` lays out as a column.
+enum class PageFlow { Mesh, Row, Column, Card };
+
 struct PageLeaf {
     QString id;
+    /// False when `id` was assigned so the session can address the control. The writer omits it.
+    bool authoredId = true;
     QString styleId;
     QString dwellId;
     PageChrome style;
@@ -474,6 +479,9 @@ struct PageCell : PageLeaf {
 
 struct PageGrid {
     QString id;
+    /// False when `id` was assigned so the session can address the grid. The writer omits it.
+    bool authoredId = true;
+    PageFlow flow = PageFlow::Mesh;
     bool nested = false;
     bool desktopMode = false;
     PageAnchor anchor = PageAnchor::TopLeft;

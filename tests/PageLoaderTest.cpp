@@ -68,6 +68,9 @@ private slots:
     void pageWriterRoundTripMain();
     void starRowHeightsRoundTrip();
     void trackSizesRoundTrip();
+    void flowBoxOmitsIndexes();
+    void gridSpanIsColumnSpan();
+    void unnamedButtonGetsSlotId();
     void sessionKeyPrefixedAfterPageId();
     void catalogUserCopyWinsPath();
     void catalogMarksInlinedHostPages();
@@ -1077,13 +1080,15 @@ void PageLoaderTest::loadComposePage()
             QCOMPARE(row->cells.at(i).colSpan, 1);
         }
     }
-    const PageCell* qKey = doc.findCell(QStringLiteral("ch_113_0_1"));
+    const PageGrid* letterRow = doc.findGrid(QStringLiteral("keys_row0"));
+    QVERIFY(letterRow);
+    const PageCell* qKey = &letterRow->cells.at(1);
     QVERIFY(qKey);
     QCOMPARE(qKey->actions[0].type, PageActionType::Send);
     QCOMPARE(qKey->actions[0].sendKey, QStringLiteral("q"));
     QCOMPARE(qKey->col, 1);
     QCOMPARE(qKey->colSpan, 1);
-    const PageCell* pKey = doc.findCell(QStringLiteral("ch_112_0_10"));
+    const PageCell* pKey = &letterRow->cells.at(10);
     const PageCell* minus = doc.findCell(QStringLiteral("minus"));
     const PageCell* bksp = doc.findCell(QStringLiteral("bksp"));
     QVERIFY(pKey);
@@ -1093,7 +1098,9 @@ void PageLoaderTest::loadComposePage()
     QCOMPARE(bksp->col, minus->col + minus->colSpan);
     QCOMPARE(minus->colSpan, 1);
     QCOMPARE(minus->actions[0].sendKey, QStringLiteral("-"));
-    const PageCell* lKey = doc.findCell(QStringLiteral("ch_108_1_9"));
+    const PageGrid* homeRow = doc.findGrid(QStringLiteral("keys_row1"));
+    QVERIFY(homeRow);
+    const PageCell* lKey = &homeRow->cells.at(9);
     const PageCell* semi = doc.findCell(QStringLiteral("semicolon"));
     const PageCell* quote = doc.findCell(QStringLiteral("quote"));
     const PageCell* wordBksp = doc.findCell(QStringLiteral("bksp_word"));
@@ -1109,7 +1116,9 @@ void PageLoaderTest::loadComposePage()
     QCOMPARE(wordBksp->colSpan, 1);
     QCOMPARE(semi->actions[0].sendKey, QStringLiteral(";"));
     QCOMPARE(wordBksp->actions[0].command, QStringLiteral("compose.deleteWord"));
-    const PageCell* mKey = doc.findCell(QStringLiteral("ch_109_2_9"));
+    const PageGrid* bottomRow = doc.findGrid(QStringLiteral("keys_row2"));
+    QVERIFY(bottomRow);
+    const PageCell* mKey = &bottomRow->cells.at(9);
     const PageCell* comma = doc.findCell(QStringLiteral("comma"));
     const PageCell* period = doc.findCell(QStringLiteral("period"));
     QVERIFY(mKey);
@@ -1119,8 +1128,8 @@ void PageLoaderTest::loadComposePage()
     QCOMPARE(period->col, comma->col + comma->colSpan);
     QCOMPARE(comma->colSpan, 1);
     QCOMPARE(period->colSpan, 1);
-    const PageCell* vKey = doc.findCell(QStringLiteral("ch_118_2_5"));
-    const PageCell* bKey = doc.findCell(QStringLiteral("ch_98_2_7"));
+    const PageCell* vKey = &bottomRow->cells.at(5);
+    const PageCell* bKey = &bottomRow->cells.at(7);
     const PageCell* space = doc.findCell(QStringLiteral("space"));
     QVERIFY(vKey);
     QVERIFY(bKey);
@@ -1302,6 +1311,101 @@ void PageLoaderTest::trackSizesRoundTrip()
     QVERIFY(QString::fromUtf8(out).contains(QStringLiteral("rowHeights=")));
     QVERIFY(QString::fromUtf8(out).contains(QStringLiteral("columnWidths=")));
     QVERIFY(!QString::fromUtf8(out).contains(QStringLiteral("columnWeights")));
+}
+
+void PageLoaderTest::flowBoxOmitsIndexes()
+{
+    const QByteArray xml = R"xml(
+<Page id="p">
+  <Row id="keys" columns="3" gap="4">
+    <Button label="q" send="q"/>
+    <Button label="w" send="w"/>
+    <Button label="e" send="e"/>
+  </Row>
+  <Column id="stack" rows="2" padding="8">
+    <Label label="Title" textStyle="title"/>
+    <Button bind="dwellSuspend" command="toggleDwellSuspend"/>
+  </Column>
+</Page>
+)xml";
+    PageDocument doc;
+    QString err;
+    QVERIFY2(PageLoader::loadFromXml(xml, doc, &err), qPrintable(err));
+    QCOMPARE(doc.grids[0].flow, PageFlow::Row);
+    QCOMPARE(doc.grids[0].cells[2].col, 2);
+    QCOMPARE(doc.grids[0].cells[0].role, QString());
+    QVERIFY(!doc.grids[0].cells[0].authoredId);
+    QCOMPARE(doc.grids[1].flow, PageFlow::Column);
+    QCOMPARE(doc.grids[1].marginPx, 8);
+    QCOMPARE(doc.grids[1].cells[0].role, QStringLiteral("label"));
+    QCOMPARE(doc.grids[1].cells[0].row, 0);
+    QCOMPARE(doc.grids[1].cells[1].row, 1);
+    QCOMPARE(doc.grids[1].cells[1].activeState, QStringLiteral("dwellSuspend"));
+    QVERIFY(doc.grids[1].cells[1].suspendExempt);
+    const QString written = QString::fromUtf8(PageWriter::toBytes(doc));
+    QVERIFY(written.contains(QStringLiteral("<Row")));
+    QVERIFY(written.contains(QStringLiteral("<Button")));
+    QVERIFY(written.contains(QStringLiteral("<Label")));
+    QVERIFY(written.contains(QStringLiteral("padding=\"8\"")));
+    QVERIFY(written.contains(QStringLiteral("bind=\"dwellSuspend\"")));
+    QVERIFY(!written.contains(QStringLiteral("id=\"q\"")));
+    PageDocument again;
+    QVERIFY2(PageLoader::loadFromXml(written.toUtf8(), again, &err), qPrintable(err));
+    QCOMPARE(again.grids[0].cells[2].col, 2);
+    QCOMPARE(again.grids[1].cells[1].row, 1);
+}
+
+void PageLoaderTest::gridSpanIsColumnSpan()
+{
+    const QByteArray xml = R"xml(
+<Page id="p">
+  <Grid id="board" rows="4" columns="6">
+    <Row id="title" span="6" columns="2">
+      <Label label="Title"/>
+      <Button label="Close"/>
+    </Row>
+    <Card id="body" row="1" span="5" rows="2">
+      <Label label="A"/>
+    </Card>
+  </Grid>
+</Page>
+)xml";
+    PageDocument doc;
+    QString err;
+    QVERIFY2(PageLoader::loadFromXml(xml, doc, &err), qPrintable(err));
+    QCOMPARE(doc.findGrid(QStringLiteral("title"))->colSpan, 6);
+    QCOMPARE(doc.findGrid(QStringLiteral("title"))->row, 0);
+    QCOMPARE(doc.findGrid(QStringLiteral("body"))->colSpan, 5);
+    QCOMPARE(doc.findGrid(QStringLiteral("body"))->row, 1);
+    const QString path = QStringLiteral(GAZER_SOURCE_DIR) + QStringLiteral("/resources/layouts/main_settings_defaults.xml");
+    PageDocument defaults;
+    QVERIFY2(PageLoader::loadFromFile(path, defaults, &err), qPrintable(err));
+    QCOMPARE(defaults.findGrid(QStringLiteral("titlebar"))->colSpan, 6);
+    QCOMPARE(defaults.findGrid(QStringLiteral("scroller"))->colSpan, 5);
+    const QString headPath = QStringLiteral(GAZER_SOURCE_DIR)
+                             + QStringLiteral("/resources/layouts/main_settings_head_pose.xml");
+    PageDocument head;
+    QVERIFY2(PageLoader::loadFromFile(headPath, head, &err), qPrintable(err));
+    QCOMPARE(head.findGrid(QStringLiteral("sec_preview"))->colSpan, 8);
+    QCOMPARE(head.findGrid(QStringLiteral("sec_maps"))->col, 8);
+    QCOMPARE(head.findGrid(QStringLiteral("sec_maps"))->colSpan, 8);
+}
+
+void PageLoaderTest::unnamedButtonGetsSlotId()
+{
+    const QByteArray xml = R"xml(
+<Page id="p">
+  <Grid id="board" rows="1" columns="1">
+    <Button label="Go" command="resumeDwell"/>
+  </Grid>
+</Page>
+)xml";
+    PageDocument doc;
+    QString err;
+    QVERIFY2(PageLoader::loadFromXml(xml, doc, &err), qPrintable(err));
+    QCOMPARE(doc.findCell(QStringLiteral("board/0,0"))->label, QStringLiteral("Go"));
+    QVERIFY(!doc.findCell(QStringLiteral("board/0,0"))->authoredId);
+    QVERIFY(!QString::fromUtf8(PageWriter::toBytes(doc)).contains(QStringLiteral("id=\"board/0,0\"")));
 }
 
 void PageLoaderTest::sessionKeyPrefixedAfterPageId()

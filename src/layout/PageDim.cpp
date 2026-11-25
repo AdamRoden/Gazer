@@ -600,6 +600,10 @@ QString token(const PageDim& d)
     }
     if (d.unit == PageDim::Unit::Proportion || d.unit == PageDim::Unit::HeightProportion) {
         QString t = QString::number(d.value, 'g', 8);
+        // "1" is pixels. A whole proportion has to keep the decimal so it reloads as a proportion.
+        if (!t.contains(QLatin1Char('.')) && !t.contains(QLatin1Char('e'), Qt::CaseInsensitive)) {
+            t += QStringLiteral(".0");
+        }
         if (d.unit == PageDim::Unit::HeightProportion) {
             t += QLatin1Char('h');
         }

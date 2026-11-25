@@ -1,21 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <Page id="qwerty_file" name="File keys" radius="0">
-  <Dwell id="vert1" scanGrace="200" activation="200,600"/>
   <Dwell id="vert2" scanGrace="100" activation="100,600"/>
-  <Grid id="vert1" desktopMode="true" rows="6" columns="1" anchor="TopRight" size="1/16,0.72" layers="1,2">
-    <Cell id="more" row="0" col="0" dwell="vert1" icon="mouse" openPage="example_mouse"/>
-    <Cell id="move_lclick" row="1" col="0" icon="mouseLeftClickAtGaze" dwell="vert1" activeState="mouseLeftClickAtGaze" mouseLeftClickAtGaze=""/>
-    <Cell id="move_rclick" row="2" col="0" icon="mouseRightClickAtGaze" dwell="vert1" activeState="mouseRightClickAtGaze" mouseRightClickAtGaze=""/>
-    <SubGrid id="edge" row="3" col="0" layers="1">
-      <Cell id="edge" row="0" col="0" icon="ArrowPointingToRight" dwell="vert1" showLayers="2"/>
-    </SubGrid>
-    <SubGrid id="keyboard" row="3" col="0" layers="2">
-      <Cell id="keyboard" row="0" col="0" icon="keyboardKeys" dwell="vert1" showLayers="1"/>
-    </SubGrid>
-    <Cell id="comboMouse" row="4" col="0" icon="comboMouse" dwell="vert1" activeState="comboMouse" command="toggleComboMouse"/>
-    <Cell id="lts" row="5" col="0" icon="lookToScroll" dwell="vert1" activeState="lookToScroll" command="toggleLookToScroll"/>
-  </Grid>
-  <Grid id="vert2" desktopMode="true" rows="2" columns="1" anchor="TopRight" offset="0,0.72" size="1/16,0.28" layers="2">
-    <Cell id="mid" row="0" col="0" icon="WindowMid" label="MID" dwell="vert2">
+  <Dwell id="vert1" scanGrace="200" activation="200,600"/>
+  <Column id="vert1" rows="6" desktopMode="true" anchor="TopRight" offset="0,0" size="0.0625,0.72" layers="1,2">
+    <Button dwell="vert1" icon="mouse" openPage="example_mouse"/>
+    <Button dwell="vert1" icon="mouseLeftClickAtGaze" bind="mouseLeftClickAtGaze" row="1" mouseLeftClickAtGaze=""/>
+    <Button dwell="vert1" icon="mouseRightClickAtGaze" bind="mouseRightClickAtGaze" row="2" mouseRightClickAtGaze=""/>
+    <Button id="comboMouse" dwell="vert1" icon="comboMouse" bind="comboMouse" row="4" command="toggleComboMouse"/>
+    <Button dwell="vert1" icon="lookToScroll" bind="lookToScroll" row="5" id="lts" command="toggleLookToScroll"/>
+    <Grid id="edge" row="3">
+      <Button dwell="vert1" icon="ArrowPointingToRight" showLayers="2"/>
+    </Grid>
+    <Grid id="keyboard" row="3" layers="2">
+      <Button dwell="vert1" icon="keyboardKeys" showLayers="1"/>
+    </Grid>
+  </Column>
+  <Column id="vert2" rows="2" desktopMode="true" anchor="TopRight" offset="0,0.72" size="0.0625,0.28" layers="2">
+    <Button dwell="vert2" label="MID" icon="WindowMid">
       <AHK><![CDATA[
       {
       try { 
@@ -30,8 +31,8 @@
       }
       }
       ]]></AHK>
-    </Cell>
-    <Cell id="max" row="1" col="0" icon="WindowMax" label="MAX" dwell="vert2">
+    </Button>
+    <Button dwell="vert2" id="max" label="MAX" icon="WindowMax">
       <AHK><![CDATA[
       {
       try { 
@@ -46,73 +47,73 @@
       }
       }
       ]]></AHK>
-    </Cell>
-  </Grid>
-  <Grid id="board" desktopMode="true" rows="4" columns="160" anchor="Bottom" size="1.0,0.28" gap="0" margin="0">
-    <Cell id="esc" row="0" col="0" colSpan="9" label="Esc" background="bg95" command="escape"/>
-    <Cell id="n1" row="0" col="9" colSpan="10" label="1" textStyle="key" send="1"/>
-    <Cell id="n2" row="0" col="19" colSpan="10" label="2" textStyle="key" send="2"/>
-    <Cell id="n3" row="0" col="29" colSpan="10" label="3" textStyle="key" send="3"/>
-    <Cell id="n4" row="0" col="39" colSpan="10" label="4" textStyle="key" send="4"/>
-    <Cell id="n5" row="0" col="49" colSpan="10" label="5" textStyle="key" send="5"/>
-    <Cell id="n6" row="0" col="59" colSpan="10" label="6" textStyle="key" send="6"/>
-    <Cell id="n7" row="0" col="69" colSpan="10" label="7" textStyle="key" send="7"/>
-    <Cell id="n8" row="0" col="79" colSpan="10" label="8" textStyle="key" send="8"/>
-    <Cell id="n9" row="0" col="89" colSpan="10" label="9" textStyle="key" send="9"/>
-    <Cell id="n0" row="0" col="99" colSpan="10" label="0" textStyle="key" send="0"/>
-    <Cell id="minus" row="0" col="109" colSpan="10" label="-" textStyle="key" send="-"/>
-    <Cell id="equals" row="0" col="119" colSpan="11" label="=" textStyle="key" send="="/>
-    <Cell id="del" row="0" col="130" colSpan="10" label="Del" background="bg95" command="delete"/>
-    <Cell id="pgup" row="0" col="140" colSpan="10" label="Pg Up" background="bg95" command="pageUp"/>
-    <Cell id="bksp" row="0" col="150" colSpan="10" icon="keyBackspace" background="bg95" command="backspace"/>
-    <Cell id="tab" row="1" col="0" colSpan="11" icon="keyTab" background="bg95" command="tab"/>
-    <Cell id="k_q" row="1" col="11" colSpan="10" label="q" textStyle="key" send="q"/>
-    <Cell id="k_w" row="1" col="21" colSpan="10" label="w" textStyle="key" send="w"/>
-    <Cell id="k_e" row="1" col="31" colSpan="10" label="e" textStyle="key" send="e"/>
-    <Cell id="k_r" row="1" col="41" colSpan="10" label="r" textStyle="key" send="r"/>
-    <Cell id="k_t" row="1" col="51" colSpan="10" label="t" textStyle="key" send="t"/>
-    <Cell id="k_y" row="1" col="61" colSpan="10" label="y" textStyle="key" send="y"/>
-    <Cell id="k_u" row="1" col="71" colSpan="10" label="u" textStyle="key" send="u"/>
-    <Cell id="k_i" row="1" col="81" colSpan="10" label="i" textStyle="key" send="i"/>
-    <Cell id="k_o" row="1" col="91" colSpan="10" label="o" textStyle="key" send="o"/>
-    <Cell id="k_p" row="1" col="101" colSpan="10" label="p" textStyle="key" send="p"/>
-    <Cell id="lbrack" row="1" col="111" colSpan="10" label="[" textStyle="key" scanGrace="300" send="["/>
-    <Cell id="rbrack" row="1" col="121" colSpan="9" label="]" textStyle="key" scanGrace="300" send="]"/>
-    <Cell id="home" row="1" col="130" colSpan="10" label="Home" background="bg95" command="home"/>
-    <Cell id="up" row="1" col="140" colSpan="10" icon="KeyUp" background="bg95" command="arrowUp"/>
-    <Cell id="end" row="1" col="150" colSpan="10" label="End" background="bg95" command="end"/>
-    <Cell id="shift_l" row="2" col="0" colSpan="13" icon="KeyShift" background="bg95" activeState="mod.shift" command="leftShift"/>
-    <Cell id="k_a" row="2" col="13" colSpan="10" label="a" textStyle="key" send="a"/>
-    <Cell id="k_s" row="2" col="23" colSpan="10" label="s" textStyle="key" send="s"/>
-    <Cell id="k_d" row="2" col="33" colSpan="10" label="d" textStyle="key" send="d"/>
-    <Cell id="k_f" row="2" col="43" colSpan="10" label="f" textStyle="key" send="f"/>
-    <Cell id="k_g" row="2" col="53" colSpan="10" label="g" textStyle="key" send="g"/>
-    <Cell id="k_h" row="2" col="63" colSpan="10" label="h" textStyle="key" send="h"/>
-    <Cell id="k_j" row="2" col="73" colSpan="10" label="j" textStyle="key" send="j"/>
-    <Cell id="k_k" row="2" col="83" colSpan="10" label="k" textStyle="key" send="k"/>
-    <Cell id="k_l" row="2" col="93" colSpan="10" label="l" textStyle="key" send="l"/>
-    <Cell id="semi" row="2" col="103" colSpan="8" label=";" textStyle="key" send=";"/>
-    <Cell id="quote" row="2" col="111" colSpan="8" label="&apos;" textStyle="key" send="&apos;"/>
-    <Cell id="shift_r" row="2" col="119" colSpan="11" icon="KeyShift" background="bg95" activeState="mod.shift" command="leftShift"/>
-    <Cell id="left" row="2" col="130" colSpan="10" icon="KeyLeft" background="bg95" command="arrowLeft"/>
-    <Cell id="down" row="2" col="140" colSpan="10" icon="KeyDown" background="bg95" command="arrowDown"/>
-    <Cell id="right" row="2" col="150" colSpan="10" icon="KeyRight" background="bg95" command="arrowRight"/>
-    <Cell id="ctrl_l" row="3" col="0" colSpan="9" label="Ctrl" background="bg95" activeState="mod.ctrl" command="leftCtrl"/>
-    <Cell id="win" row="3" col="9" colSpan="9" icon="KeyWin" background="bg95" activeState="mod.win" command="leftWin"/>
-    <Cell id="k_z" row="3" col="18" colSpan="9" label="z" textStyle="key" send="z"/>
-    <Cell id="k_x" row="3" col="27" colSpan="9" label="x" textStyle="key" send="x"/>
-    <Cell id="k_c" row="3" col="36" colSpan="10" label="c" textStyle="key" send="c"/>
-    <Cell id="k_v" row="3" col="46" colSpan="10" label="v" textStyle="key" send="v"/>
-    <Cell id="space" row="3" col="56" colSpan="14" icon="keySpace" command="space"/>
-    <Cell id="k_b" row="3" col="70" colSpan="10" label="b" textStyle="key" send="b"/>
-    <Cell id="k_n" row="3" col="80" colSpan="9" label="n" textStyle="key" send="n"/>
-    <Cell id="k_m" row="3" col="89" colSpan="9" label="m" textStyle="key" send="m"/>
-    <Cell id="comma" row="3" col="98" colSpan="8" label="," textStyle="key" send=","/>
-    <Cell id="dot" row="3" col="106" colSpan="8" label="." textStyle="key" send="."/>
-    <Cell id="slash" row="3" col="114" colSpan="8" label="/" textStyle="key" send="/"/>
-    <Cell id="ctrl_r" row="3" col="122" colSpan="9" label="Ctrl" background="bg95" activeState="mod.ctrl" command="leftCtrl"/>
-    <Cell id="alt" row="3" col="131" colSpan="9" label="Alt" background="bg95" activeState="mod.alt" command="leftAlt"/>
-    <Cell id="pgdn" row="3" col="140" colSpan="10" label="Pg Dn" background="bg95" command="pageDown"/>
-    <Cell id="enter" row="3" col="150" colSpan="10" icon="keyReturn" background="bg95" command="enter"/>
+    </Button>
+  </Column>
+  <Grid id="board" rows="4" columns="160" desktopMode="true" anchor="Bottom" offset="0,0" size="1.0,0.28">
+    <Button id="esc" label="Esc" background="bg95" span="9" command="escape"/>
+    <Button label="1" textStyle="key" col="9" span="10" send="1"/>
+    <Button label="2" textStyle="key" col="19" span="10" send="2"/>
+    <Button label="3" textStyle="key" col="29" span="10" send="3"/>
+    <Button label="4" textStyle="key" col="39" span="10" send="4"/>
+    <Button label="5" textStyle="key" col="49" span="10" send="5"/>
+    <Button label="6" textStyle="key" col="59" span="10" send="6"/>
+    <Button label="7" textStyle="key" col="69" span="10" send="7"/>
+    <Button label="8" textStyle="key" col="79" span="10" send="8"/>
+    <Button label="9" textStyle="key" col="89" span="10" send="9"/>
+    <Button id="n0" label="0" textStyle="key" col="99" span="10" send="0"/>
+    <Button id="minus" label="-" textStyle="key" col="109" span="10" send="-"/>
+    <Button label="=" textStyle="key" col="119" span="11" send="="/>
+    <Button id="del" label="Del" background="bg95" col="130" span="10" command="delete"/>
+    <Button label="Pg Up" background="bg95" col="140" span="10" command="pageUp"/>
+    <Button id="bksp" icon="keyBackspace" background="bg95" col="150" span="10" command="backspace"/>
+    <Button icon="keyTab" background="bg95" row="1" span="11" command="tab"/>
+    <Button id="k_q" label="q" textStyle="key" row="1" col="11" span="10" send="q"/>
+    <Button label="w" textStyle="key" row="1" col="21" span="10" send="w"/>
+    <Button label="e" textStyle="key" row="1" col="31" span="10" send="e"/>
+    <Button label="r" textStyle="key" row="1" col="41" span="10" send="r"/>
+    <Button label="t" textStyle="key" row="1" col="51" span="10" send="t"/>
+    <Button label="y" textStyle="key" row="1" col="61" span="10" send="y"/>
+    <Button label="u" textStyle="key" row="1" col="71" span="10" send="u"/>
+    <Button label="i" textStyle="key" row="1" col="81" span="10" send="i"/>
+    <Button label="o" textStyle="key" row="1" col="91" span="10" send="o"/>
+    <Button label="p" textStyle="key" row="1" col="101" span="10" send="p"/>
+    <Button label="[" textStyle="key" scanGrace="300" row="1" col="111" span="10" send="["/>
+    <Button label="]" textStyle="key" scanGrace="300" row="1" col="121" span="9" send="]"/>
+    <Button label="Home" background="bg95" row="1" col="130" span="10" command="home"/>
+    <Button icon="KeyUp" background="bg95" row="1" col="140" span="10" command="arrowUp"/>
+    <Button label="End" background="bg95" row="1" col="150" span="10" command="end"/>
+    <Button icon="KeyShift" bind="mod.shift" background="bg95" row="2" span="13" command="leftShift"/>
+    <Button label="a" textStyle="key" row="2" col="13" span="10" send="a"/>
+    <Button label="s" textStyle="key" row="2" col="23" span="10" send="s"/>
+    <Button label="d" textStyle="key" row="2" col="33" span="10" send="d"/>
+    <Button label="f" textStyle="key" row="2" col="43" span="10" send="f"/>
+    <Button label="g" textStyle="key" row="2" col="53" span="10" send="g"/>
+    <Button label="h" textStyle="key" row="2" col="63" span="10" send="h"/>
+    <Button label="j" textStyle="key" row="2" col="73" span="10" send="j"/>
+    <Button label="k" textStyle="key" row="2" col="83" span="10" send="k"/>
+    <Button label="l" textStyle="key" row="2" col="93" span="10" send="l"/>
+    <Button label=";" textStyle="key" row="2" col="103" span="8" send=";"/>
+    <Button id="quote" label="'" textStyle="key" row="2" col="111" span="8" send="'"/>
+    <Button icon="KeyShift" bind="mod.shift" background="bg95" row="2" col="119" span="11" command="leftShift"/>
+    <Button icon="KeyLeft" background="bg95" row="2" col="130" span="10" command="arrowLeft"/>
+    <Button icon="KeyDown" background="bg95" row="2" col="140" span="10" command="arrowDown"/>
+    <Button icon="KeyRight" background="bg95" row="2" col="150" span="10" command="arrowRight"/>
+    <Button label="Ctrl" bind="mod.ctrl" background="bg95" row="3" span="9" command="leftCtrl"/>
+    <Button icon="KeyWin" bind="mod.win" background="bg95" row="3" col="9" span="9" command="leftWin"/>
+    <Button label="z" textStyle="key" row="3" col="18" span="9" send="z"/>
+    <Button label="x" textStyle="key" row="3" col="27" span="9" send="x"/>
+    <Button label="c" textStyle="key" row="3" col="36" span="10" send="c"/>
+    <Button label="v" textStyle="key" row="3" col="46" span="10" send="v"/>
+    <Button id="space" icon="keySpace" row="3" col="56" span="14" command="space"/>
+    <Button label="b" textStyle="key" row="3" col="70" span="10" send="b"/>
+    <Button label="n" textStyle="key" row="3" col="80" span="9" send="n"/>
+    <Button label="m" textStyle="key" row="3" col="89" span="9" send="m"/>
+    <Button id="comma" label="," textStyle="key" row="3" col="98" span="8" send=","/>
+    <Button label="." textStyle="key" row="3" col="106" span="8" send="."/>
+    <Button label="/" textStyle="key" row="3" col="114" span="8" send="/"/>
+    <Button label="Ctrl" bind="mod.ctrl" background="bg95" row="3" col="122" span="9" command="leftCtrl"/>
+    <Button label="Alt" bind="mod.alt" background="bg95" row="3" col="131" span="9" command="leftAlt"/>
+    <Button label="Pg Dn" background="bg95" row="3" col="140" span="10" command="pageDown"/>
+    <Button id="enter" icon="keyReturn" background="bg95" row="3" col="150" span="10" command="enter"/>
   </Grid>
 </Page>

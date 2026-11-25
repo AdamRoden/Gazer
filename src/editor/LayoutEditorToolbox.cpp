@@ -3,6 +3,7 @@
 #include "editor/LayoutEditorMenu.h"
 #include "editor/LayoutEditorSession.h"
 #include "layout/PageEdit.h"
+#include "layout/PageXml.h"
 
 #include <functional>
 #include <optional>
@@ -314,20 +315,23 @@ void LayoutEditorToolbox::rebuildHierarchy()
         auto* zones = add(root, QStringLiteral("Zones"), std::nullopt, {}, EditorGlyph::Zone, {});
         zones->setExpanded(true);
         for (const PageZone& it : d.zones) {
-            const QString label = it.label.isEmpty() ? it.id : it.label;
+            const QString label = !it.label.isEmpty() ? it.label
+                                  : it.authoredId      ? it.id
+                                                       : QStringLiteral("Zone");
             add(zones, label, EditorTarget::Item, it.id, EditorGlyph::Zone, it.id);
         }
     }
 
     auto addLeaf = [&](QTreeWidgetItem* parent, const PageLeaf& it, bool zone) {
-        const QString label = it.label.isEmpty() ? it.id : it.label;
+        const QString label = !it.label.isEmpty() ? it.label
+                              : it.authoredId      ? it.id
+                                                   : controlElementForRole(it.role);
         add(parent, label, EditorTarget::Item, it.id, glyphForLeaf(it, zone), it.id);
     };
     std::function<void(QTreeWidgetItem*, const PageGrid&)> addGrid =
         [&](QTreeWidgetItem* parent, const PageGrid& g) {
-            const QString kindLabel =
-                g.nested ? QStringLiteral("Subgrid") : QStringLiteral("Grid");
-            const QString label = g.id.isEmpty() ? kindLabel : g.id;
+            const QString kindLabel = pageFlowElement(g.flow);
+            const QString label = g.authoredId && !g.id.isEmpty() ? g.id : kindLabel;
             auto* node = add(parent, label, EditorTarget::Grid, g.id,
                              g.nested ? EditorGlyph::SubGrid : EditorGlyph::GridAdd, kindLabel);
             node->setExpanded(true);

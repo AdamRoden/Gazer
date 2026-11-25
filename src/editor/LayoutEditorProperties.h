@@ -53,6 +53,7 @@ private:
     void applyGrid(const std::function<void(PageGrid&)>& fn, const QString& undoLabel);
     void applyZone(const std::function<void(PageZone&)>& fn, const QString& undoLabel);
     void applyCell(const std::function<void(PageCell&)>& fn, const QString& undoLabel);
+    void setAuthoredId(const QString& currentId, const QString& next, bool grid);
 
     [[nodiscard]] Kind currentKind() const;
     void selectStyleTab();

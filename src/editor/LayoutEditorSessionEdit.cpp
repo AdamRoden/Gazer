@@ -1,6 +1,7 @@
 #include "editor/LayoutEditorSession.h"
 
 #include "layout/PageEdit.h"
+#include "layout/PageXml.h"
 
 #include <QHash>
 #include <QSet>
@@ -114,7 +115,7 @@ void LayoutEditorSession::addItem(EditorItemKind kind)
 void LayoutEditorSession::addZoneAt(const QPoint& virtTopLeft)
 {
     PageZone z;
-    z.id = uniqueItemId(QStringLiteral("zone"));
+    z.authoredId = false;
     z.label = QStringLiteral("Zone");
     z.anchor = PageAnchor::TopLeft;
     z.offset.x = PageDim::pixels(virtTopLeft.x());
@@ -122,8 +123,12 @@ void LayoutEditorSession::addZoneAt(const QPoint& virtTopLeft)
     z.size.x = PageDim::pixels(200);
     z.size.y = PageDim::pixels(120);
     z.dwellSize = z.size;
-    const QString newId = z.id;
-    edit(QStringLiteral("Add zone"), [&](PageDocument& d) { d.zones.push_back(z); });
+    QString newId;
+    edit(QStringLiteral("Add zone"), [&](PageDocument& d) {
+        d.zones.push_back(z);
+        PageEdit::assignMissingIds(d);
+        newId = d.zones.back().id;
+    });
     m_placeKind.reset();
     emit placeKindChanged();
     selectItem(newId);
@@ -136,7 +141,7 @@ void LayoutEditorSession::addItemAt(EditorItemKind kind, int row, int col, const
         return;
     }
     PageCell cell;
-    cell.id = uniqueItemId(QStringLiteral("item"));
+    cell.authoredId = false;
     cell.label = QStringLiteral("Button");
     cell.role = roleForKind(kind);
     cell.row = qMax(0, row);
@@ -150,7 +155,7 @@ void LayoutEditorSession::addItemAt(EditorItemKind kind, int row, int col, const
     } else if (cell.isInteractive()) {
         cell.actions.push_back(sendLetter(cell.label));
     }
-    const QString newId = cell.id;
+    QString newId;
     const QString gid = gridId;
     edit(QStringLiteral("Add %1").arg(cell.label), [&](PageDocument& d) {
         PageEdit::ensurePrimaryGrid(d);
@@ -160,6 +165,8 @@ void LayoutEditorSession::addItemAt(EditorItemKind kind, int row, int col, const
         }
         PageEdit::expandForCell(*g, cell);
         g->cells.push_back(cell);
+        PageEdit::assignMissingIds(d);
+        newId = g->cells.back().id;
     });
     m_placeKind.reset();
     emit placeKindChanged();
@@ -432,56 +439,82 @@ void LayoutEditorSession::setItemLabel(const QString& itemId, const QString& lab
     });
 }
 
+void LayoutEditorSession::insertGrid(PageFlow flow, bool nest)
+{
+    PageGrid box;
+    box.flow = flow;
+    box.authoredId = false;
+    box.gapPx = 8;
+    box.marginPx = 8;
+    if (flow == PageFlow::Row) {
+        box.rows = 1;
+        box.columns = 3;
+    } else if (flow == PageFlow::Column || flow == PageFlow::Card) {
+        box.rows = 3;
+        box.columns = 1;
+        if (flow == PageFlow::Card) {
+            box.styleId = QStringLiteral("group");
+        }
+    } else if (nest) {
+        box.rows = 1;
+        box.columns = 2;
+    } else {
+        box.rows = 1;
+        box.columns = 4;
+    }
+    const QString parentId = selectedGridId();
+    const QString undo = flow == PageFlow::Mesh
+                             ? (nest ? QStringLiteral("Add subgrid") : QStringLiteral("Add grid"))
+                             : QStringLiteral("Add %1").arg(pageFlowElement(flow));
+    QString newId;
+    edit(undo, [&](PageDocument& d) {
+        PageGrid* parent = nullptr;
+        if (nest) {
+            parent = parentId.isEmpty() ? nullptr : PageEdit::findGrid(d, parentId);
+            if (!parent) {
+                PageEdit::ensurePrimaryGrid(d);
+                parent = PageEdit::primaryGrid(d);
+            }
+        }
+        if (!parent) {
+            box.nested = false;
+            box.desktopMode = true;
+            box.anchor = PageAnchor::Bottom;
+            box.size.x = PageDim::pixels(800);
+            box.size.y = PageDim::pixels(280);
+            d.grids.push_back(box);
+        } else {
+            box.nested = true;
+            int row = 0;
+            int col = 0;
+            if (!PageEdit::findEmptyCell(*parent, row, col)) {
+                row = parent->rows;
+                col = 0;
+                parent->rows += 1;
+            }
+            box.row = row;
+            box.col = col;
+            parent->subGrids.push_back(box);
+        }
+        PageEdit::assignMissingIds(d);
+        newId = parent ? parent->subGrids.back().id : d.grids.back().id;
+    });
+    selectGrid(newId);
+}
+
+void LayoutEditorSession::addFlow(PageFlow flow)
+{
+    insertGrid(flow, !selectedGridId().isEmpty());
+}
+
 void LayoutEditorSession::addTopGrid()
 {
-    PageGrid g;
-    g.id = uniqueItemId(QStringLiteral("grid"));
-    g.desktopMode = true;
-    g.anchor = PageAnchor::Bottom;
-    g.size.x = PageDim::pixels(800);
-    g.size.y = PageDim::pixels(280);
-    g.rows = 1;
-    g.columns = 4;
-    g.gapPx = 8;
-    g.marginPx = 8;
-    const QString id = g.id;
-    edit(QStringLiteral("Add grid"), [&](PageDocument& d) { d.grids.push_back(g); });
-    selectGrid(id);
+    insertGrid(PageFlow::Mesh, false);
 }
 
 void LayoutEditorSession::addSubGrid()
 {
-    const QString parentId = selectedGridId();
-    PageGrid sub;
-    sub.id = uniqueItemId(QStringLiteral("sub"));
-    sub.nested = true;
-    sub.rows = 1;
-    sub.columns = 2;
-    sub.rowSpan = 1;
-    sub.colSpan = 1;
-    const QString id = sub.id;
-    edit(QStringLiteral("Add subgrid"), [&](PageDocument& d) {
-        PageEdit::ensurePrimaryGrid(d);
-        PageGrid* parent = parentId.isEmpty() ? PageEdit::primaryGrid(d)
-                                              : PageEdit::findGrid(d, parentId);
-        if (!parent) {
-            parent = PageEdit::primaryGrid(d);
-        }
-        if (!parent) {
-            return;
-        }
-        int row = 0;
-        int col = 0;
-        if (!PageEdit::findEmptyCell(*parent, row, col)) {
-            row = parent->rows;
-            col = 0;
-            parent->rows += 1;
-        }
-        sub.row = row;
-        sub.col = col;
-        parent->subGrids.push_back(sub);
-    });
-    selectGrid(id);
+    insertGrid(PageFlow::Mesh, true);
 }
 
 void LayoutEditorSession::addNamedStyle()

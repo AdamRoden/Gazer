@@ -13,16 +13,22 @@ Runtime notes for the live session: [src/layout/README.md](../src/layout/README.
   <Style id="…"/>          <!-- named chrome; omit id for page default -->
   <Dwell id="…"/>          <!-- named timing; omit id for page default -->
   <Zone …/>                <!-- screen-anchored chip -->
-  <Grid …>                 <!-- placed rectangle of rows × columns -->
-    <Cell …/>
-    <SubGrid …>            <!-- nested grid occupying a cell span -->
-      <Cell …/>
-    </SubGrid>
+  <Grid …>                 <!-- placed mesh of rows × columns -->
+    <Button …/>
+    <Row …>                <!-- one horizontal run; children sit in document order -->
+      <Button …/>
+    </Row>
+    <Column …/>            <!-- one vertical stack -->
+    <Card …/>              <!-- a column with group chrome -->
   </Grid>
 </Page>
 ```
 
-Child order is free. Grids and zones are painted and hit in document order within a page; attached pages stack newest in front.
+`Label`, `Display`, `Slider`, `Switch`, `Choice`, `Tab`, and `Swatch` are buttons with a fixed role. `padding` is the old `margin`. `bind` is the old `activeState`. `span` is `colSpan` when the control stays one row tall.
+
+An `id` is optional. Write one when code looks the control up by name (`phrase`, `open_keyboard`, a grid the session finds). Otherwise the loader assigns a slot name (`board/0,1`) for dwell and the editor, and the writer leaves it out. `Cell`, `SubGrid`, `margin`, and `activeState` still load.
+
+Child order is free inside a mesh. A `Row`, `Column`, or `Card` places children that omit `row` and `col` in document order. Grids and zones are painted and hit in document order within a page; attached pages stack newest in front.
 
 ---
 
@@ -171,7 +177,7 @@ A Grid is a placed rectangle of rows and columns. `SubGrid` occupies a parent ce
 | `offset`, `size` | `x,y` dim pairs (see [Dimensions](#dimensions)) |
 | `desktopMode` | `true` = virtual desktop bounds; else current screen |
 | `rows`, `columns` | Cell mesh |
-| `gap`, `margin` | Pixels between cells / inside the grid |
+| `gap`, `padding` | Pixels between children / inside the box. `margin` still loads as `padding` |
 | `rowHeights`, `columnWidths` | Per-track sizes, XAML GridLength-style. Integer token = pixels (`80`, `80px`). `*` / `2*` share leftover space after fixed tracks. Also accepts dim tokens (`0.25`, `1/4`, `0.25h`, `A_ScreenHeight/20`, `clamp(...)`). Missing tracks are `*`. Pixel tracks that overflow the inner size scale down together, unless `scroll="true"`. Equal rows/columns when the matching attribute is omitted. |
 | `scroll` | `true` keeps fixed tracks at their authored size and clips children to the slot. A star row is the natural height of the subgrid in that row, so it is not shrunk to the leftover viewport. The runtime pixel shift is not saved. A sibling column that holds scroll chrome (`scrollbar`, `scrollUp`, or `scrollDown`) is given no width when the content fits. |
 | `drawerMotion` | Scale animation when shown/hidden as the master drawer |
@@ -203,9 +209,9 @@ A Grid is a placed rectangle of rows and columns. `SubGrid` occupies a parent ce
 
 ---
 
-## `<Cell>`
+## `<Button>` / `<Cell>`
 
-Cells sit in a grid. They do **not** take `shell` or `layers` — they follow their grid.
+The writer emits `<Button>`, `<Label>`, `<Display>`, `<Slider>`, `<Switch>`, `<Choice>`, `<Tab>`, or `<Swatch>`. `<Cell>` still loads. Controls do **not** take `shell` or `layers` — they follow their grid. Omit `id` unless something looks the control up by name.
 
 | Attribute | Description |
 |-----------|-------------|
@@ -219,7 +225,7 @@ Cells sit in a grid. They do **not** take `shell` or `layers` — they follow th
 | `textStyle` | `caption`, `body`, `title`, `section`, `key`. `row` is an icon on the left and one elided line. An icon with no label is centered and scales with the cell |
 | `style`, `dwell` | Named ids |
 | `visibleWhen` | Predicate (see [Visibility](#visibility-and-accent)) |
-| `activeState` | Accent when this key is true (see [Visibility](#visibility-and-accent)) |
+| `bind` | Accent when this key is true (see [Visibility](#visibility-and-accent)). `activeState` still loads |
 | `suspendExempt` | Still a dwell target while global dwell is paused (`dwellExempt` is a legacy alias) |
 | `actionLoop` | Repeat the action until activated again |
 | `settingKey` | Bind to a settings field (live boards) |
@@ -276,9 +282,9 @@ Known session properties:
 <Zone id="mainChip" visibleWhen="!expanded" …/>
 ```
 
-### `activeState`
+### `bind`
 
-Paints the cell as “on” when the resolver key is true. Common keys:
+Paints the control as on when the resolver key is true. `activeState` still loads as the same field. Common keys:
 
 | Key | Meaning |
 |-----|---------|
@@ -291,7 +297,7 @@ Paints the cell as “on” when the resolver key is true. Common keys:
 | `compose.busy` / `compose.speaking` / `compose.editMode` | Composer |
 | `theme.light`, `settings.dwell.fast`, … | Settings / theme commands |
 
-Prefix `!` negates (`activeState="!dwellSuspend"`).
+Prefix `!` negates (`bind="!dwellSuspend"`).
 
 ---
 

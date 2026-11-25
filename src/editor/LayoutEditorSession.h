@@ -135,6 +135,7 @@ public:
     void setItemLabel(const QString& itemId, const QString& label);
     void addTopGrid();
     void addSubGrid();
+    void addFlow(PageFlow flow);
     void addNamedStyle();
     void addNamedDwell();
     void addGridRow();
@@ -169,6 +170,8 @@ private:
     void setDirty(bool dirty);
     void resetUndo();
     [[nodiscard]] QStringList actionItemIds(const QString& itemId) const;
+    /// `nest` places the box in the selected grid. A top-level add on an empty page is the only grid.
+    void insertGrid(PageFlow flow, bool nest);
 
     PageDocument m_doc;
     QString m_filePath;

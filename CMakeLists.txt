@@ -254,6 +254,7 @@ set(GAZER_HEADERS
     src/core/TrackerTobii.h
     src/core/StreamEngineLib.h
     src/layout/PageTypes.h
+    src/layout/PageXml.h
     src/layout/PageBox.h
     src/layout/RoundBox.h
     src/layout/ChromeBlur.h

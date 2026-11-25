@@ -302,6 +302,12 @@ void LayoutEditorWindow::buildUi()
 
     auto* actAddGrid = makeAction(QStringLiteral("Add g&rid"), QKeySequence(),
                                   [this]() { m_session->addTopGrid(); });
+    auto* actAddRow = makeAction(QStringLiteral("Add ro&w"), QKeySequence(),
+                                 [this]() { m_session->addFlow(PageFlow::Row); });
+    auto* actAddColumn = makeAction(QStringLiteral("Add colu&mn box"), QKeySequence(),
+                                    [this]() { m_session->addFlow(PageFlow::Column); });
+    auto* actAddCard = makeAction(QStringLiteral("Add car&d"), QKeySequence(),
+                                  [this]() { m_session->addFlow(PageFlow::Card); });
     auto* actAddSub = makeAction(QStringLiteral("Add s&ubgrid"), QKeySequence(),
                                  [this]() { m_session->addSubGrid(); });
     auto* actAddStyle = makeAction(QStringLiteral("Add named st&yle"), QKeySequence(),
@@ -316,6 +322,9 @@ void LayoutEditorWindow::buildUi()
     layoutMenu->addAction(actAddSlider);
     layoutMenu->addAction(actAddEdge);
     layoutMenu->addAction(actAddGrid);
+    layoutMenu->addAction(actAddRow);
+    layoutMenu->addAction(actAddColumn);
+    layoutMenu->addAction(actAddCard);
     layoutMenu->addAction(actAddSub);
     layoutMenu->addAction(actAddStyle);
     layoutMenu->addAction(actAddDwell);
@@ -455,6 +464,12 @@ void LayoutEditorWindow::buildUi()
                                 QStringLiteral("Duplicate"));
     m_toolbox->addPaletteAction(QStringLiteral("Structure"), actAddGrid, EditorGlyph::GridAdd,
                                 QStringLiteral("Grid"));
+    m_toolbox->addPaletteAction(QStringLiteral("Structure"), actAddRow, EditorGlyph::SubGrid,
+                                QStringLiteral("Row"));
+    m_toolbox->addPaletteAction(QStringLiteral("Structure"), actAddColumn, EditorGlyph::SubGrid,
+                                QStringLiteral("Column"));
+    m_toolbox->addPaletteAction(QStringLiteral("Structure"), actAddCard, EditorGlyph::SubGrid,
+                                QStringLiteral("Card"));
     m_toolbox->addPaletteAction(QStringLiteral("Structure"), actAddSub, EditorGlyph::SubGrid,
                                 QStringLiteral("Subgrid"));
     m_toolbox->addPaletteAction(QStringLiteral("Structure"), actAddStyle, EditorGlyph::Style,

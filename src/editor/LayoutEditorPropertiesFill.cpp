@@ -3,6 +3,7 @@
 #include "editor/LayoutEditorFields.h"
 #include "layout/PageDim.h"
 #include "layout/PageEdit.h"
+#include "layout/PageXml.h"
 
 #include <QFormLayout>
 #include <QStringList>
@@ -47,19 +48,16 @@ void LayoutEditorProperties::fillGrid(QFormLayout* form)
         b.note(form, QStringLiteral("This page has no grid. Add a grid from the Layout menu."));
         return;
     }
-    b.card(form, QStringLiteral("Grid"), [&](QFormLayout* f) {
-        b.text(f, QStringLiteral("Id"), g->id, [this](const QString& t) {
-            const QString next = t.trimmed();
-            const QString cur = m_session.selectedGridId();
-            if (next == cur) {
-                return;
-            }
-            if (next.isEmpty() || PageEdit::allIds(m_session.document()).contains(next)) {
-                rebuild();
-                return;
-            }
-            applyGrid([&](PageGrid& grid) { grid.id = next; }, QStringLiteral("Grid id"));
-            m_session.selectGrid(next);
+    b.card(form, pageFlowElement(g->flow), [&](QFormLayout* f) {
+        b.combo(f, QStringLiteral("Layout"),
+                {QStringLiteral("Grid"), QStringLiteral("Row"), QStringLiteral("Column"),
+                 QStringLiteral("Card")},
+                pageFlowElement(g->flow), [this](const QString& t) {
+                    applyGrid([&](PageGrid& grid) { grid.flow = pageFlowFromElement(t); },
+                              QStringLiteral("Layout"));
+                });
+        b.text(f, QStringLiteral("Id"), g->authoredId ? g->id : QString(), [this](const QString& t) {
+            setAuthoredId(m_session.selectedGridId(), t, true);
         });
         b.text(f, QStringLiteral("Source page"), g->src, [this](const QString& t) {
             applyGrid(
@@ -125,8 +123,8 @@ void LayoutEditorProperties::fillGrid(QFormLayout* form)
         b.integer(f, QStringLiteral("Gap px"), g->gapPx, 0, 64, [this](int v) {
             applyGrid([&](PageGrid& grid) { grid.gapPx = v; }, QStringLiteral("Gap"));
         });
-        b.integer(f, QStringLiteral("Inset px"), g->marginPx, 0, 200, [this](int v) {
-            applyGrid([&](PageGrid& grid) { grid.marginPx = v; }, QStringLiteral("Grid margin"));
+        b.integer(f, QStringLiteral("Padding"), g->marginPx, 0, 200, [this](int v) {
+            applyGrid([&](PageGrid& grid) { grid.marginPx = v; }, QStringLiteral("Padding"));
         });
     });
 }
@@ -135,24 +133,8 @@ void LayoutEditorProperties::fillLeafIdentity(QFormLayout* form, const PageLeaf&
 {
     PropertyBinder b{this, &m_loading};
     b.card(form, QStringLiteral("Identity"), [&](QFormLayout* f) {
-        b.text(f, QStringLiteral("Id"), item.id, [this](const QString& t) {
-            const QString next = t.trimmed();
-            const QString cur = m_session.selection().itemId;
-            if (next == cur) {
-                return;
-            }
-            if (next.isEmpty() || PageEdit::allIds(m_session.document()).contains(next)) {
-                rebuild();
-                return;
-            }
-            applyDoc(
-                [&](PageDocument& doc) {
-                    if (PageLeaf* leaf = PageEdit::findLeaf(doc, cur)) {
-                        leaf->id = next;
-                    }
-                },
-                QStringLiteral("Id"));
-            m_session.selectItem(next);
+        b.text(f, QStringLiteral("Id"), item.authoredId ? item.id : QString(), [this](const QString& t) {
+            setAuthoredId(m_session.selection().itemId, t, false);
         });
         b.text(f, QStringLiteral("Label"), item.label, [this](const QString& t) {
             applyItem([&](PageLeaf& it) { it.label = t; }, QStringLiteral("Label"));
@@ -510,8 +492,8 @@ void LayoutEditorProperties::fillAction(QFormLayout* form)
         b.check(f, QStringLiteral("Loop until activated again"), item->actionLoop, [this](bool on) {
             applyItem([&](PageLeaf& it) { it.actionLoop = on; }, QStringLiteral("Action loop"));
         });
-        b.text(f, QStringLiteral("Active-state key"), item->activeState, [this](const QString& t) {
-            applyItem([&](PageLeaf& it) { it.activeState = t; }, QStringLiteral("Active state"));
+        b.text(f, QStringLiteral("Bind"), item->activeState, [this](const QString& t) {
+            applyItem([&](PageLeaf& it) { it.activeState = t; }, QStringLiteral("Bind"));
         });
     });
     const bool phased = !item->phases.isEmpty();

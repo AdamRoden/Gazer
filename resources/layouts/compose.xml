@@ -1,240 +1,239 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <Page id="compose" name="Speak" radius="16">
-  <Style id="group" background="bg95" thickness="0" radius="16"/>
   <Style id="round" thickness="2" radius="1000"/>
   <Style id="plain" background="transparent" thickness="0" radius="0"/>
-  <Grid id="board" desktopMode="true" rows="2" columns="1" anchor="Top" offset="0,0"
-        size="1.5*A_ScreenHeight, A_ScreenHeight" gap="8" margin="16" radius="16"
-        rowHeights="8*,4*" layers="1,2,3,4,5">
-    <SubGrid id="workspace" row="0" col="0" rows="1" columns="2" columnWidths="200,*" gap="8" margin="0" layers="1,2,3,4,5">
-      <SubGrid id="sidebar" row="0" col="0" rows="2" columns="1" rowHeights="*,80" gap="8" margin="0" layers="1,2,3,4,5">
-        <SubGrid id="rail" row="0" col="0" rows="8" columns="1" rowHeights="*,*,*,*,*,*,*,*" gap="6" margin="0" layers="1,2,3,4,5">
-          <Cell id="rail_placeholder" row="0" col="0" role="label"/>
-        </SubGrid>
-        <Cell id="rail_mode" row="1" col="0" icon="star" label="Favorites" command="compose.toggleRail"/>
-      </SubGrid>
-      <SubGrid id="stage" row="0" col="1" rows="3" columns="1" rowHeights="*,96,72" gap="8" margin="0" layers="1,2,3,4,5">
-        <SubGrid id="soundboard" row="0" col="0" rows="7" columns="6" rowHeights="80,80,80,80,80,80,*" gap="8" margin="8" style="group" layers="1,2,3,4,5">
-          <Cell id="sb_placeholder" row="0" col="0" role="label"/>
-        </SubGrid>
-        <SubGrid id="compose" row="1" col="0" rows="1" columns="1" gap="0" margin="6" style="group" layers="1,2,3,4,5">
-          <SubGrid id="phrase" row="0" col="0" rows="1" columns="3" columnWidths="*,80,80" gap="10" margin="1" thickness="1" layers="1,2,3,4,5">
-            <Cell id="phrase" row="0" col="0" role="display" textStyle="body" thickness="0"/>
-            <Cell id="clear" row="0" col="1" icon="close" style="plain" radius="1000" command="compose.clear"/>
-            <Cell id="speak" row="0" col="2" icon="Speak" style="plain" radius="1000" command="compose.speak"/>
-          </SubGrid>
-        </SubGrid>
-        <SubGrid id="predict" row="2" col="0" rows="1" columns="1" gap="6" margin="0" layers="1,2,3,4,5">
-          <Cell id="pred_0" row="0" col="0" role="label"/>
-        </SubGrid>
-      </SubGrid>
-    </SubGrid>
-    <SubGrid id="keys" row="1" col="0" rows="3" columns="1" gap="4" margin="4" layers="1">
-      <SubGrid id="keys_row0" row="0" col="0" rows="1" columns="13" columnWidths="1*,1*,1*,1*,1*,1*,1*,1*,1*,1*,1*,.9*,1.1*" gap="4" margin="0" layers="1">
-        <Cell id="edit" row="0" col="0" icon="edit" label="Edit" background="bg90"/>
-        <Cell id="ch_113_0_1" row="0" col="1" label="q" textStyle="key" send="q"/>
-        <Cell id="ch_119_0_2" row="0" col="2" label="w" textStyle="key" send="w"/>
-        <Cell id="ch_101_0_3" row="0" col="3" label="e" textStyle="key" send="e"/>
-        <Cell id="ch_114_0_4" row="0" col="4" label="r" textStyle="key" send="r"/>
-        <Cell id="ch_116_0_5" row="0" col="5" label="t" textStyle="key" send="t"/>
-        <Cell id="ch_121_0_6" row="0" col="6" label="y" textStyle="key" send="y"/>
-        <Cell id="ch_117_0_7" row="0" col="7" label="u" textStyle="key" send="u"/>
-        <Cell id="ch_105_0_8" row="0" col="8" label="i" textStyle="key" send="i"/>
-        <Cell id="ch_111_0_9" row="0" col="9" label="o" textStyle="key" send="o"/>
-        <Cell id="ch_112_0_10" row="0" col="10" label="p" textStyle="key" send="p"/>
-        <Cell id="minus" row="0" col="11" label="-" textStyle="key" send="-"/>
-        <Cell id="bksp" row="0" col="12" icon="keyBackspace" background="bg90" command="backspace"/>
-      </SubGrid>
-      <SubGrid id="keys_row1" row="1" col="0" rows="1" columns="13" columnWidths="1.4*,1*,1*,1*,1*,1*,1*,1*,1*,1*,.9*,.9*,1*" gap="4" margin="0" layers="1">
-        <Cell id="shift" row="0" col="0" icon="KeyShift" background="bg90" showLayers="2"/>
-        <Cell id="ch_97_1_1" row="0" col="1" label="a" textStyle="key" send="a"/>
-        <Cell id="ch_115_1_2" row="0" col="2" label="s" textStyle="key" send="s"/>
-        <Cell id="ch_100_1_3" row="0" col="3" label="d" textStyle="key" send="d"/>
-        <Cell id="ch_102_1_4" row="0" col="4" label="f" textStyle="key" send="f"/>
-        <Cell id="ch_103_1_5" row="0" col="5" label="g" textStyle="key" send="g"/>
-        <Cell id="ch_104_1_6" row="0" col="6" label="h" textStyle="key" send="h"/>
-        <Cell id="ch_106_1_7" row="0" col="7" label="j" textStyle="key" send="j"/>
-        <Cell id="ch_107_1_8" row="0" col="8" label="k" textStyle="key" send="k"/>
-        <Cell id="ch_108_1_9" row="0" col="9" label="l" textStyle="key" send="l"/>
-        <Cell id="semicolon" row="0" col="10" label=";" textStyle="key" send=";"/>
-        <Cell id="quote" row="0" col="11" label="&apos;" textStyle="key" send="&apos;"/>
-        <Cell id="bksp_word" row="0" col="12" icon="BackMany" background="bg90" command="compose.deleteWord"/>
-      </SubGrid>
-      <SubGrid id="keys_row2" row="2" col="0" rows="1" columns="13" columnWidths="1*,1*,.9*,.9*,.9*,.9*,1.4*,1*,1*,1*,.9*,.9*,1.2*" gap="4" margin="0" layers="1">
-        <Cell id="delivery" row="0" col="0" icon="graphicEq" label="Actions" background="bg90" showLayers="5"/>
-        <Cell id="sym" row="0" col="1" icon="numbers" label="123?" background="accent" showLayers="3"/>
-        <Cell id="ch_122_2_2" row="0" col="2" label="z" textStyle="key" send="z"/>
-        <Cell id="ch_120_2_3" row="0" col="3" label="x" textStyle="key" send="x"/>
-        <Cell id="ch_99_2_4" row="0" col="4" label="c" textStyle="key" send="c"/>
-        <Cell id="ch_118_2_5" row="0" col="5" label="v" textStyle="key" send="v"/>
-        <Cell id="space" row="0" col="6" icon="keySpace" background="bg90" command="space"/>
-        <Cell id="ch_98_2_7" row="0" col="7" label="b" textStyle="key" send="b"/>
-        <Cell id="ch_110_2_8" row="0" col="8" label="n" textStyle="key" send="n"/>
-        <Cell id="ch_109_2_9" row="0" col="9" label="m" textStyle="key" send="m"/>
-        <Cell id="comma" row="0" col="10" label="," textStyle="key" send=","/>
-        <Cell id="period" row="0" col="11" label="." textStyle="key" send="."/>
-        <Cell id="enter" row="0" col="12" icon="keyReturn" background="accent" command="enter"/>
-      </SubGrid>
-    </SubGrid>
-    <SubGrid id="keys_shift" row="1" col="0" rows="3" columns="1" gap="4" margin="4" layers="2">
-      <SubGrid id="keys_shift_row0" row="0" col="0" rows="1" columns="13" columnWidths="1*,1*,1*,1*,1*,1*,1*,1*,1*,1*,1*,.9*,1.1*" gap="4" margin="0" layers="2">
-        <Cell id="edit_s" row="0" col="0" icon="edit" label="Edit" background="bg90"/>
-        <Cell id="ch_81_0_1" row="0" col="1" label="Q" textStyle="key" send="Q"/>
-        <Cell id="ch_87_0_2" row="0" col="2" label="W" textStyle="key" send="W"/>
-        <Cell id="ch_69_0_3" row="0" col="3" label="E" textStyle="key" send="E"/>
-        <Cell id="ch_82_0_4" row="0" col="4" label="R" textStyle="key" send="R"/>
-        <Cell id="ch_84_0_5" row="0" col="5" label="T" textStyle="key" send="T"/>
-        <Cell id="ch_89_0_6" row="0" col="6" label="Y" textStyle="key" send="Y"/>
-        <Cell id="ch_85_0_7" row="0" col="7" label="U" textStyle="key" send="U"/>
-        <Cell id="ch_73_0_8" row="0" col="8" label="I" textStyle="key" send="I"/>
-        <Cell id="ch_79_0_9" row="0" col="9" label="O" textStyle="key" send="O"/>
-        <Cell id="ch_80_0_10" row="0" col="10" label="P" textStyle="key" send="P"/>
-        <Cell id="minus_s" row="0" col="11" label="_" textStyle="key" send="_"/>
-        <Cell id="bksp_s" row="0" col="12" icon="keyBackspace" background="bg90" command="backspace"/>
-      </SubGrid>
-      <SubGrid id="keys_shift_row1" row="1" col="0" rows="1" columns="13" columnWidths="1.4*,1*,1*,1*,1*,1*,1*,1*,1*,1*,.9*,.9*,1*" gap="4" margin="0" layers="2">
-        <Cell id="shift_s" row="0" col="0" icon="KeyShift" background="accent80" showLayers="1"/>
-        <Cell id="ch_65_1_1" row="0" col="1" label="A" textStyle="key" send="A"/>
-        <Cell id="ch_83_1_2" row="0" col="2" label="S" textStyle="key" send="S"/>
-        <Cell id="ch_68_1_3" row="0" col="3" label="D" textStyle="key" send="D"/>
-        <Cell id="ch_70_1_4" row="0" col="4" label="F" textStyle="key" send="F"/>
-        <Cell id="ch_71_1_5" row="0" col="5" label="G" textStyle="key" send="G"/>
-        <Cell id="ch_72_1_6" row="0" col="6" label="H" textStyle="key" send="H"/>
-        <Cell id="ch_74_1_7" row="0" col="7" label="J" textStyle="key" send="J"/>
-        <Cell id="ch_75_1_8" row="0" col="8" label="K" textStyle="key" send="K"/>
-        <Cell id="ch_76_1_9" row="0" col="9" label="L" textStyle="key" send="L"/>
-        <Cell id="semicolon_s" row="0" col="10" label=":" textStyle="key" send=":"/>
-        <Cell id="quote_s" row="0" col="11" label="&quot;" textStyle="key" send="&quot;"/>
-        <Cell id="bksp_word_s" row="0" col="12" icon="BackMany" background="bg90" command="compose.deleteWord"/>
-      </SubGrid>
-      <SubGrid id="keys_shift_row2" row="2" col="0" rows="1" columns="13" columnWidths="1*,1*,.9*,.9*,.9*,.9*,1.4*,1*,1*,1*,.9*,.9*,1.2*" gap="4" margin="0" layers="2">
-        <Cell id="delivery_s" row="0" col="0" icon="graphicEq" label="Actions" background="bg90" showLayers="5"/>
-        <Cell id="sym_s" row="0" col="1" icon="numbers" label="123?" background="accent" showLayers="4"/>
-        <Cell id="ch_90_2_2" row="0" col="2" label="Z" textStyle="key" send="Z"/>
-        <Cell id="ch_88_2_3" row="0" col="3" label="X" textStyle="key" send="X"/>
-        <Cell id="ch_67_2_4" row="0" col="4" label="C" textStyle="key" send="C"/>
-        <Cell id="ch_86_2_5" row="0" col="5" label="V" textStyle="key" send="V"/>
-        <Cell id="space_s" row="0" col="6" icon="keySpace" background="bg90" command="space"/>
-        <Cell id="ch_66_2_7" row="0" col="7" label="B" textStyle="key" send="B"/>
-        <Cell id="ch_78_2_8" row="0" col="8" label="N" textStyle="key" send="N"/>
-        <Cell id="ch_77_2_9" row="0" col="9" label="M" textStyle="key" send="M"/>
-        <Cell id="comma_s" row="0" col="10" label="?" textStyle="key" send="?"/>
-        <Cell id="period_s" row="0" col="11" label="!" textStyle="key" send="!"/>
-        <Cell id="enter_s" row="0" col="12" icon="keyReturn" background="accent" command="enter"/>
-      </SubGrid>
-    </SubGrid>
-    <SubGrid id="keys_sym" row="1" col="0" rows="3" columns="1" gap="4" margin="4" layers="3">
-      <SubGrid id="keys_sym_row0" row="0" col="0" rows="1" columns="13" columnWidths="1*,1*,1*,1*,1*,1*,1*,1*,1*,1*,1*,.9*,1.1*" gap="4" margin="0" layers="3">
-        <Cell id="edit_sym" row="0" col="0" icon="edit" label="Edit" background="bg90"/>
-        <Cell id="d1" row="0" col="1" label="1" textStyle="key" send="1"/>
-        <Cell id="d2" row="0" col="2" label="2" textStyle="key" send="2"/>
-        <Cell id="d3" row="0" col="3" label="3" textStyle="key" send="3"/>
-        <Cell id="d4" row="0" col="4" label="4" textStyle="key" send="4"/>
-        <Cell id="d5" row="0" col="5" label="5" textStyle="key" send="5"/>
-        <Cell id="d6" row="0" col="6" label="6" textStyle="key" send="6"/>
-        <Cell id="d7" row="0" col="7" label="7" textStyle="key" send="7"/>
-        <Cell id="d8" row="0" col="8" label="8" textStyle="key" send="8"/>
-        <Cell id="d9" row="0" col="9" label="9" textStyle="key" send="9"/>
-        <Cell id="d10" row="0" col="10" label="0" textStyle="key" send="0"/>
-        <Cell id="d11" row="0" col="11" label="-" textStyle="key" send="-"/>
-        <Cell id="bksp_sym" row="0" col="12" icon="keyBackspace" background="bg90" command="backspace"/>
-      </SubGrid>
-      <SubGrid id="keys_sym_row1" row="1" col="0" rows="1" columns="13" columnWidths="1.4*,1*,1*,1*,1*,1*,1*,1*,1*,1*,.9*,.9*,1*" gap="4" margin="0" layers="3">
-        <Cell id="shift_sym" row="0" col="0" icon="KeyShift" background="bg90" showLayers="4"/>
-        <Cell id="s1" row="0" col="1" label="@" textStyle="key" send="@"/>
-        <Cell id="s2" row="0" col="2" label="#" textStyle="key" send="#"/>
-        <Cell id="s3" row="0" col="3" label="$" textStyle="key" send="$"/>
-        <Cell id="s4" row="0" col="4" label="%" textStyle="key" send="%"/>
-        <Cell id="s5" row="0" col="5" label="^" textStyle="key" send="^"/>
-        <Cell id="s6" row="0" col="6" label="&amp;" textStyle="key" send="&amp;"/>
-        <Cell id="s7" row="0" col="7" label="*" textStyle="key" send="*"/>
-        <Cell id="s8" row="0" col="8" label="(" textStyle="key" send="("/>
-        <Cell id="s9" row="0" col="9" label=")" textStyle="key" send=")"/>
-        <Cell id="semicolon_sym" row="0" col="10" label=";" textStyle="key" send=";"/>
-        <Cell id="quote_sym" row="0" col="11" label="&apos;" textStyle="key" send="&apos;"/>
-        <Cell id="bksp_word_sym" row="0" col="12" icon="BackMany" background="bg90" command="compose.deleteWord"/>
-      </SubGrid>
-      <SubGrid id="keys_sym_row2" row="2" col="0" rows="1" columns="13" columnWidths="1*,1*,.9*,.9*,.9*,.9*,1.4*,1*,1*,1*,.9*,.9*,1.2*" gap="4" margin="0" layers="3">
-        <Cell id="delivery_sym" row="0" col="0" icon="graphicEq" label="Actions" background="bg90" showLayers="5"/>
-        <Cell id="abc" row="0" col="1" icon="keyboardKeys" label="ABC" background="accent" showLayers="1"/>
-        <Cell id="l2" row="0" col="2" label="{" textStyle="key" send="{"/>
-        <Cell id="l3" row="0" col="3" label="}" textStyle="key" send="}"/>
-        <Cell id="l4" row="0" col="4" label="[" textStyle="key" send="["/>
-        <Cell id="l5" row="0" col="5" label="]" textStyle="key" send="]"/>
-        <Cell id="space_sym" row="0" col="6" icon="keySpace" background="bg90" command="space"/>
-        <Cell id="r7" row="0" col="7" label="=" textStyle="key" send="="/>
-        <Cell id="r8" row="0" col="8" label="+" textStyle="key" send="+"/>
-        <Cell id="r9" row="0" col="9" label="/" textStyle="key" send="/"/>
-        <Cell id="comma_sym" row="0" col="10" label="," textStyle="key" send=","/>
-        <Cell id="period_sym" row="0" col="11" label="." textStyle="key" send="."/>
-        <Cell id="enter_sym" row="0" col="12" icon="keyReturn" background="accent" command="enter"/>
-      </SubGrid>
-    </SubGrid>
-    <SubGrid id="keys_sym_shift" row="1" col="0" rows="3" columns="1" gap="4" margin="4" layers="4">
-      <SubGrid id="keys_sym_shift_row0" row="0" col="0" rows="1" columns="13" columnWidths="1*,1*,1*,1*,1*,1*,1*,1*,1*,1*,1*,.9*,1.1*" gap="4" margin="0" layers="4">
-        <Cell id="edit_ss" row="0" col="0" icon="edit" label="Edit" background="bg90"/>
-        <Cell id="d1_ss" row="0" col="1" label="!" textStyle="key" send="!"/>
-        <Cell id="d2_ss" row="0" col="2" label="@" textStyle="key" send="@"/>
-        <Cell id="d3_ss" row="0" col="3" label="#" textStyle="key" send="#"/>
-        <Cell id="d4_ss" row="0" col="4" label="$" textStyle="key" send="$"/>
-        <Cell id="d5_ss" row="0" col="5" label="%" textStyle="key" send="%"/>
-        <Cell id="d6_ss" row="0" col="6" label="^" textStyle="key" send="^"/>
-        <Cell id="d7_ss" row="0" col="7" label="&amp;" textStyle="key" send="&amp;"/>
-        <Cell id="d8_ss" row="0" col="8" label="*" textStyle="key" send="*"/>
-        <Cell id="d9_ss" row="0" col="9" label="(" textStyle="key" send="("/>
-        <Cell id="d10_ss" row="0" col="10" label=")" textStyle="key" send=")"/>
-        <Cell id="d11_ss" row="0" col="11" label="_" textStyle="key" send="_"/>
-        <Cell id="bksp_ss" row="0" col="12" icon="keyBackspace" background="bg90" command="backspace"/>
-      </SubGrid>
-      <SubGrid id="keys_sym_shift_row1" row="1" col="0" rows="1" columns="13" columnWidths="1.4*,1*,1*,1*,1*,1*,1*,1*,1*,1*,.9*,.9*,1*" gap="4" margin="0" layers="4">
-        <Cell id="shift_ss" row="0" col="0" icon="KeyShift" background="accent80" showLayers="3"/>
-        <Cell id="s0_ss" row="0" col="1" label="`" textStyle="key" send="`"/>
-        <Cell id="s1_ss" row="0" col="2" label="~" textStyle="key" send="~"/>
-        <Cell id="s_gbp" row="0" col="3" label="£" textStyle="key" send="£"/>
-        <Cell id="s_eur" row="0" col="4" label="€" textStyle="key" send="€"/>
-        <Cell id="s5_ss" row="0" col="5" label="·" textStyle="key" send="·"/>
-        <Cell id="s6_ss" row="0" col="6" label="—" textStyle="key" send="—"/>
-        <Cell id="s7_ss" row="0" col="7" label="°" textStyle="key" send="°"/>
-        <Cell id="s8_ss" row="0" col="8" label="|" textStyle="key" send="|"/>
-        <Cell id="s9_ss" row="0" col="9" label="&#92;" textStyle="key" send="&#92;"/>
-        <Cell id="semicolon_ss" row="0" col="10" label=":" textStyle="key" send=":"/>
-        <Cell id="quote_ss" row="0" col="11" label="&quot;" textStyle="key" send="&quot;"/>
-        <Cell id="bksp_word_ss" row="0" col="12" icon="BackMany" background="bg90" command="compose.deleteWord"/>
-      </SubGrid>
-      <SubGrid id="keys_sym_shift_row2" row="2" col="0" rows="1" columns="13" columnWidths="1*,1*,.9*,.9*,.9*,.9*,1.4*,1*,1*,1*,.9*,.9*,1.2*" gap="4" margin="0" layers="4">
-        <Cell id="delivery_ss" row="0" col="0" icon="graphicEq" label="Actions" background="bg90" showLayers="5"/>
-        <Cell id="abc_ss" row="0" col="1" icon="keyboardKeys" label="ABC" background="accent" showLayers="2"/>
-        <Cell id="l2_ss" row="0" col="2" label="¿" textStyle="key" send="¿"/>
-        <Cell id="l3_ss" row="0" col="3" label="¡" textStyle="key" send="¡"/>
-        <Cell id="l4_ss" row="0" col="4" label="&lt;" textStyle="key" send="&lt;"/>
-        <Cell id="l5_ss" row="0" col="5" label="&gt;" textStyle="key" send="&gt;"/>
-        <Cell id="space_ss" row="0" col="6" icon="keySpace" background="bg90" command="space"/>
-        <Cell id="r7_ss" row="0" col="7" label="=" textStyle="key" send="="/>
-        <Cell id="r8_ss" row="0" col="8" label="+" textStyle="key" send="+"/>
-        <Cell id="r9_ss" row="0" col="9" label="/" textStyle="key" send="/"/>
-        <Cell id="comma_ss" row="0" col="10" label="?" textStyle="key" send="?"/>
-        <Cell id="period_ss" row="0" col="11" label="!" textStyle="key" send="!"/>
-        <Cell id="enter_ss" row="0" col="12" icon="keyReturn" background="accent" command="enter"/>
-      </SubGrid>
-    </SubGrid>
-    <SubGrid id="keys_cmd" row="1" col="0" rows="3" columns="7" gap="4" margin="4" layers="5">
-      <Cell id="cmd_undo" row="0" col="0" icon="undo" label="Undo" command="compose.undo"/>
-      <Cell id="cmd_redo" row="0" col="1" icon="redo" label="Redo" command="compose.redo"/>
-      <Cell id="cmd_select" row="0" col="2" icon="check" label="Select all" command="compose.selectAll"/>
-      <Cell id="cmd_deselect" row="0" col="3" icon="close" label="Deselect" command="compose.deselect"/>
-      <Cell id="cmd_cut" row="0" col="4" icon="contentCut" label="Cut" command="compose.cut"/>
-      <Cell id="cmd_copy" row="0" col="5" icon="contentCopy" label="Copy" command="compose.copy"/>
-      <Cell id="cmd_paste" row="0" col="6" icon="contentPaste" label="Paste" command="compose.paste"/>
-      <Cell id="cmd_pin" row="1" col="0" icon="edit" label="Edit" command="compose.pin" activeState="compose.editMode"/>
-      <Cell id="cmd_tag" row="1" col="1" icon="sell" label="Tag" command="compose.openTags"/>
-      <Cell id="cmd_style" row="1" col="2" icon="palette" label="Style" command="compose.openStyles" activeState="compose.styleOn"/>
-      <Cell id="cmd_voice" row="1" col="3" icon="recordVoiceOver" label="Voice" command="compose.openVoices"/>
-      <Cell id="cmd_history" row="1" col="4" icon="history" label="History" command="compose.openHistory"/>
-      <Cell id="cmd_import" row="1" col="5" icon="folder" label="Import" command="compose.importFile"/>
-      <Cell id="cmd_export" row="1" col="6" icon="description" label="Export" command="compose.exportFile"/>
-      <Cell id="cmd_keys" row="2" col="0" icon="keyboardKeys" label="ABC" background="accent" showLayers="1"/>
-      <Cell id="vol_down" row="2" col="1" icon="ArrowLeft" command="volume.dec"/>
-      <Cell id="vol_track" row="2" col="2" colSpan="4" role="slider" caption="volume" label="50%"/>
-      <Cell id="vol_up" row="2" col="6" icon="ArrowRight" command="volume.inc"/>
-    </SubGrid>
-  </Grid>
+  <Style id="group" background="bg95" thickness="0" radius="16"/>
+  <Column id="board" rows="2" desktopMode="true" anchor="Top" offset="0,0" size="1.5*A_ScreenHeight,A_ScreenHeight" gap="8" padding="16" rowHeights="8*,4*" layers="1,2,3,4,5" radius="16">
+    <Row columns="2" gap="8" columnWidths="200,*" layers="1,2,3,4,5">
+      <Column rows="2" gap="8" rowHeights="*,80" layers="1,2,3,4,5">
+        <Button id="rail_mode" label="Favorites" icon="star" row="1" command="compose.toggleRail"/>
+        <Column id="rail" rows="8" gap="6" layers="1,2,3,4,5">
+          <Label/>
+        </Column>
+      </Column>
+      <Column id="stage" rows="3" gap="8" rowHeights="*,96,72" layers="1,2,3,4,5">
+        <Grid id="soundboard" rows="7" columns="6" gap="8" padding="8" rowHeights="80,80,80,80,80,80,*" layers="1,2,3,4,5" style="group">
+          <Label id="sb_placeholder"/>
+        </Grid>
+        <Card id="compose" padding="6" layers="1,2,3,4,5" style="group">
+          <Row id="phrase" columns="3" gap="10" padding="1" columnWidths="*,80,80" layers="1,2,3,4,5" thickness="1">
+            <Display id="phrase" textStyle="body" thickness="0"/>
+            <Button id="clear" style="plain" icon="close" radius="1000" command="compose.clear"/>
+            <Button id="speak" style="plain" icon="Speak" radius="1000" command="compose.speak"/>
+          </Row>
+        </Card>
+        <Grid id="predict" gap="6" layers="1,2,3,4,5">
+          <Label id="pred_0"/>
+        </Grid>
+      </Column>
+    </Row>
+    <Column id="keys" rows="3" row="1" gap="4" padding="4">
+      <Row id="keys_row0" columns="13" gap="4" columnWidths="*,*,*,*,*,*,*,*,*,*,*,0.9*,1.1*">
+        <Button id="edit" label="Edit" icon="edit" background="bg90"/>
+        <Button label="q" textStyle="key" send="q"/>
+        <Button label="w" textStyle="key" send="w"/>
+        <Button label="e" textStyle="key" send="e"/>
+        <Button label="r" textStyle="key" send="r"/>
+        <Button label="t" textStyle="key" send="t"/>
+        <Button label="y" textStyle="key" send="y"/>
+        <Button label="u" textStyle="key" send="u"/>
+        <Button label="i" textStyle="key" send="i"/>
+        <Button label="o" textStyle="key" send="o"/>
+        <Button label="p" textStyle="key" send="p"/>
+        <Button id="minus" label="-" textStyle="key" send="-"/>
+        <Button id="bksp" icon="keyBackspace" background="bg90" command="backspace"/>
+      </Row>
+      <Row id="keys_row1" columns="13" gap="4" columnWidths="1.4*,*,*,*,*,*,*,*,*,*,0.9*,0.9*,*">
+        <Button id="shift" icon="KeyShift" background="bg90" showLayers="2"/>
+        <Button label="a" textStyle="key" send="a"/>
+        <Button label="s" textStyle="key" send="s"/>
+        <Button label="d" textStyle="key" send="d"/>
+        <Button label="f" textStyle="key" send="f"/>
+        <Button label="g" textStyle="key" send="g"/>
+        <Button label="h" textStyle="key" send="h"/>
+        <Button label="j" textStyle="key" send="j"/>
+        <Button label="k" textStyle="key" send="k"/>
+        <Button label="l" textStyle="key" send="l"/>
+        <Button id="semicolon" label=";" textStyle="key" send=";"/>
+        <Button id="quote" label="'" textStyle="key" send="'"/>
+        <Button id="bksp_word" icon="BackMany" background="bg90" command="compose.deleteWord"/>
+      </Row>
+      <Row id="keys_row2" columns="13" gap="4" columnWidths="*,*,0.9*,0.9*,0.9*,0.9*,1.4*,*,*,*,0.9*,0.9*,1.2*">
+        <Button id="delivery" label="Actions" icon="graphicEq" background="bg90" showLayers="5"/>
+        <Button id="sym" label="123?" icon="numbers" background="accent" showLayers="3"/>
+        <Button label="z" textStyle="key" send="z"/>
+        <Button label="x" textStyle="key" send="x"/>
+        <Button label="c" textStyle="key" send="c"/>
+        <Button label="v" textStyle="key" send="v"/>
+        <Button id="space" icon="keySpace" background="bg90" command="space"/>
+        <Button label="b" textStyle="key" send="b"/>
+        <Button label="n" textStyle="key" send="n"/>
+        <Button label="m" textStyle="key" send="m"/>
+        <Button id="comma" label="," textStyle="key" send=","/>
+        <Button id="period" label="." textStyle="key" send="."/>
+        <Button id="enter" icon="keyReturn" background="accent" command="enter"/>
+      </Row>
+    </Column>
+    <Column id="keys_shift" rows="3" row="1" gap="4" padding="4" layers="2">
+      <Row id="keys_shift_row0" columns="13" gap="4" columnWidths="*,*,*,*,*,*,*,*,*,*,*,0.9*,1.1*" layers="2">
+        <Button id="edit_s" label="Edit" icon="edit" background="bg90"/>
+        <Button label="Q" textStyle="key" send="Q"/>
+        <Button label="W" textStyle="key" send="W"/>
+        <Button label="E" textStyle="key" send="E"/>
+        <Button label="R" textStyle="key" send="R"/>
+        <Button label="T" textStyle="key" send="T"/>
+        <Button label="Y" textStyle="key" send="Y"/>
+        <Button label="U" textStyle="key" send="U"/>
+        <Button label="I" textStyle="key" send="I"/>
+        <Button label="O" textStyle="key" send="O"/>
+        <Button label="P" textStyle="key" send="P"/>
+        <Button label="_" textStyle="key" send="_"/>
+        <Button icon="keyBackspace" background="bg90" command="backspace"/>
+      </Row>
+      <Row id="keys_shift_row1" columns="13" gap="4" columnWidths="1.4*,*,*,*,*,*,*,*,*,*,0.9*,0.9*,*" layers="2">
+        <Button icon="KeyShift" background="accent80" showLayers="1"/>
+        <Button label="A" textStyle="key" send="A"/>
+        <Button label="S" textStyle="key" send="S"/>
+        <Button label="D" textStyle="key" send="D"/>
+        <Button label="F" textStyle="key" send="F"/>
+        <Button label="G" textStyle="key" send="G"/>
+        <Button label="H" textStyle="key" send="H"/>
+        <Button label="J" textStyle="key" send="J"/>
+        <Button label="K" textStyle="key" send="K"/>
+        <Button label="L" textStyle="key" send="L"/>
+        <Button label=":" textStyle="key" send=":"/>
+        <Button label="&quot;" textStyle="key" send="&quot;"/>
+        <Button icon="BackMany" background="bg90" command="compose.deleteWord"/>
+      </Row>
+      <Row id="keys_shift_row2" columns="13" gap="4" columnWidths="*,*,0.9*,0.9*,0.9*,0.9*,1.4*,*,*,*,0.9*,0.9*,1.2*" layers="2">
+        <Button id="delivery_s" label="Actions" icon="graphicEq" background="bg90" showLayers="5"/>
+        <Button label="123?" icon="numbers" background="accent" showLayers="4"/>
+        <Button label="Z" textStyle="key" send="Z"/>
+        <Button label="X" textStyle="key" send="X"/>
+        <Button label="C" textStyle="key" send="C"/>
+        <Button label="V" textStyle="key" send="V"/>
+        <Button icon="keySpace" background="bg90" command="space"/>
+        <Button label="B" textStyle="key" send="B"/>
+        <Button label="N" textStyle="key" send="N"/>
+        <Button label="M" textStyle="key" send="M"/>
+        <Button label="?" textStyle="key" send="?"/>
+        <Button label="!" textStyle="key" send="!"/>
+        <Button icon="keyReturn" background="accent" command="enter"/>
+      </Row>
+    </Column>
+    <Column id="keys_sym" rows="3" row="1" gap="4" padding="4" layers="3">
+      <Row id="keys_sym_row0" columns="13" gap="4" columnWidths="*,*,*,*,*,*,*,*,*,*,*,0.9*,1.1*" layers="3">
+        <Button id="edit_sym" label="Edit" icon="edit" background="bg90"/>
+        <Button label="1" textStyle="key" send="1"/>
+        <Button label="2" textStyle="key" send="2"/>
+        <Button label="3" textStyle="key" send="3"/>
+        <Button label="4" textStyle="key" send="4"/>
+        <Button label="5" textStyle="key" send="5"/>
+        <Button label="6" textStyle="key" send="6"/>
+        <Button label="7" textStyle="key" send="7"/>
+        <Button label="8" textStyle="key" send="8"/>
+        <Button label="9" textStyle="key" send="9"/>
+        <Button label="0" textStyle="key" send="0"/>
+        <Button label="-" textStyle="key" send="-"/>
+        <Button icon="keyBackspace" background="bg90" command="backspace"/>
+      </Row>
+      <Row id="keys_sym_row1" columns="13" gap="4" columnWidths="1.4*,*,*,*,*,*,*,*,*,*,0.9*,0.9*,*" layers="3">
+        <Button icon="KeyShift" background="bg90" showLayers="4"/>
+        <Button label="@" textStyle="key" send="@"/>
+        <Button label="#" textStyle="key" send="#"/>
+        <Button label="$" textStyle="key" send="$"/>
+        <Button label="%" textStyle="key" send="%"/>
+        <Button label="^" textStyle="key" send="^"/>
+        <Button label="&amp;" textStyle="key" send="&amp;"/>
+        <Button label="*" textStyle="key" send="*"/>
+        <Button label="(" textStyle="key" send="("/>
+        <Button label=")" textStyle="key" send=")"/>
+        <Button label=";" textStyle="key" send=";"/>
+        <Button label="'" textStyle="key" send="'"/>
+        <Button icon="BackMany" background="bg90" command="compose.deleteWord"/>
+      </Row>
+      <Row id="keys_sym_row2" columns="13" gap="4" columnWidths="*,*,0.9*,0.9*,0.9*,0.9*,1.4*,*,*,*,0.9*,0.9*,1.2*" layers="3">
+        <Button id="delivery_sym" label="Actions" icon="graphicEq" background="bg90" showLayers="5"/>
+        <Button label="ABC" icon="keyboardKeys" background="accent" showLayers="1"/>
+        <Button label="{" textStyle="key" send="{"/>
+        <Button label="}" textStyle="key" send="}"/>
+        <Button label="[" textStyle="key" send="["/>
+        <Button label="]" textStyle="key" send="]"/>
+        <Button icon="keySpace" background="bg90" command="space"/>
+        <Button label="=" textStyle="key" send="="/>
+        <Button label="+" textStyle="key" send="+"/>
+        <Button label="/" textStyle="key" send="/"/>
+        <Button label="," textStyle="key" send=","/>
+        <Button label="." textStyle="key" send="."/>
+        <Button icon="keyReturn" background="accent" command="enter"/>
+      </Row>
+    </Column>
+    <Column id="keys_sym_shift" rows="3" row="1" gap="4" padding="4" layers="4">
+      <Row id="keys_sym_shift_row0" columns="13" gap="4" columnWidths="*,*,*,*,*,*,*,*,*,*,*,0.9*,1.1*" layers="4">
+        <Button id="edit_ss" label="Edit" icon="edit" background="bg90"/>
+        <Button label="!" textStyle="key" send="!"/>
+        <Button label="@" textStyle="key" send="@"/>
+        <Button label="#" textStyle="key" send="#"/>
+        <Button label="$" textStyle="key" send="$"/>
+        <Button label="%" textStyle="key" send="%"/>
+        <Button label="^" textStyle="key" send="^"/>
+        <Button label="&amp;" textStyle="key" send="&amp;"/>
+        <Button label="*" textStyle="key" send="*"/>
+        <Button label="(" textStyle="key" send="("/>
+        <Button label=")" textStyle="key" send=")"/>
+        <Button label="_" textStyle="key" send="_"/>
+        <Button icon="keyBackspace" background="bg90" command="backspace"/>
+      </Row>
+      <Row id="keys_sym_shift_row1" columns="13" gap="4" columnWidths="1.4*,*,*,*,*,*,*,*,*,*,0.9*,0.9*,*" layers="4">
+        <Button icon="KeyShift" background="accent80" showLayers="3"/>
+        <Button label="`" textStyle="key" send="`"/>
+        <Button label="~" textStyle="key" send="~"/>
+        <Button label="£" textStyle="key" send="£"/>
+        <Button label="€" textStyle="key" send="€"/>
+        <Button label="·" textStyle="key" send="·"/>
+        <Button label="—" textStyle="key" send="—"/>
+        <Button label="°" textStyle="key" send="°"/>
+        <Button label="|" textStyle="key" send="|"/>
+        <Button label="\" textStyle="key" send="\"/>
+        <Button label=":" textStyle="key" send=":"/>
+        <Button label="&quot;" textStyle="key" send="&quot;"/>
+        <Button icon="BackMany" background="bg90" command="compose.deleteWord"/>
+      </Row>
+      <Row id="keys_sym_shift_row2" columns="13" gap="4" columnWidths="*,*,0.9*,0.9*,0.9*,0.9*,1.4*,*,*,*,0.9*,0.9*,1.2*" layers="4">
+        <Button id="delivery_ss" label="Actions" icon="graphicEq" background="bg90" showLayers="5"/>
+        <Button label="ABC" icon="keyboardKeys" background="accent" showLayers="2"/>
+        <Button label="¿" textStyle="key" send="¿"/>
+        <Button label="¡" textStyle="key" send="¡"/>
+        <Button label="&lt;" textStyle="key" send="&lt;"/>
+        <Button label="&gt;" textStyle="key" send="&gt;"/>
+        <Button icon="keySpace" background="bg90" command="space"/>
+        <Button label="=" textStyle="key" send="="/>
+        <Button label="+" textStyle="key" send="+"/>
+        <Button label="/" textStyle="key" send="/"/>
+        <Button label="?" textStyle="key" send="?"/>
+        <Button label="!" textStyle="key" send="!"/>
+        <Button icon="keyReturn" background="accent" command="enter"/>
+      </Row>
+    </Column>
+    <Grid id="keys_cmd" rows="3" columns="7" row="1" gap="4" padding="4" layers="5">
+      <Button id="cmd_undo" label="Undo" icon="undo" command="compose.undo"/>
+      <Button id="cmd_redo" label="Redo" icon="redo" col="1" command="compose.redo"/>
+      <Button id="cmd_select" label="Select all" icon="check" col="2" command="compose.selectAll"/>
+      <Button id="cmd_deselect" label="Deselect" icon="close" col="3" command="compose.deselect"/>
+      <Button id="cmd_cut" label="Cut" icon="contentCut" col="4" command="compose.cut"/>
+      <Button id="cmd_copy" label="Copy" icon="contentCopy" col="5" command="compose.copy"/>
+      <Button id="cmd_paste" label="Paste" icon="contentPaste" col="6" command="compose.paste"/>
+      <Button id="cmd_pin" label="Edit" icon="edit" bind="compose.editMode" row="1" command="compose.pin"/>
+      <Button id="cmd_tag" label="Tag" icon="sell" row="1" col="1" command="compose.openTags"/>
+      <Button id="cmd_style" label="Style" icon="palette" bind="compose.styleOn" row="1" col="2" command="compose.openStyles"/>
+      <Button id="cmd_voice" label="Voice" icon="recordVoiceOver" row="1" col="3" command="compose.openVoices"/>
+      <Button id="cmd_history" label="History" icon="history" row="1" col="4" command="compose.openHistory"/>
+      <Button id="cmd_import" label="Import" icon="folder" row="1" col="5" command="compose.importFile"/>
+      <Button id="cmd_export" label="Export" icon="description" row="1" col="6" command="compose.exportFile"/>
+      <Button id="cmd_keys" label="ABC" icon="keyboardKeys" background="accent" row="2" showLayers="1"/>
+      <Button id="vol_down" icon="ArrowLeft" row="2" col="1" command="volume.dec"/>
+      <Slider id="vol_track" label="50%" caption="volume" row="2" col="2" span="4"/>
+      <Button id="vol_up" icon="ArrowRight" row="2" col="6" command="volume.inc"/>
+    </Grid>
+  </Column>
 </Page>

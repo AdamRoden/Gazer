@@ -1,5 +1,7 @@
 #include "layout/PageEdit.h"
 
+#include <QSet>
+
 #include <algorithm>
 #include <functional>
 
@@ -483,6 +485,80 @@ void removeGrid(PageDocument& doc, const QString& id)
         return false;
     };
     erase(doc.grids);
+}
+
+namespace {
+
+void collectPageIds(const PageGrid& grid, QSet<QString>& used)
+{
+    if (!grid.id.isEmpty()) {
+        used.insert(grid.id);
+    }
+    for (const PageCell& cell : grid.cells) {
+        if (!cell.id.isEmpty()) {
+            used.insert(cell.id);
+        }
+    }
+    for (const PageGrid& sub : grid.subGrids) {
+        collectPageIds(sub, used);
+    }
+}
+
+QString takeFreePageId(QSet<QString>& used, const QString& base)
+{
+    QString id = base.isEmpty() ? QStringLiteral("item") : base;
+    int n = 2;
+    while (used.contains(id)) {
+        id = base + QString::number(n++);
+    }
+    used.insert(id);
+    return id;
+}
+
+void assignGridIds(PageGrid& grid, const QString& fallback, QSet<QString>& used)
+{
+    if (grid.id.isEmpty()) {
+        grid.id = takeFreePageId(used, fallback);
+        grid.authoredId = false;
+    }
+    for (PageCell& cell : grid.cells) {
+        if (cell.id.isEmpty()) {
+            cell.id = takeFreePageId(used,
+                                     QStringLiteral("%1/%2,%3").arg(grid.id).arg(cell.row).arg(cell.col));
+            cell.authoredId = false;
+        }
+    }
+    for (int i = 0; i < grid.subGrids.size(); ++i) {
+        PageGrid& sub = grid.subGrids[i];
+        assignGridIds(sub, QStringLiteral("%1/%2,%3").arg(grid.id).arg(sub.row).arg(sub.col), used);
+    }
+}
+
+} // namespace
+
+void assignMissingIds(PageDocument& doc)
+{
+    QSet<QString> used;
+    if (!doc.id.isEmpty()) {
+        used.insert(doc.id);
+    }
+    for (const PageZone& zone : doc.zones) {
+        if (!zone.id.isEmpty()) {
+            used.insert(zone.id);
+        }
+    }
+    for (const PageGrid& grid : doc.grids) {
+        collectPageIds(grid, used);
+    }
+    for (PageZone& zone : doc.zones) {
+        if (zone.id.isEmpty()) {
+            zone.id = takeFreePageId(used, QStringLiteral("zone"));
+            zone.authoredId = false;
+        }
+    }
+    for (int i = 0; i < doc.grids.size(); ++i) {
+        assignGridIds(doc.grids[i], QStringLiteral("g%1").arg(i), used);
+    }
 }
 
 } // namespace PageEdit

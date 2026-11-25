@@ -17,29 +17,34 @@ What a cell **does** when dwell finishes is an **action**. Every action type, va
 
 ```xml
 <Page id="…" name="…">
-  <Style id="…"/>          <!-- named chrome; omit id for page default -->
-  <Dwell id="…"/>          <!-- named timing; omit id for page default -->
-  <Zone …/>                <!-- screen-anchored chip -->
-  <Grid …>                 <!-- placed rectangle of rows × columns -->
-    <Cell …/>
-    <SubGrid …>            <!-- nested grid occupying a cell span -->
-      <Cell …/>
-    </SubGrid>
-  </Grid>
+  <Style id="…"/>
+  <Dwell id="…"/>
+  <Zone …/>
+  <Column …>               <!-- vertical stack -->
+    <Row …>                <!-- horizontal run; children sit in order -->
+      <Button label="Speak" speak="Hello"/>
+      <Button label="Close" closePage="true"/>
+    </Row>
+    <Card …/>              <!-- grouped stack -->
+  </Column>
 </Page>
 ```
 
-Child order is free. Grids and zones are painted and hit in document order within a page; attached pages stack newest in front.
+`Grid` is the mesh used for keyboards and other row/column boards. `Label`, `Display`, `Slider`, `Switch`, `Choice`, `Tab`, and `Swatch` are the other controls. `padding` insets a box. `bind` paints a control as on when that flag is true.
+
+Leave `id` off a button unless something else looks it up by name (a splash target, the phrase display, a grid the session finds). The loader still gives that button a private slot name so dwell can track it. Older files that say `Cell`, `SubGrid`, `margin`, or `activeState` still open.
+
+Children of a `Row`, `Column`, or `Card` that omit `row` and `col` are placed in document order. Grids and zones are painted and hit in document order within a page; attached pages stack newest in front.
 
 ### Minimal page
 
 ```xml
 <Page id="tools" name="Tools">
-  <Grid id="board" desktopMode="true" rows="1" columns="2"
-        anchor="Top" offset="0,0" size="800,400" gap="12" margin="16">
-    <Cell id="hello" row="0" col="0" label="Speak" speak="Hello"/>
-    <Cell id="close" row="0" col="1" label="Close" closePage="true"/>
-  </Grid>
+  <Row id="board" desktopMode="true" columns="2"
+       anchor="Top" offset="0,0" size="800,400" gap="12" padding="16">
+    <Button label="Speak" speak="Hello"/>
+    <Button label="Close" closePage="true"/>
+  </Row>
 </Page>
 ```
 
@@ -52,9 +57,9 @@ A cell or zone may have **one** action **attribute**. Several actions use **chil
 When dwell **ends** (look away or at another cell, after blink grace), the host flashes the cell and runs that list **in order**. Consecutive `ShowLayers` in the list are applied together. `actionLoop="true"` repeats until the cell is activated again. `<Phase>` children replace the single-shot list (first dwell enters phase 0; later dwells wrap; the current phase fires on leave).
 
 ```xml
-<Cell row="0" col="0" label="q" send="q"/>
-<Cell command="toggleLookToScroll"/>
-<Cell openPage="uw_qwerty, true"/>
+<Button label="q" send="q"/>
+<Button command="toggleLookToScroll"/>
+<Button openPage="uw_qwerty, true"/>
 
 <Send value="a"/>
 <Command value="toggleLookToScroll"/>

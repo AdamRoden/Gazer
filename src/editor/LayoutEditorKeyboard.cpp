@@ -83,8 +83,9 @@ PageDocument makeKeyboardPage(const QString& id, const QString& name)
     auto addRow = [&](const QString& keys, int row, int col0) {
         for (int i = 0; i < keys.size(); ++i) {
             const QString ch = keys.mid(i, 1);
-            g.cells.push_back(keyCell(QStringLiteral("k_%1_%2").arg(row).arg(i), ch, row, col0 + i,
-                                      ch));
+            PageCell key = keyCell({}, ch, row, col0 + i, ch);
+            key.authoredId = false;
+            g.cells.push_back(std::move(key));
         }
     };
     addRow(row1, 0, 0);
@@ -117,6 +118,7 @@ PageDocument makeKeyboardPage(const QString& id, const QString& name)
     bk.actions.push_back(sendKey(QStringLiteral("Backspace")));
     g.cells.push_back(bk);
     d.grids.push_back(std::move(g));
+    PageEdit::assignMissingIds(d);
     return d;
 }
 

@@ -1,19 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <Page id="example_assist" name="Assist" autoClose="true">
-  <Grid id="board" desktopMode="false" rows="1" columns="10" anchor="Bottom" offset="0,0" size="1200,150" gap="10" margin="0" autoClose="true">
-    <Cell id="mag" row="0" col="0" icon="MagnifyTool" label="Gaze Magnifier" activeState="magnifier" command="toggleMagnifier"/>
-    <Cell id="gaze_reticle" row="0" col="1" icon="Eye" label="Show gaze" activeState="gazeReticle" command="toggleGazeReticle"/>
-    <Cell id="gaze_follow" row="0" col="2" icon="MouseMagneticCursor" label="Gaze mouse" activeState="gazeMouseFollow" command="toggleGazeMouseFollow"/>
-    <Cell id="mouse_move" row="0" col="3" icon="mouseMove" label="Move mouse
-(dwell)" activeState="mouseMoveToGaze" command="mouseMoveToGaze"/>
-    <Cell id="click_loop" row="0" col="4" icon="LoopingAction" label="Gaze click
-loop" activeState="mouseMoveToGazeClickLoop" command="mouseMoveToGazeClickLoop"/>
-    <Cell id="mag_pick" row="0" col="5" icon="ZoomConfirm" label="Magnify pick" activeState="mouseMoveMagPick" command="toggleMouseMoveMagPick"/>
-    <Cell id="lts" row="0" col="6" icon="lookToScroll" label="LookToScroll" activeState="lookToScroll" command="toggleLookToScroll"/>
-    <Cell id="combo" row="0" col="7" icon="comboMouse" label="ComboMouse" activeState="comboMouse" command="toggleComboMouse"/>
-    <Cell id="edit_layout" row="0" col="8" icon="editSquare" label="Edit page" command="openPageEditor"/>
-    <Cell id="main" row="0" col="9" icon="menu" label="Main">
-    <ClosePage/>
-    <ShowLayers value="1,2"/>
-    </Cell>
-  </Grid>
+  <Row id="board" columns="10" anchor="Bottom" offset="0,0" size="1200,150" gap="10" autoClose="true">
+    <Button label="Gaze Magnifier" icon="MagnifyTool" bind="magnifier" command="toggleMagnifier"/>
+    <Button label="Show gaze" icon="Eye" bind="gazeReticle" command="toggleGazeReticle"/>
+    <Button label="Gaze mouse" icon="MouseMagneticCursor" bind="gazeMouseFollow" command="toggleGazeMouseFollow"/>
+    <Button label="Move mouse (dwell)" icon="mouseMove" bind="mouseMoveToGaze" command="mouseMoveToGaze"/>
+    <Button label="Gaze click loop" icon="LoopingAction" bind="mouseMoveToGazeClickLoop" command="mouseMoveToGazeClickLoop"/>
+    <Button label="Magnify pick" icon="ZoomConfirm" bind="mouseMoveMagPick" command="toggleMouseMoveMagPick"/>
+    <Button label="LookToScroll" icon="lookToScroll" bind="lookToScroll" id="lts" command="toggleLookToScroll"/>
+    <Button label="ComboMouse" icon="comboMouse" bind="comboMouse" command="toggleComboMouse"/>
+    <Button label="Edit page" icon="editSquare" command="openPageEditor"/>
+    <Button id="main" label="Main" icon="menu">
+      <ClosePage/>
+      <ShowLayers value="1,2"/>
+    </Button>
+  </Row>
 </Page>

@@ -31,6 +31,11 @@ void PageDimTest::dimPixelsVsProportion()
     QCOMPARE(PageDimParse::parse(QStringLiteral("1920")).resolve(100), 1920.0);
     QCOMPARE(PageDimParse::parse(QStringLiteral("2")).unit, PageDim::Unit::Pixels);
     QCOMPARE(PageDimParse::parse(QStringLiteral("2.0")).unit, PageDim::Unit::Proportion);
+    const PageDim full = PageDim::proportion(1.0);
+    QCOMPARE(PageDimParse::token(full), QStringLiteral("1.0"));
+    QCOMPARE(PageDimParse::parse(PageDimParse::token(full)).unit, PageDim::Unit::Proportion);
+    QCOMPARE(PageDimParse::parse(PageDimParse::token(full)).resolve(1920), 1920.0);
+    QCOMPARE(PageDimParse::token(PageDim::pixels(1)), QStringLiteral("1"));
 }
 
 void PageDimTest::dimFraction()

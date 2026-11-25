@@ -1,36 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <Page id="main_settings_head_pose" name="Head" radius="16">
-  <Style id="group" background="bg95" thickness="0" radius="16"/>
   <Style id="row" background="transparent" thickness="0" radius="0"/>
-  <Style id="plain" background="transparent" thickness="0" radius="0"/>
   <Style id="join" background="transparent" thickness="0" radius="0"/>
-  <Style id="joinLeft" background="transparent" thickness="0" radius="10,0,0,10"/>
-  <Style id="joinRight" background="transparent" thickness="0" radius="0,10,10,0"/>
+  <Style id="plain" background="transparent" thickness="0" radius="0"/>
   <Style id="button" background="transparent" thickness="0" radius="10"/>
-  <Grid id="board" desktopMode="true" rows="3" columns="16" anchor="Top" offset="0,0"
-        size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" gap="6" margin="0" radius="16"
-        rowHeights="96,640,*">
-    <SubGrid id="titlebar" row="0" col="0" colSpan="16" rows="1" columns="2" columnWidths="*,160" gap="8" margin="0" style="plain">
-      <Cell id="page_title" row="0" col="0" label="Head pose"
-            caption="Map yaw, pitch, roll, and position to pointer, scroll, gaze, pad, or a command"
-            role="label" textStyle="title" style="plain"/>
-      <Cell id="tab_done" row="0" col="1" label="Close" icon="keyboardHide" textStyle="row" style="button" closeAllPages="true"/>
-    </SubGrid>
-
-    <SubGrid id="sec_preview" row="1" col="0" colSpan="8" rows="3" columns="1"
-             rowHeights="300,72,240" gap="6" margin="6" style="group">
-      <Cell id="head_preview" row="0" col="0" label="Head Preview" role="headpreview" style="plain"/>
-      <SubGrid id="row_master" row="1" col="0" rows="1" columns="2" gap="6" style="row">
-        <Cell id="hp_enable" row="0" col="0" label="Enable" role="toggle" activeState="headPose.enabled"
-              style="joinLeft" command="headPose.enabled.toggle"/>
-        <Cell id="hp_recenter" row="0" col="1" label="Recenter" caption="Zero all six axes at current pose" icon="Refocus"
-              style="joinRight" command="headPose.recenter"/>
-      </SubGrid>
-      <Cell id="pose_curve" row="2" col="0" label="in → out" role="curvefield"/>
-    </SubGrid>
-
-    <SubGrid id="sec_maps" row="1" col="8" colSpan="8" rows="1" columns="1"
-             gap="6" margin="6" style="group">
-      <Cell id="maps_placeholder" row="0" col="0" label="Axes" role="label" style="plain"/>
-    </SubGrid>
+  <Style id="joinLeft" background="transparent" thickness="0" radius="10,0,0,10"/>
+  <Style id="group" background="bg95" thickness="0" radius="16"/>
+  <Style id="joinRight" background="transparent" thickness="0" radius="0,10,10,0"/>
+  <Grid id="board" rows="3" columns="16" desktopMode="true" anchor="Top" offset="0,0" size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth),A_ScreenHeight" gap="6" rowHeights="96,640,*" radius="16">
+    <Row id="titlebar" columns="2" span="16" gap="8" columnWidths="*,160" style="plain">
+      <Label id="page_title" style="plain" label="Head pose" caption="Map yaw, pitch, roll, and position to pointer, scroll, gaze, pad, or a command" textStyle="title"/>
+      <Button id="tab_done" style="button" label="Close" icon="keyboardHide" textStyle="row" closeAllPages="true"/>
+    </Row>
+    <Card id="sec_preview" rows="3" row="1" span="8" gap="6" padding="6" rowHeights="300,72,240" style="group">
+      <Button id="head_preview" style="plain" label="Head Preview" role="headpreview"/>
+      <Button id="pose_curve" label="in → out" role="curvefield" row="2"/>
+      <Row id="row_master" columns="2" row="1" gap="6" style="row">
+        <Switch id="hp_enable" style="joinLeft" label="Enable" bind="headPose.enabled" command="headPose.enabled.toggle"/>
+        <Button id="hp_recenter" style="joinRight" label="Recenter" icon="Refocus" caption="Zero all six axes at current pose" command="headPose.recenter"/>
+      </Row>
+    </Card>
+    <Card id="sec_maps" row="1" col="8" span="8" gap="6" padding="6" style="group">
+      <Label style="plain" label="Axes"/>
+    </Card>
   </Grid>
 </Page>

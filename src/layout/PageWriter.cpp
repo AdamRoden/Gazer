@@ -2,6 +2,7 @@
 
 #include "layout/PageActionParse.h"
 #include "layout/PageDim.h"
+#include "layout/PageXml.h"
 
 #include <QFile>
 #include <QStringList>
@@ -105,15 +106,20 @@ void writePlacement(QXmlStreamWriter& xml, bool desktopMode, PageAnchor anchor,
 
 void writeLeafAttrs(QXmlStreamWriter& xml, const PageLeaf& leaf, bool writeShell)
 {
-    attr(xml, QStringLiteral("id"), leaf.id);
+    if (leaf.authoredId) {
+        attr(xml, QStringLiteral("id"), leaf.id);
+    }
     attr(xml, QStringLiteral("style"), leaf.styleId);
     attr(xml, QStringLiteral("dwell"), leaf.dwellId);
     attr(xml, QStringLiteral("label"), leaf.label);
     attr(xml, QStringLiteral("icon"), leaf.icon);
     attr(xml, QStringLiteral("caption"), leaf.caption);
     attr(xml, QStringLiteral("settingKey"), leaf.settingKey);
-    attr(xml, QStringLiteral("activeState"), leaf.activeState);
-    attr(xml, QStringLiteral("role"), leaf.role);
+    attr(xml, QStringLiteral("bind"), leaf.activeState);
+    const QString element = controlElementForRole(leaf.role);
+    if (leaf.role.trimmed().toLower() != roleForControlElement(element)) {
+        attr(xml, QStringLiteral("role"), leaf.role);
+    }
     attr(xml, QStringLiteral("textStyle"), leaf.textStyle);
     attr(xml, QStringLiteral("visibleWhen"), leaf.visibleWhen);
     attrBool(xml, QStringLiteral("suspendExempt"), leaf.suspendExempt, false);
@@ -186,22 +192,65 @@ void writeLeafBody(QXmlStreamWriter& xml, const PageLeaf& leaf, bool inlined)
     }
 }
 
-void writeGrid(QXmlStreamWriter& xml, const PageGrid& grid)
+void writeChildIndex(QXmlStreamWriter& xml, int row, int col, int rowSpan, int colSpan, bool omitIndex)
 {
-    xml.writeStartElement(grid.nested ? QStringLiteral("SubGrid") : QStringLiteral("Grid"));
-    attr(xml, QStringLiteral("id"), grid.id);
+    if (!omitIndex) {
+        attrInt(xml, QStringLiteral("row"), row, 0);
+        attrInt(xml, QStringLiteral("col"), col, 0);
+    }
+    if (omitIndex && rowSpan == 1 && colSpan == 1) {
+        return;
+    }
+    attrInt(xml, QStringLiteral("rowSpan"), rowSpan, 1);
+    if (rowSpan == 1 && colSpan != 1) {
+        attrInt(xml, QStringLiteral("span"), colSpan, 1);
+    } else {
+        attrInt(xml, QStringLiteral("colSpan"), colSpan, 1);
+    }
+}
+
+bool flowIndexesFit(const PageGrid& grid)
+{
+    if (grid.flow == PageFlow::Mesh) {
+        return false;
+    }
+    int cursor = 0;
+    auto take = [&](int row, int col, int rowSpan, int colSpan) {
+        const int span = grid.flow == PageFlow::Row ? qMax(1, colSpan) : qMax(1, rowSpan);
+        const bool ok = grid.flow == PageFlow::Row
+                            ? (row == 0 && rowSpan == 1 && col == cursor)
+                            : (col == 0 && colSpan == 1 && row == cursor);
+        cursor += span;
+        return ok;
+    };
+    for (const PageCell& cell : grid.cells) {
+        if (!take(cell.row, cell.col, cell.rowSpan, cell.colSpan)) {
+            return false;
+        }
+    }
+    for (const PageGrid& sub : grid.subGrids) {
+        if (!take(sub.row, sub.col, sub.rowSpan, sub.colSpan)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void writeGrid(QXmlStreamWriter& xml, const PageGrid& grid, bool omitIndex)
+{
+    xml.writeStartElement(pageFlowElement(grid.flow));
+    if (grid.authoredId) {
+        attr(xml, QStringLiteral("id"), grid.id);
+    }
     attrInt(xml, QStringLiteral("rows"), grid.rows, 1);
     attrInt(xml, QStringLiteral("columns"), grid.columns, 1);
     if (grid.nested) {
-        attrInt(xml, QStringLiteral("row"), grid.row, 0);
-        attrInt(xml, QStringLiteral("col"), grid.col, 0);
-        attrInt(xml, QStringLiteral("rowSpan"), grid.rowSpan, 1);
-        attrInt(xml, QStringLiteral("colSpan"), grid.colSpan, 1);
+        writeChildIndex(xml, grid.row, grid.col, grid.rowSpan, grid.colSpan, omitIndex);
     } else {
         writePlacement(xml, grid.desktopMode, grid.anchor, grid.offset, grid.size);
     }
     attrInt(xml, QStringLiteral("gap"), grid.gapPx, 0);
-    attrInt(xml, QStringLiteral("margin"), grid.marginPx, 0);
+    attrInt(xml, QStringLiteral("padding"), grid.marginPx, 0);
     auto omitEqualStars = [](const QVector<PageTrackSize>& tracks, int count) {
         if (tracks.isEmpty()) {
             return true;
@@ -238,19 +287,17 @@ void writeGrid(QXmlStreamWriter& xml, const PageGrid& grid)
         xml.writeEndElement();
         return;
     }
+    const bool omitChildIndex = flowIndexesFit(grid);
     for (const PageCell& cell : grid.cells) {
-        xml.writeStartElement(QStringLiteral("Cell"));
+        xml.writeStartElement(controlElementForRole(cell.role));
         writeLeafAttrs(xml, cell, false);
-        attrInt(xml, QStringLiteral("row"), cell.row, 0);
-        attrInt(xml, QStringLiteral("col"), cell.col, 0);
-        attrInt(xml, QStringLiteral("rowSpan"), cell.rowSpan, 1);
-        attrInt(xml, QStringLiteral("colSpan"), cell.colSpan, 1);
+        writeChildIndex(xml, cell.row, cell.col, cell.rowSpan, cell.colSpan, omitChildIndex);
         const bool inlined = cell.phases.isEmpty() && writeInlineAction(xml, cell.actions);
         writeLeafBody(xml, cell, inlined);
         xml.writeEndElement();
     }
     for (const PageGrid& sub : grid.subGrids) {
-        writeGrid(xml, sub);
+        writeGrid(xml, sub, omitChildIndex);
     }
     xml.writeEndElement();
 }
@@ -296,7 +343,7 @@ QByteArray PageWriter::toBytes(const PageDocument& doc)
         xml.writeEndElement();
     }
     for (const PageGrid& g : doc.grids) {
-        writeGrid(xml, g);
+        writeGrid(xml, g, false);
     }
     xml.writeEndElement();
     xml.writeEndDocument();

@@ -1,113 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <Page id="main_settings_setup" name="Setup" radius="16">
-  <Style id="group" background="bg95" thickness="0" radius="16"/>
   <Style id="row" background="transparent" thickness="0" radius="0"/>
-  <Style id="plain" background="transparent" thickness="0" radius="0"/>
   <Style id="join" background="transparent" thickness="0" radius="0"/>
-  <Style id="joinLeft" background="transparent" thickness="0" radius="10,0,0,10"/>
-  <Style id="joinRight" background="transparent" thickness="0" radius="0,10,10,0"/>
+  <Style id="plain" background="transparent" thickness="0" radius="0"/>
   <Style id="button" background="transparent" thickness="0" radius="10"/>
-  <Grid id="board" desktopMode="true" rows="2" columns="2" anchor="Top" offset="0,0" size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth), A_ScreenHeight" gap="12" margin="0" radius="16"
-        rowHeights="96,*" columnWidths="*,72">
-    <SubGrid id="titlebar" row="0" col="0" colSpan="2" rows="1" columns="2" columnWidths="*,160" gap="8" margin="0" style="plain">
-      <Cell id="page_title" row="0" col="0" label="Setup" caption="Tracker, pad, capture, session, settings, and updates" role="label" textStyle="title" style="plain"/>
-      <Cell id="tab_done" row="0" col="1" label="Close" icon="keyboardHide" textStyle="row" style="button" closeAllPages="true"/>
-    </SubGrid>
-    <SubGrid id="scroller" row="1" col="0" scroll="true" rows="7" columns="1" rowHeights="130,130,146,130,302,286,220" gap="12" margin="0">
-      <SubGrid id="sec_tr" row="0" col="0" rows="2" columns="1" rowHeights="40,72" gap="6" margin="6" style="group">
-        <Cell id="h_tr" row="0" col="0" label="Tracker" role="label" textStyle="section" style="plain"/>
-        <SubGrid id="row_tr" row="1" col="0" rows="1" columns="2" gap="6" style="row">
-          <Cell id="tr_l" row="0" col="0" label="Tracker" caption="Applies on next start." role="label" style="plain"/>
-          <SubGrid id="act_tr" row="0" col="1" rows="1" columns="2" gap="0" style="row">
-            <Cell id="tr_a" row="0" col="0" label="Auto Tobii" role="choice" activeState="settings.tracker.auto" style="joinLeft" command="settings.tracker.auto"/>
-            <Cell id="tr_m" row="0" col="1" label="Mouse" role="choice" activeState="settings.tracker.mouse" style="joinRight" command="settings.tracker.mouse"/>
-          </SubGrid>
-        </SubGrid>
-      </SubGrid>
-
-      <SubGrid id="sec_vigem" row="1" col="0" rows="2" columns="1" rowHeights="40,72" gap="6" margin="6" style="group">
-        <Cell id="h_vigem" row="0" col="0" label="Virtual Xbox pad" role="label" textStyle="section" style="plain"/>
-        <SubGrid id="row_vigem" row="1" col="0" rows="1" columns="2" gap="6" style="row">
-          <Cell id="vigem_status" row="0" col="0" label="ViGEm" caption="Not installed. Dwell Install to download the official setup." role="label" style="plain"/>
-          <SubGrid id="act_vigem" row="0" col="1" rows="1" columns="2" gap="0" style="row">
-            <Cell id="vigem_refresh" row="0" col="0" label="Recheck" icon="restart" style="joinLeft" command="settings.vigem.refresh"/>
-            <Cell id="vigem_install" row="0" col="1" label="Download / UAC" icon="sportsEsports" style="joinRight" command="settings.vigem.install"/>
-          </SubGrid>
-        </SubGrid>
-      </SubGrid>
-
-      <SubGrid id="sec_capture" row="2" col="0" rows="2" columns="1" rowHeights="40,88" gap="6" margin="6" style="group">
-        <Cell id="h_capture" row="0" col="0" label="Screen capture" role="label" textStyle="section" style="plain"/>
-        <SubGrid id="row_capture" row="1" col="0" rows="1" columns="2" gap="6" style="row">
-          <Cell id="cap_label" row="0" col="0" label="Screenshots" caption="All includes overlays (for documentation). Pages keeps boards and hides look-to, the reticle, and the lens. None hides boards and those overlays." role="label" style="plain"/>
-          <SubGrid id="act_capture" row="0" col="1" rows="1" columns="3" gap="0" style="row">
-            <Cell id="cap_all" row="0" col="0" label="All" role="choice" activeState="settings.capture.all" style="joinLeft" command="settings.capture.all"/>
-            <Cell id="cap_pages" row="0" col="1" label="Pages" role="choice" activeState="settings.capture.pages" style="join" command="settings.capture.pages"/>
-            <Cell id="cap_none" row="0" col="2" label="None" role="choice" activeState="settings.capture.none" style="joinRight" command="settings.capture.none"/>
-          </SubGrid>
-        </SubGrid>
-      </SubGrid>
-
-      <SubGrid id="sec_splash" row="3" col="0" rows="2" columns="1" rowHeights="40,72" gap="6" margin="6" style="group">
-        <Cell id="h_splash" row="0" col="0" label="Startup" role="label" textStyle="section" style="plain"/>
-        <SubGrid id="row_splash" row="1" col="0" rows="1" columns="2" gap="6" style="row">
-          <Cell id="splash_l" row="0" col="0" label="Startup splash" caption="Tour the dock when Gazer starts." role="label" style="plain"/>
-          <SubGrid id="act_splash" row="0" col="1" rows="1" columns="2" gap="0" style="row">
-            <Cell id="splash_on" row="0" col="0" label="Show on start" icon="visibility" role="toggle" activeState="settings.session.showSplash.toggle" style="joinLeft" command="settings.session.showSplash.toggle"/>
-            <Cell id="splash_play" row="0" col="1" label="Play tour" icon="restart" style="joinRight" command="settings.session.showSplash.play"/>
-          </SubGrid>
-        </SubGrid>
-      </SubGrid>
-
-      <SubGrid id="sec_session" row="4" col="0" rows="4" columns="1" rowHeights="40,72,72,88" gap="6" margin="6" style="group">
-        <Cell id="h_session" row="0" col="0" label="Session" role="label" textStyle="section" style="plain"/>
-        <SubGrid id="row_ac" row="1" col="0" rows="1" columns="2" gap="6" style="row">
-          <Cell id="ac_label" row="0" col="0" label="Auto-close boards" caption="Close idle boards that opted in." role="label" style="plain"/>
-          <Cell id="ac_on" row="0" col="1" label="Auto-close" role="toggle" activeState="settings.session.layoutAutoClose.toggle" style="button" command="settings.session.layoutAutoClose.toggle"/>
-        </SubGrid>
-        <SubGrid id="row_aci" row="2" col="0" rows="1" columns="2" gap="6" style="row">
-          <Cell id="aci_label" row="0" col="0" label="Auto-close idle" caption="Idle time before those boards close." role="label" style="plain"/>
-          <SubGrid id="act_aci" row="0" col="1" rows="1" columns="9" gap="0" style="row">
-            <Cell id="aci_dec" row="0" col="0" colSpan="2" label="−" style="joinLeft" command="settings.nudge.layoutAutoCloseIdleMs.dec"/>
-            <Cell id="aci_val" row="0" col="2" colSpan="3" label="—" role="value" settingKey="layoutAutoCloseIdleMs" style="join"/>
-            <Cell id="aci_inc" row="0" col="5" colSpan="2" label="+" style="join" command="settings.nudge.layoutAutoCloseIdleMs.inc"/>
-            <Cell id="aci_edit" row="0" col="7" colSpan="2" icon="editSquare" label="Edit…" style="joinRight" command="settings.edit.layoutAutoCloseIdleMs"/>
-          </SubGrid>
-        </SubGrid>
-        <SubGrid id="row_log" row="3" col="0" rows="1" columns="2" gap="6" style="row">
-          <Cell id="log_label" row="0" col="0" label="Bug log" caption="Send gazer.log when something goes wrong. After a restart, also send the newest gazer- file from the previous session." role="label" style="plain"/>
-          <Cell id="log_open" row="0" col="1" label="Open log folder" icon="mail" style="button" command="openLogFolder"/>
-        </SubGrid>
-      </SubGrid>
-
-      <SubGrid id="sec_files" row="5" col="0" rows="4" columns="1" rowHeights="40,72,72,72" gap="6" margin="6" style="group">
-        <Cell id="h_files" row="0" col="0" label="Settings file" role="label" textStyle="section" style="plain"/>
-        <SubGrid id="row_defaults" row="1" col="0" rows="1" columns="2" gap="6" style="row">
-          <Cell id="defaults_l" row="0" col="0" label="Factory values" caption="Each setting, its default, and its current value." role="label" style="plain"/>
-          <Cell id="defaults_open" row="0" col="1" label="View defaults" icon="list" style="button" hostPage="main_settings_defaults"/>
-        </SubGrid>
-        <SubGrid id="row_import" row="2" col="0" rows="1" columns="2" gap="6" style="row">
-          <Cell id="import_l" row="0" col="0" label="Import" caption="Replace settings with a file. Omitted values return to the factory." role="label" style="plain"/>
-          <Cell id="import_open" row="0" col="1" label="Import" icon="download" style="button" command="settings.import"/>
-        </SubGrid>
-        <SubGrid id="row_export" row="3" col="0" rows="1" columns="2" gap="6" style="row">
-          <Cell id="export_l" row="0" col="0" label="Export" caption="Write the current settings to a JSON file." role="label" style="plain"/>
-          <Cell id="export_open" row="0" col="1" label="Export" icon="upload" style="button" command="settings.export"/>
-        </SubGrid>
-      </SubGrid>
-
-      <SubGrid id="sec_update" row="6" col="0" rows="3" columns="1" rowHeights="40,88,72" gap="6" margin="6" style="group">
-        <Cell id="h_update" row="0" col="0" label="Updates" role="label" textStyle="section" style="plain"/>
-        <SubGrid id="row_update" row="1" col="0" rows="1" columns="2" gap="6" style="row">
-          <Cell id="update_status" row="0" col="0" label="Gazer" caption="Checking for updates." role="label" style="plain"/>
-          <Cell id="update_check" row="0" col="1" label="Check now" icon="restart" style="button" command="settings.update.check"/>
-        </SubGrid>
-        <Cell id="update_note" row="2" col="0" label="Silent updates" caption="After this version is installed, Gazer can download the next one and ask before it restarts Gazer." role="label" style="plain"/>
-      </SubGrid>
-    </SubGrid>
-    <SubGrid id="page_scroll" row="1" col="1" rows="3" columns="1" rowHeights="72,*,72" gap="6" margin="0" style="group">
-      <Cell id="set_scroll_up" row="0" col="0" icon="ArrowUp" role="scrollUp" style="button" command="settings.scroll.up"/>
-      <Cell id="set_scroll_track" row="1" col="0" role="scrollbar" caption="0,1,1" scanGrace="400"/>
-      <Cell id="set_scroll_down" row="2" col="0" icon="ArrowDown" role="scrollDown" style="button" command="settings.scroll.down"/>
-    </SubGrid>
+  <Style id="joinLeft" background="transparent" thickness="0" radius="10,0,0,10"/>
+  <Style id="group" background="bg95" thickness="0" radius="16"/>
+  <Style id="joinRight" background="transparent" thickness="0" radius="0,10,10,0"/>
+  <Grid id="board" rows="2" columns="2" desktopMode="true" anchor="Top" offset="0,0" size="clamp(1.8*A_ScreenHeight, 1080, A_ScreenWidth),A_ScreenHeight" gap="12" rowHeights="96,*" columnWidths="*,72" radius="16">
+    <Row id="titlebar" columns="2" span="2" gap="8" columnWidths="*,160" style="plain">
+      <Label id="page_title" style="plain" label="Setup" caption="Tracker, pad, capture, session, settings, and updates" textStyle="title"/>
+      <Button id="tab_done" style="button" label="Close" icon="keyboardHide" textStyle="row" closeAllPages="true"/>
+    </Row>
+    <Column id="scroller" rows="7" row="1" gap="12" rowHeights="130,130,146,130,302,286,220" scroll="true">
+      <Card id="sec_tr" rows="2" gap="6" padding="6" rowHeights="40,72" style="group">
+        <Label id="h_tr" style="plain" label="Tracker" textStyle="section"/>
+        <Row columns="2" gap="6" style="row">
+          <Label style="plain" label="Tracker" caption="Applies on next start."/>
+          <Row columns="2" style="row">
+            <Choice id="tr_a" style="joinLeft" label="Auto Tobii" bind="settings.tracker.auto" command="settings.tracker.auto"/>
+            <Choice style="joinRight" label="Mouse" bind="settings.tracker.mouse" command="settings.tracker.mouse"/>
+          </Row>
+        </Row>
+      </Card>
+      <Card id="sec_vigem" rows="2" gap="6" padding="6" rowHeights="40,72" style="group">
+        <Label id="h_vigem" style="plain" label="Virtual Xbox pad" textStyle="section"/>
+        <Row columns="2" gap="6" style="row">
+          <Label id="vigem_status" style="plain" label="ViGEm" caption="Not installed. Dwell Install to download the official setup."/>
+          <Row columns="2" style="row">
+            <Button id="vigem_refresh" style="joinLeft" label="Recheck" icon="restart" command="settings.vigem.refresh"/>
+            <Button id="vigem_install" style="joinRight" label="Download / UAC" icon="sportsEsports" command="settings.vigem.install"/>
+          </Row>
+        </Row>
+      </Card>
+      <Card id="sec_capture" rows="2" gap="6" padding="6" rowHeights="40,88" style="group">
+        <Label id="h_capture" style="plain" label="Screen capture" textStyle="section"/>
+        <Row columns="2" gap="6" style="row">
+          <Label style="plain" label="Screenshots" caption="All includes overlays (for documentation). Pages keeps boards and hides look-to, the reticle, and the lens. None hides boards and those overlays."/>
+          <Row columns="3" style="row">
+            <Choice id="cap_all" style="joinLeft" label="All" bind="settings.capture.all" command="settings.capture.all"/>
+            <Choice id="cap_pages" style="join" label="Pages" bind="settings.capture.pages" command="settings.capture.pages"/>
+            <Choice id="cap_none" style="joinRight" label="None" bind="settings.capture.none" command="settings.capture.none"/>
+          </Row>
+        </Row>
+      </Card>
+      <Card id="sec_splash" rows="2" gap="6" padding="6" rowHeights="40,72" style="group">
+        <Label id="h_splash" style="plain" label="Startup" textStyle="section"/>
+        <Row columns="2" gap="6" style="row">
+          <Label style="plain" label="Startup splash" caption="Tour the dock when Gazer starts."/>
+          <Row columns="2" style="row">
+            <Switch id="splash_on" style="joinLeft" label="Show on start" icon="visibility" bind="settings.session.showSplash.toggle" command="settings.session.showSplash.toggle"/>
+            <Button id="splash_play" style="joinRight" label="Play tour" icon="restart" command="settings.session.showSplash.play"/>
+          </Row>
+        </Row>
+      </Card>
+      <Card id="sec_session" rows="4" gap="6" padding="6" rowHeights="40,72,72,88" style="group">
+        <Label id="h_session" style="plain" label="Session" textStyle="section"/>
+        <Row columns="2" gap="6" style="row">
+          <Label style="plain" label="Auto-close boards" caption="Close idle boards that opted in."/>
+          <Switch id="ac_on" style="button" label="Auto-close" bind="settings.session.layoutAutoClose.toggle" command="settings.session.layoutAutoClose.toggle"/>
+        </Row>
+        <Row columns="2" gap="6" style="row">
+          <Label style="plain" label="Auto-close idle" caption="Idle time before those boards close."/>
+          <Row columns="9" style="row">
+            <Button style="joinLeft" label="−" span="2" command="settings.nudge.layoutAutoCloseIdleMs.dec"/>
+            <Label id="aci_val" style="join" label="—" settingKey="layoutAutoCloseIdleMs" role="value" span="3"/>
+            <Button style="join" label="+" span="2" command="settings.nudge.layoutAutoCloseIdleMs.inc"/>
+            <Button style="joinRight" label="Edit…" icon="editSquare" span="2" command="settings.edit.layoutAutoCloseIdleMs"/>
+          </Row>
+        </Row>
+        <Row columns="2" gap="6" style="row">
+          <Label style="plain" label="Bug log" caption="Send gazer.log when something goes wrong. After a restart, also send the newest gazer- file from the previous session."/>
+          <Button id="log_open" style="button" label="Open log folder" icon="mail" command="openLogFolder"/>
+        </Row>
+      </Card>
+      <Card rows="4" gap="6" padding="6" rowHeights="40,72,72,72" style="group">
+        <Label id="h_files" style="plain" label="Settings file" textStyle="section"/>
+        <Row columns="2" gap="6" style="row">
+          <Label style="plain" label="Factory values" caption="Each setting, its default, and its current value."/>
+          <Button id="defaults_open" style="button" label="View defaults" icon="list" hostPage="main_settings_defaults"/>
+        </Row>
+        <Row columns="2" gap="6" style="row">
+          <Label style="plain" label="Import" caption="Replace settings with a file. Omitted values return to the factory."/>
+          <Button id="import_open" style="button" label="Import" icon="download" command="settings.import"/>
+        </Row>
+        <Row columns="2" gap="6" style="row">
+          <Label style="plain" label="Export" caption="Write the current settings to a JSON file."/>
+          <Button id="export_open" style="button" label="Export" icon="upload" command="settings.export"/>
+        </Row>
+      </Card>
+      <Card rows="3" gap="6" padding="6" rowHeights="40,88,72" style="group">
+        <Label id="h_update" style="plain" label="Updates" textStyle="section"/>
+        <Label id="update_note" style="plain" label="Silent updates" caption="After this version is installed, Gazer can download the next one and ask before it restarts Gazer." row="2"/>
+        <Row columns="2" row="1" gap="6" style="row">
+          <Label id="update_status" style="plain" label="Gazer" caption="Checking for updates."/>
+          <Button id="update_check" style="button" label="Check now" icon="restart" command="settings.update.check"/>
+        </Row>
+      </Card>
+    </Column>
+    <Card id="page_scroll" rows="3" row="1" col="1" gap="6" rowHeights="72,*,72" style="group">
+      <Button id="set_scroll_up" style="button" icon="ArrowUp" role="scrollUp" command="settings.scroll.up"/>
+      <Button caption="0,1,1" role="scrollbar" scanGrace="400"/>
+      <Button id="set_scroll_down" style="button" icon="ArrowDown" role="scrollDown" command="settings.scroll.down"/>
+    </Card>
   </Grid>
 </Page>

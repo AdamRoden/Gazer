@@ -467,6 +467,55 @@ void LayoutEditorProperties::applyCell(const std::function<void(PageCell&)>& fn,
         undoLabel);
 }
 
+void LayoutEditorProperties::setAuthoredId(const QString& currentId, const QString& next, bool grid)
+{
+    const QString trimmed = next.trimmed();
+    if (trimmed == currentId) {
+        return;
+    }
+    if (!trimmed.isEmpty() && PageEdit::allIds(m_session.document()).contains(trimmed)) {
+        rebuild();
+        return;
+    }
+    QString minted;
+    applyDoc(
+        [&](PageDocument& doc) {
+            QString* id = nullptr;
+            bool* authored = nullptr;
+            if (grid) {
+                if (PageGrid* item = PageEdit::findGrid(doc, currentId)) {
+                    id = &item->id;
+                    authored = &item->authoredId;
+                }
+            } else if (PageLeaf* item = PageEdit::findLeaf(doc, currentId)) {
+                id = &item->id;
+                authored = &item->authoredId;
+            }
+            if (!id || !authored) {
+                return;
+            }
+            if (trimmed.isEmpty()) {
+                id->clear();
+                *authored = false;
+                PageEdit::assignMissingIds(doc);
+                minted = *id;
+            } else {
+                *id = trimmed;
+                *authored = true;
+                minted = trimmed;
+            }
+        },
+        grid ? QStringLiteral("Grid id") : QStringLiteral("Id"));
+    if (minted.isEmpty()) {
+        return;
+    }
+    if (grid) {
+        m_session.selectGrid(minted);
+    } else {
+        m_session.selectItem(minted);
+    }
+}
+
 void LayoutEditorProperties::selectNamedStyle(const QString& id)
 {
     if (id.isEmpty()) {
