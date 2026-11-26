@@ -18,8 +18,8 @@ Composition root, settings, command dispatch.
 | `ComposeForm.cpp` | Topic and phrase edit sheet. Settings-style rows: name, value, and an edit icon. Rows, columns, and index are − / value / +. Footer is Delete, Export, Save, and Cancel |
 | `ComposeFieldEdit.cpp` | One-row popup for a name or phrase, the height of that field. Save, Cancel, and Clear |
 | `ComposeRail.cpp` | Favorites sidebar and the add-favorite tiles |
-| `ComposeStyles.cpp` | Standing style picker, editor, and keyboard naming |
-| `ComposeTags.cpp` | Insert-tag page and keyboard naming |
+| `ComposeStyles.cpp` | Standing style list and keyboard naming. The sheet layout is `ComposeNameSheet.h` |
+| `ComposeTags.cpp` | Saved-tag list and keyboard naming. Same sheet as styles |
 | `ComposeSoundboard.cpp` | Pin/assign, topic rail, soundboard grid, Voice workspace import/export |
 | `ComposeItemEdit.cpp` | Topic/pin name editor. Color opens the settings picker. Icon opens a searchable Material Symbols board (fonts.google.com, then a short offline set). Search dwell shows the Speak keyboard with Esc and Ctrl in place of Edit and Actions. The footer is Clear, the current icon, Save, and Cancel. Tiles scroll by row |
 | `ComposeHistory.cpp` | History replay/restore. Phrase **Export** saves that clip as an MP3 |

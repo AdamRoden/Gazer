@@ -28,7 +28,7 @@ using compose_detail::overlayScrollbar;
 using compose_detail::paintFlat;
 using compose_detail::paintSelected;
 using compose_detail::paintSurface;
-using compose_detail::searchField;
+
 using compose_detail::trackPx;
 using SettingsPageBuild::makeNested;
 
@@ -38,6 +38,7 @@ bool ComposeUi::openVoices(QString* error)
     m_voiceSearch = true;
     m_voiceQuery.clear();
     m_langBrowse = false;
+    closeComposeSheets(kVoicesLiveId);
     requestCatalogIfNeeded();
     const bool ok = presentLive(QString(kVoicesLiveId), buildVoicesDocument(), error);
     if (ok && isOpen()) {
@@ -262,8 +263,8 @@ PageDocument ComposeUi::buildVoicesDocument()
     initTopOverlay(doc, 1, 5, {1, 1, 1, 1, 1}, 8, 16, theme,
                    aboveKeyboardHeight(m_composeAuthored), speakBoardWidth());
     PageGrid& grid = doc.grids[0];
-    grid.rowTracks = {trackPx(64), trackPx(72), trackPx(72), trackPx(72),
-                      PageTrackSize::starWeight()};
+    grid.rowTracks = {trackPx(64), trackPx(72), trackPx(72), PageTrackSize::starWeight(),
+                      trackPx(72)};
     const QColor key = theme.defaultCell();
     const QColor accent = theme.accent.isValid() ? theme.accent : QColor(80, 160, 220);
     const QColor value = theme.bgMain.isValid() ? theme.bgMain : QColor(24, 24, 26);
@@ -273,7 +274,7 @@ PageDocument ComposeUi::buildVoicesDocument()
     const QString g = m_genderFilter;
     const bool windows = model == QLatin1String("sapi");
 
-    PageGrid title = compose_detail::speakTitleBar(QStringLiteral("Select Voice"), false, key);
+    PageGrid title = compose_detail::speakTitleBar(QStringLiteral("Select Voice"), false, key, false);
     if (!title.cells.isEmpty()) {
         title.cells[0].caption = QStringLiteral("Voice model");
     }
@@ -297,9 +298,6 @@ PageDocument ComposeUi::buildVoicesDocument()
               windows);
     grid.subGrids.push_back(std::move(models));
 
-    grid.cells.push_back(searchField(QStringLiteral("voice_search"), m_voiceQuery,
-                                     QStringLiteral("Search voices"), 2, 0, 1, key, accent));
-
     QStringList langs = VoiceCatalog::languageChips(currentVoices(), 3);
     if (!lang.isEmpty() && !langs.contains(lang)) {
         if (langs.isEmpty()) {
@@ -308,7 +306,7 @@ PageDocument ComposeUi::buildVoicesDocument()
             langs.last() = lang;
         }
     }
-    PageGrid filters = makeNested(QStringLiteral("filters"), 3, 0, 1, 9, 8);
+    PageGrid filters = makeNested(QStringLiteral("filters"), 2, 0, 1, 9, 8);
     for (int i = 0; i < 5; ++i) {
         filters.columnTracks.push_back(PageTrackSize::starWeight());
     }
@@ -377,7 +375,7 @@ PageDocument ComposeUi::buildVoicesDocument()
         const int start = m_voicePage;
         putCaption(rows.isEmpty() ? QStringLiteral("No matching languages")
                                   : QStringLiteral("Languages"));
-        PageGrid body = overlayBody(4, 1);
+        PageGrid body = overlayBody(3, 1);
         PageGrid list = overlayList(1, kSearchListRows);
         for (int i = 0; i < kSearchListRows; ++i) {
             const int idx = start + i;
@@ -401,6 +399,9 @@ PageDocument ComposeUi::buildVoicesDocument()
                                                 QStringLiteral("speech.voiceList.prev"),
                                                 QStringLiteral("speech.voiceList.next")));
         grid.subGrids.push_back(std::move(body));
+        grid.subGrids.push_back(compose_detail::searchBar(
+            QStringLiteral("voice_search"), m_voiceQuery, QStringLiteral("Search voices"), 4, key,
+            accent, QStringLiteral("compose.clearSearch")));
         return doc;
     }
 
@@ -421,7 +422,7 @@ PageDocument ComposeUi::buildVoicesDocument()
         putCaption(caption);
     }
 
-    PageGrid body = overlayBody(4, 1);
+    PageGrid body = overlayBody(3, 1);
     PageGrid list = overlayList(1, kSearchListRows);
     list.gapPx = 8;
     for (int i = 0; i < kSearchListRows; ++i) {
@@ -485,6 +486,9 @@ PageDocument ComposeUi::buildVoicesDocument()
                                             QStringLiteral("speech.voiceList.prev"),
                                             QStringLiteral("speech.voiceList.next")));
     grid.subGrids.push_back(std::move(body));
+    grid.subGrids.push_back(compose_detail::searchBar(
+        QStringLiteral("voice_search"), m_voiceQuery, QStringLiteral("Search voices"), 4, key,
+        accent, QStringLiteral("compose.clearSearch")));
     return doc;
 }
 

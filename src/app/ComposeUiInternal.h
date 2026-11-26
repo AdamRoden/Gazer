@@ -10,16 +10,92 @@
 #include <QString>
 #include <QStringList>
 #include <QVector>
+#include <QtGlobal>
 
 namespace gazer::compose_detail {
 
 constexpr int kOverlayListRows = 10;
 /// Rows on a search sheet that sits above the Speak keyboard.
 constexpr int kSearchListRows = 5;
-/// Style and tag sheets lay names out as a tile grid, not one name per row.
+/// Rail chooser. Tag and style sheets use `kNameCols`.
 constexpr int kTileCols = 4;
 constexpr int kTileRows = 3;
 constexpr int kTilePage = kTileCols * kTileRows;
+/// Tag and style sheets: three names on each row. The row count fills the sheet.
+constexpr int kNameCols = 3;
+/// Gap between those name rows. The fit math uses the same value.
+constexpr int kNameListGap = 8;
+
+/// One Speak keyboard row, from the authored keys band. Fallback matches `compose.xml`.
+inline QString keyboardRowExpr(const PageDocument& authored)
+{
+    const QString fallback = QStringLiteral("((A_ScreenHeight-40)*4/12-16)/3");
+    if (authored.grids.isEmpty()) {
+        return fallback;
+    }
+    const PageGrid& board = authored.grids[0];
+    const PageGrid* keys = authored.findGrid(QStringLiteral("keys"));
+    if (!keys || keys->row < 0) {
+        return fallback;
+    }
+    const int boardRows = qMax(1, board.rows);
+    if (keys->row >= boardRows) {
+        return fallback;
+    }
+    double parts = 0.0;
+    double keyParts = 0.0;
+    for (int i = 0; i < boardRows; ++i) {
+        const PageTrackSize track = i < board.rowTracks.size() ? board.rowTracks.at(i)
+                                                                : PageTrackSize::starWeight();
+        if (!track.isStar()) {
+            return fallback;
+        }
+        const double weight = track.star > 0.0 ? track.star : 1.0;
+        parts += weight;
+        if (i == keys->row) {
+            keyParts = weight;
+        }
+    }
+    if (parts <= 0.0 || keyParts <= 0.0) {
+        return fallback;
+    }
+    const int boardTrim = 2 * qMax(0, board.marginPx) + qMax(0, board.gapPx) * (boardRows - 1);
+    const int keyRows = qMax(1, keys->rows);
+    const int keyChrome =
+        2 * qMax(0, keys->marginPx) + qMax(0, keys->gapPx) * (keyRows - 1);
+    auto num = [](double v) {
+        const qint64 whole = qRound64(v);
+        if (qAbs(v - double(whole)) < 1e-6) {
+            return QString::number(whole);
+        }
+        return QString::number(v, 'g', 12);
+    };
+    return QStringLiteral("((A_ScreenHeight-%1)*%2/%3-%4)/%5")
+        .arg(boardTrim)
+        .arg(num(keyParts))
+        .arg(num(parts))
+        .arg(keyChrome)
+        .arg(keyRows);
+}
+
+inline PageTrackSize keyboardRowTrack(const PageDocument& authored)
+{
+    return PageTrackSize::fromDim(PageDim::expression(keyboardRowExpr(authored)));
+}
+
+inline int namePageSize(int rows)
+{
+    return qMax(1, rows) * kNameCols;
+}
+
+/// First index that keeps `index` on screen. `rows` is the visible name-row count.
+inline int namePageFor(int index, int total, int rows)
+{
+    const int visible = namePageSize(rows);
+    const int rowStart = (qMax(0, index) / kNameCols) * kNameCols;
+    const int page = qMax(0, rowStart - (qMax(1, rows) - 1) * kNameCols);
+    return qBound(0, page, qMax(0, total - visible));
+}
 /// History rows above the keyboard. Each record is one row.
 constexpr int kHistoryCards = 5;
 constexpr int kOverlayBodyCols = 20;
@@ -467,15 +543,59 @@ inline PageTrackSize trackPx(int px)
     return PageTrackSize::fromDim(PageDim::pixels(px));
 }
 
-/// Title row. Cancel abandons an edit and says Cancel. Otherwise a round Close X.
-inline PageGrid speakTitleBar(const QString& heading, bool cancel, const QColor& surface)
+/// One style or tag. Star on the left. Delete on the right only when it is not
+/// a favorite. The right column stays so the names line up.
+inline PageGrid nameCard(const QString& id, int row, int col, const QString& label,
+                         const QString& applyCommand, const QString& favCommand, bool favorite,
+                         const QString& trashCommand, bool selected, const QColor& value,
+                         const QColor& accent, const QColor& key, const QColor& danger)
 {
-    PageGrid title = SettingsPageBuild::makeNested(QStringLiteral("titlebar"), 0, 0, 1, 2, 8);
-    title.columnTracks = {PageTrackSize::starWeight(), trackPx(cancel ? 160 : 72)};
+    PageGrid tile = SettingsPageBuild::makeNested(id, row, col, 1, 3, 4);
+    tile.columnTracks = {trackPx(64), PageTrackSize::starWeight(), trackPx(64)};
+    tile.marginPx = 4;
+    tile.style.radius = PageBox::all(12);
+    const QColor rim = ThemeColors::mix(value, ThemeColors::contrastOn(value), 0.28);
+    tile.style.background = value;
+    tile.style.borderColor = selected ? accent : rim;
+    tile.style.thickness = PageBox::all(selected ? 2 : 1);
+    PageCell star = SettingsPageBuild::cell(id + QStringLiteral("_fav"), {}, 0, 0, favCommand, key,
+                                            1, {}, {}, QStringLiteral("star"));
+    star.activeState = favCommand;
+    paintSurface(star, key);
+    tile.cells.push_back(std::move(star));
+    PageCell name = SettingsPageBuild::cell(id + QStringLiteral("_name"), label, 0, 1,
+                                            applyCommand, QColor());
+    name.textStyle = QStringLiteral("row");
+    paintFlat(name);
+    tile.cells.push_back(std::move(name));
+    if (!favorite) {
+        PageCell trash = SettingsPageBuild::cell(id + QStringLiteral("_trash"), {}, 0, 2,
+                                                 trashCommand, QColor(), 1, {}, {},
+                                                 QStringLiteral("delete"));
+        paintDanger(trash, danger);
+        tile.cells.push_back(std::move(trash));
+    }
+    return tile;
+}
+
+/// Title row. Cancel abandons an edit and says Cancel. Otherwise a round Close X,
+/// unless `showClose` is false.
+inline PageGrid speakTitleBar(const QString& heading, bool cancel, const QColor& surface,
+                              bool showClose = true)
+{
+    const bool hasButton = cancel || showClose;
+    PageGrid title = SettingsPageBuild::makeNested(QStringLiteral("titlebar"), 0, 0, 1,
+                                                   hasButton ? 2 : 1, 8);
+    if (hasButton) {
+        title.columnTracks = {PageTrackSize::starWeight(), trackPx(cancel ? 160 : 72)};
+    }
     PageCell titleCell = SettingsPageBuild::cell(QStringLiteral("title"), heading, 0, 0, {},
                                                  QColor(), 1, QStringLiteral("label"));
     titleCell.textStyle = QStringLiteral("title");
     title.cells.push_back(std::move(titleCell));
+    if (!hasButton) {
+        return title;
+    }
     if (cancel) {
         PageCell button = SettingsPageBuild::cell(QStringLiteral("close"), QStringLiteral("Cancel"),
                                                   0, 1, QStringLiteral("compose.cancelName"),
@@ -491,6 +611,79 @@ inline PageGrid speakTitleBar(const QString& heading, bool cancel, const QColor&
         title.cells.push_back(std::move(button));
     }
     return title;
+}
+
+/// Fill for the optional button between the search field and Done.
+enum class SearchFill { Surface, Danger, Accent };
+
+/// Search line above the keyboard. The clear mark sits inside the field.
+/// `done` is false while naming, where Save and Cancel already sit under the field.
+/// `middle` is an optional button between the field and Done.
+inline PageGrid searchBar(const QString& id, const QString& query, const QString& placeholder,
+                          int row, const QColor& surface, const QColor& accent,
+                          const QString& clearCommand, bool done = true,
+                          const QString& middleLabel = {}, const QString& middleCommand = {},
+                          SearchFill middleFill = SearchFill::Surface, const QColor& middleInk = {})
+{
+    const bool middle = !middleLabel.isEmpty();
+    int columns = 1;
+    if (middle) {
+        ++columns;
+    }
+    if (done) {
+        ++columns;
+    }
+    PageGrid bar = SettingsPageBuild::makeNested(id + QStringLiteral("_bar"), row, 0, 1, columns, 8);
+    bar.columnTracks.push_back(PageTrackSize::starWeight());
+    if (middle) {
+        bar.columnTracks.push_back(trackPx(middleFill == SearchFill::Accent ? 140 : 200));
+    }
+    if (done) {
+        bar.columnTracks.push_back(trackPx(140));
+    }
+
+    PageGrid field = SettingsPageBuild::makeNested(id + QStringLiteral("_cap"), 0, 0, 1, 2, 0);
+    field.columnTracks = {PageTrackSize::starWeight(), trackPx(48)};
+    field.marginPx = 4;
+    field.style.background = surface;
+    field.style.borderColor = accent;
+    field.style.thickness = PageBox::all(2);
+    field.style.radius = PageBox::all(12);
+    PageCell text = searchField(id, query, placeholder, 0, 0, 1, surface, accent);
+    text.style.background = QColor(0, 0, 0, 0);
+    text.style.borderColor = QColor();
+    text.style.thickness = PageBox::all(0);
+    text.style.radius = PageBox::all(0);
+    field.cells.push_back(std::move(text));
+    PageCell clear = SettingsPageBuild::cell(id + QStringLiteral("_clear"), {}, 0, 1, clearCommand,
+                                             QColor(), 1, {}, {}, QStringLiteral("close"));
+    paintFlat(clear);
+    clear.style.foreground = ThemeColors::contrastOn(surface);
+    field.cells.push_back(std::move(clear));
+    bar.subGrids.push_back(std::move(field));
+
+    int col = 1;
+    if (middle) {
+        PageCell extra = SettingsPageBuild::cell(id + QStringLiteral("_extra"), middleLabel, 0, col,
+                                                 middleCommand, QColor());
+        if (middleFill == SearchFill::Accent) {
+            paintSave(extra, accent);
+        } else if (middleFill == SearchFill::Danger) {
+            paintDanger(extra, middleInk.isValid() ? middleInk : accent);
+        } else {
+            paintSurface(extra, surface);
+        }
+        bar.cells.push_back(std::move(extra));
+        ++col;
+    }
+    if (done) {
+        PageCell button = SettingsPageBuild::cell(id + QStringLiteral("_done"),
+                                                  QStringLiteral("Done"), 0, col, {}, accent);
+        paintSave(button, accent);
+        button.actions.push_back(SettingsPageBuild::closeSelf());
+        bar.cells.push_back(std::move(button));
+    }
+    return bar;
 }
 
 struct RailActionSpec {

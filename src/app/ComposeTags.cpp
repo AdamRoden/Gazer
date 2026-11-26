@@ -1,8 +1,7 @@
 #include "app/ComposeUi.h"
 
 #include "app/AppSettings.h"
-#include "app/ComposeUiInternal.h"
-#include "app/SettingsPageBuild.h"
+#include "app/ComposeNameSheet.h"
 #include "assist/VoiceStyles.h"
 #include "layout/PageSession.h"
 #include "predict/TypingContext.h"
@@ -14,21 +13,13 @@
 
 namespace gazer {
 
-using SettingsPageBuild::cell;
-using SettingsPageBuild::initTopOverlay;
-using SettingsPageBuild::makeNested;
 using compose_detail::aboveKeyboardHeight;
-using compose_detail::kTileCols;
-using compose_detail::kTilePage;
-using compose_detail::kTileRows;
-using compose_detail::paintDanger;
-using compose_detail::paintSave;
-using compose_detail::paintSurface;
-using compose_detail::overlayBody;
-using compose_detail::overlayList;
-using compose_detail::overlayScrollbar;
-using compose_detail::searchField;
-using compose_detail::trackPx;
+using compose_detail::kNameCols;
+using compose_detail::buildNameSheet;
+using compose_detail::nameListRows;
+using compose_detail::namePageFor;
+using compose_detail::NameEntry;
+using compose_detail::NameSheet;
 
 namespace {
 
@@ -68,11 +59,6 @@ void ComposeUi::cancelBorrowedPhrase()
         return;
     }
     const BorrowedPhrase kind = m_borrowed;
-    if (kind == BorrowedPhrase::Style) {
-        m_styleEditor = true;
-    } else if (kind == BorrowedPhrase::Tag) {
-        m_tagEditor = true;
-    }
     endBorrowedPhrase();
     rebuildBoard();
     if (kind == BorrowedPhrase::Style) {
@@ -117,7 +103,7 @@ void ComposeUi::pageTags(int delta)
     if (delta == 0 || !hasLive(kTagsLiveId)) {
         return;
     }
-    m_tagPage += delta * kTileCols;
+    m_tagPage += delta * kNameCols;
     rebuildTags();
 }
 
@@ -146,7 +132,6 @@ void ComposeUi::beginTagName()
         m_borrowed = BorrowedPhrase::Tag;
         m_buffer.load(QString());
     }
-    m_tagEditor = true;
     m_tagSearch = true;
     rebuildBoard();
     if (!hasLive(kTagsLiveId)) {
@@ -203,14 +188,38 @@ bool ComposeUi::saveTagName(QString* error)
     while (m_settings.savedSpeechTags.size() > 24) {
         m_settings.savedSpeechTags.removeFirst();
     }
-    m_tagEditor = true;
-    const int count = m_settings.savedSpeechTags.size();
-    m_tagPage = qBound(0, count - 1, qMax(0, count + 1 - kTilePage));
+    int shown = 0;
+    for (const AppSettings::SavedSpeechTag& saved : m_settings.savedSpeechTags) {
+        if (!AppSettings::normalizeSpeechTag(saved.name).isEmpty()) {
+            ++shown;
+        }
+    }
+    m_tagPage = namePageFor(qMax(0, shown - 1), shown, nameListRows(m_composeAuthored, false));
     m_tagSearch = true;
     m_tagQuery.clear();
     apply();
     notify(QStringLiteral("Added"));
     return true;
+}
+
+void ComposeUi::toggleTagFavorite(const QString& encoded)
+{
+    const QString name =
+        AppSettings::normalizeSpeechTag(QUrl::fromPercentEncoding(encoded.toUtf8()));
+    if (name.isEmpty()) {
+        return;
+    }
+    bool found = false;
+    for (AppSettings::SavedSpeechTag& tag : m_settings.savedSpeechTags) {
+        if (AppSettings::normalizeSpeechTag(tag.name).compare(name, Qt::CaseInsensitive) == 0) {
+            tag.favorite = !tag.favorite;
+            found = true;
+        }
+    }
+    if (!found) {
+        return;
+    }
+    apply();
 }
 
 void ComposeUi::trashTag(const QString& encoded)
@@ -232,34 +241,7 @@ void ComposeUi::trashTag(const QString& encoded)
     if (!removed) {
         return;
     }
-    const int maxOff = qMax(0, m_settings.savedSpeechTags.size() + 1 - kTilePage);
-    if (m_tagPage > maxOff) {
-        m_tagPage = maxOff;
-    }
     apply();
-}
-
-void ComposeUi::openTagEditor()
-{
-    m_tagEditor = true;
-    m_tagPage = 0;
-    m_tagSearch = true;
-    if (!hasLive(kTagsLiveId)) {
-        if (isOpen()) {
-            showComposeLayer(1);
-        }
-        QString err;
-        (void)presentLive(QString(kTagsLiveId), buildTagsDocument(), &err);
-        return;
-    }
-    rebuildTags();
-}
-
-void ComposeUi::closeTagEditor()
-{
-    m_tagEditor = false;
-    m_tagPage = 0;
-    rebuildTags();
 }
 
 void ComposeUi::cancelTagName()
@@ -272,10 +254,10 @@ void ComposeUi::cancelTagName()
 
 bool ComposeUi::openTags(QString* error)
 {
-    m_tagEditor = false;
     m_tagSearch = true;
     m_tagQuery.clear();
     m_tagPage = 0;
+    closeComposeSheets(kTagsLiveId);
     const bool ok = presentLive(QString(kTagsLiveId), buildTagsDocument(), error);
     if (ok && isOpen()) {
         showComposeLayer(1);
@@ -296,129 +278,66 @@ void ComposeUi::rebuildTags()
 
 PageDocument ComposeUi::buildTagsDocument()
 {
-    PageDocument doc;
-    doc.id = QString(kTagsLiveId);
-    doc.name = QStringLiteral("Tags");
-    const ThemeColors theme = m_settings.resolvedTheme();
     const bool naming = m_borrowed == BorrowedPhrase::Tag;
-    const int sheetRows = naming ? 4 : 3;
-    initTopOverlay(doc, 1, sheetRows, QVector<double>(sheetRows, 1.0), 8, 16, theme,
-                   aboveKeyboardHeight(m_composeAuthored), speakBoardWidth());
-    PageGrid& grid = doc.grids[0];
-    grid.rowTracks = {trackPx(72), trackPx(72), PageTrackSize::starWeight()};
-    if (naming) {
-        grid.rowTracks.push_back(trackPx(72));
-    }
-    const QColor key = theme.defaultCell();
-    const QColor accent = theme.accent.isValid() ? theme.accent : QColor(80, 160, 220);
-    const QColor value = theme.bgMain.isValid() ? theme.bgMain : QColor(24, 24, 26);
-    const QColor danger = theme.danger.isValid() ? theme.danger : QColor(180, 80, 80);
-
-    grid.subGrids.push_back(compose_detail::speakTitleBar(
-        naming ? QStringLiteral("New tag")
-               : (m_tagEditor ? QStringLiteral("Edit tags") : QStringLiteral("Tags")),
-        naming, key));
-
-    if (naming) {
-        PageCell field = searchField(QStringLiteral("tag_search"), m_buffer.text(),
-                                     QStringLiteral("Tag name"), 1, 0, 1, key, accent);
-        field.caretIndex = m_buffer.text().isEmpty()
-                               ? 0
-                               : qBound(0, m_buffer.caret(), field.label.size());
-        grid.cells.push_back(std::move(field));
-    } else {
-        grid.cells.push_back(searchField(QStringLiteral("tag_search"), m_tagQuery,
-                                         QStringLiteral("Search tags"), 1, 0, 1, key, accent));
-    }
-
-    QStringList names;
-    names.reserve(m_settings.savedSpeechTags.size());
+    const QString query = m_tagQuery.trimmed();
+    struct Row {
+        QString name;
+        bool favorite = false;
+    };
+    QVector<Row> favorites;
+    QVector<Row> rest;
     for (const AppSettings::SavedSpeechTag& tag : m_settings.savedSpeechTags) {
         const QString name = AppSettings::normalizeSpeechTag(tag.name);
-        if (!name.isEmpty()) {
-            names.push_back(name);
+        if (name.isEmpty()) {
+            continue;
+        }
+        if (!naming && !query.isEmpty() && !name.contains(query, Qt::CaseInsensitive)) {
+            continue;
+        }
+        Row row;
+        row.name = name;
+        row.favorite = tag.favorite;
+        if (tag.favorite) {
+            favorites.push_back(row);
+        } else {
+            rest.push_back(row);
         }
     }
-    if (!naming && !m_tagQuery.trimmed().isEmpty()) {
-        QStringList matched;
-        const QString query = m_tagQuery.trimmed();
-        for (const QString& name : names) {
-            if (name.contains(query, Qt::CaseInsensitive)) {
-                matched.push_back(name);
-            }
-        }
-        names = matched;
-    }
-    const int addSlot = m_tagEditor && !naming ? 1 : 0;
-    const int total = names.size() + addSlot;
-    const int maxOff = qMax(0, total - kTilePage);
-    m_tagPage = qBound(0, m_tagPage, maxOff);
-    const int start = m_tagPage;
 
-    PageGrid body = overlayBody(2, 1);
-    PageGrid list = overlayList(kTileCols, kTileRows);
-    list.gapPx = 8;
-    for (int slot = 0; slot < kTilePage; ++slot) {
-        const int index = start + slot;
-        const int tileRow = slot / kTileCols;
-        const int tileCol = slot % kTileCols;
-        if (index >= total) {
-            list.cells.push_back(cell(QStringLiteral("tag_name_%1").arg(slot), {}, tileRow, tileCol,
-                                      {}, value, 1, QStringLiteral("label")));
-            continue;
-        }
-        if (addSlot && index == names.size()) {
-            PageCell add = cell(QStringLiteral("tag_add"), QStringLiteral("Add"), tileRow, tileCol,
-                                QStringLiteral("compose.beginTagName"), key, 1, {}, {},
-                                QStringLiteral("add"));
-            add.style.radius = PageBox::all(12);
-            paintSurface(add, key);
-            list.cells.push_back(std::move(add));
-            continue;
-        }
-        const QString& name = names.at(index);
-        const QString encoded = encodeTag(name);
-        if (!m_tagEditor) {
-            PageCell tile = cell(QStringLiteral("tag_name_%1").arg(slot), name, tileRow, tileCol,
-                                 QStringLiteral("compose.insertTag.%1").arg(encoded), key);
-            tile.style.radius = PageBox::all(12);
-            list.cells.push_back(std::move(tile));
-            continue;
-        }
-        PageGrid tile = makeNested(QStringLiteral("tag_tile_%1").arg(slot), tileRow, tileCol, 1, 2,
-                                   4);
-        tile.columnTracks = {PageTrackSize::starWeight(), trackPx(56)};
-        PageCell label = cell(QStringLiteral("tag_name_%1").arg(slot), name, 0, 0, {}, key, 1,
-                              QStringLiteral("label"));
-        label.style.radius = PageBox::all(12);
-        tile.cells.push_back(std::move(label));
-        PageCell trash = cell(QStringLiteral("tag_trash_%1").arg(slot), {}, 0, 1,
-                              QStringLiteral("compose.trashTag.%1").arg(encoded), QColor(), 1, {},
-                              {}, QStringLiteral("delete"));
-        paintDanger(trash, danger);
-        tile.cells.push_back(std::move(trash));
-        list.subGrids.push_back(std::move(tile));
+    NameSheet spec;
+    spec.id = QString(kTagsLiveId);
+    spec.name = QStringLiteral("Tags");
+    spec.title = naming ? QStringLiteral("New tag") : QStringLiteral("Tags");
+    spec.prefix = QStringLiteral("tag");
+    spec.naming = naming;
+    spec.page = &m_tagPage;
+    spec.pageUp = QStringLiteral("compose.tagPage.-1");
+    spec.pageDown = QStringLiteral("compose.tagPage.1");
+    spec.searchId = QStringLiteral("tag_search");
+    spec.placeholder = naming ? QStringLiteral("Tag name") : QStringLiteral("Search tags");
+    spec.query = naming ? m_buffer.text() : m_tagQuery;
+    spec.clearCommand = naming ? QStringLiteral("compose.clear") : QStringLiteral("compose.clearSearch");
+    spec.addCommand = QStringLiteral("compose.beginTagName");
+    spec.caret = m_buffer.caret();
+    spec.stampCaret = naming;
+    const auto addTag = [&](const Row& row) {
+        const QString encoded = encodeTag(row.name);
+        NameEntry entry;
+        entry.label = row.name;
+        entry.command = QStringLiteral("compose.insertTag.%1").arg(encoded);
+        entry.favCommand = QStringLiteral("compose.favTag.%1").arg(encoded);
+        entry.trashCommand = QStringLiteral("compose.trashTag.%1").arg(encoded);
+        entry.favorite = row.favorite;
+        spec.entries.push_back(std::move(entry));
+    };
+    for (const Row& row : favorites) {
+        addTag(row);
     }
-    body.subGrids.push_back(std::move(list));
-    body.subGrids.push_back(overlayScrollbar(start, kTilePage, total, key,
-                                            QStringLiteral("compose.tagPage.-1"),
-                                            QStringLiteral("compose.tagPage.1")));
-    grid.subGrids.push_back(std::move(body));
-
-    if (naming) {
-        PageGrid foot = makeNested(QStringLiteral("footer"), 3, 0, 1, 2, 8);
-        foot.columnTracks = {PageTrackSize::starWeight(1.4), PageTrackSize::starWeight()};
-        PageCell save = cell(QStringLiteral("tag_save"), QStringLiteral("Save"), 0, 0,
-                             QStringLiteral("compose.saveName"), accent);
-        paintSave(save, accent);
-        foot.cells.push_back(std::move(save));
-        PageCell cancel = cell(QStringLiteral("tag_cancel"), QStringLiteral("Cancel"), 0, 1,
-                               QStringLiteral("compose.cancelName"), key);
-        paintSurface(cancel, key);
-        foot.cells.push_back(std::move(cancel));
-        grid.subGrids.push_back(std::move(foot));
+    for (const Row& row : rest) {
+        addTag(row);
     }
-    return doc;
+    return buildNameSheet(spec, m_composeAuthored, m_settings.resolvedTheme(),
+                          aboveKeyboardHeight(m_composeAuthored), speakBoardWidth());
 }
 
 } // namespace gazer

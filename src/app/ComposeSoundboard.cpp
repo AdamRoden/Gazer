@@ -77,14 +77,7 @@ QString ComposeUi::editKeyFace() const
     if (!isOpen() || capturingPhrase()) {
         return {};
     }
-    const QString top = m_pages.topPageId();
-    if (top == kStylesLiveId) {
-        return m_styleEditor ? QStringLiteral("style-done") : QStringLiteral("style-edit");
-    }
-    if (top == kTagsLiveId) {
-        return m_tagEditor ? QStringLiteral("tag-done") : QStringLiteral("tag-edit");
-    }
-    if (top == kPageId) {
+    if (m_pages.topPageId() == kPageId) {
         return editMode() ? QStringLiteral("pins-done") : QStringLiteral("pins-edit");
     }
     return {};
@@ -95,13 +88,7 @@ void ComposeUi::stampEditKeys(PageDocument& doc) const
     const QString face = editKeyFace();
     const bool done = face.endsWith(QLatin1String("-done"));
     QString command;
-    if (face.startsWith(QLatin1String("style-"))) {
-        command = done ? QStringLiteral("compose.closeStyleEditor")
-                       : QStringLiteral("compose.openStyleEditor");
-    } else if (face.startsWith(QLatin1String("tag-"))) {
-        command = done ? QStringLiteral("compose.closeTagEditor")
-                       : QStringLiteral("compose.openTagEditor");
-    } else if (face.startsWith(QLatin1String("pins-"))) {
+    if (face.startsWith(QLatin1String("pins-"))) {
         command = QStringLiteral("compose.editPins");
     }
     const ThemeColors theme = m_settings.resolvedTheme();

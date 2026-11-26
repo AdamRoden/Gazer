@@ -111,6 +111,27 @@ bool ComposeUi::handleSearchCommand(const QString& command)
     return true;
 }
 
+void ComposeUi::clearSearch()
+{
+    const SearchSheet sheet = activeSearchSheet();
+    QString* query = searchQuery(sheet);
+    if (!query || query->isEmpty()) {
+        return;
+    }
+    query->clear();
+    onSearchEdited(sheet);
+}
+
+void ComposeUi::closeComposeSheets(QLatin1String keep)
+{
+    const QLatin1String ids[] = {kTagsLiveId, kStylesLiveId, kVoicesLiveId, kHistoryLiveId};
+    for (const QLatin1String id : ids) {
+        if (id != keep && hasLive(id)) {
+            m_pages.closePage(QString(id));
+        }
+    }
+}
+
 bool ComposeUi::handleSearchEscape()
 {
     const SearchSheet sheet = activeSearchSheet();

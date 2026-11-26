@@ -39,6 +39,10 @@ void registerComposeCommands(CommandRegistry& commands, ComposeUi& compose)
                              [&compose](QString* error) { return compose.openVoices(error); });
     commands.registerBuiltin(QStringLiteral("compose.openHistory"),
                              [&compose](QString* error) { return compose.openHistory(error); });
+    commands.registerBuiltin(QStringLiteral("compose.clearSearch"), [&compose](QString*) {
+        compose.clearSearch();
+        return true;
+    });
     commands.registerBuiltin(QStringLiteral("compose.selectAll"), [&compose](QString*) {
         compose.selectAll();
         return true;
@@ -187,6 +191,7 @@ void registerComposeCommands(CommandRegistry& commands, ComposeUi& compose)
     bindVoidId(QStringLiteral("compose.applyStyle."), &ComposeUi::applyStyle);
     bindVoidId(QStringLiteral("compose.favStyle."), &ComposeUi::toggleStyleFavorite);
     bindVoidId(QStringLiteral("compose.trashStyle."), &ComposeUi::trashStyle);
+    bindVoidId(QStringLiteral("compose.favTag."), &ComposeUi::toggleTagFavorite);
     bindVoidId(QStringLiteral("compose.trashTag."), &ComposeUi::trashTag);
     bindVoidInt(QStringLiteral("compose.stylePage."), &ComposeUi::pageStyles);
     bindVoidInt(QStringLiteral("compose.styleGoto."), &ComposeUi::stylesGoto);
@@ -198,22 +203,6 @@ void registerComposeCommands(CommandRegistry& commands, ComposeUi& compose)
     bindVoidInt(QStringLiteral("compose.formIndex."), &ComposeUi::nudgeFormIndex);
     bindVoidInt(QStringLiteral("compose.formCols."), &ComposeUi::nudgeFormCols);
     bindVoidInt(QStringLiteral("compose.formRows."), &ComposeUi::nudgeFormRows);
-    commands.registerBuiltin(QStringLiteral("compose.openStyleEditor"), [&compose](QString*) {
-        compose.openStyleEditor();
-        return true;
-    });
-    commands.registerBuiltin(QStringLiteral("compose.closeStyleEditor"), [&compose](QString*) {
-        compose.closeStyleEditor();
-        return true;
-    });
-    commands.registerBuiltin(QStringLiteral("compose.openTagEditor"), [&compose](QString*) {
-        compose.openTagEditor();
-        return true;
-    });
-    commands.registerBuiltin(QStringLiteral("compose.closeTagEditor"), [&compose](QString*) {
-        compose.closeTagEditor();
-        return true;
-    });
     commands.registerBuiltin(QStringLiteral("compose.beginStyleName"), [&compose](QString*) {
         compose.beginStyleName();
         return true;

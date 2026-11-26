@@ -504,6 +504,7 @@ bool AppSettings::applyJsonObject(const QJsonObject& o)
                 tag.name = to.value(QStringLiteral("name")).toString();
                 tag.color = to.value(QStringLiteral("color")).toString();
                 tag.icon = to.value(QStringLiteral("icon")).toString();
+                tag.favorite = to.value(QStringLiteral("favorite")).toBool(false);
             }
             if (!tag.name.trimmed().isEmpty()) {
                 savedSpeechTags.push_back(tag);
@@ -755,6 +756,9 @@ QJsonObject AppSettings::toJsonObject() const
             to.insert(QStringLiteral("name"), t.name);
             to.insert(QStringLiteral("color"), t.color);
             to.insert(QStringLiteral("icon"), t.icon);
+            if (t.favorite) {
+                to.insert(QStringLiteral("favorite"), true);
+            }
             tags.append(to);
         }
         o.insert(QStringLiteral("savedSpeechTags"), tags);

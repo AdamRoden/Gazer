@@ -120,15 +120,15 @@ When adding a command: register it and add a row here.
 | `compose.acceptPrediction.<i>` | Prefix; dwell suggestion `i` below the phrase. Replaces the word being typed, or inserts the next word |
 | `compose.moveEndOfWord.<i>` / `compose.moveStartOfWord.<i>` | Prefix; caret to that token’s edge. Either move clears a selection. Not on the Speak board |
 | `compose.selectWord.<i>` | Prefix; select that token. The caret stays at the start of the word. Not on the Speak board |
-| `compose.openVoices` / `compose.openHistory` | Voice list (model, speed, pitch, search, language); history |
+| `compose.openVoices` / `compose.openHistory` | Voice list (model, language filters, search); history. Opening one of tag, style, voice, or history closes the other |
+| `compose.clearSearch` | Clear the search line on the open tag, style, voice, or history sheet |
 | `compose.applyStyle.<name>` / `compose.clearStyle` | Standing ElevenLabs style. `name` is the percent-encoded display name. Empty clears it. The tag is added on the Eleven request only |
-| `compose.openStyleEditor` / `compose.closeStyleEditor` | Style list editor: every style, with star and trash. Done returns to the favorite picker |
-| `compose.favStyle.<name>` / `compose.trashStyle.<name>` | Star or remove a style. `name` is the percent-encoded display name. Trashing the standing style clears it. The catalog is saved |
-| `compose.stylePage.<n>` | Move the style editor by `n` pages |
-| `compose.beginStyleName` | Type a new style on the keyboard. Save adds it, starred. Cancel returns to the editor |
-| `compose.insertTag.<name>` | Insert `[name]` at the caret and return to Actions. `name` is percent-encoded |
-| `compose.tagPage.<n>` | Move the saved-tag page by `n` |
-| `compose.beginTagName` | Type a new tag on the keyboard. Save inserts it at the caret, keeps it in the saved list (24), and returns to the tag page |
+| `compose.favStyle.<name>` / `compose.trashStyle.<name>` | Star or remove a style. The sheet lists every style, three across, favorites first. Delete is on the right of a style that is not a favorite. Trashing the standing style clears it |
+| `compose.favTag.<name>` / `compose.trashTag.<name>` | Star or remove a saved tag. Favorites sort first. Delete is on the right of a tag that is not a favorite |
+| `compose.stylePage.<n>` / `compose.tagPage.<n>` | Move that list by `n` rows. A row is three names. The gaze track still jumps to an item |
+| `compose.beginStyleName` | **Add** beside Done on the style sheet. Same accent fill as Done. Save adds the style, already starred |
+| `compose.beginTagName` | **Add** beside Done on the tag sheet. Same accent fill as Done. Save stores the tag (cap 24) and does not insert it |
+| `compose.insertTag.<name>` | Insert `[name]` at the caret and close the tag sheet. `name` is percent-encoded |
 | `compose.openFiles` / `compose.importChoose` / `compose.importFile` | **Import**. Open the file browser in import/merge mode over Speak and show the keyboard layer. Cancel returns to the layer that was showing |
 | `compose.exportBoard` / `compose.exportFile` | **Export**. Same browser in export mode, with the file-name editor. Writes every topic |
 | `compose.browserPrev` / `compose.browserForward` / `compose.browserUp` | Back, forward, or parent folder. A path crumb uses `compose.browserGoto.<i>`. A Places entry uses `compose.browserPlace.<i>` |
@@ -154,7 +154,7 @@ When adding a command: register it and add a row here.
 | `history.play.<id>` / `history.restore.<id>` / `history.delete.<id>` / `history.save.<id>` | Replay, put the phrase back in the buffer, drop the row, or save that recording as an MP3 |
 | `history.list.next` / `.prev` / `history.list.goto.<n>` | History list: after the lock-on ring, looking along the track drags the thumb; commands still page/jump |
 | `compose.pin` / `compose.cancelAssign` | Actions **Edit**. Same as `compose.editPins`, except Save while a name, style, or tag is open |
-| `compose.editPins` | Keyboard **Edit**. Dwell a phrase or topic to edit it. Dwell an empty cell to save the composer text there |
+| `compose.editPins` | Keyboard **Edit** on the Speak page. Dwell a phrase or topic to edit it. Dwell an empty cell to save the composer text there. A style or tag sheet leaves this key idle |
 | `compose.browseAudio` / `compose.assignAudio` / `compose.clearAudio` | Phrase **Audio** **Edit**. Opens the file browser for a wav, mp3, m4a, aac, wma, ogg, or flac file, in the saved clip's folder when one is assigned. The file name starts as that clip's name. **Assign** asks Yes, then Save copies it onto the phrase. **Clear** drops that audio when the phrase is saved. The file plays instead of the typed phrase |
 | `soundboard.edit.<id>` | Open the pin item editor |
 | `soundboard.editTopic.<id>` | Open the topic item editor |

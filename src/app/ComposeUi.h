@@ -109,10 +109,6 @@ public:
     void pageChips(int delta);
     void applyStyle(const QString& encoded);
     void clearStyle();
-    void openStyleEditor();
-    void closeStyleEditor();
-    void openTagEditor();
-    void closeTagEditor();
     void pageStyles(int delta);
     void stylesGoto(int offset);
     void tagsGoto(int offset);
@@ -122,6 +118,7 @@ public:
     void trashStyle(const QString& encoded);
     void beginStyleName();
     void insertSavedTag(const QString& encoded);
+    void toggleTagFavorite(const QString& encoded);
     void trashTag(const QString& encoded);
     void pageTags(int delta);
     void beginTagName();
@@ -237,6 +234,10 @@ public:
     bool loadStarters(QString* error = nullptr);
 
     bool openHistory(QString* error = nullptr);
+    /// Clear the query on the open tag, style, voice, or history sheet.
+    void clearSearch();
+    /// Close the other Speak list sheets before opening `keep`.
+    void closeComposeSheets(QLatin1String keep);
     bool clearHistory(QString* error = nullptr);
     bool openStyles(QString* error = nullptr);
     bool openTags(QString* error = nullptr);
@@ -301,7 +302,7 @@ private:
     void rebuildBoard();
     [[nodiscard]] PageDim speakBoardWidth() const;
     void fillSoundboard(PageDocument& doc) const;
-    /// Keyboard Edit toggles topic and soundboard edit, or the style or tag editor.
+    /// Keyboard Edit toggles topic and soundboard edit on the Speak page.
     void stampEditKeys(PageDocument& doc) const;
     [[nodiscard]] QString editKeyFace() const;
     void fillTopicsMode(PageDocument& doc) const;
@@ -542,7 +543,7 @@ private:
     QString m_topicExportName;
     /// Settings search owns inserts. The Speak phrase is left alone.
     bool m_guestKeys = false;
-    /// Last style/tag face on the keyboard Edit key. A session change restamps when this flips.
+    /// Last keyboard Edit face. A session change restamps when this flips.
     QString m_editKeyFace;
     /// Compose was opened only to lend its keyboard. Close it when the loan ends.
     bool m_borrowedCompose = false;
@@ -557,8 +558,6 @@ private:
     /// Export name. The Speak keyboard types into this while the file browser is on top.
     ComposeBuffer m_fileName;
     int m_historyPage = 0;
-    bool m_styleEditor = false;
-    bool m_tagEditor = false;
     /// Phrase buffer is borrowed for a style or tag name. The two never overlap.
     enum class BorrowedPhrase { None, Style, Tag };
     BorrowedPhrase m_borrowed = BorrowedPhrase::None;

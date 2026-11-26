@@ -152,15 +152,15 @@ XML `mouseMoveByDirection` is the compass form of the nudge commands.
 | `compose.acceptPrediction.<i>` | Prefix; dwell suggestion `i` below the phrase. |
 | `compose.moveEndOfWord.<i>` / `compose.moveStartOfWord.<i>` | Caret to that token’s edge. Either move clears a selection. Not on the Speak board. |
 | `compose.selectWord.<i>` | Select that token. The caret stays at the start of the word. Not on the Speak board. |
-| `compose.openVoices` / `compose.openHistory` | Voice list; history. |
+| `compose.openVoices` / `compose.openHistory` | Voice list; history. Opening tag, style, voice, or history closes the other sheet. |
+| `compose.clearSearch` | Clear the search line on that sheet. |
 | `compose.applyStyle.<name>` / `compose.clearStyle` | Standing ElevenLabs style. `name` is percent-encoded. The tag is added on the Eleven request only. |
-| `compose.openStyleEditor` / `compose.closeStyleEditor` | Edit the style list (every style, star, trash). Done returns to the favorites. |
-| `compose.favStyle.<name>` / `compose.trashStyle.<name>` | Star or remove a style. Trashing the standing style clears it. |
-| `compose.stylePage.<n>` | Move the style editor by `n` pages. |
-| `compose.beginStyleName` | Type a new style on the keyboard. Save adds it, already starred. |
-| `compose.insertTag.<name>` | Insert `[name]` at the caret and return to Actions. `name` is percent-encoded. |
-| `compose.tagPage.<n>` | Move the saved-tag page by `n`. |
-| `compose.beginTagName` | Type a new tag on the keyboard. Save inserts it and keeps it in the saved list. |
+| `compose.favStyle.<name>` / `compose.trashStyle.<name>` | Star or remove a style. The sheet lists every style, three across, favorites first. Delete is on the right of a style that is not a favorite. Trashing the standing style clears it. |
+| `compose.favTag.<name>` / `compose.trashTag.<name>` | Star or remove a saved tag. Favorites sort first. Delete is on the right of a tag that is not a favorite. |
+| `compose.stylePage.<n>` / `compose.tagPage.<n>` | Move that list by `n` rows. A row is three names. |
+| `compose.beginStyleName` | **Add** beside Done on the style sheet. Same accent fill as Done. Save adds the style, already starred. |
+| `compose.beginTagName` | **Add** beside Done on the tag sheet. Same accent fill as Done. Save stores the tag and does not insert it. |
+| `compose.insertTag.<name>` | Insert `[name]` at the caret and close the tag sheet. `name` is percent-encoded. |
 | `compose.openFiles` / `compose.importChoose` / `compose.importFile` | **Import**. Open the file browser in import/merge mode over Speak and show the keyboard. Cancel returns to the layer that was showing. |
 | `compose.exportBoard` / `compose.exportFile` | **Export**. Same browser in export mode, with the file-name editor. |
 | `compose.browserPrev` / `compose.browserForward` / `compose.browserUp` | Back, forward, or the parent folder. A path crumb runs `compose.browserGoto.<i>`. A Places entry runs `compose.browserPlace.<i>`. |
@@ -182,7 +182,7 @@ XML `mouseMoveByDirection` is the compass form of the nudge commands.
 | `history.play.<id>` / `history.restore.<id>` / `history.delete.<id>` | Replay, put the phrase back, or drop the row. |
 | `history.list.next` / `.prev` / `history.list.goto.<n>` | History list page/jump. After the lock-on ring fills, looking along the track drags the thumb. |
 | `compose.pin` / `compose.cancelAssign` | Actions **Edit**. Same as `compose.editPins`, except Save while a name, style, or tag is open. |
-| `compose.editPins` | Keyboard **Edit**. Dwell a phrase or topic to edit it. Dwell an empty cell to save the composer text there. |
+| `compose.editPins` | Keyboard **Edit** on the Speak page. Dwell a phrase or topic to edit it. Dwell an empty cell to save the composer text there. A style or tag sheet leaves this key idle. |
 | `compose.browseAudio` / `compose.assignAudio` | Phrase editor **Browse**. Opens the file browser for a saved audio file. **Assign** asks Yes, then Save copies it onto the phrase. The file plays instead of the typed phrase. |
 | `soundboard.edit.<id>` / `soundboard.editTopic.<id>` | Pin / topic item editor. |
 | `soundboard.play.<id>` | Play a button. |

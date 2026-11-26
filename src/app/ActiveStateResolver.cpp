@@ -140,6 +140,29 @@ bool resolveActiveState(const ActiveStateContext& ctx, const QString& key)
             key.mid(int(QLatin1String("speech.voice.").size())));
         return ctx.composeUi && ctx.composeUi->currentVoiceId() == id;
     }
+    if (key.startsWith(QLatin1String("compose.favStyle."))) {
+        if (!ctx.settings) {
+            return false;
+        }
+        const QString name = QUrl::fromPercentEncoding(
+            key.mid(int(QLatin1String("compose.favStyle.").size())).toUtf8());
+        return VoiceStyles::isFavorite(
+            VoiceStyles::Catalog{ctx.settings->voiceStyleNames, ctx.settings->voiceStyleFavorites},
+            name);
+    }
+    if (key.startsWith(QLatin1String("compose.favTag."))) {
+        if (!ctx.settings) {
+            return false;
+        }
+        const QString name = AppSettings::normalizeSpeechTag(QUrl::fromPercentEncoding(
+            key.mid(int(QLatin1String("compose.favTag.").size())).toUtf8()));
+        for (const AppSettings::SavedSpeechTag& tag : ctx.settings->savedSpeechTags) {
+            if (AppSettings::normalizeSpeechTag(tag.name).compare(name, Qt::CaseInsensitive) == 0) {
+                return tag.favorite;
+            }
+        }
+        return false;
+    }
     if (key.startsWith(QLatin1String("speech.fav."))) {
         const QString id =
             VoiceCatalog::decodeId(key.mid(int(QLatin1String("speech.fav.").size())));

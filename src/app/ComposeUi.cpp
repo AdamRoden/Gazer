@@ -388,8 +388,6 @@ void ComposeUi::abandonClosedSession()
     if (m_dismissColor) {
         m_dismissColor();
     }
-    m_styleEditor = false;
-    m_tagEditor = false;
     m_stylePage = 0;
     m_tagPage = 0;
     m_showFavorites = false;
@@ -925,12 +923,10 @@ void ComposeUi::syncClosedOverlays()
     if (!hasLive(kStylesLiveId)) {
         m_styleSearch = false;
         m_styleQuery.clear();
-        m_styleEditor = false;
     }
     if (!hasLive(kTagsLiveId)) {
         m_tagSearch = false;
         m_tagQuery.clear();
-        m_tagEditor = false;
     }
     if (!hasLive(kRailLiveId)) {
         m_railSearch = false;

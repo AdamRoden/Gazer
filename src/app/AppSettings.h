@@ -157,9 +157,10 @@ struct AppSettings {
         QString name;
         QString color;
         QString icon;
+        bool favorite = false;
         [[nodiscard]] bool operator==(const SavedSpeechTag& o) const
         {
-            return name == o.name && color == o.color && icon == o.icon;
+            return name == o.name && color == o.color && icon == o.icon && favorite == o.favorite;
         }
     };
     QVector<SavedSpeechTag> savedSpeechTags = defaultSavedSpeechTags();

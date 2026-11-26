@@ -30,7 +30,7 @@ using compose_detail::paintDanger;
 using compose_detail::paintFlat;
 using compose_detail::paintOutline;
 using compose_detail::paintSurface;
-using compose_detail::searchField;
+
 using compose_detail::trackPx;
 using SettingsPageBuild::makeNested;
 
@@ -58,6 +58,7 @@ bool ComposeUi::openHistory(QString* error)
     m_historySearch = true;
     m_historyQuery.clear();
     m_historyClearArm = false;
+    closeComposeSheets(kHistoryLiveId);
     const bool ok = presentLive(QString(kHistoryLiveId), buildHistoryDocument(), error);
     if (ok && isOpen()) {
         showComposeLayer(1);
@@ -264,10 +265,10 @@ PageDocument ComposeUi::buildHistoryDocument()
     doc.id = QString(kHistoryLiveId);
     doc.name = QStringLiteral("History");
     const ThemeColors theme = m_settings.resolvedTheme();
-    initTopOverlay(doc, 1, 4, {1, 1, 1, 1}, 8, 16, theme, aboveKeyboardHeight(m_composeAuthored),
+    initTopOverlay(doc, 1, 3, {1, 1, 1}, 8, 16, theme, aboveKeyboardHeight(m_composeAuthored),
                    speakBoardWidth());
     PageGrid& grid = doc.grids[0];
-    grid.rowTracks = {trackPx(72), trackPx(72), PageTrackSize::starWeight(), trackPx(72)};
+    grid.rowTracks = {trackPx(72), PageTrackSize::starWeight(), trackPx(72)};
     const QColor key = theme.defaultCell();
     const QColor accent = theme.accent.isValid() ? theme.accent : QColor(80, 160, 220);
     const QColor warn = theme.danger.isValid() ? theme.danger : QColor(180, 80, 80);
@@ -289,17 +290,13 @@ PageDocument ComposeUi::buildHistoryDocument()
                                 : QString();
 
     PageGrid title =
-        compose_detail::speakTitleBar(QStringLiteral("History"), false, key);
+        compose_detail::speakTitleBar(QStringLiteral("History"), false, key, false);
     if (!caption.isEmpty() && !title.cells.isEmpty()) {
         title.cells[0].caption = caption;
     }
     grid.subGrids.push_back(std::move(title));
 
-    grid.cells.push_back(searchField(QStringLiteral("history_search"), m_historyQuery,
-                                     QStringLiteral("Search speech history..."), 1, 0, 1, key,
-                                     accent));
-
-    PageGrid body = overlayBody(2, 1);
+    PageGrid body = overlayBody(1, 1);
     PageGrid list = overlayList(1, kHistoryCards);
     list.gapPx = 8;
     const QColor rim = ThemeColors::mix(value, ThemeColors::contrastOn(value), 0.28);
@@ -315,8 +312,8 @@ PageDocument ComposeUi::buildHistoryDocument()
         const SpeechHistoryItem& it = items.at(idx);
         PageGrid row = makeNested(QStringLiteral("hist_%1").arg(i), i, 0, 1, 6, 8);
         row.marginPx = 6;
-        row.columnTracks = {PageTrackSize::starWeight(), trackPx(108), trackPx(104), trackPx(128),
-                            trackPx(104), trackPx(64)};
+        row.columnTracks = {PageTrackSize::starWeight(), trackPx(108), trackPx(72), trackPx(72),
+                            trackPx(72), trackPx(72)};
         row.style.radius = PageBox::all(12);
         row.style.background = value;
         row.style.borderColor = rim;
@@ -331,22 +328,25 @@ PageDocument ComposeUi::buildHistoryDocument()
         when.textStyle = QStringLiteral("caption");
         paintFlat(when);
         row.cells.push_back(std::move(when));
-        PageCell play = cell(QStringLiteral("p_%1").arg(i), QStringLiteral("Play"), 0, 2,
-                             QStringLiteral("history.play.%1").arg(it.id), key);
+        PageCell play = cell(QStringLiteral("p_%1").arg(i), {}, 0, 2,
+                             QStringLiteral("history.play.%1").arg(it.id), key, 1, {}, {},
+                             QStringLiteral("Speak"));
         paintSurface(play, key);
         row.cells.push_back(std::move(play));
-        PageCell restore = cell(QStringLiteral("r_%1").arg(i), QStringLiteral("Restore"), 0, 3,
-                                QStringLiteral("history.restore.%1").arg(it.id), QColor());
+        PageCell restore = cell(QStringLiteral("r_%1").arg(i), {}, 0, 3,
+                                QStringLiteral("history.restore.%1").arg(it.id), QColor(), 1, {}, {},
+                                QStringLiteral("undo"));
         paintOutline(restore, accent);
         restore.style.radius = PageBox::all(12);
         row.cells.push_back(std::move(restore));
-        PageCell save = cell(QStringLiteral("s_%1").arg(i), QStringLiteral("Save"), 0, 4,
-                             QStringLiteral("history.save.%1").arg(it.id), key);
+        PageCell save = cell(QStringLiteral("s_%1").arg(i), {}, 0, 4,
+                             QStringLiteral("history.save.%1").arg(it.id), key, 1, {}, {},
+                             QStringLiteral("description"));
         paintSurface(save, key);
         row.cells.push_back(std::move(save));
         PageCell remove = cell(QStringLiteral("d_%1").arg(i), {}, 0, 5,
                                QStringLiteral("history.delete.%1").arg(it.id), QColor(), 1, {}, {},
-                               QStringLiteral("close"));
+                               QStringLiteral("delete"));
         paintDanger(remove, warn);
         row.cells.push_back(std::move(remove));
         list.subGrids.push_back(std::move(row));
@@ -356,14 +356,11 @@ PageDocument ComposeUi::buildHistoryDocument()
                                             QStringLiteral("history.list.prev"),
                                             QStringLiteral("history.list.next")));
     grid.subGrids.push_back(std::move(body));
-
-    PageCell clear = cell(m_historyClearArm ? QStringLiteral("clear_all_confirm")
-                                            : QStringLiteral("clear_all"),
-                          m_historyClearArm ? QStringLiteral("Clear everything?")
-                                            : QStringLiteral("Clear All History"),
-                          3, 0, QStringLiteral("history.clear"), QColor());
-    paintDanger(clear, warn);
-    grid.cells.push_back(std::move(clear));
+    grid.subGrids.push_back(compose_detail::searchBar(
+        QStringLiteral("history_search"), m_historyQuery, QStringLiteral("Search speech history..."),
+        2, key, accent, QStringLiteral("compose.clearSearch"), true,
+        m_historyClearArm ? QStringLiteral("Delete everything?") : QStringLiteral("Delete all"),
+        QStringLiteral("history.clear"), compose_detail::SearchFill::Danger, warn));
     return doc;
 }
 
